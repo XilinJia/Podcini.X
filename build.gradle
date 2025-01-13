@@ -1,0 +1,27 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    ext.kotlin_version = "$libs.versions.kotlin"
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath libs.gradle
+        classpath libs.groovy.xml
+    }
+}
+
+plugins {
+    alias(libs.plugins.compose.compiler) apply false
+    id 'io.realm.kotlin' version '2.3.0' apply false
+}
+
+allprojects {
+    repositories {
+//        mavenLocal()
+        google()
+        mavenCentral()
+        maven { url "https://jitpack.io" }
+    }
+}

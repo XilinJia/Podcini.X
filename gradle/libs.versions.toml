@@ -1,0 +1,13 @@
+ 
+[versions]
+gradle = "8.7.3"
+groovyXml = "3.0.19"
+kotlin = "2.0.20"
+[libraries]
+gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
+groovy-xml = { module = "org.codehaus.groovy:groovy-xml", version.ref = "groovyXml" }
+
+[plugins]
+org-jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
