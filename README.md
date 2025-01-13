@@ -6,7 +6,7 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 
 ### Rendezvous chez:
 
-[<img src="./images/external/getItGithub.png" alt="GitHub" height="50">](https://github.com/XilinJia/Podcini/releases/latest)
+[<img src="./images/external/getItGithub.png" alt="GitHub" height="50">](https://github.com/XilinJia/Podcini.X/releases/latest)
 
 [//]: # ([<img src="./images/external/getItIzzyOnDroid.png" alt="IzzyOnDroid" height="50">]&#40;https://apt.izzysoft.de/fdroid/index/apk/ac.mdiq.podcini.X&#41;)
 
