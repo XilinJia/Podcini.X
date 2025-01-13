@@ -235,7 +235,7 @@ For more details of the changes, see the [Changelog](changelog.md)
 <img src="./images/3_subscriptions2.jpg" width="238" /> <img src="./images/3_subscriptions1.jpg" width="238" /> <img src="./images/3_subscriptions0.jpg" width="238" />
 
 ### Podcast
-<img src="./images/5_podcast_0.jpg" width="238" /> <img src="./images/5_podcast_1.jpg" width="238" /> <img src="./images/5_podcast_2.jpg" width="238" />
+<img src="./images/5_podcast_0.jpg" width="238" /> <img src="./images/5_podcast_1.jpg" width="238" />
 
 ### Podcast settings
 <img src="./images/5_podcast_setting.jpg" width="238" /> <img src="./images/5_podcast_setting1.jpg" width="238" /> 
