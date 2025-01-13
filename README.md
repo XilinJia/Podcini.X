@@ -14,6 +14,9 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 
 [//]: # ([<img src="./images/external/amazon.png" alt="Amazon" height="40">]&#40;https://www.amazon.com/%E8%B4%BE%E8%A5%BF%E6%9E%97-Podcini-R/dp/B0D9WR8P13&#41;)
 
+
+### A fork of [Podcini.R](<https://github.com/XilinJia/Podcini>) as of Jan 13 2025, this project inherits all functionalities of Podcini.R with the capability of accessing to Youtube stripped off.
+
 ### Note:
 
 #### Translation service is moved to Crowdin, see link down below.
@@ -24,10 +27,6 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 Podcini.X requests for permission for unrestricted background activities for uninterrupted background play of a playlist.  For more see [this issue](https://github.com/XilinJia/Podcini/issues/88)
 
 If you intend to sync through a server, NextCloud server has been tested, but caution is advised. 
-
-This project was a fork of [Podcini.R](<https://github.com/XilinJia/Podcini>) as of Jan 13 2025.
-
-### This project inherits all functionalities of Podcini.R except the the capability of accessing to Youtube contents
 
 ## Usage and notable features description 
 <details> <summary>Click to expand</summary>
