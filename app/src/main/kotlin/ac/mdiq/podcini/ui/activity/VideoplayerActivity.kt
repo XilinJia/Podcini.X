@@ -309,9 +309,9 @@ class VideoplayerActivity : CastEnabledActivity() {
                     val episode = withContext(Dispatchers.IO) {
                         var episode_ = curEpisode
                         if (episode_ != null) {
-                            val duration = episode_.duration
-                            val shownotesCleaner = ShownotesCleaner(this@VideoplayerActivity)
-                            cleanedNotes = shownotesCleaner.processShownotes(episode_.description ?: "", duration)
+                            val result = buildCleanedNotes(episode_, ShownotesCleaner(this@VideoplayerActivity))
+                            episode_ = result.first
+                            cleanedNotes = result.second
                         }
                         episode_
                     }

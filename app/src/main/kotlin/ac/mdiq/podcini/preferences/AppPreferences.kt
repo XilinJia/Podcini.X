@@ -198,6 +198,10 @@ object AppPreferences {
             is Boolean -> editor.putBoolean(key, value)
             is Float -> editor.putFloat(key, value)
             is Long -> editor.putLong(key, value)
+            is Set<*> -> {
+                val stringSet = value.filterIsInstance<String>().toSet()
+                if (stringSet.size == value.size) editor.putStringSet(key, stringSet)
+            }
             else -> throw IllegalArgumentException("Unsupported type")
         }
         editor.apply()

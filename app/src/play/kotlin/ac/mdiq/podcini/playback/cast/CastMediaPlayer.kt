@@ -5,6 +5,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.MediaPlayerCallback
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
+import ac.mdiq.podcini.playback.base.YTMediaSpecs.Companion.setCastYTMediaSource
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -272,8 +273,10 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     override fun setDataSource(metadata: MediaMetadata, media: Episode) {
         Logd(TAG, "setDataSource1 called")
-        media.effectUrl = media.downloadUrl ?: ""
-        media.effectMimeType = media.mimeType ?: ""
+        if (!setCastYTMediaSource(media)) {
+            media.effectUrl = media.downloadUrl ?: ""
+            media.effectMimeType = media.mimeType ?: ""
+        }
     }
 
     override fun resume() {

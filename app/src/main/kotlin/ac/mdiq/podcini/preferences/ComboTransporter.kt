@@ -98,12 +98,11 @@ class PreferencesTransporter(val prefsDirName: String) {
 //                  for importing from Podcini version 5 and below
                     if (!hasPodciniRPrefs) {
                         when {
-                            destName.contains("podcini") -> destName = destName.replace("podcini", "podcini.X")
                             destName.contains("EpisodeItemListRecyclerView") -> destName = destName.replace("EpisodeItemListRecyclerView", "EpisodesRecyclerView")
                         }
                     }
                     when {
-                        BuildConfig.DEBUG && !destName.contains(".debug") -> destName = destName.replace("podcini.X", "podcini.X.debug")
+                        BuildConfig.DEBUG && !destName.contains(".debug") -> destName = destName.replace("podcini", "podcini.debug")
                         !BuildConfig.DEBUG && destName.contains(".debug") -> destName = destName.replace(".debug", "")
                     }
                     val destFile = File(sharedPreferencesDir, destName)

@@ -274,7 +274,9 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                 if (curItem != null) {
                     if (rating == Rating.UNRATED.code || prevItem?.identifyingValue != curItem!!.identifyingValue) rating = curItem!!.rating
                     Logd(TAG, "updateDetails updateInfo ${cleanedNotes == null} ${prevItem?.identifyingValue} ${curItem!!.identifyingValue}")
-                    cleanedNotes = shownotesCleaner?.processShownotes(curItem!!.description ?: "", curItem?.duration?:0)
+                    val result = buildCleanedNotes(curItem!!, shownotesCleaner)
+                    curItem = result.first
+                    cleanedNotes = result.second
                     prevItem = curItem
                 }
                 Logd(TAG, "updateDetails cleanedNotes: ${cleanedNotes?.length}")
@@ -767,6 +769,7 @@ fun AudioPlayerScreen() {
 //            if (Build.VERSION.SDK_INT <= 32) (context as MainActivity).showSnackbarAbovePlayer(context.getString(R.string.copied_to_clipboard), Snackbar.LENGTH_SHORT)
                 return true
             }
+            PlayerDetailedYTPanel(vm)
             Text(vm.txtvPodcastTitle, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp).combinedClickable(onClick = {
                     if (vm.curItem != null) {

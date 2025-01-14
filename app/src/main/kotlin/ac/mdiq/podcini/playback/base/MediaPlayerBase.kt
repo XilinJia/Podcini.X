@@ -4,6 +4,7 @@ import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
+import ac.mdiq.podcini.playback.base.YTMediaSpecs.Companion.setYTMediaSource
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
@@ -107,9 +108,15 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         val feed = media.feed
         val user = feed?.username
         val password = feed?.password
-        Logd(TAG, "setDataSource1 setting for Podcast source")
-        isYTMedia = false
-        setDataSource(metadata, url,user, password)
+        mediaSource = setYTMediaSource(metadata, media, context)
+        if (mediaSource != null) {
+            mediaItem = mediaSource?.mediaItem
+            setSourceCredentials(user, password)
+        } else {
+            Logd(TAG, "setDataSource1 setting for Podcast source")
+            isYTMedia = false
+            setDataSource(metadata, url,user, password)
+        }
     }
 
     private fun setSourceCredentials(user: String?, password: String?) {
@@ -326,6 +333,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         var status by mutableStateOf(PlayerStatus.STOPPED)
 
         var isYTMedia by mutableStateOf(false)
+        var ytMediaSpecs by mutableStateOf<YTMediaSpecs>(YTMediaSpecs(Episode()))
 
         @JvmField
         val ELAPSED_TIME_FOR_SHORT_REWIND: Long = TimeUnit.MINUTES.toMillis(1)
