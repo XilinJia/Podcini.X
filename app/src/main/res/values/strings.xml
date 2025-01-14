@@ -894,6 +894,8 @@
     <string name="custom_speed">Custom</string>
     <string name="has_skips">Skips set</string>
     <string name="commented">Commented</string>
+    <string name="add_comment">Add comment (auto save 10s)</string>
+
     <string name="feed_type">Feed type</string>
     <string name="synthetic">Synthetic</string>
     <string name="normal">Normal</string>

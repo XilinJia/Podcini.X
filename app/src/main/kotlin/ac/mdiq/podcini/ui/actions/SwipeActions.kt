@@ -268,15 +268,15 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
         @Composable
         override fun ActionOptions() {
-            if (showEditComment && onEpisode != null) {
+            if (showEditComment) {
                 LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false },
-                    onSave = { text ->
-                        runOnIOScope {
-                            upsert(onEpisode!!) {
-                                it.comment = text
+                    onSave = {
+                        if (onEpisode != null) runOnIOScope {
+                             upsert(onEpisode!!) {
+                                it.comment = editCommentText.text
                                 it.commentTime = localTime
                             }
-                            onEpisode = null
+                            onEpisode = null    // this is needed, otherwise the realm.query clause does not update onEpisode for some reason
                         }
                     })
             }

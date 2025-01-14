@@ -4,7 +4,7 @@ plugins {
     id 'org.jetbrains.kotlin.android'
     alias(libs.plugins.compose.compiler)
     id 'io.realm.kotlin'
-    id('com.github.triplet.play') version '3.9.0' apply false
+//    id('com.github.triplet.play') version '3.9.0' apply false
 }
 
 composeCompiler {
@@ -26,8 +26,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 101
-        versionName "8.0.1"
+        versionCode 102
+        versionName "8.0.2"
 
         ndkVersion "27.0.12077973"
 
@@ -229,13 +229,13 @@ dependencies {
 
 apply plugin: "io.realm.kotlin"
 
-if (project.hasProperty("podciniPlayPublisherCredentials")) {
-    apply plugin: 'com.github.triplet.play'
-    play {
-        track.set('alpha')
-        serviceAccountCredentials.set(file(podciniPlayPublisherCredentials))
-    }
-}
+//if (project.hasProperty("podciniPlayPublisherCredentials")) {
+//    apply plugin: 'com.github.triplet.play'
+//    play {
+//        track.set('alpha')
+//        serviceAccountCredentials.set(file(podciniPlayPublisherCredentials))
+//    }
+//}
 
 tasks.register('copyLicense', Copy) {
     from "../LICENSE"

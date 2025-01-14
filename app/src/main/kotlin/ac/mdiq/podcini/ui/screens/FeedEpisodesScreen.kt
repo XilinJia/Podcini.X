@@ -87,9 +87,6 @@ class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
     internal val episodes = mutableStateListOf<Episode>()
     internal val vms = mutableStateListOf<EpisodeVM>()
 
-//    internal var ieMap: Map<Long, Int> = mapOf()
-//    internal var ueMap: Map<String, Int> = mapOf()
-
     internal var enableFilter: Boolean = true
     internal var filterButtonColor = mutableStateOf(Color.White)
 
@@ -204,8 +201,6 @@ class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
             val episodes_ = realm.query(Episode::class).query("feedId == ${feed!!.id}").query(feed!!.episodeFilter.queryString()).find()
             if (!episodes_.contains(episode)) {
                 episodes.remove(episode)
-//                ieMap = episodes.withIndex().associate { (index, episode) -> episode.id to index }
-//                ueMap = episodes.mapIndexedNotNull { index, episode_ -> episode_.downloadUrl?.let { it to index } }.toMap()
                 return true
             }
             return false
@@ -237,8 +232,6 @@ class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
                         getPermutor(sortOrder).reorder(eListTmp)
                         episodes.clear()
                         episodes.addAll(eListTmp)
-//                        ieMap = episodes.withIndex().associate { (index, episode) -> episode.id to index }
-//                        ueMap = episodes.mapIndexedNotNull { index, episode -> episode.downloadUrl?.let { it to index } }.toMap()
                         withContext(Dispatchers.Main) {
                             layoutModeIndex = if (feed_.useWideLayout == true) 1 else 0
                             stopMonitor(vms)
@@ -325,8 +318,6 @@ class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
                 getPermutor(fromCode(feed?.sortOrderCode ?: 0)).reorder(eListTmp)
                 episodes.clear()
                 episodes.addAll(eListTmp)
-//                ieMap = episodes.withIndex().associate { (index, episode) -> episode.id to index }
-//                ueMap = episodes.mapIndexedNotNull { index, episode -> episode.downloadUrl?.let { it to index } }.toMap()
             }
             withContext(Dispatchers.Main) {
                 stopMonitor(vms)
@@ -390,8 +381,6 @@ fun FeedEpisodesScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             vm.feed = null
-//            vm.ieMap = mapOf()
-//            vm.ueMap = mapOf()
             vm.episodes.clear()
             stopMonitor(vm.vms)
             vm.vms.clear()
@@ -400,7 +389,6 @@ fun FeedEpisodesScreen() {
             FEObj.ttsWorking = false
             FEObj.ttsReady = false
             FEObj.tts = null
-//            vm_ = null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }

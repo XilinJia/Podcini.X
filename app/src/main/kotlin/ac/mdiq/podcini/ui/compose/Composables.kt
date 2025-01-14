@@ -3,8 +3,6 @@ package ac.mdiq.podcini.ui.compose
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import android.content.Context
 import android.text.Spannable
 import android.text.SpannableString
@@ -134,12 +132,12 @@ fun CustomToast(message: String, durationMillis: Long = 2000L, onDismiss: () -> 
 }
 
 @Composable
-fun LargeTextEditingDialog(textState: TextFieldValue, onTextChange: (TextFieldValue) -> Unit, onDismissRequest: () -> Unit, onSave: (String) -> Unit) {
+fun LargeTextEditingDialog(textState: TextFieldValue, onTextChange: (TextFieldValue) -> Unit, onDismissRequest: () -> Unit, onSave: () -> Unit) {
     Dialog(onDismissRequest = { onDismissRequest() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Add comment", color = textColor, style = CustomTextStyles.titleCustom)
+                Text(stringResource(R.string.add_comment), color = textColor, style = CustomTextStyles.titleCustom)
                 Spacer(modifier = Modifier.height(16.dp))
                 BasicTextField(value = textState, onValueChange = { onTextChange(it) }, textStyle = TextStyle(fontSize = 16.sp, color = textColor),
                     modifier = Modifier.fillMaxWidth().height(300.dp).padding(10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
@@ -148,7 +146,7 @@ fun LargeTextEditingDialog(textState: TextFieldValue, onTextChange: (TextFieldVa
                 Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                     TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
                     TextButton(onClick = {
-                        onSave(textState.text)
+                        onSave()
                         onDismissRequest()
                     }) { Text("Save") }
                 }
@@ -157,7 +155,7 @@ fun LargeTextEditingDialog(textState: TextFieldValue, onTextChange: (TextFieldVa
         LaunchedEffect(Unit) {
             while (true) {
                 delay(10000)
-                onSave(textState.text)
+                onSave()
             }
         }
     }

@@ -216,8 +216,7 @@ class MainActivity : CastEnabledActivity() {
 
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             val insets = WindowInsets.systemBars.asPaddingValues()
-            var dynamicBottomPadding by remember {  mutableStateOf<Dp>(0.dp) }
-            dynamicBottomPadding = insets.calculateBottomPadding()
+            val dynamicBottomPadding = insets.calculateBottomPadding()
             Logd(TAG, "effectiveBottomPadding: $dynamicBottomPadding")
             BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicBottomPadding + 110.dp, sheetDragHandle = {}, topBar = {},
                 sheetSwipeEnabled = false, sheetShape = RectangleShape,
@@ -227,7 +226,7 @@ class MainActivity : CastEnabledActivity() {
                     top = paddingValues.calculateTopPadding(),
                     start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
                     end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
-                    bottom = paddingValues.calculateBottomPadding() - 110.dp
+                    bottom = paddingValues.calculateBottomPadding()
                 )) {
                     CompositionLocalProvider(LocalNavController provides navController) {
                         NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {
