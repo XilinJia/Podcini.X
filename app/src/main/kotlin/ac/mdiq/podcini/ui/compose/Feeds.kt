@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.feed.FeedBuilder
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -27,7 +27,6 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.model.SubscriptionLog
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -162,10 +161,11 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun OnlineFeedItem(activity: MainActivity, feed: PodcastSearchResult, log: SubscriptionLog? = null) {
+fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
 //    var showYTChannelDialog by remember { mutableStateOf(false) }
 //    if (showYTChannelDialog) feedBuilder.ConfirmYTChannelTabsDialog(onDismissRequest = {showYTChannelDialog = false}) {feed, map ->  handleFeed(feed, map)}
 
+    val context = LocalContext.current
     val showSubscribeDialog = remember { mutableStateOf(false) }
     @Composable
     fun confirmSubscribe(feed: PodcastSearchResult, showDialog: Boolean, onDismissRequest: () -> Unit) {
@@ -176,21 +176,7 @@ fun OnlineFeedItem(activity: MainActivity, feed: PodcastSearchResult, log: Subsc
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
                         Text("Subscribe: \"${feed.title}\" ?", color = textColor, modifier = Modifier.padding(bottom = 10.dp))
                         Button(onClick = {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                if (feed.feedUrl != null) {
-                                    val feedBuilder = FeedBuilder(activity) { message, details -> Logd("OnineFeedItem", "Subscribe error: $message \n $details") }
-                                    feedBuilder.feedSource = feed.source
-                                    val url = feed.feedUrl
-                                    if (feedBuilder.isYT(url)) {
-                                        if (feedBuilder.isYTChannel()) {
-//                                            val nTabs = feedBuilder.youtubeChannelValidTabs()
-                                            feedBuilder.buildYTChannel(0, "") { feed, _ -> feedBuilder.subscribe(feed) }
-//                                            if (nTabs > 1) showYTChannelDialog = true
-//                                            else feedBuilder.buildYTChannel(0, "") { feed, map -> feedBuilder.subscribe(feed) }
-                                        } else feedBuilder.buildYTPlaylist { feed, _ -> feedBuilder.subscribe(feed) }
-                                    } else feedBuilder.buildPodcast(url, "", "") { feed, _ -> feedBuilder.subscribe(feed) }
-                                }
-                            }
+                            gearbox.subscribeFeed(feed, context)
                             onDismissRequest()
                         }) { Text(stringResource(R.string.confirm_label)) }
                     }
@@ -200,7 +186,6 @@ fun OnlineFeedItem(activity: MainActivity, feed: PodcastSearchResult, log: Subsc
     }
     if (showSubscribeDialog.value) confirmSubscribe(feed, showSubscribeDialog.value, onDismissRequest = { showSubscribeDialog.value = false })
 
-    val context = LocalContext.current
     Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 4.dp).combinedClickable(
         onClick = {
             if (feed.feedUrl != null) {

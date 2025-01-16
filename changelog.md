@@ -1,3 +1,10 @@
+# 8.0.3
+
+* made playerUI hidden when no playable
+* fixed GPL warning on Settings screen
+* code restructuring and cleanup
+* updated Compose to 1.10.0
+
 # 8.0.2
 
 * fixed bottom padding to offset the player UI

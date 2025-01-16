@@ -1,10 +1,12 @@
 package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.util.Logd
 import java.io.Serializable
+import kotlin.String
 
 class FeedFilter(vararg properties_: String) : Serializable {
     val properties: HashSet<String> = setOf(*properties_).filter { it.isNotEmpty() }.map {it.trim()}.toHashSet()
@@ -42,10 +44,7 @@ class FeedFilter(vararg properties_: String) : Serializable {
             properties.contains(States.has_video.name) -> statements.add(" hasVideoMedia == true ")
             properties.contains(States.no_video.name) -> statements.add(" hasVideoMedia == false ")
         }
-        when {
-            properties.contains(States.youtube.name) -> statements.add(" downloadUrl CONTAINS[c] 'youtube' OR link CONTAINS[c] 'youtube' OR downloadUrl CONTAINS[c] 'youtu.be' OR link CONTAINS[c] 'youtu.be' ")
-            properties.contains(States.rss.name) -> statements.add(" !(downloadUrl CONTAINS[c] 'youtube' OR link CONTAINS[c] 'youtube' OR downloadUrl CONTAINS[c] 'youtu.be' OR link CONTAINS[c] 'youtu.be') ")
-        }
+        gearbox.feedFilter(properties, statements)
 
         val ratingQuerys = mutableListOf<String>()
         if (properties.contains(States.unrated.name)) ratingQuerys.add(" rating == ${Rating.UNRATED.code} ")

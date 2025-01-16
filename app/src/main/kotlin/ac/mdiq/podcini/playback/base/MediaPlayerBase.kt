@@ -1,10 +1,10 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
-import ac.mdiq.podcini.playback.base.YTMediaSpecs.Companion.setYTMediaSource
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
@@ -35,7 +35,6 @@ import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.Throws
 import kotlin.math.max
 
 abstract class MediaPlayerBase protected constructor(protected val context: Context, protected val callback: MediaPlayerCallback) {
@@ -108,13 +107,13 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         val feed = media.feed
         val user = feed?.username
         val password = feed?.password
-        mediaSource = setYTMediaSource(metadata, media, context)
+        mediaSource = gearbox.formMediaSource(metadata, media, context)
         if (mediaSource != null) {
+            Logd(TAG, "setDataSource1 setting for Podcast source")
             mediaItem = mediaSource?.mediaItem
             setSourceCredentials(user, password)
         } else {
             Logd(TAG, "setDataSource1 setting for Podcast source")
-            isYTMedia = false
             setDataSource(metadata, url,user, password)
         }
     }
@@ -331,9 +330,6 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         @get:Synchronized
         @JvmStatic
         var status by mutableStateOf(PlayerStatus.STOPPED)
-
-        var isYTMedia by mutableStateOf(false)
-        var ytMediaSpecs by mutableStateOf<YTMediaSpecs>(YTMediaSpecs(Episode()))
 
         @JvmField
         val ELAPSED_TIME_FOR_SHORT_REWIND: Long = TimeUnit.MINUTES.toMillis(1)

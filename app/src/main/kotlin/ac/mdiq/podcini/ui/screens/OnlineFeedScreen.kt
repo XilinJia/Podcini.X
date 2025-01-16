@@ -1,13 +1,13 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
-import ac.mdiq.podcini.net.feed.FeedBuilder
+import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
-import ac.mdiq.podcini.net.utils.NetworkUtils.getFinalRedirectedUrl
 import ac.mdiq.podcini.preferences.AppPreferences.isEnableAutodownload
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedByTitleAndAuthor
@@ -26,10 +26,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.isOnlineFeedShared
-import ac.mdiq.podcini.ui.utils.onlineEpisodes
-import ac.mdiq.podcini.ui.utils.onlineFeedUrl
+import ac.mdiq.podcini.ui.utils.*
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -84,8 +81,8 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var feedUrl: String = ""
     internal var urlToLog: String = ""
-    internal lateinit var feedBuilder: FeedBuilder
-    internal var showYTChannelDialog by mutableStateOf(false)
+    internal lateinit var feedBuilder: FeedBuilderBase
+    internal var showTabsDialog by mutableStateOf(false)
 
     internal var isShared: Boolean = false
 
@@ -104,6 +101,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
         }
 
     init {
+        feedSource = onlineFeedSource
         feedUrl = onlineFeedUrl
         isShared = isOnlineFeedShared
     }
@@ -142,17 +140,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
             Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
             try {
                 feeds = getFeedList()
-                if (feedBuilder.isYT(urlString)) {
-                    if (feedBuilder.isYTChannel()) {
-                        val nTabs = feedBuilder.ytChannelValidTabs()
-                        if (nTabs > 1) showYTChannelDialog = true
-                        else feedBuilder.buildYTChannel(0, "") { feed_, map -> handleFeed(feed_, map) }
-                    } else feedBuilder.buildYTPlaylist { feed_, map -> handleFeed(feed_, map) }
-                } else {
-                    val urlFinal = getFinalRedirectedUrl(urlString)?:""
-                    Logd(TAG, "lookupUrlAndBuild: urlFinal: $urlFinal")
-                    feedBuilder.buildPodcast(urlFinal, username, password) { feed_, map -> handleFeed(feed_, map) }
-                }
+                gearbox.buildFeed(urlString, username ?: "", password ?: "", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
             } catch (e: FeedUrlNotFoundException) { tryToRetrieveFeedUrlBySearch(e)
             } catch (e: Throwable) {
                 Log.e(TAG, Log.getStackTraceString(e))
@@ -163,7 +151,6 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 
     private fun tryToRetrieveFeedUrlBySearch(error: FeedUrlNotFoundException) {
         Logd(TAG, "Unable to retrieve feed url, trying to retrieve feed url from search")
-//        val url = searchFeedUrlByTrackName(error.trackName, error.artistName)
         CoroutineScope(Dispatchers.IO).launch {
             var url: String? = null
             val searcher = CombinedSearcher()
@@ -182,16 +169,9 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Successfully retrieve feed url")
                 isFeedFoundBySearch = true
                 feeds = getFeedList()
-                if (feedBuilder.isYT(url)) {
-                    if (feedBuilder.isYTChannel()) {
-                        val nTabs = feedBuilder.ytChannelValidTabs()
-                        if (nTabs > 1) showYTChannelDialog = true
-                        else feedBuilder.buildYTChannel(0, "") { feed_, map -> handleFeed(feed_, map) }
-                    } else feedBuilder.buildYTPlaylist { feed_, map -> handleFeed(feed_, map) }
-                } else feedBuilder.buildPodcast(url, username, password) { feed_, map -> handleFeed(feed_, map) }
+                gearbox.buildFeed(url, username?:"", password?:"", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
             } else {
-//                showNoPodcastFoundError()
-                showNoPodcastFoundDialog = true
+                withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
                 Logd(TAG, "Failed to retrieve feed url")
             }
         }
@@ -252,7 +232,6 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                     errorMessage = e.message ?: "No message"
                     errorDetails = ""
                     showErrorDialog = true
-//                    showErrorDialog(e.message, "")
                 }
             }
         }
@@ -348,7 +327,6 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                         feed1.password = password
                     }
                     runOnIOScope { upsert(feed1) {} }
-//                    openFeed()
                 }
             }
             else -> {
@@ -379,19 +357,15 @@ fun OnlineFeedScreen() {
 //                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
 //                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
 
-//                        vm.feedUrl = requireArguments().getString(ARG_FEEDURL) ?: ""
-//                        vm.isShared = requireArguments().getBoolean("isShared")
                     Logd(TAG, "feedUrl: ${vm.feedUrl}")
-                    vm.feedBuilder = FeedBuilder(context) { message, details ->
+                    vm.feedBuilder = gearbox.formFeedBuilder(vm.feedUrl, vm.feedSource, context) { message, details ->
                         vm.errorMessage = message ?: "No message"
                         vm.errorDetails = details
                         vm.showErrorDialog = true
-//                        vm.showErrorDialog(message, details)
                     }
                     if (vm.feedUrl.isEmpty()) {
                         Log.e(TAG, "feedUrl is null.")
                         vm.showNoPodcastFoundDialog = true
-//                        vm.showNoPodcastFoundError()
                     } else {
                         Logd(TAG, "Activity was started with url ${vm.feedUrl}")
                         vm.showProgress = true
@@ -430,7 +404,7 @@ fun OnlineFeedScreen() {
     }
 
     val textColor = MaterialTheme.colorScheme.onSurface
-    if (vm.showYTChannelDialog) vm.feedBuilder.ConfirmYTChannelTabsDialog(onDismissRequest = { vm.showYTChannelDialog = false }) { feed, map -> vm.handleFeed(feed, map) }
+    if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = { vm.showTabsDialog = false }) { feed, map -> vm.handleFeed(feed, map) }
     val feedLogsMap_ = feedLogsMap!!
     if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
         title = { Text(stringResource(R.string.error_label)) },
@@ -577,7 +551,6 @@ fun OnlineFeedScreen() {
     }
 }
 
-const val ARG_FEEDURL: String = "arg.feedurl"
 const val ARG_WAS_MANUAL_URL: String = "manual_url"
 private const val RESULT_ERROR = 2
 private const val TAG: String = "OnlineFeedScreen"

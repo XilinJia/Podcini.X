@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedByTitleAndAuthor
@@ -15,7 +16,6 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
-import ac.mdiq.podcini.ui.compose.ConfirmAddYTEpisode
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.util.EventFlow
@@ -207,7 +207,7 @@ fun LogsScreen() {
         }
         var showYTMediaConfirmDialog by remember { mutableStateOf(false) }
         var sharedUrl by remember { mutableStateOf("") }
-        ConfirmAddYTEpisode(listOf(sharedUrl), showYTMediaConfirmDialog, onDismissRequest = { showYTMediaConfirmDialog = false })
+        gearbox.ConfirmAddGearEpisode(listOf(sharedUrl), showYTMediaConfirmDialog, onDismissRequest = { showYTMediaConfirmDialog = false })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {

@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.playback.PlaybackServiceStarter
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -274,7 +275,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                 if (curItem != null) {
                     if (rating == Rating.UNRATED.code || prevItem?.identifyingValue != curItem!!.identifyingValue) rating = curItem!!.rating
                     Logd(TAG, "updateDetails updateInfo ${cleanedNotes == null} ${prevItem?.identifyingValue} ${curItem!!.identifyingValue}")
-                    val result = buildCleanedNotes(curItem!!, shownotesCleaner)
+                    val result = gearbox.buildCleanedNotes(curItem!!, shownotesCleaner)
                     curItem = result.first
                     cleanedNotes = result.second
                     prevItem = curItem
@@ -769,7 +770,7 @@ fun AudioPlayerScreen() {
 //            if (Build.VERSION.SDK_INT <= 32) (context as MainActivity).showSnackbarAbovePlayer(context.getString(R.string.copied_to_clipboard), Snackbar.LENGTH_SHORT)
                 return true
             }
-            PlayerDetailedYTPanel(vm)
+            gearbox.PlayerDetailedGearPanel(vm)
             Text(vm.txtvPodcastTitle, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp).combinedClickable(onClick = {
                     if (vm.curItem != null) {

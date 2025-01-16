@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
@@ -23,7 +24,7 @@ object FeedUpdateManager {
     private val TAG: String = FeedUpdateManager::class.simpleName ?: "Anonymous"
 
     const val WORK_TAG_FEED_UPDATE: String = "feedUpdate"
-    private const val WORK_ID_FEED_UPDATE = "ac.mdiq.podcini.service.download.FeedUpdateWorker"
+    private const val WORK_ID_FEED_UPDATE = "ac.mdiq.podcini.FeedUpdateWorker"
     private const val WORK_ID_FEED_UPDATE_MANUAL = "feedUpdateManual"
     const val EXTRA_FEED_ID: String = "feed_id"
     const val EXTRA_NEXT_PAGE: String = "next_page"
@@ -44,7 +45,7 @@ object FeedUpdateManager {
     fun restartUpdateAlarm(context: Context, replace: Boolean) {
         if (isAutoUpdateDisabled) WorkManager.getInstance(context).cancelUniqueWork(WORK_ID_FEED_UPDATE)
         else {
-            val workRequest: PeriodicWorkRequest = PeriodicWorkRequest.Builder(FeedUpdateWorker::class.java, updateInterval, TimeUnit.HOURS)
+            val workRequest: PeriodicWorkRequest = PeriodicWorkRequest.Builder(gearbox.feedUpdateWorkerClass(), updateInterval, TimeUnit.HOURS)
                 .setConstraints(Builder().setRequiredNetworkType(if (isAllowMobileFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED).build())
                 .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(WORK_ID_FEED_UPDATE,
@@ -55,7 +56,7 @@ object FeedUpdateManager {
     @JvmStatic
     @JvmOverloads
     fun runOnce(context: Context, feed: Feed? = null, nextPage: Boolean = false, fullUpdate: Boolean = false) {
-        val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(FeedUpdateWorker::class.java)
+        val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(gearbox.feedUpdateWorkerClass())
             .setInitialDelay(0L, TimeUnit.MILLISECONDS)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .addTag(WORK_TAG_FEED_UPDATE)

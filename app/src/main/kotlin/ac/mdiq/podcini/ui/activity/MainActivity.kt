@@ -9,6 +9,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.restartUpdateAlarm
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
+import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.cast.CastEnabledActivity
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
@@ -67,7 +68,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.Insets
 import androidx.lifecycle.lifecycleScope
@@ -205,28 +205,35 @@ class MainActivity : CastEnabledActivity() {
         lcScope = rememberCoroutineScope()
         val navController = rememberNavController()
         mainNavController = navController
-        val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded))
+        val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Hidden, skipHiddenState = false))
 
         if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
 
-        LaunchedEffect(isBSExpanded) {
-            if (isBSExpanded) lcScope?.launch { sheetState.bottomSheetState.expand() }
-            else lcScope?.launch { sheetState.bottomSheetState.partialExpand() }
+        LaunchedEffect(key1 = isBSExpanded, key2 = curMediaId) {
+            if (curMediaId > 0) {
+                if (isBSExpanded) lcScope?.launch { sheetState.bottomSheetState.expand() }
+                else lcScope?.launch { sheetState.bottomSheetState.partialExpand() }
+            } else lcScope?.launch { sheetState.bottomSheetState.hide() }
         }
-
+        val dynamicBottomPadding by derivedStateOf {
+            when {
+                sheetState.bottomSheetState.currentValue == SheetValue.Expanded -> 300.dp
+                sheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded -> 110.dp
+                else -> 0.dp
+            }
+        }
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             val insets = WindowInsets.systemBars.asPaddingValues()
-            val dynamicBottomPadding = insets.calculateBottomPadding()
-            Logd(TAG, "effectiveBottomPadding: $dynamicBottomPadding")
-            BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicBottomPadding + 110.dp, sheetDragHandle = {}, topBar = {},
-                sheetSwipeEnabled = false, sheetShape = RectangleShape,
-                sheetContent = { AudioPlayerScreen() }
+            val dynamicSheetHeight = insets.calculateBottomPadding()
+            Logd(TAG, "effectiveBottomPadding: $dynamicSheetHeight")
+            BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicSheetHeight + 110.dp, sheetDragHandle = {}, topBar = {},
+                sheetSwipeEnabled = false, sheetShape = RectangleShape, sheetContent = { AudioPlayerScreen() }
             ) { paddingValues ->
                 Box(modifier = Modifier.fillMaxSize().padding(
                     top = paddingValues.calculateTopPadding(),
                     start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
                     end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
-                    bottom = paddingValues.calculateBottomPadding()
+                    bottom = dynamicBottomPadding
                 )) {
                     CompositionLocalProvider(LocalNavController provides navController) {
                         NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {

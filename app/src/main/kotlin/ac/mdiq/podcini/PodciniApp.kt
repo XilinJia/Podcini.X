@@ -1,5 +1,6 @@
 package ac.mdiq.podcini
 
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.PreferenceUpgrader
@@ -40,6 +41,7 @@ class PodciniApp : Application() {
                 PreferenceUpgrader.checkUpgrades(this@PodciniApp)
             }
         }
+        gearbox.init()
         sendSPAppsQueryFeedsIntent(this)
         DynamicColors.applyToActivitiesIfAvailable(this)
     }
@@ -59,7 +61,6 @@ class PodciniApp : Application() {
             Log.wtf("App", "Unable to get application context")
             return false
         }
-//        val prefs = PreferenceManager.getDefaultSharedPreferences(appContext)
         if (!getPref(PREF_HAS_QUERIED_SP_APPS, false)) {
             appContext.sendBroadcast(Intent(SPAReceiver.ACTION_SP_APPS_QUERY_FEEDS))
             Logd("App", "Sending SP_APPS_QUERY_FEEDS intent")

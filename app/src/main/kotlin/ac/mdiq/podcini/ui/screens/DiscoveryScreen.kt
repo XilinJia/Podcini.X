@@ -5,7 +5,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.searcher.ItunesTopListLoader
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
@@ -39,7 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.*
-import kotlin.apply
 
 
 class DiscoveryVM(val context: Context, val lcScope: CoroutineScope) {
@@ -258,7 +256,7 @@ fun DiscoveryScreen() {
                     start.linkTo(parent.start)
                 },
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(vm.searchResults.size) { index -> OnlineFeedItem(activity = context as MainActivity, vm.searchResults[index]) }
+                items(vm.searchResults.size) { index -> OnlineFeedItem(vm.searchResults[index]) }
             }
             if (vm.searchResults.isEmpty()) Text(vm.noResultText, color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })
             if (vm.errorText.isNotEmpty()) Text(vm.errorText, color = textColor, modifier = Modifier.constrainAs(txtvError) { centerTo(parent) })

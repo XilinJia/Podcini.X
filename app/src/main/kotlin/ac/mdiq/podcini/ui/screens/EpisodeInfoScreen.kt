@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.isEpisodeHeadDownloadAllowed
@@ -253,10 +254,8 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                         if (episode != null) {
                             val duration = episode!!.duration
                             Logd(TAG, "description: ${episode?.description}")
-                            val url = episode?.downloadUrl
-                            if (url?.contains("youtube.com") == true && episode!!.description?.startsWith("Short:") == true) {
-                                Logd(TAG, "getting extended description: ${episode!!.title}")
-                                val result = buildYTWebviewData(episode!!, shownotesCleaner)
+                            val result = gearbox.buildGearWebviewData(episode!!, shownotesCleaner)
+                            if (result != null) {
                                 episode = result.first
                                 webviewData = result.second
                             } else webviewData = shownotesCleaner.processShownotes(episode!!.description ?: "", duration)
@@ -323,7 +322,7 @@ fun EpisodeInfoScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             vm.episode = null
-            clearYTData()
+            gearbox.clearGearData()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }

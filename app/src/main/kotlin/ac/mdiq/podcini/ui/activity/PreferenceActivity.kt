@@ -8,6 +8,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.DefaultPages
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.preferences.PreferenceUpgrader.getCopyrightNoticeText
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.screens.*
 import ac.mdiq.podcini.ui.compose.*
@@ -77,16 +78,7 @@ class PreferenceActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         Logd("PreferenceActivity", "onCreate")
 
-        val packageHash = packageName.hashCode()
-        when {
-            packageHash != 1329568231 && packageHash != 1297601420 -> {
-                copyrightNoticeText = ("This application is based on Podcini."
-                        + " The Podcini team does NOT provide support for this unofficial version."
-                        + " If you can read this message, the developers of this modification violate the GNU General Public License (GPL).")
-            }
-            packageHash == 1297601420 -> copyrightNoticeText = "This is a development version of Podcini and not meant for daily use"
-        }
-
+        copyrightNoticeText = getCopyrightNoticeText(this)
         setContent {
             val navController = rememberNavController()
             CustomTheme(this) {

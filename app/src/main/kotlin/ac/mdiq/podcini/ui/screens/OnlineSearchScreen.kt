@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.searcher.*
 import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.isOPMLRestored
@@ -342,7 +343,7 @@ fun OnlineSearchScreen() {
 //                    vm.mainAct?.showSnackbarAbovePlayer(R.string.unable_to_start_system_file_manager, Snackbar.LENGTH_LONG)
                 }
             }))
-            VistaSearchText()
+            gearbox.GearSearchText()
             Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 setOnlineSearchTerms(ItunesPodcastSearcher::class.java)
                 mainNavController.navigate(Screens.SearchResults.name)

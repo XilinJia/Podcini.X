@@ -7,7 +7,6 @@ import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.getFeedLogMap
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.SearchBarRow
@@ -174,7 +173,7 @@ fun SearchResultsScreen() {
                     val urlPrepared by remember { mutableStateOf(prepareUrl(result.feedUrl!!)) }
                     val sLog = remember { mutableStateOf(vm.feedLogs[urlPrepared]) }
 //                    Logd(TAG, "result: ${result.feedUrl} ${feedLogs[urlPrepared]}")
-                    OnlineFeedItem(activity = context as MainActivity, result, sLog.value)
+                    OnlineFeedItem(result, sLog.value)
                 }
             }
             if (vm.searchResults.isEmpty()) Text(vm.noResultText, color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })

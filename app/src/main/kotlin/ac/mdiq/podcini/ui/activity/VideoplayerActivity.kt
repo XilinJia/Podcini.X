@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer
@@ -309,7 +310,7 @@ class VideoplayerActivity : CastEnabledActivity() {
                     val episode = withContext(Dispatchers.IO) {
                         var episode_ = curEpisode
                         if (episode_ != null) {
-                            val result = buildCleanedNotes(episode_, ShownotesCleaner(this@VideoplayerActivity))
+                            val result = gearbox.buildCleanedNotes(episode_, ShownotesCleaner(this@VideoplayerActivity))
                             episode_ = result.first
                             cleanedNotes = result.second
                         }

@@ -1,11 +1,11 @@
 package ac.mdiq.podcini.playback.cast
 
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.MediaPlayerCallback
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.playback.base.YTMediaSpecs.Companion.setCastYTMediaSource
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -32,7 +32,6 @@ import com.google.android.gms.common.images.WebImage
 import java.io.IOException
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.Throws
 import kotlin.math.max
 import kotlin.math.min
 
@@ -273,7 +272,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     override fun setDataSource(metadata: MediaMetadata, media: Episode) {
         Logd(TAG, "setDataSource1 called")
-        if (!setCastYTMediaSource(media)) {
+        if (!gearbox.formCastMediaSource(media)) {
             media.effectUrl = media.downloadUrl ?: ""
             media.effectMimeType = media.mimeType ?: ""
         }

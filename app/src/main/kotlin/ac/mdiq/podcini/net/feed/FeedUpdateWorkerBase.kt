@@ -42,11 +42,11 @@ import java.util.*
 import java.util.concurrent.Callable
 import javax.xml.parsers.ParserConfigurationException
 
-abstract class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Worker(context, params) {
-    protected val TAG = "FeedUpdateWorker"
+open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Worker(context, params) {
+    protected val TAG = "FeedUpdateWorkerBase"
     private val notificationManager = NotificationManagerCompat.from(context)
 
-    override fun doWork(): ListenableWorker.Result {
+    override fun doWork(): Result {
         ClientConfigurator.initialize(applicationContext)
         val feedsToUpdate: MutableList<Feed>
         val feedId = inputData.getLong(EXTRA_FEED_ID, -1L)
@@ -62,7 +62,7 @@ abstract class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) 
             }
             feedsToUpdate.shuffle() // If the worker gets cancelled early, every feed has a chance to be updated
         } else {
-            val feed = Feeds.getFeed(feedId) ?: return ListenableWorker.Result.success()
+            val feed = Feeds.getFeed(feedId) ?: return Result.success()
             Logd(TAG, "doWork updating single feed: ${feed.title} ${feed.downloadUrl}")
             if (!feed.isLocalFeed) allAreLocal = false
             feedsToUpdate = mutableListOf(feed)
@@ -72,7 +72,7 @@ abstract class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) 
         if (!inputData.getBoolean(EXTRA_EVEN_ON_MOBILE, false) && !allAreLocal) {
             if (!networkAvailable() || !isFeedRefreshAllowed) {
                 Logd(TAG, "Blocking automatic update")
-                return ListenableWorker.Result.retry()
+                return Result.retry()
             }
         }
         val fullUpdate = inputData.getBoolean(EXTRA_FULL_UPDATE, false)
@@ -80,7 +80,7 @@ abstract class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) 
         notificationManager.cancel(R.id.notification_updating_feeds)
         autodownloadEpisodeMedia(applicationContext, feedsToUpdate.toList())
         feedsToUpdate.clear()
-        return ListenableWorker.Result.success()
+        return Result.success()
     }
     private fun createNotification(titles: List<String>?): Notification {
         val context = applicationContext
@@ -129,7 +129,7 @@ abstract class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) 
                 Logd(TAG, "updating local feed? ${feed.isLocalFeed} ${feed.title}")
                 when {
                     feed.isLocalFeed -> LocalFeedUpdater.updateFeed(feed, applicationContext, null)
-                    feed.type == Feed.FeedType.YOUTUBE.name -> refreshYTFeed(feed, fullUpdate)
+//                    feed.type == Feed.FeedType.YOUTUBE.name -> refreshYTFeed(feed, fullUpdate)
                     else -> refreshFeed(feed, force, fullUpdate)
                 }
             } catch (e: Exception) {
@@ -142,10 +142,8 @@ abstract class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) 
         }
     }
 
-    abstract fun refreshYTFeed(feed: Feed, fullUpdate: Boolean)
-
     @Throws(Exception::class)
-    fun refreshFeed(feed: Feed, force: Boolean, fullUpdate: Boolean) {
+    open fun refreshFeed(feed: Feed, force: Boolean, fullUpdate: Boolean) {
         val nextPage = (inputData.getBoolean(EXTRA_NEXT_PAGE, false) && feed.nextPageLink != null)
         if (nextPage) feed.pageNr += 1
         val builder = create(feed)

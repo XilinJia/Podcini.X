@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
@@ -445,7 +446,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
 
     val showConfirmYoutubeDialog = remember { mutableStateOf(false) }
     val ytUrls = remember { mutableListOf<String>() }
-    ConfirmAddYTEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
+    gearbox.ConfirmAddGearEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
 
     var showChooseRatingDialog by remember { mutableStateOf(false) }
     if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
@@ -565,7 +566,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         for (e in selected) {
                             Logd(TAG, "downloadUrl: ${e.downloadUrl}")
                             val url = URL(e.downloadUrl ?: "")
-                            if ((isYTUrl(url) && url.path.startsWith("/watch")) || isYTServiceUrl(url)) ytUrls.add(e.downloadUrl!!)
+                            if (gearbox.isGearUrl(url)) ytUrls.add(e.downloadUrl!!)
                             else addToMiscSyndicate(e)
                         }
                         Logd(TAG, "youtubeUrls: ${ytUrls.size}")

@@ -15,7 +15,7 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 [//]: # ([<img src="./images/external/amazon.png" alt="Amazon" height="40">]&#40;https://www.amazon.com/%E8%B4%BE%E8%A5%BF%E6%9E%97-Podcini-R/dp/B0D9WR8P13&#41;)
 
 
-### A fork of [Podcini.R](<https://github.com/XilinJia/Podcini>) as of Jan 13 2025, this project inherits all functionalities of Podcini.R with the capability of accessing to Youtube stripped off.
+### A fork of [Podcini.R](<https://github.com/XilinJia/Podcini>) as of Jan 13 2025, this project inherits all functionalities of Podcini.R only with the capability of accessing to Youtube stripped off.
 
 ### Note:
 

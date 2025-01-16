@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.feed.searcher
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
 import ac.mdiq.podcini.util.config.ClientConfig
@@ -26,6 +27,7 @@ object PodcastSearcherRegistry {
             if (field.isEmpty()) {
                 field = ArrayList()
                 field.add(SearcherInfo(CombinedSearcher(), 1.0f))
+                if (gearbox.hasSearcher()) field.add(SearcherInfo(gearbox.getSearcher()!!, 1.0f))
                 field.add(SearcherInfo(FyydPodcastSearcher(), 1.0f))
                 field.add(SearcherInfo(ItunesPodcastSearcher(), 1.0f))
                 field.add(SearcherInfo(PodcastIndexPodcastSearcher(), 1.0f))

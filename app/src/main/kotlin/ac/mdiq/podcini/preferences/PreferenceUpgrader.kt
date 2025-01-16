@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.error.CrashReportWriter.Companion.file
 import android.content.Context
 import android.content.SharedPreferences
@@ -29,5 +30,20 @@ object PreferenceUpgrader {
      private fun upgrade(oldVersion: Int, context: Context) {
         //New installation
         if (oldVersion == -1) return
+    }
+
+    fun getCopyrightNoticeText(context: Context): String {
+        var copyrightNoticeText = ""
+        val packageHash = context.packageName.hashCode()
+        Logd("getCopyrightNoticeText", "packageName: ${context.packageName} ${packageHash} ${"ac.mdiq.podcini.X".hashCode()}")
+        when {
+            packageHash != 1329568237 && packageHash != -1967311086 -> {
+                copyrightNoticeText = ("This application is based on Podcini."
+                        + " The Podcini team does NOT provide support for this unofficial version."
+                        + " If you can read this message, the developers of this modification violate the GNU General Public License (GPL).")
+            }
+            packageHash == -1967311086 -> copyrightNoticeText = "This is a development version of Podcini and not meant for daily use"
+        }
+        return copyrightNoticeText
     }
 }

@@ -1,10 +1,10 @@
 package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.ShareLog
-import ac.mdiq.podcini.ui.compose.ConfirmAddYTEpisode
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.util.Logd
 import android.content.DialogInterface
@@ -50,7 +50,7 @@ class ShareReceiverActivity : ComponentActivity() {
             setContent {
                 val showDialog = remember { mutableStateOf(true) }
                 CustomTheme(this) {
-                    ConfirmAddYTEpisode(listOf(sharedUrl!!), showDialog.value, onDismissRequest = {
+                    gearbox.ConfirmAddGearEpisode(listOf(sharedUrl!!), showDialog.value, onDismissRequest = {
                         showDialog.value = false
                         finish()
                     })
@@ -112,6 +112,8 @@ class ShareReceiverActivity : ComponentActivity() {
                     activity.startActivity(intent)
                     if (finish) activity.finish()
                 }
+//            extension media
+                gearbox.canHandleShared(url) -> gearbox.handleShared(log, mediaCB)
 //            podcast or other?
                 else -> {
                     if (log != null)  upsertBlk(log) {it.type = ShareLog.Type.Podcast.name }
