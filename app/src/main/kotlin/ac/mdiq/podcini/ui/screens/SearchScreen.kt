@@ -20,6 +20,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.curSearchString
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.feedToSearchIn
 import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
 import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
@@ -376,7 +377,7 @@ fun SearchScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar(title = { SearchBarRow(R.string.search_label) {
+        TopAppBar(modifier = Modifier.height(40.dp), title = { SearchBarRow(R.string.search_label) {
             vm.queryText = it
             vm.search(vm.queryText)
         }},
@@ -430,7 +431,8 @@ fun SearchScreen() {
                             Logd(TAG, "icon clicked!")
                             if (!feed.isBuilding) {
                                 feedOnDisplay = feed
-                                mainNavController.navigate(Screens.FeedInfo.name)
+                                feedScreenMode = FeedScreenMode.Info
+                                mainNavController.navigate(Screens.FeedDetails.name)
                             }
                         })
                     )
@@ -439,7 +441,8 @@ fun SearchScreen() {
                         Logd(TAG, "clicked: ${feed.title}")
                         if (!feed.isBuilding) {
                             feedOnDisplay = feed
-                            mainNavController.navigate(Screens.FeedEpisodes.name)
+                            feedScreenMode = FeedScreenMode.List
+                            mainNavController.navigate(Screens.FeedDetails.name)
                         }
                     })) {
                         Row {

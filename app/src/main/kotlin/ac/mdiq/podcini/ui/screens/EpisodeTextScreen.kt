@@ -17,6 +17,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ShareCompat
 import androidx.core.text.HtmlCompat
@@ -44,7 +46,7 @@ import net.dankito.readability4j.extended.Readability4JExtended
 import java.io.File
 import java.util.*
 
-class EpisodeHomeVM(val context: Context, val lcScope: CoroutineScope) {
+class EpisodeTextVM(val context: Context, val lcScope: CoroutineScope) {
 
     var episode: Episode? = null    // unmanged
 
@@ -126,11 +128,11 @@ class EpisodeHomeVM(val context: Context, val lcScope: CoroutineScope) {
 }
 
 @Composable
-fun EpisodeHomeScreen() {
+fun EpisodeTextScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val vm = remember(episodeOnDisplay.id) { EpisodeHomeVM(context, scope) }
+    val vm = remember(episodeOnDisplay.id) { EpisodeTextVM(context, scope) }
 
 //        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
 //        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
@@ -177,7 +179,7 @@ fun EpisodeHomeScreen() {
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
         val context = LocalContext.current
-        TopAppBar(title = { Text("") },
+        TopAppBar(title = { Text("") }, modifier = Modifier.height(40.dp),
             navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
             }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
             actions = {
@@ -285,16 +287,5 @@ fun EpisodeHomeScreen() {
     }
 }
 
-private const val TAG: String = "EpisodeHomeScreen"
+private const val TAG: String = "EpisodeTextScreen"
 private const val MAX_CHUNK_LENGTH = 2000
-
-//        var episode: Episode? = null    // unmanged
-
-//        fun newInstance(item: Episode): EpisodeHomeFragment1 {
-//            val fragment = EpisodeHomeFragment1()
-//            Logd(TAG, "item.identifyingValue ${item.identifyingValue}")
-//            if (item.identifyingValue != episode?.identifyingValue) episode = item
-//            return fragment
-//        }
-
-

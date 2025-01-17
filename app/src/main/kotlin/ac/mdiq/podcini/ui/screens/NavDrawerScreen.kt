@@ -6,7 +6,6 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeedCount
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.storage.model.EpisodeFilter.Companion.unfiltered
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.closeDrawer
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
@@ -14,6 +13,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import android.content.Intent
@@ -132,7 +132,8 @@ fun NavDrawerScreen() {
                     for (f in vm.feeds) {
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp).clickable {
                             feedOnDisplay = f
-                            mainNavController.navigate(Screens.FeedEpisodes.name) { popUpTo(Screens.FeedEpisodes.name) { inclusive = true } }
+                            feedScreenMode = FeedScreenMode.List
+                            mainNavController.navigate(Screens.FeedDetails.name) { popUpTo(Screens.FeedDetails.name) { inclusive = true } }
                             closeDrawer()
                             isBSExpanded = false
                         }) {

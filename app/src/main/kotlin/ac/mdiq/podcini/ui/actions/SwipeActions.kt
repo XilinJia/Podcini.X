@@ -539,7 +539,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         Screens.Episodes.name -> context.getString(R.string.episodes_label)
                         Screens.OnlineEpisodes.name -> context.getString(R.string.online_episodes_label)
                         Screens.Search.name -> context.getString(R.string.search_label)
-                        Screens.FeedEpisodes.name -> {
+                        Screens.FeedDetails.name -> {
                             keys = keys.filter { a: SwipeAction -> a.getId() != ActionTypes.REMOVE_FROM_HISTORY.name }
                             context.getString(R.string.subscription)
                         }

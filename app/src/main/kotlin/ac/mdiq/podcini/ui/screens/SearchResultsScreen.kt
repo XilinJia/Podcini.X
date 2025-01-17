@@ -18,6 +18,7 @@ import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -149,7 +150,8 @@ fun SearchResultsScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar(title = { SearchBarRow(R.string.search_podcast_hint, defaultText = onlineSearchText) { queryText -> vm.search(queryText) }},
+        TopAppBar(modifier = Modifier.height(40.dp),
+            title = { SearchBarRow(R.string.search_podcast_hint, defaultText = onlineSearchText) { queryText -> vm.search(queryText) }},
             navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
         )

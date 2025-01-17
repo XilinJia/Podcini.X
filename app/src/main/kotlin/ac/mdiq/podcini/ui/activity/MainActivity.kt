@@ -28,6 +28,7 @@ import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
 import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.utils.setSearchTerms
@@ -59,6 +60,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -105,12 +107,11 @@ class MainActivity : CastEnabledActivity() {
 
     enum class Screens {
         Subscriptions,
-        FeedEpisodes,
-        FeedInfo,
+        FeedDetails,
         FeedSettings,
         Episodes,
         EpisodeInfo,
-        EpisodeHome,
+        EpisodeText,
         Queues,
         Search,
         OnlineSearch,
@@ -229,7 +230,7 @@ class MainActivity : CastEnabledActivity() {
             BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicSheetHeight + 110.dp, sheetDragHandle = {}, topBar = {},
                 sheetSwipeEnabled = false, sheetShape = RectangleShape, sheetContent = { AudioPlayerScreen() }
             ) { paddingValues ->
-                Box(modifier = Modifier.fillMaxSize().padding(
+                Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(
                     top = paddingValues.calculateTopPadding(),
                     start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
                     end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
@@ -238,11 +239,10 @@ class MainActivity : CastEnabledActivity() {
                     CompositionLocalProvider(LocalNavController provides navController) {
                         NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {
                             composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
-                            composable(Screens.FeedEpisodes.name) { FeedEpisodesScreen() }
-                            composable(Screens.FeedInfo.name) { FeedInfoScreen() }
+                            composable(Screens.FeedDetails.name) { FeedDetailsScreen() }
                             composable(Screens.FeedSettings.name) { FeedSettingsScreen() }
                             composable(Screens.EpisodeInfo.name) { EpisodeInfoScreen() }
-                            composable(Screens.EpisodeHome.name) { EpisodeHomeScreen() }
+                            composable(Screens.EpisodeText.name) { EpisodeTextScreen() }
                             composable(Screens.Episodes.name) { EpisodesScreen() }
                             composable(Screens.Queues.name) { QueuesScreen() }
                             composable(Screens.Search.name) { SearchScreen() }
@@ -443,7 +443,7 @@ class MainActivity : CastEnabledActivity() {
         when (tag) {
             Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Episodes.name, Screens.Statistics.name ->
                 mainNavController.navigate(tag)
-            Screens.FeedEpisodes.name -> {
+            Screens.FeedDetails.name -> {
                 if (args == null) {
                     val feedId = getLastNavScreenArg().toLongOrNull()
                     if (feedId != null) {
@@ -545,17 +545,12 @@ class MainActivity : CastEnabledActivity() {
 //                val args = intent.getBundleExtra(MainActivityStarter.Extras.fragment_args.name)
                 Logd(TAG, "handleNavIntent: feedId: $feedId")
                 if (feedId > 0) {
-                    val startedFromShare = intent.getBooleanExtra(Extras.started_from_share.name, false)
-                    val addToBackStack = intent.getBooleanExtra(Extras.add_to_back_stack.name, false)
-                    Logd(TAG, "handleNavIntent: startedFromShare: $startedFromShare addToBackStack: $addToBackStack")
-                    if (startedFromShare || addToBackStack) {
-                        feedOnDisplay = getFeed(feedId) ?: Feed()
-                        mainNavController.navigate(Screens.FeedEpisodes.name)
-                    }
-                    else {
-                        feedOnDisplay = getFeed(feedId) ?: Feed()
-                        mainNavController.navigate(Screens.FeedEpisodes.name)
-                    }
+//                    val startedFromShare = intent.getBooleanExtra(Extras.started_from_share.name, false)
+//                    val addToBackStack = intent.getBooleanExtra(Extras.add_to_back_stack.name, false)
+//                    Logd(TAG, "handleNavIntent: startedFromShare: $startedFromShare addToBackStack: $addToBackStack")
+                    feedOnDisplay = getFeed(feedId) ?: Feed()
+                    feedScreenMode = FeedScreenMode.List
+                    mainNavController.navigate(Screens.FeedDetails.name)
                 }
                 isBSExpanded = false
             }

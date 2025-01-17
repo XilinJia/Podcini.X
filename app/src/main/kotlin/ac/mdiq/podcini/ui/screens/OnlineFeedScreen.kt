@@ -433,7 +433,7 @@ fun OnlineFeedScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar(title = { Text(text = "") },
+        TopAppBar(title = { Text(text = "") }, modifier = Modifier.height(40.dp),
             navigationIcon = if (vm.displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
@@ -477,7 +477,8 @@ fun OnlineFeedScreen() {
                             val feed = getFeedByTitleAndAuthor(vm.feed?.eigenTitle ?: "", vm.feed?.author ?: "")
                             if (feed != null) {
                                 feedOnDisplay = feed
-                                mainNavController.navigate(Screens.FeedInfo.name)
+                                feedScreenMode = FeedScreenMode.Info
+                                mainNavController.navigate(Screens.FeedDetails.name)
                             }
                         } else {
                             vm.enableSubscribe = false

@@ -1,8 +1,8 @@
 package ac.mdiq.podcini.ui.compose
 
-import ac.mdiq.podcini.preferences.ThemeSwitcher.readThemeValue
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
+import ac.mdiq.podcini.preferences.ThemeSwitcher.readThemeValue
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import android.util.TypedValue
@@ -41,8 +41,14 @@ fun getColorFromAttr(context: Context, @AttrRes attrColor: Int): Int {
     return if (typedValue.resourceId != 0) ContextCompat.getColor(context, typedValue.resourceId) else { typedValue.data }
 }
 
-private val LightColors = lightColorScheme()
-private val DarkColors = darkColorScheme()
+private val LightColors = lightColorScheme().copy(
+    tertiary = Color(0xFF7D551B),
+    tertiaryContainer = Color(0xFFB6EEEE),
+)
+private val DarkColors = darkColorScheme().copy(
+    tertiary = Color(0xFFE9A43E),
+    tertiaryContainer = Color(0xFF1B5D64),
+)
 
 @Composable
 fun CustomTheme(context: Context, content: @Composable () -> Unit) {

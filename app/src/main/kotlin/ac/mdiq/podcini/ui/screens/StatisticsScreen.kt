@@ -104,7 +104,7 @@ fun StatisticsScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text(stringResource(R.string.statistics_label)) },
+        TopAppBar(title = { Text(stringResource(R.string.statistics_label)) }, modifier = Modifier.height(40.dp),
             navigationIcon = { IconButton(onClick = {
 //            if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 MainActivity.openDrawer()
@@ -551,7 +551,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, onDismissRequest: () -> Un
                         val feed = getFeed(feedId)
                         if (feed != null) {
                             feedOnDisplay = feed
-                            mainNavController.navigate(MainActivity.Screens.FeedEpisodes.name)
+                            mainNavController.navigate(MainActivity.Screens.FeedDetails.name)
                         }
 //                        MainActivityStarter(context).withOpenFeed(feedId).withAddToBackStack().start()
                         onDismissRequest()

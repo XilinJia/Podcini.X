@@ -3,8 +3,13 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
+import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
+import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedDownloadURL
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -22,18 +27,32 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
+import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
+import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.ActivityResultLauncher
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
@@ -41,6 +60,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -52,36 +72,42 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
+import org.apache.commons.lang3.StringUtils
 import java.util.*
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Semaphore
 import kotlin.math.min
 
 
-class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
+class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var swipeActions: SwipeActions
     internal var leftActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
     internal var rightActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
     internal var showSwipeActionsDialog by mutableStateOf(false)
+
+    internal var feedID: Long = 0
+    internal var feed by mutableStateOf<Feed?>(null)
+
+//    internal var screenMode by mutableStateOf<ScreenMode>(ScreenMode.List)
 
     internal var infoBarText = mutableStateOf("")
     private var infoTextFiltered = ""
     private var infoTextUpdate = ""
     //        internal var displayUpArrow by mutableStateOf(false)
     private var headerCreated = false
-    internal var feedID: Long = 0
-    internal var feed by mutableStateOf<Feed?>(null)
     internal var rating by mutableStateOf(Rating.UNRATED.code)
 
     internal val episodes = mutableStateListOf<Episode>()
@@ -99,6 +125,11 @@ class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
 
     private var onInit: Boolean = true
     private var filterJob: Job? = null
+
+    internal var isCallable by mutableStateOf(false)
+    internal var txtvAuthor by mutableStateOf("")
+    internal var txtvUrl by mutableStateOf<String?>(null)
+    internal val showConnectLocalFolderConfirm = mutableStateOf(false)
 
     init {
         sortOrder = feed?.sortOrder ?: EpisodeSortOrder.DATE_NEW_OLD
@@ -146,7 +177,7 @@ class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
             EventFlow.events.collectLatest { event ->
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
-                    is FlowEvent.PlayEvent -> onPlayEvent(event)
+                    is FlowEvent.PlayEvent -> if (feedScreenMode == FeedScreenMode.List) onPlayEvent(event)
                     is FlowEvent.FeedChangeEvent -> if (feed?.id == event.feed.id) loadFeed()
                     is FlowEvent.FeedListEvent -> if (feed != null && event.contains(feed!!)) loadFeed()
                     else -> {}
@@ -157,8 +188,8 @@ class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
             EventFlow.stickyEvents.collectLatest { event ->
                 Logd(TAG, "Received sticky event: ${event.TAG}")
                 when (event) {
-                    is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)
-                    is FlowEvent.FeedUpdatingEvent -> onFeedUpdateRunningEvent(event)
+                    is FlowEvent.EpisodeDownloadEvent -> if (feedScreenMode == FeedScreenMode.List) onEpisodeDownloadEvent(event)
+                    is FlowEvent.FeedUpdatingEvent -> if (feedScreenMode == FeedScreenMode.List) onFeedUpdateRunningEvent(event)
                     else -> {}
                 }
             }
@@ -210,6 +241,11 @@ class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
 
     private var loadJob: Job? = null
     internal fun loadFeed() {
+        if (feedScreenMode == FeedScreenMode.Info) {
+            feed = realm.query(Feed::class).query("id == $0", feedOnDisplay.id).first().find()
+            rating = feed?.rating ?: Rating.UNRATED.code
+            return
+        }
         Logd(TAG, "loadFeed called $feedID")
         if (loadJob != null) {
             loadJob?.cancel()
@@ -326,20 +362,41 @@ class FeedEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }.apply { invokeOnCompletion { filterJob = null } }
     }
+
+    internal fun addLocalFolderResult(uri: Uri?) {
+        if (uri == null) return
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    val documentFile = DocumentFile.fromTreeUri(context, uri)
+                    requireNotNull(documentFile) { "Unable to retrieve document tree" }
+                    feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
+                    if (feed != null) updateFeed(context, feed!!, true)
+                }
+//                withContext(Dispatchers.Main) { (context as MainActivity).showSnackbarAbovePlayer(string.ok, Snackbar.LENGTH_SHORT) }
+            } catch (e: Throwable) { withContext(Dispatchers.Main) {
+                Log.e(TAG, e.localizedMessage?:"No message")
+//                (context as MainActivity).showSnackbarAbovePlayer(e.localizedMessage?:"No message", Snackbar.LENGTH_LONG)
+            } }
+        }
+    }
+
 }
 
-//private var vm_: FeedEpisodesVM? = null
-//private val vm: FeedEpisodesVM
-//    get() = vm_ ?: throw IllegalStateException("$TAG vm is not initialized")
+enum class FeedScreenMode {
+    List,
+    Info
+}
 
 @Composable
-fun FeedEpisodesScreen() {
+fun FeedDetailsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-//    if (vm_ == null) vm_ = FeedEpisodesVM(context, scope)
-    val vm = remember(feedOnDisplay.id) { FeedEpisodesVM(context, scope) }
-//    vm_ = vm0
+    val vm = remember(feedOnDisplay.id) { FeedDetailsVM(context, scope) }
+
+    val addLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? -> vm.addLocalFolderResult(uri) }
 
     //        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
 //        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
@@ -356,6 +413,9 @@ fun FeedEpisodesScreen() {
 //                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
                     vm.feed = feedOnDisplay
                     vm.feedID = vm.feed?.id ?: 0
+                    vm.txtvAuthor = vm.feed?.author ?: ""
+                    vm.txtvUrl = vm.feed?.downloadUrl
+                    if (!vm.feed?.link.isNullOrEmpty()) vm.isCallable = IntentUtils.isCallable(context, Intent(Intent.ACTION_VIEW, Uri.parse(vm.feed!!.link)))
                     saveLastNavScreen(TAG, vm.feedID.toString())
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     vm.refreshSwipeTelltale()
@@ -394,9 +454,59 @@ fun FeedEpisodesScreen() {
     }
     BackHandler { mainNavController.popBackStack() }
 
+    ComfirmDialog(0, stringResource(R.string.reconnect_local_folder_warning), vm.showConnectLocalFolderConfirm) {
+        try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Log.e(TAG, "No activity found. Should never happen...") }
+    }
+
+    var showEidtConfirmDialog by remember { mutableStateOf(false) }
+    var editedUrl by remember { mutableStateOf("") }
+    @Composable
+    fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
+        var url by remember { mutableStateOf(vm.feed?.downloadUrl ?: "") }
+        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
+            text = {
+                TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth())
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    editedUrl = url
+                    showEidtConfirmDialog = true
+                    onDismiss()
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
+        )
+    }
+    @Composable
+    fun EidtConfirmDialog(onDismiss: () -> Unit) {
+        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
+            text = {
+                Text(stringResource(R.string.edit_url_confirmation_msg))
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    try {
+                        runBlocking { updateFeedDownloadURL(vm.feed?.downloadUrl?:"", editedUrl).join() }
+                        vm.feed?.downloadUrl = editedUrl
+                        runOnce(context, vm.feed)
+                    } catch (e: ExecutionException) { throw RuntimeException(e)
+                    } catch (e: InterruptedException) { throw RuntimeException(e) }
+                    vm.feed?.downloadUrl = editedUrl
+                    vm.txtvUrl = vm.feed?.downloadUrl
+                    onDismiss()
+                }) { Text("OK") }
+            },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
+        )
+    }
+
+    var showEditUrlSettingsDialog by remember { mutableStateOf(false) }
+    if (showEditUrlSettingsDialog) EditUrlSettingsDialog { showEditUrlSettingsDialog = false }
+    if (showEidtConfirmDialog) EidtConfirmDialog { showEidtConfirmDialog = false }
+
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
-    fun FeedEpisodesHeader(filterButColor: Color, filterClickCB: ()->Unit, filterLongClickCB: ()->Unit) {
+    fun FeedDetailsHeader(filterButColor: Color, filterClickCB: ()->Unit, filterLongClickCB: ()->Unit) {
         val textColor = MaterialTheme.colorScheme.onSurface
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(vm.feed!!)) {
@@ -404,7 +514,7 @@ fun FeedEpisodesScreen() {
             vm.feed = realm.query(Feed::class).query("id == $0", vm.feed!!.id).first().find()!!
             vm.rating = vm.feed!!.rating
         }
-        ConstraintLayout(modifier = Modifier.fillMaxWidth().height(120.dp)) {
+        ConstraintLayout(modifier = Modifier.fillMaxWidth().height(110.dp)) {
             val (bgImage, bgColor, controlRow, imgvCover) = createRefs()
             AsyncImage(model = vm.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser),
                 modifier = Modifier.fillMaxSize().blur(radiusX = 15.dp, radiusY = 15.dp).constrainAs(bgImage) {
@@ -417,21 +527,38 @@ fun FeedEpisodesScreen() {
                 top.linkTo(parent.top)
                 start.linkTo(parent.start)
                 end.linkTo(parent.end) })
+            Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().constrainAs(imgvCover) {
+                top.linkTo(parent.top)
+                start.linkTo(parent.start)
+                end.linkTo(parent.end)
+                width = Dimension.fillToConstraints
+            }) {
+                AsyncImage(model = vm.feed?.imageUrl ?: "", contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher),
+                    modifier = Modifier.width(100.dp).height(100.dp).padding(start = 16.dp, end = 16.dp).clickable(onClick = {
+                        if (vm.feed != null) feedScreenMode = FeedScreenMode.Info
+                    }))
+                Column(Modifier.padding(top = 10.dp)) {
+                    Text(vm.feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(vm.feed?.author ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp).constrainAs(controlRow) {
                 bottom.linkTo(parent.bottom)
                 start.linkTo(parent.start)
                 width = Dimension.fillToConstraints
             }) {
                 Spacer(modifier = Modifier.weight(0.7f))
-                val ratingIconRes = Rating.fromCode(vm.rating).res
+                val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
                     modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(30.dp).height(30.dp).clickable(onClick = { showChooseRatingDialog = true }))
                 Spacer(modifier = Modifier.weight(0.2f))
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), tint = textColor, contentDescription = "butSort",
-                    modifier = Modifier.width(40.dp).height(40.dp).padding(3.dp).clickable(onClick = { vm.showSortDialog = true }))
-                Spacer(modifier = Modifier.width(15.dp))
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = if (filterButColor == Color.White) textColor else filterButColor, contentDescription = "butFilter",
-                    modifier = Modifier.width(40.dp).height(40.dp).padding(3.dp).combinedClickable(onClick = filterClickCB, onLongClick = filterLongClickCB))
+                if (feedScreenMode == FeedScreenMode.List) {
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), tint = textColor, contentDescription = "butSort",
+                        modifier = Modifier.width(40.dp).height(40.dp).padding(3.dp).clickable(onClick = { vm.showSortDialog = true }))
+                    Spacer(modifier = Modifier.width(15.dp))
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = if (filterButColor == Color.White) textColor else filterButColor, contentDescription = "butFilter",
+                        modifier = Modifier.width(40.dp).height(40.dp).padding(3.dp).combinedClickable(onClick = filterClickCB, onLongClick = filterLongClickCB))
+                }
                 Spacer(modifier = Modifier.width(15.dp))
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), tint = textColor, contentDescription = "butShowSettings",
                     modifier = Modifier.width(40.dp).height(40.dp).padding(3.dp).clickable(onClick = {
@@ -441,24 +568,15 @@ fun FeedEpisodesScreen() {
                         }
                     }))
                 Spacer(modifier = Modifier.weight(0.4f))
-                Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-            }
-            Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).constrainAs(imgvCover) {
-                top.linkTo(parent.top)
-                start.linkTo(parent.start)
-                end.linkTo(parent.end)
-                width = Dimension.fillToConstraints
-            }) {
-                AsyncImage(model = vm.feed?.imageUrl ?: "", contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher),
-                    modifier = Modifier.width(100.dp).height(100.dp).padding(start = 16.dp, end = 16.dp).clickable(onClick = {
-                        if (vm.feed != null) {
-                            feedOnDisplay = vm.feed!!
-                            mainNavController.navigate(Screens.FeedInfo.name)
-                        }
-                    }))
-                Column(Modifier.padding(top = 10.dp)) {
-                    Text(vm.feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(vm.feed?.author ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (feedScreenMode == FeedScreenMode.List) {
+                    Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                } else {
+                    Button(onClick = {
+//                        feedOnDisplay = vm.feed
+//                        mainNavController.navigate(Screens.FeedDetails.name)
+                        feedScreenMode = FeedScreenMode.List
+                    }) { Text(vm.feed?.episodes?.size.toString() + " " + stringResource(R.string.episodes_label)) }
+                    Spacer(modifier = Modifier.width(15.dp))
                 }
             }
         }
@@ -467,10 +585,9 @@ fun FeedEpisodesScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar(displayUpArrow: Boolean) {
-//    val navController = LocalNavController.current
         val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text("") },
+        TopAppBar(title = { Text("") }, modifier = Modifier.height(40.dp),
             navigationIcon = if (displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
@@ -486,11 +603,26 @@ fun FeedEpisodesScreen() {
                     setSearchTerms("", vm.feed)
                     mainNavController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                if (!vm.feed?.link.isNullOrBlank()) IconButton(onClick = { IntentUtils.openInBrowser(context, vm.feed!!.link!!)
+                if (!vm.feed?.link.isNullOrBlank() && vm.isCallable) IconButton(onClick = { IntentUtils.openInBrowser(context, vm.feed!!.link!!)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
                 if (vm.feed != null) {
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
+                            ShareUtils.shareFeedLinkNew(context, vm.feed!!)
+                            expanded = false
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.rename_feed_label)) }, onClick = {
+                            vm.showRenameDialog = true
+                            expanded = false
+                        })
+                        if (vm.feed?.isLocalFeed == true) DropdownMenuItem(text = { Text(stringResource(R.string.reconnect_local_folder)) }, onClick = {
+                            vm.showConnectLocalFolderConfirm.value = true
+                            expanded = false
+                        }) else DropdownMenuItem(text = { Text(stringResource(R.string.edit_url_menu)) }, onClick = {
+                            showEditUrlSettingsDialog = true
+                            expanded = false
+                        })
                         DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
                             FeedUpdateManager.runOnceOrAsk(context, vm.feed)
                             expanded = false
@@ -503,19 +635,11 @@ fun FeedEpisodesScreen() {
                                             it.nextPageLink = it.downloadUrl
                                             it.pageNr = 0
                                         }
-                                        FeedUpdateManager.runOnce(context, feed_)
+                                        runOnce(context, feed_)
                                     }
                                 } catch (e: ExecutionException) { throw RuntimeException(e)
                                 } catch (e: InterruptedException) { throw RuntimeException(e) }
                             }.start()
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
-                            ShareUtils.shareFeedLinkNew(context, vm.feed!!)
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.rename_feed_label)) }, onClick = {
-                            vm.showRenameDialog = true
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
@@ -562,31 +686,124 @@ fun FeedEpisodesScreen() {
         vm.swipeActions.actions = actions
         vm.refreshSwipeTelltale()
     }
+
+    @Composable
+    fun DetailUI() {
+        val context = LocalContext.current
+        val scrollState = rememberScrollState()
+        var showEditComment by remember { mutableStateOf(false) }
+        val localTime = remember { System.currentTimeMillis() }
+        var editCommentText by remember { mutableStateOf(TextFieldValue((if (vm.feed?.comment.isNullOrBlank()) "" else vm.feed!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")) }
+        var commentTextState by remember { mutableStateOf(TextFieldValue(vm.feed?.comment ?: "")) }
+        if (showEditComment) LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = {showEditComment = false},
+            onSave = {
+                if (vm.feed != null) {
+                    runOnIOScope {
+                        vm.feed = upsert(vm.feed!!) {
+                            it.comment = editCommentText.text
+                            it.commentTime = localTime
+                        }
+                        vm.rating = vm.feed!!.rating
+                    }
+                }
+            })
+        var showFeedStats by remember { mutableStateOf(false) }
+        if (showFeedStats) FeedStatisticsDialog(vm.feed?.title?: "No title", vm.feed?.id?:0) { showFeedStats = false }
+
+        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
+            val textColor = MaterialTheme.colorScheme.onSurface
+            Text(vm.feed?.title ?:"", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
+            Text(vm.feed?.author ?:"", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+            Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+            Text(HtmlToPlainText.getPlainText(vm.feed?.description?:""), color = textColor, style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isEmpty()) " (Add)" else "",
+                color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
+                modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
+            Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+
+            if (vm.feed?.isSynthetic() == false) {
+                Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                Text(text = vm.txtvUrl ?: "", color = textColor, modifier = Modifier.clickable {
+                    if (!vm.feed?.downloadUrl.isNullOrBlank()) {
+                        val url: String = vm.feed!!.downloadUrl!!
+                        val clipData: ClipData = ClipData.newPlainText(url, url)
+                        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        cm.setPrimaryClip(clipData)
+//                    if (Build.VERSION.SDK_INT <= 32) (context as MainActivity).showSnackbarAbovePlayer(R.string.copied_to_clipboard, Snackbar.LENGTH_SHORT)
+                    }
+                })
+                if (!vm.feed?.paymentLinks.isNullOrEmpty()) {
+                    Text(stringResource(R.string.support_funding_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                    fun fundingText(): String {
+                        val fundingList: ArrayList<FeedFunding> = vm.feed!!.paymentLinks
+                        // Filter for duplicates, but keep items in the order that they have in the feed.
+                        val i: MutableIterator<FeedFunding> = fundingList.iterator()
+                        while (i.hasNext()) {
+                            val funding: FeedFunding = i.next()
+                            for (other in fundingList) {
+                                if (other.url == funding.url) {
+                                    if (other.content != null && funding.content != null && other.content!!.length > funding.content!!.length) {
+                                        i.remove()
+                                        break
+                                    }
+                                }
+                            }
+                        }
+                        val str = StringBuilder()
+                        for (funding in fundingList) {
+                            str.append(if (funding.content == null || funding.content!!.isEmpty()) context.resources.getString(
+                                R.string.support_podcast)
+                            else funding.content).append(" ").append(funding.url)
+                            str.append("\n")
+                        }
+                        return StringBuilder(StringUtils.trim(str.toString())).toString()
+                    }
+                    val fundText = remember { fundingText() }
+                    Text(fundText, color = textColor)
+                }
+                Button(modifier = Modifier.padding(top = 10.dp), onClick = {
+                    setOnlineSearchTerms(CombinedSearcher::class.java, "${vm.txtvAuthor} podcasts")
+                    mainNavController.navigate(Screens.SearchResults.name)
+                }) { Text(stringResource(R.string.feeds_related_to_author)) }
+            }
+            Text(stringResource(R.string.statistics_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+            Row {
+                Button({ showFeedStats = true }) { Text(stringResource(R.string.statistics_view_this)) }
+                Spacer(Modifier.weight(1f))
+                Button({
+                    mainNavController.navigate(Screens.Statistics.name)
+                }) { Text(stringResource(R.string.statistics_view_all)) }
+            }
+        }
+    }
+
     vm.swipeActions.ActionOptionsDialog()
     Scaffold(topBar = { MyTopAppBar(displayUpArrow) }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            FeedEpisodesHeader(filterButColor = vm.filterButtonColor.value, filterClickCB = {
+            FeedDetailsHeader(filterButColor = vm.filterButtonColor.value, filterClickCB = {
                 if (vm.enableFilter && vm.feed != null) vm.showFilterDialog = true
             }, filterLongClickCB = { vm.filterLongClick() })
-            InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true  })
-            EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex,
-                buildMoreItems = { vm.buildMoreItems() },
-                refreshCB = { FeedUpdateManager.runOnceOrAsk(context, vm.feed) },
-                leftSwipeCB = {
-                    if (vm.leftActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
-                    else vm.leftActionState.value.performAction(it)
-                },
-                rightSwipeCB = {
-                    Logd(TAG, "vm.rightActionState: ${vm.rightActionState.value.getId()}")
-                    if (vm.rightActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
-                    else vm.rightActionState.value.performAction(it)
-                },
-            )
+            if (feedScreenMode == FeedScreenMode.List) {
+                InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
+                EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex,
+                    buildMoreItems = { vm.buildMoreItems() },
+                    refreshCB = { FeedUpdateManager.runOnceOrAsk(context, vm.feed) },
+                    leftSwipeCB = {
+                        if (vm.leftActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                        else vm.leftActionState.value.performAction(it)
+                    },
+                    rightSwipeCB = {
+                        Logd(TAG, "vm.rightActionState: ${vm.rightActionState.value.getId()}")
+                        if (vm.rightActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                        else vm.rightActionState.value.performAction(it)
+                    },
+                )
+            } else DetailUI()
         }
     }
 }
 
-private val TAG = Screens.FeedEpisodes.name
+private val TAG = Screens.FeedDetails.name
 const val ARGUMENT_FEED_ID = "argument.ac.mdiq.podcini.feed_id"
 private const val KEY_UP_ARROW = "up_arrow"
 

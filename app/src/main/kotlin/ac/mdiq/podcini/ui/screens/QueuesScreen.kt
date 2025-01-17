@@ -33,6 +33,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -627,7 +628,8 @@ fun QueuesScreen() {
                             }.combinedClickable(onClick = {
                                 Logd(TAG, "clicked: ${feed.title}")
                                 feedOnDisplay = feed
-                                mainNavController.navigate(Screens.FeedEpisodes.name)
+                                feedScreenMode = FeedScreenMode.List
+                                mainNavController.navigate(Screens.FeedDetails.name)
                             }, onLongClick = {
                                 Logd(TAG, "long clicked: ${feed.title}")
 //                                val inflater: MenuInflater = (context as MainActivity).menuInflater

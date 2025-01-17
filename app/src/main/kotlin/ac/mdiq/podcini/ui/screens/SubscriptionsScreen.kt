@@ -23,6 +23,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -488,7 +489,7 @@ fun SubscriptionsScreen() {
     @Composable
     fun MyTopAppBar(displayUpArrow: Boolean) {
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text( if (vm.displayedFolder.isNotEmpty()) vm.displayedFolder else "") },
+        TopAppBar(title = { Text( if (vm.displayedFolder.isNotEmpty()) vm.displayedFolder else "") }, modifier = Modifier.height(40.dp),
             navigationIcon = if (displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
@@ -791,11 +792,9 @@ fun SubscriptionsScreen() {
         }
 
         PullToRefreshBox(modifier = Modifier.fillMaxWidth(), isRefreshing = refreshing, indicator = {}, onRefresh = {
-//            coroutineScope.launch {
             refreshing = true
             if (getPref(AppPrefs.prefSwipeToRefreshAll, true)) FeedUpdateManager.runOnceOrAsk(vm.context)
             refreshing = false
-//            }
         }) {
             val context = LocalContext.current
             if (if (vm.useGrid == null) vm.useGridLayout else vm.useGrid!!) {
@@ -821,7 +820,8 @@ fun SubscriptionsScreen() {
                                     if (vm.selectMode) toggleSelected()
                                     else {
                                         feedOnDisplay = feed
-                                        mainNavController.navigate(Screens.FeedEpisodes.name)
+                                        feedScreenMode = FeedScreenMode.List
+                                        mainNavController.navigate(Screens.FeedDetails.name)
                                     }
                                 }
                             }, onLongClick = {
@@ -900,7 +900,8 @@ fun SubscriptionsScreen() {
                                         if (vm.selectMode) toggleSelected()
                                         else {
                                             feedOnDisplay = feed
-                                            mainNavController.navigate(Screens.FeedInfo.name)
+                                            feedScreenMode = FeedScreenMode.Info
+                                            mainNavController.navigate(Screens.FeedDetails.name)
                                         }
                                     }
                                 })
@@ -912,7 +913,8 @@ fun SubscriptionsScreen() {
                                     if (vm.selectMode) toggleSelected()
                                     else {
                                         feedOnDisplay = feed
-                                        mainNavController.navigate(Screens.FeedEpisodes.name)
+                                        feedScreenMode = FeedScreenMode.List
+                                        mainNavController.navigate(Screens.FeedDetails.name)
                                     }
                                 }
                             }, onLongClick = {

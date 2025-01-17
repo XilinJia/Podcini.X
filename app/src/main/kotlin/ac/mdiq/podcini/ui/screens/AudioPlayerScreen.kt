@@ -273,7 +273,8 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     homeText = null
                 }
                 if (curItem != null) {
-                    if (rating == Rating.UNRATED.code || prevItem?.identifyingValue != curItem!!.identifyingValue) rating = curItem!!.rating
+                    rating = curItem!!.rating
+                    Logd(TAG, "updateDetails rating: $rating curItem!!.rating: ${curItem!!.rating}")
                     Logd(TAG, "updateDetails updateInfo ${cleanedNotes == null} ${prevItem?.identifyingValue} ${curItem!!.identifyingValue}")
                     val result = gearbox.buildCleanedNotes(curItem!!, shownotesCleaner)
                     curItem = result.first
@@ -782,7 +783,7 @@ fun AudioPlayerScreen() {
                 }, onLongClick = { copyText(vm.curItem?.feed?.title?:"") }))
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
                 Spacer(modifier = Modifier.weight(0.2f))
-                val ratingIconRes = Rating.fromCode(vm.rating).res
+                val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
                     modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = {
                         showChooseRatingDialog = true

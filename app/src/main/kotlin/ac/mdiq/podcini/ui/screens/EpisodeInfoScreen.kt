@@ -28,6 +28,7 @@ import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.view.ShownotesWebView
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -199,7 +200,8 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun openPodcast() {
         if (episode?.feedId == null) return
         feedOnDisplay = episode?.feed ?: Feed()
-        mainNavController.navigate(Screens.FeedEpisodes.name)
+        feedScreenMode = FeedScreenMode.List
+        mainNavController.navigate(Screens.FeedDetails.name)
     }
 
 
@@ -334,15 +336,15 @@ fun EpisodeInfoScreen() {
     fun MyTopAppBar() {
         val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text("") },
+        TopAppBar(title = { Text("") }, modifier = Modifier.height(40.dp),
             navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
             }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
             actions = {
                 if (!vm.episode?.link.isNullOrEmpty()) IconButton(onClick = {
                     vm.showHomeScreen = true
                     episodeOnDisplay = vm.episode!!
-                    mainNavController.navigate(Screens.EpisodeHome.name)
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_home_work_24), contentDescription = "home") }
+                    mainNavController.navigate(Screens.EpisodeText.name)
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
                 IconButton(onClick = {
                     val url = vm.episode?.getLinkWithFallback()
                     if (url != null) IntentUtils.openInBrowser(context, url)

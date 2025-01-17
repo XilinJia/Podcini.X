@@ -29,7 +29,9 @@ import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
+import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -192,7 +194,8 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
                 if (feed.feedId > 0) {
                     val feed_ = getFeed(feed.feedId) ?: return@combinedClickable
                     feedOnDisplay = feed_
-                    mainNavController.navigate(Screens.FeedEpisodes.name)
+                    feedScreenMode = FeedScreenMode.List
+                    mainNavController.navigate(Screens.FeedDetails.name)
                 } else {
                     setOnlineFeedUrl(feed.feedUrl, source = feed.source)
                     mainNavController.navigate(Screens.OnlineFeed.name)

@@ -16,7 +16,6 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
-import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -48,7 +47,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import androidx.core.app.ActivityCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -72,7 +70,6 @@ class PreferenceActivity : ComponentActivity() {
     var topAppBarTitle by mutableStateOf("Home")
 
     @OptIn(ExperimentalMaterial3Api::class)
-    @SuppressLint("CommitTransaction")
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(getNoTitleTheme(this))
         super.onCreate(savedInstanceState)
@@ -83,7 +80,7 @@ class PreferenceActivity : ComponentActivity() {
             val navController = rememberNavController()
             CustomTheme(this) {
                 if (showToast) CustomToast(message = toastMassege, onDismiss = { showToast = false })
-                Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) },
+                Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) }, modifier = Modifier.height(40.dp),
                     navigationIcon = { IconButton(onClick = {
                         if (navController.previousBackStackEntry != null) navController.popBackStack()
                         else onBackPressed()
@@ -370,21 +367,21 @@ class PreferenceActivity : ComponentActivity() {
                 RadioButton(selected = checkIndex == 0, onClick = {
                     checkIndex = 0
                     AppPreferences.theme = AppPreferences.ThemePreference.SYSTEM
-                    ActivityCompat.recreate(this@PreferenceActivity)
+                    recreate()
                 })
                 Text(stringResource(R.string.pref_theme_title_automatic), color = textColor, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
                 RadioButton(selected = checkIndex == 1, onClick = {
                     checkIndex = 1
                     AppPreferences.theme = AppPreferences.ThemePreference.LIGHT
-                    ActivityCompat.recreate(this@PreferenceActivity)
+                    recreate()
                 })
                 Text(stringResource(R.string.pref_theme_title_light), color = textColor, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
                 RadioButton(selected = checkIndex == 2, onClick = {
                     checkIndex = 2
                     AppPreferences.theme = AppPreferences.ThemePreference.DARK
-                    ActivityCompat.recreate(this@PreferenceActivity)
+                    recreate()
                 })
                 Text(stringResource(R.string.pref_theme_title_dark), color = textColor, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
@@ -398,21 +395,21 @@ class PreferenceActivity : ComponentActivity() {
                 Switch(checked = isChecked, onCheckedChange = {
                     isChecked = it
                     putPref(AppPrefs.prefThemeBlack, it)
-                    ActivityCompat.recreate(this@PreferenceActivity)
+                    recreate()
                 })
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.pref_tinted_theme_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.pref_tinted_theme_message), color = textColor)
-                }
-                var isChecked by remember { mutableStateOf(getPref(AppPrefs.prefTintedColors, false)) }
-                Switch(checked = isChecked, onCheckedChange = {
-                    isChecked = it
-                    putPref(AppPrefs.prefTintedColors, it)
-                    ActivityCompat.recreate(this@PreferenceActivity)
-                })
-            }
+//            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+//                Column(modifier = Modifier.weight(1f)) {
+//                    Text(stringResource(R.string.pref_tinted_theme_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+//                    Text(stringResource(R.string.pref_tinted_theme_message), color = textColor)
+//                }
+//                var isChecked by remember { mutableStateOf(getPref(AppPrefs.prefTintedColors, false)) }
+//                Switch(checked = isChecked, onCheckedChange = {
+//                    isChecked = it
+//                    putPref(AppPrefs.prefTintedColors, it)
+//                    recreate()
+//                })
+//            }
             TitleSummarySwitchPrefRow(R.string.pref_episode_cover_title, R.string.pref_episode_cover_summary, AppPrefs.prefEpisodeCover.name)
             TitleSummarySwitchPrefRow(R.string.pref_show_remain_time_title, R.string.pref_show_remain_time_summary, AppPrefs.showTimeLeft.name)
             Text(stringResource(R.string.subscriptions_label), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))

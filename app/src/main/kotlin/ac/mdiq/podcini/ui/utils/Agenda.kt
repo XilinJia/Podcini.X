@@ -3,12 +3,14 @@ package ac.mdiq.podcini.ui.utils
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcher
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
 var episodeOnDisplay by mutableStateOf<Episode>(Episode())
 
+var feedScreenMode by mutableStateOf<FeedScreenMode>(FeedScreenMode.List)
 var feedOnDisplay by mutableStateOf<Feed>(Feed())
 
 var curSearchString by mutableStateOf("")

@@ -18,6 +18,7 @@ import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -234,7 +235,8 @@ fun LogsScreen() {
                                 val feed = getFeedByTitleAndAuthor(log.title?:"", log.author?:"")
                                 if (feed != null) {
                                     feedOnDisplay = feed
-                                    mainNavController.navigate(Screens.FeedInfo.name)
+                                    feedScreenMode = FeedScreenMode.Info
+                                    mainNavController.navigate(Screens.FeedDetails.name)
                                 }
                                 else hasError = true
                             }
@@ -458,7 +460,7 @@ fun LogsScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
      fun MyTopAppBar() {
-        TopAppBar(title = { Text(vm.title) },
+        TopAppBar(title = { Text(vm.title) }, modifier = Modifier.height(40.dp),
             navigationIcon = if (vm.displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }

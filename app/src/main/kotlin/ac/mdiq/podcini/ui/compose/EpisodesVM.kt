@@ -43,8 +43,10 @@ import ac.mdiq.podcini.ui.actions.NullActionButton
 import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
+import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -709,7 +711,8 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                             selectMode -> toggleSelected(vm)
                             vm.episode.feed != null && vm.episode.feed?.isSynthetic() != true -> {
                                 feedOnDisplay = vm.episode.feed!!
-                                mainNavController.navigate(Screens.FeedInfo.name)
+                                feedScreenMode = FeedScreenMode.Info
+                                mainNavController.navigate(Screens.FeedDetails.name)
                             }
                             else -> {
                                 episodeOnDisplay = vm.episode
