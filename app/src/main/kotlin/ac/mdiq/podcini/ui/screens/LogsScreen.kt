@@ -460,7 +460,7 @@ fun LogsScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
      fun MyTopAppBar() {
-        TopAppBar(title = { Text(vm.title) }, modifier = Modifier.height(40.dp),
+        TopAppBar(title = { Text(vm.title) }, 
             navigationIcon = if (vm.displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }

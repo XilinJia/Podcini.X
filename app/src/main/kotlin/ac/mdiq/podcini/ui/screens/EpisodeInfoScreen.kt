@@ -336,7 +336,7 @@ fun EpisodeInfoScreen() {
     fun MyTopAppBar() {
         val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text("") }, modifier = Modifier.height(40.dp),
+        TopAppBar(title = { Text("") }, 
             navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
             }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
             actions = {

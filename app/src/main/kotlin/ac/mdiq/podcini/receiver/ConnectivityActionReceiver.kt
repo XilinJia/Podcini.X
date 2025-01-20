@@ -3,7 +3,7 @@ package ac.mdiq.podcini.receiver
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAutoDownloadAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
-import ac.mdiq.podcini.storage.algorithms.AutoDownloads.autodownloadEpisodeMedia
+import ac.mdiq.podcini.automation.AutoDownloads.autodownloadEpisodeMedia
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.content.BroadcastReceiver

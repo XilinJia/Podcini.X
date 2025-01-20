@@ -393,14 +393,14 @@
     <string name="downloads_pref_sum">업데이트 주기, 휴대전화 망 데이터, 자동 다운로드, 자동 삭제</string>
     <string name="feed_refresh_title">팟캐스트 새로고침</string>
     <string name="feed_refresh_sum">Specify an interval (in hours, 0 means never) at which Podcini looks for new episodes automatically.</string>
-    <string name="feed_refresh_never">안 함</string>
-    <string name="feed_every_hour">매 시간</string>
-    <string name="feed_every_2_hours">매 2시간</string>
-    <string name="feed_every_4_hours">매 4시간</string>
-    <string name="feed_every_8_hours">매 8시간</string>
-    <string name="feed_every_12_hours">매 12시간</string>
-    <string name="feed_every_24_hours">매일</string>
-    <string name="feed_every_72_hours">매 3일</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">연속 재생</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">헤드폰 또는 블루투스 연결 끊김</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">헤드폰 재연결</string>

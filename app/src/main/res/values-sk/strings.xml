@@ -408,14 +408,14 @@
     <string name="downloads_pref_sum">Interval aktualizácie, Mobilné dáta, Automatické sťahovanie, Automatické mazanie</string>
     <string name="feed_refresh_title">Aktualizovať podcasty</string>
     <string name="feed_refresh_sum">Specify an interval (in hours, 0 means never) at which Podcini looks for new episodes automatically.</string>
-    <string name="feed_refresh_never">Nikdy</string>
-    <string name="feed_every_hour">Každú hodinu</string>
-    <string name="feed_every_2_hours">Každé 2 hodiny</string>
-    <string name="feed_every_4_hours">Každé 4 hodiny</string>
-    <string name="feed_every_8_hours">Každých 8 hodín</string>
-    <string name="feed_every_12_hours">Každých 12 hodín</string>
-    <string name="feed_every_24_hours">Každý deň</string>
-    <string name="feed_every_72_hours">Každé 3 dni</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">Kontinuálne prehrávanie</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Slúchadlá alebo Bluetooth odpojené</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Slúchadlá znovu pripojené</string>

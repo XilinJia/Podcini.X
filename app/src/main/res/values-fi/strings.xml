@@ -398,14 +398,14 @@
     <string name="downloads_pref_sum">Päivitysväli, mobiilidata, automaattinen lataus, automaattinen poisto</string>
     <string name="feed_refresh_title">Päivitä podcastit</string>
     <string name="feed_refresh_sum">Määritä aikaväli (tunteina, 0 tarkoittaa ei koskaan), jossa Podcini etsii uusia jaksoja automaattisesti.</string>
-    <string name="feed_refresh_never">Ei koskaan</string>
-    <string name="feed_every_hour">Tunnin välein</string>
-    <string name="feed_every_2_hours">2 tunnin välein</string>
-    <string name="feed_every_4_hours">4 tunnin välein</string>
-    <string name="feed_every_8_hours">8 tunnin välein</string>
-    <string name="feed_every_12_hours">12 tunnin välein</string>
-    <string name="feed_every_24_hours">Päivittäin</string>
-    <string name="feed_every_72_hours">3 päivän välein</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">Jatkuva toisto</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Kuulokkeiden tai Bluetoothin uudelleenyhdistyminen</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Kuulokkeiden uudelleenyhdistyminen</string>

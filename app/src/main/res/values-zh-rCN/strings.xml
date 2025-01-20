@@ -393,14 +393,14 @@
     <string name="downloads_pref_sum">更新间隔，移动数据，自动下载，自动删除</string>
     <string name="feed_refresh_title">刷新播客</string>
     <string name="feed_refresh_sum">指定一个时间间隔(小时, 0 表示不会显示) 在 Podcini 自动查找新剧集。</string>
-    <string name="feed_refresh_never">从不使用</string>
-    <string name="feed_every_hour">每小时</string>
-    <string name="feed_every_2_hours">每 2 小时</string>
-    <string name="feed_every_4_hours">每 4 小时</string>
-    <string name="feed_every_8_hours">每 8 小时</string>
-    <string name="feed_every_12_hours">每 12 小时</string>
-    <string name="feed_every_24_hours">每天一次</string>
-    <string name="feed_every_72_hours">每 3 天</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">连续播放</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">耳机或蓝牙断开连接</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">耳机重新连接</string>

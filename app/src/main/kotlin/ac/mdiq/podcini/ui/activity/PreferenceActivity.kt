@@ -80,7 +80,7 @@ class PreferenceActivity : ComponentActivity() {
             val navController = rememberNavController()
             CustomTheme(this) {
                 if (showToast) CustomToast(message = toastMassege, onDismiss = { showToast = false })
-                Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) }, modifier = Modifier.height(40.dp),
+                Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) }, 
                     navigationIcon = { IconButton(onClick = {
                         if (navController.previousBackStackEntry != null) navController.popBackStack()
                         else onBackPressed()

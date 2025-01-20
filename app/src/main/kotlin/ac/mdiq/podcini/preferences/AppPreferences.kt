@@ -284,7 +284,9 @@ object AppPreferences {
         // Network
         prefEnqueueDownloaded,
         prefEnqueueLocation,
-        prefAutoUpdateIntervall,
+        prefAutoUpdateStartTime,
+        prefAutoUpdateInterval,
+        prefLastFullUpdateTime,
         prefMobileUpdateTypes,
         prefEpisodeCleanup,
         prefEpisodeCacheSize,

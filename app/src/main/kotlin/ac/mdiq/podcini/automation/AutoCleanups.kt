@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.storage.algorithms
+package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs

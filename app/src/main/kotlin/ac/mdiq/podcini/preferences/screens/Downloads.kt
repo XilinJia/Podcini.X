@@ -6,22 +6,18 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.newBuilder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.reinit
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.nextRefreshTime
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.restartUpdateAlarm
-import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.appPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.model.ProxyConfig
 import ac.mdiq.podcini.storage.utils.StorageUtils.deleteDirectoryRecursively
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.activity.PreferenceActivity.Screens
-import ac.mdiq.podcini.ui.compose.ComfirmDialog
-import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.Spinner
-import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
-import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
+import ac.mdiq.podcini.ui.compose.*
 import android.app.Activity.RESULT_OK
 import android.content.DialogInterface
 import android.content.Intent
@@ -29,14 +25,10 @@ import android.net.Uri
 import android.util.Patterns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -299,32 +291,85 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
     var showProxyDialog by remember { mutableStateOf(false) }
     if (showProxyDialog) ProxyDialog {showProxyDialog = false }
 
+//    val lastUpdateTime = remember { getPref(AppPrefs.prefLastFullUpdateTime, 0L) }
+    var refreshInterval by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateInterval, "12")) }
+//    LaunchedEffect(Unit) {
+//        val intervalInMillis = ((refreshInterval.toIntOrNull()?: 0) * TimeUnit.HOURS.toMillis(1))
+//        if (refreshInterval != "0") {
+//            nextRefreshTime = if (lastUpdateTime == 0L) activity.getString(R.string.before) + Date(Calendar.getInstance().timeInMillis + intervalInMillis).toString()
+//            else fullDateTimeString(lastUpdateTime + intervalInMillis)
+//        }
+//    }
+
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
         Text(stringResource(R.string.automation), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.feed_refresh_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                var interval by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateIntervall, "12")) }
                 var showIcon by remember { mutableStateOf(false) }
-                TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hours)") },
+                TextField(value = refreshInterval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hours)") },
                     singleLine = true, modifier = Modifier.weight(0.5f),
                     onValueChange = {
                         if (it.isEmpty() || it.toIntOrNull() != null) {
-                            interval = it
+                            refreshInterval = it
                             showIcon = true
                         }
                     },
                     trailingIcon = {
                         if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
                             modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                if (interval.isEmpty()) interval = "0"
-                                putPref(AppPrefs.prefAutoUpdateIntervall, interval)
+                                if (refreshInterval.isEmpty()) refreshInterval = "0"
+                                putPref(AppPrefs.prefAutoUpdateInterval, refreshInterval)
                                 showIcon = false
                                 restartUpdateAlarm(activity, true)
                             }))
                     })
             }
             Text(stringResource(R.string.feed_refresh_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+            if (refreshInterval != "0") {
+                Text(stringResource(R.string.feed_next_refresh_time) + " " + nextRefreshTime, color = textColor, style = MaterialTheme.typography.bodySmall)
+                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+                    var startTime by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateStartTime, "")) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.feed_refresh_start), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f))
+                        var showIcon by remember { mutableStateOf(false) }
+                        val hm = remember { (if (startTime.contains(":")) startTime.split(":") else listOf("", "")).toMutableList() }
+                        var hour by remember { mutableStateOf( hm[0]) }
+                        var minute by remember { mutableStateOf( hm[1]) }
+                        TextField(value = hour, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hour)") },
+                            singleLine = true, modifier = Modifier.weight(0.4f),
+                            onValueChange = {
+                                if (it.isEmpty() || it.toIntOrNull() != null) {
+                                    hour = it
+                                    hm[0] = it
+                                    showIcon = true
+                                }
+                            })
+                        TextField(value = minute, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(minute)") },
+                            singleLine = true, modifier = Modifier.padding(start = 10.dp).weight(0.4f),
+                            onValueChange = {
+                                if (it.isEmpty() || it.toIntOrNull() != null) {
+                                    minute = it
+                                    hm[1] = it
+                                    showIcon = true
+                                }
+                            })
+                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
+                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                                var h = ""
+                                var m = ""
+                                if (hm[0].isNotBlank() || hm[1].isNotBlank()) {
+                                    h = if (hm[0].isBlank()) "0" else hm[0]
+                                    m = if (hm[1].isBlank()) "0" else hm[1]
+                                }
+                                putPref(AppPrefs.prefAutoUpdateStartTime, "$h:$m")
+                                showIcon = false
+                                restartUpdateAlarm(activity, true)
+                            }))
+                    }
+                    Text(stringResource(R.string.feed_refresh_start_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+                }
+            }
         }
         var showSetCustomFolderDialog by remember { mutableStateOf(false) }
         if (showSetCustomFolderDialog) {
@@ -406,7 +451,8 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
         Text(stringResource(R.string.download_pref_details), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 10.dp))
         var showMeteredNetworkOptions by remember { mutableStateOf(false) }
-        var tempSelectedOptions by remember { mutableStateOf(appPrefs.getStringSet(AppPrefs.prefMobileUpdateTypes.name, setOf("images"))!!) }
+        val initMobileOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes.name, setOf("images"))) }
+        var tempSelectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes.name, setOf("images"))) }
         TitleSummaryActionColumn(R.string.pref_metered_network_title, R.string.pref_mobileUpdate_sum) { showMeteredNetworkOptions = true }
         if (showMeteredNetworkOptions) {
             AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showMeteredNetworkOptions = false },
@@ -432,6 +478,9 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                 confirmButton = {
                     TextButton(onClick = {
                         putPref(AppPrefs.prefMobileUpdateTypes, tempSelectedOptions)
+                        val optionsDiff = (tempSelectedOptions - initMobileOptions) + (initMobileOptions - tempSelectedOptions)
+                        if (optionsDiff.contains(MobileUpdateOptions.feed_refresh.name) || optionsDiff.contains(MobileUpdateOptions.auto_download.name))
+                            restartUpdateAlarm(activity, true)
                         showMeteredNetworkOptions = false
                     }) { Text(text = "OK") }
                 },

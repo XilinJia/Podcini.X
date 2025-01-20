@@ -408,14 +408,14 @@
     <string name="downloads_pref_sum">Update interval, Mobile data, Automatic download, Automatic deletion</string>
     <string name="feed_refresh_title">Osveži podcaste</string>
     <string name="feed_refresh_sum">Specify an interval (in hours, 0 means never) at which Podcini looks for new episodes automatically.</string>
-    <string name="feed_refresh_never">Nikoli</string>
-    <string name="feed_every_hour">Every hour</string>
-    <string name="feed_every_2_hours">Every 2 hours</string>
-    <string name="feed_every_4_hours">Every 4 hours</string>
-    <string name="feed_every_8_hours">Every 8 hours</string>
-    <string name="feed_every_12_hours">Every 12 hours</string>
-    <string name="feed_every_24_hours">Every day</string>
-    <string name="feed_every_72_hours">Every 3 days</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">Continuous playback</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Povezava s slušalkam ali Bluetoothom je prekinjena</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Headphones reconnect</string>

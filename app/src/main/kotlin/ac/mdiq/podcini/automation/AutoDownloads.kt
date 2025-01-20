@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.storage.algorithms
+package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAutoDownloadAllowed

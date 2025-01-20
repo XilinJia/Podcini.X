@@ -97,7 +97,7 @@ class BugReportActivity : ComponentActivity() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text(stringResource(R.string.bug_report_title)) }, modifier = Modifier.height(40.dp),
+        TopAppBar(title = { Text(stringResource(R.string.bug_report_title)) }, 
             navigationIcon = { IconButton(onClick = { finish() } ) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
             actions = {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }

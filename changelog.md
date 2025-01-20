@@ -1,3 +1,10 @@
+# 8.1.1
+
+* fixed the small height of TopBar
+* ensure refresh task is reset when changes in Metered Network Options involve refresh and auto-download
+* added display of next refresh time in Settings -> Downloads
+* in Settings -> Downloads, added "start time" setting for refresh, once set, the refresh interval will be based on it rather than "now"
+
 # 8.1.0
 
 * screens of FeedEpisodes and FeedInfo is merged into one: FeedDetails

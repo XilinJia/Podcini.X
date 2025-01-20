@@ -395,14 +395,14 @@
     <string name="downloads_pref_sum">更新間隔、モバイルデータ、自動ダウンロード、自動削除</string>
     <string name="feed_refresh_title">ポッドキャストの更新</string>
     <string name="feed_refresh_sum">Podciniが新しいエピソードを自動的に探す間隔(時間単位、0を意味しません)を指定します。</string>
-    <string name="feed_refresh_never">しない</string>
-    <string name="feed_every_hour">1時間ごと</string>
-    <string name="feed_every_2_hours">2時間ごと</string>
-    <string name="feed_every_4_hours">4時間ごと</string>
-    <string name="feed_every_8_hours">8時間ごと</string>
-    <string name="feed_every_12_hours">12時間ごと</string>
-    <string name="feed_every_24_hours">毎日</string>
-    <string name="feed_every_72_hours">3日ごと</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">連続再生</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">ヘッドホン/Bluetoothの切断</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">ヘッドフォンの再接続</string>

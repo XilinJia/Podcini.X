@@ -9,22 +9,27 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isVpnOverWifi
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.Context
 import android.content.DialogInterface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.work.*
 import androidx.work.Constraints.Builder
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 object FeedUpdateManager {
     private val TAG: String = FeedUpdateManager::class.simpleName ?: "Anonymous"
 
     const val WORK_TAG_FEED_UPDATE: String = "feedUpdate"
-    private const val WORK_ID_FEED_UPDATE = "ac.mdiq.podcini.FeedUpdateWorker"
     private const val WORK_ID_FEED_UPDATE_MANUAL = "feedUpdateManual"
     const val EXTRA_FEED_ID: String = "feed_id"
     const val EXTRA_NEXT_PAGE: String = "next_page"
@@ -32,10 +37,15 @@ object FeedUpdateManager {
     const val EXTRA_EVEN_ON_MOBILE: String = "even_on_mobile"
 
     private val updateInterval: Long
-        get() = getPref(AppPrefs.prefAutoUpdateIntervall, "12").toInt().toLong()
+        get() = getPref(AppPrefs.prefAutoUpdateInterval, "12").toInt().toLong()
 
     private val isAutoUpdateDisabled: Boolean
         get() = updateInterval == 0L
+
+    private val lastUpdateTime: Long
+        get() = getPref(AppPrefs.prefLastFullUpdateTime, 0L)
+
+    var nextRefreshTime by mutableStateOf("")
 
     /**
      * Start / restart periodic auto feed refresh
@@ -43,13 +53,41 @@ object FeedUpdateManager {
      */
     @JvmStatic
     fun restartUpdateAlarm(context: Context, replace: Boolean) {
-        if (isAutoUpdateDisabled) WorkManager.getInstance(context).cancelUniqueWork(WORK_ID_FEED_UPDATE)
+        val workId = context.packageName + "FeedUpdateWorker"
+        if (isAutoUpdateDisabled) WorkManager.getInstance(context).cancelUniqueWork(workId)
         else {
+            var initialDelay = 0L
+            var policy = ExistingPeriodicWorkPolicy.KEEP
+            if (replace) {
+                putPref(AppPrefs.prefLastFullUpdateTime, 0L)
+                policy = ExistingPeriodicWorkPolicy.UPDATE
+            }
+            val startHM = getPref(AppPrefs.prefAutoUpdateStartTime, ":").split(":").toMutableList()
+            if (startHM[0].isNotBlank() || startHM[1].isNotBlank()) {
+                val hour = if (startHM[0].isBlank()) 0 else (startHM[0].toIntOrNull() ?: 0)
+                val minute = if (startHM[1].isBlank()) 0 else (startHM[1].toIntOrNull() ?: 0)
+                val targetTime = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, hour)
+                    set(Calendar.MINUTE, minute)
+                    set(Calendar.SECOND, 0)
+                }
+                val currentTime = Calendar.getInstance()
+                if (targetTime.before(currentTime)) targetTime.add(Calendar.DAY_OF_MONTH, 1)
+                initialDelay = targetTime.timeInMillis - currentTime.timeInMillis
+            }
+            val intervalInMillis = (updateInterval * TimeUnit.HOURS.toMillis(1))
+            nextRefreshTime = if (lastUpdateTime == 0L) {
+                if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
+                else context.getString(R.string.before) + fullDateTimeString(Calendar.getInstance().timeInMillis + intervalInMillis)
+            } else fullDateTimeString(lastUpdateTime + intervalInMillis)
+
             val workRequest: PeriodicWorkRequest = PeriodicWorkRequest.Builder(gearbox.feedUpdateWorkerClass(), updateInterval, TimeUnit.HOURS)
-                .setConstraints(Builder().setRequiredNetworkType(if (isAllowMobileFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED).build())
+                .setConstraints(Builder()
+                    .setRequiredNetworkType(if (isAllowMobileFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED)
+                    .build())
+                .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
                 .build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(WORK_ID_FEED_UPDATE,
-                if (replace) ExistingPeriodicWorkPolicy.UPDATE else ExistingPeriodicWorkPolicy.KEEP, workRequest)
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(workId, policy, workRequest)
         }
     }
 

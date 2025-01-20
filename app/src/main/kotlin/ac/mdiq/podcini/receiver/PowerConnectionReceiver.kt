@@ -3,7 +3,7 @@ package ac.mdiq.podcini.receiver
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.storage.algorithms.AutoDownloads.autodownloadEpisodeMedia
+import ac.mdiq.podcini.automation.AutoDownloads.autodownloadEpisodeMedia
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.content.BroadcastReceiver

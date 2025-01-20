@@ -403,14 +403,14 @@
     <string name="downloads_pref_sum">Interval actualizare, Date mobile, Descărcări automate, Ștergeri automate</string>
     <string name="feed_refresh_title">Reîmprospătează podcasturile</string>
     <string name="feed_refresh_sum">Specificaţi un interval (în ore, 0 înseamnă niciodată) la care Podcini caută episoade noi în mod automat.</string>
-    <string name="feed_refresh_never">Nicio data</string>
-    <string name="feed_every_hour">La fiecare oră</string>
-    <string name="feed_every_2_hours">La fiecare 2 ore</string>
-    <string name="feed_every_4_hours">La fiecare 4 ore</string>
-    <string name="feed_every_8_hours">La fiecare 8 ore</string>
-    <string name="feed_every_12_hours">La fiecare 12 ore</string>
-    <string name="feed_every_24_hours">În fiecare zi</string>
-    <string name="feed_every_72_hours">La fiecare 3 ore</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">Redare continuă</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Căștile sau Bluetooth sunt deconectate</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Reconectare căști</string>

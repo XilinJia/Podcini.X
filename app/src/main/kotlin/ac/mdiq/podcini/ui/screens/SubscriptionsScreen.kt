@@ -489,7 +489,7 @@ fun SubscriptionsScreen() {
     @Composable
     fun MyTopAppBar(displayUpArrow: Boolean) {
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text( if (vm.displayedFolder.isNotEmpty()) vm.displayedFolder else "") }, modifier = Modifier.height(40.dp),
+        TopAppBar(title = { Text( if (vm.displayedFolder.isNotEmpty()) vm.displayedFolder else "") }, 
             navigationIcon = if (displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }

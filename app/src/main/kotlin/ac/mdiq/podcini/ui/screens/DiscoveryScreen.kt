@@ -141,7 +141,7 @@ fun DiscoveryScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text(stringResource(R.string.discover)) }, modifier = Modifier.height(40.dp),
+        TopAppBar(title = { Text(stringResource(R.string.discover)) }, 
             navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
             }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
             actions = {

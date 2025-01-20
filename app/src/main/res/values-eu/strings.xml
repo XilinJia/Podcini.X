@@ -312,14 +312,14 @@
   <string name="playback_pref_sum">Aurikularren kontrolak, saltatu tarteak, ilara</string>
   <string name="downloads_pref">Deskargak</string>
   <string name="feed_refresh_title">Eguneratu podcastak</string>
-  <string name="feed_refresh_never">Inoiz ez</string>
-  <string name="feed_every_hour">Orduero</string>
-  <string name="feed_every_2_hours">2 ordutik behin</string>
-  <string name="feed_every_4_hours">4 ordutik behin</string>
-  <string name="feed_every_8_hours">8 ordutik behin</string>
-  <string name="feed_every_12_hours">12 ordutik behin</string>
-  <string name="feed_every_24_hours">Egunero</string>
-  <string name="feed_every_72_hours">3 egunetik behin</string>
+
+
+
+
+
+
+
+
   <string name="pref_pauseOnHeadsetDisconnect_title">Entzungailu edo Bluetootharen deskonexioa</string>
   <string name="pref_stream_over_download_title">Hobetsi streaming-a</string>
   <string name="pref_mobileUpdate_sum">Aukeratu datu mugikorrez deskarga daitekeena</string>

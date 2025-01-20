@@ -292,7 +292,7 @@
   <string name="playback_pref">Lenn</string>
   <string name="playback_pref_sum">Reoliadur ar selaouelloù, hirder al lammoù, lostoù</string>
   <string name="feed_refresh_title">Hizivaat ar podskignadoù</string>
-  <string name="feed_refresh_never">Morse</string>
+
   <string name="pref_followQueue_title">Lenn kendalc\'hus</string>
   <string name="pref_pauseOnHeadsetDisconnect_title">Digennask ar selaouelloù pe ar bluetooth</string>
   <string name="pref_mobileUpdate_sum">Dibab ar pezh a zo aotreet gant ar c\'hennask hezoug</string>

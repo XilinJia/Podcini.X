@@ -170,7 +170,7 @@
   <string name="pref_auto_delete_sum">Desanicia los episodios al reproducilos dafechu</string>
   <string name="pref_skip_keeps_episodes_sum">Caltién los episodios cuando se salten</string>
   <string name="playback_pref">Reproducción</string>
-  <string name="feed_refresh_never">Enxamás</string>
+
   <string name="pref_mobileUpdate_sum">Esbilla qué habría permitise cola conexón a la rede móvil</string>
   <string name="pref_mobileUpdate_refresh">Refrescu de podcasts</string>
   <string name="pref_mobileUpdate_images">Portaes</string>

@@ -157,7 +157,7 @@ fun FeedSettingsScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
      fun MyTopAppBar() {
-        TopAppBar(modifier = Modifier.height(40.dp), title = {
+        TopAppBar( title = {
             Column {
                 Text(text = stringResource(R.string.feed_settings_label), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 if (!vm.feed?.title.isNullOrBlank()) Text(text = vm.feed!!.title!!, fontSize = 16.sp)

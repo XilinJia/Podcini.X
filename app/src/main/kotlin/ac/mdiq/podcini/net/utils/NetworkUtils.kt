@@ -164,15 +164,15 @@ object NetworkUtils {
     fun isAllowMobileFor(type: String): Boolean {
         val defaultValue = HashSet<String>()
         defaultValue.add("images")
-        val allowed = appPrefs.getStringSet(AppPrefs.prefMobileUpdateTypes.name, defaultValue)
-        return allowed!!.contains(type)
+        val allowed = getPref(AppPrefs.prefMobileUpdateTypes.name, defaultValue)
+        return allowed.contains(type)
     }
 
     fun setAllowMobileFor(type: String, allow: Boolean) {
         val defaultValue = HashSet<String>()
         defaultValue.add("images")
-        val getValueStringSet = appPrefs.getStringSet(AppPrefs.prefMobileUpdateTypes.name, defaultValue)
-        val allowed: MutableSet<String> = HashSet(getValueStringSet!!)
+        val getValueStringSet = getPref(AppPrefs.prefMobileUpdateTypes.name, defaultValue)
+        val allowed: MutableSet<String> = HashSet(getValueStringSet)
         if (allow) allowed.add(type)
         else allowed.remove(type)
         putPref(AppPrefs.prefMobileUpdateTypes, allowed)

@@ -9,11 +9,15 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_EVEN_ON_MOBILE
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_FEED_ID
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_FULL_UPDATE
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_NEXT_PAGE
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.restartUpdateAlarm
 import ac.mdiq.podcini.net.feed.parser.FeedHandler
 import ac.mdiq.podcini.net.feed.parser.FeedHandler.FeedHandlerResult
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
-import ac.mdiq.podcini.storage.algorithms.AutoDownloads.autodownloadEpisodeMedia
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.automation.AutoDownloads.autodownloadEpisodeMedia
 import ac.mdiq.podcini.storage.database.Feeds
 import ac.mdiq.podcini.storage.database.LogsAndStats
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
@@ -80,8 +84,13 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Wo
         notificationManager.cancel(R.id.notification_updating_feeds)
         autodownloadEpisodeMedia(applicationContext, feedsToUpdate.toList())
         feedsToUpdate.clear()
+        if (feedId == -1L && getPref(AppPrefs.prefAutoUpdateStartTime, ":") == ":") {
+            putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
+            restartUpdateAlarm(applicationContext, true)
+        }
         return Result.success()
     }
+
     private fun createNotification(titles: List<String>?): Notification {
         val context = applicationContext
         var contentText = ""

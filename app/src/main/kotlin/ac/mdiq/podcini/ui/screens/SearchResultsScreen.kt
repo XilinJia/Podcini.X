@@ -150,7 +150,7 @@ fun SearchResultsScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar(modifier = Modifier.height(40.dp),
+        TopAppBar(
             title = { SearchBarRow(R.string.search_podcast_hint, defaultText = onlineSearchText) { queryText -> vm.search(queryText) }},
             navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }

@@ -260,7 +260,7 @@
   <string name="playback_pref">Esitamine</string>
   <string name="playback_pref_sum">Kõrvaklappide juhtimine, vahelejätmine, ootejärjekord</string>
   <string name="feed_refresh_title">Värskenda taskuhäälinguid</string>
-  <string name="feed_refresh_never">Mitte kunagi</string>
+
   <string name="pref_pauseOnHeadsetDisconnect_title">Peakomplekti või Bluetoothi lahti ühendamisel</string>
   <string name="pref_mobileUpdate_sum">Vali, mis peaks olema lubatud andmeside kaudu</string>
   <string name="pref_mobileUpdate_refresh">Taskuhäälingu värskendamine</string>

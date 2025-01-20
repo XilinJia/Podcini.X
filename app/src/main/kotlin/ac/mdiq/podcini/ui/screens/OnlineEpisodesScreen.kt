@@ -112,7 +112,7 @@ fun OnlineEpisodesScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar(title = { Text(stringResource(R.string.online_episodes_label)) }, modifier = Modifier.height(40.dp),
+        TopAppBar(title = { Text(stringResource(R.string.online_episodes_label)) }, 
             navigationIcon = if (vm.displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }

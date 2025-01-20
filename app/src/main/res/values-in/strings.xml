@@ -393,14 +393,14 @@
     <string name="downloads_pref_sum">Waktu pembaharuan, Jaringan seluler, Unduh otomatis, Hapus otomatis</string>
     <string name="feed_refresh_title">Segarkan podcast</string>
     <string name="feed_refresh_sum">Specify an interval (in hours, 0 means never) at which Podcini looks for new episodes automatically.</string>
-    <string name="feed_refresh_never">Jangan pernah</string>
-    <string name="feed_every_hour">Setiap jam</string>
-    <string name="feed_every_2_hours">Tiap 2 jam</string>
-    <string name="feed_every_4_hours">Tiap 4 jam</string>
-    <string name="feed_every_8_hours">Tiap 8 jam</string>
-    <string name="feed_every_12_hours">Tiap 12 jam</string>
-    <string name="feed_every_24_hours">Setiap hari</string>
-    <string name="feed_every_72_hours">Tiap 3 hari</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">Pemutaran berlanjut</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Headphone atau Bluetooth putus</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Headphones terhubung kembali</string>

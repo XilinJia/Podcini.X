@@ -410,14 +410,14 @@
     <string name="downloads_pref_sum">Interwał aktualizacji, dane mobilne, automatyczne pobieranie, automatyczne usuwanie</string>
     <string name="feed_refresh_title">Odśwież podcasty</string>
     <string name="feed_refresh_sum">Określ interwał (w godzinach, 0 oznacza nigdy), w którym Podcini automatycznie wyszukuje nowe odcinki.</string>
-    <string name="feed_refresh_never">Nigdy</string>
-    <string name="feed_every_hour">Co godzinę</string>
-    <string name="feed_every_2_hours">Co 2 godziny</string>
-    <string name="feed_every_4_hours">Co 4 godziny</string>
-    <string name="feed_every_8_hours">Co 8 godzin</string>
-    <string name="feed_every_12_hours">Co 12 godzin</string>
-    <string name="feed_every_24_hours">Codziennie</string>
-    <string name="feed_every_72_hours">Co 3 dni</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">Odtwarzanie ciągłe</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Rozłączenie słuchawek lub Bluetooth</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Podłączono ponownie słuchawki</string>

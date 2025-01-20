@@ -401,14 +401,14 @@
     <string name="downloads_pref_sum">Fréquence de mise à jour, utilisation de la connexion mobile, téléchargements et suppressions automatiques</string>
     <string name="feed_refresh_title">Actualiser les podcasts</string>
     <string name="feed_refresh_sum">Spécifiez un intervalle (en heures, 0 signifie jamais) à partir duquel Podcini recherche automatiquement les nouveaux épisodes.</string>
-    <string name="feed_refresh_never">Jamais</string>
-    <string name="feed_every_hour">Toutes les heures</string>
-    <string name="feed_every_2_hours">Toutes les 2 heures</string>
-    <string name="feed_every_4_hours">Toutes les 4 heures</string>
-    <string name="feed_every_8_hours">Toutes les 8 heures</string>
-    <string name="feed_every_12_hours">Toutes les 12 heures</string>
-    <string name="feed_every_24_hours">Tous les jours</string>
-    <string name="feed_every_72_hours">Tous les 3 jours</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">Lecture continue</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Déconnexion des écouteurs ou du Bluetooth</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Connexion des écouteurs</string>

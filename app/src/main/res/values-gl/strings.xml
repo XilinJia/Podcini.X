@@ -342,14 +342,14 @@
   <string name="downloads_pref_sum">Intervalo de actualización, Datos móbiles, Descarga automática, Eliminación automática</string>
   <string name="feed_refresh_title">Actualizar podcast</string>
 
-  <string name="feed_refresh_never">Nunca</string>
-  <string name="feed_every_hour">Cada hora</string>
-  <string name="feed_every_2_hours">Cada 2 horas</string>
-  <string name="feed_every_4_hours">Cada 4 horas</string>
-  <string name="feed_every_8_hours">Cada 8 horas</string>
-  <string name="feed_every_12_hours">Cada 12 horas</string>
-  <string name="feed_every_24_hours">Cada día</string>
-  <string name="feed_every_72_hours">Cada 3 días</string>
+
+
+
+
+
+
+
+
   <string name="pref_followQueue_title">Reprodución continua</string>
   <string name="pref_pauseOnHeadsetDisconnect_title">Auriculares ou Bluetooth desconectados</string>
   <string name="pref_unpauseOnHeadsetReconnect_title">Reconexión de auriculares</string>

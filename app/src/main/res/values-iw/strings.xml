@@ -354,14 +354,14 @@
   <string name="downloads_pref_sum">הפרש בין עדכונים, חיבור סלולרי, הורדה אוטומטית, מחיקה אוטומטית</string>
   <string name="feed_refresh_title">רענון פודקאסטים</string>
 
-  <string name="feed_refresh_never">אף פעם לא</string>
-  <string name="feed_every_hour">כל שעה</string>
-  <string name="feed_every_2_hours">כל שעתיים</string>
-  <string name="feed_every_4_hours">כל 4 שעות</string>
-  <string name="feed_every_8_hours">כל 8 שעות</string>
-  <string name="feed_every_12_hours">כל 12 שעות</string>
-  <string name="feed_every_24_hours">כל יום</string>
-  <string name="feed_every_72_hours">כל 3 ימים</string>
+
+
+
+
+
+
+
+
   <string name="pref_followQueue_title">נגינה רציפה</string>
   <string name="pref_pauseOnHeadsetDisconnect_title">ניתוק אוזניות או Bluetooth</string>
   <string name="pref_unpauseOnHeadsetReconnect_title">חיבור אוזניות מחדש</string>

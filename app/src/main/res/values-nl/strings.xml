@@ -398,14 +398,14 @@
     <string name="downloads_pref_sum">Update interval, Mobiele data, Automatische download, Automatische verwijdering</string>
     <string name="feed_refresh_title">Podcasts vernieuwen</string>
     <string name="feed_refresh_sum">Specificeer een interval (in uur, 0 betekent nooit) waarop Podcini automatisch nieuwe afleveringen zoekt.</string>
-    <string name="feed_refresh_never">Nooit</string>
-    <string name="feed_every_hour">Elk uur</string>
-    <string name="feed_every_2_hours">Elke 2 uur</string>
-    <string name="feed_every_4_hours">Elke 4 uur</string>
-    <string name="feed_every_8_hours">Elke 8 uur</string>
-    <string name="feed_every_12_hours">Elke 12 uur</string>
-    <string name="feed_every_24_hours">Elke dag</string>
-    <string name="feed_every_72_hours">Elke 3 dagen</string>
+
+
+
+
+
+
+
+
     <string name="pref_followQueue_title">Doorlopend afspelen</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Koptelefoon of Bluetooth verbreken</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Opnieuw verbinden met koptelefoon</string>

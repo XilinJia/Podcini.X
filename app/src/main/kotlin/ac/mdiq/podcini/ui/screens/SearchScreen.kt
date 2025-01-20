@@ -377,7 +377,7 @@ fun SearchScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar(modifier = Modifier.height(40.dp), title = { SearchBarRow(R.string.search_label) {
+        TopAppBar( title = { SearchBarRow(R.string.search_label) {
             vm.queryText = it
             vm.search(vm.queryText)
         }},
