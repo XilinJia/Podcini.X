@@ -19,6 +19,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.util.Log
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -113,7 +114,8 @@ fun NavDrawerScreen() {
 
     Box(Modifier.width(drawerWidth).fillMaxHeight()) {
         Scaffold { innerPadding ->
-            Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(15.dp)) {
+            Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).background(MaterialTheme.colorScheme.surface),
+                verticalArrangement = Arrangement.spacedBy(15.dp)) {
                 val textColor = MaterialTheme.colorScheme.onSurface
                 for (nav in navMap.entries) {
                     if (nav.value.show) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {

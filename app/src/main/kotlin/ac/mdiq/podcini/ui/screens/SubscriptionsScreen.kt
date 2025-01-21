@@ -18,6 +18,8 @@ import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.utils.DurationConverter
+import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
@@ -137,8 +139,10 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var sortIndex by mutableStateOf(0)
     internal var titleAscending by mutableStateOf(true)
     internal var dateAscending by mutableStateOf(true)
+    internal var timeAscending by mutableStateOf(true)
     internal var countAscending by mutableStateOf(true)
     internal var dateSortIndex by mutableStateOf(0)
+    internal var timeSortIndex by mutableStateOf(0)
     internal val playStateSort = MutableList(PlayState.entries.size) { mutableStateOf(false) }
     internal val playStateCodeSet = mutableSetOf<String>()
     internal val ratingSort = MutableList(Rating.entries.size) { mutableStateOf(false) }
@@ -382,10 +386,32 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                         Logd(TAG, "queryString: $queryString")
                         comparator(counterMap, dir)
                     }
+                    2 -> {  // date last played
+                        val queryString = "feedId == $0 SORT(lastPlayedTime DESC)"
+                        val counterMap: MutableMap<Long, Long> = mutableMapOf()
+                        for (f in feedList_) {
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.lastPlayedTime ?: 0L
+                            counterMap[f.id] = d
+                            f.sortInfo = "Last played: " + formatDateTimeFlex(Date(d))
+                        }
+                        Logd(TAG, "queryString: $queryString")
+                        comparator(counterMap, dir)
+                    }
+                    3 -> {  // date last commented
+                        val queryString = "feedId == $0 SORT(commentTime DESC)"
+                        val counterMap: MutableMap<Long, Long> = mutableMapOf()
+                        for (f in feedList_) {
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.commentTime ?: 0L
+                            counterMap[f.id] = d
+                            f.sortInfo = "Last commented: " + formatDateTimeFlex(Date(d))
+                        }
+                        Logd(TAG, "queryString: $queryString")
+                        comparator(counterMap, dir)
+                    }
                     else -> comparator(mutableMapOf(), 0)
                 }
             }
-            else -> {   // count
+            2 -> {   // count
                 val dir = if (countAscending) 1 else -1
                 var playStateQueries = ""
                 for (i in playStateSort.indices) {
@@ -418,6 +444,50 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 comparator(counterMap, dir)
             }
+            else -> {
+                val dir = if (timeAscending) 1 else -1
+                when (timeSortIndex) {
+                    0 -> { // total duration
+                        Comparator { lhs: Feed, rhs: Feed ->
+                            val t1 = lhs.totleDuration
+                            val t2 = rhs.totleDuration
+                            t1.compareTo(t2) * dir
+                        }
+                    }
+                    1 -> {  // min duration
+                        val queryString = "feedId == $0 SORT(duration ASC)"
+                        val counterMap: MutableMap<Long, Long> = mutableMapOf()
+                        for (f in feedList_) {
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
+                            counterMap[f.id] = d
+                            f.sortInfo = "Min duration: " + getDurationStringLong(d.toInt())
+                        }
+                        Logd(TAG, "queryString: $queryString")
+                        comparator(counterMap, dir)
+                    }
+                    2 -> {  // max duration
+                        val queryString = "feedId == $0 SORT(duration DESC)"
+                        val counterMap: MutableMap<Long, Long> = mutableMapOf()
+                        for (f in feedList_) {
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
+                            counterMap[f.id] = d
+                            f.sortInfo = "Min duration: " + getDurationStringLong(d.toInt())
+                        }
+                        Logd(TAG, "queryString: $queryString")
+                        comparator(counterMap, dir)
+                    }
+                    3 -> {  // average duration
+                        Comparator { lhs: Feed, rhs: Feed ->
+                            val ln = lhs.episodes.size
+                            val t1 = if (ln > 0) lhs.totleDuration / ln else 0
+                            val rn = rhs.episodes.size
+                            val t2 = if (rn > 0) rhs.totleDuration / rn else 0
+                            t1.compareTo(t2) * dir
+                        }
+                    }
+                    else -> comparator(mutableMapOf(), 0)
+                }
+            }
         }
         feedSorted++
         if (!build) return feedList_.sortedWith(comparator)
@@ -427,7 +497,6 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
         feedListFiltered.addAll(feedList_.sortedWith(comparator))
         return listOf()
     }
-
 }
 
 @Composable
@@ -1004,18 +1073,14 @@ fun SubscriptionsScreen() {
         }
         Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
             val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
-            dialogWindowProvider?.window?.let { window ->
-                window.setGravity(Gravity.BOTTOM)
-//                window.setDimAmount(0f)
-//                window.setBackgroundDrawableResource(android.R.color.transparent)
-//                WindowCompat.setDecorFitsSystemWindows(window, false)
-            }
+            dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
             Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                 val textColor = MaterialTheme.colorScheme.onSurface
                 val scrollState = rememberScrollState()
                 Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
-                    Row {
+                    val scrollStateH = rememberScrollState()
+                    Row(Modifier.fillMaxWidth().horizontalScroll(scrollStateH)) {
                         OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != 0) textColor else Color.Green),
                             onClick = {
                                 vm.titleAscending = !vm.titleAscending
@@ -1023,7 +1088,6 @@ fun SubscriptionsScreen() {
                                 fetchAndSortRoutine()
                             }
                         ) { Text(text = stringResource(R.string.title) + if (vm.titleAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        Spacer(Modifier.weight(1f))
                         OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != 1) textColor else Color.Green),
                             onClick = {
                                 vm.dateAscending = !vm.dateAscending
@@ -1031,7 +1095,13 @@ fun SubscriptionsScreen() {
                                 fetchAndSortRoutine()
                             }
                         ) { Text(text = stringResource(R.string.date) + if (vm.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        Spacer(Modifier.weight(1f))
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != 3) textColor else Color.Green),
+                            onClick = {
+                                vm.timeAscending = !vm.timeAscending
+                                vm.sortIndex = 3
+                                fetchAndSortRoutine()
+                            }
+                        ) { Text(text = stringResource(R.string.time) + if (vm.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                         OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != 2) textColor else Color.Green),
                             onClick = {
                                 vm.countAscending = !vm.countAscending
@@ -1043,19 +1113,63 @@ fun SubscriptionsScreen() {
                     HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                     if (vm.sortIndex == 1) {
                         Row {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != 0) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != 2) textColor else Color.Green),
                                 onClick = {
-                                    vm.dateSortIndex = 0
+                                    vm.dateSortIndex = 2
                                     fetchAndSortRoutine()
                                 }
-                            ) { Text(stringResource(R.string.publish_date)) }
+                            ) { Text(stringResource(R.string.played)) }
                             Spacer(Modifier.weight(1f))
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != 1) textColor else Color.Green),
                                 onClick = {
                                     vm.dateSortIndex = 1
                                     fetchAndSortRoutine()
                                 }
-                            ) { Text(stringResource(R.string.download_date)) }
+                            ) { Text(stringResource(R.string.downloaded_label)) }
+                            Spacer(Modifier.weight(1f))
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != 3) textColor else Color.Green),
+                                onClick = {
+                                    vm.dateSortIndex = 3
+                                    fetchAndSortRoutine()
+                                }
+                            ) { Text(stringResource(R.string.commented)) }
+                        }
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != 0) textColor else Color.Green),
+                            onClick = {
+                                vm.dateSortIndex = 0
+                                fetchAndSortRoutine()
+                            }
+                        ) { Text(stringResource(R.string.publish_date)) }
+                    } else if (vm.sortIndex == 3) {
+                        Row {
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 1) textColor else Color.Green),
+                                onClick = {
+                                    vm.timeSortIndex = 1
+                                    fetchAndSortRoutine()
+                                }
+                            ) { Text(stringResource(R.string.min_duration)) }
+                            Spacer(Modifier.weight(1f))
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 2) textColor else Color.Green),
+                                onClick = {
+                                    vm.timeSortIndex = 2
+                                    fetchAndSortRoutine()
+                                }
+                            ) { Text(stringResource(R.string.max_duration)) }
+                        }
+                        Row {
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 0) textColor else Color.Green),
+                                onClick = {
+                                    vm.timeSortIndex = 0
+                                    fetchAndSortRoutine()
+                                }
+                            ) { Text(stringResource(R.string.total_duration)) }
+                            Spacer(Modifier.weight(1f))
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 3) textColor else Color.Green),
+                                onClick = {
+                                    vm.timeSortIndex = 3
+                                    fetchAndSortRoutine()
+                                }
+                            ) { Text(stringResource(R.string.average_duration)) }
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
@@ -1260,10 +1374,7 @@ fun SubscriptionsScreen() {
         }
         Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
             val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
-            dialogWindowProvider?.window?.let { window ->
-                window.setGravity(Gravity.BOTTOM)
-//                window.setDimAmount(0f)
-            }
+            dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
             Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                 val textColor = MaterialTheme.colorScheme.onSurface
@@ -1408,7 +1519,7 @@ fun SubscriptionsScreen() {
     if (vm.showSortDialog) SortDialog { vm.showSortDialog = false }
     if (vm.showNewSynthetic) RenameOrCreateSyntheticFeed { vm.showNewSynthetic = false }
     Scaffold(topBar = { MyTopAppBar(displayUpArrow) }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             InforBar()
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 20.dp, end = 20.dp)) {
                 Spinner(items = vm.spinnerTexts, selectedIndex = vm.queueFilterIndex) { index: Int ->

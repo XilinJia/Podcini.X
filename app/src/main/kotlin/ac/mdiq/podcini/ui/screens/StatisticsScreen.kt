@@ -396,7 +396,7 @@ fun StatisticsScreen() {
     }
     val tabTitles = listOf(R.string.subscriptions_label, R.string.months_statistics_label, R.string.downloads_label)
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             TabRow(modifier = Modifier.fillMaxWidth(), selectedTabIndex = vm.selectedTabIndex.value, divider = {}, indicator = { tabPositions ->
                 Box(modifier = Modifier.tabIndicatorOffset(tabPositions[vm.selectedTabIndex.value]).height(4.dp).background(Color.Blue))
             }) {

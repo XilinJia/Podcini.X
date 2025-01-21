@@ -1,3 +1,15 @@
+# 8.2.0
+
+* corrected github address in project to podcini.X
+* removed obsolete listing files
+* fixed next refresh time not updating issue
+* added more ways to sort podcasts
+	* added category Time to sort based on episodes' durations
+	* added date sorting based on Played and Commented 
+* re-arranged sorting criteria for episodes
+* ensured background color of components match the theme
+* added a buffering progress bar in PlayerUI
+
 # 8.1.1
 
 * fixed the small height of TopBar

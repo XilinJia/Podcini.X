@@ -15,6 +15,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -245,7 +246,7 @@ fun DiscoveryScreen() {
     if (vm.showSelectCounrty == true) SelectCountryDialog { vm.showSelectCounrty = false }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val (gridView, progressBar, empty, txtvError, butRetry) = createRefs()
             if (vm.showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
             val lazyListState = rememberLazyListState()

@@ -6,6 +6,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.newBuilder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.reinit
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.getInitialDelay
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.nextRefreshTime
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.restartUpdateAlarm
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
@@ -293,13 +294,9 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
 
 //    val lastUpdateTime = remember { getPref(AppPrefs.prefLastFullUpdateTime, 0L) }
     var refreshInterval by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateInterval, "12")) }
-//    LaunchedEffect(Unit) {
-//        val intervalInMillis = ((refreshInterval.toIntOrNull()?: 0) * TimeUnit.HOURS.toMillis(1))
-//        if (refreshInterval != "0") {
-//            nextRefreshTime = if (lastUpdateTime == 0L) activity.getString(R.string.before) + Date(Calendar.getInstance().timeInMillis + intervalInMillis).toString()
-//            else fullDateTimeString(lastUpdateTime + intervalInMillis)
-//        }
-//    }
+    LaunchedEffect(Unit) {
+        getInitialDelay(activity)
+    }
 
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
         Text(stringResource(R.string.automation), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -331,7 +328,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                 Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                     var startTime by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateStartTime, "")) }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.feed_refresh_start), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.5f))
+                        Text(stringResource(R.string.feed_refresh_start), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.4f))
                         var showIcon by remember { mutableStateOf(false) }
                         val hm = remember { (if (startTime.contains(":")) startTime.split(":") else listOf("", "")).toMutableList() }
                         var hour by remember { mutableStateOf( hm[0]) }

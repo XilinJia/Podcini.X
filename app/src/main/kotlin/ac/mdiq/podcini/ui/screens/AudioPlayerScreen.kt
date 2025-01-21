@@ -46,6 +46,7 @@ import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.ui.view.ShownotesWebView
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.FlowEvent.BufferUpdateEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.MiscFormatter
 import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
@@ -125,6 +126,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal var duration by mutableIntStateOf(0)
     internal var txtvLengtTexth by mutableStateOf("")
     internal var sliderValue by mutableFloatStateOf(0f)
+    internal var bufferValue by mutableFloatStateOf(0f)
     internal var sleepTimerActive by mutableStateOf(isSleepTimerActive())
     internal var showSpeedDialog by mutableStateOf(false)
 
@@ -174,6 +176,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 //                PlaybackServiceEvent.Action.SERVICE_RESTARTED -> (context as MainActivity).setPlayerVisible(true)
                         }
                     }
+                    is BufferUpdateEvent -> bufferUpdate(event)
                     is FlowEvent.PlayEvent -> onPlayEvent(event)
                     is FlowEvent.RatingEvent -> if (curEpisode?.id == event.episode.id) rating = event.rating
 //                    is FlowEvent.SleepTimerUpdatedEvent ->  if (event.isCancelled || event.wasJustEnabled()) loadMediaInfo(false)
@@ -187,6 +190,15 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     else -> {}
                 }
             }
+        }
+    }
+    private fun bufferUpdate(event: BufferUpdateEvent) {
+        Logd(TAG, "bufferUpdate ${playbackService?.mPlayer?.isStreaming} ${event.progress}")
+        when {
+            event.hasStarted() -> {}
+            event.hasEnded() -> {}
+            playbackService?.mPlayer?.isStreaming == true -> bufferValue = event.progress
+            else -> bufferValue = 0f
         }
     }
     private fun updatePlaybackSpeedButton(event: FlowEvent.SpeedChangedEvent) {
@@ -620,16 +632,16 @@ fun AudioPlayerScreen() {
     @Composable
     fun ProgressBar() {
         val textColor = MaterialTheme.colorScheme.onSurface
-        Slider(value = vm.sliderValue, valueRange = 0f..vm.duration.toFloat(),
-            modifier = Modifier.height(12.dp).padding(top = 2.dp, bottom = 2.dp),
-            onValueChange = {
-                Logd(TAG, "Slider onValueChange: $it")
-                vm.sliderValue = it
-            }, onValueChangeFinished = {
-                Logd(TAG, "Slider onValueChangeFinished: ${vm.sliderValue}")
-                vm.curPosition = vm.sliderValue.toInt()
-                seekTo(vm.curPosition)
-            })
+        Box(modifier = Modifier.fillMaxWidth()) {
+            Slider(value = vm.sliderValue, valueRange = 0f..vm.duration.toFloat(),
+                modifier = Modifier.height(12.dp).padding(top = 2.dp, bottom = 2.dp),
+                onValueChange = { vm.sliderValue = it }, onValueChangeFinished = {
+                    Logd(TAG, "Slider onValueChangeFinished: ${vm.sliderValue}")
+                    vm.curPosition = vm.sliderValue.toInt()
+                    seekTo(vm.curPosition)
+                })
+            if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = Color.Gray, modifier = Modifier.height(6.dp).fillMaxWidth().align(Alignment.BottomStart))
+        }
         Row {
             Text(DurationConverter.getDurationStringLong(vm.curPosition), color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
@@ -864,24 +876,6 @@ fun AudioPlayerScreen() {
     }
 }
 
-//    @Subscribe(threadMode = ThreadMode.MAIN)
-//    @Suppress("unused")
-//    fun bufferUpdate(event: BufferUpdateEvent) {
-//        when {
-//            event.hasStarted() -> {
-//                progressIndicator.visibility = View.VISIBLE
-//            }
-//            event.hasEnded() -> {
-//                progressIndicator.visibility = View.GONE
-//            }
-////            controller != null && controller!!.isStreaming -> {
-////                sbPosition.setSecondaryProgress((event.progress * sbPosition.max).toInt())
-////            }
-//            else -> {
-////                sbPosition.setSecondaryProgress(0)
-//            }
-//        }
-//    }
 
 //    fun scrollToTop() {
 ////        binding.itemDescriptionFragment.scrollTo(0, 0)

@@ -190,7 +190,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
                                     downloadState = if (changes.obj.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
                                     episode = changes.obj     // direct assignment doesn't update member like media??
                                 }
-                                Logd("EpisodeVM", "episodeMonitor $playedState $playedState ")
+//                                Logd("EpisodeVM", "episodeMonitor $playedState $playedState ")
                             } else Logd("EpisodeVM", "episodeMonitor index out bound")
                         }
                         else -> {}

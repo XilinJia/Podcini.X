@@ -35,6 +35,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -334,7 +335,7 @@ fun OnlineSearchScreen() {
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 10.dp).verticalScroll(scrollState)) {
+        Column(Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 10.dp).background(MaterialTheme.colorScheme.surface).verticalScroll(scrollState)) {
             QuickDiscoveryView()
             Text(stringResource(R.string.advanced), color = textColor, fontWeight = FontWeight.Bold)
             Text(stringResource(R.string.add_podcast_by_url), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = { vm.showAddViaUrlDialog() }))

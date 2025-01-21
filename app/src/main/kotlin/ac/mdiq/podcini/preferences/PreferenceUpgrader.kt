@@ -13,6 +13,8 @@ object PreferenceUpgrader {
 
     private lateinit var prefs: SharedPreferences
 
+    const val githubAddress = "https://github.com/XilinJia/Podcini.X/"
+
     fun checkUpgrades(context: Context) {
         prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val upgraderPrefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)

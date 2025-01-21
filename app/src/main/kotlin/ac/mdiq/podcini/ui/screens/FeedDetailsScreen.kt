@@ -779,7 +779,7 @@ fun FeedDetailsScreen() {
 
     vm.swipeActions.ActionOptionsDialog()
     Scaffold(topBar = { MyTopAppBar(displayUpArrow) }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             FeedDetailsHeader(filterButColor = vm.filterButtonColor.value, filterClickCB = {
                 if (vm.enableFilter && vm.feed != null) vm.showFilterDialog = true
             }, filterLongClickCB = { vm.filterLongClick() })

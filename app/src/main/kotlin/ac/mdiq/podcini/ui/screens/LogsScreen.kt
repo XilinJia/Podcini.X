@@ -487,7 +487,7 @@ fun LogsScreen() {
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             ComfirmDialog(R.string.confirm_delete_logs_label, stringResource(R.string.confirm_delete_logs_message), vm.showDeleteConfirmDialog) {
                 runOnIOScope {
                     when {

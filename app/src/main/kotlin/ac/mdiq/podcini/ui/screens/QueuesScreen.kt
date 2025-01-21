@@ -655,7 +655,7 @@ fun QueuesScreen() {
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showBin) {
-            Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                 InforBar(vm.infoBarText, leftAction = vm.leftActionStateBin, rightAction = vm.rightActionStateBin, actionConfig = { vm.showSwipeActionsDialog = true })
                 val leftCB = { episode: Episode ->
                     if (vm.leftActionStateBin.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true

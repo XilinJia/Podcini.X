@@ -425,7 +425,7 @@ fun EpisodeInfoScreen() {
     if (vm.showShareDialog && vm.episode != null && vm.actMain != null) ShareDialog(vm.episode!!, vm.actMain) { vm.showShareDialog = false }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 val imgLoc = vm.episode?.getEpisodeListImageLocation()
                 AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(56.dp).height(56.dp).clickable(onClick = { vm.openPodcast() }))

@@ -319,7 +319,6 @@ class Feed : RealmObject {
 
     // above from FeedPreferences
 
-
     constructor() : super()
 
     /**

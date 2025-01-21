@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.preferences.PreferenceUpgrader.githubAddress
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
@@ -77,7 +78,7 @@ class BugReportActivity : ComponentActivity() {
                     showConfirmExport.value = false
                 }
                 Button(modifier = Modifier.fillMaxWidth(), onClick = {
-                    openInBrowser(this@BugReportActivity, "https://github.com/XilinJia/Podcini/issues")
+                    openInBrowser(this@BugReportActivity, "${githubAddress}/issues")
                 }) { Text(stringResource(R.string.open_bug_tracker)) }
                 Button(modifier = Modifier.fillMaxWidth(), onClick = {
                     val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager

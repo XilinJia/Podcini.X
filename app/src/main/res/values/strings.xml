@@ -373,8 +373,15 @@
     <string name="keep_sorted">Keep sorted</string>
     <string name="publish_date">Publish date</string>
     <string name="download_date">Download date</string>
+    <string name="comment_date">Comment date</string>
+    <string name="total_duration">Total duration</string>
+    <string name="average_duration">Average duration</string>
+    <string name="min_duration">Min duration</string>
+    <string name="max_duration">Max duration</string>
+
     <string name="view_count">View count</string>
     <string name="date">Date</string>
+    <string name="time">Time</string>
     <string name="count">Count</string>
     <string name="last_comment_date">Comment date</string>
     <string name="last_played_date">Played date</string>

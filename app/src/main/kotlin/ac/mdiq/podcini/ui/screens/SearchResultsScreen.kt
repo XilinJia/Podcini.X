@@ -159,7 +159,7 @@ fun SearchResultsScreen() {
 
     val textColor = MaterialTheme.colorScheme.onSurface
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val (gridView, progressBar, empty, txtvError, butRetry, powered) = createRefs()
             if (vm.showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
             val lazyListState = rememberLazyListState()

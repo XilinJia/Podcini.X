@@ -28,7 +28,7 @@ The app requests the following privacy-relevant Android permissions:
 
 - The donation system: Podcini uses Open Collective, offered by Open Collective Inc (USA) & Open Collective Europe ASBL (Belgium). When you make a donation, these entities get access to certain data. For more information, see [Open Collective’s privacy policy](https://opencollective.com/privacypolicy).
 - The website: Podcini’s website is hosted via GitHub Pages. [GitHub’s privacy policy](https://docs.github.com/en/github/site-policy/github-privacy-statement#github-pages) notices that “GitHub may collect User Personal Information from visitors to your GitHub Pages website, including logs of visitor IP addresses, to comply with legal obligations, and to maintain the security and integrity of the Website and the Service.” The website does not store any cookies on your machine, and no 3rd party tracking (analytics) or other services are used.
-- The forum: Podcini’s forum uses the Discourse software, hosted by the core team. Please see the [forum’s privacy policy](https://github.com/XilinJia/Podcini/blob/main/PrivacyPolicy.md) for which data is concerned.
+- The forum: Podcini’s forum uses the Discourse software, hosted by the core team. Please see the [forum’s privacy policy](https://github.com/XilinJia/Podcini.X/blob/main/PrivacyPolicy.md) for which data is concerned.
 
 ## What data the Podcini core team may have access to
 

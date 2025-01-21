@@ -56,31 +56,12 @@ object FeedUpdateManager {
         val workId = context.packageName + "FeedUpdateWorker"
         if (isAutoUpdateDisabled) WorkManager.getInstance(context).cancelUniqueWork(workId)
         else {
-            var initialDelay = 0L
             var policy = ExistingPeriodicWorkPolicy.KEEP
             if (replace) {
                 putPref(AppPrefs.prefLastFullUpdateTime, 0L)
                 policy = ExistingPeriodicWorkPolicy.UPDATE
             }
-            val startHM = getPref(AppPrefs.prefAutoUpdateStartTime, ":").split(":").toMutableList()
-            if (startHM[0].isNotBlank() || startHM[1].isNotBlank()) {
-                val hour = if (startHM[0].isBlank()) 0 else (startHM[0].toIntOrNull() ?: 0)
-                val minute = if (startHM[1].isBlank()) 0 else (startHM[1].toIntOrNull() ?: 0)
-                val targetTime = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, hour)
-                    set(Calendar.MINUTE, minute)
-                    set(Calendar.SECOND, 0)
-                }
-                val currentTime = Calendar.getInstance()
-                if (targetTime.before(currentTime)) targetTime.add(Calendar.DAY_OF_MONTH, 1)
-                initialDelay = targetTime.timeInMillis - currentTime.timeInMillis
-            }
-            val intervalInMillis = (updateInterval * TimeUnit.HOURS.toMillis(1))
-            nextRefreshTime = if (lastUpdateTime == 0L) {
-                if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
-                else context.getString(R.string.before) + fullDateTimeString(Calendar.getInstance().timeInMillis + intervalInMillis)
-            } else fullDateTimeString(lastUpdateTime + intervalInMillis)
-
+            val initialDelay = getInitialDelay(context)
             val workRequest: PeriodicWorkRequest = PeriodicWorkRequest.Builder(gearbox.feedUpdateWorkerClass(), updateInterval, TimeUnit.HOURS)
                 .setConstraints(Builder()
                     .setRequiredNetworkType(if (isAllowMobileFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED)
@@ -89,6 +70,29 @@ object FeedUpdateManager {
                 .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(workId, policy, workRequest)
         }
+    }
+
+    fun getInitialDelay(context: Context): Long {
+        var initialDelay = 0L
+        val startHM = getPref(AppPrefs.prefAutoUpdateStartTime, ":").split(":").toMutableList()
+        if (startHM[0].isNotBlank() || startHM[1].isNotBlank()) {
+            val hour = if (startHM[0].isBlank()) 0 else (startHM[0].toIntOrNull() ?: 0)
+            val minute = if (startHM[1].isBlank()) 0 else (startHM[1].toIntOrNull() ?: 0)
+            val targetTime = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, hour)
+                set(Calendar.MINUTE, minute)
+                set(Calendar.SECOND, 0)
+            }
+            val currentTime = Calendar.getInstance()
+            if (targetTime.before(currentTime)) targetTime.add(Calendar.DAY_OF_MONTH, 1)
+            initialDelay = targetTime.timeInMillis - currentTime.timeInMillis
+        }
+        val intervalInMillis = (updateInterval * TimeUnit.HOURS.toMillis(1))
+        nextRefreshTime = if (lastUpdateTime == 0L) {
+            if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
+            else context.getString(R.string.before) + fullDateTimeString(Calendar.getInstance().timeInMillis + intervalInMillis)
+        } else fullDateTimeString(lastUpdateTime + intervalInMillis)
+        return initialDelay
     }
 
     @JvmStatic

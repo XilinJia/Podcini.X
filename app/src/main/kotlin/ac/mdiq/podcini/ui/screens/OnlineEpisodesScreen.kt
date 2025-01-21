@@ -13,6 +13,7 @@ import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.onlineEpisodes
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -124,7 +125,7 @@ fun OnlineEpisodesScreen() {
 
     vm.swipeActions.ActionOptionsDialog()
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
             EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
                 buildMoreItems = { vm.buildMoreItems() },

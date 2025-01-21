@@ -521,7 +521,7 @@ fun SearchScreen() {
     val tabCounts = listOf<Int>(vm.episodes.size, vm.feeds.size, vm.pafeeds.size)
     val selectedTabIndex = remember { mutableIntStateOf(0) }
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             if (vm.searchInFeed) FilterChip(onClick = { }, label = { Text(vm.feedName) }, selected = vm.searchInFeed,
                 trailingIcon = {
                     Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon", modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = {
