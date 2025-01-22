@@ -22,6 +22,7 @@ import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -312,11 +313,11 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun getSortingPrefs() {
-        sortIndex = prefs.getInt("sortIndex", 0)
+        sortIndex = prefs.getInt("sortIndex", FeedSortIndex.Title.ordinal)
         titleAscending = prefs.getBoolean("titleAscending", true)
         dateAscending = prefs.getBoolean("dateAscending", true)
         countAscending = prefs.getBoolean("countAscending", true)
-        dateSortIndex = prefs.getInt("dateSortIndex", 0)
+        dateSortIndex = prefs.getInt("dateSortIndex", FeedDateSortIndex.Publish.ordinal)
         downlaodedSortIndex = prefs.getInt("downlaodedSortIndex", -1)
         commentedSortIndex = prefs.getInt("commentedSortIndex", -1)
         playStateCodeSet.clear()
@@ -340,7 +341,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
         val feedList_ = getFeedList()
         for (f in feedList_) f.sortInfo = ""
         val comparator = when (sortIndex) {
-            0 -> {
+            FeedSortIndex.Title.ordinal -> {
                 val dir = if (titleAscending) 1 else -1
                 Comparator { lhs: Feed, rhs: Feed ->
                     val t1 = lhs.title
@@ -352,10 +353,10 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                 }
             }
-            1 -> {
+            FeedSortIndex.Date.ordinal -> {
                 val dir = if (dateAscending) 1 else -1
                 when (dateSortIndex) {
-                    0 -> {  // date publish
+                    FeedDateSortIndex.Publish.ordinal -> {  // date publish
                         var playStateQueries = ""
                         for (i in playStateSort.indices) {
                             if (playStateSort[i].value) {
@@ -375,7 +376,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                         }
                         comparator(counterMap, dir)
                     }
-                    1 -> {  // date downloaded
+                    FeedDateSortIndex.Downloaded.ordinal -> {  // date downloaded
                         val queryString = "feedId == $0 SORT(downloadTime DESC)"
                         val counterMap: MutableMap<Long, Long> = mutableMapOf()
                         for (f in feedList_) {
@@ -386,7 +387,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                         Logd(TAG, "queryString: $queryString")
                         comparator(counterMap, dir)
                     }
-                    2 -> {  // date last played
+                    FeedDateSortIndex.Played.ordinal -> {  // date last played
                         val queryString = "feedId == $0 SORT(lastPlayedTime DESC)"
                         val counterMap: MutableMap<Long, Long> = mutableMapOf()
                         for (f in feedList_) {
@@ -397,7 +398,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                         Logd(TAG, "queryString: $queryString")
                         comparator(counterMap, dir)
                     }
-                    3 -> {  // date last commented
+                    FeedDateSortIndex.Commented.ordinal -> {  // date last commented
                         val queryString = "feedId == $0 SORT(commentTime DESC)"
                         val counterMap: MutableMap<Long, Long> = mutableMapOf()
                         for (f in feedList_) {
@@ -411,7 +412,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     else -> comparator(mutableMapOf(), 0)
                 }
             }
-            2 -> {   // count
+            FeedSortIndex.Count.ordinal -> {   // count
                 val dir = if (countAscending) 1 else -1
                 var playStateQueries = ""
                 for (i in playStateSort.indices) {
@@ -515,7 +516,6 @@ fun SubscriptionsScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    Logd(TAG, "ON_CREATE")
 //                        displayUpArrow = parentFragmentManager.backStackEntryCount != 0
 //                        displayUpArrow = savedInstanceState?.getBoolean(KEY_UP_ARROW) ?: false
                     vm.getSortingPrefs()
@@ -528,20 +528,10 @@ fun SubscriptionsScreen() {
                     vm.feedCountState = vm.feedListFiltered.size.toString() + " / " + feedCount.toString()
                     vm.loadSubscriptions()
                 }
-                Lifecycle.Event.ON_START -> {
-                    Logd(TAG, "ON_START")
-                    vm.procFlowEvents()
-                }
-                Lifecycle.Event.ON_RESUME -> {
-                    Logd(TAG, "ON_RESUME")
-                }
-                Lifecycle.Event.ON_STOP -> {
-                    Logd(TAG, "ON_STOP")
-                    vm.cancelFlowEvents()
-                }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Logd(TAG, "ON_DESTROY")
-                }
+                Lifecycle.Event.ON_START -> vm.procFlowEvents()
+                Lifecycle.Event.ON_RESUME -> {}
+                Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
+                Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
@@ -623,6 +613,7 @@ fun SubscriptionsScreen() {
         fun saveFeed(cbBlock: (Feed)->Unit) {
             runOnIOScope { for (feed in selected) upsert(feed) { cbBlock(it) } }
             val numItems = selected.size
+            toastMassege = context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems)
 //        (vm.context as MainActivity).showSnackbarAbovePlayer(vm.context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems), Snackbar.LENGTH_LONG)
         }
 
@@ -1064,6 +1055,7 @@ fun SubscriptionsScreen() {
         }
     }
 
+
     @Composable
     fun SortDialog(onDismissRequest: () -> Unit) {
         var sortingJob = remember<Job?> { null }
@@ -1081,66 +1073,66 @@ fun SubscriptionsScreen() {
                 Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
                     val scrollStateH = rememberScrollState()
                     Row(Modifier.fillMaxWidth().horizontalScroll(scrollStateH)) {
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != 0) textColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Title.ordinal) textColor else Color.Green),
                             onClick = {
-                                vm.titleAscending = !vm.titleAscending
-                                vm.sortIndex = 0
+                                if (vm.sortIndex == FeedSortIndex.Title.ordinal) vm.titleAscending = !vm.titleAscending
+                                vm.sortIndex = FeedSortIndex.Title.ordinal
                                 fetchAndSortRoutine()
                             }
-                        ) { Text(text = stringResource(R.string.title) + if (vm.titleAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != 1) textColor else Color.Green),
+                        ) { Text(text = stringResource(FeedSortIndex.Title.res) + if (vm.titleAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Date.ordinal) textColor else Color.Green),
                             onClick = {
-                                vm.dateAscending = !vm.dateAscending
-                                vm.sortIndex = 1
+                                if (vm.sortIndex == FeedSortIndex.Date.ordinal) vm.dateAscending = !vm.dateAscending
+                                vm.sortIndex = FeedSortIndex.Date.ordinal
                                 fetchAndSortRoutine()
                             }
-                        ) { Text(text = stringResource(R.string.date) + if (vm.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != 3) textColor else Color.Green),
+                        ) { Text(text = stringResource(FeedSortIndex.Date.res) + if (vm.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Time.ordinal) textColor else Color.Green),
                             onClick = {
-                                vm.timeAscending = !vm.timeAscending
-                                vm.sortIndex = 3
+                                if (vm.sortIndex == FeedSortIndex.Time.ordinal) vm.timeAscending = !vm.timeAscending
+                                vm.sortIndex = FeedSortIndex.Time.ordinal
                                 fetchAndSortRoutine()
                             }
-                        ) { Text(text = stringResource(R.string.time) + if (vm.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != 2) textColor else Color.Green),
+                        ) { Text(text = stringResource(FeedSortIndex.Time.res) + if (vm.timeAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Count.ordinal) textColor else Color.Green),
                             onClick = {
-                                vm.countAscending = !vm.countAscending
-                                vm.sortIndex = 2
+                                if (vm.sortIndex == FeedSortIndex.Count.ordinal) vm.countAscending = !vm.countAscending
+                                vm.sortIndex = FeedSortIndex.Count.ordinal
                                 fetchAndSortRoutine()
                             }
-                        ) { Text(text = stringResource(R.string.count) + if (vm.countAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                        ) { Text(text = stringResource(FeedSortIndex.Count.res) + if (vm.countAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
-                    if (vm.sortIndex == 1) {
+                    if (vm.sortIndex == FeedSortIndex.Date.ordinal) {
                         Row {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != 2) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Played.ordinal) textColor else Color.Green),
                                 onClick = {
-                                    vm.dateSortIndex = 2
+                                    vm.dateSortIndex = FeedDateSortIndex.Played.ordinal
                                     fetchAndSortRoutine()
                                 }
-                            ) { Text(stringResource(R.string.played)) }
+                            ) { Text(stringResource(FeedDateSortIndex.Played.res)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != 1) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) textColor else Color.Green),
                                 onClick = {
-                                    vm.dateSortIndex = 1
+                                    vm.dateSortIndex = FeedDateSortIndex.Downloaded.ordinal
                                     fetchAndSortRoutine()
                                 }
-                            ) { Text(stringResource(R.string.downloaded_label)) }
+                            ) { Text(stringResource(FeedDateSortIndex.Downloaded.res)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != 3) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Commented.ordinal) textColor else Color.Green),
                                 onClick = {
-                                    vm.dateSortIndex = 3
+                                    vm.dateSortIndex = FeedDateSortIndex.Commented.ordinal
                                     fetchAndSortRoutine()
                                 }
-                            ) { Text(stringResource(R.string.commented)) }
+                            ) { Text(stringResource(FeedDateSortIndex.Commented.res)) }
                         }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != 0) textColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Publish.ordinal) textColor else Color.Green),
                             onClick = {
-                                vm.dateSortIndex = 0
+                                vm.dateSortIndex = FeedDateSortIndex.Publish.ordinal
                                 fetchAndSortRoutine()
                             }
-                        ) { Text(stringResource(R.string.publish_date)) }
-                    } else if (vm.sortIndex == 3) {
+                        ) { Text(stringResource(FeedDateSortIndex.Publish.res)) }
+                    } else if (vm.sortIndex == FeedSortIndex.Time.ordinal) {
                         Row {
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 1) textColor else Color.Green),
                                 onClick = {
@@ -1174,7 +1166,7 @@ fun SubscriptionsScreen() {
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                     Column(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                        if (vm.sortIndex == 2) {
+                        if (vm.sortIndex == FeedSortIndex.Count.ordinal) {
                             Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                 val item = EpisodeFilter.EpisodesFilterGroup.DOWNLOADED
                                 var selectNone by remember { mutableStateOf(false) }
@@ -1234,7 +1226,7 @@ fun SubscriptionsScreen() {
                                 Spacer(Modifier.weight(0.5f))
                             }
                         }
-                        if ((vm.sortIndex == 1 && vm.dateSortIndex == 0) || vm.sortIndex == 2) {
+                        if ((vm.sortIndex == FeedSortIndex.Date.ordinal && vm.dateSortIndex == FeedDateSortIndex.Publish.ordinal) || vm.sortIndex == FeedSortIndex.Count.ordinal) {
                             val item = EpisodeFilter.EpisodesFilterGroup.PLAY_STATE
                             var selectNone by remember { mutableStateOf(false) }
                             var expandRow by remember { mutableStateOf(false) }
@@ -1297,7 +1289,7 @@ fun SubscriptionsScreen() {
                                 ) { Text(text = stringResource(item.values[index].displayName), maxLines = 1, color = textColor) }
                             }
                         }
-                        if (vm.sortIndex == 2) {
+                        if (vm.sortIndex == FeedSortIndex.Count.ordinal) {
                             val item = EpisodeFilter.EpisodesFilterGroup.RATING
                             var selectNone by remember { mutableStateOf(false) }
                             var expandRow by remember { mutableStateOf(false) }
@@ -1536,6 +1528,19 @@ fun SubscriptionsScreen() {
             else LazyList()
         }
     }
+}
+
+enum class FeedSortIndex(val res: Int) {
+    Title(R.string.title),
+    Date(R.string.date),
+    Time(R.string.time),
+    Count(R.string.count)
+}
+enum class FeedDateSortIndex(val res: Int) {
+    Publish(R.string.publish_date),
+    Downloaded(R.string.downloaded_label),
+    Played(R.string.played),
+    Commented(R.string.commented)
 }
 
 private const val TAG = "SubscriptionsScreen"

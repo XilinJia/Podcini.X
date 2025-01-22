@@ -448,7 +448,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
 
     val showConfirmYoutubeDialog = remember { mutableStateOf(false) }
     val ytUrls = remember { mutableListOf<String>() }
-    gearbox.ConfirmAddGearEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
+    gearbox.ConfirmAddEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
 
     var showChooseRatingDialog by remember { mutableStateOf(false) }
     if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
@@ -916,10 +916,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter? = null, filtersDisabled: Mutable
     val filterValues = remember {  filter?.properties ?: mutableSetOf() }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
-        dialogWindowProvider?.window?.let { window ->
-            window.setGravity(Gravity.BOTTOM)
-//            window.setDimAmount(0f)
-        }
+        dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
         Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val textColor = MaterialTheme.colorScheme.onSurface
@@ -1068,10 +1065,7 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder, showKeepSorted: Boolean = fal
     val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, _ -> index % 2 != 0 } }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
-        dialogWindowProvider?.window?.let { window ->
-            window.setGravity(Gravity.BOTTOM)
-//            window.setDimAmount(0f)
-        }
+        dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
         Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val textColor = MaterialTheme.colorScheme.onSurface
@@ -1083,8 +1077,8 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder, showKeepSorted: Boolean = fal
                     var dir by remember { mutableStateOf(if (sortIndex == index) initOrder.ordinal % 2 == 0 else true) }
                     OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) textColor else Color.Green),
                         onClick = {
+                            if (sortIndex == index) dir = !dir
                             sortIndex = index
-                            dir = !dir
                             val sortOrder = EpisodeSortOrder.entries[2*index + if(dir) 0 else 1]
                             onSelectionChanged(sortOrder, keepSorted)
                         }

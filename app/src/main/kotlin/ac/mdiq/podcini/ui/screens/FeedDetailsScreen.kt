@@ -24,6 +24,7 @@ import ac.mdiq.podcini.ui.actions.SwipeActions.NoActionSwipeAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -311,7 +312,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         }.apply { invokeOnCompletion { loadJob = null } }
     }
     fun buildMoreItems() {
-        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+//        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         if (nextItems.isNotEmpty()) vms.addAll(nextItems)
     }
     private val semaphore = Semaphore(0)
@@ -374,7 +376,10 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                     feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
                     if (feed != null) updateFeed(context, feed!!, true)
                 }
-//                withContext(Dispatchers.Main) { (context as MainActivity).showSnackbarAbovePlayer(string.ok, Snackbar.LENGTH_SHORT) }
+                withContext(Dispatchers.Main) {
+//                    toastMassege = context.getString(R.string.done)
+//                    (context as MainActivity).showSnackbarAbovePlayer(string.ok, Snackbar.LENGTH_SHORT)
+                }
             } catch (e: Throwable) { withContext(Dispatchers.Main) {
                 Log.e(TAG, e.localizedMessage?:"No message")
 //                (context as MainActivity).showSnackbarAbovePlayer(e.localizedMessage?:"No message", Snackbar.LENGTH_LONG)
@@ -408,7 +413,7 @@ fun FeedDetailsScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    Logd(TAG, "ON_CREATE")
+                    
 //                    displayUpArrow = parentFragmentManager.backStackEntryCount != 0
 //                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
                     vm.feed = feedOnDisplay
@@ -421,20 +426,12 @@ fun FeedDetailsScreen() {
                     vm.refreshSwipeTelltale()
                 }
                 Lifecycle.Event.ON_START -> {
-                    Logd(TAG, "ON_START")
                     vm.loadFeed()
                     vm.procFlowEvents()
                 }
-                Lifecycle.Event.ON_RESUME -> {
-                    Logd(TAG, "ON_RESUME")
-                }
-                Lifecycle.Event.ON_STOP -> {
-                    Logd(TAG, "ON_STOP")
-                    vm.cancelFlowEvents()
-                }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Logd(TAG, "ON_DESTROY")
-                }
+                Lifecycle.Event.ON_RESUME -> {}
+                Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
+                Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
@@ -729,6 +726,7 @@ fun FeedDetailsScreen() {
                         val clipData: ClipData = ClipData.newPlainText(url, url)
                         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         cm.setPrimaryClip(clipData)
+                        toastMassege = context.getString(R.string.copied_to_clipboard)
 //                    if (Build.VERSION.SDK_INT <= 32) (context as MainActivity).showSnackbarAbovePlayer(R.string.copied_to_clipboard, Snackbar.LENGTH_SHORT)
                     }
                 })

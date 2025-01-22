@@ -39,6 +39,7 @@ import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
@@ -439,7 +440,6 @@ fun AudioPlayerScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    Logd(TAG, "ON_CREATE")
                     if (vm.actMain != null) {
                         vm.controller = object : ServiceStatusHandler(vm.actMain) {
                             override fun updatePlayButton(showPlay: Boolean) {
@@ -462,9 +462,7 @@ fun AudioPlayerScreen() {
                     if (curEpisode != null) vm.updateUi(curEpisode!!)
                 }
                 Lifecycle.Event.ON_START -> {
-                    Logd(TAG, "ON_START")
                     vm.procFlowEvents()
-
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     if (vm.controllerFuture == null) {
                         vm.controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
@@ -472,17 +470,11 @@ fun AudioPlayerScreen() {
                     }
                 }
                 Lifecycle.Event.ON_RESUME -> {
-                    Logd(TAG, "ON_RESUME")
                     vm.loadMediaInfo()
                     if (curEpisode != null) vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode!!, curEpisode!!.position, curEpisode!!.duration))
                 }
-                Lifecycle.Event.ON_STOP -> {
-                    Logd(TAG, "ON_STOP")
-                    vm.cancelFlowEvents()
-                }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Logd(TAG, "ON_DESTROY")
-                }
+                Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
+                Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
@@ -780,6 +772,7 @@ fun AudioPlayerScreen() {
             fun copyText(text: String): Boolean {
                 val clipboardManager: ClipboardManager? = ContextCompat.getSystemService(context, ClipboardManager::class.java)
                 clipboardManager?.setPrimaryClip(ClipData.newPlainText("Podcini", text))
+                toastMassege = context.getString(R.string.copied_to_clipboard)
 //            if (Build.VERSION.SDK_INT <= 32) (context as MainActivity).showSnackbarAbovePlayer(context.getString(R.string.copied_to_clipboard), Snackbar.LENGTH_SHORT)
                 return true
             }

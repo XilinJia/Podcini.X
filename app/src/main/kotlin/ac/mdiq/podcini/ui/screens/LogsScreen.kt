@@ -13,6 +13,7 @@ import ac.mdiq.podcini.storage.model.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.DownloadActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
@@ -138,20 +139,14 @@ fun LogsScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    Logd(TAG, "ON_CREATE")
+                    
 //                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
 //                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
                     vm.loadDownloadLog()
                 }
-                Lifecycle.Event.ON_START -> {
-                    Logd(TAG, "ON_START")
-                }
-                Lifecycle.Event.ON_STOP -> {
-                    Logd(TAG, "ON_STOP")
-                }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Logd(TAG, "ON_DESTROY")
-                }
+                Lifecycle.Event.ON_START -> {}
+                Lifecycle.Event.ON_STOP -> {}
+                Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
@@ -208,7 +203,7 @@ fun LogsScreen() {
         }
         var showYTMediaConfirmDialog by remember { mutableStateOf(false) }
         var sharedUrl by remember { mutableStateOf("") }
-        gearbox.ConfirmAddGearEpisode(listOf(sharedUrl), showYTMediaConfirmDialog, onDismissRequest = { showYTMediaConfirmDialog = false })
+        gearbox.ConfirmAddEpisode(listOf(sharedUrl), showYTMediaConfirmDialog, onDismissRequest = { showYTMediaConfirmDialog = false })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -447,6 +442,7 @@ fun LogsScreen() {
                                         showAction = false
                                         val item_ = realm.query(Episode::class).query("id == $0", status.feedfileId).first().find()
                                         if (item_ != null) DownloadActionButton(item_).onClick(context)
+                                        toastMassege = context.getString(R.string.status_downloading_label)
 //                                    (context as MainActivity).showSnackbarAbovePlayer(R.string.status_downloading_label, Toast.LENGTH_SHORT)
                                     }
                                 }

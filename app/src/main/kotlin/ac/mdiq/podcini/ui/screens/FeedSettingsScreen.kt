@@ -130,19 +130,12 @@ fun FeedSettingsScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    Logd(TAG, "ON_CREATE")
                     getVideoModePolicy()
                     getAutoDeletePolicy()
                 }
-                Lifecycle.Event.ON_START -> {
-                    Logd(TAG, "ON_START")
-                }
-                Lifecycle.Event.ON_STOP -> {
-                    Logd(TAG, "ON_STOP")
-                }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Logd(TAG, "ON_DESTROY")
-                }
+                Lifecycle.Event.ON_START -> {}
+                Lifecycle.Event.ON_STOP -> {}
+                Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }

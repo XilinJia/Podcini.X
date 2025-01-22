@@ -234,6 +234,9 @@ class Episode : RealmObject {
     @Ignore
     var bitrate: Int = 0
 
+    @Ignore
+    var webviewData by mutableStateOf<String?>(null)
+
     // above from EpisodeMedia
 
     constructor() {
@@ -296,9 +299,7 @@ class Episode : RealmObject {
         else this.pubDate = 0
     }
 
-    fun isPlayed(): Boolean {
-        return playState >= PlayState.SKIPPED.code
-    }
+    fun isPlayed(): Boolean = playState >= PlayState.SKIPPED.code
 
     fun setPlayed(played: Boolean) {
         playState = if (played) PlayState.PLAYED.code else PlayState.UNPLAYED.code

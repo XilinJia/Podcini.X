@@ -26,12 +26,14 @@ open class GearBoxBase {
     open fun init() {}
 
     @Composable
-    open fun ConfirmAddGearEpisode(sharedUrls: List<String>, showDialog: Boolean, onDismissRequest: () -> Unit) {}
+    open fun ConfirmAddEpisode(sharedUrls: List<String>, showDialog: Boolean, onDismissRequest: () -> Unit) {}
+
+    open fun isGearFeed(url: URL): Boolean = false
 
     open fun isGearUrl(url: URL): Boolean = false
 
     open fun clearGearData() {}
-    open fun buildGearWebviewData(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
+    open fun buildWebviewData(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
 
     open fun buildCleanedNotes(curItem_: Episode, shownotesCleaner: ShownotesCleaner?): Pair<Episode, String?> {
         var curItem = curItem_

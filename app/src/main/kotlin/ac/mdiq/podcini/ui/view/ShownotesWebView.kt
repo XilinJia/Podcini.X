@@ -4,6 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.ui.activity.MainActivity
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.util.*
 import android.content.ClipData
@@ -86,6 +87,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
             HitTestResult.EMAIL_TYPE -> {
                 Logd(TAG, "E-Mail of webview was long-pressed. Extra: " + r.extra)
                 ContextCompat.getSystemService(context, ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Podcini", r.extra))
+                toastMassege = context.getString(R.string.copied_to_clipboard)
 //                if (Build.VERSION.SDK_INT <= 32 && this.context is MainActivity)
 //                    (this.context as MainActivity).showSnackbarAbovePlayer(resources.getString(R.string.copied_to_clipboard), Snackbar.LENGTH_SHORT)
                 return true

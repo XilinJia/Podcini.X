@@ -23,6 +23,7 @@ import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.ui.actions.*
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
@@ -78,7 +79,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal lateinit var shownotesCleaner: ShownotesCleaner
 
     internal var itemLoaded = false
-    internal var episode: Episode? = null    // managed
+    internal var episode by mutableStateOf<Episode?>(null)    // managed
 
     internal var txtvPodcast by mutableStateOf("")
     internal var txtvTitle by mutableStateOf("")
@@ -93,7 +94,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 
     var showShareDialog by mutableStateOf(false)
 
-    internal var webviewData by mutableStateOf("")
+//    internal var webviewData by mutableStateOf("")
     internal var showHomeScreen by mutableStateOf(false)
     internal var actionButton1 by mutableStateOf<EpisodeActionButton?>(null)
     internal var actionButton2 by mutableStateOf<EpisodeActionButton?>(null)
@@ -253,19 +254,21 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                 try {
                     withContext(Dispatchers.IO) {
                         if (episode != null && !episode!!.isRemote.value) episode = realm.query(Episode::class).query("id == $0", episode!!.id).first().find()
-                        if (episode != null) {
+                        Logd(TAG, "load episode?.webviewData: [${episode?.webviewData}]")
+                        if (episode != null && episode?.webviewData == null) {
                             val duration = episode!!.duration
                             Logd(TAG, "description: ${episode?.description}")
-                            val result = gearbox.buildGearWebviewData(episode!!, shownotesCleaner)
+                            val result = gearbox.buildWebviewData(episode!!, shownotesCleaner)
                             if (result != null) {
                                 episode = result.first
-                                webviewData = result.second
-                            } else webviewData = shownotesCleaner.processShownotes(episode!!.description ?: "", duration)
+                                episode!!.webviewData = result.second
+                            } else episode!!.webviewData = shownotesCleaner.processShownotes(episode!!.description ?: "", duration)
                         }
                     }
                     withContext(Dispatchers.Main) {
                         Logd(TAG, "chapters: ${episode?.chapters?.size}")
                         Logd(TAG, "files: [${episode?.feed?.fileUrl}] [${episode?.fileUrl}]")
+                        Logd(TAG, "webviewData: [${episode!!.webviewData}]")
                         if (episode != null) {
                             rating = episode!!.rating
                             inQueue = curQueue.contains(episode!!)
@@ -298,26 +301,14 @@ fun EpisodeInfoScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    Logd(TAG, "ON_CREATE")
                     vm.shownotesCleaner = ShownotesCleaner(context)
                     vm.updateAppearance()
                     vm.load()
                 }
-                Lifecycle.Event.ON_START -> {
-                    Logd(TAG, "ON_START")
-                    vm.procFlowEvents()
-                }
-                Lifecycle.Event.ON_RESUME -> {
-                    Logd(TAG, "ON_RESUME")
-                    if (vm.itemLoaded) vm.updateAppearance()
-                }
-                Lifecycle.Event.ON_STOP -> {
-                    Logd(TAG, "ON_STOP")
-                    vm.cancelFlowEvents()
-                }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Logd(TAG, "ON_DESTROY")
-                }
+                Lifecycle.Event.ON_START -> vm.procFlowEvents()
+                Lifecycle.Event.ON_RESUME -> if (vm.itemLoaded) vm.updateAppearance()
+                Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
+                Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
@@ -387,6 +378,7 @@ fun EpisodeInfoScreen() {
                     // Update all visible lists to reflect new streaming action button
                     //            TODO: need another event type?
                     EventFlow.postEvent(FlowEvent.EpisodePlayedEvent())
+                    toastMassege = context.getString(R.string.on_demand_config_setting_changed)
                     //        (vm.context as MainActivity).showSnackbarAbovePlayer(R.string.on_demand_config_setting_changed, Snackbar.LENGTH_SHORT)
                     onDismiss()
                 }) { Text("OK") }
@@ -487,17 +479,18 @@ fun EpisodeInfoScreen() {
             if (!vm.hasMedia) Text("noMediaLabel", color = textColor, style = MaterialTheme.typography.bodyMedium)
             val scrollState = rememberScrollState()
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
-                AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
-                    ShownotesWebView(context).apply {
-                        setTimecodeSelectedListener { time: Int -> seekTo(time) }
-                        setPageFinishedListener {
-                            // Restoring the scroll position might not always work
-                            postDelayed({ }, 50)
+                AndroidView(modifier = Modifier.fillMaxSize(),
+                    factory = { context ->
+                        ShownotesWebView(context).apply {
+                            setTimecodeSelectedListener { time: Int -> seekTo(time) }
+                            setPageFinishedListener {
+                                // Restoring the scroll position might not always work
+                                postDelayed({ }, 50)
+                            }
                         }
-                    }
-                }, update = {
-                    it.loadDataWithBaseURL("https://127.0.0.1", vm.webviewData, "text/html", "utf-8", "about:blank")
-                })
+                    }, update = {
+                        Logd(TAG, "AndroidView update: [${vm.episode!!.webviewData}]")
+                        it.loadDataWithBaseURL("https://127.0.0.1", vm.episode!!.webviewData?:"", "text/html", "utf-8", "about:blank") })
                 if (!vm.episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
                 Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isEmpty()) " (Add)" else "",

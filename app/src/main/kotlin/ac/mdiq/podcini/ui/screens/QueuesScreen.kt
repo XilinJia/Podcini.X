@@ -30,6 +30,7 @@ import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDial
 import ac.mdiq.podcini.ui.actions.SwipeActions.NoActionSwipeAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -291,6 +292,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         putPref(AppPrefs.prefQueueLocked, locked)
         dragDropEnabled = !(isQueueKeepSorted || isQueueLocked)
         if (queueItems.isEmpty()) {
+            toastMassege =  context.getString(if (locked) R.string.queue_locked else R.string.queue_unlocked)
 //            if (locked) (context as MainActivity).showSnackbarAbovePlayer(R.string.queue_locked, Snackbar.LENGTH_SHORT)
 //            else (context as MainActivity).showSnackbarAbovePlayer(R.string.queue_unlocked, Snackbar.LENGTH_SHORT)
         }
@@ -380,7 +382,6 @@ fun QueuesScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    Logd(TAG, "ON_CREATE")
 //                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
 //                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
                     if (isQueueKeepSorted) vm.sortOrder = queueKeepSortedOrder ?: EpisodeSortOrder.DATE_NEW_OLD
@@ -395,7 +396,6 @@ fun QueuesScreen() {
                     vm.refreshSwipeTelltale()
                 }
                 Lifecycle.Event.ON_START -> {
-                    Logd(TAG, "ON_START")
                     vm.loadCurQueue(true)
                     vm.procFlowEvents()
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
@@ -406,19 +406,14 @@ fun QueuesScreen() {
                         mediaBrowser?.subscribe("CurQueue", null)
                     }, MoreExecutors.directExecutor())
                 }
-                Lifecycle.Event.ON_RESUME -> {
-                    Logd(TAG, "ON_RESUME")
-                }
+                Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {
-                    Logd(TAG, "ON_STOP")
                     vm.cancelFlowEvents()
                     mediaBrowser?.unsubscribe("CurQueue")
                     mediaBrowser = null
                     MediaBrowser.releaseFuture(vm.browserFuture)
                 }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Logd(TAG, "ON_DESTROY")
-                }
+                Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
@@ -668,9 +663,9 @@ fun QueuesScreen() {
                 EpisodeLazyColumn(context as MainActivity, vms = vm.vms, leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) })
             }
         } else {
-            if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize()) { FeedsGrid() }
+            if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
             else {
-                Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+                Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                     if (vm.showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, showKeepSorted = true, onDismissRequest = { vm.showSortDialog = false }) { sortOrder, keep ->
                         if (sortOrder != EpisodeSortOrder.RANDOM && sortOrder != EpisodeSortOrder.RANDOM1) isQueueKeepSorted = keep
                         queueKeepSortedOrder = sortOrder

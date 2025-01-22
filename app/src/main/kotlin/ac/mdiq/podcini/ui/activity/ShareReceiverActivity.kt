@@ -50,7 +50,7 @@ class ShareReceiverActivity : ComponentActivity() {
             setContent {
                 val showDialog = remember { mutableStateOf(true) }
                 CustomTheme(this) {
-                    gearbox.ConfirmAddGearEpisode(listOf(sharedUrl!!), showDialog.value, onDismissRequest = {
+                    gearbox.ConfirmAddEpisode(listOf(sharedUrl!!), showDialog.value, onDismissRequest = {
                         showDialog.value = false
                         finish()
                     })

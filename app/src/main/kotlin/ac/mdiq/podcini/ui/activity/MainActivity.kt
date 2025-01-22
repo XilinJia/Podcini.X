@@ -25,6 +25,7 @@ import ac.mdiq.podcini.storage.database.Feeds.monitorFeeds
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CustomTheme
+import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -165,7 +166,7 @@ class MainActivity : CastEnabledActivity() {
 
         setContent {
             CustomTheme(this) {
-//                if (showToast) CustomToast(message = toastMassege, onDismiss = { showToast = false })
+                if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                 MainActivityUI()
             }
         }
@@ -633,6 +634,7 @@ class MainActivity : CastEnabledActivity() {
                     "SUBSCRIPTIONS" -> mainNavController.navigate(Screens.Subscriptions.name)
                     "STATISTCS" -> mainNavController.navigate(Screens.Statistics.name)
                     else -> {
+                        toastMassege = getString(R.string.app_action_not_found) + feature
 //                        showSnackbarAbovePlayer(getString(R.string.app_action_not_found)+feature, Snackbar.LENGTH_LONG)
                         return
                     }
@@ -693,6 +695,9 @@ class MainActivity : CastEnabledActivity() {
 
         lateinit var mainNavController: NavHostController
         val LocalNavController = staticCompositionLocalOf<NavController> { error("NavController not provided") }
+
+//        var showToast by  mutableStateOf(false)
+        var toastMassege by mutableStateOf("")
 
         private val drawerState = DrawerState(initialValue = DrawerValue.Closed)
         var lcScope: CoroutineScope? = null

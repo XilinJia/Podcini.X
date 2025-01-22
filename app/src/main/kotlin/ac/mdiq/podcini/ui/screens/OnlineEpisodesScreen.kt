@@ -54,7 +54,8 @@ class OnlineEpisodesVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun buildMoreItems() {
-        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+//        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         if (nextItems.isNotEmpty()) vms.addAll(nextItems)
     }
 
@@ -75,25 +76,21 @@ fun OnlineEpisodesScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    Logd(TAG, "ON_CREATE")
+                    
 //                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
 //                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     vm.refreshSwipeTelltale()
                 }
                 Lifecycle.Event.ON_START -> {
-                    Logd(TAG, "ON_START")
+                    
                     stopMonitor(vm.vms)
                     vm.vms.clear()
                     vm.buildMoreItems()
                     vm.infoBarText.value = "${vm.episodes.size} episodes"
                 }
-                Lifecycle.Event.ON_STOP -> {
-                    Logd(TAG, "ON_STOP")
-                }
-                Lifecycle.Event.ON_DESTROY -> {
-                    Logd(TAG, "ON_DESTROY")
-                }
+                Lifecycle.Event.ON_STOP -> {}
+                Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
