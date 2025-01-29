@@ -26,6 +26,7 @@ import android.net.Uri
 import android.util.Log
 import android.webkit.URLUtil.guessFileName
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.documentfile.provider.DocumentFile
@@ -232,7 +233,7 @@ class Episode : RealmObject {
     var effectMimeType = ""
 
     @Ignore
-    var bitrate: Int = 0
+    var bitrate by mutableIntStateOf(0)
 
     @Ignore
     var webviewData by mutableStateOf<String?>(null)

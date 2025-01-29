@@ -626,19 +626,20 @@ fun AudioPlayerScreen() {
         val textColor = MaterialTheme.colorScheme.onSurface
         Box(modifier = Modifier.fillMaxWidth()) {
             Slider(value = vm.sliderValue, valueRange = 0f..vm.duration.toFloat(),
+                colors = SliderDefaults.colors(activeTrackColor = MaterialTheme.colorScheme.tertiary),
                 modifier = Modifier.height(12.dp).padding(top = 2.dp, bottom = 2.dp),
                 onValueChange = { vm.sliderValue = it }, onValueChangeFinished = {
                     Logd(TAG, "Slider onValueChangeFinished: ${vm.sliderValue}")
                     vm.curPosition = vm.sliderValue.toInt()
                     seekTo(vm.curPosition)
                 })
-            if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = Color.Gray, modifier = Modifier.height(6.dp).fillMaxWidth().align(Alignment.BottomStart))
+            if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
         }
         Row {
             Text(DurationConverter.getDurationStringLong(vm.curPosition), color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
-            val bitrate = curEpisode?.bitrate ?: 0
-            if (bitrate > 0) Text(formatLargeInteger(bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
+            if ((curEpisode?.bitrate ?: 0) > 0) Text(formatLargeInteger(curEpisode?.bitrate?:0) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
             vm.showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
             Text(vm.txtvLengtTexth, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {

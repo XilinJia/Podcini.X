@@ -90,7 +90,6 @@ import org.apache.commons.lang3.StringUtils
 import java.util.*
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Semaphore
-import kotlin.math.min
 
 
 class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
@@ -223,7 +222,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         infoTextFiltered = ""
         if (!feed?.filterString.isNullOrEmpty()) {
             val filter: EpisodeFilter = feed!!.episodeFilter
-            if (filter.properties.isNotEmpty()) infoTextFiltered = context.getString(R.string.filtered_label)
+            if (filter.propertySet.isNotEmpty()) infoTextFiltered = context.getString(R.string.filtered_label)
         }
         infoBarText.value = "$infoTextFiltered $infoTextUpdate"
     }
@@ -455,7 +454,7 @@ fun FeedDetailsScreen() {
         try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Log.e(TAG, "No activity found. Should never happen...") }
     }
 
-    var showEidtConfirmDialog by remember { mutableStateOf(false) }
+    var showEditConfirmDialog by remember { mutableStateOf(false) }
     var editedUrl by remember { mutableStateOf("") }
     @Composable
     fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
@@ -467,7 +466,7 @@ fun FeedDetailsScreen() {
             confirmButton = {
                 TextButton(onClick = {
                     editedUrl = url
-                    showEidtConfirmDialog = true
+                    showEditConfirmDialog = true
                     onDismiss()
                 }) { Text("OK") }
             },
@@ -475,11 +474,9 @@ fun FeedDetailsScreen() {
         )
     }
     @Composable
-    fun EidtConfirmDialog(onDismiss: () -> Unit) {
+    fun EditConfirmDialog(onDismiss: () -> Unit) {
         AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
-            text = {
-                Text(stringResource(R.string.edit_url_confirmation_msg))
-            },
+            text = { Text(stringResource(R.string.edit_url_confirmation_msg)) },
             confirmButton = {
                 TextButton(onClick = {
                     try {
@@ -499,7 +496,7 @@ fun FeedDetailsScreen() {
 
     var showEditUrlSettingsDialog by remember { mutableStateOf(false) }
     if (showEditUrlSettingsDialog) EditUrlSettingsDialog { showEditUrlSettingsDialog = false }
-    if (showEidtConfirmDialog) EidtConfirmDialog { showEidtConfirmDialog = false }
+    if (showEditConfirmDialog) EditConfirmDialog { showEditConfirmDialog = false }
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
@@ -569,9 +566,8 @@ fun FeedDetailsScreen() {
                     Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                 } else {
                     Button(onClick = {
-//                        feedOnDisplay = vm.feed
-//                        mainNavController.navigate(Screens.FeedDetails.name)
                         feedScreenMode = FeedScreenMode.List
+                        if (vm.episodes.isEmpty()) vm.loadFeed()
                     }) { Text(vm.feed?.episodes?.size.toString() + " " + stringResource(R.string.episodes_label)) }
                     Spacer(modifier = Modifier.width(15.dp))
                 }
@@ -656,14 +652,13 @@ fun FeedDetailsScreen() {
 //        context.supportFragmentManager.executePendingTransactions()
     }
     if (vm.showFilterDialog) EpisodesFilterDialog(filter = vm.feed!!.episodeFilter,
-        onDismissRequest = { vm.showFilterDialog = false }) { filterValues ->
+        onDismissRequest = { vm.showFilterDialog = false }) { filter ->
         if (vm.feed != null) {
-            Logd(TAG, "persist Episode Filter(): feedId = [${vm.feed?.id}], filterValues = [$filterValues]")
+            Logd(TAG, "persist Episode Filter(): feedId = [${vm.feed?.id}], filterValues = [${filter.propertySet}]")
             runOnIOScope {
                 val feed_ = realm.query(Feed::class, "id == ${vm.feed!!.id}").first().find()
-                if (feed_ != null) {
-                    vm.feed = upsert(feed_) { it.filterString = filterValues.joinToString() }
-//                                loadFeed()
+                if (feed_ != null) vm.feed = upsert(feed_) {
+                    it.episodeFilter = filter
                 }
             }
         }
@@ -730,10 +725,10 @@ fun FeedDetailsScreen() {
 //                    if (Build.VERSION.SDK_INT <= 32) (context as MainActivity).showSnackbarAbovePlayer(R.string.copied_to_clipboard, Snackbar.LENGTH_SHORT)
                     }
                 })
-                if (!vm.feed?.paymentLinks.isNullOrEmpty()) {
+                if (!vm.feed?.paymentLinkList.isNullOrEmpty()) {
                     Text(stringResource(R.string.support_funding_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     fun fundingText(): String {
-                        val fundingList: ArrayList<FeedFunding> = vm.feed!!.paymentLinks
+                        val fundingList: ArrayList<FeedFunding> = vm.feed!!.paymentLinkList
                         // Filter for duplicates, but keep items in the order that they have in the feed.
                         val i: MutableIterator<FeedFunding> = fundingList.iterator()
                         while (i.hasNext()) {

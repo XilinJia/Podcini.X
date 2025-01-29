@@ -45,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.apache.commons.io.FileUtils
 import java.io.File
+import java.net.URI
 import java.util.*
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
@@ -304,13 +305,20 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                     it.setIsDownloaded()
                     it.setfileUrlOrNull(request.destination)
                     Logd(TAG, "run() set request.destination: ${request.destination}")
-                    if (request.destination != null) it.size = File(request.destination).length()
-                    Logd(TAG, "run() set size: ${it.size}")
+                    if (!request.destination.isNullOrBlank()) {
+                        val file = File(URI.create(request.destination).path)
+                        it.size = if (file.exists()) file.length() else 0
+                        Logd(TAG, "run() set size: ${it.size}")
+                    }
                     it.checkEmbeddedPicture(false) // enforce check
-                    if (it.chapters.isEmpty()) it.setChapters(it.loadChaptersFromMediaFile(context))
-                    Logd(TAG, "run() set setChapters: ${it.chapters.size}")
-                    if (it.podcastIndexChapterUrl != null) ChapterUtils.loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
-                    Logd(TAG, "run() loaded chapters: ${it.chapters.size}")
+                    if (it.chapters.isEmpty()) {
+                        it.setChapters(it.loadChaptersFromMediaFile(context))
+                        Logd(TAG, "run() set setChapters: ${it.chapters.size}")
+                    }
+                    if (!it.podcastIndexChapterUrl.isNullOrBlank()) {
+                        ChapterUtils.loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
+                        Logd(TAG, "run() loaded chapters: ${it.chapters.size}")
+                    }
                     var durationStr: String? = null
                     try {
                         MediaMetadataRetrieverCompat().use { mmr ->
@@ -321,7 +329,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                     } catch (e: NumberFormatException) { Logd(TAG, "Invalid file duration: $durationStr")
                     } catch (e: Exception) {
                         Log.e(TAG, "Get duration failed", e)
-                        it.duration = (30000)
+                        it.duration = 30000
                     }
                     Logd(TAG, "run() set duration: ${it.duration}")
                     it.disableAutoDownload()

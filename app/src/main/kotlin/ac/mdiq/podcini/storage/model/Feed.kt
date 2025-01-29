@@ -118,10 +118,10 @@ class Feed : RealmObject {
             else -> link
         }
 
-    var payment_link: String? = null
     @Ignore
-    var paymentLinks: ArrayList<FeedFunding> = ArrayList()
+    var paymentLinkList: ArrayList<FeedFunding> = ArrayList()
         private set
+    var payment_link: String? = null
 
     @Ignore
     val isLocalFeed: Boolean
@@ -129,8 +129,21 @@ class Feed : RealmObject {
 
     @Ignore
     var episodeFilter: EpisodeFilter = EpisodeFilter("")
-        private set
-        get() = EpisodeFilter(filterString)
+        set(value) {
+            field = value
+            filterString = value.propertySet.joinToString()
+            durationFloor = value.durationFloor
+            durationCeiling = value.durationCeiling
+        }
+        get() {
+            val f = EpisodeFilter(filterString)
+            f.durationFloor = durationFloor
+            f.durationCeiling = durationCeiling
+            return f
+        }
+    var filterString: String = ""
+    var durationFloor: Int = 0
+    var durationCeiling: Int = Int.MAX_VALUE
 
     @Ignore
     var sortOrder: EpisodeSortOrder? = null
@@ -140,6 +153,7 @@ class Feed : RealmObject {
             field = value
             sortOrderCode = value.code
         }
+    var sortOrderCode: Int = 2     // in EpisodeSortOrder
 
     @Ignore
     val mostRecentItem: Episode?
@@ -231,10 +245,6 @@ class Feed : RealmObject {
 
     var prefStreamOverDownload: Boolean = false
 
-    var filterString: String = ""
-
-    var sortOrderCode: Int = 2     // in EpisodeSortOrder
-
     @Ignore
     val tagsAsString: String
         get() = tags.joinToString(TAG_SEPARATOR)
@@ -272,6 +282,34 @@ class Feed : RealmObject {
     var queueId: Long = 0L
 
     var autoAddNewToQueue: Boolean = false
+
+    @Ignore
+    var episodeFilterADL: EpisodeFilter = EpisodeFilter()
+        set(value) {
+            field = value
+            filterStringADL = value.propertySet.joinToString()
+            durationFloorADL = value.durationFloor
+            durationCeilingADL = value.durationCeiling
+        }
+        get() {
+            val f = EpisodeFilter(filterStringADL)
+            f.durationFloor = durationFloorADL
+            f.durationCeiling = durationCeilingADL
+            return f
+        }
+    var filterStringADL: String = ""
+    var durationFloorADL: Int = 0
+    var durationCeilingADL: Int = Int.MAX_VALUE
+
+    @Ignore
+    var sortOrderADL: EpisodeSortOrder? = null
+        get() = fromCode(sortOrderCodeADL)
+        set(value) {
+            if (value == null) return
+            field = value
+            sortOrderCodeADL = value.code
+        }
+    var sortOrderCodeADL: Int = 2     // in EpisodeSortOrder
 
     @Ignore
     var autoDownloadFilter: FeedAutoDownloadFilter? = null
@@ -355,7 +393,7 @@ class Feed : RealmObject {
         if (other.description != null) description = other.description
         if (other.language != null) language = other.language
         if (other.author != null) author = other.author
-        if (other.paymentLinks.isNotEmpty()) paymentLinks = other.paymentLinks
+        if (other.paymentLinkList.isNotEmpty()) paymentLinkList = other.paymentLinkList
 
         // this feed's nextPage might already point to a higher page, so we only update the nextPage value
         // if this feed is not paged and the other feed is.
@@ -395,8 +433,8 @@ class Feed : RealmObject {
         if (other.author != null) {
             if (author == null || author != other.author) return true
         }
-        if (other.paymentLinks.isNotEmpty()) {
-            if (paymentLinks.isEmpty() || paymentLinks != other.paymentLinks) return true
+        if (other.paymentLinkList.isNotEmpty()) {
+            if (paymentLinkList.isEmpty() || paymentLinkList != other.paymentLinkList) return true
         }
         if (other.isPaged && !this.isPaged) return true
         if (other.nextPageLink != this.nextPageLink) return true
@@ -408,7 +446,7 @@ class Feed : RealmObject {
     }
 
     fun addPayment(funding: FeedFunding) {
-        paymentLinks.add(funding)
+        paymentLinkList.add(funding)
     }
 
     fun isSynthetic(): Boolean {
@@ -441,7 +479,8 @@ class Feed : RealmObject {
         ONLY_NEW(0, R.string.feed_auto_download_new, false),
         NEWER(1, R.string.feed_auto_download_newer, false),
         OLDER(2, R.string.feed_auto_download_older, false),
-        SOON(3, R.string.feed_auto_download_soon, false);
+        SOON(3, R.string.feed_auto_download_soon, false),
+        FILTER_SORT(4, R.string.feed_auto_download_filter_sort, false);
 
         companion object {
             fun fromCode(code: Int): AutoDownloadPolicy {

@@ -226,23 +226,23 @@ fun FeedSettingsScreen() {
      fun AutoDownloadPolicyDialog(onDismissRequest: () -> Unit) {
         val (selectedOption, onOptionSelected) = remember { mutableStateOf(vm.feed?.autoDLPolicy ?: AutoDownloadPolicy.ONLY_NEW) }
         AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
-            title = { Text(stringResource(R.string.pref_custom_media_dir_title), style = CustomTextStyles.titleCustom) },
+            title = { Text(stringResource(R.string.feed_auto_download_policy), style = CustomTextStyles.titleCustom) },
             text = {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     AutoDownloadPolicy.entries.forEach { item ->
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = (item == selectedOption), onCheckedChange = { onOptionSelected(item) })
-                            Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
+                            Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 8.dp))
                         }
                         if (selectedOption == AutoDownloadPolicy.ONLY_NEW && item == selectedOption)
-                            Row(Modifier.fillMaxWidth().padding(start = 40.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth().padding(start = 30.dp), verticalAlignment = Alignment.CenterVertically) {
                                 var replaceChecked by remember { mutableStateOf(selectedOption.replace) }
                                 Checkbox(checked = replaceChecked, onCheckedChange = {
                                     replaceChecked = it
                                     selectedOption.replace = it
                                     item.replace = it
                                 })
-                                Text(text = stringResource(R.string.replace), style = MaterialTheme.typography.bodyMedium.merge(), modifier = Modifier.padding(start = 16.dp))
+                                Text(text = stringResource(R.string.replace), style = MaterialTheme.typography.bodyMedium.merge(), modifier = Modifier.padding(start = 8.dp))
                             }
                     }
                 }
@@ -250,7 +250,13 @@ fun FeedSettingsScreen() {
             confirmButton = {
                 TextButton(onClick = {
                     Logd(TAG, "autoDLPolicy: ${selectedOption.name} ${selectedOption.replace}")
-                    vm.feed = upsertBlk(vm.feed!!) { it.autoDLPolicy = selectedOption }
+                    vm.feed = upsertBlk(vm.feed!!) {
+                        it.autoDLPolicy = selectedOption
+                        if (selectedOption == AutoDownloadPolicy.FILTER_SORT) {
+                            it.episodeFilterADL = vm.feed!!.episodeFilter
+                            it.sortOrderADL = vm.feed!!.sortOrder
+                        }
+                    }
                     onDismissRequest()
                 }) { Text(stringResource(R.string.confirm_label)) }
             },
@@ -378,7 +384,7 @@ fun FeedSettingsScreen() {
     }
 
     @Composable
-     fun SetVideoQuality(selectedOption: String, onDismissRequest: () -> Unit) {
+    fun SetVideoQuality(selectedOption: String, onDismissRequest: () -> Unit) {
         var selected by remember {mutableStateOf(selectedOption)}
         Dialog(onDismissRequest = { onDismissRequest() }) {
             Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {

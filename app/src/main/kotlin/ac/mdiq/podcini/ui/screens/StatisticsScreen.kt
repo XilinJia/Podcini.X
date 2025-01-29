@@ -9,7 +9,7 @@ import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
-import ac.mdiq.podcini.ui.compose.DatesFilterDialogCompose
+import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
@@ -380,7 +380,7 @@ fun StatisticsScreen() {
             } catch (error: Throwable) { Log.e(TAG, Log.getStackTraceString(error)) }
         }
     }
-    if (vm.showFilter) DatesFilterDialogCompose(inclPlayed = vm.prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false), from = vm.prefs.getLong(PREF_FILTER_FROM, 0), to = vm.prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE),
+    if (vm.showFilter) DatesFilterDialog(inclPlayed = vm.prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false), from = vm.prefs.getLong(PREF_FILTER_FROM, 0), to = vm.prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE),
         oldestDate = vm.statsResult.oldestDate, onDismissRequest = {vm.showFilter = false} ) { timeFilterFrom, timeFilterTo, includeMarkedAsPlayed_ ->
         vm.prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, includeMarkedAsPlayed_)?.putLong(PREF_FILTER_FROM, timeFilterFrom)?.putLong(PREF_FILTER_TO, timeFilterTo)?.apply()
         vm.includeMarkedAsPlayed = includeMarkedAsPlayed_

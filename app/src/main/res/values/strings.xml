@@ -157,6 +157,7 @@
     <string name="feed_auto_download_newer">Newest unplayed</string>
     <string name="feed_auto_download_older">Oldest unplayed</string>
     <string name="feed_auto_download_soon">Marked as Soon</string>
+    <string name="feed_auto_download_filter_sort">Current filter and sort</string>
 
     <string name="put_in_queue_label">Add to queue…</string>
     <string name="remove_from_other_queues">Remove from other queues</string>
@@ -892,6 +893,10 @@
     <string name="has_media">Has media</string>
     <string name="has_chapters">Has chapters</string>
     <string name="filename">File name</string>
+
+    <string name="lower">Lower</string>
+    <string name="middle">Middle</string>
+    <string name="higher">Higher</string>
 
     <string name="play_speed">Play speed</string>
     <string name="global_speed">Global</string>

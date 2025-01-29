@@ -29,9 +29,7 @@ object DownloadRequestCreator {
         Logd(TAG, "create: ${media.fileUrl} ${media.title}")
         val destUriString = media.getMediaFileUriString() ?: ""
         Logd(TAG, "destUriString: $destUriString")
-        if (destUriString.isEmpty()) {
-            Log.e(TAG, "destUriString is empty")
-        }
+        if (destUriString.isBlank()) Log.e(TAG, "destUriString is empty")
         val feed = media.feed
         val username = feed?.username
         val password = feed?.password

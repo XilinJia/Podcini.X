@@ -17,6 +17,8 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.EpisodeFilter
+import ac.mdiq.podcini.storage.model.EpisodeSortOrder
+import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.Logd
@@ -28,6 +30,7 @@ import io.realm.kotlin.UpdatePolicy
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
+import kotlin.math.min
 
 object AutoDownloads {
     private val TAG: String = AutoDownloads::class.simpleName ?: "Anonymous"
@@ -149,6 +152,22 @@ object AutoDownloads {
                                     Feed.AutoDownloadPolicy.OLDER -> {
                                         queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate ASC) LIMIT(${3*allowedDLCount})"
                                         episodes = realm.query(Episode::class).query(queryString).find().toMutableList()
+                                    }
+                                    Feed.AutoDownloadPolicy.FILTER_SORT -> {
+                                        Logd(TAG, "FILTER_SORT queryString: $queryString")
+                                        val q = realm.query(Episode::class).query(queryString)
+                                        val filterADL = f.episodeFilterADL.queryString()
+                                        Logd(TAG, "FILTER_SORT filterADL: $filterADL")
+                                        if (filterADL.isNotBlank()) q.query(filterADL)
+                                        val eList = q.find().toMutableList()
+                                        Logd(TAG, "FILTER_SORT eList: ${eList.size}")
+                                        if (eList.isNotEmpty()) {
+                                            val sortOrder = f.sortOrderADL ?: EpisodeSortOrder.DATE_NEW_OLD
+                                            Logd(TAG, "FILTER_SORT sortOrder: ${sortOrder}")
+                                            getPermutor(sortOrder).reorder(eList)
+                                            episodes = eList.subList(0, min(eList.size, 3*allowedDLCount))
+                                            Logd(TAG, "FILTER_SORT episodes: ${episodes.size}")
+                                        }
                                     }
                                 }
                                 if (episodes.isNotEmpty()) {

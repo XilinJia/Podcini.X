@@ -245,11 +245,12 @@ object AppPreferences {
         prefBackButtonOpensDrawer,
         prefQueueKeepSorted,
         prefQueueKeepSortedOrder,
-        prefDownloadsFilter,
 
         // Episodes
         prefEpisodesSort,
         prefEpisodesFilter,
+        prefEpisodesCurIndex,
+        prefDownloadsFilter,
 
         // Playback
         prefPauseOnHeadsetDisconnect,
