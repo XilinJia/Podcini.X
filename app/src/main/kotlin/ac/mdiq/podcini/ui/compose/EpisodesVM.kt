@@ -1033,8 +1033,8 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                 if (expandRow) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         var showIcon by remember { mutableStateOf(false) }
-                                        var floor by remember { mutableStateOf(filter.durationFloor.toString()) }
-                                        var ceiling by remember { mutableStateOf(filter.durationCeiling.toString()) }
+                                        var floor by remember { mutableStateOf((filter.durationFloor/1000).toString()) }
+                                        var ceiling by remember { mutableStateOf((filter.durationCeiling/1000).toString()) }
                                         TextField(value = floor, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("Floor(seconds)") },
                                             singleLine = true, modifier = Modifier.weight(0.4f),
                                             onValueChange = {

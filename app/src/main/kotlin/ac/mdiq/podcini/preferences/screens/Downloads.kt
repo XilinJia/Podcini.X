@@ -448,25 +448,30 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
         Text(stringResource(R.string.download_pref_details), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 10.dp))
         var showMeteredNetworkOptions by remember { mutableStateOf(false) }
-        val initMobileOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes.name, setOf("images"))) }
-        var tempSelectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes.name, setOf("images"))) }
         TitleSummaryActionColumn(R.string.pref_metered_network_title, R.string.pref_mobileUpdate_sum) { showMeteredNetworkOptions = true }
         if (showMeteredNetworkOptions) {
+            val initMobileOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes.name, setOf("images"))) }
+            var tempSelectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes.name, setOf("images"))) }
+            fun updateSepections(option: MobileUpdateOptions) {
+                tempSelectedOptions = if (tempSelectedOptions.contains(option.name)) tempSelectedOptions - option.name else tempSelectedOptions + option.name
+                when {
+                    option == MobileUpdateOptions.auto_download && tempSelectedOptions.contains(option.name) -> {
+                        tempSelectedOptions += MobileUpdateOptions.episode_download.name
+                        tempSelectedOptions += MobileUpdateOptions.feed_refresh.name
+                    }
+                    option == MobileUpdateOptions.episode_download && !tempSelectedOptions.contains(option.name) ->
+                        tempSelectedOptions -= MobileUpdateOptions.auto_download.name
+                    option == MobileUpdateOptions.feed_refresh && !tempSelectedOptions.contains(option.name) ->
+                        tempSelectedOptions -= MobileUpdateOptions.auto_download.name
+                }
+            }
             AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showMeteredNetworkOptions = false },
                 title = { Text(stringResource(R.string.pref_metered_network_title), style = CustomTextStyles.titleCustom) },
                 text = {
                     Column {
                         MobileUpdateOptions.entries.forEach { option ->
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp)
-                                .clickable {
-                                    tempSelectedOptions = if (tempSelectedOptions.contains(option.name)) tempSelectedOptions - option.name
-                                    else tempSelectedOptions + option.name
-                                }) {
-                                Checkbox(checked = tempSelectedOptions.contains(option.name),
-                                    onCheckedChange = {
-                                        tempSelectedOptions = if (tempSelectedOptions.contains(option.name)) tempSelectedOptions - option.name
-                                        else tempSelectedOptions + option.name
-                                    })
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp).clickable { updateSepections(option) }) {
+                                Checkbox(checked = tempSelectedOptions.contains(option.name), onCheckedChange = { updateSepections(option) })
                                 Text(stringResource(option.res), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
                             }
                         }

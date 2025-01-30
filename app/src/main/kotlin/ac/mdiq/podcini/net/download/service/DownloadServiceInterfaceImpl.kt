@@ -355,12 +355,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         private val TAG: String = DownloadServiceInterfaceImpl::class.simpleName ?: "Anonymous"
 
         private val constraints: Constraints
-            get() {
-                val constraints = Builder()
-                if (isAllowMobileEpisodeDownload) constraints.setRequiredNetworkType(NetworkType.CONNECTED)
-                else constraints.setRequiredNetworkType(NetworkType.UNMETERED)
-                return constraints.build()
-            }
+            get() = Builder().setRequiredNetworkType(if (isAllowMobileEpisodeDownload) NetworkType.CONNECTED else NetworkType.UNMETERED).build()
 
         private fun getRequest(item: Episode): OneTimeWorkRequest.Builder {
             Logd(TAG, "starting getRequest")

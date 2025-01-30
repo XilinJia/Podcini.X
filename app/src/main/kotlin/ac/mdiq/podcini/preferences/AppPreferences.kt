@@ -190,6 +190,7 @@ object AppPreferences {
     }
 
     inline fun <reified T> putPref(key: String, value: T) {
+        Logd("AppPreferences", "putPref key: $key value: $value")
         cachedPrefs[key] = value
         val editor = appPrefs.edit()
         when (value) {

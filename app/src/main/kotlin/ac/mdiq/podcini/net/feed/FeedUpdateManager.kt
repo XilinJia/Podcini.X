@@ -58,7 +58,7 @@ object FeedUpdateManager {
         else {
             var policy = ExistingPeriodicWorkPolicy.KEEP
             if (replace) {
-                putPref(AppPrefs.prefLastFullUpdateTime, 0L)
+                putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
                 policy = ExistingPeriodicWorkPolicy.UPDATE
             }
             val initialDelay = getInitialDelay(context)
@@ -88,6 +88,7 @@ object FeedUpdateManager {
             initialDelay = targetTime.timeInMillis - currentTime.timeInMillis
         }
         val intervalInMillis = (updateInterval * TimeUnit.HOURS.toMillis(1))
+        Logd(TAG, "lastUpdateTime: $lastUpdateTime")
         nextRefreshTime = if (lastUpdateTime == 0L) {
             if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
             else context.getString(R.string.before) + fullDateTimeString(Calendar.getInstance().timeInMillis + intervalInMillis)

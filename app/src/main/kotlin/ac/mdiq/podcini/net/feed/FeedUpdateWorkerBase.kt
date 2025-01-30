@@ -84,6 +84,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Wo
         notificationManager.cancel(R.id.notification_updating_feeds)
         autodownloadEpisodeMedia(applicationContext, feedsToUpdate.toList())
         feedsToUpdate.clear()
+        Logd(TAG, "feedId: $feedId prefAutoUpdateStartTime: [${getPref(AppPrefs.prefAutoUpdateStartTime, ":")}]")
         if (feedId == -1L && getPref(AppPrefs.prefAutoUpdateStartTime, ":") == ":") {
             putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
             restartUpdateAlarm(applicationContext, true)

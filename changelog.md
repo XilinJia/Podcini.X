@@ -1,3 +1,11 @@
+# 8.3.1
+
+* fixed duration filter text fields showing milliseconds numbers
+* ensured some inter-dependencies in metered network settings
+* corrected display of next update time under refresh in Downloads settings
+	* note: refresh start time is not set, then every manual refresh of all podcasts resets for the auto-refresh schedule, this is the behavior since 8.1.1
+* updated some Compose dependencies
+
 # 8.3.0
 
 * fixed empty episodes in FeedDetails when switching from FeedInfo

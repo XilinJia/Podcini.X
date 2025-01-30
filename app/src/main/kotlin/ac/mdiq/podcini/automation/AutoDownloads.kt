@@ -133,6 +133,7 @@ object AutoDownloads {
                                             episodes = realm.query(Episode::class).query(queryString).find().toMutableList()
                                             Logd(TAG, "autoDownloadEpisodeMedia episodes: ${episodes.size}")
                                             val numToDelete = episodes.size + downloadedCount - allowedDLCount
+                                            Logd(TAG, "autoDownloadEpisodeMedia numToDelete: $numToDelete")
                                             val toDelete_ = getEpisodes(dlFilter, f.id, numToDelete)
                                             if (toDelete_.isNotEmpty()) toDelete.addAll(toDelete_)
                                             Logd(TAG, "autoDownloadEpisodeMedia toDelete_: ${toDelete_.size}")
@@ -193,7 +194,7 @@ object AutoDownloads {
                                     Logd(TAG, "autoDownloadEpisodeMedia episodesNew: ${episodesNew.size}")
                                     episodesNew.map { e ->
                                         e.setPlayed(false)
-                                        Logd(TAG, "autoDownloadEpisodeMedia reset NEW ${e.title} ${e.playState}")
+                                        Logd(TAG, "autoDownloadEpisodeMedia reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
                                         copyToRealm(e, UpdatePolicy.ALL)
                                     }
                                 }
@@ -215,7 +216,10 @@ object AutoDownloads {
                             val itemsToDownload: MutableList<Episode> = candidates.toMutableList().subList(0, allowedCount)
                             if (itemsToDownload.isNotEmpty()) {
                                 Logd(TAG, "Enqueueing " + itemsToDownload.size + " items for download")
-                                for (episode in itemsToDownload) DownloadServiceInterface.get()?.download(context, episode)
+                                for (e in itemsToDownload) {
+                                    Logd(TAG, "autoDownloadEpisodeMedia reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
+                                    DownloadServiceInterface.get()?.download(context, e)
+                                }
                             }
                             itemsToDownload.clear()
                         }
