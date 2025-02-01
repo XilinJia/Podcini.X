@@ -236,7 +236,7 @@
   <string name="lock_queue">Blokeatu ilara</string>
   <string name="queue_locked">Ilara blokeaturik</string>
   <string name="queue_unlocked">Ilara desblokeaturik</string>
-  <string name="queue_lock_warning">Ilara blokeatzen baduzu, ezin izango dituzu saioak mugitu edo markatu.</string>
+
   <string name="checkbox_do_not_show_again">Ez erakutsi berriro</string>
   <string name="clear_queue_label">Garbitu ilara</string>
   <string name="undo">Desegin</string>

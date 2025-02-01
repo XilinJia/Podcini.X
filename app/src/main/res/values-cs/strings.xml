@@ -309,7 +309,7 @@
     <string name="lock_queue">Zamknout frontu</string>
     <string name="queue_locked">Fronta zamknuta</string>
     <string name="queue_unlocked">Fronta odemknuta</string>
-    <string name="queue_lock_warning">Pokud zamknete frontu, tak nemůžete měnit pořadí epizod tažením.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Otevřít frontu</string>
     <string name="checkbox_do_not_show_again">Znovu již nezobrazovat</string>

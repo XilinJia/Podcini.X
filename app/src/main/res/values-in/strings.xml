@@ -294,7 +294,7 @@
     <string name="lock_queue">Lock queue</string>
     <string name="queue_locked">Antrian Dikunci</string>
     <string name="queue_unlocked">Antrian terbuka</string>
-    <string name="queue_lock_warning">Saat antrian dikunci, Anda tidak akan dapat menggeser atau mengurutkan ulang episode.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Open queue</string>
     <string name="checkbox_do_not_show_again">Jangan tampilkan lagi</string>

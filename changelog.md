@@ -1,3 +1,11 @@
+# 8.3.2
+
+* fixed set queue lock/unlock
+* removed the warning dialog whe locking the queue
+* tuned the location and colors of toast messages
+* added replacedCount into deletedCount to fixed Replace auto-download
+* set refresh failure backoff criteria to 10% of refresh interval
+
 # 8.3.1
 
 * fixed duration filter text fields showing milliseconds numbers

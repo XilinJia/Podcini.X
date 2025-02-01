@@ -294,7 +294,7 @@
     <string name="lock_queue">대기열 잠그기</string>
     <string name="queue_locked">대기열 잠겨짐</string>
     <string name="queue_unlocked">대기열 잠금 풀림</string>
-    <string name="queue_lock_warning">대기열을 잠그면, 에피소드를 밀어서 제거하거나 순서를 바꾸지 못합니다.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Open queue</string>
     <string name="checkbox_do_not_show_again">다시 표시하지 않기</string>

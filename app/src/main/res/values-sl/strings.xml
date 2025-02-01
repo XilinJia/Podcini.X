@@ -309,7 +309,7 @@
     <string name="lock_queue">Lock queue</string>
     <string name="queue_locked">Čakalna vrsta je zaklenjena</string>
     <string name="queue_unlocked">Čakalna vrsta je odklenjena</string>
-    <string name="queue_lock_warning">Če zaklenete čakalno vrsto, ne morete več premikati ali preurediti epizod.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Open queue</string>
     <string name="checkbox_do_not_show_again">Ne prikaži več</string>

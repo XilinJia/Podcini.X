@@ -309,7 +309,7 @@
     <string name="lock_queue">Заблокувати чергу</string>
     <string name="queue_locked">Чергу заблоковано</string>
     <string name="queue_unlocked">Чергу розблоковано</string>
-    <string name="queue_lock_warning">Якщо ви заблокуєте чергу, ви більше не зможете проводити пальцем або змінювати порядок епізодів.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Відкрити чергу</string>
     <string name="checkbox_do_not_show_again">Більше не показувати</string>

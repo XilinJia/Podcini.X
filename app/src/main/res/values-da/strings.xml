@@ -299,7 +299,7 @@
     <string name="lock_queue">Lås kø</string>
     <string name="queue_locked">Kø låst</string>
     <string name="queue_unlocked">Kø låst op</string>
-    <string name="queue_lock_warning">Hvis du låser køen, kan du ikke swipe eller flytte rundt på afsnit.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Åbn kø</string>
     <string name="checkbox_do_not_show_again">Vis ikke igen</string>

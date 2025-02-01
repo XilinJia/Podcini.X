@@ -302,7 +302,7 @@
     <string name="lock_queue">Blocca la coda</string>
     <string name="queue_locked">Coda bloccata</string>
     <string name="queue_unlocked">Coda sbloccata</string>
-    <string name="queue_lock_warning">Se blocchi la coda non potrai più fare swipe o riordinare gli episodi.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Apri coda</string>
     <string name="checkbox_do_not_show_again">Non mostrare più</string>

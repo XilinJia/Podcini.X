@@ -294,7 +294,7 @@
     <string name="lock_queue">锁定队列</string>
     <string name="queue_locked">队列锁定</string>
     <string name="queue_unlocked">队列解锁</string>
-    <string name="queue_lock_warning">如果您锁定队列，您不能再滑动或重新排序剧集。</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">打开队列</string>
     <string name="checkbox_do_not_show_again">不再显示</string>

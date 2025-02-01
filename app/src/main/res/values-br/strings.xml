@@ -230,7 +230,7 @@
   <!--Queue operations-->
   <string name="queue_locked">Lost prennet</string>
   <string name="queue_unlocked">Lost dibrennet</string>
-  <string name="queue_lock_warning">Ma prennit al lost ne vo ket tu deoc\'h riklañ pe adurzhiañ ar rannoù.</string>
+
   <string name="checkbox_do_not_show_again">Na ziskouez ken</string>
   <string name="clear_queue_label">Skarzhañ al lost</string>
   <string name="undo">Nullañ</string>

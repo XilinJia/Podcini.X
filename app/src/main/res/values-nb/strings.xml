@@ -242,7 +242,7 @@
   <string name="lock_queue">Lås køen</string>
   <string name="queue_locked">Kø låst</string>
   <string name="queue_unlocked">Kø opplåst</string>
-  <string name="queue_lock_warning">Hvis du låser køen, kan du ikke lenger sveipe eller ordne episoder.</string>
+
   <string name="checkbox_do_not_show_again">Ikke vis igjen</string>
   <string name="clear_queue_label">Tøm køen</string>
   <string name="undo">Angre</string>

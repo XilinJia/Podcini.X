@@ -296,7 +296,7 @@
     <string name="lock_queue">キューをロック</string>
     <string name="queue_locked">キューをロックしました</string>
     <string name="queue_unlocked">キューのロックを解除しました</string>
-    <string name="queue_lock_warning">キューをロックすると、エピソードのスワイプや並べ替えができなくなります。</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">キューを開く</string>
     <string name="checkbox_do_not_show_again">今後表示しない</string>

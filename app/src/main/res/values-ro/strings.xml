@@ -304,7 +304,7 @@
     <string name="lock_queue">Blochează coada</string>
     <string name="queue_locked">Coadă blocată</string>
     <string name="queue_unlocked">Coadă deblocată</string>
-    <string name="queue_lock_warning">Dacă blocați coada nu veți mai putea să reordonați episoadele.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Deschide coada</string>
     <string name="checkbox_do_not_show_again">Nu arătați din nou</string>

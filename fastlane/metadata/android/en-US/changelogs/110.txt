@@ -4,3 +4,4 @@
 * removed the warning dialog whe locking the queue
 * tuned the location and colors of toast messages
 * added replacedCount into deletedCount to fixed Replace auto-download
+* set refresh failure backoff criteria to 10% of refresh interval

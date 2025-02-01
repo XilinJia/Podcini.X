@@ -320,7 +320,7 @@
     <string name="lock_queue">قفل لائحة الإستماع</string>
     <string name="queue_locked">لائحة الإستماع مقفلة</string>
     <string name="queue_unlocked">لائحة الإستماع مفتوحة</string>
-    <string name="queue_lock_warning">إذا اقفلت لائحة الإستماع, لا يمكنك تبديل أو ترتيب الحلقات فيها.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">فتح قائمة الانتظار</string>
     <string name="checkbox_do_not_show_again">لا تظهرها مرة ثانية</string>

@@ -299,7 +299,7 @@
     <string name="lock_queue">Wachtrij vergrendelen</string>
     <string name="queue_locked">Wachtrij vergrendeld</string>
     <string name="queue_unlocked">Wachtrij ontgrendeld</string>
-    <string name="queue_lock_warning">Als de wachtrij vergrendeld is, kunnen er geen afleveringen meer geveegd of herschikt worden.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Open wachtrij</string>
     <string name="checkbox_do_not_show_again">Niet opnieuw tonen</string>

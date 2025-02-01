@@ -301,7 +301,7 @@
     <string name="lock_queue">Bloquear cola</string>
     <string name="queue_locked">Cola bloqueada</string>
     <string name="queue_unlocked">Cola desbloqueada</string>
-    <string name="queue_lock_warning">Si bloqueas la cola, no podrás mover o marcar los episodios.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Abrir cola</string>
     <string name="checkbox_do_not_show_again">No mostrar de nuevo</string>

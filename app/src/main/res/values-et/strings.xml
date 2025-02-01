@@ -202,7 +202,7 @@
   <string name="lock_queue">Lukusta järjekord</string>
   <string name="queue_locked">Järjekord on lukustatud</string>
   <string name="queue_unlocked">Järjekorra lukustus on eemaldatud</string>
-  <string name="queue_lock_warning">Kui lukustad järjekorra, ei saa saadete järjekorda enam muuta ega neid välja pühkida.</string>
+
   <string name="checkbox_do_not_show_again">Ära enam näita</string>
   <string name="undo">Tühista</string>
 

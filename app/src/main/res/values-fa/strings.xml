@@ -299,7 +299,7 @@
     <string name="lock_queue">قفل صف</string>
     <string name="queue_locked">صف قفل شده است</string>
     <string name="queue_unlocked">قفل صف باز شده است</string>
-    <string name="queue_lock_warning">اگر صف را قفل کنید دیگر نمی‌توانید قسمت‌ها را به کنار کشیده یا ترتیبشان را جابجا کنید.</string>
+
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="open_queue">Open queue</string>
     <string name="checkbox_do_not_show_again">دوباره نمایش نده</string>
