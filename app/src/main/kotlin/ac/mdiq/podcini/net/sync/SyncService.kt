@@ -17,9 +17,9 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.containsUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileFor
 import ac.mdiq.podcini.net.utils.NetworkUtils.setAllowMobileFor
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
-import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
@@ -345,9 +345,9 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
             isCurrentlyActive = active
         }
         var isAllowMobileSync: Boolean
-            get() = isAllowMobileFor("sync")
+            get() = isAllowMobileFor(MobileUpdateOptions.sync.name)
             set(allow) {
-                setAllowMobileFor("sync", allow)
+                setAllowMobileFor(MobileUpdateOptions.sync.name, allow)
             }
 
         private fun getWorkRequest(): OneTimeWorkRequest.Builder {

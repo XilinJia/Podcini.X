@@ -41,9 +41,11 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import android.content.ComponentName
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.Log
-import androidx.compose.foundation.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -82,8 +84,6 @@ import java.util.*
 import kotlin.math.max
 
 class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
-    val prefs: SharedPreferences by lazy { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
-
     internal var swipeActions: SwipeActions
     internal var swipeActionsBin: SwipeActions
     internal var leftActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
@@ -116,7 +116,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
 
     internal val showClearQueueDialog = mutableStateOf(false)
-    internal var shouldShowLockWarningDiwload by mutableStateOf(false)
     internal val showRenameQueueDialog = mutableStateOf(false)
     internal val showAddQueueDialog = mutableStateOf(false)
 
@@ -278,25 +277,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    internal fun toggleQueueLock() {
-        if (isQueueLocked) setQueueLock(false)
-        else {
-            val shouldShowLockWarning = mutableStateOf(prefs.getBoolean(PREF_SHOW_LOCK_WARNING, true))
-            if (!shouldShowLockWarning.value) setQueueLock(true)
-            else shouldShowLockWarningDiwload = true
-        }
-    }
-
-    private fun setQueueLock(locked: Boolean) {
-        isQueueLocked = locked
-        putPref(AppPrefs.prefQueueLocked, locked)
-        dragDropEnabled = !(isQueueKeepSorted || isQueueLocked)
-        if (queueItems.isEmpty()) {
-            toastMassege =  context.getString(if (locked) R.string.queue_locked else R.string.queue_unlocked)
-//            if (locked) (context as MainActivity).showSnackbarAbovePlayer(R.string.queue_locked, Snackbar.LENGTH_SHORT)
-//            else (context as MainActivity).showSnackbarAbovePlayer(R.string.queue_unlocked, Snackbar.LENGTH_SHORT)
-        }
-    }
     private fun refreshInfoBar() {
         infoText = String.format(Locale.getDefault(), "%d%s", queueItems.size, context.getString(R.string.episodes_suffix))
         if (queueItems.isNotEmpty()) {
@@ -498,15 +478,21 @@ fun QueuesScreen() {
                             FeedUpdateManager.runOnceOrAsk(context)
                             expanded = false
                         })
-                        if (!isQueueKeepSorted) DropdownMenuItem(text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(stringResource(R.string.lock_queue))
-                                Checkbox(checked = vm.isQueueLocked, onCheckedChange = {  })
+                        if (!isQueueKeepSorted) {
+                            fun toggleQL() {
+                                vm.isQueueLocked = !vm.isQueueLocked
+                                putPref(AppPrefs.prefQueueLocked, vm.isQueueLocked)
+                                vm.dragDropEnabled = !(isQueueKeepSorted || vm.isQueueLocked)
+                                toastMassege =  context.getString(if (vm.isQueueLocked) R.string.queue_locked else R.string.queue_unlocked)
+                                expanded = false
                             }
-                        }, onClick = {
-                            vm.toggleQueueLock()
-                            expanded = false
-                        })
+                            DropdownMenuItem(text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(stringResource(R.string.lock_queue))
+                                    Checkbox(checked = vm.isQueueLocked, onCheckedChange = { toggleQL() })
+                                }
+                            }, onClick = { toggleQL() })
+                        }
                     }
                 }
             }
@@ -565,35 +551,11 @@ fun QueuesScreen() {
         }
     }
 
-    @Composable
-    fun ShowLockWarning(onDismiss: () -> Unit) {
-        var dontAskAgain by remember { mutableStateOf(false) }
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.lock_queue)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.queue_lock_warning))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = dontAskAgain, onCheckedChange = { dontAskAgain = it })
-                        Text(stringResource(R.string.checkbox_do_not_show_again))
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    vm.prefs.edit().putBoolean(PREF_SHOW_LOCK_WARNING, !dontAskAgain).apply()
-                    onDismiss()
-                }) { Text(stringResource(R.string.lock_queue)) }
-            },
-            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
-        )
-    }
-
     if (vm.showSwipeActionsDialog) SwipeActionsSettingDialog(if (vm.showBin) vm.swipeActionsBin else vm.swipeActions, onDismissRequest = { vm.showSwipeActionsDialog = false }) { actions ->
         vm.swipeActions.actions = actions
         vm.refreshSwipeTelltale()
     }
     ComfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = vm.showClearQueueDialog) { clearQueue() }
-    if (vm.shouldShowLockWarningDiwload) ShowLockWarning { vm.shouldShowLockWarningDiwload = false }
     RenameQueueDialog(showDialog = vm.showRenameQueueDialog.value, onDismiss = { vm.showRenameQueueDialog.value = false })
     AddQueueDialog(showDialog = vm.showAddQueueDialog.value, onDismiss = { vm.showAddQueueDialog.value = false })
     vm.swipeActions.ActionOptionsDialog()
@@ -705,6 +667,6 @@ private val TAG = Screens.Queues.name
 
 private const val KEY_UP_ARROW = "up_arrow"
 private const val PREFS = "QueueFragment"
-private const val PREF_SHOW_LOCK_WARNING = "show_lock_warning"
+//private const val PREF_SHOW_LOCK_WARNING = "show_lock_warning"
 
 

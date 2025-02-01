@@ -105,7 +105,7 @@ object AutoDownloads {
                 // we should only auto download if both network AND power are happy
                 if (networkShouldAutoDl && powerShouldAutoDl) {
                     Logd(TAG, "autoDownloadEpisodeMedia Performing auto-dl of undownloaded episodes")
-                    val toDelete: MutableSet<Episode> = mutableSetOf()
+                    val toReplace: MutableSet<Episode> = mutableSetOf()
                     val candidates: MutableSet<Episode> = mutableSetOf()
                     val queueItems = realm.query(Episode::class).query("id IN $0 AND downloaded == false", curQueue.episodeIds).find()
                     Logd(TAG, "autoDownloadEpisodeMedia add from queue: ${queueItems.size}")
@@ -135,7 +135,7 @@ object AutoDownloads {
                                             val numToDelete = episodes.size + downloadedCount - allowedDLCount
                                             Logd(TAG, "autoDownloadEpisodeMedia numToDelete: $numToDelete")
                                             val toDelete_ = getEpisodes(dlFilter, f.id, numToDelete)
-                                            if (toDelete_.isNotEmpty()) toDelete.addAll(toDelete_)
+                                            if (toDelete_.isNotEmpty()) toReplace.addAll(toDelete_)
                                             Logd(TAG, "autoDownloadEpisodeMedia toDelete_: ${toDelete_.size}")
                                         } else {
                                             queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(${3 * allowedDLCount})"
@@ -204,9 +204,9 @@ object AutoDownloads {
                     }
                     if (candidates.isNotEmpty()) {
                         val autoDownloadableCount = candidates.size
-                        if (toDelete.isNotEmpty()) deleteEpisodesSync(context, toDelete.toList())
+                        if (toReplace.isNotEmpty()) deleteEpisodesSync(context, toReplace.toList())
                         val downloadedCount = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))
-                        val deletedCount = AutoCleanups.build().makeRoomForEpisodes(context, autoDownloadableCount - toDelete.size)
+                        val deletedCount = toReplace.size + AutoCleanups.build().makeRoomForEpisodes(context, autoDownloadableCount - toReplace.size)
                         val appEpisodeCache = getPref(AppPrefs.prefEpisodeCacheSize, "20").toInt()
                         val cacheIsUnlimited = appEpisodeCache <= AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED
                         val allowedCount =

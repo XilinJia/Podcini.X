@@ -119,14 +119,13 @@ fun SpinnerExternalSet(items: List<String>, selectedIndex: Int, modifier: Modifi
 
 @Composable
 fun CustomToast(message: String, durationMillis: Long = 2000L, onDismiss: () -> Unit) {
-    // Launch a coroutine to auto-dismiss the toast after a certain time
     LaunchedEffect(message) {
         delay(durationMillis)
         onDismiss()
     }
-    Popup(onDismissRequest = { onDismiss() }) {
-        Box(modifier = Modifier.background(Color.Black, RoundedCornerShape(8.dp)).padding(8.dp)) {
-            Text(text = message, color = Color.White, style = MaterialTheme.typography.bodyMedium)
+    Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
+        Box(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(8.dp)) {
+            Text(text = message, color = MaterialTheme.colorScheme.onSecondary, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.net.feed
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileFeedRefresh
@@ -28,6 +29,7 @@ import java.util.concurrent.TimeUnit
 
 object FeedUpdateManager {
     private val TAG: String = FeedUpdateManager::class.simpleName ?: "Anonymous"
+    val feedUpdateWorkId = getAppContext().packageName + "FeedUpdateWorker"
 
     const val WORK_TAG_FEED_UPDATE: String = "feedUpdate"
     private const val WORK_ID_FEED_UPDATE_MANUAL = "feedUpdateManual"
@@ -53,8 +55,7 @@ object FeedUpdateManager {
      */
     @JvmStatic
     fun restartUpdateAlarm(context: Context, replace: Boolean) {
-        val workId = context.packageName + "FeedUpdateWorker"
-        if (isAutoUpdateDisabled) WorkManager.getInstance(context).cancelUniqueWork(workId)
+        if (isAutoUpdateDisabled) WorkManager.getInstance(context).cancelUniqueWork(feedUpdateWorkId)
         else {
             var policy = ExistingPeriodicWorkPolicy.KEEP
             if (replace) {
@@ -68,7 +69,7 @@ object FeedUpdateManager {
                     .build())
                 .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
                 .build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(workId, policy, workRequest)
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(feedUpdateWorkId, policy, workRequest)
         }
     }
 
@@ -88,7 +89,7 @@ object FeedUpdateManager {
             initialDelay = targetTime.timeInMillis - currentTime.timeInMillis
         }
         val intervalInMillis = (updateInterval * TimeUnit.HOURS.toMillis(1))
-        Logd(TAG, "lastUpdateTime: $lastUpdateTime")
+        Logd(TAG, "lastUpdateTime: $lastUpdateTime updateInterval: $updateInterval")
         nextRefreshTime = if (lastUpdateTime == 0L) {
             if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
             else context.getString(R.string.before) + fullDateTimeString(Calendar.getInstance().timeInMillis + intervalInMillis)

@@ -5,6 +5,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.feedUpdateWorkId
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.restartUpdateAlarm
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
@@ -164,12 +165,10 @@ class MainActivity : CastEnabledActivity() {
             }
         })
 
-        setContent {
-            CustomTheme(this) {
-                if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
-                MainActivityUI()
-            }
-        }
+        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData(feedUpdateWorkId)
+            .observe(this) { workInfos -> workInfos?.forEach { workInfo -> Logd(TAG, "FeedUpdateWork status: ${workInfo.state}") } }
+
+        setContent { CustomTheme(this) { MainActivityUI() } }
 
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
 //            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -237,6 +236,7 @@ class MainActivity : CastEnabledActivity() {
                     end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
                     bottom = dynamicBottomPadding
                 )) {
+                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     CompositionLocalProvider(LocalNavController provides navController) {
                         NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {
                             composable(Screens.Subscriptions.name) { SubscriptionsScreen() }

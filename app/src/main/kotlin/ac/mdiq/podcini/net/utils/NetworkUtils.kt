@@ -5,6 +5,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.appPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
 import ac.mdiq.podcini.util.Logd
 import android.annotation.SuppressLint
 import android.content.Context
@@ -35,15 +36,15 @@ object NetworkUtils {
     private lateinit var context: Context
 
     var isAllowMobileStreaming: Boolean
-        get() = isAllowMobileFor("streaming")
+        get() = isAllowMobileFor(MobileUpdateOptions.streaming.name)
         set(allow) {
-            setAllowMobileFor("streaming", allow)
+            setAllowMobileFor(MobileUpdateOptions.streaming.name, allow)
         }
 
     var isAllowMobileAutoDownload: Boolean
-        get() = isAllowMobileFor("auto_download")
+        get() = isAllowMobileFor(MobileUpdateOptions.auto_download.name)
         set(allow) {
-            setAllowMobileFor("auto_download", allow)
+            setAllowMobileFor(MobileUpdateOptions.auto_download.name, allow)
         }
 
     // not using this
@@ -69,15 +70,15 @@ object NetworkUtils {
         }
 
     var isAllowMobileFeedRefresh: Boolean
-        get() = isAllowMobileFor("feed_refresh")
+        get() = isAllowMobileFor(MobileUpdateOptions.feed_refresh.name)
         set(allow) {
-            setAllowMobileFor("feed_refresh", allow)
+            setAllowMobileFor(MobileUpdateOptions.feed_refresh.name, allow)
         }
 
     var isAllowMobileEpisodeDownload: Boolean
-        get() = isAllowMobileFor("episode_download")
+        get() = isAllowMobileFor(MobileUpdateOptions.episode_download.name)
         set(allow) {
-            setAllowMobileFor("episode_download", allow)
+            setAllowMobileFor(MobileUpdateOptions.episode_download.name, allow)
         }
 
     @JvmStatic
@@ -91,9 +92,9 @@ object NetworkUtils {
         get() = isImageAllowed
 
     var isAllowMobileImages: Boolean
-        get() = isAllowMobileFor("images")
+        get() = isAllowMobileFor(MobileUpdateOptions.images.name)
         set(allow) {
-            setAllowMobileFor("images", allow)
+            setAllowMobileFor(MobileUpdateOptions.images.name, allow)
         }
 
     @JvmStatic
