@@ -53,8 +53,8 @@ class SearchResultsVM(val context: Context, val lcScope: CoroutineScope) {
 
     init {
         defaultText = onlineSearchText
-
     }
+
     private var searchJob: Job? = null
     @SuppressLint("StringFormatMatches")
     internal fun search(query: String) {

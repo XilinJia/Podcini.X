@@ -88,6 +88,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     internal var rightActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
 
     init {
+        Logd(TAG, "init $curSearchString")
         queryText = curSearchString
         if (feedToSearchIn != null) {
             this.searchInFeed = true
@@ -367,7 +368,8 @@ fun SearchScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar( title = { SearchBarRow(R.string.search_label) {
+        TopAppBar( title = { SearchBarRow(R.string.search_label, defaultText = vm.queryText) {
+            curSearchString = it
             vm.queryText = it
             vm.search(vm.queryText)
         }},

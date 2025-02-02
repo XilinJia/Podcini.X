@@ -4,6 +4,7 @@ import ac.mdiq.podcini.net.feed.searcher.PodcastSearcher
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
+import ac.mdiq.podcini.util.Logd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -16,6 +17,7 @@ var feedOnDisplay by mutableStateOf<Feed>(Feed())
 var curSearchString by mutableStateOf("")
 var feedToSearchIn by mutableStateOf<Feed?>(null)
 fun setSearchTerms(query: String, feed: Feed? = null) {
+    Logd("setSearchTerms", "query: $query feed: ${feed?.id}")
     curSearchString = query
     feedToSearchIn = feed
 }

@@ -144,12 +144,14 @@ object NetworkUtils {
 //            }
         }
 
+    // not used
     val autodownloadSelectedNetworks: Array<String>
         get() {
             val selectedNetWorks = getPref(AppPrefs.prefAutodownloadSelectedNetworks, "")
             return selectedNetWorks?.split(",")?.toTypedArray() ?: arrayOf()
         }
 
+    // not used
     private val isInAllowedWifiNetwork: Boolean
         get() {
             val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager

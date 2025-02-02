@@ -294,8 +294,11 @@ object AppPreferences {
         prefEpisodeCacheSize,
         prefEnableAutoDl,
         prefEnableAutoDownloadOnBattery,
+        prefAutoDLIncludeQueues,
+
         prefEnableAutoDownloadWifiFilter,
         prefAutodownloadSelectedNetworks,
+
         prefProxyType,
         prefProxyHost,
         prefProxyPort,

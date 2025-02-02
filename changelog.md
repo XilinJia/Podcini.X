@@ -1,3 +1,14 @@
+# 8.4.0
+
+* fixed feed statistics display numbers
+* amended Statistics screen to use more state variables
+* in Search screen, on return from EpisodeInfo, previous search term and results are preserved
+* in global Auto download settings, added option to include/exclude undownloaded episodes in queues
+	* the default includes all queues (a change from only active queue in prior versions)
+	* the queue items for download are summed with other auto-download items before counting against the total global episode cache
+* corrected handling auto-download candidates in relation to total allowed, likely improving situations with tight constraint settings
+* added toast messages on auto-download results and errors
+
 # 8.3.2
 
 * fixed set queue lock/unlock

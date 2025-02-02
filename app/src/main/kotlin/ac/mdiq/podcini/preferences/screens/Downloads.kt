@@ -14,6 +14,8 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
+import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ProxyConfig
 import ac.mdiq.podcini.storage.utils.StorageUtils.deleteDirectoryRecursively
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
@@ -576,6 +578,37 @@ fun AutoDownloadPreferencesScreen() {
                 )
             }
             TitleSummarySwitchPrefRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, AppPrefs.prefEnableAutoDownloadOnBattery.name)
+
+            var showQueueOptions by remember { mutableStateOf(false) }
+            TitleSummaryActionColumn(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum) { showQueueOptions = true }
+            if (showQueueOptions) {
+                val queues = remember { realm.query(PlayQueue::class).find() }
+                var selectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefAutoDLIncludeQueues.name, queues.map { it.name }.toSet())) }
+                fun updateSepections(option: PlayQueue) {
+                    selectedOptions = if (selectedOptions.contains(option.name)) selectedOptions - option.name else selectedOptions + option.name
+                }
+                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showQueueOptions = false },
+                    title = { Text(stringResource(R.string.pref_autodl_queues_title), style = CustomTextStyles.titleCustom) },
+                    text = {
+                        val scrollState = rememberScrollState()
+                        Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
+                            queues.forEach { option ->
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp).clickable { updateSepections(option) }) {
+                                    Checkbox(checked = selectedOptions.contains(option.name), onCheckedChange = { updateSepections(option) })
+                                    Text(option.name, modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            putPref(AppPrefs.prefAutoDLIncludeQueues, selectedOptions)
+                            showQueueOptions = false
+                        }) { Text(text = "OK") }
+                    },
+                    dismissButton = { TextButton(onClick = { showQueueOptions = false }) { Text(stringResource(R.string.cancel_label)) } }
+                )
+            }
         }
     }
 }

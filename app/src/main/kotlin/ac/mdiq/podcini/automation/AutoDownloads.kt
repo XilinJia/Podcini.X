@@ -2,7 +2,6 @@ package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAutoDownloadAllowed
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
@@ -15,12 +14,9 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
-import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.EpisodeFilter
-import ac.mdiq.podcini.storage.model.EpisodeSortOrder
+import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import android.content.Intent
@@ -107,9 +103,16 @@ object AutoDownloads {
                     Logd(TAG, "autoDownloadEpisodeMedia Performing auto-dl of undownloaded episodes")
                     val toReplace: MutableSet<Episode> = mutableSetOf()
                     val candidates: MutableSet<Episode> = mutableSetOf()
-                    val queueItems = realm.query(Episode::class).query("id IN $0 AND downloaded == false", curQueue.episodeIds).find()
-                    Logd(TAG, "autoDownloadEpisodeMedia add from queue: ${queueItems.size}")
-                    if (queueItems.isNotEmpty()) candidates.addAll(queueItems)
+                    val queues = realm.query(PlayQueue::class).find()
+                    val includedQueues = getPref(AppPrefs.prefAutoDLIncludeQueues.name, queues.map { it.name }.toSet())
+                    if (includedQueues.isNotEmpty()) {
+                        for (qn in includedQueues) {
+                            val q = queues.first { it.name == qn }
+                            val queueItems = realm.query(Episode::class).query("id IN $0 AND downloaded == false", q.episodeIds).find()
+                            Logd(TAG, "autoDownloadEpisodeMedia add from queue: ${q.name} ${queueItems.size}")
+                            if (queueItems.isNotEmpty()) candidates.addAll(queueItems)
+                        }
+                    }
                     val feeds = feeds ?: getFeedList()
                     feeds.forEach { f ->
                         if (f.autoDownload == true && !f.isLocalFeed) {
@@ -164,7 +167,7 @@ object AutoDownloads {
                                         Logd(TAG, "FILTER_SORT eList: ${eList.size}")
                                         if (eList.isNotEmpty()) {
                                             val sortOrder = f.sortOrderADL ?: EpisodeSortOrder.DATE_NEW_OLD
-                                            Logd(TAG, "FILTER_SORT sortOrder: ${sortOrder}")
+                                            Logd(TAG, "FILTER_SORT sortOrder: $sortOrder")
                                             getPermutor(sortOrder).reorder(eList)
                                             episodes = eList.subList(0, min(eList.size, 3*allowedDLCount))
                                             Logd(TAG, "FILTER_SORT episodes: ${episodes.size}")
@@ -212,21 +215,27 @@ object AutoDownloads {
                         val allowedCount =
                             if (cacheIsUnlimited || appEpisodeCache >= downloadedCount + autoDownloadableCount) autoDownloadableCount
                             else appEpisodeCache - (downloadedCount - deletedCount)
-                        if (allowedCount in 0..candidates.size) {
-                            val itemsToDownload: MutableList<Episode> = candidates.toMutableList().subList(0, allowedCount)
+                        if (allowedCount > 0) {
+                            var itemsToDownload = candidates.toMutableList()
+                            if (allowedCount < candidates.size) itemsToDownload = itemsToDownload.subList(0, allowedCount)
                             if (itemsToDownload.isNotEmpty()) {
-                                Logd(TAG, "Enqueueing " + itemsToDownload.size + " items for download")
+                                Logd(TAG, "Enqueueing ${itemsToDownload.size} items for download")
+                                toastMassege = "Enqueueing ${itemsToDownload.size} items for download"
                                 for (e in itemsToDownload) {
                                     Logd(TAG, "autoDownloadEpisodeMedia reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
                                     DownloadServiceInterface.get()?.download(context, e)
                                 }
                             }
+                            toastMassege = "Auto downloaded spisodes: ${itemsToDownload.size}"
                             itemsToDownload.clear()
                         }
                         candidates.clear()
                     }
                 }
-                else Logd(TAG, "not auto downloaded networkShouldAutoDl: $networkShouldAutoDl powerShouldAutoDl $powerShouldAutoDl")
+                else {
+                    toastMassege = "auto downloaded not performed: network: $networkShouldAutoDl power:s $powerShouldAutoDl"
+                    Logd(TAG, "not auto downloaded networkShouldAutoDl: $networkShouldAutoDl powerShouldAutoDl $powerShouldAutoDl")
+                }
             }
         }
     }

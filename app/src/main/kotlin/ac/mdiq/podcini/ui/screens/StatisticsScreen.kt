@@ -64,7 +64,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     internal val selectedTabIndex = mutableIntStateOf(0)
     internal var showFilter by mutableStateOf(false)
 
-    lateinit var statsResult: StatisticsResult
+    var statsResult by mutableStateOf(StatisticsResult())
 
     internal val showResetDialog = mutableStateOf(false)
 }
@@ -87,9 +87,7 @@ fun StatisticsScreen() {
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -97,9 +95,7 @@ fun StatisticsScreen() {
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
         TopAppBar(title = { Text(stringResource(R.string.statistics_label)) }, 
-            navigationIcon = { IconButton(onClick = {
-//            if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-                MainActivity.openDrawer()
+            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer()
             }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } },
             actions = {
                 if (vm.selectedTabIndex.value == 0) IconButton(onClick = { vm.showFilter = true
@@ -135,7 +131,6 @@ fun StatisticsScreen() {
     @Composable
     fun StatsList(statisticsData: StatisticsResult, lineChartData: LineChartData, infoCB: (StatisticsItem)->String) {
         val lazyListState = rememberLazyListState()
-        val context = LocalContext.current
         var showFeedStats by remember { mutableStateOf(false) }
         var feedId by remember { mutableLongStateOf(0L) }
         var feedTitle by remember { mutableStateOf("") }
@@ -171,12 +166,12 @@ fun StatisticsScreen() {
     @Composable
     fun PlayedTime() {
         val context = LocalContext.current
-        lateinit var chartData: LineChartData
-        var timeSpentSum =  0L
-        var timeFilterFrom = 0L
-        var timeFilterTo = Long.MAX_VALUE
-        var timePlayedToday = 0L
-        var timeSpentToday = 0L
+        var chartData by remember { mutableStateOf<LineChartData>(LineChartData(mutableListOf())) }
+        var timeSpentSum by remember { mutableLongStateOf(0L) }
+        var timeFilterFrom by remember { mutableLongStateOf(0L) }
+        var timeFilterTo by remember { mutableLongStateOf(Long.MAX_VALUE) }
+        var timePlayedToday by remember { mutableLongStateOf(0L) }
+        var timeSpentToday by remember { mutableLongStateOf(0L) }
 
         fun setTimeFilter(includeMarkedAsPlayed_: Boolean, timeFilterFrom_: Long, timeFilterTo_: Long) {
             vm.includeMarkedAsPlayed = includeMarkedAsPlayed_
@@ -208,7 +203,7 @@ fun StatisticsScreen() {
                     min(timeFilterTo.toDouble(), System.currentTimeMillis().toDouble()).toLong())
             } catch (error: Throwable) { Log.e(TAG, Log.getStackTraceString(error)) }
         }
-        if (vm.statisticsState >= 0) loadStatistics()
+        LaunchedEffect(Unit) { if (vm.statisticsState >= 0) loadStatistics() }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.statistics_today), color = MaterialTheme.colorScheme.onSurface)
@@ -243,8 +238,8 @@ fun StatisticsScreen() {
 
     @Composable
     fun MonthlyStats() {
-        lateinit var monthlyStats: List<MonthlyStatisticsItem>
-        var monthlyMaxDataValue = 1f
+        var monthlyStats = remember { mutableStateListOf<MonthlyStatisticsItem>() }
+        var monthlyMaxDataValue by remember { mutableFloatStateOf(1f) }
 
         fun loadMonthlyStatistics() {
             try {
@@ -283,7 +278,7 @@ fun StatisticsScreen() {
                     mItem.timeSpent = spent
                     months.add(mItem)
                 }
-                monthlyStats = months
+                monthlyStats = months.toMutableStateList()
                 for (item in monthlyStats) monthlyMaxDataValue = max(monthlyMaxDataValue.toDouble(), item.timePlayed.toDouble()).toFloat()
                 Logd(TAG, "maxDataValue: $monthlyMaxDataValue")
             } catch (error: Throwable) { Log.e(TAG, Log.getStackTraceString(error)) }
@@ -440,8 +435,11 @@ const val PREF_FILTER_TO: String = "filterTo"
 
 fun getStatistics(includeMarkedAsPlayed: Boolean, timeFilterFrom: Long, timeFilterTo: Long, feedId: Long = 0L, forDL: Boolean = false): StatisticsResult {
     Logd(TAG, "getStatistics called")
-    val queryString = if (feedId != 0L) "episode.feedId == $feedId AND ((lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo) OR downloaded == true)"
-    else if (forDL) "downloaded == true" else "lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo"
+    val queryString = when {
+        feedId != 0L -> "feedId == $feedId AND ((lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo) OR downloaded == true)"
+        forDL -> "downloaded == true"
+        else -> "lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo"
+    }
     val medias = realm.query(Episode::class).query(queryString).find()
 
     val groupdMedias = medias.groupBy { it.feedId ?: 0L }
@@ -493,7 +491,7 @@ fun getStatistics(includeMarkedAsPlayed: Boolean, timeFilterFrom: Long, timeFilt
 
 @Composable
 fun FeedStatisticsDialog(title: String, feedId: Long, onDismissRequest: () -> Unit) {
-    var statisticsData: StatisticsItem? = null
+    var statisticsData by remember { mutableStateOf<StatisticsItem?>(null) }
     fun loadStatistics() {
         try {
             val data = getStatistics(false, 0, Long.MAX_VALUE, feedId)
@@ -501,7 +499,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, onDismissRequest: () -> Un
             if (data.statsItems.isNotEmpty()) statisticsData = data.statsItems[0]
         } catch (error: Throwable) { error.printStackTrace() }
     }
-    loadStatistics()
+    LaunchedEffect(Unit) { loadStatistics() }
     Dialog(onDismissRequest = { onDismissRequest() }) {
         Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val context = LocalContext.current
@@ -545,9 +543,8 @@ fun FeedStatisticsDialog(title: String, feedId: Long, onDismissRequest: () -> Un
                             feedOnDisplay = feed
                             mainNavController.navigate(MainActivity.Screens.FeedDetails.name)
                         }
-//                        MainActivityStarter(context).withOpenFeed(feedId).withAddToBackStack().start()
                         onDismissRequest()
-                    }) {Text(stringResource(R.string.open_podcast)) }
+                    }) { Text(stringResource(R.string.open_podcast)) }
                 }
             }
         }

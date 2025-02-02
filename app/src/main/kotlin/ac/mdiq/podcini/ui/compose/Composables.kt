@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.compose
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import android.text.Spannable
 import android.text.SpannableString
@@ -280,9 +281,10 @@ fun MediaPlayerErrorDialog(activity: Context, message: String, showDialog: Mutab
 }
 
 @Composable
-fun SearchBarRow(hintTextRes: Int, defaultText: String = "", performSearch: (String) -> Unit) {
+fun SearchBarRow(hintTextRes: Int, defaultText: String, performSearch: (String) -> Unit) {
     val textColor = MaterialTheme.colorScheme.onSurface
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        Logd("SearchBarRow", "defaultText: $defaultText")
         var queryText by remember { mutableStateOf(defaultText) }
         TextField(value = queryText, onValueChange = { queryText = it }, label = { Text(stringResource(hintTextRes)) },
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),

@@ -490,6 +490,7 @@
     <string name="pref_low_quality_on_mobile_sum">On metered network, only low quality media (if available) is fetched</string>
     <string name="pref_use_adaptive_progress_title">Update progress adaptively</string>
     <string name="pref_use_adaptive_progress_sum">Update the progress in an adaptive interval set as the higher of 5 seconds or 2 percent of the media duration. This saves some energy. Otherwise it\'s updated every 5 seconds.</string>
+    <string name="pref_autodl_queues_title">Queues to include</string>
     <string name="pref_metered_network_title">Metered network settings</string>
     <string name="pref_mobileUpdate_sum">Select what should be allowed over the mobile data connection</string>
     <string name="pref_mobileUpdate_refresh">Podcast refresh</string>
@@ -514,6 +515,10 @@
     <string name="pref_autodl_wifi_filter_sum">Allow automatic download only for selected Wi-Fi networks.</string>
     <string name="pref_automatic_download_on_battery_title">Download when not charging</string>
     <string name="pref_automatic_download_on_battery_sum">Allow automatic download when the battery is not charging</string>
+
+    <string name="pref_auto_download_include_queues_title">Include queue items</string>
+    <string name="pref_auto_download_include_queues_sum">Episodes not downloaded in the selected queues will be included for download during auto-download process (at refresh time). Default setting includes all queues.</string>
+
     <string name="pref_episode_cache_title">Episode cache</string>
     <string name="pref_episode_cache_summary">Total number of downloaded episodes cached on the device (0 means unlimited). Automatic download will be suspended if this number is reached.</string>
     <string name="pref_auto_download_counting_played_title">Counting played</string>

@@ -271,7 +271,7 @@ fun OnlineSearchScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
      fun MyTopAppBar() {
-        TopAppBar( title = { SearchBarRow(R.string.search_podcast_hint) { queryText ->
+        TopAppBar( title = { SearchBarRow(R.string.search_podcast_hint, "") { queryText ->
             if (queryText.isBlank()) return@SearchBarRow
             if (queryText.matches("http[s]?://.*".toRegex())) vm.addUrl(queryText)
             else {
