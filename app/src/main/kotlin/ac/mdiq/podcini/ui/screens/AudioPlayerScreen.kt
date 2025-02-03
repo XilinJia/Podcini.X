@@ -39,7 +39,7 @@ import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
+import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
@@ -49,6 +49,8 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.FlowEvent.BufferUpdateEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter
 import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
 import android.content.*
@@ -310,7 +312,10 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 Logd(TAG, "Webview loaded")
             }
-        }.invokeOnCompletion { throwable -> if (throwable != null) Log.e(TAG, Log.getStackTraceString(throwable)) }
+        }.invokeOnCompletion { throwable -> if (throwable != null) {
+            Logt(TAG, throwable.message?: "error")
+            Loge(TAG, Log.getStackTraceString(throwable))
+        } }
     }
 
     internal fun buildHomeReaderText() {
@@ -410,7 +415,10 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 //                TODO: disable for now
 //                if (!includingChapters) loadMediaInfo(true)
                 }.invokeOnCompletion { throwable ->
-                    if (throwable != null) Log.e(TAG, Log.getStackTraceString(throwable))
+                    if (throwable != null) {
+                        Logt(TAG, throwable.message?: "error")
+                        Loge(TAG, Log.getStackTraceString(throwable))
+                    }
                     loadItemsRunning = false
                 }
             }
@@ -1031,7 +1039,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
             // make sure that new media is loaded if it's available
             mediaInfoLoaded = false
             handleStatus()
-        } else Log.e(TAG, "queryService() was called without an existing connection to playbackservice")
+        } else Logt(TAG, "queryService() was called without an existing connection to playbackservice")
     }
 
     companion object {

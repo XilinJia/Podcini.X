@@ -36,6 +36,7 @@ import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
 import android.util.Log
@@ -152,7 +153,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                                 deleteFeedSync(context, f.id, false)
                             }
                             EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))
-                        } catch (e: Throwable) { Log.e("RemoveFeedDialog", Log.getStackTraceString(e)) }
+                        } catch (e: Throwable) { Logt("RemoveFeedDialog", Log.getStackTraceString(e)) }
                     }
                     onDismissRequest()
                 }) { Text(stringResource(R.string.confirm_label)) }
@@ -456,7 +457,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                 for (i in 0 until jsonArray.length()) selectedSpeeds.add(jsonArray.getDouble(i).toFloat())
                 return selectedSpeeds
             } catch (e: JSONException) {
-                Log.e(TAG, "Got JSON error when trying to get speeds from JSONArray")
+                Logt(TAG, "Got JSON error when trying to get speeds from JSONArray")
                 e.printStackTrace()
             }
         }

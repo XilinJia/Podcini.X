@@ -13,6 +13,8 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.FEEDFILETYPE_FEED
 import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
 import ac.mdiq.podcini.storage.utils.StorageUtils.freeSpaceAvailable
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.net.Uri
 import android.util.Log
 import okhttp3.*
@@ -135,7 +137,9 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                             val progressPercent = (100.0 * downloadRequest.soFar / downloadRequest.size).toInt()
                             downloadRequest.progressPercent = progressPercent
                         }
-                    } catch (e: IOException) { Log.e(TAG, Log.getStackTraceString(e)) }
+                    } catch (e: IOException) {
+                        Logt(TAG, e.message?: "error")
+                        Loge(TAG, Log.getStackTraceString(e)) }
 
                     if (cancelled) onCancelled()
                     else {
@@ -299,7 +303,9 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                                 }
                             }
                         }
-                    } catch (e: IOException) { Log.e(TAG, Log.getStackTraceString(e)) }
+                    } catch (e: IOException) {
+                        Logt(TAG, e.message?: "error")
+                        Loge(TAG, Log.getStackTraceString(e)) }
 
                     if (cancelled) onCancelled()
                     else {
@@ -360,7 +366,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
         var httpClient = getHttpClient()
         try { return httpClient.newCall(httpReq.build()).execute()
         } catch (e: IOException) {
-            Log.e(TAG, e.toString())
+            Logt(TAG, e.toString())
             if (e.message != null && e.message!!.contains("PROTOCOL_ERROR")) {
                 // Apparently some servers announce they support SPDY but then actually don't.
                 httpClient = httpClient.newBuilder().protocols(listOf(Protocol.HTTP_1_1)).build()

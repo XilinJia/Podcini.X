@@ -29,15 +29,9 @@ import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.*
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
-import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
-import ac.mdiq.podcini.ui.utils.setSearchTerms
+import ac.mdiq.podcini.ui.utils.*
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.*
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -52,7 +46,6 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.os.StrictMode
 import android.provider.Settings
-import android.util.Log
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
@@ -236,7 +229,10 @@ class MainActivity : CastEnabledActivity() {
                     end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
                     bottom = dynamicBottomPadding
                 )) {
-                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
+                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = {
+                        toastMessages.add(toastMassege)
+                        toastMassege = ""
+                    })
                     CompositionLocalProvider(LocalNavController provides navController) {
                         NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {
                             composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
@@ -324,7 +320,7 @@ class MainActivity : CastEnabledActivity() {
                             WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> DownloadStatus.State.QUEUED.ordinal
                             WorkInfo.State.SUCCEEDED -> DownloadStatus.State.COMPLETED.ordinal
                             WorkInfo.State.FAILED -> {
-                                Log.e(TAG, "download failed $downloadUrl")
+                                Logt(TAG, "download failed $downloadUrl")
                                 DownloadStatus.State.COMPLETED.ordinal
                             }
                             WorkInfo.State.CANCELLED -> {
@@ -695,9 +691,6 @@ class MainActivity : CastEnabledActivity() {
 
         lateinit var mainNavController: NavHostController
         val LocalNavController = staticCompositionLocalOf<NavController> { error("NavController not provided") }
-
-//        var showToast by  mutableStateOf(false)
-        var toastMassege by mutableStateOf("")
 
         private val drawerState = DrawerState(initialValue = DrawerValue.Closed)
         var lcScope: CoroutineScope? = null

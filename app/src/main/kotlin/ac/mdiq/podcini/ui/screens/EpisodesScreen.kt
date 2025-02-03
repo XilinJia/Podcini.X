@@ -34,6 +34,8 @@ import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -191,7 +193,9 @@ class EpisodesVM(val context: Context, val lcScope: CoroutineScope) {
 //                    for (e in episodes) { vms.add(EpisodeVM(e, TAG)) }
                     updateToolbar()
                 }
-            } catch (e: Throwable) { Log.e(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) {
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e)) }
         }.apply { invokeOnCompletion { loadJob = null } }
     }
 
@@ -499,7 +503,7 @@ fun EpisodesScreen() {
             },
             actions = {
                 IconButton(onClick = {
-                    setSearchTerms("")
+//                    setSearchTerms("")
                     mainNavController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = { vm.showSortDialog = true

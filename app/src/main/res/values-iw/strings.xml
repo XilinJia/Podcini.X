@@ -417,10 +417,10 @@
   <string name="pref_fast_forward_sum">התאמת מספר השניות של הקפיצה קדימה בעת לחיצה על כפתור ההאצה</string>
   <string name="pref_rewind">זמן דילוג בקפיצה אחורה</string>
   <string name="pref_rewind_sum">התאמת מספר השניות של הקפיצה אחורה בעת לחיצה על כפתור החזרה</string>
-  <string name="pref_expandNotify_title">התראה בעדיפות גבוהה</string>
-  <string name="pref_expandNotify_sum">הגדרה זו מרחיבה את ההתראה כדי שתציג גם כפתורי נגינה.</string>
-  <string name="pref_persistNotify_title">פקדי נגינה קבועים</string>
-  <string name="pref_persistNotify_sum">להשאיר את פקדי ההתרעות ומסך הנעילה גם כשהנגינה מושהית</string>
+
+
+
+
 
 
 

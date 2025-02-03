@@ -484,10 +484,10 @@
     <string name="pref_swipe_refresh_sum">下にスワイプしてすべてのサブスクリプションを更新</string>
     <string name="pref_feedGridLayout_title">サブスクリプションはグリッドレイアウトを使用します </string>
     <string name="pref_feedGridLayout_sum">設定時、サブスクリプションビューはグリッドレイアウトを使用し、それ以外の場合はレイアウトを一覧表示します</string>
-    <string name="pref_expandNotify_title">通知の優先度</string>
-    <string name="pref_expandNotify_sum">これは通常再生ボタンを表示するように通知を展開します。</string>
-    <string name="pref_persistNotify_title">永続的な再生コントロール</string>
-    <string name="pref_persistNotify_sum">再生が一時停止しているときに通知とロック画面のコントロールを維持します</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">通知時にスキップを表示</string>
     <string name="pref_show_notification_skip_sum">通知パネルのスキップボタンを切り替える</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">%1$d 項目を正確に選択する必要があります。</string>

@@ -1,0 +1,13 @@
+# 8.5.0
+
+* most errors are shown as toast messages
+* error toasts can be toggled in Settings -> User interface -> Show error toasts (default to true)
+* toast messages (error or not) are cached for the session and can be shown in Logs screen
+	* this is true even "Show error toasts" is turned off
+* most error logcat messages are turned off for the release app
+* added a setting to toggle logging of all debug messages in Settings -> User interface -> Print debug logs (default to false)
+* updated some deprecated routines in NetworkUtils
+* set refresh failure backoff criteria to 25% of refresh interval
+* in Search screen, previous search term and results are preserved (for the session) in all cases
+* fixed some discrepancies of the default values between the Settings and the usage
+* consolidated handling of default values in preferences

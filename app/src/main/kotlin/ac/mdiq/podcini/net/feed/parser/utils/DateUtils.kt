@@ -1,6 +1,8 @@
 package ac.mdiq.podcini.net.feed.parser.utils
 
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.util.Log
 import org.apache.commons.lang3.StringUtils
 import java.text.ParseException
@@ -105,7 +107,8 @@ object DateUtils {
                 val result = parser.parse(date, pos)
                 if (result != null && pos.index == date.length) return result
             } catch (e: Exception) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
             }
         }
 

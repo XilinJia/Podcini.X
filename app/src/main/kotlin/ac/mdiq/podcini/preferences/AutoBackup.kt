@@ -4,6 +4,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.dateStampFilename
 import android.app.Activity
 import android.net.Uri
@@ -72,9 +73,9 @@ fun autoBackup(activity: Activity) {
                         if (realmFile != null) DatabaseTransporter().exportToDocument(realmFile.uri, activity)
 
                         putPref(AppPrefs.prefAutoBackupTimeStamp, curTime)
-                    } catch (e: Exception) { Log.e("autoBackup", "Error backing up ${e.message}") }
+                    } catch (e: Exception) { Logt("autoBackup", "Error backing up ${e.message}") }
                 }
-            } else Log.e("autoBackup", "Uri permissions are no longer valid")
+            } else Logt("autoBackup", "Uri permissions are no longer valid")
         }
     }
 }

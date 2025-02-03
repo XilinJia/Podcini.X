@@ -1,8 +1,6 @@
 package ac.mdiq.podcini.net.utils
 
-import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.appPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
@@ -12,8 +10,6 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
-import android.net.wifi.WifiManager
-import android.os.Build
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -47,25 +43,20 @@ object NetworkUtils {
             setAllowMobileFor(MobileUpdateOptions.auto_download.name, allow)
         }
 
-    // not using this
-    val isEnableAutodownloadWifiFilter: Boolean
-        get() = false && Build.VERSION.SDK_INT < 29 && getPref(AppPrefs.prefEnableAutoDownloadWifiFilter, false)
-
-    @JvmStatic
     val isAutoDownloadAllowed: Boolean
         get() {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val networkInfo = cm.activeNetworkInfo ?: return false
-            return when (networkInfo.type) {
-                ConnectivityManager.TYPE_WIFI -> {
-                    if (isEnableAutodownloadWifiFilter) isInAllowedWifiNetwork
-                    else {
-                        if (!isNetworkMetered) true
-                        else isAllowMobileAutoDownload
-                    }
+            val network = cm.activeNetwork ?: return false
+            val networkCapabilities = cm.getNetworkCapabilities(network) ?: return false
+            return when {
+                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
+                    if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) true
+                    else isAllowMobileAutoDownload
                 }
-                ConnectivityManager.TYPE_ETHERNET -> true
-                else -> isAllowMobileAutoDownload || !isNetworkRestricted
+                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+                else -> {
+                    isAllowMobileAutoDownload || networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+                }
             }
         }
 
@@ -81,82 +72,36 @@ object NetworkUtils {
             setAllowMobileFor(MobileUpdateOptions.episode_download.name, allow)
         }
 
-    @JvmStatic
-    val isEpisodeDownloadAllowed: Boolean
-        get() = isAllowMobileEpisodeDownload || !isNetworkRestricted
-
-    @JvmStatic
-    val isEpisodeHeadDownloadAllowed: Boolean
-        // It is not an image but it is a similarly tiny request
-        // that is probably not even considered a download by most users
-        get() = isImageAllowed
-
     var isAllowMobileImages: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.images.name)
         set(allow) {
             setAllowMobileFor(MobileUpdateOptions.images.name, allow)
         }
 
-    @JvmStatic
     val isImageAllowed: Boolean
         get() = isAllowMobileImages || !isNetworkRestricted
 
-    @JvmStatic
     val isStreamingAllowed: Boolean
         get() = isAllowMobileStreaming || !isNetworkRestricted
 
-    @JvmStatic
     val isFeedRefreshAllowed: Boolean
         get() = isAllowMobileFeedRefresh || !isNetworkRestricted
 
-    @JvmStatic
     val isNetworkRestricted: Boolean
-        get() = isNetworkMetered || isNetworkCellular
-
-    private val isNetworkMetered: Boolean
         get() {
-            val connManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            return connManager.isActiveNetworkMetered
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val network = cm.activeNetwork ?: return false // Nothing connected
+            if (cm.isActiveNetworkMetered) return true
+            val capabilities = cm.getNetworkCapabilities(network) ?: return true // Better be safe than sorry
+            return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
         }
 
-    @JvmStatic
     val isVpnOverWifi: Boolean
         get() {
             val connManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val capabilities = connManager.getNetworkCapabilities(connManager.activeNetwork)
             return (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
                     && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
-        }
-
-    val isNetworkCellular: Boolean
-        get() {
-            val connManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-//            if (Build.VERSION.SDK_INT >= 23) {
-            val network = connManager.activeNetwork ?: return false // Nothing connected
-            val info = connManager.getNetworkInfo(network) ?: return true // Better be safe than sorry
-            val capabilities = connManager.getNetworkCapabilities(network) ?: return true // Better be safe than sorry
-            return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
-//            } else {
-//                // if the default network is a VPN,
-//                // this method will return the NetworkInfo for one of its underlying networks
-//                val info = connManager.activeNetworkInfo ?: return false // Nothing connected
-//                return info.type == ConnectivityManager.TYPE_MOBILE
-//            }
-        }
-
-    // not used
-    val autodownloadSelectedNetworks: Array<String>
-        get() {
-            val selectedNetWorks = getPref(AppPrefs.prefAutodownloadSelectedNetworks, "")
-            return selectedNetWorks?.split(",")?.toTypedArray() ?: arrayOf()
-        }
-
-    // not used
-    private val isInAllowedWifiNetwork: Boolean
-        get() {
-            val wm = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            val selectedNetworks = listOf(*autodownloadSelectedNetworks)
-            return selectedNetworks.contains(wm.connectionInfo.networkId.toString())
         }
 
     @JvmStatic
@@ -167,28 +112,28 @@ object NetworkUtils {
     fun isAllowMobileFor(type: String): Boolean {
         val defaultValue = HashSet<String>()
         defaultValue.add("images")
-        val allowed = getPref(AppPrefs.prefMobileUpdateTypes.name, defaultValue)
+        val allowed = getPref(AppPrefs.prefMobileUpdateTypes, defaultValue)
         return allowed.contains(type)
     }
 
     fun setAllowMobileFor(type: String, allow: Boolean) {
         val defaultValue = HashSet<String>()
         defaultValue.add("images")
-        val getValueStringSet = getPref(AppPrefs.prefMobileUpdateTypes.name, defaultValue)
+        val getValueStringSet = getPref(AppPrefs.prefMobileUpdateTypes, defaultValue)
         val allowed: MutableSet<String> = HashSet(getValueStringSet)
         if (allow) allowed.add(type)
         else allowed.remove(type)
         putPref(AppPrefs.prefMobileUpdateTypes, allowed)
     }
 
-    @JvmStatic
     fun networkAvailable(): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val info = cm.activeNetworkInfo
-        return info != null && info.isConnected
+        val network = cm.activeNetwork ?: return false
+        val networkCapabilities = cm.getNetworkCapabilities(network) ?: return false
+        return networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
-    @JvmStatic
     fun wasDownloadBlocked(throwable: Throwable?): Boolean {
         val message = throwable!!.message
         if (message != null) {
@@ -217,11 +162,9 @@ object NetworkUtils {
 
         bufferedReader.close()
         inputStream.close()
-
         stringBuilder.toString()
     }
 
-    @JvmStatic
     fun getURIFromRequestUrl(source: String): URI {
         // try without encoding the URI
         try { return URI(source) } catch (e: URISyntaxException) { Logd(TAG, "Source is not encoded, encoding now") }
@@ -237,21 +180,6 @@ object NetworkUtils {
         }
     }
 
-    //fun getFinalUrl(url: String): String? {
-//    var connection: HttpURLConnection? = null
-//    return try {
-//        val urlObj = URL(url)
-//        connection = urlObj.openConnection() as HttpURLConnection
-//        connection.instanceFollowRedirects = true
-//        connection.requestMethod = "GET"
-//        connection.connect()
-//        connection.url.toString()
-//    } catch (e: Exception) {
-//        e.printStackTrace()
-//        null
-//    } finally { connection?.disconnect() }
-//}
-
     fun getFinalRedirectedUrl(url: String): String? {
         val client = OkHttpClient()
         val request = Request.Builder().url(url).build()
@@ -266,7 +194,6 @@ object NetworkUtils {
      * @param url_ The url which is going to be prepared
      * @return The prepared url
      */
-    @JvmStatic
     fun prepareUrl(url_: String): String {
         var url = url_
         url = url.trim { it <= ' ' }
@@ -297,13 +224,11 @@ object NetworkUtils {
     /**
      * Checks if URL is valid and modifies it if necessary.
      * This method also handles protocol relative URLs.
-
      * @param url_  The url which is going to be prepared
      * @param base_ The url against which the (possibly relative) url is applied. If this is null,
      * the result of prepareURL(url) is returned instead.
      * @return The prepared url
      */
-    @JvmStatic
     fun prepareUrl(url_: String, base_: String?): String {
         var url = url_
         var base = base_ ?: return prepareUrl(url)
@@ -319,7 +244,6 @@ object NetworkUtils {
         return false
     }
 
-    @JvmStatic
     fun urlEquals(string1: String?, string2: String?): Boolean {
         if (string1 == null || string2 == null) return false
         val url1 = string1.toHttpUrlOrNull() ?: return false

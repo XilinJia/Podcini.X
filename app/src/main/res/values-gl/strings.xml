@@ -405,10 +405,10 @@
   <string name="pref_fast_forward_sum">Personaliza o número de segundos a avanzar cando o se preme o botón de avance rápido</string>
   <string name="pref_rewind">Tempo de salto ao retroceder</string>
   <string name="pref_rewind_sum">Personaliza o número de segundos que se retrocede na reprodución cando se preme o botón retroceso</string>
-  <string name="pref_expandNotify_title">Alta prioridade nas notificacións</string>
-  <string name="pref_expandNotify_sum">Isto expande as notificacións para mostrar os botóns de reprodución</string>
-  <string name="pref_persistNotify_title">Controis persistentes de reprodución</string>
-  <string name="pref_persistNotify_sum">Manter a notificación e os controis de reprodución na pantalla de bloqueo cando está detida a reprodución</string>
+
+
+
+
 
 
 

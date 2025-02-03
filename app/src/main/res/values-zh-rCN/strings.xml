@@ -482,10 +482,10 @@
     <string name="pref_swipe_refresh_sum">向下滑动以刷新所有订阅</string>
     <string name="pref_feedGridLayout_title">订阅使用网格布局 </string>
     <string name="pref_feedGridLayout_sum">设置时，订阅视图使用网格布局，否则列出布局</string>
-    <string name="pref_expandNotify_title">高通知优先级</string>
-    <string name="pref_expandNotify_sum">这通常扩展通知以显示播放按钮。</string>
-    <string name="pref_persistNotify_title">持续播放控制</string>
-    <string name="pref_persistNotify_sum">播放暂停时保持通知和锁屏控制</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">在通知时显示跳过</string>
     <string name="pref_show_notification_skip_sum">切换通知面板上的跳过按钮</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">您必须选择准确的 %1$d 项。</string>

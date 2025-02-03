@@ -389,9 +389,9 @@
   <string name="pref_fast_forward_sum">Personalitzar el nombre de segons del salt endavant quan es prem el botó d\'Avanç ràpid.</string>
   <string name="pref_rewind">Intèrval de retrocés</string>
   <string name="pref_rewind_sum">Personalitza el nombre de segons del salt endarrere quan es prem el botó de Rebobinat</string>
-  <string name="pref_expandNotify_title">Alta prioritat a les notificacions</string>
-  <string name="pref_expandNotify_sum">Això normalment expandeix la notificació per a mostrar botons de reproducció</string>
-  <string name="pref_persistNotify_title">Contorls de reproducció persistents</string>
+
+
+
 
 
 

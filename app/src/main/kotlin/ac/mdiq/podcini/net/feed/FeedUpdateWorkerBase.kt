@@ -26,6 +26,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.Manifest
 import android.app.Notification
@@ -125,7 +126,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Wo
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
-            Log.e(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
+            Logt(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
 //            Toast.makeText(applicationContext, R.string.notification_permission_text, Toast.LENGTH_LONG).show()
             return
         }

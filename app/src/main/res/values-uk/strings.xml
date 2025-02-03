@@ -497,10 +497,10 @@
     <string name="pref_swipe_refresh_sum">Проведіть вниз, щоб оновити всі підписки</string>
     <string name="pref_feedGridLayout_title">Підписки використовують розташування таблиці </string>
     <string name="pref_feedGridLayout_sum">Коли ви встановлюєте, перегляд нижніх індексів використовує розташування сітки, в іншому випадку розташування списку</string>
-    <string name="pref_expandNotify_title">Високий пріоритет сповіщення</string>
-    <string name="pref_expandNotify_sum">Зазвичай це розширює сповіщення, щоб показати кнопки відтворення.</string>
-    <string name="pref_persistNotify_title">Завжди показувати елементи керування відтворенням</string>
-    <string name="pref_persistNotify_sum">Не ховайте сповіщення та елементи керування на екрані блокування, коли відтворення призупинено</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">Показати пропуск у сповіщенні</string>
     <string name="pref_show_notification_skip_sum">Перемкнути кнопку пропуску на панелі сповіщень</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">You must select exactly %1$d items.</string>

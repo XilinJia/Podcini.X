@@ -7,6 +7,7 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
@@ -33,7 +34,7 @@ class ShareReceiverActivity : ComponentActivity() {
             intent.action == Intent.ACTION_VIEW -> sharedUrl = intent.dataString
         }
         if (sharedUrl.isNullOrBlank()) {
-            Log.e(TAG, "feedUrl is empty or null.")
+            Logt(TAG, "feedUrl is empty or null.")
             showNoPodcastFoundError()
             return
         }

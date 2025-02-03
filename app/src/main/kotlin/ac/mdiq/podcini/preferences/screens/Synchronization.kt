@@ -19,12 +19,12 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.IconTitleSummaryActionRow
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.toastMassege
 import android.content.Context.WIFI_SERVICE
 import android.net.wifi.WifiManager
 import android.text.format.DateUtils
@@ -52,8 +52,8 @@ import java.util.*
 
 @Composable
 fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
-    var showToast by remember { mutableStateOf(false) }
-    var toastMassege by remember { mutableStateOf("") }
+//    var showToast by remember { mutableStateOf(false) }
+//    var toastMassege by remember { mutableStateOf("") }
 
     val selectedSyncProviderKey: String = SynchronizationSettings.selectedSyncProviderKey?:""
     var selectedProvider by remember { mutableStateOf(SynchronizationProviderViewData.fromIdentifier(selectedSyncProviderKey)) }
@@ -72,7 +72,7 @@ fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
 //            else supportActionBar!!.setSubtitle(event.messageResId)
     }
 
-    if (showToast) CustomToast(message = toastMassege, onDismiss = { showToast = false })
+//    if (showToast) CustomToast(message = toastMassege, onDismiss = { showToast = false })
 
     @Composable
     fun NextcloudAuthenticationDialog(onDismissRequest: ()->Unit) {
@@ -317,7 +317,6 @@ fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
             TitleSummaryActionColumn(R.string.synchronization_logout, 0) {
                 SynchronizationCredentials.clear(activity)
                 toastMassege = activity.getString(R.string.pref_synchronization_logout_toast)
-                showToast = true
                 setSelectedSyncProvider(null)
                 loggedIn = isProviderConnected
             }

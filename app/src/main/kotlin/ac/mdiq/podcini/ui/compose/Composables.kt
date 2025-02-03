@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.util.Logd
@@ -18,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -222,17 +222,17 @@ fun TitleSummaryActionColumn(titleRes: Int, summaryRes: Int, callback: ()-> Unit
 }
 
 @Composable
-fun TitleSummarySwitchPrefRow(titleRes: Int, summaryRes: Int, prefName: String, default: Boolean = false) {
+fun TitleSummarySwitchPrefRow(titleRes: Int, summaryRes: Int, pref: AppPrefs) {
     val textColor = MaterialTheme.colorScheme.onSurface
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
         Column(modifier = Modifier.weight(1f)) {
             Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
             Text(stringResource(summaryRes), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
-        var isChecked by remember { mutableStateOf(getPref(prefName, default)) }
+        var isChecked by remember { mutableStateOf(getPref(pref, false)) }
         Switch(checked = isChecked, onCheckedChange = {
             isChecked = it
-            putPref(prefName, it) })
+            putPref(pref, it) })
     }
 }
 

@@ -17,6 +17,8 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.toastMassege
+import ac.mdiq.podcini.util.toastMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -66,8 +68,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 
 class PreferenceActivity : ComponentActivity() {
     var copyrightNoticeText by mutableStateOf("")
-    var showToast by  mutableStateOf(false)
-    var toastMassege by mutableStateOf("")
+//    var showToast by  mutableStateOf(false)
     var topAppBarTitle by mutableStateOf("Home")
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -80,7 +81,10 @@ class PreferenceActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
             CustomTheme(this) {
-                if (showToast) CustomToast(message = toastMassege, onDismiss = { showToast = false })
+                if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = {
+                    toastMessages.add(toastMassege)
+                    toastMassege = ""
+                })
                 Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) }, 
                     navigationIcon = { IconButton(onClick = {
                         if (navController.previousBackStackEntry != null) navController.popBackStack()
@@ -233,9 +237,9 @@ class PreferenceActivity : ComponentActivity() {
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
             Text(stringResource(R.string.project_pref), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
-            IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInBrowser(this@PreferenceActivity, "${githubAddress}") }
+            IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInBrowser(this@PreferenceActivity, githubAddress) }
             IconTitleActionRow(R.drawable.ic_chat, R.string.visit_user_forum) { openInBrowser(this@PreferenceActivity, "${githubAddress}/discussions") }
-            IconTitleActionRow(R.drawable.ic_contribute, R.string.pref_contribute) { openInBrowser(this@PreferenceActivity, "${githubAddress}") }
+            IconTitleActionRow(R.drawable.ic_contribute, R.string.pref_contribute) { openInBrowser(this@PreferenceActivity, githubAddress) }
             IconTitleActionRow(R.drawable.ic_bug, R.string.bug_report_title) { startActivity(Intent(this@PreferenceActivity, BugReportActivity::class.java)) }
             IconTitleActionRow(R.drawable.ic_info, R.string.about_pref) {
                 navController.navigate(Screens.AboutScreen.name)
@@ -254,16 +258,13 @@ class PreferenceActivity : ComponentActivity() {
                     val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText(getString(R.string.bug_report_title), PreferenceManager.getDefaultSharedPreferences(this@PreferenceActivity).getString("about_version", "Default summary"))
                     clipboard.setPrimaryClip(clip)
-                    if (Build.VERSION.SDK_INT <= 32) {
-                        toastMassege = getString(R.string.copied_to_clipboard)
-                        showToast = true
-                    }
+                    if (Build.VERSION.SDK_INT <= 32) toastMassege = getString(R.string.copied_to_clipboard)
                 })) {
                     Text(stringResource(R.string.podcini_version), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                     Text(String.format("%s (%s)", BuildConfig.VERSION_NAME, BuildConfig.COMMIT_HASH), color = textColor)
                 }
             }
-            IconTitleSummaryActionRow(R.drawable.ic_questionmark, R.string.online_help, R.string.online_help_sum) { openInBrowser(this@PreferenceActivity, "${githubAddress}") }
+            IconTitleSummaryActionRow(R.drawable.ic_questionmark, R.string.online_help, R.string.online_help_sum) { openInBrowser(this@PreferenceActivity, githubAddress) }
             IconTitleSummaryActionRow(R.drawable.ic_info, R.string.privacy_policy, R.string.privacy_policy) { openInBrowser(this@PreferenceActivity, "${githubAddress}/blob/main/PrivacyPolicy.md") }
             IconTitleSummaryActionRow(R.drawable.ic_info, R.string.licenses, R.string.licenses_summary) { navController.navigate(Screens.LicensesScreen.name) }
             IconTitleSummaryActionRow(R.drawable.baseline_mail_outline_24, R.string.email_developer, R.string.email_sum) {
@@ -273,10 +274,7 @@ class PreferenceActivity : ComponentActivity() {
                     setType("message/rfc822")
                 }
                 if (emailIntent.resolveActivity(packageManager) != null) startActivity(emailIntent)
-                else {
-                    toastMassege = getString(R.string.need_email_client)
-                    showToast = true
-                }
+                else toastMassege = getString(R.string.need_email_client)
             }
         }
     }
@@ -411,17 +409,13 @@ class PreferenceActivity : ComponentActivity() {
 //                    recreate()
 //                })
 //            }
-            TitleSummarySwitchPrefRow(R.string.pref_episode_cover_title, R.string.pref_episode_cover_summary, AppPrefs.prefEpisodeCover.name)
-            TitleSummarySwitchPrefRow(R.string.pref_show_remain_time_title, R.string.pref_show_remain_time_summary, AppPrefs.showTimeLeft.name)
+            TitleSummarySwitchPrefRow(R.string.pref_episode_cover_title, R.string.pref_episode_cover_summary, AppPrefs.prefEpisodeCover)
+            TitleSummarySwitchPrefRow(R.string.pref_show_remain_time_title, R.string.pref_show_remain_time_summary, AppPrefs.showTimeLeft)
             Text(stringResource(R.string.subscriptions_label), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
-            TitleSummarySwitchPrefRow(R.string.pref_swipe_refresh_title, R.string.pref_swipe_refresh_sum, AppPrefs.prefSwipeToRefreshAll.name, true)
-            TitleSummarySwitchPrefRow(R.string.pref_feedGridLayout_title, R.string.pref_feedGridLayout_sum, AppPrefs.prefFeedGridLayout.name)
+            TitleSummarySwitchPrefRow(R.string.pref_swipe_refresh_title, R.string.pref_swipe_refresh_sum, AppPrefs.prefSwipeToRefreshAll)
+            TitleSummarySwitchPrefRow(R.string.pref_feedGridLayout_title, R.string.pref_feedGridLayout_sum, AppPrefs.prefFeedGridLayout)
             Text(stringResource(R.string.external_elements), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
-            if (Build.VERSION.SDK_INT < 26) {
-                TitleSummarySwitchPrefRow(R.string.pref_expandNotify_title, R.string.pref_expandNotify_sum, AppPrefs.prefExpandNotify.name)
-            }
-//            TitleSummarySwitchPrefRow(R.string.pref_persistNotify_title, R.string.pref_persistNotify_sum, UserPreferences.Prefs.prefPersistNotify.name)
-            TitleSummarySwitchPrefRow(R.string.pref_show_notification_skip_title, R.string.pref_show_notification_skip_sum, AppPrefs.prefShowSkip.name, true)
+            TitleSummarySwitchPrefRow(R.string.pref_show_notification_skip_title, R.string.pref_show_notification_skip_sum, AppPrefs.prefShowSkip)
             Text(stringResource(R.string.behavior), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
             var showDefaultPageOptions by remember { mutableStateOf(false) }
             var tempSelectedOption by remember { mutableStateOf(getPref(AppPrefs.prefDefaultPage, DefaultPages.Subscriptions.name)) }
@@ -448,7 +442,9 @@ class PreferenceActivity : ComponentActivity() {
                     dismissButton = { TextButton(onClick = { showDefaultPageOptions = false }) { Text(stringResource(R.string.cancel_label)) } }
                 )
             }
-            TitleSummarySwitchPrefRow(R.string.pref_back_button_opens_drawer, R.string.pref_back_button_opens_drawer_summary, AppPrefs.prefBackButtonOpensDrawer.name)
+            TitleSummarySwitchPrefRow(R.string.pref_back_button_opens_drawer, R.string.pref_back_button_opens_drawer_summary, AppPrefs.prefBackButtonOpensDrawer)
+            TitleSummarySwitchPrefRow(R.string.pref_show_error_toasts, R.string.pref_show_error_toasts_sum, AppPrefs.prefShowErrorToasts)
+            TitleSummarySwitchPrefRow(R.string.pref_print_logs, R.string.pref_print_logs_sum, AppPrefs.prefPrintDebugLogs)
         }
     }
 
@@ -465,9 +461,9 @@ class PreferenceActivity : ComponentActivity() {
             val scrollState = rememberScrollState()
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
                 Text(stringResource(R.string.notification_group_errors), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                TitleSummarySwitchPrefRow(R.string.notification_channel_download_error, R.string.notification_channel_download_error_description, AppPrefs.prefShowDownloadReport.name, true)
+                TitleSummarySwitchPrefRow(R.string.notification_channel_download_error, R.string.notification_channel_download_error_description, AppPrefs.prefShowDownloadReport)
                 if (isProviderConnected)
-                    TitleSummarySwitchPrefRow(R.string.notification_channel_sync_error, R.string.notification_channel_sync_error_description, AppPrefs.pref_gpodnet_notifications.name, true)
+                    TitleSummarySwitchPrefRow(R.string.notification_channel_sync_error, R.string.notification_channel_sync_error_description, AppPrefs.pref_gpodnet_notifications)
             }
         }
     }
@@ -485,4 +481,8 @@ class PreferenceActivity : ComponentActivity() {
         LicensesScreen(R.string.licenses),
         SwipeScreen(R.string.swipeactions_label);
     }
+
+//    companion object {
+//        var toastMassege by mutableStateOf("")
+//    }
 }

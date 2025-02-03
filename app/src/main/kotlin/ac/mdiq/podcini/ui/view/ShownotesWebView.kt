@@ -4,7 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
+import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.util.*
 import android.content.ClipData
@@ -118,7 +118,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
             R.id.go_to_position_item -> {
                 if (ShownotesCleaner.isTimecodeLink(selectedUrl) && timecodeSelectedListener != null)
                     timecodeSelectedListener!!.accept(ShownotesCleaner.getTimecodeLinkTime(selectedUrl))
-                else Log.e(TAG, "Selected go_to_position_item, but URL was no timecode link: $selectedUrl")
+                else Logt(TAG, "Selected go_to_position_item, but URL was no timecode link: $selectedUrl")
             }
             else -> {
                 selectedUrl = null

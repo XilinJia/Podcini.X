@@ -30,6 +30,8 @@ import ac.mdiq.podcini.ui.utils.*
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatAbbrev
 import android.app.Dialog
 import android.content.Context
@@ -143,7 +145,8 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                 gearbox.buildFeed(urlString, username ?: "", password ?: "", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
             } catch (e: FeedUrlNotFoundException) { tryToRetrieveFeedUrlBySearch(e)
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
                 withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
             }
         }
@@ -227,7 +230,8 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                     handleUpdatedFeedStatus()
                 }
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
                 withContext(Dispatchers.Main) {
                     errorMessage = e.message ?: "No message"
                     errorDetails = ""
@@ -364,7 +368,7 @@ fun OnlineFeedScreen() {
                         vm.showErrorDialog = true
                     }
                     if (vm.feedUrl.isEmpty()) {
-                        Log.e(TAG, "feedUrl is null.")
+                        Logt(TAG, "feedUrl is null.")
                         vm.showNoPodcastFoundDialog = true
                     } else {
                         Logd(TAG, "Activity was started with url ${vm.feedUrl}")

@@ -12,6 +12,8 @@ import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.content.SharedPreferences
 import android.text.format.DateFormat
@@ -201,7 +203,9 @@ fun StatisticsScreen() {
                 setTimeFilter(vm.includeMarkedAsPlayed,
                     max(min(timeFilterFrom.toDouble(), System.currentTimeMillis().toDouble()), vm.statsResult.oldestDate.toDouble()).toLong(),
                     min(timeFilterTo.toDouble(), System.currentTimeMillis().toDouble()).toLong())
-            } catch (error: Throwable) { Log.e(TAG, Log.getStackTraceString(error)) }
+            } catch (error: Throwable) {
+                Logt(TAG, error.message?: "error")
+                Loge(TAG, Log.getStackTraceString(error)) }
         }
         LaunchedEffect(Unit) { if (vm.statisticsState >= 0) loadStatistics() }
 
@@ -281,7 +285,9 @@ fun StatisticsScreen() {
                 monthlyStats = months.toMutableStateList()
                 for (item in monthlyStats) monthlyMaxDataValue = max(monthlyMaxDataValue.toDouble(), item.timePlayed.toDouble()).toFloat()
                 Logd(TAG, "maxDataValue: $monthlyMaxDataValue")
-            } catch (error: Throwable) { Log.e(TAG, Log.getStackTraceString(error)) }
+            } catch (error: Throwable) {
+                Logt(TAG, error.message?: "error")
+                Loge(TAG, Log.getStackTraceString(error)) }
         }
         @Composable
         fun BarChart() {
@@ -372,7 +378,9 @@ fun StatisticsScreen() {
                     }
                 }
                 vm.statisticsState++
-            } catch (error: Throwable) { Log.e(TAG, Log.getStackTraceString(error)) }
+            } catch (error: Throwable) {
+                Logt(TAG, error.message?: "error")
+                Loge(TAG, Log.getStackTraceString(error)) }
         }
     }
     if (vm.showFilter) DatesFilterDialog(inclPlayed = vm.prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false), from = vm.prefs.getLong(PREF_FILTER_FROM, 0), to = vm.prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE),

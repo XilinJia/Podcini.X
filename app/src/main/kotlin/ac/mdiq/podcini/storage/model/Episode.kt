@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
 import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -724,16 +725,16 @@ class Episode : RealmObject {
                 val chapters = readId3ChaptersFrom(inVal)
                 if (chapters.isNotEmpty()) return chapters
             }
-        } catch (e: IOException) { Log.e(TAG, "Unable to load ID3 chapters: " + e.message)
-        } catch (e: ID3ReaderException) { Log.e(TAG, "Unable to load ID3 chapters: " + e.message) }
+        } catch (e: IOException) { Logt(TAG, "Unable to load ID3 chapters: " + e.message)
+        } catch (e: ID3ReaderException) { Logt(TAG, "Unable to load ID3 chapters: " + e.message) }
 
         try {
             openStream(context).use { inVal ->
                 val chapters = readOggChaptersFromInputStream(inVal)
                 if (chapters.isNotEmpty()) return chapters
             }
-        } catch (e: IOException) { Log.e(TAG, "Unable to load vorbis chapters: " + e.message)
-        } catch (e: VorbisCommentReaderException) { Log.e(TAG, "Unable to load vorbis chapters: " + e.message) }
+        } catch (e: IOException) { Logt(TAG, "Unable to load vorbis chapters: " + e.message)
+        } catch (e: VorbisCommentReaderException) { Logt(TAG, "Unable to load vorbis chapters: " + e.message) }
         return listOf()
     }
 
@@ -844,7 +845,7 @@ class Episode : RealmObject {
         val TAG: String = Episode::class.simpleName ?: "Anonymous"
 
         val useEpisodeCoverSetting: Boolean
-            get() = getPref(AppPrefs.prefEpisodeCover, true)
+            get() = getPref(AppPrefs.prefEpisodeCover, false)
 
         // from EpisodeMedia
         const val INVALID_TIME: Int = -1

@@ -10,6 +10,7 @@ import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.error.CrashReportWriter
+import ac.mdiq.podcini.util.toastMassege
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent
@@ -42,8 +43,7 @@ import java.nio.charset.Charset
 
 class BugReportActivity : ComponentActivity() {
     private var crashDetailsTextView by mutableStateOf("")
-    var showToast by  mutableStateOf(false)
-    var toastMassege by mutableStateOf("")
+//    var toastMassege by mutableStateOf("")
     var showConfirmExport = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,7 +72,7 @@ class BugReportActivity : ComponentActivity() {
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
             val scrollState = rememberScrollState()
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 10.dp).verticalScroll(scrollState)) {
-                if (showToast) CustomToast(message = toastMassege, onDismiss = { showToast = false })
+                if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                 ComfirmDialog(0, stringResource(R.string.confirm_export_log_dialog_message), showConfirmExport) {
                     exportLog()
                     showConfirmExport.value = false
@@ -86,7 +86,6 @@ class BugReportActivity : ComponentActivity() {
                     clipboard.setPrimaryClip(clip)
                     Logd(TAG, "Build.VERSION.SDK_INT: ${Build.VERSION.SDK_INT}")
                     toastMassege = getString(R.string.copied_to_clipboard)
-                    showToast = true
                 }) { Text(stringResource(R.string.copy_to_clipboard)) }
                 Button(modifier = Modifier.fillMaxWidth(), onClick = { sendEmail() }) { Text(stringResource(R.string.email_developer)) }
                 Text(crashDetailsTextView, color = textColor)
@@ -125,12 +124,10 @@ class BugReportActivity : ComponentActivity() {
             } catch (e: Exception) {
                 e.printStackTrace()
                 toastMassege = getString(R.string.log_file_share_exception)
-                showToast = true
             }
         } catch (e: IOException) {
             e.printStackTrace()
             toastMassege = e.message?:"No message"
-            showToast = true
         }
     }
 
@@ -142,10 +139,7 @@ class BugReportActivity : ComponentActivity() {
             setType("message/rfc822")
         }
         if (emailIntent.resolveActivity(packageManager) != null) startActivity(emailIntent)
-        else {
-            toastMassege = getString(R.string.need_email_client)
-            showToast = true
-        }
+        else toastMassege = getString(R.string.need_email_client)
     }
     companion object {
         private val TAG: String = BugReportActivity::class.simpleName ?: "Anonymous"

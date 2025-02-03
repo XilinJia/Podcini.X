@@ -3,6 +3,8 @@ package ac.mdiq.podcini.ui.actions
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils
+import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileEpisodeDownload
+import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.playback.PlaybackServiceStarter
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
@@ -30,6 +32,7 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.content.DialogInterface
 import android.media.MediaMetadataRetriever
@@ -82,6 +85,9 @@ abstract class EpisodeActionButton internal constructor(@JvmField var item: Epis
 
     val label by mutableIntStateOf(label)
     var drawable by mutableIntStateOf(drawable)
+
+    val isEpisodeDownloadAllowed: Boolean
+        get() = isAllowMobileEpisodeDownload || !isNetworkRestricted
 
     abstract fun onClick(context: Context)
 
@@ -392,7 +398,7 @@ class DownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.d
     override fun onClick(context: Context) {
         if (shouldNotDownload(item)) return
         UsageStatistics.logAction(UsageStatistics.ACTION_DOWNLOAD)
-        if (NetworkUtils.isEpisodeDownloadAllowed) DownloadServiceInterface.get()?.downloadNow(context, item, false)
+        if (isEpisodeDownloadAllowed) DownloadServiceInterface.get()?.downloadNow(context, item, false)
         else {
             val builder = MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.confirm_mobile_download_dialog_title)
@@ -465,12 +471,10 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                     }
                     @Deprecated("Deprecated in Java")
                     override fun onError(utteranceId: String) {
-                        Log.e(TAG, "onError utterance error: $utteranceId")
-                        Log.e(TAG, "onError $readerText")
+                        Logt(TAG, "onError utterance error: $utteranceId $readerText")
                     }
                     override fun onError(utteranceId: String, errorCode: Int) {
-                        Log.e(TAG, "onError1 utterance error: $utteranceId $errorCode")
-                        Log.e(TAG, "onError1 $readerText")
+                        Logt(TAG, "onError1 utterance error: $utteranceId $errorCode $readerText")
                     }
                 })
 
@@ -494,7 +498,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                             withContext(Dispatchers.Main) { Toast.makeText(context, "Error generating audio file $tempFile.absolutePath", Toast.LENGTH_LONG).show() }
                             break
                         }
-                    } catch (e: Exception) { Log.e(TAG, "writing temp file error: ${e.message}")}
+                    } catch (e: Exception) { Logt(TAG, "writing temp file error: ${e.message}")}
                     startIndex += chunkLength
                     i++
                     while (i - j > 0) runBlocking { delay(100) }

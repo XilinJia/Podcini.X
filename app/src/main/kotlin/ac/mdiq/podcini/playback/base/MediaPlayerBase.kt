@@ -12,6 +12,8 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.content.Context
 import android.media.AudioManager
@@ -205,7 +207,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     fun seekDelta(delta: Int) {
         val curPosition = getPosition()
         if (curPosition != Episode.INVALID_TIME) seekTo(curPosition + delta)
-        else Log.e(TAG, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
+        else Logt(TAG, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
     }
 
     /**
@@ -232,7 +234,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     }
 
     open fun resetVideoSurface() {
-        Log.e(TAG, "Resetting Video Surface unsupported in Remote Media Player")
+        Logt(TAG, "Resetting Video Surface unsupported in Remote Media Player")
     }
 
     open fun setAudioTrack(track: Int) {}
@@ -352,7 +354,8 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             get() {
                 try { return getPref(AppPrefs.prefPlaybackSpeed, "1.00").toFloat()
                 } catch (e: NumberFormatException) {
-                    Log.e(TAG, Log.getStackTraceString(e))
+                    Logt(TAG, e.message?: "error")
+                    Loge(TAG, Log.getStackTraceString(e))
                     putPref(AppPrefs.prefPlaybackSpeed, "1.0")
                     return 1.0f
                 }

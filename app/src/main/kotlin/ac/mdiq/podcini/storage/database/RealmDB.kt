@@ -3,6 +3,7 @@ package ac.mdiq.podcini.storage.database
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.showStackTrace
 import android.net.Uri
 import android.util.Log
@@ -186,7 +187,7 @@ object RealmDB {
 //                                ne?.set("fileUrl", uri.toString())
 //                            }
 //                        } catch (e: Throwable) {
-//                            Log.e(TAG, " can't create uri from fileUrl")
+//                            Loge(TAG, " can't create uri from fileUrl")
 //                            val ne = newRealm.findLatest(oe)
 //                            ne?.set("fileUrl", "")
 //                        }
@@ -202,7 +203,7 @@ object RealmDB {
                                     set("fileUrl", uri.toString())
                                 }
                             } catch (e: Throwable) {
-                                Log.e(TAG, " can't create uri from fileUrl")
+                                Logt(TAG, " can't create uri from fileUrl")
                                 set("fileUrl", "")
                             }
                         }
@@ -251,7 +252,7 @@ object RealmDB {
                         it
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "copyToRealm error: ${e.message}")
+                    Logt(TAG, "copyToRealm error: ${e.message}")
                     showStackTrace()
                 }
             }
@@ -279,7 +280,7 @@ object RealmDB {
                         it
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "copyToRealm error: ${e.message}")
+                    Logt(TAG, "copyToRealm error: ${e.message}")
                     showStackTrace()
                 }
             }

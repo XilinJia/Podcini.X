@@ -38,6 +38,8 @@ import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -85,8 +87,8 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
         } catch (e: Exception) {
             EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_error))
             SynchronizationSettings.setLastSynchronizationAttemptSuccess(false)
-            Log.e(TAG, Log.getStackTraceString(e))
-
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             if (e is SyncServiceException) {
                 // Do not spam users with notification and retry before notifying
                 if (runAttemptCount % 3 == 2) updateErrorNotification(e)
@@ -291,7 +293,7 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
 
     fun gpodnetNotificationsEnabled(): Boolean {
         if (Build.VERSION.SDK_INT >= 26) return true // System handles notification preferences
-        return getPref(AppPrefs.pref_gpodnet_notifications, true)
+        return getPref(AppPrefs.pref_gpodnet_notifications, false)
     }
 
     protected fun updateErrorNotification(exception: Exception) {
@@ -405,7 +407,7 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
                         remoteActionsThatOverrideLocalActions[key] = remoteAction
                     }
                     EpisodeAction.Action.DELETE -> {}
-                    else -> Log.e(TAG, "Unknown remoteAction: $remoteAction")
+                    else -> Logt(TAG, "Unknown remoteAction: $remoteAction")
                 }
             }
             return remoteActionsThatOverrideLocalActions

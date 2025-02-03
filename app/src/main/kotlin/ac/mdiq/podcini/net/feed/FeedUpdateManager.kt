@@ -68,7 +68,7 @@ object FeedUpdateManager {
                     .setRequiredNetworkType(if (isAllowMobileFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED)
                     .build())
                 .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-                .setBackoffCriteria(BackoffPolicy.LINEAR, updateInterval*6, TimeUnit.MINUTES)
+                .setBackoffCriteria(BackoffPolicy.LINEAR, updateInterval*15, TimeUnit.MINUTES)
                 .build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(feedUpdateWorkId, policy, workRequest)
         }

@@ -9,6 +9,7 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.app.backup.BackupAgentHelper
 import android.app.backup.BackupDataInputStream
 import android.app.backup.BackupDataOutput
@@ -80,7 +81,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 val bytes = byteStream.toByteArray()
                 data.writeEntityHeader(OPML_ENTITY_KEY, bytes.size)
                 data.writeEntityData(bytes, bytes.size)
-            } catch (e: IOException) { Log.e(TAG, "Error during backup", e)
+            } catch (e: IOException) { Logt(TAG, "Error during backup. ${e.message}")
             } finally { IOUtils.closeQuietly(writer) }
         }
         
@@ -111,8 +112,8 @@ class OpmlBackupAgent : BackupAgentHelper() {
                         }
                     }
                 }
-            } catch (e: XmlPullParserException) { Log.e(TAG, "Error while parsing the OPML file", e)
-            } catch (e: IOException) { Log.e(TAG, "Failed to restore OPML backup", e)
+            } catch (e: XmlPullParserException) { Logt(TAG, "Error while parsing the OPML file, ${e.message}")
+            } catch (e: IOException) { Logt(TAG, "Failed to restore OPML backup. ${e.message}")
             } finally {
                 if (linesRead > 0) {
                     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mContext)
@@ -140,7 +141,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 outState.write(checksum)
                 outState.flush()
                 outState.close()
-            } catch (e: IOException) { Log.e(TAG, "Failed to write new state description", e) }
+            } catch (e: IOException) { Logt(TAG, "Failed to write new state description. ${e.message}") }
         }
 
         companion object {

@@ -16,9 +16,9 @@ var feedOnDisplay by mutableStateOf<Feed>(Feed())
 
 var curSearchString by mutableStateOf("")
 var feedToSearchIn by mutableStateOf<Feed?>(null)
-fun setSearchTerms(query: String, feed: Feed? = null) {
+fun setSearchTerms(query: String? = null, feed: Feed? = null) {
     Logd("setSearchTerms", "query: $query feed: ${feed?.id}")
-    curSearchString = query
+    if (query != null) curSearchString = query
     feedToSearchIn = feed
 }
 

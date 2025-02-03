@@ -490,10 +490,10 @@
     <string name="pref_swipe_refresh_sum">Scorri verso il basso per aggiornare tutte le sottoscrizioni</string>
     <string name="pref_feedGridLayout_title">Le sottoscrizioni utilizzano il layout della griglia </string>
     <string name="pref_feedGridLayout_sum">Quando impostata, la vista Abbonamenti usa un layout della griglia, altrimenti il layout dell\'elenco</string>
-    <string name="pref_expandNotify_title">Priorità notifiche superiore</string>
-    <string name="pref_expandNotify_sum">Di solito espande la notifica per mostrare i tasti di riproduzione.</string>
-    <string name="pref_persistNotify_title">Controlli di riproduzione persistenti</string>
-    <string name="pref_persistNotify_sum">Mantieni le notifiche e i controlli del blocco schermo anche quando la riproduzione è in pausa</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">Mostra salta alla notifica</string>
     <string name="pref_show_notification_skip_sum">Attiva/disattiva il pulsante salta sul pannello di notifica</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">Devi selezionare esattamente gli elementi %1$d.</string>

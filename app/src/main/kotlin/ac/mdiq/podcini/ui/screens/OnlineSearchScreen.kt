@@ -17,7 +17,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
+import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -27,6 +27,8 @@ import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -143,7 +145,8 @@ class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                 }
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
                 showError = true
                 showGrid = false
                 showRetry = true
@@ -261,7 +264,8 @@ fun OnlineSearchScreen() {
                     }
                 }
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+//                Loge(TAG, Log.getStackTraceString(e))
+                e.printStackTrace()
                 toastMassege = e.localizedMessage?: "No messaage"
 //                vm.mainAct?.showSnackbarAbovePlayer(e.localizedMessage?: "No messaage", Snackbar.LENGTH_LONG)
             }

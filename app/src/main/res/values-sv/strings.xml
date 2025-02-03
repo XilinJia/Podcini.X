@@ -487,10 +487,10 @@
     <string name="pref_swipe_refresh_sum">Svep nedåt för att uppdatera alla prenumerationer</string>
     <string name="pref_feedGridLayout_title">Prenumerationer använder rutnätslayout </string>
     <string name="pref_feedGridLayout_sum">När vald, visa prenumerationer använder en rutnätslayout, annars listlayout</string>
-    <string name="pref_expandNotify_title">Hög aviseringsprioritet</string>
-    <string name="pref_expandNotify_sum">Detta utvidgar vanligen aviseringen och visar uppspelningskontroller.</string>
-    <string name="pref_persistNotify_title">Bestående uppspelningskontroller</string>
-    <string name="pref_persistNotify_sum">Behåll notiser och låsskärmskontroller när uppspelning pausats</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">Visa hoppa över vid avisering</string>
     <string name="pref_show_notification_skip_sum">Växla hoppa knappen på meddelandepanelen</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">Du måste välja exakt %1$d objekt.</string>

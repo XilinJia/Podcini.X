@@ -378,9 +378,9 @@
   <string name="pref_fast_forward">Tempo de avanço rápido</string>
   <string name="pref_fast_forward_sum">Personaliza quantos segundos avançar quando o botão avanço rápido for clicado</string>
   <string name="pref_rewind_sum">Personaliza quantos segundos voltar quando o botão retroceder for clicado</string>
-  <string name="pref_expandNotify_title">Prioridade de notificação alta</string>
-  <string name="pref_expandNotify_sum">Isso normalmente expande a notificação para exibir os botões de reprodução.</string>
-  <string name="pref_persistNotify_title">Controles de reprodução persistentes</string>
+
+
+
 
 
 

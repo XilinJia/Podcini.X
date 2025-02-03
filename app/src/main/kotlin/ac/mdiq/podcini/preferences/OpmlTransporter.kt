@@ -3,6 +3,7 @@ package ac.mdiq.podcini.preferences
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatRfc822Date
 import android.Manifest
 import android.content.Context
@@ -153,7 +154,7 @@ class OpmlTransporter {
 //           TODO: on first install app: java.io.IOException: Underlying input stream returned zero bytes
                 try { eventType = xpp.next()
                 } catch(e: Exception) {
-                    Log.e(TAG, "xpp.next() invalid: $e")
+                    Logt(TAG, "xpp.next() invalid: $e")
                     break
                 }
             }

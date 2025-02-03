@@ -5,6 +5,7 @@ import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -60,7 +61,7 @@ object StorageUtils {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val pickedDir = DocumentFile.fromTreeUri(getAppContext(), uri)
                     if (pickedDir == null || !pickedDir.isDirectory) {
-                        Log.e("SpaceCheck", "Invalid directory URI: $customMediaUriString")
+                        Logt("SpaceCheck", "Invalid directory URI: $customMediaUriString")
                         return 0L
                     }
                     val storageManager = getAppContext().getSystemService(Context.STORAGE_SERVICE) as StorageManager
@@ -136,10 +137,10 @@ object StorageUtils {
             "content" -> {
                 try { getAppContext().contentResolver.openFileDescriptor(destinationUri, "rw")?.close()
                 } catch (e: FileNotFoundException) {
-                    Log.e(TAG, "file not exist $destinationUri: ${e.message}")
+                    Logt(TAG, "file not exist $destinationUri: ${e.message}")
                     false
                 } catch (e: Exception) {
-                    Log.e(TAG, "Error checking file existence: ${e.message}")
+                    Logt(TAG, "Error checking file existence: ${e.message}")
                     false
                 }
             }
@@ -170,11 +171,11 @@ object StorageUtils {
         val typeDir = if (type == null) baseDir else File(baseDir, type)
         if (!typeDir.exists()) {
             if (!baseDir.canWrite()) {
-                Log.e(TAG, "Base dir is not writable " + baseDir.absolutePath)
+                Logt(TAG, "Base dir is not writable " + baseDir.absolutePath)
                 return null
             }
             if (!typeDir.mkdirs()) {
-                Log.e(TAG, "Could not create type dir " + typeDir.absolutePath)
+                Logt(TAG, "Could not create type dir " + typeDir.absolutePath)
                 return null
             }
         }
@@ -226,7 +227,7 @@ object StorageUtils {
                 if (!f.exists()) {
                     try { f.createNewFile()
                     } catch (e: IOException) {
-                        Log.e(TAG, "Could not create .nomedia file")
+                        Logt(TAG, "Could not create .nomedia file")
                         e.printStackTrace()
                     }
                     Logd(TAG, ".nomedia file created")

@@ -422,7 +422,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
             if (useCustomMediaDir) TextButton(onClick = { showResetCustomFolderDialog = true }) { Text(stringResource(R.string.reset)) }
         }
         TitleSummaryActionColumn(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum) { navController.navigate(Screens.AutoDownloadScreen.name) }
-        TitleSummarySwitchPrefRow(R.string.pref_auto_delete_title, R.string.pref_auto_delete_sum, AppPrefs.prefAutoDelete.name)
+        TitleSummarySwitchPrefRow(R.string.pref_auto_delete_title, R.string.pref_auto_delete_sum, AppPrefs.prefAutoDelete)
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.pref_auto_local_delete_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
@@ -445,15 +445,15 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                 }
             })
         }
-        TitleSummarySwitchPrefRow(R.string.pref_keeps_important_episodes_title, R.string.pref_keeps_important_episodes_sum, AppPrefs.prefFavoriteKeepsEpisode.name, true)
-        TitleSummarySwitchPrefRow(R.string.pref_delete_removes_from_queue_title, R.string.pref_delete_removes_from_queue_sum, AppPrefs.prefDeleteRemovesFromQueue.name, true)
+        TitleSummarySwitchPrefRow(R.string.pref_keeps_important_episodes_title, R.string.pref_keeps_important_episodes_sum, AppPrefs.prefFavoriteKeepsEpisode)
+        TitleSummarySwitchPrefRow(R.string.pref_delete_removes_from_queue_title, R.string.pref_delete_removes_from_queue_sum, AppPrefs.prefDeleteRemovesFromQueue)
         Text(stringResource(R.string.download_pref_details), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 10.dp))
         var showMeteredNetworkOptions by remember { mutableStateOf(false) }
         TitleSummaryActionColumn(R.string.pref_metered_network_title, R.string.pref_mobileUpdate_sum) { showMeteredNetworkOptions = true }
         if (showMeteredNetworkOptions) {
-            val initMobileOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes.name, setOf("images"))) }
-            var tempSelectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes.name, setOf("images"))) }
+            val initMobileOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes, setOf("images"))) }
+            var tempSelectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefMobileUpdateTypes, setOf("images"))) }
             fun updateSepections(option: MobileUpdateOptions) {
                 tempSelectedOptions = if (tempSelectedOptions.contains(option.name)) tempSelectedOptions - option.name else tempSelectedOptions + option.name
                 when {
@@ -577,13 +577,13 @@ fun AutoDownloadPreferencesScreen() {
                     dismissButton = { TextButton(onClick = { showCleanupOptions = false }) { Text(stringResource(R.string.cancel_label)) } }
                 )
             }
-            TitleSummarySwitchPrefRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, AppPrefs.prefEnableAutoDownloadOnBattery.name)
+            TitleSummarySwitchPrefRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, AppPrefs.prefEnableAutoDownloadOnBattery)
 
             var showQueueOptions by remember { mutableStateOf(false) }
             TitleSummaryActionColumn(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum) { showQueueOptions = true }
             if (showQueueOptions) {
                 val queues = remember { realm.query(PlayQueue::class).find() }
-                var selectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefAutoDLIncludeQueues.name, queues.map { it.name }.toSet())) }
+                var selectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefAutoDLIncludeQueues, queues.map { it.name }.toSet(), true)) }
                 fun updateSepections(option: PlayQueue) {
                     selectedOptions = if (selectedOptions.contains(option.name)) selectedOptions - option.name else selectedOptions + option.name
                 }

@@ -567,10 +567,9 @@
     <string name="pref_swipe_refresh_sum">Swipe down to refresh all subscriptions</string>
     <string name="pref_feedGridLayout_title">Subscriptions use grid layout </string>
     <string name="pref_feedGridLayout_sum">When set, Subscriptions view use a grid layout, otherwise list layout</string>
-    <string name="pref_expandNotify_title">High notification priority</string>
-    <string name="pref_expandNotify_sum">This usually expands the notification to show playback buttons.</string>
-    <string name="pref_persistNotify_title">Persistent playback controls</string>
-    <string name="pref_persistNotify_sum">Keep notification and lockscreen controls when playback is paused</string>
+
+
+
     <string name="pref_show_notification_skip_title">Show skip on notification</string>
     <string name="pref_show_notification_skip_sum">Toggle the skip button on the notification panel</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">You must select exactly %1$d items.</string>
@@ -604,6 +603,10 @@
     <string name="pref_default_page_sum">Screen that is opened when starting Podcini</string>
     <string name="pref_back_button_opens_drawer">Back button opens drawer</string>
     <string name="pref_back_button_opens_drawer_summary">Pressing the back button on the default page opens the navigation drawer</string>
+    <string name="pref_show_error_toasts">Show error toasts</string>
+    <string name="pref_show_error_toasts_sum">Toggles if error messages are shown as toasts.</string>
+    <string name="pref_print_logs">Print debug logs</string>
+    <string name="pref_print_logs_sum">Toggles if debug messages are logged.  This can degrade performance. Turn this on only when preparing to report issues.</string>
     <string name="remember_last_page">Remember last page</string>
     <string name="pref_delete_removes_from_queue_title">Delete removes from queue</string>
     <string name="pref_delete_removes_from_queue_sum">Automatically remove an episode from the queue when it is deleted</string>

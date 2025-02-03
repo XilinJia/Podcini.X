@@ -28,6 +28,7 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.sendLocalBroadcast
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.app.backup.BackupManager
 import android.content.Context
 import android.content.DialogInterface
@@ -123,7 +124,7 @@ object Episodes {
         Logd(TAG, "deleteMediaOfEpisode called ${episode.title}")
         return runOnIOScope {
             val episode_ = deleteMediaSync(context, episode)
-            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, false)) removeFromAllQueuesSync(episode_)
+            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(episode_)
         }
     }
 
@@ -139,7 +140,7 @@ object Episodes {
                 // Local feed
                 val documentFile = DocumentFile.fromSingleUri(context, Uri.parse(url))
                 if (documentFile == null || !documentFile.exists() || !documentFile.delete()) {
-                    Log.e(TAG, "deleteMediaSync delete media file failed: $url")
+                    Logt(TAG, "deleteMediaSync delete media file failed: $url")
                     EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
                     return episode
                 }
@@ -159,7 +160,7 @@ object Episodes {
                 }
                 val mediaFile = File(path)
                 if (mediaFile.exists() && !mediaFile.delete()) {
-                    Log.e(TAG, "deleteMediaSync delete media file failed: $url")
+                    Logt(TAG, "deleteMediaSync delete media file failed: $url")
                     val evt = FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_failed_simple) + ": $url")
                     EventFlow.postEvent(evt)
                     return episode

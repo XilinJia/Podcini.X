@@ -487,10 +487,10 @@
     <string name="pref_swipe_refresh_sum">Veeg omlaag om alle abonnementen te vernieuwen</string>
     <string name="pref_feedGridLayout_title">Abonnementen gebruiken raster-lay-out </string>
     <string name="pref_feedGridLayout_sum">Wanneer ingeschakeld, gebruiken abonnementsweergave een rasterweergave, anders lijst lay-out</string>
-    <string name="pref_expandNotify_title">Hoge prioriteit voor meldingen</string>
-    <string name="pref_expandNotify_sum">Dit breidt de melding meestal uit om afspeelknoppen te tonen.</string>
-    <string name="pref_persistNotify_title">Aanhoudende afspeel besturingselementen</string>
-    <string name="pref_persistNotify_sum">Behoud melding en vergrendelscherm bediening wanneer het afspelen is gepauzeerd</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">Toon melding overslaan</string>
     <string name="pref_show_notification_skip_sum">Schakel de overslagknop in het notificatiepaneel in</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">Je moet precies %1$d items selecteren.</string>

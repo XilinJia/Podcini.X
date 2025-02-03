@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.sync.model
 
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.util.Logt
 import android.util.Log
 import org.json.JSONException
 import org.json.JSONObject
@@ -100,7 +101,7 @@ class EpisodeAction private constructor(builder: Builder) {
                 obj.put("isFavorite", this.isFavorite)
             }
         } catch (e: JSONException) {
-            Log.e(TAG, "writeToJSONObject(): " + e.message)
+            Logt(TAG, "writeToJSONObject(): " + e.message)
             return null
         }
         return obj
@@ -127,7 +128,7 @@ class EpisodeAction private constructor(builder: Builder) {
                 obj.put("total", this.total)
             }
         } catch (e: JSONException) {
-            Log.e(TAG, "writeToJSONObject(): " + e.message)
+            Logt(TAG, "writeToJSONObject(): " + e.message)
             return null
         }
         return obj
@@ -231,7 +232,7 @@ class EpisodeAction private constructor(builder: Builder) {
             try {
                 action = Action.valueOf(actionString.uppercase())
             } catch (e: IllegalArgumentException) {
-                Log.e(TAG, "IllegalArgumentException: ${e.message}")
+                Logt(TAG, "IllegalArgumentException: ${e.message}")
                 return null
             }
             val builder = Builder(podcast, episode, action)

@@ -11,6 +11,8 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.customMediaUriString
 import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.net.Uri
 import android.os.ParcelFileDescriptor
@@ -41,9 +43,10 @@ class PreferencesTransporter(val prefsDirName: String) {
                     val destFile = exportSubDir.createFile("text/xml", file.name)
                     if (destFile != null) copyFile(file, destFile, context)
                 }
-            } else Log.e("Error", "shared_prefs directory not found")
+            } else Logt("Error", "shared_prefs directory not found")
         } catch (e: IOException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             throw e
         } finally { }
     }
@@ -55,7 +58,7 @@ class PreferencesTransporter(val prefsDirName: String) {
             inputStream.close()
             outputStream?.close()
         } catch (e: IOException) {
-            Log.e("Error", "Error copying file: $e")
+            Logt("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -67,7 +70,7 @@ class PreferencesTransporter(val prefsDirName: String) {
             inputStream?.close()
             outputStream.close()
         } catch (e: IOException) {
-            Log.e("Error", "Error copying file: $e")
+            Logt("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -82,7 +85,7 @@ class PreferencesTransporter(val prefsDirName: String) {
             val exportedDir = DocumentFile.fromTreeUri(context, uri) ?: throw IOException("Backup directory is not valid")
             val sharedPreferencesDir = context.applicationContext.filesDir.parentFile?.listFiles { file -> file.name.startsWith("shared_prefs") }?.firstOrNull()
             if (sharedPreferencesDir != null) sharedPreferencesDir.listFiles()?.forEach { file -> file.delete() }
-            else Log.e("Error", "shared_prefs directory not found")
+            else Logt("Error", "shared_prefs directory not found")
             val files = exportedDir.listFiles()
             var hasPodciniRPrefs = false
             for (file in files) {
@@ -110,7 +113,8 @@ class PreferencesTransporter(val prefsDirName: String) {
                 }
             }
         } catch (e: IOException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             throw e
         } finally { }
     }
@@ -138,7 +142,8 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 mediaDir.listFiles()?.forEach { file -> copyRecursive(context, file, mediaDir, exportSubDir, move) }
             }
         } catch (e: IOException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             throw e
         } finally { }
     }
@@ -187,7 +192,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             outputStream.close()
             if (move) sourceFile.delete()
         } catch (e: IOException) {
-            Log.e("Error", "Error copying file: $e")
+            Logt("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -231,7 +236,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             outputStream.close()
             if (move) sourceFile.delete()
         } catch (e: IOException) {
-            Log.e("Error", "Error copying file: $e")
+            Logt("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -279,7 +284,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             outputStream.close()
             if (move) sourceFile.delete()
         } catch (e: IOException) {
-            Log.e("Error", "Error copying file: $e")
+            Logt("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -332,7 +337,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             outputStream.close()
             if (move) sourceFile.delete()
         } catch (e: IOException) {
-            Log.e("Error", "Error copying file: $e")
+            Logt("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -356,7 +361,8 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 }
             }
         } catch (e: IOException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             throw e
         } finally {
             nameFeedMap.clear()
@@ -383,7 +389,8 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 fileList?.forEach { file -> copyRecursive(file, exportedDir, mediaDir, false, true) }
             }
         } catch (e: IOException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             throw e
         } finally {
             nameFeedMap.clear()
@@ -405,7 +412,8 @@ class DatabaseTransporter {
             fileOutputStream = FileOutputStream(pfd!!.fileDescriptor)
             exportToStream(fileOutputStream, context)
         } catch (e: IOException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             throw e
         } finally {
             IOUtils.closeQuietly(fileOutputStream)
@@ -430,7 +438,8 @@ class DatabaseTransporter {
                     throw IOException(String.format("Unable to write entire database. Expected to write %s, but wrote %s.", Formatter.formatShortFileSize(context, srcSize), Formatter.formatShortFileSize(context, newDstSize)))
             } else throw IOException("Can not access current database")
         } catch (e: IOException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             throw e
         } finally {
             IOUtils.closeQuietly(src)
@@ -451,7 +460,8 @@ class DatabaseTransporter {
             if (!success) throw IOException("Unable to delete old database")
             FileUtils.moveFile(tempDB, currentDB)
         } catch (e: IOException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             throw e
         } finally { IOUtils.closeQuietly(inputStream) }
     }

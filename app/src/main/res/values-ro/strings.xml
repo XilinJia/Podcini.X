@@ -492,10 +492,10 @@
     <string name="pref_swipe_refresh_sum">Glisați în jos pentru a reîmprospăta toate abonamentele</string>
     <string name="pref_feedGridLayout_title">Abonamentele folosesc aspectul grilei </string>
     <string name="pref_feedGridLayout_sum">Când este setată, vizualizarea abonamentelor utilizează un layout de grilă, altfel listează aspectul</string>
-    <string name="pref_expandNotify_title">Prioritatea notificărilor importante</string>
-    <string name="pref_expandNotify_sum">Această funcție extinde alertele pentru a arăta butoanele de control media.</string>
-    <string name="pref_persistNotify_title">Control media persistent</string>
-    <string name="pref_persistNotify_sum">Păstrează controlul din notificări și de pe ecranul blocat chiar și «in momentul în care redarea este oprită</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">Arată omiterea la notificare</string>
     <string name="pref_show_notification_skip_sum">Comută butonul de omitere din panoul de notificare</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">Trebuie să selectaţi exact %1$d elemente.</string>

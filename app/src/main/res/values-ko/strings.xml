@@ -482,10 +482,10 @@
     <string name="pref_swipe_refresh_sum">Swipe down to refresh all subscriptions</string>
     <string name="pref_feedGridLayout_title">Subscriptions use grid layout </string>
     <string name="pref_feedGridLayout_sum">When set, Subscriptions view use a grid layout, otherwise list layout</string>
-    <string name="pref_expandNotify_title">높은 알림 우선순위</string>
-    <string name="pref_expandNotify_sum">알림에서 재생 버튼이 표시되도록 확장합니다.</string>
-    <string name="pref_persistNotify_title">재생 조작 항상 표시</string>
-    <string name="pref_persistNotify_sum">Keep notification and lockscreen controls when playback is paused</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">Show skip on notification</string>
     <string name="pref_show_notification_skip_sum">Toggle the skip button on the notification panel</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">You must select exactly %1$d items.</string>

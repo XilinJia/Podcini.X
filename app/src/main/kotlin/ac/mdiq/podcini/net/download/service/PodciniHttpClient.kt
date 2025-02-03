@@ -6,6 +6,8 @@ import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.ProxyConfig
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.annotation.SuppressLint
 import android.net.TrafficStats
@@ -320,16 +322,20 @@ object PodciniHttpClient {
             managers.add(getSystemTrustManager(null))
             return CompositeX509TrustManager(managers)
         } catch (e: KeyStoreException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             return null
         } catch (e: CertificateException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             return null
         } catch (e: NoSuchAlgorithmException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             return null
         } catch (e: IOException) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             return null
         }
     }

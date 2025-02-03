@@ -32,6 +32,7 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.pm.PackageManager
@@ -316,7 +317,7 @@ class VideoplayerActivity : CastEnabledActivity() {
                         }
                         episode_
                     }
-                } catch (e: Throwable) { Log.e(TAG, Log.getStackTraceString(e))
+                } catch (e: Throwable) { Logt(TAG, Log.getStackTraceString(e))
                 } finally { loadItemsRunning = false }
             }
         }

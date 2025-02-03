@@ -110,6 +110,6 @@ object ShareUtils {
             .setChooserTitle(R.string.share_file_label)
             .startChooser()
 
-        Log.e(TAG, "shareFeedItemFile called")
+        Logd(TAG, "shareFeedItemFile called")
     }
 }

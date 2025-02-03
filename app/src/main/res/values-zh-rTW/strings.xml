@@ -227,7 +227,7 @@
   <string name="pref_playback_time_respects_speed_sum">根據播放速度調整播放進度、時長等資訊</string>
   <string name="pref_fast_forward_sum">自訂快轉鈕要往前快轉多少時間</string>
   <string name="pref_rewind_sum">自訂倒轉鈕要往後倒轉多少時間</string>
-  <string name="pref_expandNotify_sum">此功能通常會加大通知訊息以便顯示控制鈕</string>
+
 
 
   <string name="pref_enqueue_location_sum">將這幾集加到：%1$s</string>

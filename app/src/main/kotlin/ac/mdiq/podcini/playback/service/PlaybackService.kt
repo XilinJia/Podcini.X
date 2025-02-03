@@ -49,6 +49,7 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PAUSED
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
+import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.ui.utils.NotificationUtils
@@ -57,6 +58,7 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
 import ac.mdiq.podcini.util.IntentUtils.sendLocalBroadcast
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -183,7 +185,7 @@ class PlaybackService : MediaLibraryService() {
                             unpauseIfPauseOnDisconnect(false)
                         }
                     }
-                } else Log.e(TAG, "Received invalid ACTION_HEADSET_PLUG intent")
+                } else Logt(TAG, "Received invalid ACTION_HEADSET_PLUG intent")
             }
         }
     }
@@ -271,7 +273,7 @@ class PlaybackService : MediaLibraryService() {
         list
     }
 
-    val shouldSkipKeepEpisode by lazy { getPref(AppPrefs.prefSkipKeepsEpisode, true) }
+    val shouldSkipKeepEpisode by lazy { getPref(AppPrefs.prefSkipKeepsEpisode, false) }
     val shouldKeepSuperEpisode by lazy { getPref(AppPrefs.prefFavoriteKeepsEpisode, true) }
 
     private val mediaPlayerCallback: MediaPlayerCallback = object : MediaPlayerCallback {
@@ -325,7 +327,7 @@ class PlaybackService : MediaLibraryService() {
 
         override fun onPostPlayback(playable: Episode?, ended: Boolean, skipped: Boolean, playingNext: Boolean) {
             if (playable == null) {
-                Log.e(TAG, "Cannot do post-playback processing: media was null")
+                Logt(TAG, "Cannot do post-playback processing: media was null")
                 return
             }
             Logd(TAG, "onPostPlayback(): ended=$ended skipped=$skipped playingNext=$playingNext media=${playable.getEpisodeTitle()} ")
@@ -367,7 +369,7 @@ class PlaybackService : MediaLibraryService() {
                     val isItemdeletable = (!shouldKeepSuperEpisode || (item?.isSUPER != true && item?.playState != PlayState.AGAIN.code && item?.playState != PlayState.FOREVER.code))
                     if (shouldAutoDelete && isItemdeletable) {
                         if (playable.localFileAvailable()) item = deleteMediaSync(this@PlaybackService, item!!)
-                        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, false)) removeFromAllQueuesSync(item)
+                        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(item)
                     } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(item)
                 }
             }
@@ -754,7 +756,7 @@ class PlaybackService : MediaLibraryService() {
         val playable = curEpisode
         Log.d(TAG, "onStartCommand flags=$flags startId=$startId keycode=$keycode keyEvent=$keyEvent customAction=$customAction hardwareButton=$hardwareButton action=${intent?.action.toString()} ${playable?.getEpisodeTitle()}")
         if (keycode == -1 && playable == null && customAction == null) {
-            Log.e(TAG, "onStartCommand PlaybackService was started with no arguments, return")
+            Logt(TAG, "onStartCommand PlaybackService was started with no arguments, return")
             return START_NOT_STICKY
         }
         if ((flags and START_FLAG_REDELIVERY) != 0) {
@@ -1350,8 +1352,7 @@ class PlaybackService : MediaLibraryService() {
                 var lastTick = System.currentTimeMillis()
                 EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.updated(timeLeft))
                 while (timeLeft > 0) {
-                    try {
-                        Thread.sleep(SLEEP_TIMER_UPDATE_INTERVAL)
+                    try { Thread.sleep(SLEEP_TIMER_UPDATE_INTERVAL)
                     } catch (e: InterruptedException) {
                         Logd(TAG, "Thread was interrupted while waiting")
                         e.printStackTrace()

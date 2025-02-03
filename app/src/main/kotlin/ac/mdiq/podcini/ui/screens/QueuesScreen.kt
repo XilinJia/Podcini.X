@@ -30,7 +30,7 @@ import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDial
 import ac.mdiq.podcini.ui.actions.SwipeActions.NoActionSwipeAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
+import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -39,6 +39,7 @@ import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.ComponentName
 import android.content.Context
 import android.util.Log
@@ -208,7 +209,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                                 vms.removeAt(pos)
                             }
                         } else {
-                            Log.e(TAG, "Trying to remove item non-existent from queue ${e.id} ${e.title}")
+                            Logt(TAG, "Trying to remove item non-existent from queue ${e.id} ${e.title}")
                             continue
                         }
                     }
@@ -444,7 +445,7 @@ fun QueuesScreen() {
                 }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
                 IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
                 if (!vm.showBin) IconButton(onClick = {
-                    setSearchTerms("")
+//                    setSearchTerms("")
                     mainNavController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }

@@ -8,6 +8,7 @@ import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.isImageFile
 import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.isMediaFile
 import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.util.Log
 import androidx.core.text.HtmlCompat
 import org.apache.commons.io.input.XmlStreamReader
@@ -631,7 +632,7 @@ class FeedHandler {
                     try {
                         val durationMs = inMillis(content)
                         state.tempObjects[DURATION] = durationMs.toInt()
-                    } catch (e: NumberFormatException) { Log.e(NSTAG, String.format("Duration '%s' could not be parsed", content)) }
+                    } catch (e: NumberFormatException) { Logt(NSTAG, String.format("Duration '%s' could not be parsed", content)) }
                 }
                 SUBTITLE == localName -> {
                     when {
@@ -705,7 +706,7 @@ class FeedHandler {
                             var size: Long = 0
                             val sizeStr: String? = attributes.getValue(SIZE)
                             if (!sizeStr.isNullOrEmpty()) {
-                                try { size = sizeStr.toLong() } catch (e: NumberFormatException) { Log.e(TAG, "Size \"$sizeStr\" could not be parsed.") }
+                                try { size = sizeStr.toLong() } catch (e: NumberFormatException) { Logt(TAG, "Size \"$sizeStr\" could not be parsed.") }
                             }
                             var durationMs = 0
                             val durationStr: String? = attributes.getValue(DURATION)
@@ -713,7 +714,7 @@ class FeedHandler {
                                 try {
                                     val duration = durationStr.toLong()
                                     durationMs = TimeUnit.MILLISECONDS.convert(duration, TimeUnit.SECONDS).toInt()
-                                } catch (e: NumberFormatException) { Log.e(TAG, "Duration \"$durationStr\" could not be parsed") }
+                                } catch (e: NumberFormatException) { Logt(TAG, "Duration \"$durationStr\" could not be parsed") }
                             }
                             Logd(TAG, "handleElementStart creating media: ${state.currentItem?.title} $url $size $mimeType")
                             state.currentItem?.fillMedia(url, size, mimeType)
@@ -932,7 +933,7 @@ class FeedHandler {
                             val imageUrl: String? = attributes.getValue(IMAGE)
                             val chapter = Chapter(start, title, link, imageUrl)
                             currentItem.chapters?.add(chapter)
-                        } catch (e: NumberFormatException) { Log.e(TAG, "Unable to read chapter", e) }
+                        } catch (e: NumberFormatException) { Logt(TAG, "Unable to read chapter. ${e.message}") }
                     }
                 }
             }

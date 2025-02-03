@@ -487,10 +487,10 @@
     <string name="pref_swipe_refresh_sum">Stryg nedad for at opdatere alle abonnementer</string>
     <string name="pref_feedGridLayout_title">Abonnementer bruger gitterlayout </string>
     <string name="pref_feedGridLayout_sum">Når angivet, bruger visning af abonnementer et gitterlayout, ellers liste layout</string>
-    <string name="pref_expandNotify_title">Høj prioritet for notifikation</string>
-    <string name="pref_expandNotify_sum">Dette udvider normalt notifikationen til at vise afspilningsknapper.</string>
-    <string name="pref_persistNotify_title">Vedholdende afspilningsknapper</string>
-    <string name="pref_persistNotify_sum">Bevar notifikations- og låseskærmskontrol, når afspilningen er sat på pause</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">Vis spring over ved notifikation</string>
     <string name="pref_show_notification_skip_sum">Slå overspring-knappen til og fra i notifikationspanelet</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">Du skal vælge præcis %1$d elementer.</string>

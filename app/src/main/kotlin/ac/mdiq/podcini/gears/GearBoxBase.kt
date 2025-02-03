@@ -11,6 +11,7 @@ import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.ui.screens.AudioPlayerVM
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.media3.common.MediaMetadata
@@ -80,7 +81,7 @@ open class GearBoxBase {
         if (feed.feedUrl == null) return
         val url = feed.feedUrl
         CoroutineScope(Dispatchers.IO).launch {
-            val fbb = FeedBuilderBase(context) { message, details -> Logd("OnineFeedItem", "Subscribe error: $message \n $details") }
+            val fbb = FeedBuilderBase(context) { message, details -> Logt("OnineFeedItem", "Subscribe error: $message \n $details") }
             fbb.buildPodcast(url, "", "") { feed, _ -> fbb.subscribe(feed) }
         }
     }

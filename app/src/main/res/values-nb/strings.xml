@@ -382,9 +382,9 @@
   <string name="pref_fast_forward_sum">Velg hvor mange sekunder som skal hoppes når du trykker på \"Spol fremover\"-knappen</string>
   <string name="pref_rewind">Hopp tilbake</string>
   <string name="pref_rewind_sum">Velg hvor mange sekunder som skal hoppes tilbake når \"Spol tilbake\"-knappen trykkes</string>
-  <string name="pref_expandNotify_title">Høy varsling-prioritet</string>
-  <string name="pref_expandNotify_sum">Dette utvider som regel varslingen for å vise avspillingskontroller.</string>
-  <string name="pref_persistNotify_title">Vedvarende avspillingskontroller</string>
+
+
+
 
 
 

@@ -13,7 +13,7 @@ import ac.mdiq.podcini.storage.model.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.DownloadActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
+import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
@@ -23,8 +23,11 @@ import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.error.DownloadErrorLabel.from
+import ac.mdiq.podcini.util.toastMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -88,9 +91,11 @@ class LogsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 withContext(Dispatchers.Main) {
                     shareLogs.addAll(result)
-                    title = "Shares log"
+                    title = "Shares"
                 }
-            } catch (e: Throwable) { Log.e(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) {
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e)) }
         }
     }
 
@@ -103,9 +108,11 @@ class LogsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 withContext(Dispatchers.Main) {
                     subscriptionLogs.addAll(result)
-                    title = "Subscriptions log"
+                    title = "Subscriptions"
                 }
-            } catch (e: Throwable) { Log.e(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) {
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e)) }
         }
     }
 
@@ -121,9 +128,11 @@ class LogsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 withContext(Dispatchers.Main) {
                     downloadLogs.addAll(result)
-                    title = "Downloads log"
+                    title = "Downloads"
                 }
-            } catch (e: Throwable) { Log.e(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) {
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e)) }
         }
     }
 }
@@ -335,6 +344,15 @@ fun LogsScreen() {
     }
 
     @Composable
+    fun SessionLogView() {
+        val lazyListState = rememberLazyListState()
+        val textColor = MaterialTheme.colorScheme.onSurface
+        LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            itemsIndexed(toastMessages) { position, log -> Text(log, color = textColor) }
+        }
+    }
+
+    @Composable
     fun DownlaodDetailDialog(status: DownloadResult, showDialog: Boolean, onDismissRequest: () -> Unit) {
         if (showDialog) {
             val context = LocalContext.current
@@ -433,7 +451,7 @@ fun LogsScreen() {
                                         showAction = false
                                         val feed: Feed? = getFeed(status.feedfileId)
                                         if (feed == null) {
-                                            Log.e(TAG, "Could not find feed for feed id: " + status.feedfileId)
+                                            Logt(TAG, "Could not find feed for feed id: " + status.feedfileId)
                                             return@clickable
                                         }
                                         FeedUpdateManager.runOnce(context, feed)
@@ -464,18 +482,21 @@ fun LogsScreen() {
                 { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer") } }
             },
             actions = {
-                if (vm.title != "Downloads log") IconButton(onClick = {
+                if (vm.title != "Downloads") IconButton(onClick = {
                     vm.clearAllLogs()
                     vm.loadDownloadLog()
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_download), contentDescription = "download") }
-                if (vm.title != "Shares log") IconButton(onClick = {
+                if (vm.title != "Shares") IconButton(onClick = {
                     vm.clearAllLogs()
                     vm.loadShareLog()
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), contentDescription = "share") }
-                if (vm.title != "Subscriptions log") IconButton(onClick = {
+                if (vm.title != "Subscriptions") IconButton(onClick = {
                     vm.clearAllLogs()
                     vm.loadSubscriptionLog()
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "subscriptions") }
+                if (vm.title != "Session") IconButton(onClick = {
+                    vm.clearAllLogs()
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_running_with_errors_24), contentDescription = "session") }
                 IconButton(onClick = { vm.showDeleteConfirmDialog.value = true
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "clear history") }
             }
@@ -518,6 +539,7 @@ fun LogsScreen() {
                 vm.downloadLogs.isNotEmpty() -> DownloadLogView()
                 vm.shareLogs.isNotEmpty() -> SharedLogView()
                 vm.subscriptionLogs.isNotEmpty() -> SubscriptionLogView()
+                else -> SessionLogView()
             }
         }
     }

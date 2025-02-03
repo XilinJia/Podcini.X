@@ -22,7 +22,7 @@ import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
+import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -31,6 +31,8 @@ import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import android.app.Activity.RESULT_OK
 import android.content.*
@@ -252,7 +254,9 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     if (feedsFilter.isNotEmpty()) infoTextFiltered = context.getString(R.string.filtered_label)
                     txtvInformation = (infoTextFiltered + infoTextUpdate)
                 }
-            } catch (e: Throwable) { Log.e(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) {
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e)) }
         }.apply { invokeOnCompletion { loadingJob = null } }
     }
 
@@ -279,7 +283,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     worker.exportFile(selectedItems)
                 }
             }
-        } catch (e: Exception) { Log.e(TAG, "exportOPML error: ${e.message}") }
+        } catch (e: Exception) { Logt(TAG, "exportOPML error: ${e.message}") }
     }
 
     private fun sortArrays2CodeSet() {
@@ -557,7 +561,7 @@ fun SubscriptionsScreen() {
             },
             actions = {
                 IconButton(onClick = {
-                    setSearchTerms("")
+//                    setSearchTerms("")
                     mainNavController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = { vm.showFilterDialog = true
@@ -833,7 +837,7 @@ fun SubscriptionsScreen() {
                             vm.exportOPML(uri, selected)
                         }?.launch(intentPickAction)
                         return@clickable
-                    } catch (e: ActivityNotFoundException) { Log.e(TAG, "No activity found. Should never happen...") }
+                    } catch (e: ActivityNotFoundException) { Logt(TAG, "No activity found. Should never happen...") }
                     // if on SDK lower than API 21 or the implicit intent failed, fallback to the legacy export process
                     vm.exportOPML(null, selected)
                 }) {

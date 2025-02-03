@@ -6,6 +6,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import androidx.annotation.VisibleForTesting
 import com.google.android.play.core.review.ReviewInfo
 import com.google.android.play.core.review.ReviewManager
@@ -35,7 +37,9 @@ object RatingDialog {
     }
 
     fun check() {
-        if (shouldShow()) try { showInAppReview() } catch (e: Exception) { Log.e(TAG, Log.getStackTraceString(e)) }
+        if (shouldShow()) try { showInAppReview() } catch (e: Exception) {
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e)) }
     }
 
     private fun showInAppReview() {

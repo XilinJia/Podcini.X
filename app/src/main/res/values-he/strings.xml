@@ -497,10 +497,10 @@
     <string name="pref_swipe_refresh_sum">Swipe down to refresh all subscriptions</string>
     <string name="pref_feedGridLayout_title">Subscriptions use grid layout </string>
     <string name="pref_feedGridLayout_sum">When set, Subscriptions view use a grid layout, otherwise list layout</string>
-    <string name="pref_expandNotify_title">High notification priority</string>
-    <string name="pref_expandNotify_sum">This usually expands the notification to show playback buttons.</string>
-    <string name="pref_persistNotify_title">Persistent playback controls</string>
-    <string name="pref_persistNotify_sum">Keep notification and lockscreen controls when playback is paused</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">Show skip on notification</string>
     <string name="pref_show_notification_skip_sum">Toggle the skip button on the notification panel</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">You must select exactly %1$d items.</string>

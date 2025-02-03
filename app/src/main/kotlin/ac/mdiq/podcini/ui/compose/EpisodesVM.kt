@@ -51,6 +51,7 @@ import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
@@ -250,7 +251,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 //                                            item = item_
                                             if (hasAlmostEnded && shouldAutoDelete) {
                                                 item_ = deleteMediaSync(context, item_)
-                                                if (getPref(AppPrefs.prefDeleteRemovesFromQueue, false)) removeFromAllQueuesSync(item_)
+                                                if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(item_)
                                             } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(item_)
                                             if (item_.feed?.isLocalFeed != true && (isProviderConnected || wifiSyncEnabledKey)) {
                                                 // not all items have media, Gpodder only cares about those that do
@@ -422,7 +423,9 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
                                 }
                             }
                             EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-                        } catch (e: Throwable) { Log.e("EraseEpisodesDialog", Log.getStackTraceString(e)) }
+                        } catch (e: Throwable) {
+                            Logt("EraseEpisodesDialog", Log.getStackTraceString(e))
+                        }
                     }
                     onDismissRequest()
                 }) { Text(stringResource(R.string.confirm_label)) }

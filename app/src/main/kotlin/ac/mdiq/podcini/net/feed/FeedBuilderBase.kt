@@ -4,11 +4,14 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
 import ac.mdiq.podcini.net.download.service.Downloader
 import ac.mdiq.podcini.net.download.service.HttpDownloader
+import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.feed.parser.FeedHandler
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.error.DownloadErrorLabel.from
 import android.content.Context
 import android.util.Log
@@ -18,7 +21,6 @@ import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-import kotlin.Throws
 
 open class FeedBuilderBase(val context: Context, val showError: (String?, String)->Unit) {
     protected val TAG = "FeedBuilder"
@@ -41,7 +43,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             }
             "XML" -> {}
             else -> {
-                Log.e(TAG, "unknown url type $urlType")
+                Logt(TAG, "unknown url type $urlType")
                 showError("unknown url type $urlType", "")
                 return
             }
@@ -67,7 +69,8 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
                     else -> withContext(Dispatchers.Main) { showError(context.getString(from(status.reason)), status.reasonDetailed) }
                 }
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
                 withContext(Dispatchers.Main) { showError(e.message, "") }
             }
         }
@@ -110,7 +113,8 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
                 } else null
             } else throw e
         } catch (e: Exception) {
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
             throw e
         } finally {
             val rc = destinationFile.delete()
@@ -122,7 +126,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
         val connection = URL(url).openConnection() as HttpURLConnection
         var type: String? = null
         try { type = connection.contentType } catch (e: IOException) {
-            Log.e(TAG, "Error connecting to URL", e)
+            Logt(TAG, "Error connecting to URL. ${e.message}")
             showError(e.message, "")
         } finally { connection.disconnect() }
         if (type == null) return null

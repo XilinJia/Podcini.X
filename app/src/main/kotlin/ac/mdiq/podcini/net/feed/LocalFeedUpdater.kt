@@ -30,18 +30,14 @@ import java.util.*
 object LocalFeedUpdater {
     private val TAG: String = LocalFeedUpdater::class.simpleName ?: "Anonymous"
 
-    @JvmField
     val PREFERRED_FEED_IMAGE_FILENAMES: Array<String> = arrayOf("folder.jpg", "Folder.jpg", "folder.png", "Folder.png")
 
-     @JvmStatic
     fun updateFeed(feed: Feed, context: Context, updaterProgressListener: UpdaterProgressListener?) {
         if (feed.downloadUrl.isNullOrEmpty()) return
         try {
             val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
-            val documentFolder = DocumentFile.fromTreeUri(context, Uri.parse(uriString))
-                ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
-            if (!documentFolder.exists() || !documentFolder.canRead())
-                throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
+            val documentFolder = DocumentFile.fromTreeUri(context, Uri.parse(uriString)) ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
+            if (!documentFolder.exists() || !documentFolder.canRead()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
 
             tryUpdateFeed(feed, context, documentFolder.uri, updaterProgressListener)
             if (mustReportDownloadSuccessful(feed)) reportSuccess(feed)
@@ -51,7 +47,6 @@ object LocalFeedUpdater {
         }
     }
 
-     @JvmStatic
     @VisibleForTesting
     @Throws(IOException::class)
     fun tryUpdateFeed(feed: Feed, context: Context, folderUri: Uri?, updaterProgressListener: UpdaterProgressListener?) {
@@ -99,9 +94,7 @@ object LocalFeedUpdater {
     fun getImageUrl(files: List<FastDocumentFile>, folderUri: Uri): String {
         // look for special file names
         for (iconLocation in PREFERRED_FEED_IMAGE_FILENAMES) {
-            for (file in files) {
-                if (iconLocation == file.name) return file.uri.toString()
-            }
+            for (file in files) if (iconLocation == file.name) return file.uri.toString()
         }
         // use the first image in the folder if existing
         for (file in files) {

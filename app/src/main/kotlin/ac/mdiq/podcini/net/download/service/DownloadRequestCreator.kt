@@ -5,6 +5,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.StorageUtils.feedfilePath
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.util.Log
 import java.io.File
 
@@ -29,7 +30,7 @@ object DownloadRequestCreator {
         Logd(TAG, "create: ${media.fileUrl} ${media.title}")
         val destUriString = media.getMediaFileUriString() ?: ""
         Logd(TAG, "destUriString: $destUriString")
-        if (destUriString.isBlank()) Log.e(TAG, "destUriString is empty")
+        if (destUriString.isBlank()) Logt(TAG, "destUriString is empty")
         val feed = media.feed
         val username = feed?.username
         val password = feed?.password

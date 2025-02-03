@@ -15,6 +15,7 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -68,7 +69,7 @@ class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
                     getRecentPodcasts()
                     getDatasetStats()
                 }
-            } catch (e: Throwable) { Log.e(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) { Logt(TAG, Log.getStackTraceString(e)) }
         }
     }
 }

@@ -3,6 +3,7 @@ package ac.mdiq.podcini.storage.utils
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.util.Log
 import okhttp3.CacheControl
 import okhttp3.Request
@@ -56,7 +57,7 @@ object ChapterUtils {
                     val chapterOther = chapters1[i]
 
                     if (abs((chapterTarget.start - chapterOther.start).toDouble()) > 1000) {
-                        Log.e(TAG, "Chapter lists are too different. Cancelling merge.")
+                        Logt(TAG, "Chapter lists are too different. Cancelling merge.")
                         return if (score(chapters1) > score(chapters2)) chapters1 else chapters2
                     }
 

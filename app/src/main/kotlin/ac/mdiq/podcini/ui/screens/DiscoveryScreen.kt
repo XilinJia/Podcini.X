@@ -11,6 +11,8 @@ import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
@@ -92,7 +94,8 @@ class DiscoveryVM(val context: Context, val lcScope: CoroutineScope) {
                     showProgress = false
                 }
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
                 searchResults.clear()
                 errorText = e.message ?: "no error message"
                 retryQerry = " retry"

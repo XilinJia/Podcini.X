@@ -16,7 +16,7 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
+import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import android.content.Intent
@@ -96,7 +96,7 @@ object AutoDownloads {
                 // true if we should auto download based on network status
                 val networkShouldAutoDl = (isAutoDownloadAllowed && isEnableAutodownload)
                 // true if we should auto download based on power status
-                val powerShouldAutoDl = (deviceCharging(context) || getPref(AppPrefs.prefEnableAutoDownloadOnBattery, true))
+                val powerShouldAutoDl = (deviceCharging(context) || getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false))
                 Logd(TAG, "autoDownloadEpisodeMedia prepare $networkShouldAutoDl $powerShouldAutoDl")
                 // we should only auto download if both network AND power are happy
                 if (networkShouldAutoDl && powerShouldAutoDl) {
@@ -104,7 +104,7 @@ object AutoDownloads {
                     val toReplace: MutableSet<Episode> = mutableSetOf()
                     val candidates: MutableSet<Episode> = mutableSetOf()
                     val queues = realm.query(PlayQueue::class).find()
-                    val includedQueues = getPref(AppPrefs.prefAutoDLIncludeQueues.name, queues.map { it.name }.toSet())
+                    val includedQueues = getPref(AppPrefs.prefAutoDLIncludeQueues, queues.map { it.name }.toSet(), true)
                     if (includedQueues.isNotEmpty()) {
                         for (qn in includedQueues) {
                             val q = queues.first { it.name == qn }
@@ -210,7 +210,7 @@ object AutoDownloads {
                         if (toReplace.isNotEmpty()) deleteEpisodesSync(context, toReplace.toList())
                         val downloadedCount = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))
                         val deletedCount = toReplace.size + AutoCleanups.build().makeRoomForEpisodes(context, autoDownloadableCount - toReplace.size)
-                        val appEpisodeCache = getPref(AppPrefs.prefEpisodeCacheSize, "20").toInt()
+                        val appEpisodeCache = getPref(AppPrefs.prefEpisodeCacheSize, "0").toInt()
                         val cacheIsUnlimited = appEpisodeCache <= AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED
                         val allowedCount =
                             if (cacheIsUnlimited || appEpisodeCache >= downloadedCount + autoDownloadableCount) autoDownloadableCount

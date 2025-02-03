@@ -20,6 +20,8 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.app.UiModeManager
 import android.content.Context
@@ -233,7 +235,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                             mediaItem = null
                             mediaSource = null
                             try { setDataSource(metadata, curEpisode!!) } catch (e: Throwable) {
-                                Log.e(TAG, "setDataSource error: [${e.localizedMessage}] [${e.message}]")
+                                Logt(TAG, "setDataSource error: [${e.localizedMessage}] [${e.message}]")
                                 EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: e.message ?: "")) }
                         }
                     }
@@ -349,7 +351,9 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
             PlayerStatus.PLAYING, PlayerStatus.PAUSED, PlayerStatus.PREPARED -> {
                 Logd(TAG, "seekTo t: $t")
                 if (seekLatch != null && seekLatch!!.count > 0) {
-                    try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Log.e(TAG, Log.getStackTraceString(e)) }
+                    try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) {
+                        Logt(TAG, e.message?: "error")
+                        Loge(TAG, Log.getStackTraceString(e)) }
                 }
                 seekLatch = CountDownLatch(1)
                 statusBeforeSeeking = status
@@ -358,7 +362,9 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, t, curEpisode!!.duration))
                 audioSeekCompleteListener?.run()
                 if (statusBeforeSeeking == PlayerStatus.PREPARED) curEpisode?.setPosition(t)
-                try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Log.e(TAG, Log.getStackTraceString(e)) }
+                try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) {
+                    Logt(TAG, e.message?: "error")
+                    Loge(TAG, Log.getStackTraceString(e)) }
             }
             PlayerStatus.INITIALIZED -> {
                 curEpisode?.setPosition(t)
@@ -453,7 +459,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
             Logd(TAG, "Resetting video surface")
             exoPlayer?.setVideoSurfaceHolder(null)
             reinit()
-        } else Log.e(TAG, "Resetting video surface for media of Audio type")
+        } else Logt(TAG, "Resetting video surface for media of Audio type")
     }
 
     /**
@@ -528,7 +534,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 }
             }
             audioErrorListener = Consumer { message: String ->
-                Log.e(TAG, "PlayerErrorEvent: $message")
+                Logt(TAG, "PlayerErrorEvent: $message")
                 EventFlow.postEvent(FlowEvent.PlayerErrorEvent(message))
             }
         }

@@ -26,7 +26,7 @@ object AutoCleanups {
     private val TAG: String = AutoCleanups::class.simpleName ?: "Anonymous"
 
     private var episodeCleanupValue: Int
-        get() = getPref(AppPrefs.prefEpisodeCleanup, EpisodeCleanupOptions.Never.num.toString()).toIntOrNull() ?: EpisodeCleanupOptions.Never.num
+        get() = getPref(AppPrefs.prefEpisodeCleanup, "0").toIntOrNull() ?: EpisodeCleanupOptions.Never.num
         set(episodeCleanupValue) {
             putPref(AppPrefs.prefEpisodeCleanup, episodeCleanupValue.toString())
         }
@@ -88,7 +88,7 @@ object AutoCleanups {
             return counter
         }
         public override fun getDefaultCleanupParameter(): Int {
-            val cacheSize = getPref(AppPrefs.prefEpisodeCacheSize, "20").toInt()
+            val cacheSize = getPref(AppPrefs.prefEpisodeCacheSize, "0").toInt()
             if (cacheSize > AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) {
                 val downloadedEpisodes = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))
                 if (downloadedEpisodes > cacheSize) return downloadedEpisodes - cacheSize

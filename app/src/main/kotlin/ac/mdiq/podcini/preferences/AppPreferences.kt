@@ -1,18 +1,26 @@
 package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
+import ac.mdiq.podcini.storage.database.Queues.EnqueueLocation
+import ac.mdiq.podcini.storage.model.EpisodeFilter
+import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.ProxyConfig
 import ac.mdiq.podcini.storage.utils.StorageUtils.createNoMediaFile
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
 import android.util.Log
+import android.view.KeyEvent
 import androidx.annotation.VisibleForTesting
 import androidx.preference.PreferenceManager
 import java.net.Proxy
+import kotlin.collections.filterIsInstance
 
 /**
  * Provides access to preferences set by the user in the settings screen. A
@@ -51,7 +59,8 @@ object AppPreferences {
         get() {
             try { return getPref(AppPrefs.prefVideoPlaybackMode, "1").toInt()
             } catch (e: NumberFormatException) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
                 putPref(AppPrefs.prefVideoPlaybackMode, "1")
                 return 1
             }
@@ -74,7 +83,8 @@ object AppPreferences {
         get() {
             try { return getPref(AppPrefs.prefSpeedforwardSpeed, "0.00").toFloat()
             } catch (e: NumberFormatException) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
                 speedforwardSpeed = 0.0f
                 return 0.0f
             }
@@ -87,7 +97,8 @@ object AppPreferences {
         get() {
             try { return getPref(AppPrefs.prefFallbackSpeed, "0.00").toFloat()
             } catch (e: NumberFormatException) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
                 fallbackSpeed = 0.0f
                 return 0.0f
             }
@@ -148,15 +159,10 @@ object AppPreferences {
         }
 
     var prefAdaptiveProgressUpdate: Boolean
-        get() = getPref(AppPrefs.prefUseAdaptiveProgressUpdate, false)
+        get() = getPref(AppPrefs.prefUseAdaptiveProgressUpdate, true)
         set(value) {
             putPref(AppPrefs.prefUseAdaptiveProgressUpdate, value)
         }
-
-//    private val preferenceChangeListener: SharedPreferences.OnSharedPreferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-//        Log.d(TAG, "PreferenceChangeListener key: $key")
-//        if (key != null) cachedPrefs[key] = appPrefs.all[key]
-//    }
 
     /**
      * Sets up the UserPreferences class.
@@ -165,9 +171,7 @@ object AppPreferences {
     fun init(context: Context) {
         Logd(TAG, "Creating new instance of UserPreferences")
         appPrefs = PreferenceManager.getDefaultSharedPreferences(context)
-
         AppPrefs.entries.map { it.name }.forEach { key -> cachedPrefs[key] = appPrefs.all[key] }
-//        appPrefs.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
         createNoMediaFile()
     }
 
@@ -179,13 +183,30 @@ object AppPreferences {
         }
     }
 
-    inline fun <reified T> getPref(key: AppPrefs, defaultValue: T): T = getPref(key.name, defaultValue)
-
-    inline fun <reified T> getPrefOrNull(key: AppPrefs, defaultValue: T?): T? {
+    inline fun <reified T> getPref(key: AppPrefs, hintValue: T, useHintValue: Boolean = false): T {
         val value = cachedPrefs[key.name]
         return when (value) {
             is T -> value
-            else -> defaultValue
+            else -> {
+                if (useHintValue) hintValue
+                else when (key.default) {
+                    is T -> key.default
+                    else -> throw IllegalArgumentException("Unsupported type")
+                }
+            }
+        }
+    }
+
+    inline fun <reified T> getPrefOrNull(key: AppPrefs, hintValue: T?): T? {
+        val value = cachedPrefs[key.name]
+        return when (value) {
+            is T -> value
+            else -> {
+                when (key.default) {
+                    is T -> key.default
+                    else -> null
+                }
+            }
         }
     }
 
@@ -227,98 +248,96 @@ object AppPreferences {
     }
 
     @Suppress("EnumEntryName")
-    enum class AppPrefs {
-        prefOPMLBackup,
-        prefOPMLRestore,
+    enum class AppPrefs(val default: Any?) {
+        prefOPMLBackup(true),
+        prefOPMLRestore(false),
 
         // User Interface
-        prefTheme,
-        prefThemeBlack,
-        prefTintedColors,
-        prefFeedGridLayout,
-        prefSwipeToRefreshAll,
-        prefExpandNotify,
-        prefEpisodeCover,
-        showTimeLeft,
-        prefShowSkip,
-        prefShowDownloadReport,
-        prefDefaultPage,
-        prefBackButtonOpensDrawer,
-        prefQueueKeepSorted,
-        prefQueueKeepSortedOrder,
+        prefTheme("system"),
+        prefThemeBlack(false),
+        prefTintedColors(false),
+        prefFeedGridLayout(false),
+        prefSwipeToRefreshAll(true),
+        prefEpisodeCover(false),
+        showTimeLeft(false),
+        prefShowSkip(true),
+        prefShowDownloadReport(true),
+        prefDefaultPage(DefaultPages.Subscriptions.name),
+        prefBackButtonOpensDrawer(false),
+        prefQueueKeepSorted(false),
+        prefQueueKeepSortedOrder("use-default"),
+        prefShowErrorToasts(true),
+        prefPrintDebugLogs(false),
 
         // Episodes
-        prefEpisodesSort,
-        prefEpisodesFilter,
-        prefEpisodesCurIndex,
-        prefDownloadsFilter,
+        prefEpisodesSort("" + EpisodeSortOrder.DATE_NEW_OLD.code),
+        prefEpisodesFilter(""),
+        prefEpisodesCurIndex(0),
+        prefDownloadsFilter(EpisodeFilter.States.downloaded.name),
 
         // Playback
-        prefPauseOnHeadsetDisconnect,
-        prefUnpauseOnHeadsetReconnect,
-        prefUnpauseOnBluetoothReconnect,
-        prefHardwareForwardButton,
-        prefHardwarePreviousButton,
-        prefFollowQueue,
-        prefSkipKeepsEpisode,
-        prefRemoveFromQueueMarkedPlayed,
-        prefFavoriteKeepsEpisode,
+        prefPauseOnHeadsetDisconnect(true),
+        prefUnpauseOnHeadsetReconnect(true),
+        prefUnpauseOnBluetoothReconnect(false),
+        prefHardwareForwardButton(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD.toString()),
+        prefHardwarePreviousButton(KeyEvent.KEYCODE_MEDIA_REWIND.toString()),
+        prefFollowQueue(true),
+        prefSkipKeepsEpisode(false),
+        prefRemoveFromQueueMarkedPlayed(true),
+        prefFavoriteKeepsEpisode(true),
 
-        prefAutoBackup,
-        prefAutoBackupIntervall,
-        prefAutoBackupFolder,
-        prefAutoBackupLimit,
-        prefAutoBackupTimeStamp,
+        prefAutoBackup(false),
+        prefAutoBackupIntervall(24),
+        prefAutoBackupFolder(""),
+        prefAutoBackupLimit(2),
+        prefAutoBackupTimeStamp(0L),
 
-        prefUseCustomMediaFolder,
-        prefCustomMediaUri,
+        prefUseCustomMediaFolder(false),
+        prefCustomMediaUri(""),
 
-        prefAutoDelete,
-        prefAutoDeleteLocal,
-        prefPlaybackSpeedArray,
-        prefFallbackSpeed,
-        prefPlaybackTimeRespectsSpeed,
-        prefStreamOverDownload,
-        prefLowQualityOnMobile,
-        prefSpeedforwardSpeed,
-        prefUseAdaptiveProgressUpdate,
+        prefAutoDelete(false),
+        prefAutoDeleteLocal(false),
+        prefPlaybackSpeedArray(null),
+        prefFallbackSpeed("0.00"),
+        prefPlaybackTimeRespectsSpeed(false),
+        prefStreamOverDownload(false),
+        prefLowQualityOnMobile(false),
+        prefSpeedforwardSpeed("0.00"),
+        prefUseAdaptiveProgressUpdate(true),
 
         // Network
-        prefEnqueueDownloaded,
-        prefEnqueueLocation,
-        prefAutoUpdateStartTime,
-        prefAutoUpdateInterval,
-        prefLastFullUpdateTime,
-        prefMobileUpdateTypes,
-        prefEpisodeCleanup,
-        prefEpisodeCacheSize,
-        prefEnableAutoDl,
-        prefEnableAutoDownloadOnBattery,
-        prefAutoDLIncludeQueues,
+        prefEnqueueDownloaded(true),
+        prefEnqueueLocation(EnqueueLocation.BACK.name),
+        prefAutoUpdateStartTime(":"),
+        prefAutoUpdateInterval("12"),
+        prefLastFullUpdateTime(0L),
+        prefMobileUpdateTypes(hashSetOf("images")),
+        prefEpisodeCleanup(EpisodeCleanupOptions.Never.num.toString()),
+        prefEpisodeCacheSize("25"),
+        prefEnableAutoDl(false),
+        prefEnableAutoDownloadOnBattery(false),
+        prefAutoDLIncludeQueues(setOf<String>()),   // special
 
-        prefEnableAutoDownloadWifiFilter,
-        prefAutodownloadSelectedNetworks,
-
-        prefProxyType,
-        prefProxyHost,
-        prefProxyPort,
-        prefProxyUser,
-        prefProxyPassword,
+        prefProxyType(Proxy.Type.DIRECT.name),
+        prefProxyHost(null),
+        prefProxyPort(0),
+        prefProxyUser(null),
+        prefProxyPassword(null),
 
         // Services
-        pref_gpodnet_notifications,
-        pref_nextcloud_server_address,
+        pref_gpodnet_notifications(true),
+        pref_nextcloud_server_address(""),
 
         // Other
-        prefDeleteRemovesFromQueue,
+        prefDeleteRemovesFromQueue(true),
 
         // Mediaplayer
-        prefPlaybackSpeed,
-        prefSkipSilence,
-        prefFastForwardSecs,
-        prefRewindSecs,
-        prefQueueLocked,
-        prefVideoPlaybackMode,
+        prefPlaybackSpeed("1.00"),
+        prefSkipSilence(false),
+        prefFastForwardSecs(30),
+        prefRewindSecs(10),
+        prefQueueLocked(true),
+        prefVideoPlaybackMode("1"),
     }
 
     enum class ThemePreference {

@@ -490,10 +490,10 @@
     <string name="pref_swipe_refresh_sum">Glisser vers le bas pour actualiser tous les abonnements</string>
     <string name="pref_feedGridLayout_title">Les abonnements utilisent la disposition de la grille </string>
     <string name="pref_feedGridLayout_sum">Lorsque défini, la vue des abonnements utilise une mise en page de grille, sinon la mise en page de la liste</string>
-    <string name="pref_expandNotify_title">Priorité haute de notification</string>
-    <string name="pref_expandNotify_sum">Permet, généralement, d\'étendre la notification pour montrer les boutons de lecture</string>
-    <string name="pref_persistNotify_title">Boutons de lecture permanents</string>
-    <string name="pref_persistNotify_sum">Garder les notifications et les boutons de lecture sur l\'écran de verrouillage quand la lecture est en pause</string>
+
+
+
+
     <string name="pref_show_notification_skip_title">Afficher le saut sur la notification</string>
     <string name="pref_show_notification_skip_sum">Activer/désactiver le bouton ignorer sur le panneau de notification</string>
     <string name="pref_compact_notification_buttons_dialog_error_exact">You must select exactly %1$d items.</string>

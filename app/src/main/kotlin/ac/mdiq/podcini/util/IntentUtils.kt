@@ -36,7 +36,8 @@ object IntentUtils {
             context.startActivity(myIntent)
         } catch (e: ActivityNotFoundException) {
             Toast.makeText(context, R.string.pref_no_browser_found, Toast.LENGTH_LONG).show()
-            Log.e(TAG, Log.getStackTraceString(e))
+            Logt(TAG, e.message?: "error")
+            Loge(TAG, Log.getStackTraceString(e))
         }
     }
 }

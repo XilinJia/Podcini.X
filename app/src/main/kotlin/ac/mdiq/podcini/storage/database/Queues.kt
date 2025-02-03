@@ -18,6 +18,7 @@ import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.util.Log
 
 import kotlinx.coroutines.Job
@@ -66,7 +67,7 @@ object Queues {
             try { return EnqueueLocation.valueOf(valStr)
             } catch (t: Throwable) {
                 // should never happen but just in case
-                Log.e(TAG, "getEnqueueLocation: invalid value '$valStr' Use default.", t)
+                Logt(TAG, "getEnqueueLocation: invalid value '$valStr' Use default. ${t.message}")
                 return EnqueueLocation.BACK
             }
         }
@@ -296,7 +297,7 @@ object Queues {
                 episodes.add(to, episode)
                 if (broadcastUpdate) EventFlow.postEvent(FlowEvent.QueueEvent.moved(episode, to))
             }
-        } else Log.e(TAG, "moveQueueItemHelper: Could not load queue")
+        } else Logt(TAG, "moveQueueItemHelper: Could not load queue")
         curQueue.episodes.clear()
 //        curQueue.episodes.addAll(episodes)
         curQueue = upsertBlk(curQueue) {
@@ -305,12 +306,6 @@ object Queues {
             it.update()
         }
     }
-
-//    fun inAnyQueue(episode: Episode): Boolean {
-//        val queues = realm.query(PlayQueue::class).find()
-//        for (q in queues) if (q.contains(episode)) return true
-//        return false
-//    }
 
     class EnqueuePositionPolicy(private val enqueueLocation: EnqueueLocation) {
         /**

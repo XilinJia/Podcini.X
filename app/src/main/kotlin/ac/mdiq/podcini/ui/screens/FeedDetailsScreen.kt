@@ -24,7 +24,7 @@ import ac.mdiq.podcini.ui.actions.SwipeActions.NoActionSwipeAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.toastMassege
+import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -215,7 +215,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 
     private fun refreshHeaderView() {
         if (feed == null) {
-            Log.e(TAG, "Unable to refresh header view")
+            Logt(TAG, "Unable to refresh header view")
             return
         }
         if (!headerCreated) headerCreated = true
@@ -306,8 +306,11 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             } catch (e: Throwable) {
                 feed = null
                 refreshHeaderView()
-                Log.e(TAG, Log.getStackTraceString(e))
-            } catch (e: Exception) { Log.e(TAG, Log.getStackTraceString(e)) }
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
+            } catch (e: Exception) {
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e)) }
         }.apply { invokeOnCompletion { loadJob = null } }
     }
     fun buildMoreItems() {
@@ -380,7 +383,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 //                    (context as MainActivity).showSnackbarAbovePlayer(string.ok, Snackbar.LENGTH_SHORT)
                 }
             } catch (e: Throwable) { withContext(Dispatchers.Main) {
-                Log.e(TAG, e.localizedMessage?:"No message")
+                Logt(TAG, e.localizedMessage?:"No message")
 //                (context as MainActivity).showSnackbarAbovePlayer(e.localizedMessage?:"No message", Snackbar.LENGTH_LONG)
             } }
         }
@@ -451,7 +454,7 @@ fun FeedDetailsScreen() {
     BackHandler { mainNavController.popBackStack() }
 
     ComfirmDialog(0, stringResource(R.string.reconnect_local_folder_warning), vm.showConnectLocalFolderConfirm) {
-        try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Log.e(TAG, "No activity found. Should never happen...") }
+        try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logt(TAG, "No activity found. Should never happen...") }
     }
 
     var showEditConfirmDialog by remember { mutableStateOf(false) }
@@ -593,7 +596,7 @@ fun FeedDetailsScreen() {
                     isBSExpanded = false
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
                 if (vm.feed != null) IconButton(onClick = {
-                    setSearchTerms("", vm.feed)
+                    setSearchTerms(feed = vm.feed)
                     mainNavController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 if (!vm.feed?.link.isNullOrBlank() && vm.isCallable) IconButton(onClick = { IntentUtils.openInBrowser(context, vm.feed!!.link!!)

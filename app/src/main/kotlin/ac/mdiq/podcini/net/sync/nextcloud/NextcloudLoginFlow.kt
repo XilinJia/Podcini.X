@@ -2,6 +2,7 @@ package ac.mdiq.podcini.net.sync.nextcloud
 
 import ac.mdiq.podcini.net.sync.HostnameParser
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -60,7 +61,7 @@ class NextcloudLoginFlow(
                     isWaitingForBrowser = true
                 }
             } catch (e: Throwable) {
-                Log.e(TAG, Log.getStackTraceString(e))
+                Logt(TAG, Log.getStackTraceString(e))
                 token = null
                 endpoint = null
                 callback.onNextcloudAuthError(e.localizedMessage)

@@ -6,6 +6,7 @@ import ac.mdiq.podcini.receiver.MediaButtonReceiver.Companion
 import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -24,12 +25,12 @@ class SPAReceiver : BroadcastReceiver() {
 
         Logd(TAG, "Received SP_APPS_QUERY_RESPONSE")
         if (!intent.hasExtra(ACTION_SP_APPS_QUERY_FEEDS_REPSONSE_FEEDS_EXTRA)) {
-            Log.e(TAG, "Received invalid SP_APPS_QUERY_RESPONSE: Contains no extra")
+            Logt(TAG, "Received invalid SP_APPS_QUERY_RESPONSE: Contains no extra")
             return
         }
         val feedUrls = intent.getStringArrayExtra(ACTION_SP_APPS_QUERY_FEEDS_REPSONSE_FEEDS_EXTRA)
         if (feedUrls == null) {
-            Log.e(TAG, "Received invalid SP_APPS_QUERY_REPSONSE: extra was null")
+            Logt(TAG, "Received invalid SP_APPS_QUERY_REPSONSE: extra was null")
             return
         }
         Logd(TAG, "Received feeds list: " + feedUrls.contentToString())

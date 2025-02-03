@@ -18,15 +18,12 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
-import ac.mdiq.podcini.ui.utils.curSearchString
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.utils.feedToSearchIn
-import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
-import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
+import ac.mdiq.podcini.ui.utils.*
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter
 import android.annotation.SuppressLint
 import android.content.Context
@@ -66,7 +63,6 @@ import coil.request.ImageRequest
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import java.text.NumberFormat
-import kotlin.math.min
 
 class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     internal var automaticSearchDebouncer: Handler
@@ -189,7 +185,9 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                     pafeeds.clear()
                     if (results_.pafeeds.isNotEmpty()) pafeeds.addAll(results_.pafeeds)
                 }
-            } catch (e: Throwable) { Log.e(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) {
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e)) }
         }.apply { invokeOnCompletion { searchJob = null } }
     }
 

@@ -2,6 +2,8 @@ package ac.mdiq.podcini.util.error
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.os.Build
 import android.util.Log
 import org.apache.commons.io.IOUtils
@@ -40,7 +42,9 @@ class CrashReportWriter : Thread.UncaughtExceptionHandler {
                 out.println("```")
                 exception.printStackTrace(out)
                 out.println("```")
-            } catch (e: IOException) { Log.e(TAG, Log.getStackTraceString(e))
+            } catch (e: IOException) {
+                Logt(TAG, e.message?: "error")
+                Loge(TAG, Log.getStackTraceString(e))
             } finally { IOUtils.closeQuietly(out) }
         }
 

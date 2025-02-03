@@ -13,6 +13,7 @@ import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.annotation.SuppressLint
 import android.app.UiModeManager
 import android.content.ContentResolver
@@ -313,7 +314,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             if (it.isSuccess) {
                 Logd(TAG, "seekTo Seek succeeded to position $t ms")
                 if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, t, curEpisode!!.duration))
-            } else Log.e(TAG, "Seek failed")
+            } else Logt(TAG, "Seek failed")
         }
     }
 
