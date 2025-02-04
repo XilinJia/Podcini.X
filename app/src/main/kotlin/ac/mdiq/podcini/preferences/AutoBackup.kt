@@ -8,7 +8,6 @@ import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.dateStampFilename
 import android.app.Activity
 import android.net.Uri
-import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

@@ -32,7 +32,9 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.toastMassege
+import ac.mdiq.podcini.util.toastMessages
 import android.content.ComponentName
 import android.content.DialogInterface
 import android.content.pm.PackageManager
@@ -40,7 +42,6 @@ import android.content.res.Configuration
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowInsetsController
@@ -147,6 +148,10 @@ class VideoplayerActivity : CastEnabledActivity() {
                 if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
 
                 LaunchedEffect(curMediaId) { cleanedNotes = null }
+                if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = {
+                    toastMessages.add(toastMassege)
+                    toastMassege = ""
+                })
 
                 Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
                     if (landscape) Box(modifier = Modifier.fillMaxSize()) { VideoPlayer() }
@@ -317,7 +322,7 @@ class VideoplayerActivity : CastEnabledActivity() {
                         }
                         episode_
                     }
-                } catch (e: Throwable) { Logt(TAG, Log.getStackTraceString(e))
+                } catch (e: Throwable) { Logs(TAG, e)
                 } finally { loadItemsRunning = false }
             }
         }

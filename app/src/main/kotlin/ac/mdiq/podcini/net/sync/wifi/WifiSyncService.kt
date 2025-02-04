@@ -9,18 +9,17 @@ import ac.mdiq.podcini.net.sync.model.*
 import ac.mdiq.podcini.net.sync.model.EpisodeAction.Companion.readFromJsonObject
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
+import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Rating
-import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
-import android.util.Log
 import androidx.core.content.ContextCompat.getString
 import androidx.work.*
 import org.apache.commons.lang3.StringUtils
@@ -161,7 +160,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
         val command = "netstat -tlnp"
         val process = Runtime.getRuntime().exec(command)
         val output = process.inputStream.bufferedReader().use { it.readText() }
-//        Log.d(TAG, "isPortInUse: $output")
+//        Logd(TAG, "isPortInUse: $output")
         return output.contains(":$port") // Check if output contains the port
     }
 
@@ -270,7 +269,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
 
     @Throws(SyncServiceException::class)
     override fun uploadEpisodeActions(queuedEpisodeActions: List<EpisodeAction>): UploadChangesResponse {
-//        Log.d(TAG, "uploadEpisodeActions called")
+//        Logd(TAG, "uploadEpisodeActions called")
         var i = 0
         while (i < queuedEpisodeActions.size) {
             uploadEpisodeActionsPartial(queuedEpisodeActions, i, min(queuedEpisodeActions.size.toDouble(), (i + UPLOAD_BULK_SIZE).toDouble()).toInt())
@@ -282,7 +281,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
 
     @Throws(SyncServiceException::class)
     private fun uploadEpisodeActionsPartial(queuedEpisodeActions: List<EpisodeAction>, from: Int, to: Int) {
-//        Log.d(TAG, "uploadEpisodeActionsPartial called")
+//        Logd(TAG, "uploadEpisodeActionsPartial called")
         try {
             val list = JSONArray()
             for (i in from until to) {

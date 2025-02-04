@@ -15,11 +15,10 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -69,7 +68,7 @@ class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
                     getRecentPodcasts()
                     getDatasetStats()
                 }
-            } catch (e: Throwable) { Logt(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) { Logs(TAG, e) }
         }
     }
 }

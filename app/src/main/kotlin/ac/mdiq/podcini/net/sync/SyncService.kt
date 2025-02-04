@@ -35,16 +35,11 @@ import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.utils.NotificationUtils
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.*
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import androidx.collection.ArrayMap
 import androidx.core.app.NotificationCompat
 import androidx.work.*
@@ -87,8 +82,7 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
         } catch (e: Exception) {
             EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_error))
             SynchronizationSettings.setLastSynchronizationAttemptSuccess(false)
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             if (e is SyncServiceException) {
                 // Do not spam users with notification and retry before notifying
                 if (runAttemptCount % 3 == 2) updateErrorNotification(e)
@@ -97,9 +91,7 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
                 updateErrorNotification(e)
                 return Result.failure()
             }
-        } finally {
-            setCurrentlyActive(false)
-        }
+        } finally { setCurrentlyActive(false) }
     }
 
      @Throws(SyncServiceException::class)
@@ -172,7 +164,7 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
                 }
             } catch (e: InterruptedException) { e.printStackTrace()
             } catch (e: ExecutionException) { e.printStackTrace() }
-        } else Log.w(TAG, "removeFeedWithDownloadUrl: Could not find feed with url: $downloadUrl")
+        } else Logt(TAG, "removeFeedWithDownloadUrl: Could not find feed with url: $downloadUrl")
     }
 
     private fun waitForDownloadServiceCompleted() {

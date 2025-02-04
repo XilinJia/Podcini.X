@@ -115,11 +115,12 @@ object AutoDownloads {
                     }
                     val feeds = feeds ?: getFeedList()
                     feeds.forEach { f ->
-                        if (f.autoDownload == true && !f.isLocalFeed) {
+                        if (f.autoDownload && !f.isLocalFeed) {
                             var episodes = mutableListOf<Episode>()
                             val dlFilter =
-                                if (f.countingPlayed == true) EpisodeFilter(EpisodeFilter.States.downloaded.name)
-                                else EpisodeFilter(EpisodeFilter.States.downloaded.name, EpisodeFilter.States.unplayed.name, EpisodeFilter.States.inQueue.name,
+                                if (f.countingPlayed) EpisodeFilter(EpisodeFilter.States.downloaded.name)
+                                else EpisodeFilter(EpisodeFilter.States.downloaded.name,
+                                    EpisodeFilter.States.unplayed.name, EpisodeFilter.States.inQueue.name,
                                     EpisodeFilter.States.inProgress.name, EpisodeFilter.States.skipped.name)
                             val downloadedCount = getEpisodesCount(dlFilter, f.id)
                             var allowedDLCount = f.autoDLMaxEpisodes - downloadedCount
@@ -233,7 +234,7 @@ object AutoDownloads {
                     }
                 }
                 else {
-                    toastMassege = "auto downloaded not performed: network: $networkShouldAutoDl power:s $powerShouldAutoDl"
+                    toastMassege = "auto downloaded not performed: network: $networkShouldAutoDl power: $powerShouldAutoDl"
                     Logd(TAG, "not auto downloaded networkShouldAutoDl: $networkShouldAutoDl powerShouldAutoDl $powerShouldAutoDl")
                 }
             }

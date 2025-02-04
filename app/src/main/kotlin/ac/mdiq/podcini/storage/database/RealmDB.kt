@@ -6,7 +6,6 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.showStackTrace
 import android.net.Uri
-import android.util.Log
 import io.realm.kotlin.MutableRealm
 import io.realm.kotlin.Realm
 import io.realm.kotlin.RealmConfiguration
@@ -187,7 +186,7 @@ object RealmDB {
 //                                ne?.set("fileUrl", uri.toString())
 //                            }
 //                        } catch (e: Throwable) {
-//                            Loge(TAG, " can't create uri from fileUrl")
+//                            Logs(TAG, " can't create uri from fileUrl")
 //                            val ne = newRealm.findLatest(oe)
 //                            ne?.set("fileUrl", "")
 //                        }

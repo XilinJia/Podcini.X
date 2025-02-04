@@ -19,25 +19,17 @@ import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
-import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.utils.setSearchTerms
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import android.app.Activity.RESULT_OK
 import android.content.*
 import android.net.Uri
-import android.util.Log
 import android.view.Gravity
 import androidx.activity.compose.BackHandler
 import androidx.activity.result.ActivityResult
@@ -254,9 +246,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     if (feedsFilter.isNotEmpty()) infoTextFiltered = context.getString(R.string.filtered_label)
                     txtvInformation = (infoTextFiltered + infoTextUpdate)
                 }
-            } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) { Logs(TAG, e) }
         }.apply { invokeOnCompletion { loadingJob = null } }
     }
 

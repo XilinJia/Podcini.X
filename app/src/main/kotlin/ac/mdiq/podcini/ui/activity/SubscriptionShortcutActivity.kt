@@ -4,12 +4,11 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CustomTheme
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Logs
 import android.app.ActivityManager
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.util.Log
 import android.util.TypedValue
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -123,7 +122,7 @@ class SubscriptionShortcutActivity : ComponentActivity() {
             try {
                 val result = withContext(Dispatchers.IO) { getFeedList() }
                 withContext(Dispatchers.Main) { listItems.addAll(result) }
-            } catch (e: Throwable) { Logt(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) { Logs(TAG, e) }
         }
     }
 

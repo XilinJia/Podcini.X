@@ -49,16 +49,12 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PAUSED
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
-import ac.mdiq.podcini.util.toastMassege
+import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
-import ac.mdiq.podcini.ui.utils.NotificationUtils
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
 import ac.mdiq.podcini.util.IntentUtils.sendLocalBroadcast
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -76,12 +72,10 @@ import android.media.AudioManager
 import android.os.*
 import android.os.Build.VERSION_CODES
 import android.service.quicksettings.TileService
-import android.util.Log
 import android.view.KeyEvent
 import android.view.KeyEvent.KEYCODE_MEDIA_STOP
 import android.view.ViewConfiguration
 import android.webkit.URLUtil
-import android.widget.Toast
 import androidx.annotation.VisibleForTesting
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.MediaItem
@@ -140,7 +134,7 @@ class PlaybackService : MediaLibraryService() {
 
     private val autoStateUpdated: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "autoStateUpdated onReceive called with action: ${intent.action}")
+            Logd(TAG, "autoStateUpdated onReceive called with action: ${intent.action}")
             val status = intent.getStringExtra("media_connection_status")
             val isConnectedToCar = "media_connected" == status
             Logd(TAG, "Received Auto Connection update: $status")
@@ -172,7 +166,7 @@ class PlaybackService : MediaLibraryService() {
             // Don't pause playback after we just started, just because the receiver
             // delivers the current headset state (instead of a change)
             if (isInitialStickyBroadcast) return
-            Log.d(TAG, "headsetDisconnected onReceive called with action: ${intent.action}")
+            Logd(TAG, "headsetDisconnected onReceive called with action: ${intent.action}")
 
             if (intent.action == Intent.ACTION_HEADSET_PLUG) {
                 val state = intent.getIntExtra("state", -1)
@@ -192,7 +186,7 @@ class PlaybackService : MediaLibraryService() {
 
     private val bluetoothStateUpdated: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "bluetoothStateUpdated onReceive called with action: ${intent.action}")
+            Logd(TAG, "bluetoothStateUpdated onReceive called with action: ${intent.action}")
             if (intent.action == BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED) {
                 val state = intent.getIntExtra(BluetoothA2dp.EXTRA_STATE, -1)
                 if (state == BluetoothA2dp.STATE_CONNECTED) {
@@ -206,7 +200,7 @@ class PlaybackService : MediaLibraryService() {
     private val audioBecomingNoisy: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             // sound is about to change, eg. bluetooth -> speaker
-            Log.d(TAG, "audioBecomingNoisy onReceive called with action: ${intent.action}")
+            Logd(TAG, "audioBecomingNoisy onReceive called with action: ${intent.action}")
             Logd(TAG, "Pausing playback because audio is becoming noisy")
 //            pauseIfPauseOnDisconnect()
             transientPause = (MediaPlayerBase.status == PlayerStatus.PLAYING || MediaPlayerBase.status == PlayerStatus.FALLBACK)
@@ -224,13 +218,12 @@ class PlaybackService : MediaLibraryService() {
                 val item = curEpisode ?: currentitem ?: return
                 val skipEnd = item.feed?.endingSkip?:0
                 val skipEndMS = skipEnd * 1000
-//                  Log.d(TAG, "skipEndingIfNecessary: checking " + remainingTime + " " + skipEndMS + " speed " + currentPlaybackSpeed)
+//                  Logd(TAG, "skipEndingIfNecessary: checking " + remainingTime + " " + skipEndMS + " speed " + currentPlaybackSpeed)
                 if (skipEnd > 0 && skipEndMS < curDuration && (remainingTime - skipEndMS < 0)) {
                     Logd(TAG, "skipEndingIfNecessary: Skipping the remaining $remainingTime $skipEndMS speed $curSpeed")
                     val context = applicationContext
                     val skipMesg = context.getString(R.string.pref_feed_skip_ending_toast, skipEnd)
-                    val toast = Toast.makeText(context, skipMesg, Toast.LENGTH_LONG)
-                    toast.show()
+                    Logt(TAG, skipMesg)
                     autoSkippedFeedMediaId = item.identifyingValue
                     mPlayer?.skip()
                 }
@@ -246,7 +239,7 @@ class PlaybackService : MediaLibraryService() {
 
     private val shutdownReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "shutdownReceiver onReceive called with action: ${intent.action}")
+            Logd(TAG, "shutdownReceiver onReceive called with action: ${intent.action}")
             if (intent.action == ACTION_SHUTDOWN_PLAYBACK_SERVICE)
                 EventFlow.postEvent(FlowEvent.PlaybackServiceEvent(FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN))
         }
@@ -279,7 +272,7 @@ class PlaybackService : MediaLibraryService() {
     private val mediaPlayerCallback: MediaPlayerCallback = object : MediaPlayerCallback {
         override fun statusChanged(newInfo: MediaPlayerInfo?) {
             currentMediaType = mPlayer?.mediaType ?: MediaType.UNKNOWN
-            Log.d(TAG, "statusChanged called ${newInfo?.playerStatus}")
+            Logd(TAG, "statusChanged called ${newInfo?.playerStatus}")
             if (newInfo != null) {
                 when (newInfo.playerStatus) {
                     PlayerStatus.INITIALIZED -> if (mPlayer != null) writeMediaPlaying(mPlayer!!.playerInfo.playable, mPlayer!!.playerInfo.playerStatus)
@@ -392,8 +385,7 @@ class PlaybackService : MediaLibraryService() {
                         Logd(TAG, "skipIntro " + playable.getEpisodeTitle())
                         mPlayer?.seekTo(skipIntroMS)
                         val skipIntroMesg = applicationContext.getString(R.string.pref_feed_skip_intro_toast, skipIntro)
-                        val toast = Toast.makeText(applicationContext, skipIntroMesg, Toast.LENGTH_LONG)
-                        toast.show()
+                        Logt(TAG, skipIntroMesg)
                     }
                 }
             }
@@ -555,7 +547,7 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         override fun onCustomCommand(session: MediaSession, controller: MediaSession.ControllerInfo, customCommand: SessionCommand, args: Bundle): ListenableFuture<SessionResult> {
-            Log.d(TAG, "MyMediaSessionCallback onCustomCommand ${customCommand.customAction}")
+            Logd(TAG, "MyMediaSessionCallback onCustomCommand ${customCommand.customAction}")
             /* Handling custom command buttons from player notification. */
             when (customCommand.customAction) {
                 NotificationCustomButton.REWIND.customAction -> mPlayer?.seekDelta(-rewindSecs * 1000)
@@ -754,7 +746,7 @@ class PlaybackService : MediaLibraryService() {
         else intent?.getParcelableExtra(EXTRA_KEY_EVENT)
 
         val playable = curEpisode
-        Log.d(TAG, "onStartCommand flags=$flags startId=$startId keycode=$keycode keyEvent=$keyEvent customAction=$customAction hardwareButton=$hardwareButton action=${intent?.action.toString()} ${playable?.getEpisodeTitle()}")
+        Logd(TAG, "onStartCommand flags=$flags startId=$startId keycode=$keycode keyEvent=$keyEvent customAction=$customAction hardwareButton=$hardwareButton action=${intent?.action.toString()} ${playable?.getEpisodeTitle()}")
         if (keycode == -1 && playable == null && customAction == null) {
             Logt(TAG, "onStartCommand PlaybackService was started with no arguments, return")
             return START_NOT_STICKY
@@ -854,7 +846,7 @@ class PlaybackService : MediaLibraryService() {
      * Handles media button events. return: keycode was handled
      */
     private fun handleKeycode(keycode: Int, notificationButton: Boolean): Boolean {
-        Log.d(TAG, "Handling keycode: $keycode")
+        Logd(TAG, "Handling keycode: $keycode")
         val info = mPlayer?.playerInfo
         val status = info?.playerStatus
         when (keycode) {
@@ -933,7 +925,7 @@ class PlaybackService : MediaLibraryService() {
                 if (info?.playable != null && info.playerStatus == PlayerStatus.PLAYING) {
                     // only notify the user about an unknown key event if it is actually doing something
                     val message = String.format(resources.getString(R.string.unknown_media_key), keycode)
-                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                    Logt(TAG, message)
                 }
             }
         }
@@ -1305,7 +1297,7 @@ class PlaybackService : MediaLibraryService() {
                 try {
                     media.loadChapters(context, false)
                     withContext(Dispatchers.Main) { callback.onChapterLoaded(media) }
-                } catch (e: Throwable) { Logd(TAG, "Error loading chapters: ${Log.getStackTraceString(e)}") }
+                } catch (e: Throwable) { Logs(TAG, e, "Error loading chapters:") }
             }
         }
 
@@ -1604,7 +1596,7 @@ class PlaybackService : MediaLibraryService() {
                     playbackService?.mPlayer?.prepare()
                     playbackService?.taskManager?.restartSleepTimer()
                 }
-                else -> Log.w(TAG, "Play/Pause button was pressed and PlaybackService state was unknown")
+                else -> Logt(TAG, "Play/Pause button was pressed and PlaybackService state was unknown")
             }
         }
 

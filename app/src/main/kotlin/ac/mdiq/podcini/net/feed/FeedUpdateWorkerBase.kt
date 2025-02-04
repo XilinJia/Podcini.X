@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.automation.AutoDownloads.autodownloadEpisodeMedia
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.service.DefaultDownloaderFactory
 import ac.mdiq.podcini.net.download.service.DownloadRequest
@@ -17,7 +18,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.automation.AutoDownloads.autodownloadEpisodeMedia
 import ac.mdiq.podcini.storage.database.Feeds
 import ac.mdiq.podcini.storage.database.LogsAndStats
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
@@ -33,11 +33,13 @@ import android.app.Notification
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
-import androidx.work.*
+import androidx.work.ForegroundInfo
+import androidx.work.WorkManager
+import androidx.work.Worker
+import androidx.work.WorkerParameters
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import org.xml.sax.SAXException
@@ -127,7 +129,6 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Wo
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
             Logt(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
-//            Toast.makeText(applicationContext, R.string.notification_permission_text, Toast.LENGTH_LONG).show()
             return
         }
         val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()

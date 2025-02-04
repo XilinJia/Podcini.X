@@ -12,13 +12,11 @@ import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.content.SharedPreferences
 import android.text.format.DateFormat
 import android.text.format.Formatter
-import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -203,9 +201,7 @@ fun StatisticsScreen() {
                 setTimeFilter(vm.includeMarkedAsPlayed,
                     max(min(timeFilterFrom.toDouble(), System.currentTimeMillis().toDouble()), vm.statsResult.oldestDate.toDouble()).toLong(),
                     min(timeFilterTo.toDouble(), System.currentTimeMillis().toDouble()).toLong())
-            } catch (error: Throwable) {
-                Logt(TAG, error.message?: "error")
-                Loge(TAG, Log.getStackTraceString(error)) }
+            } catch (error: Throwable) { Logs(TAG, error) }
         }
         LaunchedEffect(Unit) { if (vm.statisticsState >= 0) loadStatistics() }
 
@@ -285,9 +281,7 @@ fun StatisticsScreen() {
                 monthlyStats = months.toMutableStateList()
                 for (item in monthlyStats) monthlyMaxDataValue = max(monthlyMaxDataValue.toDouble(), item.timePlayed.toDouble()).toFloat()
                 Logd(TAG, "maxDataValue: $monthlyMaxDataValue")
-            } catch (error: Throwable) {
-                Logt(TAG, error.message?: "error")
-                Loge(TAG, Log.getStackTraceString(error)) }
+            } catch (error: Throwable) { Logs(TAG, error) }
         }
         @Composable
         fun BarChart() {
@@ -378,9 +372,7 @@ fun StatisticsScreen() {
                     }
                 }
                 vm.statisticsState++
-            } catch (error: Throwable) {
-                Logt(TAG, error.message?: "error")
-                Loge(TAG, Log.getStackTraceString(error)) }
+            } catch (error: Throwable) { Logs(TAG, error) }
         }
     }
     if (vm.showFilter) DatesFilterDialog(inclPlayed = vm.prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false), from = vm.prefs.getLong(PREF_FILTER_FROM, 0), to = vm.prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE),

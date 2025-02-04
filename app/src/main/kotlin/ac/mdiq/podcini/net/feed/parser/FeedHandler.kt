@@ -6,10 +6,12 @@ import ac.mdiq.podcini.net.feed.parser.utils.DurationParser.inMillis
 import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.getMimeType
 import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.isImageFile
 import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.isMediaFile
-import ac.mdiq.podcini.storage.model.*
+import ac.mdiq.podcini.storage.model.Chapter
+import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.FeedFunding
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
-import android.util.Log
 import androidx.core.text.HtmlCompat
 import org.apache.commons.io.input.XmlStreamReader
 import org.jsoup.Jsoup
@@ -403,7 +405,7 @@ class FeedHandler {
 
     class Atom : Namespace() {
         override fun handleElementStart(localName: String, state: HandlerState, attributes: Attributes): SyndElement {
-//        Log.d(TAG, "handleElementStart $localName")
+//        Logd(TAG, "handleElementStart $localName")
             when {
                 ENTRY == localName -> {
                     state.currentItem = Episode()
@@ -476,7 +478,7 @@ class FeedHandler {
         }
 
         override fun handleElementEnd(localName: String, state: HandlerState) {
-//        Log.d(TAG, "handleElementEnd $localName")
+//        Logd(TAG, "handleElementEnd $localName")
             if (ENTRY == localName) {
                 if (state.currentItem != null && state.tempObjects.containsKey(Itunes.DURATION)) {
                     val currentItem = state.currentItem
@@ -668,7 +670,7 @@ class FeedHandler {
     /** Processes tags from the http://search.yahoo.com/mrss/ namespace.  */
     class Media : Namespace() {
         override fun handleElementStart(localName: String, state: HandlerState, attributes: Attributes): SyndElement {
-//        Log.d(TAG, "handleElementStart $localName")
+//        Logd(TAG, "handleElementStart $localName")
             when (localName) {
                 CONTENT -> {
                     val url: String? = attributes.getValue(DOWNLOAD_URL)
@@ -741,7 +743,7 @@ class FeedHandler {
         }
 
         override fun handleElementEnd(localName: String, state: HandlerState) {
-//        Log.d(TAG, "handleElementEnd $localName")
+//        Logd(TAG, "handleElementEnd $localName")
             if (DESCRIPTION == localName) {
                 val content = state.contentBuf.toString()
                 state.currentItem?.setDescriptionIfLonger(content)
@@ -812,7 +814,7 @@ class FeedHandler {
      */
     class Rss20 : Namespace() {
         override fun handleElementStart(localName: String, state: HandlerState, attributes: Attributes): SyndElement {
-//        Log.d(TAG, "handleElementStart $localName")
+//        Logd(TAG, "handleElementStart $localName")
             when {
                 ITEM == localName && CHANNEL == state.tagstack.lastElement()?.name -> {
                     state.currentItem = Episode()
@@ -838,7 +840,7 @@ class FeedHandler {
         }
 
         override fun handleElementEnd(localName: String, state: HandlerState) {
-//        Log.d(TAG, "handleElementEnd $localName")
+//        Logd(TAG, "handleElementEnd $localName")
             when {
                 ITEM == localName -> {
                     if (state.currentItem != null) {

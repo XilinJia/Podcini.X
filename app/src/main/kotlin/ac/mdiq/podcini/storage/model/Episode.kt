@@ -24,7 +24,6 @@ import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.util.Log
 import android.webkit.URLUtil.guessFileName
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -48,7 +47,6 @@ import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import java.io.*
 import java.util.*
-import kotlin.Throws
 import kotlin.math.max
 
 class Episode : RealmObject {

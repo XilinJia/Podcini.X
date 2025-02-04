@@ -48,19 +48,14 @@ import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
-import ac.mdiq.podcini.util.ShareUtils
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.text.format.Formatter
-import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
 import androidx.compose.animation.core.Animatable
@@ -423,9 +418,7 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
                                 }
                             }
                             EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-                        } catch (e: Throwable) {
-                            Logt("EraseEpisodesDialog", Log.getStackTraceString(e))
-                        }
+                        } catch (e: Throwable) { Logs("EraseEpisodesDialog", e) }
                     }
                     onDismissRequest()
                 }) { Text(stringResource(R.string.confirm_label)) }

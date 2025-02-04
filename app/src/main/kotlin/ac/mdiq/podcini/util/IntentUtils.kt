@@ -6,8 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.util.Log
-import android.widget.Toast
+
 
 object IntentUtils {
     private val TAG: String = IntentUtils::class.simpleName ?: "Anonymous"
@@ -34,10 +33,6 @@ object IntentUtils {
             val myIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             myIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(myIntent)
-        } catch (e: ActivityNotFoundException) {
-            Toast.makeText(context, R.string.pref_no_browser_found, Toast.LENGTH_LONG).show()
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
-        }
+        } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.pref_no_browser_found)) }
     }
 }

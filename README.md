@@ -77,7 +77,7 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
 ### Podcast/Episode list
 
 * Subscriptions page by default has a list layout and can be opted for a grid layout for the podcasts subscribed
-* An all new sorting dialog and mechanism for Subscriptions based on title, date, and count combinable with other criteria
+* An all new sorting dialog and mechanism for Subscriptions based on title, date, time and count combinable with other criteria
 * An all new way of filtering for both podcasts and episodes with expanded criteria.
   * some multi-factor criteria options are hidden by default, tap on the criteria to show the options.
 * Near the top of Subscriptions view, there are two spinners: Tags to filter subscriptions based on tags, Queues to filter subscriptions based on associated queues.
@@ -166,15 +166,25 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
 
 ### Automation
 
+* Auto refresh (feed updates) can be set with an interval in hours. Start time is "now" unless it's separately set
+  * Note these timing are not guaranteed to be exact. Android has interests in controlling them.
 * Auto download algorithm is based on settings in individual feed.
-  * When auto download is enabled in the global Settings, feeds to be auto-downloaded need to be separately enabled in the feed settings.
-  * Each feed also has its own download policy (Only new (with or without Replace), Newest, Oldest or Marked as Soon. 
-    * Newest meaning most recent episodes, With Replace, new episodes will be downloaded and older downloaded episodes deleted
-  * Each feed has its own limit (Episode cache) for number of episodes downloaded, this limit rules in combination of the overall limit  for the app.
-  * Auto downloads run after feed updates, scheduled or manual
-  * Any undownloaded episodes (regardless of feeds) added in the Default queue are always included in Auto download 
+  * When auto download is enabled in the global Settings, by default, all undownloaded episodes in queues are candidates for download
+    * whether or which queues are included in auto-download can be configures in Settings
+  * Auto downloads run after feed refresh, scheduled or manual
+  * Auto-downloading of episodes in any feed need to be separately enabled in the feed settings.
+  * Each feed has its own limit (Episode cache) for number of episodes downloaded, this limit rules in combination of the global limit for the app.
+  * Each feed can have its own download policy 
+    * Only new: only new items at refresh time are download candidates.
+      * without Replace, if old downloaded items (fulfilling the allowed cache) have not been played, new items will not be downloaded.
+      * with Replace, new items will replace old downloaded items
+    Newest: the newest items (not necessarily new) are downloaded
+    Oldest: the oldest items are downloaded
+    Marked as Soon: only those marked as Soon are downloaded (in order of pub date descending)
+    Current filter and sort: the items to be downloaded depend on the current filtering and sorting criteria set in FeedDetailed screen
+      * the current filtering and sorting criteria are copied so, once set, future changes won't affect auto-download behavior
   * After auto download run, episodes with New status in the feed is changed to Unplayed.
-  * in auto download feed setting:
+  * in auto download feed setting inclusive and exclusive filters can be set (if needed) 
     * there are now separate dialogs for inclusive and exclusive filters where filter tokens can be specified independently
     * on exclusive dialog, there are optional check boxes "Exclude episodes shorter than" and "Mark excluded episodes played"
 * Sleep timer has a new option of "To the end of episode"

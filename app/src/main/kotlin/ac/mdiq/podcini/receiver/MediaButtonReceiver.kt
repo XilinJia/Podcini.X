@@ -1,12 +1,12 @@
 package ac.mdiq.podcini.receiver
 
+import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
 import android.view.KeyEvent
 import androidx.core.content.ContextCompat
 
@@ -17,20 +17,19 @@ import androidx.core.content.ContextCompat
 class MediaButtonReceiver : BroadcastReceiver() {
     
     override fun onReceive(context: Context, intent: Intent) {
-        Log.d(TAG, "onReceive Received intent: $intent")
-        Log.d(TAG, "onReceive Action: ${intent.action}")
+        Logd(TAG, "onReceive Received intent: $intent Action: ${intent.action}")
         val extras = intent.extras
-        Log.d(TAG, "onReceive Extras: $extras")
+        Logd(TAG, "onReceive Extras: $extras")
         if (extras == null) return
-        Log.d(TAG, "onReceive Extras: ${extras.keySet()}")
+        Logd(TAG, "onReceive Extras: ${extras.keySet()}")
         for (key in extras.keySet()) {
-            Log.d(TAG, "onReceive Extra[$key] = ${extras[key]}")
+            Logd(TAG, "onReceive Extra[$key] = ${extras[key]}")
         }
 
 //        val event = extras.getParcelable(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
         val keyEvent: KeyEvent? = if (Build.VERSION.SDK_INT >= 33) extras.getParcelable(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
         else extras.getParcelable(Intent.EXTRA_KEY_EVENT) as KeyEvent?
-        Log.d(TAG, "onReceive keyEvent = $keyEvent" )
+        Logd(TAG, "onReceive keyEvent = $keyEvent" )
 
         if (keyEvent != null && keyEvent.action == KeyEvent.ACTION_DOWN && keyEvent.repeatCount == 0) {
             ClientConfigurator.initialize(context)

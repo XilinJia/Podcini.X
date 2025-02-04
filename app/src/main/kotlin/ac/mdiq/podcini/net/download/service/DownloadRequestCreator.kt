@@ -6,7 +6,6 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.StorageUtils.feedfilePath
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
-import android.util.Log
 import java.io.File
 
 /**

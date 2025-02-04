@@ -19,17 +19,11 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.*
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.MiscFormatter
+import ac.mdiq.podcini.util.*
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -185,9 +179,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                     pafeeds.clear()
                     if (results_.pafeeds.isNotEmpty()) pafeeds.addAll(results_.pafeeds)
                 }
-            } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) { Logs(TAG, e) }
         }.apply { invokeOnCompletion { searchJob = null } }
     }
 

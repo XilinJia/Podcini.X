@@ -3,6 +3,7 @@ package ac.mdiq.podcini.preferences
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatRfc822Date
 import android.Manifest
@@ -13,7 +14,6 @@ import android.net.Uri
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
-import android.util.Log
 import android.util.Xml
 import androidx.core.app.ActivityCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -30,7 +30,6 @@ import java.io.InputStreamReader
 import java.io.Reader
 import java.io.Writer
 import java.util.*
-import kotlin.Throws
 
 class OpmlTransporter {
 
@@ -182,7 +181,7 @@ class OpmlTransporter {
                     withContext(Dispatchers.Main) { CB(result) }
                 } catch (e: Throwable) {
                     withContext(Dispatchers.Main) {
-                        Logd(TAG, Log.getStackTraceString(e))
+                        Logs(TAG, e)
                         val message = if (e.message == null) "" else e.message!!
                         if (message.lowercase().contains("permission")) {
                             val permission = ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)

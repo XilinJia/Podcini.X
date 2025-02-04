@@ -1,9 +1,7 @@
 package ac.mdiq.podcini.net.feed.parser.utils
 
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
-import android.util.Log
+import ac.mdiq.podcini.util.Logs
 import org.apache.commons.lang3.StringUtils
 import java.text.ParseException
 import java.text.ParsePosition
@@ -106,10 +104,7 @@ object DateUtils {
             try {
                 val result = parser.parse(date, pos)
                 if (result != null && pos.index == date.length) return result
-            } catch (e: Exception) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
-            }
+            } catch (e: Exception) { Logs(TAG, e) }
         }
 
         // if date string starts with a weekday, try parsing date string without it

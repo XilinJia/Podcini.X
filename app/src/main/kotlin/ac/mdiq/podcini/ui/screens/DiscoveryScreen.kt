@@ -11,11 +11,9 @@ import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -94,8 +92,7 @@ class DiscoveryVM(val context: Context, val lcScope: CoroutineScope) {
                     showProgress = false
                 }
             } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
+                Logs(TAG, e)
                 searchResults.clear()
                 errorText = e.message ?: "no error message"
                 retryQerry = " retry"

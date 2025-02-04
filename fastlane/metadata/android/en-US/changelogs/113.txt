@@ -1,0 +1,4 @@
+# 8.5.1
+
+* amended some logging
+* Android Toast messaging removed

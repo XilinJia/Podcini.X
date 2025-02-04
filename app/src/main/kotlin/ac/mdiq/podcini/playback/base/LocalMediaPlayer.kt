@@ -16,18 +16,13 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
 import android.media.audiofx.LoudnessEnhancer
-import android.util.Log
 import android.util.Pair
 import android.view.SurfaceHolder
 import androidx.core.util.Consumer
@@ -117,7 +112,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                     Logd(TAG, "onIsPlayingChanged $isPlaying")
                 }
                 override fun onPlayerError(error: PlaybackException) {
-                    Log.d(TAG, "onPlayerError ${error.message}")
+                    Logd(TAG, "onPlayerError ${error.message}")
                     if (wasDownloadBlocked(error)) audioErrorListener?.accept(context.getString(R.string.download_error_blocked))
                     else {
                         var cause = error.cause
@@ -351,9 +346,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
             PlayerStatus.PLAYING, PlayerStatus.PAUSED, PlayerStatus.PREPARED -> {
                 Logd(TAG, "seekTo t: $t")
                 if (seekLatch != null && seekLatch!!.count > 0) {
-                    try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) {
-                        Logt(TAG, e.message?: "error")
-                        Loge(TAG, Log.getStackTraceString(e)) }
+                    try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
                 }
                 seekLatch = CountDownLatch(1)
                 statusBeforeSeeking = status
@@ -362,9 +355,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, t, curEpisode!!.duration))
                 audioSeekCompleteListener?.run()
                 if (statusBeforeSeeking == PlayerStatus.PREPARED) curEpisode?.setPosition(t)
-                try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) {
-                    Logt(TAG, e.message?: "error")
-                    Loge(TAG, Log.getStackTraceString(e)) }
+                try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
             }
             PlayerStatus.INITIALIZED -> {
                 curEpisode?.setPosition(t)

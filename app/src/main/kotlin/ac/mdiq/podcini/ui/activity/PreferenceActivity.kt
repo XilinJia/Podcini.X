@@ -17,6 +17,7 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.util.toastMessages
 import android.content.ClipData
@@ -26,7 +27,7 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.MenuItem
-import android.widget.Toast
+
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
@@ -67,8 +68,8 @@ import java.io.InputStreamReader
 import javax.xml.parsers.DocumentBuilderFactory
 
 class PreferenceActivity : ComponentActivity() {
+    val TAG = "PreferenceActivity"
     var copyrightNoticeText by mutableStateOf("")
-//    var showToast by  mutableStateOf(false)
     var topAppBarTitle by mutableStateOf("Home")
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -294,7 +295,7 @@ class PreferenceActivity : ComponentActivity() {
                     licenses.add(LicenseItem(lib.getNamedItem("name").textContent,
                         String.format("By %s, %s license", lib.getNamedItem("author").textContent, lib.getNamedItem("license").textContent), lib.getNamedItem("website").textContent, lib.getNamedItem("licenseText").textContent))
                 }
-            }.invokeOnCompletion { throwable -> if (throwable!= null) Toast.makeText(this@PreferenceActivity, throwable.message, Toast.LENGTH_LONG).show() }
+            }.invokeOnCompletion { throwable -> if (throwable!= null) Logt(TAG, throwable.message ?: "Error") }
         }
 //        fun showLicenseText(licenseTextFile: String) {
 //            try {

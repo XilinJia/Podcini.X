@@ -2,11 +2,10 @@ package ac.mdiq.podcini.net.sync.nextcloud
 
 import ac.mdiq.podcini.net.sync.HostnameParser
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import kotlinx.coroutines.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -61,7 +60,7 @@ class NextcloudLoginFlow(
                     isWaitingForBrowser = true
                 }
             } catch (e: Throwable) {
-                Logt(TAG, Log.getStackTraceString(e))
+                Logs(TAG, e)
                 token = null
                 endpoint = null
                 callback.onNextcloudAuthError(e.localizedMessage)

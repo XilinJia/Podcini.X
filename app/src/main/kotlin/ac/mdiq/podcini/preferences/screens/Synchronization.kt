@@ -24,11 +24,12 @@ import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.toastMassege
 import android.content.Context.WIFI_SERVICE
 import android.net.wifi.WifiManager
 import android.text.format.DateUtils
-import android.widget.Toast
+
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -183,17 +184,15 @@ fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
                         when (event.messageResId) {
                             R.string.sync_status_error -> {
                                 errorMessage = event.message
-                                Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                                Logt(TAG, errorMessage)
                                 onDismissRequest()
                             }
                             R.string.sync_status_success -> {
-                                Toast.makeText(context, R.string.sync_status_success, Toast.LENGTH_LONG).show()
+                                Logt(TAG, context.getString(R.string.sync_status_success))
                                 onDismissRequest()
                             }
                             R.string.sync_status_in_progress -> progressMessage = event.message
-                            else -> {
-                                Logd(TAG, "Sync result unknow ${event.messageResId}")
-                            }
+                            else -> Logt(TAG, "Sync result unknown ${event.messageResId}")
                         }
                     }
                     else -> {}
@@ -257,7 +256,7 @@ fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
                 if (showConfirm) TextButton(onClick = {
                     Logd(TAG, "confirm button pressed")
                     if (isGuest == null) {
-                        Toast.makeText(getAppContext(), R.string.host_or_guest, Toast.LENGTH_LONG).show()
+                        Logt(TAG, getAppContext().getString(R.string.host_or_guest))
                         return@TextButton
                     }
                     showProgress = true

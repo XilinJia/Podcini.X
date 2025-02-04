@@ -12,7 +12,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.content.Context
@@ -20,7 +20,6 @@ import android.media.AudioManager
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiManager.WifiLock
-import android.util.Log
 import android.util.Pair
 import android.view.SurfaceHolder
 import androidx.compose.runtime.getValue
@@ -305,7 +304,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      */
     @Synchronized
     protected fun setPlayerStatus(newStatus: PlayerStatus, newMedia: Episode?, position: Int = Episode.INVALID_TIME) {
-        Log.d(TAG, "${this.javaClass.simpleName}: Setting player status to $newStatus")
+        Logd(TAG, "${this.javaClass.simpleName}: Setting player status to $newStatus")
         this.oldStatus = status
         status = newStatus
         if (newMedia != null) {
@@ -354,8 +353,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             get() {
                 try { return getPref(AppPrefs.prefPlaybackSpeed, "1.00").toFloat()
                 } catch (e: NumberFormatException) {
-                    Logt(TAG, e.message?: "error")
-                    Loge(TAG, Log.getStackTraceString(e))
+                    Logs(TAG, e)
                     putPref(AppPrefs.prefPlaybackSpeed, "1.0")
                     return 1.0f
                 }

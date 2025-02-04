@@ -1,13 +1,11 @@
 package ac.mdiq.podcini.ui.dialog
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
 import androidx.annotation.VisibleForTesting
 import com.google.android.play.core.review.ReviewInfo
 import com.google.android.play.core.review.ReviewManager
@@ -37,9 +35,7 @@ object RatingDialog {
     }
 
     fun check() {
-        if (shouldShow()) try { showInAppReview() } catch (e: Exception) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e)) }
+        if (shouldShow()) try { showInAppReview() } catch (e: Exception) { Logs(TAG, e) }
     }
 
     private fun showInAppReview() {

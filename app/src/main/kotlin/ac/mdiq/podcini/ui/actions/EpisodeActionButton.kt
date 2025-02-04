@@ -28,20 +28,14 @@ import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.utils.AudioMediaTools
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.screens.FEObj
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.IntentUtils
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.*
 import android.content.Context
 import android.content.DialogInterface
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import android.util.Log
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -198,7 +192,7 @@ class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_
     override fun onClick(context: Context) {
         Logd("PlayActionButton", "onClick called file: ${item.fileUrl}")
         if (!item.fileExists()) {
-            Toast.makeText(context, R.string.error_file_not_found, Toast.LENGTH_LONG).show()
+            Logt(TAG, context.getString(R.string.error_file_not_found))
             notifyMissingEpisodeMediaFile(context, item)
             return
         }
@@ -221,7 +215,7 @@ class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_
      */
     fun notifyMissingEpisodeMediaFile(context: Context, media: Episode) {
         Logd(TAG, "notifyMissingEpisodeMediaFile called")
-        Log.i(TAG, "The feedmanager was notified about a missing episode. It will update its database now.")
+        Logt(TAG, "The feedmanager was notified about a missing episode. It will update its database now.")
         val episode = realm.query(Episode::class).query("id == ${media.id}").first().find()
         if (episode != null) {
             val episode_ = upsertBlk(episode) {
@@ -241,7 +235,7 @@ class PlayPauseActionButton(item: Episode) : EpisodeActionButton(item, R.string.
         if (!isPlaying) {
             Logd("PlayActionButton", "onClick called file: ${item.fileUrl}")
             if (!item.fileExists()) {
-                Toast.makeText(context, R.string.error_file_not_found, Toast.LENGTH_LONG).show()
+                Logt(TAG, context.getString(R.string.error_file_not_found))
                 notifyMissingEpisodeMediaFile(context, item)
                 return
             }
@@ -269,7 +263,7 @@ class PlayPauseActionButton(item: Episode) : EpisodeActionButton(item, R.string.
      */
     fun notifyMissingEpisodeMediaFile(context: Context, media: Episode) {
         Logd(TAG, "notifyMissingEpisodeMediaFile called")
-        Log.i(TAG, "The feedmanager was notified about a missing episode. It will update its database now.")
+        Logt(TAG, "The feedmanager was notified about a missing episode. It will update its database now.")
         val episode = realm.query(Episode::class).query("id == ${media.id}").first().find()
 //        val episode = media.episodeOrFetch()
         if (episode != null) {
@@ -427,7 +421,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
     override fun onClick(context: Context) {
         Logd("TTSActionButton", "onClick called")
         if (item.link.isNullOrEmpty()) {
-            Toast.makeText(context, R.string.episode_has_no_content, Toast.LENGTH_LONG).show()
+            Logt(TAG, context.getString(R.string.episode_has_no_content))
             return
         }
         processing = 1
@@ -454,8 +448,10 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                 if (item.feed?.language != null) {
                     val result = FEObj.tts?.setLanguage(Locale(item.feed!!.language!!))
                     if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        Log.w(TAG, "TTS language not supported ${item.feed!!.language} $result")
-                        withContext(Dispatchers.Main) { Toast.makeText(context, context.getString(R.string.language_not_supported_by_tts) + " ${item.feed!!.language} $result", Toast.LENGTH_LONG).show() }
+                        Logt(TAG, "TTS language not supported ${item.feed!!.language} $result")
+                        withContext(Dispatchers.Main) {
+                            Logt(TAG, context.getString(R.string.language_not_supported_by_tts) + " ${item.feed!!.language} $result")
+                        }
                     }
                 }
 
@@ -495,7 +491,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                         status = FEObj.tts?.synthesizeToFile(chunk, null, tempFile, tempFile.absolutePath) ?: 0
                         Logd(TAG, "status: $status chunk: ${chunk.substring(0, min(80, chunk.length))}")
                         if (status == TextToSpeech.ERROR) {
-                            withContext(Dispatchers.Main) { Toast.makeText(context, "Error generating audio file $tempFile.absolutePath", Toast.LENGTH_LONG).show() }
+                            Logt(TAG, "Error generating audio file $tempFile.absolutePath")
                             break
                         }
                     } catch (e: Exception) { Logt(TAG, "writing temp file error: ${e.message}")}
@@ -532,7 +528,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                     f.delete()
                 }
                 FEObj.ttsWorking = false
-            } else withContext(Dispatchers.Main) { Toast.makeText(context, R.string.episode_has_no_content, Toast.LENGTH_LONG).show() }
+            } else Logt(TAG, context.getString(R.string.episode_has_no_content))
 
             item = upsertBlk(item) { it.playState = PlayState.UNPLAYED.code }
 

@@ -8,16 +8,11 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.OutputStream
-import java.io.OutputStreamWriter
+import java.io.*
 import java.nio.charset.Charset
 
 enum class ExportTypes(val contentType: String, val outputNameTemplate: String, @field:StringRes val labelResId: Int) {

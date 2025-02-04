@@ -24,7 +24,6 @@ import ac.mdiq.podcini.ui.actions.SwipeActions.NoActionSwipeAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -33,27 +32,14 @@ import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
-import android.content.ActivityNotFoundException
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
-import android.content.Intent
+import android.content.*
 import android.net.Uri
 import android.speech.tts.TextToSpeech
-import android.util.Log
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
@@ -61,7 +47,6 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -306,11 +291,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             } catch (e: Throwable) {
                 feed = null
                 refreshHeaderView()
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
-            } catch (e: Exception) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e)) }
+                Logs(TAG, e)
+            } catch (e: Exception) { Logs(TAG, e) }
         }.apply { invokeOnCompletion { loadJob = null } }
     }
     fun buildMoreItems() {
@@ -326,11 +308,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 if (status == TextToSpeech.SUCCESS) {
                     FEObj.ttsReady = true
                     semaphore.release()
-                    Logd(TAG, "TTS init success")
-                } else {
-                    Log.w(TAG, "TTS init failed")
-                    lcScope.launch(Dispatchers.Main) { Toast.makeText(context, R.string.tts_init_failed, Toast.LENGTH_LONG).show() }
-                }
+                    Logt(TAG, "TTS init success")
+                } else Logt(TAG, context.getString(R.string.tts_init_failed))
             }
         }
     }

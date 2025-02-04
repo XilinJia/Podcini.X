@@ -3,8 +3,6 @@ package ac.mdiq.podcini.ui.view
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.storage.utils.DurationConverter
-import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.util.*
 import android.content.ClipData
@@ -15,7 +13,6 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.util.AttributeSet
-import android.util.Log
 import android.view.ContextMenu
 import android.view.Menu
 import android.view.MenuItem
@@ -25,7 +22,6 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
 import androidx.core.util.Consumer
-
 import com.google.android.material.snackbar.Snackbar
 import kotlin.math.max
 

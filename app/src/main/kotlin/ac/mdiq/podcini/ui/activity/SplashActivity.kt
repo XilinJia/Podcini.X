@@ -6,7 +6,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
+
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,7 +35,7 @@ class SplashActivity : Activity() {
             } catch (e: Throwable) {
                 e.printStackTrace()
                 CrashReportWriter.write(e)
-                Toast.makeText(this@SplashActivity, e.localizedMessage, Toast.LENGTH_LONG).show()
+//                Toast.makeText(this@SplashActivity, e.localizedMessage, Toast.LENGTH_LONG).show()
                 finish()
             }
         }

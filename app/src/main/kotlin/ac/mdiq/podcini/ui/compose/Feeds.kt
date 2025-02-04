@@ -33,15 +33,9 @@ import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.MiscFormatter
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
-import android.util.Log
 import android.view.Gravity
-import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -153,7 +147,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                                 deleteFeedSync(context, f.id, false)
                             }
                             EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))
-                        } catch (e: Throwable) { Logt("RemoveFeedDialog", Log.getStackTraceString(e)) }
+                        } catch (e: Throwable) { Logs("RemoveFeedDialog", e) }
                     }
                     onDismissRequest()
                 }) { Text(stringResource(R.string.confirm_label)) }
@@ -635,7 +629,7 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
                         }
                     } catch (e: Throwable) {
                         e.printStackTrace()
-                        Toast.makeText(context, (e.message ?: "Import error"), Toast.LENGTH_LONG).show()
+                        Logt("OpmlImportSelectionDialog", e.message ?: "Import error")
                     }
                 }
                 onDismissRequest()

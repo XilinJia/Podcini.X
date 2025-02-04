@@ -2,9 +2,9 @@ package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlReader
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.model.Feed
@@ -16,8 +16,6 @@ import android.app.backup.BackupDataOutput
 import android.app.backup.BackupHelper
 import android.content.Context
 import android.os.ParcelFileDescriptor
-import android.util.Log
-import android.widget.Toast
 import androidx.preference.PreferenceManager
 import org.apache.commons.io.IOUtils
 import org.xmlpull.v1.XmlPullParserException
@@ -169,9 +167,9 @@ class OpmlBackupAgent : BackupAgentHelper() {
                     feed.episodes.clear()
                     updateFeed(context, feed, false)
                 }
-                Toast.makeText(context, "${opmlElements.size} feeds were restored", Toast.LENGTH_SHORT).show()
+                Logt(TAG, "${opmlElements.size} feeds were restored")
                 runOnce(context)
-            } else Toast.makeText(context, "No backup data found", Toast.LENGTH_SHORT).show()
+            } else Logt(TAG, "No backup data found")
         }
     }
 }

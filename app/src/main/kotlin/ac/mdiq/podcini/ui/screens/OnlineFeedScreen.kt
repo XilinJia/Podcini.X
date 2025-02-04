@@ -27,11 +27,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.utils.*
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.MiscFormatter.formatAbbrev
 import android.app.Dialog
 import android.content.Context
@@ -39,8 +35,6 @@ import android.content.SharedPreferences
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -145,8 +139,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                 gearbox.buildFeed(urlString, username ?: "", password ?: "", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
             } catch (e: FeedUrlNotFoundException) { tryToRetrieveFeedUrlBySearch(e)
             } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
+                Logs(TAG, e)
                 withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
             }
         }
@@ -230,8 +223,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                     handleUpdatedFeedStatus()
                 }
             } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
+                Logs(TAG, e)
                 withContext(Dispatchers.Main) {
                     errorMessage = e.message ?: "No message"
                     errorDetails = ""
@@ -248,10 +240,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     private fun showFeedInformation(feed: Feed, alternateFeedUrls: Map<String, String>) {
         showProgress = false
         showFeedDisplay = true
-        if (isFeedFoundBySearch) {
-            val resId = R.string.no_feed_url_podcast_found_by_search
-            Toast.makeText(context, resId, Toast.LENGTH_LONG).show()
-        }
+        if (isFeedFoundBySearch) Logt(TAG, context.getString(R.string.no_feed_url_podcast_found_by_search))
 
 //        if (alternateFeedUrls.isEmpty()) binding.alternateUrlsSpinner.visibility = View.GONE
 //        else {

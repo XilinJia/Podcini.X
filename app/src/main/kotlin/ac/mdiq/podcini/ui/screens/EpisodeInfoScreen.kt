@@ -23,7 +23,6 @@ import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.ui.actions.*
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
@@ -31,18 +30,12 @@ import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.view.ShownotesWebView
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.IntentUtils
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.Context
 import android.content.ContextWrapper
 import android.text.format.Formatter.formatShortFileSize
-import android.util.Log
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -279,9 +272,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                         updateAppearance()
                         itemLoaded = true
                     }
-                } catch (e: Throwable) {
-                    Logt(TAG, e.message?: "error")
-                    Loge(TAG, Log.getStackTraceString(e))
+                } catch (e: Throwable) { Logs(TAG, e)
                 } finally { loadItemsRunning = false }
             }
         }
@@ -537,14 +528,10 @@ private suspend fun getMediaSize(episode: Episode?) : Long {
                         val contentLength = response.header("Content-Length")?:"0"
                         try {
                             size = contentLength.toInt().toLong()
-                        } catch (e: NumberFormatException) {
-                            Logt(TAG, e.message?: "error")
-                            Loge(TAG, Log.getStackTraceString(e))
-                        }
+                        } catch (e: NumberFormatException) { Logs(TAG, e) }
                     }
                 } catch (e: Exception) {
-                    Logt(TAG, e.message?: "error")
-                    Loge(TAG, Log.getStackTraceString(e))
+                    Logs(TAG, e)
                     return@withContext -1  // better luck next time
                 }
             }

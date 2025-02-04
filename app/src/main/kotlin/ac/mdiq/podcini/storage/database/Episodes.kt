@@ -33,7 +33,6 @@ import android.app.backup.BackupManager
 import android.content.Context
 import android.content.DialogInterface
 import android.net.Uri
-import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.documentfile.provider.DocumentFile
 import com.google.android.material.dialog.MaterialAlertDialogBuilder

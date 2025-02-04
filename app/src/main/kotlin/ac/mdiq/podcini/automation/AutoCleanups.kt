@@ -15,8 +15,8 @@ import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
-import android.util.Log
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.runBlocking
 import java.util.*
@@ -84,7 +84,7 @@ object AutoCleanups {
                 } catch (e: InterruptedException) { e.printStackTrace() } catch (e: ExecutionException) { e.printStackTrace() }
             }
             val counter = delete.size
-            Log.i(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
+            Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
             return counter
         }
         public override fun getDefaultCleanupParameter(): Int {
@@ -129,7 +129,7 @@ object AutoCleanups {
                 } catch (e: InterruptedException) { e.printStackTrace() } catch (e: ExecutionException) { e.printStackTrace() }
             }
             val counter = delete.size
-            Log.i(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
+            Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
             return counter
         }
         public override fun getDefaultCleanupParameter(): Int {
@@ -143,7 +143,7 @@ object AutoCleanups {
     class APNullCleanupAlgorithm : EpisodeCleanupAlgorithm() {
         public override fun performCleanup(context: Context, numToRemove: Int): Int {
             // never clean anything up
-            Log.i(TAG, "performCleanup: Not removing anything")
+            Logt(TAG, "performCleanup: Not removing anything")
             return 0
         }
         public override fun getDefaultCleanupParameter(): Int {
@@ -190,7 +190,7 @@ object AutoCleanups {
                 } catch (e: InterruptedException) { e.printStackTrace() } catch (e: ExecutionException) { e.printStackTrace() }
             }
             val counter = delete.size
-            Log.i(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
+            Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
             return counter
         }
         @VisibleForTesting

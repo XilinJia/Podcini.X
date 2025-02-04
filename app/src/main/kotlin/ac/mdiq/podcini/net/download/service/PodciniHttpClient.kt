@@ -6,12 +6,10 @@ import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.ProxyConfig
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.annotation.SuppressLint
 import android.net.TrafficStats
-import android.util.Log
 import okhttp3.*
 import okhttp3.Credentials.basic
 import okhttp3.Interceptor.Chain
@@ -30,7 +28,6 @@ import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.*
-import kotlin.Throws
 
 /**
  * Provides access to a HttpClient singleton.
@@ -322,20 +319,16 @@ object PodciniHttpClient {
             managers.add(getSystemTrustManager(null))
             return CompositeX509TrustManager(managers)
         } catch (e: KeyStoreException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             return null
         } catch (e: CertificateException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             return null
         } catch (e: NoSuchAlgorithmException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             return null
         } catch (e: IOException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             return null
         }
     }

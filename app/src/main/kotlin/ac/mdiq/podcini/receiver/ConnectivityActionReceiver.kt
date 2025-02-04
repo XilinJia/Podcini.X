@@ -1,21 +1,21 @@
 package ac.mdiq.podcini.receiver
 
+import ac.mdiq.podcini.automation.AutoDownloads.autodownloadEpisodeMedia
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAutoDownloadAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
-import ac.mdiq.podcini.automation.AutoDownloads.autodownloadEpisodeMedia
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
-import android.util.Log
 
 
 class ConnectivityActionReceiver : BroadcastReceiver() {
      override fun onReceive(context: Context, intent: Intent) {
-        Log.d(TAG, "onReceive called with action: ${intent.action}")
+        Logd(TAG, "onReceive called with action: ${intent.action}")
         if (intent.action == ConnectivityManager.CONNECTIVITY_ACTION) {
             Logd(TAG, "Received intent")
             ClientConfigurator.initialize(context)
@@ -30,7 +30,7 @@ class ConnectivityActionReceiver : BroadcastReceiver() {
         } else { // if new network is Wi-Fi, finish ongoing downloads,
             // otherwise cancel all downloads
             if (isNetworkRestricted) {
-                Log.i(TAG, "Device is no longer connected to Wi-Fi. Cancelling ongoing downloads")
+                Logt(TAG, "Device is no longer connected to Wi-Fi. Cancelling ongoing downloads")
                 DownloadServiceInterface.get()?.cancelAll(context)
             }
         }

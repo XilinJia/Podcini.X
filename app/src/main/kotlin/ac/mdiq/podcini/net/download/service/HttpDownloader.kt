@@ -8,15 +8,13 @@ import ac.mdiq.podcini.net.feed.parser.utils.DateUtils.parse
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
 import ac.mdiq.podcini.storage.model.DownloadResult
-import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed.Companion.FEEDFILETYPE_FEED
 import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
 import ac.mdiq.podcini.storage.utils.StorageUtils.freeSpaceAvailable
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.net.Uri
-import android.util.Log
 import okhttp3.*
 import okhttp3.internal.http.StatusLine
 import org.apache.commons.io.IOUtils
@@ -25,7 +23,6 @@ import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.*
-import kotlin.Throws
 
 class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
@@ -84,7 +81,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
             Logd(TAG, "Response code is " + response.code)// check if size specified in the response header is the same as the size of the
             // written file. This check cannot be made if compression was used
-            //                    Log.d(TAG,"buffer: $buffer")
+            //                    Logd(TAG,"buffer: $buffer")
             when {
                 !response.isSuccessful && response.code == HttpURLConnection.HTTP_NOT_MODIFIED -> {
                     Logd(TAG, "Feed '" + downloadRequest.source + "' not modified since last update, Download canceled")
@@ -137,9 +134,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                             val progressPercent = (100.0 * downloadRequest.soFar / downloadRequest.size).toInt()
                             downloadRequest.progressPercent = progressPercent
                         }
-                    } catch (e: IOException) {
-                        Logt(TAG, e.message?: "error")
-                        Loge(TAG, Log.getStackTraceString(e)) }
+                    } catch (e: IOException) { Logs(TAG, e) }
 
                     if (cancelled) onCancelled()
                     else {
@@ -245,7 +240,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
             Logd(TAG, "Response code is " + response.code)// check if size specified in the response header is the same as the size of the
             // written file. This check cannot be made if compression was used
-            //                    Log.d(TAG,"buffer: $buffer")
+            //                    Logd(TAG,"buffer: $buffer")
             when {
                 !response.isSuccessful && response.code == HttpURLConnection.HTTP_NOT_MODIFIED -> {
                     Logd(TAG, "Feed '" + downloadRequest.source + "' not modified since last update, Download canceled")
@@ -303,9 +298,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                                 }
                             }
                         }
-                    } catch (e: IOException) {
-                        Logt(TAG, e.message?: "error")
-                        Loge(TAG, Log.getStackTraceString(e)) }
+                    } catch (e: IOException) { Logs(TAG, e) }
 
                     if (cancelled) onCancelled()
                     else {

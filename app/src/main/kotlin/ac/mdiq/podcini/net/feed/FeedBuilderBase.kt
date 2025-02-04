@@ -4,17 +4,15 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
 import ac.mdiq.podcini.net.download.service.Downloader
 import ac.mdiq.podcini.net.download.service.HttpDownloader
-import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.feed.parser.FeedHandler
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.error.DownloadErrorLabel.from
 import android.content.Context
-import android.util.Log
 import kotlinx.coroutines.*
 import org.jsoup.Jsoup
 import java.io.File
@@ -62,15 +60,14 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
                             val result = doParseFeed(request.destination)
                             if (result != null) withContext(Dispatchers.Main) { handleFeed(result.feed, result.alternateFeedUrls) }
                         } catch (e: Throwable) {
-                            Logd(TAG, "Feed parser exception: " + Log.getStackTraceString(e))
+                            Logs(TAG, e, "Feed parser exception:")
                             withContext(Dispatchers.Main) { showError(e.message, "") }
                         }
                     }
                     else -> withContext(Dispatchers.Main) { showError(context.getString(from(status.reason)), status.reasonDetailed) }
                 }
             } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
+                Logs(TAG, e)
                 withContext(Dispatchers.Main) { showError(e.message, "") }
             }
         }
@@ -100,9 +97,9 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
 //                    val linkElements = doc.select("link[type=application/rss+xml]")
 //                    for (element in linkElements) {
 //                        val rssUrl = element.attr("href")
-//                        Log.d(TAG, "RSS URL: $rssUrl")
+//                        Logd(TAG, "RSS URL: $rssUrl")
 //                        val rc = destinationFile.delete()
-//                        Log.d(TAG, "Deleted feed source file. Result: $rc")
+//                        Logd(TAG, "Deleted feed source file. Result: $rc")
 //                        startFeedDownload(rssUrl)
 //                        return null
 //                    }
@@ -113,8 +110,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
                 } else null
             } else throw e
         } catch (e: Exception) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             throw e
         } finally {
             val rc = destinationFile.delete()

@@ -20,7 +20,6 @@ import android.content.ContentResolver
 import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
-import android.util.Log
 import androidx.media3.common.MediaMetadata
 import com.google.android.gms.cast.*
 import com.google.android.gms.cast.framework.CastContext
@@ -123,7 +122,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
         val position = mediaStatus.streamPosition.toInt()
         // check for incompatible states
         if ((state == MediaStatus.PLAYER_STATE_PLAYING || state == MediaStatus.PLAYER_STATE_PAUSED) && currentMedia == null) {
-            Log.w(TAG, "onStatusUpdated returned playing or pausing state, but with no media")
+            Logt(TAG, "onStatusUpdated returned playing or pausing state, but with no media")
             state = MediaStatus.PLAYER_STATE_UNKNOWN
             stateChanged = oldState != MediaStatus.PLAYER_STATE_UNKNOWN
         }
@@ -133,7 +132,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             // We don't want setPlayerStatus to handle the onPlaybackPause callback
             setPlayerStatus(PlayerStatus.INDETERMINATE, currentMedia)
         }
-        Log.w(TAG, "onStatusUpdated state: $state")
+        Logt(TAG, "onStatusUpdated state: $state")
         setBuffering(state == MediaStatus.PLAYER_STATE_BUFFERING)
         when (state) {
             MediaStatus.PLAYER_STATE_PLAYING -> {
@@ -181,7 +180,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
                         return
                     }
                     MediaStatus.IDLE_REASON_ERROR -> {
-                        Log.w(TAG, "Got an error status from the Chromecast. Skipping, if possible, to the next episode...")
+                        Logt(TAG, "Got an error status from the Chromecast. Skipping, if possible, to the next episode...")
                         EventFlow.postEvent(FlowEvent.PlayerErrorEvent("Chromecast error code 1"))
                         endPlayback(false, wasSkipped = false, shouldContinue = true, toStoppedState = true)
                         return
@@ -190,7 +189,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
                 }
             }
             MediaStatus.PLAYER_STATE_UNKNOWN -> if (status != PlayerStatus.INDETERMINATE || curEpisode !== currentMedia) setPlayerStatus(PlayerStatus.INDETERMINATE, currentMedia)
-            else -> Log.w(TAG, "Remote media state undetermined!")
+            else -> Logt(TAG, "Remote media state undetermined!")
         }
         if (mediaChanged) {
             callback.onMediaChanged(true)

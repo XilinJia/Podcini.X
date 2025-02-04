@@ -17,25 +17,22 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
-import ac.mdiq.podcini.ui.compose.*
+import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.NonlazyGrid
+import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
+import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
 import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.*
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.util.DisplayMetrics
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -145,8 +142,7 @@ class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                 }
             } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
+                Logs(TAG, e)
                 showError = true
                 showGrid = false
                 showRetry = true
@@ -264,7 +260,7 @@ fun OnlineSearchScreen() {
                     }
                 }
             } catch (e: Throwable) {
-//                Loge(TAG, Log.getStackTraceString(e))
+//                Logs(TAG, e)
                 e.printStackTrace()
                 toastMassege = e.localizedMessage?: "No messaage"
 //                vm.mainAct?.showSnackbarAbovePlayer(e.localizedMessage?: "No messaage", Snackbar.LENGTH_LONG)

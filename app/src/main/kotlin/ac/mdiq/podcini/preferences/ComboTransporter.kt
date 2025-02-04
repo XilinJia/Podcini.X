@@ -11,22 +11,16 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.customMediaUriString
 import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.text.format.Formatter
-import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
+import java.io.*
 import java.nio.channels.FileChannel
 
 class PreferencesTransporter(val prefsDirName: String) {
@@ -45,8 +39,7 @@ class PreferencesTransporter(val prefsDirName: String) {
                 }
             } else Logt("Error", "shared_prefs directory not found")
         } catch (e: IOException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             throw e
         } finally { }
     }
@@ -113,8 +106,7 @@ class PreferencesTransporter(val prefsDirName: String) {
                 }
             }
         } catch (e: IOException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             throw e
         } finally { }
     }
@@ -142,8 +134,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 mediaDir.listFiles()?.forEach { file -> copyRecursive(context, file, mediaDir, exportSubDir, move) }
             }
         } catch (e: IOException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             throw e
         } finally { }
     }
@@ -361,8 +352,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 }
             }
         } catch (e: IOException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             throw e
         } finally {
             nameFeedMap.clear()
@@ -389,8 +379,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 fileList?.forEach { file -> copyRecursive(file, exportedDir, mediaDir, false, true) }
             }
         } catch (e: IOException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             throw e
         } finally {
             nameFeedMap.clear()
@@ -412,8 +401,7 @@ class DatabaseTransporter {
             fileOutputStream = FileOutputStream(pfd!!.fileDescriptor)
             exportToStream(fileOutputStream, context)
         } catch (e: IOException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             throw e
         } finally {
             IOUtils.closeQuietly(fileOutputStream)
@@ -438,8 +426,7 @@ class DatabaseTransporter {
                     throw IOException(String.format("Unable to write entire database. Expected to write %s, but wrote %s.", Formatter.formatShortFileSize(context, srcSize), Formatter.formatShortFileSize(context, newDstSize)))
             } else throw IOException("Can not access current database")
         } catch (e: IOException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             throw e
         } finally {
             IOUtils.closeQuietly(src)
@@ -460,8 +447,7 @@ class DatabaseTransporter {
             if (!success) throw IOException("Unable to delete old database")
             FileUtils.moveFile(tempDB, currentDB)
         } catch (e: IOException) {
-            Logt(TAG, e.message?: "error")
-            Loge(TAG, Log.getStackTraceString(e))
+            Logs(TAG, e)
             throw e
         } finally { IOUtils.closeQuietly(inputStream) }
     }

@@ -9,15 +9,13 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.speech.tts.TextToSpeech
-import android.util.Log
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -31,7 +29,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ShareCompat
 import androidx.core.text.HtmlCompat
@@ -40,7 +37,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.extended.Readability4JExtended
 import java.io.File
@@ -100,29 +96,25 @@ class EpisodeTextVM(val context: Context, val lcScope: CoroutineScope) {
                                     if (episode?.feed?.language != null) {
                                         val result = tts?.setLanguage(Locale(episode!!.feed!!.language!!))
                                         if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                                            Log.w(TAG, "TTS language not supported ${episode?.feed?.language}")
-                                            lcScope.launch(Dispatchers.Main) { Toast.makeText(context, context.getString(R.string.language_not_supported_by_tts) + " ${episode?.feed?.language}", Toast.LENGTH_LONG).show() }
+                                            Logt(TAG, context.getString(R.string.language_not_supported_by_tts) + "${episode?.feed?.language}")
                                         }
                                     }
-                                    Logd(TAG, "TTS init success")
-                                } else {
-                                    Log.w(TAG, "TTS init failed")
-                                    lcScope.launch(Dispatchers.Main) { Toast.makeText(context, R.string.tts_init_failed, Toast.LENGTH_LONG).show() }
-                                }
+                                    Logt(TAG, "TTS init success")
+                                } else Logt(TAG, context.getString(R.string.tts_init_failed))
                             }
                         }
                         withContext(Dispatchers.Main) {
                             readMode = true
                             Logd(TAG, "cleanedNotes: $cleanedNotes")
                         }
-                    } else withContext(Dispatchers.Main) { Toast.makeText(context, R.string.web_content_not_available, Toast.LENGTH_LONG).show() }
+                    } else Logt(TAG, context.getString(R.string.web_content_not_available))
                 }
             }
             !episode?.link.isNullOrEmpty() -> {
                 webUrl = episode!!.link!!
                 readMode = false
             }
-            else -> Toast.makeText(context, R.string.web_content_not_available, Toast.LENGTH_LONG).show()
+            else -> Logt(TAG, context.getString(R.string.web_content_not_available))
         }
     }
 }
@@ -143,12 +135,8 @@ fun EpisodeTextScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    
                     if (!vm.episode?.link.isNullOrEmpty()) vm.prepareContent()
-                    else {
-                        Toast.makeText(context, R.string.web_content_not_available, Toast.LENGTH_LONG).show()
-//                        parentFragmentManager.popBackStack()
-                    }
+                    else Logt(TAG, context.getString(R.string.web_content_not_available))
                 }
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}

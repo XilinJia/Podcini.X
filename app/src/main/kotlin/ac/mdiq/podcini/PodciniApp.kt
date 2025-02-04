@@ -8,6 +8,7 @@ import ac.mdiq.podcini.receiver.SPAReceiver
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.ui.activity.SplashActivity
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ApplicationCallbacks
 import ac.mdiq.podcini.util.config.ClientConfig
 import ac.mdiq.podcini.util.config.ClientConfigurator
@@ -17,7 +18,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.StrictMode
-import android.util.Log
 import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -58,7 +58,7 @@ class PodciniApp : Application() {
     fun sendSPAppsQueryFeedsIntent(context: Context): Boolean {
         val appContext = context.applicationContext
         if (appContext == null) {
-            Log.wtf("App", "Unable to get application context")
+            Logt("App", "Unable to get application context")
             return false
         }
         if (!getPref(PREF_HAS_QUERIED_SP_APPS, false)) {

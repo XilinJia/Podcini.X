@@ -9,18 +9,15 @@ import ac.mdiq.podcini.storage.model.ProxyConfig
 import ac.mdiq.podcini.storage.utils.StorageUtils.createNoMediaFile
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Logs
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
-import android.util.Log
 import android.view.KeyEvent
 import androidx.annotation.VisibleForTesting
 import androidx.preference.PreferenceManager
 import java.net.Proxy
-import kotlin.collections.filterIsInstance
 
 /**
  * Provides access to preferences set by the user in the settings screen. A
@@ -59,8 +56,7 @@ object AppPreferences {
         get() {
             try { return getPref(AppPrefs.prefVideoPlaybackMode, "1").toInt()
             } catch (e: NumberFormatException) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
+                Logs(TAG, e)
                 putPref(AppPrefs.prefVideoPlaybackMode, "1")
                 return 1
             }
@@ -83,8 +79,7 @@ object AppPreferences {
         get() {
             try { return getPref(AppPrefs.prefSpeedforwardSpeed, "0.00").toFloat()
             } catch (e: NumberFormatException) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
+                Logs(TAG, e)
                 speedforwardSpeed = 0.0f
                 return 0.0f
             }
@@ -97,8 +92,7 @@ object AppPreferences {
         get() {
             try { return getPref(AppPrefs.prefFallbackSpeed, "0.00").toFloat()
             } catch (e: NumberFormatException) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e))
+                Logs(TAG, e)
                 fallbackSpeed = 0.0f
                 return 0.0f
             }

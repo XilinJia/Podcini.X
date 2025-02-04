@@ -34,7 +34,6 @@ import android.app.NotificationManager
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.*
 import androidx.work.Constraints.Builder
@@ -172,7 +171,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
 
 //            val dest = File(request.destination)
 //            if (!dest.exists()) {
-//                try { dest.createNewFile() } catch (e: IOException) { Loge(TAG, "performDownload Unable to create file") }
+//                try { dest.createNewFile() } catch (e: IOException) { Logs(TAG, "performDownload Unable to create file") }
 //            }
 //            if (dest.exists()) {
 //                try {
@@ -180,8 +179,8 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
 //                    if (episode != null) {
 //                        episode = upsertBlk(episode) { it.setfileUrlOrNull(request.destination) }
 //                        EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.updated(episode))
-//                    } else Loge(TAG, "performDownload media.episode is null")
-//                } catch (e: Exception) { Loge(TAG, "performDownload Exception in writeFileUrl: " + e.message) }
+//                    } else Logs(TAG, "performDownload media.episode is null")
+//                } catch (e: Exception) { Logs(TAG, "performDownload Exception in writeFileUrl: " + e.message) }
 //            }
 
             downloader = DefaultDownloaderFactory().create(request)

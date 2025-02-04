@@ -13,27 +13,20 @@ import ac.mdiq.podcini.storage.model.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.DownloadActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.error.DownloadErrorLabel.from
-import ac.mdiq.podcini.util.toastMessages
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import android.text.format.DateUtils
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -93,9 +86,7 @@ class LogsVM(val context: Context, val lcScope: CoroutineScope) {
                     shareLogs.addAll(result)
                     title = "Shares"
                 }
-            } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) { Logs(TAG, e) }
         }
     }
 
@@ -110,9 +101,7 @@ class LogsVM(val context: Context, val lcScope: CoroutineScope) {
                     subscriptionLogs.addAll(result)
                     title = "Subscriptions"
                 }
-            } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) { Logs(TAG, e) }
         }
     }
 
@@ -130,9 +119,7 @@ class LogsVM(val context: Context, val lcScope: CoroutineScope) {
                     downloadLogs.addAll(result)
                     title = "Downloads"
                 }
-            } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) { Logs(TAG, e) }
         }
     }
 }

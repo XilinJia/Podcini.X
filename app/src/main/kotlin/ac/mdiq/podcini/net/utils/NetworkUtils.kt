@@ -206,7 +206,7 @@ object NetworkUtils {
             lowerCaseUrl.startsWith("itpc") ->  prepareUrl(url.substring("itpc://".length))
             lowerCaseUrl.startsWith(AP_SUBSCRIBE) ->  prepareUrl(url.substring(AP_SUBSCRIBE.length))
 //            lowerCaseUrl.contains(AP_SUBSCRIBE_DEEPLINK) -> {
-//                Log.d(TAG, "Removing $AP_SUBSCRIBE_DEEPLINK")
+//                Logd(TAG, "Removing $AP_SUBSCRIBE_DEEPLINK")
 //                val removedWebsite = url.substring(url.indexOf("?url=") + "?url=".length)
 //                return try {
 //                    prepareUrl(URLDecoder.decode(removedWebsite, "UTF-8"))

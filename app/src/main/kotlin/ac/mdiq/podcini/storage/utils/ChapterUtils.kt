@@ -4,7 +4,6 @@ import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
-import android.util.Log
 import okhttp3.CacheControl
 import okhttp3.Request
 import okhttp3.Request.Builder

@@ -50,7 +50,7 @@ import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
-import android.widget.Toast
+
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -86,7 +86,7 @@ class MainActivity : CastEnabledActivity() {
     val prefs: SharedPreferences by lazy { getSharedPreferences("MainActivityPrefs", MODE_PRIVATE) }
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-        Toast.makeText(this, R.string.notification_permission_text, Toast.LENGTH_LONG).show()
+        Logt(TAG, getString(R.string.notification_permission_text))
         if (isGranted) {
             checkAndRequestUnrestrictedBackgroundActivity(this)
             return@registerForActivityResult

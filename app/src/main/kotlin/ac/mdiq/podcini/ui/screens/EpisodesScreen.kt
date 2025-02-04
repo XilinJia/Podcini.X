@@ -30,16 +30,9 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
-import ac.mdiq.podcini.ui.utils.setSearchTerms
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.*
 import android.content.Context
 import android.net.Uri
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -193,9 +186,7 @@ class EpisodesVM(val context: Context, val lcScope: CoroutineScope) {
 //                    for (e in episodes) { vms.add(EpisodeVM(e, TAG)) }
                     updateToolbar()
                 }
-            } catch (e: Throwable) {
-                Logt(TAG, e.message?: "error")
-                Loge(TAG, Log.getStackTraceString(e)) }
+            } catch (e: Throwable) { Logs(TAG, e) }
         }.apply { invokeOnCompletion { loadJob = null } }
     }
 
@@ -255,7 +246,7 @@ class EpisodesVM(val context: Context, val lcScope: CoroutineScope) {
             for (e in episodes) if (e.isNew) upsert(e) { it.setPlayed(false) }
             withContext(Dispatchers.Main) {
                 progressing = false
-                Toast.makeText(context, "History cleared", Toast.LENGTH_LONG).show()
+                Logt(TAG, "New items cleared")
             }
             loadItems()
         }
@@ -329,7 +320,7 @@ class EpisodesVM(val context: Context, val lcScope: CoroutineScope) {
             Logd(TAG, "Episodes reconsiled: ${nameEpisodeMap.size}\nFiles removed: ${filesRemoved.size}")
             withContext(Dispatchers.Main) {
                 progressing = false
-                Toast.makeText(context, "Episodes reconsiled: ${nameEpisodeMap.size}\nFiles removed: ${filesRemoved.size}", Toast.LENGTH_LONG).show()
+                Logt(TAG, "Episodes reconsiled: ${nameEpisodeMap.size}\nFiles removed: ${filesRemoved.size}")
             }
         }
     }
@@ -349,7 +340,7 @@ class EpisodesVM(val context: Context, val lcScope: CoroutineScope) {
             }
             withContext(Dispatchers.Main) {
                 progressing = false
-                Toast.makeText(context, "History cleared", Toast.LENGTH_LONG).show()
+                Logt(TAG, "History cleared")
             }
             EventFlow.postEvent(FlowEvent.HistoryEvent())
         }

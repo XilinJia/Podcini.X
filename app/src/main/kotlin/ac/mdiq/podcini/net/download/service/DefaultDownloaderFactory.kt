@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.net.download.service
 
 import ac.mdiq.podcini.util.Logt
-import android.util.Log
 import android.webkit.URLUtil
 
 interface DownloaderFactory {

@@ -39,25 +39,17 @@ import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
-import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.ui.view.ShownotesWebView
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.FlowEvent.BufferUpdateEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.MiscFormatter
 import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
 import android.content.*
 import android.os.Build
-import android.util.Log
 import android.view.KeyEvent
-import android.widget.Toast
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -248,7 +240,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         duration = convertOnSpeed(event.duration, curSpeedFB)
         val remainingTime: Int = convertOnSpeed(max((event.duration - event.position).toDouble(), 0.0).toInt(), curSpeedFB)
         if (curPosition == Episode.INVALID_TIME || duration == Episode.INVALID_TIME) {
-            Log.w(TAG, "Could not react to position observer update because of invalid time")
+            Logt(TAG, "Could not react to position observer update because of invalid time")
             return
         }
         showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
@@ -312,10 +304,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 Logd(TAG, "Webview loaded")
             }
-        }.invokeOnCompletion { throwable -> if (throwable != null) {
-            Logt(TAG, throwable.message?: "error")
-            Loge(TAG, Log.getStackTraceString(throwable))
-        } }
+        }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
     }
 
     internal fun buildHomeReaderText() {
@@ -335,10 +324,10 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                 }
                 if (!homeText.isNullOrEmpty()) cleanedNotes = shownotesCleaner?.processShownotes(homeText!!, 0)
-                else withContext(Dispatchers.Main) { Toast.makeText(context, R.string.web_content_not_available, Toast.LENGTH_LONG).show() }
+                else Logt(TAG, context.getString(R.string.web_content_not_available))
             } else {
                 cleanedNotes = shownotesCleaner?.processShownotes(curItem?.description ?: "", curItem?.duration ?: 0)
-                if (cleanedNotes.isNullOrEmpty()) withContext(Dispatchers.Main) { Toast.makeText(context, R.string.web_content_not_available, Toast.LENGTH_LONG).show() }
+                if (cleanedNotes.isNullOrEmpty()) Logt(TAG, context.getString(R.string.web_content_not_available))
             }
         }
     }
@@ -415,10 +404,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 //                TODO: disable for now
 //                if (!includingChapters) loadMediaInfo(true)
                 }.invokeOnCompletion { throwable ->
-                    if (throwable != null) {
-                        Logt(TAG, throwable.message?: "error")
-                        Loge(TAG, Log.getStackTraceString(throwable))
-                    }
+                    if (throwable != null) Logs(TAG, throwable)
                     loadItemsRunning = false
                 }
             }
@@ -896,7 +882,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
     private var prevStatus = PlayerStatus.STOPPED
     private val statusUpdate: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "statusUpdate onReceive called with action: ${intent.action}")
+            Logd(TAG, "statusUpdate onReceive called with action: ${intent.action}")
             if (playbackService != null && PlaybackService.mPlayerInfo != null) {
                 val info = PlaybackService.mPlayerInfo!!
 //                Logd(TAG, "statusUpdate onReceive $prevStatus ${MediaPlayerBase.status} ${info.playerStatus} ${curMedia?.id} ${info.playable?.id}.")
@@ -919,7 +905,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
 
     private val notificationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "notificationReceiver onReceive called with action: ${intent.action}")
+            Logd(TAG, "notificationReceiver onReceive called with action: ${intent.action}")
             val type = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_TYPE, -1)
             val code = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_CODE, -1)
             if (code == -1 || type == -1) {
@@ -1004,7 +990,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
      * should be used to update the GUI or start/cancel background threads.
      */
     private fun handleStatus() {
-        Log.d(TAG, "handleStatus() called status: $status")
+        Logd(TAG, "handleStatus() called status: $status")
         checkMediaInfoLoaded()
         when (status) {
             PlayerStatus.PLAYING -> updatePlayButton(false)

@@ -2,7 +2,6 @@ package ac.mdiq.podcini.receiver
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
-import ac.mdiq.podcini.receiver.MediaButtonReceiver.Companion
 import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
@@ -11,8 +10,6 @@ import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import android.widget.Toast
 
 
 /**
@@ -21,7 +18,7 @@ import android.widget.Toast
 class SPAReceiver : BroadcastReceiver() {
      override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_SP_APPS_QUERY_FEEDS_REPSONSE) return
-        Log.d(TAG, "onReceive called with action: ${intent.action}")
+        Logd(TAG, "onReceive called with action: ${intent.action}")
 
         Logd(TAG, "Received SP_APPS_QUERY_RESPONSE")
         if (!intent.hasExtra(ACTION_SP_APPS_QUERY_FEEDS_REPSONSE_FEEDS_EXTRA)) {
@@ -40,7 +37,7 @@ class SPAReceiver : BroadcastReceiver() {
             feed.episodes.clear()
             updateFeed(context, feed, false)
         }
-        Toast.makeText(context, R.string.sp_apps_importing_feeds_msg, Toast.LENGTH_LONG).show()
+         Logt(TAG, context.getString(R.string.sp_apps_importing_feeds_msg))
         runOnce(context)
     }
 
