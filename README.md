@@ -6,12 +6,10 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 
 ### Rendezvous chez:
 
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="80">](https://f-droid.org/packages/ac.mdiq.podcini.X/)
-[<img src="./images/external/getItGithub.png" alt="Get it on GitHub" height="80">](https://github.com/XilinJia/Podcini.X/releases/latest)
+[<img src="./images/external/getItGithub.png" alt="Get it on GitHub" height="50">](https://github.com/XilinJia/Podcini.X/releases/latest)
+[<img src="./images/external/getItIzzyOnDroid.png" alt="IzzyOnDroid" height="50">](https://apt.izzysoft.de/fdroid/index/apk/ac.mdiq.podcini.X)
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="50">](https://f-droid.org/packages/ac.mdiq.podcini.X/)
 
-[//]: # ([<img src="./images/external/getItIzzyOnDroid.png" alt="IzzyOnDroid" height="50">]&#40;https://apt.izzysoft.de/fdroid/index/apk/ac.mdiq.podcini.X&#41;)
-
-[//]: # ([<img src="./images/external/getItf-droid.png" alt="F-Droid" height="50">]&#40;https://f-droid.org/packages/ac.mdiq.podcini.R/&#41;)
 
 [//]: # ([<img src="./images/external/amazon.png" alt="Amazon" height="40">]&#40;https://www.amazon.com/%E8%B4%BE%E8%A5%BF%E6%9E%97-Podcini-R/dp/B0D9WR8P13&#41;)
 
