@@ -276,7 +276,7 @@ object AppPreferences {
         prefHardwareForwardButton(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD.toString()),
         prefHardwarePreviousButton(KeyEvent.KEYCODE_MEDIA_REWIND.toString()),
         prefFollowQueue(true),
-        prefSkipKeepsEpisode(false),
+        prefSkipKeepsEpisode(true),
         prefRemoveFromQueueMarkedPlayed(true),
         prefFavoriteKeepsEpisode(true),
 

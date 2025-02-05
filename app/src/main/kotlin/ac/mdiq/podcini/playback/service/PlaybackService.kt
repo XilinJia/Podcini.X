@@ -267,7 +267,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     val shouldSkipKeepEpisode
-        get() = getPref(AppPrefs.prefSkipKeepsEpisode, false)
+        get() = getPref(AppPrefs.prefSkipKeepsEpisode, true)
 
     val shouldKeepSuperEpisode
         get() = getPref(AppPrefs.prefFavoriteKeepsEpisode, true)
