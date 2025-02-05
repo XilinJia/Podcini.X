@@ -10,6 +10,11 @@
 * amended feed statistics dialog
 * cleaned out some useless strings resources
 
+# 8.5.1
+
+* amended some logging
+* Android Toast messaging removed
+
 # 8.5.0
 
 * most errors are shown as toast messages
