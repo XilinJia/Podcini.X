@@ -683,14 +683,14 @@
     <string name="password_label">Contraseña</string>
     <string name="synchronization_login_butLabel">Iniciar sesión</string>
     <string name="synchronization_selectDevice_explanation">Por favor, selecciona el dispositivo en el servidor de sincronización, o crea uno nuevo.</string>
-    <string name="gpodnetauth_device_name">Nombre del dispositivo</string>
-    <string name="gpodnetauth_device_name_default">Podcini en %1$s</string>
-    <string name="gpodnetauth_existing_devices">Dispositivos existentes</string>
-    <string name="gpodnetauth_create_device">Crear dispositivo</string>
-    <string name="gpodnetauth_finish_descr">¡Enhorabuena! Su cuenta de gpodder.net está ahora asociada con su dispositivo. A partir de ahora Podcini sincronizará automáticamente las suscripciones de su dispositivo con su cuenta de gpodder.net.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Comenzar sincronización ahora</string>
-    <string name="pref_gpodnet_setlogin_information_title">Cambiar información de inicio de sesión</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Modificar datos de inicio de sesión en gpodder.net.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Sincroniza ahora</string>
     <string name="synchronization_sync_summary">Sincronizar los cambios de suscripciones y estados de episodios</string>
     <string name="synchronization_full_sync_title">Fuerza sincronización completa</string>
@@ -755,8 +755,8 @@
     <string name="statistics_episodes_on_device">Episodios en el dispositivo:</string>
     <string name="statistics_space_used">Espacio usado:</string>
     <string name="statistics_episodes_started_total">e</string>
-    <string name="statistics_view_this">Ver este podcast»</string>
-    <string name="statistics_view_all">Ver para todos los podcasts »</string>
+
+
     <string name="feeds_related_to_author">Los alimentos probablemente relacionados con el autor »</string>
     <string name="edit_url_menu">Editar URL del canal</string>
     <string name="edit_url_confirmation_msg">Cambiar la dirección RSS puede romper el estado de reproducción y la lista de episodios del podcast. NO recomendamos cambiarlo y NO se dará soporte si algo sale mal. Esto no se puede deshacer. Una suscripción rota NO se puede reparar deshaciendo el cambio. Recomendamos hacer un copia de seguridad antes continuar.</string>
@@ -769,7 +769,7 @@
     <string name="search_vistaguide_label">Buscar canales de YouTube</string>
     <string name="search_itunes_label">Buscar en Apple Podcasts</string>
     <string name="search_podcastindex_label">Buscar en Podcast Index</string>
-    <string name="search_fyyd_label">Buscar en fyyd</string>
+
     <string name="gpodnet_search_hint">Buscar en gpodder.net</string>
     <string name="advanced">Avanzado</string>
     <string name="add_podcast_by_url">Añadir Podcast por dirección RSS</string>

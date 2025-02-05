@@ -343,10 +343,6 @@ fun OnlineSearchScreen() {
                 setOnlineSearchTerms(ItunesPodcastSearcher::class.java)
                 mainNavController.navigate(Screens.SearchResults.name)
             }))
-            Text(stringResource(R.string.search_fyyd_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
-                setOnlineSearchTerms(FyydPodcastSearcher::class.java)
-                mainNavController.navigate(Screens.SearchResults.name)
-            }))
             Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 setOnlineSearchTerms(PodcastIndexPodcastSearcher::class.java)
                 mainNavController.navigate(Screens.SearchResults.name)

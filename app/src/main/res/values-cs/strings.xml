@@ -697,14 +697,14 @@
     <string name="password_label">Heslo</string>
     <string name="synchronization_login_butLabel">Přihlásit se</string>
     <string name="synchronization_selectDevice_explanation">Zde prosím vyberte zařízení již vytvořené na sychronizovaném serveru, nebo zde vytvořte nové. </string>
-    <string name="gpodnetauth_device_name">Název zařízení</string>
-    <string name="gpodnetauth_device_name_default">Podcini na %1$s</string>
-    <string name="gpodnetauth_existing_devices">Existující zařízení</string>
-    <string name="gpodnetauth_create_device">Vytvořit zařízení</string>
-    <string name="gpodnetauth_finish_descr">Gratulujeme! Váš gpodder.net účet je nyní úspěšně propojen s vaším zařízením. Podcini bude automaticky synchronizovat odebírané podcasty s nastaveným účtem na gpodder.net.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Synchronizovat nyní</string>
-    <string name="pref_gpodnet_setlogin_information_title">Změna přihlašovacích údajů</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Změní přihlašovací údaje k vašemu gpodder.net účtu.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Synchronizovat nyní</string>
     <string name="synchronization_sync_summary">Synchronizace změn stavu odběrů a epizod</string>
     <string name="synchronization_full_sync_title">Vynutit úplnou synchronizaci</string>
@@ -769,8 +769,8 @@
     <string name="statistics_episodes_on_device">Epizod na přístroji:</string>
     <string name="statistics_space_used">Zabírá místa:</string>
     <string name="statistics_episodes_started_total">Epizod přehraných/celkem:</string>
-    <string name="statistics_view_this">Zobrazit tento podcast»</string>
-    <string name="statistics_view_all">Náhled všech podcastů »</string>
+
+
     <string name="feeds_related_to_author">Zdroje pravděpodobně vztahující se k autorovi »</string>
     <string name="edit_url_menu">Upravit adresu URL kanálu</string>
     <string name="edit_url_confirmation_msg">Změna adresy RSS může snadno narušit stav přehrávání a výpis epizod podcastu. Její změnu NEDOPORUČUJEME a v případě, že se něco pokazí, NEBUDE poskytnuta podpora. Tuto změnu nelze vrátit zpět. Poškozený odběr NELZE opravit pouhou změnou adresy zpět. Před pokračováním doporučujeme vytvořit zálohu.</string>
@@ -783,7 +783,7 @@
     <string name="search_vistaguide_label">Hledat kanály na YouTube</string>
     <string name="search_itunes_label">Vyhledávání v Apple Podcastech</string>
     <string name="search_podcastindex_label">Vyhledávání v Podcast Indexu</string>
-    <string name="search_fyyd_label">Prohledat fyyd</string>
+
     <string name="gpodnet_search_hint">Prohledat gpodder.net</string>
     <string name="advanced">Pokročilé</string>
     <string name="add_podcast_by_url">Přidat podcast pomocí RSS</string>

@@ -22,6 +22,7 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.showStackTrace
 import kotlinx.coroutines.Job
 import java.util.*
 
@@ -203,6 +204,7 @@ object Queues {
      */
     internal fun removeFromQueueSync(queue_: PlayQueue?, vararg episodes: Episode) {
         Logd(TAG, "removeFromQueueSync called ")
+//        showStackTrace()
         if (episodes.isEmpty()) return
         var queue = queue_ ?: curQueue
         if (queue.size() == 0) return

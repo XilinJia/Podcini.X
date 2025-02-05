@@ -673,14 +673,14 @@
     <string name="password_label">密码</string>
     <string name="synchronization_login_butLabel">登录</string>
     <string name="synchronization_selectDevice_explanation">请选择您在同步服务器上创建的设备或创建一个新的设备。</string>
-    <string name="gpodnetauth_device_name">设备名称</string>
-    <string name="gpodnetauth_device_name_default">%1$s 的 Podcini</string>
-    <string name="gpodnetauth_existing_devices">现有设备</string>
-    <string name="gpodnetauth_create_device">创建设备</string>
-    <string name="gpodnetauth_finish_descr">恭喜！您的 gpodder.net 帐户现已链接到您的设备。Podcini 将从现在起自动同步您设备上的 gpodder.net 帐户。</string>
-    <string name="gpodnetauth_finish_butsyncnow">立即开始同步</string>
-    <string name="pref_gpodnet_setlogin_information_title">更改登录信息</string>
-    <string name="pref_gpodnet_setlogin_information_sum">更改您的 gpodder.net 帐户的登录信息。</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">立即同步</string>
     <string name="synchronization_sync_summary">同步订阅和剧集状态更改</string>
     <string name="synchronization_full_sync_title">强制完全同步</string>
@@ -745,8 +745,8 @@
     <string name="statistics_episodes_on_device">设备上的集：</string>
     <string name="statistics_space_used">使用的空间：</string>
     <string name="statistics_episodes_started_total">剧集开始/总计：</string>
-    <string name="statistics_view_this">查看此播客»</string>
-    <string name="statistics_view_all">查看所有播客”</string>
+
+
     <string name="feeds_related_to_author">可能与作者相关的Feeds »</string>
     <string name="edit_url_menu">编辑新闻源URL</string>
     <string name="edit_url_confirmation_msg">更改 RSS 地址可以轻松地破坏播客的播放状态和剧集列表。 我们不建议更改它，如果有任何错误，我们将不会提供支持。 此操作无法撤销。已损坏的订阅无法修复，只需更改地址就无法修复。我们建议在继续之前先创建一个备份。</string>
@@ -759,7 +759,7 @@
     <string name="search_vistaguide_label">搜索 YouTube 频道</string>
     <string name="search_itunes_label">搜索苹果播客</string>
     <string name="search_podcastindex_label">搜索播客索引</string>
-    <string name="search_fyyd_label">搜索 fyd</string>
+
     <string name="gpodnet_search_hint">搜索 gpodder.net</string>
     <string name="advanced">高级版</string>
     <string name="add_podcast_by_url">添加由 RSS 地址播报</string>

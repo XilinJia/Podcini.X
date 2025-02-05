@@ -681,14 +681,14 @@
     <string name="password_label">Κωδικός</string>
     <string name="synchronization_login_butLabel">Σύνδεση</string>
     <string name="synchronization_selectDevice_explanation">Παρακαλώ επιλέξτε τη συσκευή που δημιουργήσατε στο διακομιστή συγχρονισμού ή δημιουργήστε ένα νέο.</string>
-    <string name="gpodnetauth_device_name">Όνομα συσκευής</string>
-    <string name="gpodnetauth_device_name_default">Podcini στο %1$s</string>
-    <string name="gpodnetauth_existing_devices">Υφιστάμενες συσκευές</string>
-    <string name="gpodnetauth_create_device">Δημιουργία συσκευής</string>
-    <string name="gpodnetauth_finish_descr">Συγχαρητήρια! Ο λογαριασμός σας στο gpodder.net είναι τώρα συνδεδεμένος με τη συσκευή σας. Από τώρα και στο εξής θα συγχρονίζει αυτόματα τις συνδρομές στη συσκευή σας με τον λογαριασμό gpodder.net.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Έναρξη συγχρονισμού τώρα</string>
-    <string name="pref_gpodnet_setlogin_information_title">Αλλαγή πληροφοριών σύνδεσης</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Αλλάξτε τα στοιχεία σύνδεσης για τον λογαριασμό gpodder.net σας.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Συγχρονισμός τώρα</string>
     <string name="synchronization_sync_summary">Συγχρονισμός αλλαγών συνδρομής και κατάστασης επεισοδίου</string>
     <string name="synchronization_full_sync_title">Εξαναγκασμός πλήρους συγχρονισμού</string>
@@ -753,8 +753,8 @@
     <string name="statistics_episodes_on_device">Επεισόδια στη συσκευή:</string>
     <string name="statistics_space_used">Χρησιμοποιούμενος χώρος:</string>
     <string name="statistics_episodes_started_total">Επεισόδια ξεκίνησε/σύνολο:</string>
-    <string name="statistics_view_this">Δείτε αυτό το podcast»</string>
-    <string name="statistics_view_all">Προβολή για όλα τα podcasts»</string>
+
+
     <string name="feeds_related_to_author">Ροές πιθανόν να σχετίζονται με τον συγγραφέα »</string>
     <string name="edit_url_menu">Επεξεργασία URL ροής</string>
     <string name="edit_url_confirmation_msg">Η αλλαγή της διεύθυνσης RSS μπορεί εύκολα να σπάσει την κατάσταση αναπαραγωγής και τις καταχωρήσεις επεισοδίων του podcast. ΔΕΝ προτείνουμε την αλλαγή του και ΔΕΝ θα παράσχουμε υποστήριξη αν κάτι πάει στραβά. Αυτό δεν μπορεί να αναιρεθεί. Η σπασμένη συνδρομή ΔΕΝ μπορεί να επισκευαστεί αλλάζοντας απλά τη διεύθυνση πίσω. Σας συνιστούμε να δημιουργήσετε ένα αντίγραφο ασφαλείας πριν συνεχίσετε.</string>
@@ -767,7 +767,7 @@
     <string name="search_vistaguide_label">Αναζήτηση καναλιών YouTube</string>
     <string name="search_itunes_label">Αναζήτηση Στο Apple Podcast</string>
     <string name="search_podcastindex_label">Αναζήτηση Ευρετηρίου Εκπομπής Pod</string>
-    <string name="search_fyyd_label">Αναζήτηση fyyd</string>
+
     <string name="gpodnet_search_hint">Αναζήτηση στο gpodder.net</string>
     <string name="advanced">Προχωρημένα</string>
     <string name="add_podcast_by_url">Προσθήκη Podcast από τη διεύθυνση RSS</string>

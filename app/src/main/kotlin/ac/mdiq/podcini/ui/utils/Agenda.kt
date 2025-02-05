@@ -37,5 +37,3 @@ fun setOnlineFeedUrl(url: String, source: String = "", shared: Boolean = false) 
     onlineFeedSource = source
     isOnlineFeedShared = shared
 }
-
-var onlineEpisodes = mutableListOf<Episode>()

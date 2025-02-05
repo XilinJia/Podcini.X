@@ -681,14 +681,14 @@
     <string name="password_label">Salasana</string>
     <string name="synchronization_login_butLabel">Kirjaudu</string>
     <string name="synchronization_selectDevice_explanation">Valitse laite, jonka loit synkronointipalvelimella, tai luo uusi.</string>
-    <string name="gpodnetauth_device_name">Laitteen nimi</string>
-    <string name="gpodnetauth_device_name_default">Podcini laitteella %1$s</string>
-    <string name="gpodnetauth_existing_devices">Olemassaolevat laitteet</string>
-    <string name="gpodnetauth_create_device">Luo laite</string>
-    <string name="gpodnetauth_finish_descr">Onneksi olkoon! Sinun gpodder.net tili on liitetty laitteeseesi. Podcini alkaa automaattisesti synkronoimaan gpodder.net tiliisi.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Aloita synkrointi nyt</string>
-    <string name="pref_gpodnet_setlogin_information_title">Vaihda kirjautumistietoja</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Vaihda kirjautumistietoja gpodder.net tiliisi.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Synkronoi nyt</string>
     <string name="synchronization_sync_summary">Synkronoi tilausten ja jaksojen tilojen muutokset</string>
     <string name="synchronization_full_sync_title">Pakota täysi synkronointi</string>
@@ -753,8 +753,8 @@
     <string name="statistics_episodes_on_device">Jaksoja laitteella:</string>
     <string name="statistics_space_used">Tilaa käytetty:</string>
     <string name="statistics_episodes_started_total">Aloitettuja jaksoja/yhteensä:</string>
-    <string name="statistics_view_this">Näytä tämä podcast»</string>
-    <string name="statistics_view_all">Kaikki podcastit »</string>
+
+
     <string name="feeds_related_to_author">Syötteet, jotka todennäköisesti liittyvät tekijään »</string>
     <string name="edit_url_menu">Muokkaa syötteen URLia</string>
     <string name="edit_url_confirmation_msg">Syötteen osoitteen muokkaaminen voi helposti sotkea podcastin toistotilan ja jaksolistaukset. Sen muokkaamista EI suositella, EIKÄ tukea tarjota mikäli jokin menee vikaan. Tätä ei saa tekemättömäksi. Sotkeutunutta tilausta EI voi korjata yksinkertaisesti vaihtamalla osoite takaisin. Varmuuskopion ottaminen ennen jatkamista on suositeltavaa.</string>
@@ -767,7 +767,7 @@
     <string name="search_vistaguide_label">Etsi YouTube-kanavia</string>
     <string name="search_itunes_label">Etsi Apple Podcasteja</string>
     <string name="search_podcastindex_label">Hae Podcastin Hakemistosta</string>
-    <string name="search_fyyd_label">Etsi fyyd:sta</string>
+
     <string name="gpodnet_search_hint">Etsi gpodder.net</string>
     <string name="advanced">Edistyneet</string>
     <string name="add_podcast_by_url">Lisää Podcast RSS-osoitteesta</string>

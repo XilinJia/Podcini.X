@@ -697,14 +697,14 @@
     <string name="password_label">Password</string>
     <string name="synchronization_login_butLabel">Log in</string>
     <string name="synchronization_selectDevice_explanation">Please select the device that you created on the synchronization server or create a new one.</string>
-    <string name="gpodnetauth_device_name">Device name</string>
-    <string name="gpodnetauth_device_name_default">Podcini on %1$s</string>
-    <string name="gpodnetauth_existing_devices">Existing devices</string>
-    <string name="gpodnetauth_create_device">Create device</string>
-    <string name="gpodnetauth_finish_descr">Congratulations! Your gpodder.net account is now linked with your device. Podcini will from now on automatically sync subscriptions on your device with your gpodder.net account.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Start sync now</string>
-    <string name="pref_gpodnet_setlogin_information_title">Change login information</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Change the login information for your gpodder.net account.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Synchronize now</string>
     <string name="synchronization_sync_summary">Synchronize subscription and episode state changes</string>
     <string name="synchronization_full_sync_title">Force full synchronization</string>
@@ -769,8 +769,8 @@
     <string name="statistics_episodes_on_device">Episodes on the device:</string>
     <string name="statistics_space_used">Space used:</string>
     <string name="statistics_episodes_started_total">Episodes started/total:</string>
-    <string name="statistics_view_this">View this podcast»</string>
-    <string name="statistics_view_all">View for all podcasts»</string>
+
+
     <string name="feeds_related_to_author">Feeds likely related to the author »</string>
     <string name="edit_url_menu">Edit feed URL</string>
     <string name="edit_url_confirmation_msg">Changing the RSS address can easily break the playback state and episode listings of the podcast. We do NOT recommend changing it and will NOT provide support if anything goes wrong. This cannot be undone. The broken subscription CANNOT be repaired by simply changing the address back. We suggest creating a backup before continuing.</string>
@@ -783,7 +783,7 @@
     <string name="search_vistaguide_label">Search YouTube channels</string>
     <string name="search_itunes_label">Search Apple Podcasts</string>
     <string name="search_podcastindex_label">Search Podcast Index</string>
-    <string name="search_fyyd_label">Search fyyd</string>
+
     <string name="gpodnet_search_hint">Search gpodder.net</string>
     <string name="advanced">Advanced</string>
     <string name="add_podcast_by_url">Add Podcast by RSS address</string>

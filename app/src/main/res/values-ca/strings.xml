@@ -530,14 +530,14 @@
   <string name="password_label">Contrasenya</string>
   <string name="synchronization_login_butLabel">Inicia la sessió</string>
   <string name="synchronization_selectDevice_explanation">Per favor, seleccioneu el dispositiu que heu creat al servidor de sincronització o creeu-ne un de nou.</string>
-  <string name="gpodnetauth_device_name">Nom del dispositiu</string>
-  <string name="gpodnetauth_device_name_default">Podcini a %1$s</string>
-  <string name="gpodnetauth_existing_devices">Dispositius existents</string>
-  <string name="gpodnetauth_create_device">Crea dispositiu</string>
-  <string name="gpodnetauth_finish_descr">Felicitats! El vostre compte de gpodder.net s\'ha enllaçat amb el dispositiu. D\'ara endavant, Podcini sincronitzarà automàticament les subscripcions del dispositiu al vostre compte.</string>
-  <string name="gpodnetauth_finish_butsyncnow">Sincronitza ara</string>
-  <string name="pref_gpodnet_setlogin_information_title">Dades d\'inici de sessió</string>
-  <string name="pref_gpodnet_setlogin_information_sum">Canvia les dades d\'inici de sessió del vostre compte de gpodder.net</string>
+
+
+
+
+
+
+
+
   <string name="synchronization_sync_changes_title">Sincronitzar ara</string>
   <string name="synchronization_sync_summary">Sincronitza subscripció i canvis en l\'estat de l\'episodi</string>
   <string name="synchronization_full_sync_title">Forçar sincronització completa</string>
@@ -601,7 +601,7 @@
   <string name="statistics_episodes_on_device">Episodis al dispositiu:</string>
   <string name="statistics_space_used">Espai utilitzat:</string>
   <string name="statistics_episodes_started_total">Episodis iniciats/total:</string>
-  <string name="statistics_view_all">Veure per tots els podcasts »</string>
+
   <string name="edit_url_menu">Edita l\'enllaç del canal</string>
   <string name="edit_url_confirmation_msg">Canviar l\'adreça RSS pot trencar fàcilment l\'estat de reproducció i les llistes d\'episodis del podcast. NO recomanem canviar-lo i NO oferirem suport si alguna cosa va malament. Això no es pot desfer. La subscripció trencada NO es pot reparar simplement canviant l\'adreça. Us suggerim que creeu una còpia de seguretat abans de continuar.</string>
   <!--PodciniSP-->
@@ -610,7 +610,7 @@
   <string name="search_podcast_hint">Cerca podcast…</string>
   <string name="search_itunes_label">Cerca a Apple Podcasts</string>
   <string name="search_podcastindex_label">Cerca a Podcast Index</string>
-  <string name="search_fyyd_label">Cerca a fyyd</string>
+
   <string name="gpodnet_search_hint">Cerca a gpodder.net</string>
   <string name="advanced">Avançat</string>
   <string name="add_podcast_by_url">Afegir Podcast per adreça RSS</string>

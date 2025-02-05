@@ -690,12 +690,22 @@ fun FeedDetailsScreen() {
             Text(vm.feed?.author ?:"", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
             Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
             Text(HtmlToPlainText.getPlainText(vm.feed?.description?:""), color = textColor, style = MaterialTheme.typography.bodyMedium)
-            Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isEmpty()) " (Add)" else "",
+            Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isBlank()) " (Add)" else "",
                 color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
                 modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
-            Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+            if (commentTextState.text.isNotBlank()) Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
 
+            Text(stringResource(R.string.statistics_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+            Row {
+                TextButton({ showFeedStats = true }) { Text(stringResource(R.string.this_podcast)) }
+                Spacer(Modifier.width(20.dp))
+                TextButton({ mainNavController.navigate(Screens.Statistics.name) }) { Text(stringResource(R.string.all_podcasts)) }
+            }
             if (vm.feed?.isSynthetic() == false) {
+                TextButton(modifier = Modifier.padding(top = 10.dp), onClick = {
+                    setOnlineSearchTerms(CombinedSearcher::class.java, "${vm.txtvAuthor} podcasts")
+                    mainNavController.navigate(Screens.SearchResults.name)
+                }) { Text(stringResource(R.string.feeds_related_to_author)) }
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(text = vm.txtvUrl ?: "", color = textColor, modifier = Modifier.clickable {
                     if (!vm.feed?.downloadUrl.isNullOrBlank()) {
@@ -704,7 +714,6 @@ fun FeedDetailsScreen() {
                         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         cm.setPrimaryClip(clipData)
                         toastMassege = context.getString(R.string.copied_to_clipboard)
-//                    if (Build.VERSION.SDK_INT <= 32) (context as MainActivity).showSnackbarAbovePlayer(R.string.copied_to_clipboard, Snackbar.LENGTH_SHORT)
                     }
                 })
                 if (!vm.feed?.paymentLinkList.isNullOrEmpty()) {
@@ -736,18 +745,6 @@ fun FeedDetailsScreen() {
                     val fundText = remember { fundingText() }
                     Text(fundText, color = textColor)
                 }
-                Button(modifier = Modifier.padding(top = 10.dp), onClick = {
-                    setOnlineSearchTerms(CombinedSearcher::class.java, "${vm.txtvAuthor} podcasts")
-                    mainNavController.navigate(Screens.SearchResults.name)
-                }) { Text(stringResource(R.string.feeds_related_to_author)) }
-            }
-            Text(stringResource(R.string.statistics_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
-            Row {
-                Button({ showFeedStats = true }) { Text(stringResource(R.string.statistics_view_this)) }
-                Spacer(Modifier.weight(1f))
-                Button({
-                    mainNavController.navigate(Screens.Statistics.name)
-                }) { Text(stringResource(R.string.statistics_view_all)) }
             }
         }
     }

@@ -395,14 +395,14 @@
   <string name="gpodnetauth_encryption_warning">Parool ja andmed ei ole krüpteeritud!</string>
   <string name="username_label">Kasutajanimi</string>
   <string name="password_label">Parool</string>
-  <string name="gpodnetauth_device_name">Seadme nimi</string>
-  <string name="gpodnetauth_device_name_default">Podcini %1$s seadmel</string>
-  <string name="gpodnetauth_existing_devices">Olemasolevad seadmed</string>
-  <string name="gpodnetauth_create_device">Loo uus seade</string>
-  <string name="gpodnetauth_finish_descr">Palju õnne! Sinu gpodder.net konto on nüüd lingitud sinu seadmega. Podcini süngib nüüdsest tellimused sinu seadmes gpodder.net-i kontoga.</string>
-  <string name="gpodnetauth_finish_butsyncnow">Alusta kohe sünkroonimist</string>
-  <string name="pref_gpodnet_setlogin_information_title">Muuda kasutajakonto infot</string>
-  <string name="pref_gpodnet_setlogin_information_sum">Muuda oma gpodder.net konto sisselogimise andmeid.</string>
+
+
+
+
+
+
+
+
   <string name="gpodnetsync_error_title">gpodder.net sünkroonimise viga</string>
   <string name="gpodnetsync_error_descr">Sünkroonimise ajal tekkis viga:\u0020</string>
   <string name="gpodnetsync_pref_report_successful">Korras</string>
@@ -438,12 +438,12 @@
   <string name="auto_download_disabled_globally">Automaatne allalaadimine on keelatud Podcinii peamistes seadetes</string>
   <string name="statistics_episodes_on_device">Saated seadmes:</string>
   <string name="statistics_space_used">Kasutatud kettaruum:</string>
-  <string name="statistics_view_all">Vaata kõiki taskuhäälinguid »</string>
+
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">Tellimuste importimine teistest äppidest…</string>
   <!--Add podcast fragment-->
   <string name="search_podcast_hint">Otsi taskuhäälingut…</string>
-  <string name="search_fyyd_label">Search fyyd-ist</string>
+
   <string name="gpodnet_search_hint">Otsi gpodder.net-ist</string>
   <string name="advanced">Täpsem</string>
   <string name="add_podcast_by_url">Lisa taskuhääling RSS aadressiga</string>

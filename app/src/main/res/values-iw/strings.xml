@@ -568,14 +568,14 @@
   <string name="password_label">ססמה</string>
   <string name="synchronization_login_butLabel">כניסה</string>
   <string name="synchronization_selectDevice_explanation">נא לבחור את המכשיר שיצרת בשרת הסנכרון או ליצור אחד חדש.</string>
-  <string name="gpodnetauth_device_name">שם המכשיר</string>
-  <string name="gpodnetauth_device_name_default">אנטנה־פּוֹד על %1$s</string>
-  <string name="gpodnetauth_existing_devices">מכשירים קיימים</string>
-  <string name="gpodnetauth_create_device">יצירת מכשיר</string>
-  <string name="gpodnetauth_finish_descr">מזל טוב! חשבון ה־gpodder.net שלך מקושר כעת עם המכשיר שלך. מעתה כל המינויים שלך יסונכרנו אוטומטית על ידי אנטנה־פּוֹד מהמכשיר שלך לחשבון ה־gpodder.net שלך.</string>
-  <string name="gpodnetauth_finish_butsyncnow">התחלת סנכרון כעת</string>
-  <string name="pref_gpodnet_setlogin_information_title">שינוי פרטי הכניסה</string>
-  <string name="pref_gpodnet_setlogin_information_sum">שינוי פרטי הכניסה לחשבון ה־gpodder.net שלך.</string>
+
+
+
+
+
+
+
+
   <string name="synchronization_sync_changes_title">לסנכרן עכשיו</string>
   <string name="synchronization_sync_summary">סנכרון המינוי ושינויי מצב הפרקים</string>
   <string name="synchronization_full_sync_title">אילוץ סנכרון מלא</string>
@@ -641,7 +641,7 @@
   <string name="statistics_episodes_on_device">פרקים על המכשיר הזה:</string>
   <string name="statistics_space_used">מקום תפוס:</string>
   <string name="statistics_episodes_started_total">פרקים שהותחלו/סך הכול:</string>
-  <string name="statistics_view_all">להציג לכל הפודקאסטים »</string>
+
   <string name="edit_url_menu">עריכת כתובת ערוץ</string>
   <string name="edit_url_confirmation_msg">החלפת כתובת ה־RSS יכולה בקלות לפגוע במצב הנגינה והצגת הפרקים של הפודקאסט. אנו לא ממליצים להחליף אותה ולא נספק תמיכה אם משהו ישתבש. זאת פעולה בלתי הפיעה. לא ניתן לשקם מינויים פגומים על ידי החזרת הכתובת הקודמת. אנו מציעים לגבות באופן יסודי בטרם בחירה להמשיך בתהליך.</string>
   <!--PodciniSP-->
@@ -650,7 +650,7 @@
   <string name="search_podcast_hint">חיפוש פודקאסט…</string>
   <string name="search_itunes_label">חיפוש ב־Apple Podcasts</string>
   <string name="search_podcastindex_label">חיפוש ב־Podcast Index</string>
-  <string name="search_fyyd_label">בחיפוש ב־fyyd</string>
+
   <string name="gpodnet_search_hint">חיפוש ב־gpodder.net</string>
   <string name="advanced">מתקדם</string>
   <string name="add_podcast_by_url">הוספת פודקאסט לפי כתובת RSS</string>

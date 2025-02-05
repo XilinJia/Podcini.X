@@ -714,14 +714,14 @@
     <string name="password_label">كلمة المرور</string>
     <string name="synchronization_login_butLabel">سجّل الدخول</string>
     <string name="synchronization_selectDevice_explanation">الرجاء اختيار الجهاز الذي أنشأته على خادم المزامنة، أو أنشأ جهازا أخر  </string>
-    <string name="gpodnetauth_device_name">أسم الجهاز</string>
-    <string name="gpodnetauth_device_name_default">Podcini على %1$s</string>
-    <string name="gpodnetauth_existing_devices">أجهزة موجودة</string>
-    <string name="gpodnetauth_create_device">أنشئ جهاز</string>
-    <string name="gpodnetauth_finish_descr">تهانينا! حسابك في gpodder.net مربوط الآن مع جهازك. سيزامن Podcini من الآن وصاعدا اشتراكاتك على جهازك مع حسابك على gpodder.net.</string>
-    <string name="gpodnetauth_finish_butsyncnow">ابدأ المزامنة الآن</string>
-    <string name="pref_gpodnet_setlogin_information_title">تغيير بيانات تسجيل الدخول</string>
-    <string name="pref_gpodnet_setlogin_information_sum">قم بتغيير بيانات تسجيل الدخول لحساب gpodder.net الخاص بك.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">زامن الآن</string>
     <string name="synchronization_sync_summary">زامن التغييرات بين الاشتراكات وتغييرات حالة الحلقة</string>
     <string name="synchronization_full_sync_title">افرض المزامنة الكاملة</string>
@@ -786,8 +786,8 @@
     <string name="statistics_episodes_on_device">حلقات مسجلة على هذا الجهاز:</string>
     <string name="statistics_space_used">المساحة المستخدمة:</string>
     <string name="statistics_episodes_started_total">الحلقات التي بدأت / المجموع:</string>
-    <string name="statistics_view_this">عرض هذا podcast\"</string>
-    <string name="statistics_view_all">عرض لجميع البودكاستات »</string>
+
+
     <string name="feeds_related_to_author">التغذية التي يرجح أن تكون ذات صلة بالمؤلف ”</string>
     <string name="edit_url_menu">عدل على الرابط </string>
     <string name="edit_url_confirmation_msg">تغيير رابط الـ RSS قد يؤدي إلى كسر حالة التشغيل و قائمة الحلقات للبودكاست. نحن لا ننصح بتغيرها ولن نقوم بتوفير أي دعم في حالة حصول أي خطأ. لا يمكن التراجع عن هذا التغيير. الاشتراك المكسور لن يمكن أن يتم استرجاعه بإعادة إرجاع الرابط القديم. ننصح بإنشاء نسخة احتياطية قبل المتابعة.</string>
@@ -800,7 +800,7 @@
     <string name="search_vistaguide_label">البحث في قنوات اليوتيوب</string>
     <string name="search_itunes_label">ابحث Apple Podcasts</string>
     <string name="search_podcastindex_label">إبحث في Podcast Index</string>
-    <string name="search_fyyd_label">ابحث fyyd</string>
+
     <string name="gpodnet_search_hint">ابحث gpodder.net</string>
     <string name="advanced">متقدم</string>
     <string name="add_podcast_by_url">أضف بودكاست برابط الـ RSS</string>

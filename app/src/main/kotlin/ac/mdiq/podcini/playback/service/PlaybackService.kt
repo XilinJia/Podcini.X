@@ -266,8 +266,11 @@ class PlaybackService : MediaLibraryService() {
         list
     }
 
-    val shouldSkipKeepEpisode by lazy { getPref(AppPrefs.prefSkipKeepsEpisode, false) }
-    val shouldKeepSuperEpisode by lazy { getPref(AppPrefs.prefFavoriteKeepsEpisode, true) }
+    val shouldSkipKeepEpisode
+        get() = getPref(AppPrefs.prefSkipKeepsEpisode, false)
+
+    val shouldKeepSuperEpisode
+        get() = getPref(AppPrefs.prefFavoriteKeepsEpisode, true)
 
     private val mediaPlayerCallback: MediaPlayerCallback = object : MediaPlayerCallback {
         override fun statusChanged(newInfo: MediaPlayerInfo?) {
@@ -1495,15 +1498,20 @@ class PlaybackService : MediaLibraryService() {
          */
 //        val isPersistNotify: Boolean by lazy { getPref(UserPreferences.Prefs.prefPersistNotify.name, true) }
 
-        val isPauseOnHeadsetDisconnect: Boolean by lazy { getPref(AppPrefs.prefPauseOnHeadsetDisconnect, true) }
+        val isPauseOnHeadsetDisconnect: Boolean
+            get() = getPref(AppPrefs.prefPauseOnHeadsetDisconnect, true)
 
-        val isUnpauseOnHeadsetReconnect: Boolean by lazy { getPref(AppPrefs.prefUnpauseOnHeadsetReconnect, true) }
+        val isUnpauseOnHeadsetReconnect: Boolean
+            get() = getPref(AppPrefs.prefUnpauseOnHeadsetReconnect, true)
 
-        val isUnpauseOnBluetoothReconnect: Boolean by lazy { getPref(AppPrefs.prefUnpauseOnBluetoothReconnect, false) }
+        val isUnpauseOnBluetoothReconnect: Boolean
+            get() = getPref(AppPrefs.prefUnpauseOnBluetoothReconnect, false)
 
-        val hardwareForwardButton: Int by lazy { getPref(AppPrefs.prefHardwareForwardButton, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD.toString())!!.toInt() }
+        val hardwareForwardButton: Int
+            get() = getPref(AppPrefs.prefHardwareForwardButton, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD.toString())!!.toInt()
 
-        val hardwarePreviousButton: Int by lazy { getPref(AppPrefs.prefHardwarePreviousButton, KeyEvent.KEYCODE_MEDIA_REWIND.toString())!!.toInt() }
+        val hardwarePreviousButton: Int
+            get() = getPref(AppPrefs.prefHardwarePreviousButton, KeyEvent.KEYCODE_MEDIA_REWIND.toString())!!.toInt()
 
         /**
          * Set to true to enable Continuous Playback

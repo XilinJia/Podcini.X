@@ -697,14 +697,14 @@
     <string name="password_label">Пароль</string>
     <string name="synchronization_login_butLabel">Увійти</string>
     <string name="synchronization_selectDevice_explanation">Виберіть пристрій, який ви створили на сервері синхронізації, або створіть новий.</string>
-    <string name="gpodnetauth_device_name">Назва пристрою</string>
-    <string name="gpodnetauth_device_name_default">Podcini на %1$s</string>
-    <string name="gpodnetauth_existing_devices">Існуючі пристрої</string>
-    <string name="gpodnetauth_create_device">Створити пристрій</string>
-    <string name="gpodnetauth_finish_descr">Вітаємо! Ваш обліковий запис gpodder.net тепер пов\'язаний з вашим пристроєм. Відтепер Podcini буде автоматично синхронізувати підписки на вашому пристрої з вашим акаунтом gpodder.net.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Почати синхронізацію</string>
-    <string name="pref_gpodnet_setlogin_information_title">Змінити інформацію для входу</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Змінити інформацію щодо облікового запису gpodder.net</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Синхронізувати зараз</string>
     <string name="synchronization_sync_summary">Синхронізуйте підписки та стан прослуховування епізодів</string>
     <string name="synchronization_full_sync_title">Примусово синхронізувати все</string>
@@ -769,8 +769,8 @@
     <string name="statistics_episodes_on_device">Епізоди на пристрої:</string>
     <string name="statistics_space_used">Використано простору:</string>
     <string name="statistics_episodes_started_total">Розпочато епізодів/всього:</string>
-    <string name="statistics_view_this">Переглянути цей подкаст»</string>
-    <string name="statistics_view_all">Переглянути всі подкасти »</string>
+
+
     <string name="feeds_related_to_author">Канали, ймовірно, пов\'язані з автором »</string>
     <string name="edit_url_menu">Редагувати URL-адресу каналу</string>
     <string name="edit_url_confirmation_msg">Зміна RSS-адреси може легко зламати стан відтворення та списки епізодів подкасту. Ми НЕ рекомендуємо змінювати її і НЕ надаватимемо підтримку, якщо щось піде не так. Це не можна скасувати. Порушену підписку НЕ МОЖНА відновити, просто змінивши адресу назад. Ми рекомендуємо створити резервну копію, перш ніж продовжувати.</string>
@@ -783,7 +783,7 @@
     <string name="search_vistaguide_label">Пошук каналів на YouTube</string>
     <string name="search_itunes_label">Шукати на Apple Podcasts</string>
     <string name="search_podcastindex_label">Шукати на Podcast Index</string>
-    <string name="search_fyyd_label">Шукати на Fyyd</string>
+
     <string name="gpodnet_search_hint">Пошук на gpodder.net</string>
     <string name="advanced">Розширені можливості</string>
     <string name="add_podcast_by_url">Додати подкаст за адресою RSS-стрічки</string>

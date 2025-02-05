@@ -5,8 +5,6 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
 import ac.mdiq.podcini.util.config.ClientConfig
-import de.mfietz.fyydlin.FyydClient
-import de.mfietz.fyydlin.SearchHit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
@@ -28,7 +26,6 @@ object PodcastSearcherRegistry {
                 field = ArrayList()
                 field.add(SearcherInfo(CombinedSearcher(), 1.0f))
                 if (gearbox.hasSearcher()) field.add(SearcherInfo(gearbox.getSearcher()!!, 1.0f))
-                field.add(SearcherInfo(FyydPodcastSearcher(), 1.0f))
                 field.add(SearcherInfo(ItunesPodcastSearcher(), 1.0f))
                 field.add(SearcherInfo(PodcastIndexPodcastSearcher(), 1.0f))
             }
@@ -136,28 +133,6 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
             return buffer.toString()
         }
     }
-}
-
-class FyydPodcastSearcher : PodcastSearcher {
-    private val client = FyydClient(PodciniHttpClient.getHttpClient())
-
-    override suspend fun search(query: String): List<PodcastSearchResult> {
-        fun fromFyyd(searchHit: SearchHit): PodcastSearchResult {
-            return PodcastSearchResult(searchHit.title, searchHit.thumbImageURL, searchHit.xmlUrl, searchHit.author, null, null, -1, "Fyyd")
-        }
-
-        val response = withContext(Dispatchers.IO) { client.searchPodcasts(query, 10).blockingGet() }
-        val searchResults = ArrayList<PodcastSearchResult>()
-        if (response.data.isNotEmpty()) {
-            for (searchHit in response.data) {
-                val podcast = fromFyyd(searchHit)
-                searchResults.add(podcast)
-            }
-        }
-        return searchResults
-    }
-    override val name: String
-        get() = "fyyd"
 }
 
 class ItunesPodcastSearcher : PodcastSearcher {

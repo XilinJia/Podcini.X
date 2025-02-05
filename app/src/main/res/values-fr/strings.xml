@@ -684,14 +684,14 @@
     <string name="password_label">Mot de passe</string>
     <string name="synchronization_login_butLabel">Connexion</string>
     <string name="synchronization_selectDevice_explanation">Sélectionner votre appareil sur le serveur de synchronisation ou créez-en un nouveau.</string>
-    <string name="gpodnetauth_device_name">Nom de l\'appareil</string>
-    <string name="gpodnetauth_device_name_default">Podcini sur %1$s</string>
-    <string name="gpodnetauth_existing_devices">Appareils déjà existants</string>
-    <string name="gpodnetauth_create_device">Créer un appareil</string>
-    <string name="gpodnetauth_finish_descr">Félicitations ! Votre compte gpodder.net est maintenant lié à votre appareil. Podcini va désormais automatiquement synchroniser vos podcasts sur votre appareil avec votre compte gpodder.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Commencer la synchronisation</string>
-    <string name="pref_gpodnet_setlogin_information_title">Modifier les informations de connexion</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Modifier les information de connexion pour votre compte gpodder.net</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Synchroniser maintenant</string>
     <string name="synchronization_sync_summary">Synchroniser l\'abonnement et les statuts d\'épisodes changés</string>
     <string name="synchronization_full_sync_title">Forcer une synchronisation complète</string>
@@ -756,8 +756,8 @@
     <string name="statistics_episodes_on_device">Épisode(s) sur l\'appareil :</string>
     <string name="statistics_space_used">Espace utilisé :</string>
     <string name="statistics_episodes_started_total">Épisodes démarrés / total :</string>
-    <string name="statistics_view_this">Voir ce podcast»</string>
-    <string name="statistics_view_all">Voir les statistiques pour tous les podcasts »</string>
+
+
     <string name="feeds_related_to_author">Flux probablement liés à l\'auteur »</string>
     <string name="edit_url_menu">Modifier le lien</string>
     <string name="edit_url_confirmation_msg">Modifier le lien RSS peut facilement corrompre l\'état de lecture et la liste des épisodes du podcast. Il est recommandé de NE PAS LE CHANGER et AUCUNE AIDE ne pourra être fournie si quelque chose se passe mal. Cette action ne peut pas être annulée. L\'abonnement NE POURRA PAS ÊTRE RÉPARÉ en remettant juste l\'ancien lien. Il est recommandé de CRÉER UNE SAUVEGARDE avant de continuer.</string>
@@ -770,7 +770,7 @@
     <string name="search_vistaguide_label">Rechercher dans les chaînes YouTube</string>
     <string name="search_itunes_label">Chercher sur Apple Podcasts</string>
     <string name="search_podcastindex_label">Chercher sur Podcast Index</string>
-    <string name="search_fyyd_label">Chercher sur fyyd</string>
+
     <string name="gpodnet_search_hint">Chercher sur gpodder.net</string>
     <string name="advanced">Avancé</string>
     <string name="add_podcast_by_url">Ajouter un lien RSS</string>

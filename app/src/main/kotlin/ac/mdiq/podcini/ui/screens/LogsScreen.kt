@@ -483,6 +483,7 @@ fun LogsScreen() {
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "subscriptions") }
                 if (vm.title != "Session") IconButton(onClick = {
                     vm.clearAllLogs()
+                    vm.title = "Session"
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_running_with_errors_24), contentDescription = "session") }
                 IconButton(onClick = { vm.showDeleteConfirmDialog.value = true
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "clear history") }

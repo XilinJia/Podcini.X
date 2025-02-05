@@ -697,14 +697,14 @@
     <string name="password_label">Geslo</string>
     <string name="synchronization_login_butLabel">Log in</string>
     <string name="synchronization_selectDevice_explanation">Please select the device that you created on the synchronization server or create a new one.</string>
-    <string name="gpodnetauth_device_name">Ime naprave</string>
-    <string name="gpodnetauth_device_name_default">Podcini je na %1$s</string>
-    <string name="gpodnetauth_existing_devices">Obstoječe naprave</string>
-    <string name="gpodnetauth_create_device">Ustvari napravo</string>
-    <string name="gpodnetauth_finish_descr">Čestitam! Vaš račun gpodder.net je zdaj povezan z vašo napravo. Podcini bo od zdaj naprej samodejno sinhroniziral naročnine na vaši napravi z vašim računom gpodder.net.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Začnite sedaj sinhronizirati </string>
-    <string name="pref_gpodnet_setlogin_information_title">Spremenite podatke za prijavo</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Spremenite podatke za prijavo za svoj račun gpodder.net.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Sinhroniziraj takoj</string>
     <string name="synchronization_sync_summary">Synchronize subscription and episode state changes</string>
     <string name="synchronization_full_sync_title">Vsili polno sihnronizacijo</string>
@@ -769,8 +769,8 @@
     <string name="statistics_episodes_on_device">Epizod na napravi:</string>
     <string name="statistics_space_used">Porabljen prostor:</string>
     <string name="statistics_episodes_started_total">Epizode začete/vse:</string>
-    <string name="statistics_view_this">View this podcast»</string>
-    <string name="statistics_view_all">Poglej za vse podcaste »</string>
+
+
     <string name="feeds_related_to_author">Feeds likely related to the author »</string>
     <string name="edit_url_menu">Edit feed URL</string>
     <string name="edit_url_confirmation_msg">Changing the RSS address can easily break the playback state and episode listings of the podcast. We do NOT recommend changing it and will NOT provide support if anything goes wrong. This cannot be undone. The broken subscription CANNOT be repaired by simply changing the address back. We suggest creating a backup before continuing.</string>
@@ -783,7 +783,7 @@
     <string name="search_vistaguide_label">Search YouTube channels</string>
     <string name="search_itunes_label">Search Apple Podcasts</string>
     <string name="search_podcastindex_label">Search Podcast Index</string>
-    <string name="search_fyyd_label">Išči fyyd</string>
+
     <string name="gpodnet_search_hint">Poišči na gpodder.net</string>
     <string name="advanced">Napredno</string>
     <string name="add_podcast_by_url">Dodaj podcast s RRS naslovom</string>

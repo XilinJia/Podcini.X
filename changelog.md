@@ -1,7 +1,14 @@
-# 8.5.1
+# 8.5.2
 
-* amended some logging
-* Android Toast messaging removed
+* corrected title of Session logs in Logs screen
+* changed default setting of prefSkipKeepsEpisode to true (more proper)
+* removed lazy get for preference properties to react to changes
+* removed the non-free and malfunctioning fyyd search and dependency of rxjava
+* OnlineEpisodes is merged into OnlineFeed screen for better interaction
+* amended info items in FeedDetails 
+* amended line charts in Statistics
+* amended feed statistics dialog
+* cleaned out some useless strings resources
 
 # 8.5.0
 

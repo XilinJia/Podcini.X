@@ -681,14 +681,14 @@
     <string name="password_label">Jelszó</string>
     <string name="synchronization_login_butLabel">Bejelentkezés</string>
     <string name="synchronization_selectDevice_explanation">Válassza ki a szinkronizációs kiszolgálón létrehozott eszközt, vagy hozzon létre egy újat.</string>
-    <string name="gpodnetauth_device_name">Eszköz neve</string>
-    <string name="gpodnetauth_device_name_default">Podcini ezen: %1$s</string>
-    <string name="gpodnetauth_existing_devices">Létező eszközök</string>
-    <string name="gpodnetauth_create_device">Eszköz létrehozása</string>
-    <string name="gpodnetauth_finish_descr">Gratulálunk! A gpodder.net fiókja most már össze van kapcsolva az eszközével. Az Podcini automatikusan szinkronizálja az eszközén lévő feliratkozásait a gpodder.net fiókjával.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Szinkronizálás indítása most</string>
-    <string name="pref_gpodnet_setlogin_information_title">Bejelentkezési adatok módosítása</string>
-    <string name="pref_gpodnet_setlogin_information_sum">A gpodder.net fiókjához használt bejelentkezési adatok módosítása.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Szinkronizálás most</string>
     <string name="synchronization_sync_summary">Feliratkozások és epizódállapot-változások szinkronizálása</string>
     <string name="synchronization_full_sync_title">Teljes szinkronizáció kényszerítése</string>
@@ -753,8 +753,8 @@
     <string name="statistics_episodes_on_device">Epizódok az eszközön:</string>
     <string name="statistics_space_used">Használt tárhely: </string>
     <string name="statistics_episodes_started_total">Epizódok elkezdve/összes:</string>
-    <string name="statistics_view_this">View this podcast»</string>
-    <string name="statistics_view_all">Megtekintés az összes podcasthoz »</string>
+
+
     <string name="feeds_related_to_author">Feeds likely related to the author »</string>
     <string name="edit_url_menu">Csatorna webcímének szerkesztése</string>
     <string name="edit_url_confirmation_msg">Az RSS-cím módosítása könnyen elronthatja a lejátszási állapotokat és a podcast epizódlistáját. NEM javasoljuk a megváltoztatását, és ha hiba történik, akkor NEM nyújtunk támogatást. Ez nem vonható vissza. A hibás feliratkozás NEM javítható ki a cím visszaírásával. Azt javasoljuk, hogy a folytatás előtt készítsen biztonsági mentést.</string>
@@ -767,7 +767,7 @@
     <string name="search_vistaguide_label">Search YouTube channels</string>
     <string name="search_itunes_label">Search Apple Podcasts</string>
     <string name="search_podcastindex_label">Search Podcast Index</string>
-    <string name="search_fyyd_label">Keresés a fyyden</string>
+
     <string name="gpodnet_search_hint">Keresés a gpodder.neten</string>
     <string name="advanced">Speciális</string>
     <string name="add_podcast_by_url">Podcast hozzáadása RSS cím alapján</string>

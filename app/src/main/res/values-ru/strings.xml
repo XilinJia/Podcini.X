@@ -697,14 +697,14 @@
     <string name="password_label">Пароль</string>
     <string name="synchronization_login_butLabel">Войти</string>
     <string name="synchronization_selectDevice_explanation">Пожалуйста, выберите устройство с сервера синхронизации, либо создайте новое.</string>
-    <string name="gpodnetauth_device_name">Название устройства</string>
-    <string name="gpodnetauth_device_name_default">Podcini на %1$s</string>
-    <string name="gpodnetauth_existing_devices">Существующие устройства</string>
-    <string name="gpodnetauth_create_device">Создать устройство</string>
-    <string name="gpodnetauth_finish_descr">Поздравляем! Ваша учётная запись gpodder.net связана с устройством. Podcini будет автоматически синхронизировать Ваши подписки с учётной записью gpodder.net.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Начать синхронизацию</string>
-    <string name="pref_gpodnet_setlogin_information_title">Изменить информацию авторизации</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Изменить информацию авторизации для аккаунта gpodder.net</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Синхронизировать сейчас</string>
     <string name="synchronization_sync_summary">Сихронизировать ваши подписки и изменения состояния выпусков</string>
     <string name="synchronization_full_sync_title">Выполнить полную синхронизацию</string>
@@ -769,8 +769,8 @@
     <string name="statistics_episodes_on_device">Выпусков на устройстве:</string>
     <string name="statistics_space_used">Занято пространства:</string>
     <string name="statistics_episodes_started_total">Выпусков начато / всего:</string>
-    <string name="statistics_view_this">Просмотреть этот подкаст»</string>
-    <string name="statistics_view_all">Просмотреть все подкасты »</string>
+
+
     <string name="feeds_related_to_author">Ленты, вероятно связанные с автором »</string>
     <string name="edit_url_menu">Исправить ссылку на канал</string>
     <string name="edit_url_confirmation_msg">Изменение адреса ссылки может запросто испортить состояние воспроизведения и список выпусков подкаста. Мы крайне НЕ рекомендуем его менять и НЕ сможем Вам помочь, если что-то пойдёт не так. Действие необратимо. Простым возвратом старого адреса поломку HE исправить. Советуем сперва создать резервную копию. </string>
@@ -783,7 +783,7 @@
     <string name="search_vistaguide_label">Поиск по каналам YouTube</string>
     <string name="search_itunes_label">Поиск в Apple Podcasts</string>
     <string name="search_podcastindex_label">Поиск на Podcast Index</string>
-    <string name="search_fyyd_label">Поиск в fyyd</string>
+
     <string name="gpodnet_search_hint">Искать на gpodder.net</string>
     <string name="advanced">Дополнительные</string>
     <string name="add_podcast_by_url">Добавить подкаст по адресу RSS</string>

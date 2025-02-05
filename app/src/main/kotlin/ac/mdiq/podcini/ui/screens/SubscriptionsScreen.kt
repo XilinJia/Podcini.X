@@ -1049,7 +1049,6 @@ fun SubscriptionsScreen() {
         }
     }
 
-
     @Composable
     fun SortDialog(onDismissRequest: () -> Unit) {
         var sortingJob = remember<Job?> { null }

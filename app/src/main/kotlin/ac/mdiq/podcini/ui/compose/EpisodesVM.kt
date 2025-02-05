@@ -818,14 +818,14 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 Box(modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
                     detectHorizontalDragGestures(onDragStart = { velocityTracker.resetTracking() },
                         onHorizontalDrag = { change, dragAmount ->
-                            Logd(TAG, "onHorizontalDrag $dragAmount")
+//                            Logd(TAG, "onHorizontalDrag $dragAmount")
                             velocityTracker.addPosition(change.uptimeMillis, change.position)
                             coroutineScope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
                         },
                         onDragEnd = {
                             coroutineScope.launch {
                                 val velocity = velocityTracker.calculateVelocity().x
-                                Logd(TAG, "velocity: $velocity")
+//                                Logd(TAG, "velocity: $velocity")
                                 if (velocity > 1000f || velocity < -1000f) {
 //                                        Logd(TAG, "velocity: $velocity")
 //                                        if (velocity > 0) rightSwipeCB?.invoke(vms[index].episode)

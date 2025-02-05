@@ -26,8 +26,4 @@ Apache License 2.0
 
 [com.github.ByteHamster](https://github.com/ByteHamster/SearchPreference/blob/master/LICENSE) MIT License
 
-[com.github.mfietz](https://github.com/mfietz/fyydlin/blob/master/LICENSE) Apache License 2.0
-
-[//]: # ([javax.inject]&#40;https://github.com/javax-inject/javax-inject&#41; Apache License 2.0)
-
 [org.conscrypt](https://github.com/google/conscrypt/blob/master/LICENSE) Apache License 2.0

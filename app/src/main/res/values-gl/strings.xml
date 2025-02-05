@@ -556,14 +556,14 @@
   <string name="password_label">Contrasinal</string>
   <string name="synchronization_login_butLabel">Acceder</string>
   <string name="synchronization_selectDevice_explanation">Elixe o dispositivo que creaches no servidor de sincronización ou crea un novo.</string>
-  <string name="gpodnetauth_device_name">Nome do dispositivo</string>
-  <string name="gpodnetauth_device_name_default">Podcini en %1$s</string>
-  <string name="gpodnetauth_existing_devices">Dispositivos existentes</string>
-  <string name="gpodnetauth_create_device">Crear dispositivo</string>
-  <string name="gpodnetauth_finish_descr">Parabéns! A túa conta gpodder.net está conectada ao dispositivo. Podcini poderá agora sincronizar automaticamente as túas subscricións no dispositivo na conta de gpodder.net</string>
-  <string name="gpodnetauth_finish_butsyncnow">Iniciar a sincronización</string>
-  <string name="pref_gpodnet_setlogin_information_title">Cambiar a información de conexión</string>
-  <string name="pref_gpodnet_setlogin_information_sum">Cambiar a información de conexión da súa conta gpodder.net</string>
+
+
+
+
+
+
+
+
   <string name="synchronization_sync_changes_title">Sincronizar agora</string>
   <string name="synchronization_sync_summary">Sincroniza os cambios nas subscricións e estado dos episodios</string>
   <string name="synchronization_full_sync_title">Forzar sincronización completa</string>
@@ -629,7 +629,7 @@
   <string name="statistics_episodes_on_device">Episodios no dispositivo:</string>
   <string name="statistics_space_used">Espazo utilizado:</string>
   <string name="statistics_episodes_started_total">Episodios iniciados/total:</string>
-  <string name="statistics_view_all">Ver estatísticas globais »</string>
+
   <string name="edit_url_menu">Editar URL da fonte</string>
   <string name="edit_url_confirmation_msg">Ao mudar o enderezo RSS podes quebrar o estado da reprodución e as listas de episodios do podcast. Non recomendamos cambialo e NON proporcionamos axuda se algo vai mal. Non ten volta atrás. Unha subscrición mal configurada NON PODE ser reparada simplemente volvendo ao enderezo anterior. Suxerimos crear unha copia de apoio antes de continuar.</string>
   <!--PodciniSP-->
@@ -638,7 +638,7 @@
   <string name="search_podcast_hint">Buscar podcast…</string>
   <string name="search_itunes_label">Buscar en Apple Podcasts</string>
   <string name="search_podcastindex_label">Buscar en Podcast Index</string>
-  <string name="search_fyyd_label">Buscar en fyyd</string>
+
   <string name="gpodnet_search_hint">Buscar en gpodder.net</string>
   <string name="advanced">Avanzado</string>
   <string name="add_podcast_by_url">Engadir Podcast polo enderezo RSS</string>

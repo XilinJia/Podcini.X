@@ -328,13 +328,13 @@
   <string name="username_label">帳號</string>
   <string name="password_label">密碼</string>
   <string name="synchronization_login_butLabel">登入</string>
-  <string name="gpodnetauth_device_name">裝置名稱</string>
-  <string name="gpodnetauth_existing_devices">現存裝置</string>
-  <string name="gpodnetauth_create_device">新增裝置</string>
-  <string name="gpodnetauth_finish_descr">恭喜，您的 gpodder.net 帳號已經成功連結到當前的設備！Podcini 今後將自動與 gpodder.net 同步此設備的訂閱清單。</string>
-  <string name="gpodnetauth_finish_butsyncnow">現在開始同步</string>
-  <string name="pref_gpodnet_setlogin_information_title">變更登入資訊</string>
-  <string name="pref_gpodnet_setlogin_information_sum">修改您的 gpodder.net 帳號登入資訊</string>
+
+
+
+
+
+
+
   <string name="synchronization_logout">登出</string>
   <string name="gpodnetsync_error_title">gpodder.net 同步錯誤</string>
   <string name="gpodnetsync_error_descr">更新時發生錯誤：\u0020</string>
@@ -369,12 +369,12 @@
   <string name="auto_download_disabled_globally">Podcini 的主設定中已停用自動下載功能</string>
   <string name="statistics_episodes_on_device">裝置上的單集：</string>
   <string name="statistics_space_used">佔用空間：</string>
-  <string name="statistics_view_all">檢視所有 Podcast »</string>
+
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">從 PodciniSP 匯入訂閱清單</string>
   <!--Add podcast fragment-->
   <string name="search_podcast_hint">搜尋 Podcast…</string>
-  <string name="search_fyyd_label">搜尋 fyyd</string>
+
   <string name="gpodnet_search_hint">搜尋 gpodder.net</string>
   <string name="advanced">進階</string>
   <string name="add_podcast_by_url">以 RSS 網址新增 Podcast</string>

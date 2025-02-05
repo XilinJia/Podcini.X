@@ -7,7 +7,6 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.supervisorScope
 
 class CombinedSearcher : PodcastSearcher {
-
     override suspend fun search(query: String): List<PodcastSearchResult> {
         val searchProviders = PodcastSearcherRegistry.searchProviders
         val searchResults = MutableList<List<PodcastSearchResult>>(searchProviders.size) { listOf() }
@@ -24,11 +23,9 @@ class CombinedSearcher : PodcastSearcher {
                         } catch (e: Throwable) { Logs(TAG, e) }
                     }
                 } else null
-            }.filterNotNull() // Remove null jobs
-            // Wait for all search jobs to complete
+            }.filterNotNull()
             searchJobs.awaitAll()
         }
-
         return weightSearchResults(searchResults)
     }
 
@@ -41,19 +38,15 @@ class CombinedSearcher : PodcastSearcher {
             for (position in providerResults.indices) {
                 val result = providerResults[position]
                 urlToResult[result.feedUrl] = result
-
                 var ranking = 0f
                 if (resultRanking.containsKey(result.feedUrl)) ranking = resultRanking[result.feedUrl]!!
-
                 ranking += 1f / (position + 1f)
                 resultRanking[result.feedUrl] = ranking * providerPriority
             }
         }
 //        val sortedResults = mutableListOf<MutableMap.MutableEntry<String?, Float>>(resultRanking.entries)
         val sortedResults = resultRanking.entries.toMutableList()
-        sortedResults.sortWith { o1: Map.Entry<String?, Float>, o2: Map.Entry<String?, Float> ->
-            o2.value.toDouble().compareTo(o1.value.toDouble())
-        }
+        sortedResults.sortWith { o1: Map.Entry<String?, Float>, o2: Map.Entry<String?, Float> -> o2.value.toDouble().compareTo(o1.value.toDouble()) }
 
         val results: MutableList<PodcastSearchResult> = ArrayList()
         for ((key) in sortedResults) {

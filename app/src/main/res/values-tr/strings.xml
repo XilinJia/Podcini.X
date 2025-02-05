@@ -683,14 +683,14 @@
     <string name="password_label">Parola</string>
     <string name="synchronization_login_butLabel">Giriş yap</string>
     <string name="synchronization_selectDevice_explanation">Lütfen senkronizasyon sunucusunda oluşturduğunuz cihazı seçin veya yenisini oluşturun.</string>
-    <string name="gpodnetauth_device_name">Cihaz ismi</string>
-    <string name="gpodnetauth_device_name_default">Podcini\'da %1$s</string>
-    <string name="gpodnetauth_existing_devices">Mevcut cihazlar</string>
-    <string name="gpodnetauth_create_device">Cihaz oluştur</string>
-    <string name="gpodnetauth_finish_descr">Tebrikler! gpodder.net hesabınız cihazınızla ilişkilendirildi. Podcini bundan sonra gpodder.net hesabınızla üyeliklerinizi otomatik olarak senkronize edecek.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Senkronizasyonu başlat</string>
-    <string name="pref_gpodnet_setlogin_information_title">Giriş bilgisini değiştir</string>
-    <string name="pref_gpodnet_setlogin_information_sum">gpodder.net hesabınız için giriş bilgisini değiştirin.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Şimdi senkronize et</string>
     <string name="synchronization_sync_summary">Abonelik ve bölüm durum değişikliklerini senkronize et</string>
     <string name="synchronization_full_sync_title">Tam senkronizasyona zorla</string>
@@ -755,8 +755,8 @@
     <string name="statistics_episodes_on_device">Cihazdaki bölüm sayısı:</string>
     <string name="statistics_space_used">Kullanılan alan</string>
     <string name="statistics_episodes_started_total">Başlatılan bölüm / Toplam:</string>
-    <string name="statistics_view_this">View this podcast»</string>
-    <string name="statistics_view_all">Tüm Podcastler için görüntüle»</string>
+
+
     <string name="feeds_related_to_author">Feeds likely related to the author »</string>
     <string name="edit_url_menu">URL düzenle</string>
     <string name="edit_url_confirmation_msg">RSS adresini değiştirmek podcast\'in çalma durumunu ve bölüm listelemesini kolayca bozabilir. Değiştirmeyi önermiyoruz ve herhangi bir aksilikte destek SAĞLANMAYACAK. Bu geri alınamaz. Bozuk abonelik adresi yeniden değiştirmekle DÜZELMEZ. Devam etmeden önce yedek oluşturmanı öneriyoruz.</string>
@@ -769,7 +769,7 @@
     <string name="search_vistaguide_label">Search YouTube channels</string>
     <string name="search_itunes_label">Apple Podcasts\'de ara</string>
     <string name="search_podcastindex_label">Podcastindex.org\'da ara</string>
-    <string name="search_fyyd_label">fyyd\'de arama yap</string>
+
     <string name="gpodnet_search_hint">gpodder.net\'te ara</string>
     <string name="advanced">Gelişmiş</string>
     <string name="add_podcast_by_url">RSS adresi ile cepyayını ekle</string>

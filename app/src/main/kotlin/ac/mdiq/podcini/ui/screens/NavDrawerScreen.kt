@@ -83,15 +83,9 @@ fun NavDrawerScreen() {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-                    
-                    vm.getRecentPodcasts()
-                }
+                Lifecycle.Event.ON_CREATE -> vm.getRecentPodcasts()
                 Lifecycle.Event.ON_START -> {}
-                Lifecycle.Event.ON_RESUME -> {
-                    
-                    vm.loadData()
-                }
+                Lifecycle.Event.ON_RESUME -> vm.loadData()
                 Lifecycle.Event.ON_STOP -> {}
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}

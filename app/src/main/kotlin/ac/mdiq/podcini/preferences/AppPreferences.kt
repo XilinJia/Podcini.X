@@ -64,8 +64,8 @@ object AppPreferences {
 
     var isSkipSilence: Boolean
         get() = getPref(AppPrefs.prefSkipSilence, false)
-        set(skipSilence) {
-            putPref(AppPrefs.prefSkipSilence, skipSilence)
+        set(value) {
+            putPref(AppPrefs.prefSkipSilence, value)
         }
 
     @set:VisibleForTesting

@@ -681,14 +681,14 @@
     <string name="password_label">Adgangskode</string>
     <string name="synchronization_login_butLabel">Log ind</string>
     <string name="synchronization_selectDevice_explanation">Vælg den enhed, som du har oprettet på synkroniseringsserveren, eller opret en ny enhed.</string>
-    <string name="gpodnetauth_device_name">Enhedsnavn</string>
-    <string name="gpodnetauth_device_name_default">Podcini på %1$s</string>
-    <string name="gpodnetauth_existing_devices">Eksisterende enheder</string>
-    <string name="gpodnetauth_create_device">Opret ny enhed</string>
-    <string name="gpodnetauth_finish_descr">Tillykke! Din gpodder.net-konto er nu forbundet med din enhed. Podcini vil fra nu af automatisk synkronisere dine abonnementer på din enhed med din gpodder.net-konto.</string>
-    <string name="gpodnetauth_finish_butsyncnow">Start synkronisering nu</string>
-    <string name="pref_gpodnet_setlogin_information_title">Ændr loginoplysninger</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Ændr din gpodder.net-kontos loginoplysninger.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Synkroniser nu</string>
     <string name="synchronization_sync_summary">Synkroniser ændringer i abonnement og afsnitstilstand</string>
     <string name="synchronization_full_sync_title">Fremtving fuld synkronisering</string>
@@ -753,8 +753,8 @@
     <string name="statistics_episodes_on_device">Afsnit på enheden:</string>
     <string name="statistics_space_used">Plads brugt:</string>
     <string name="statistics_episodes_started_total">Påbegyndte afsnit/total:</string>
-    <string name="statistics_view_this">Vis denne podcast»</string>
-    <string name="statistics_view_all">Vis for alle podcasts »</string>
+
+
     <string name="feeds_related_to_author">Feeds sandsynligvis relateret til forfatteren »</string>
     <string name="edit_url_menu">Rediger feed-URL</string>
     <string name="edit_url_confirmation_msg">Hvis du ændrer RSS-adressen, kan du nemt ødelægge podcastens afspilningstilstand og afsnitslisterne for podcasten. Vi anbefaler IKKE at ændre den og vil IKKE yde support, hvis noget går galt. Dette kan ikke gøres om. Det ødelagte abonnement KAN IKKE repareres ved blot at ændre adressen tilbage. Vi foreslår, at du opretter en sikkerhedskopi, før du fortsætter.</string>
@@ -767,7 +767,7 @@
     <string name="search_vistaguide_label">Søg i YouTube-kanaler</string>
     <string name="search_itunes_label">Søg i Apple Podcasts</string>
     <string name="search_podcastindex_label">Søg i Podcast Index</string>
-    <string name="search_fyyd_label">Søg i fyyd</string>
+
     <string name="gpodnet_search_hint">Søg på gpodder.net</string>
     <string name="advanced">Avanceret</string>
     <string name="add_podcast_by_url">Tilføj podcast via RSS-adresse</string>

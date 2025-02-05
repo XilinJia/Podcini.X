@@ -38,8 +38,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -115,14 +118,13 @@ fun StatisticsScreen() {
     fun HorizontalLineChart(lineChartData: LineChartData) {
         val data = lineChartData.values
         val total = data.sum()
-        Canvas(modifier = Modifier.fillMaxWidth().height(50.dp).padding(start = 20.dp, end = 20.dp)) {
+        Canvas(modifier = Modifier.fillMaxWidth().height(20.dp).padding(start = 20.dp, end = 20.dp)) {
             val canvasWidth = size.width
             val canvasHeight = size.height
-            val lineY = canvasHeight / 2
             var startX = 0f
             for (index in data.indices) {
                 val segmentWidth = (data[index] / total) * canvasWidth
-                drawRect(color = lineChartData.getComposeColorOfItem(index), topLeft = Offset(startX, lineY - 10), size = Size(segmentWidth, 20f))
+                drawRect(color = lineChartData.getComposeColorOfItem(index), topLeft = Offset(startX, 0f), size = Size(segmentWidth, canvasHeight))
                 startX += segmentWidth
             }
         }
@@ -134,7 +136,7 @@ fun StatisticsScreen() {
         var showFeedStats by remember { mutableStateOf(false) }
         var feedId by remember { mutableLongStateOf(0L) }
         var feedTitle by remember { mutableStateOf("") }
-        if (showFeedStats) FeedStatisticsDialog(feedTitle, feedId) { showFeedStats = false }
+        if (showFeedStats) FeedStatisticsDialog(feedTitle, feedId, showOpenFeed = true) { showFeedStats = false }
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(statisticsData.statsItems, key = { _, item -> item.feed.id }) { index, item ->
@@ -229,7 +231,9 @@ fun StatisticsScreen() {
                 Spacer(Modifier.width(20.dp))
                 Text( stringResource(R.string.spent) + ": " + durationInHours(timeSpentSum), color = MaterialTheme.colorScheme.onSurface)
             }
+            Spacer(Modifier.height(5.dp))
             HorizontalLineChart(chartData)
+            Spacer(Modifier.height(5.dp))
             StatsList(vm.statsResult, chartData) { item ->
                 context.getString(R.string.duration) + ": " + durationInHours(item.timePlayed) + " \t " + context.getString(R.string.spent) + ": " + durationInHours(item.timeSpent)
             }
@@ -345,7 +349,9 @@ fun StatisticsScreen() {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(stringResource(R.string.total_size_downloaded_podcasts), color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 20.dp, bottom = 10.dp))
             Text(Formatter.formatShortFileSize(context, downloadChartData.sum.toLong()), color = MaterialTheme.colorScheme.onSurface)
+            Spacer(Modifier.height(5.dp))
             HorizontalLineChart(downloadChartData)
+            Spacer(Modifier.height(5.dp))
             StatsList(downloadstatsData, downloadChartData) { item ->
                 ("${Formatter.formatShortFileSize(context, item.totalDownloadSize)} • " + String.format(Locale.getDefault(), "%d%s", item.episodesDownloadCount, context.getString(R.string.episodes_suffix)))
             }
@@ -412,9 +418,7 @@ class LineChartData(val values: MutableList<Float>) {
         if (sum == 0f) return 0f
         return values[index] / sum
     }
-    private fun isLargeEnoughToDisplay(index: Int): Boolean {
-        return getPercentageOfItem(index) > 0.01
-    }
+    private fun isLargeEnoughToDisplay(index: Int): Boolean = getPercentageOfItem(index) > 0.01
     fun getComposeColorOfItem(index: Int): Color {
         if (!isLargeEnoughToDisplay(index)) return Color.Gray
         return Color(COLOR_VALUES[index % COLOR_VALUES.size])
@@ -490,7 +494,7 @@ fun getStatistics(includeMarkedAsPlayed: Boolean, timeFilterFrom: Long, timeFilt
 }
 
 @Composable
-fun FeedStatisticsDialog(title: String, feedId: Long, onDismissRequest: () -> Unit) {
+fun FeedStatisticsDialog(title: String, feedId: Long, showOpenFeed: Boolean = false, onDismissRequest: () -> Unit) {
     var statisticsData by remember { mutableStateOf<StatisticsItem?>(null) }
     fun loadStatistics() {
         try {
@@ -500,12 +504,12 @@ fun FeedStatisticsDialog(title: String, feedId: Long, onDismissRequest: () -> Un
         } catch (error: Throwable) { error.printStackTrace() }
     }
     LaunchedEffect(Unit) { loadStatistics() }
-    Dialog(onDismissRequest = { onDismissRequest() }) {
-        Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+    Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
+        Card(modifier = Modifier.fillMaxWidth().wrapContentHeight(align = Alignment.CenterVertically).padding(10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val context = LocalContext.current
             val textColor = MaterialTheme.colorScheme.onSurface
             Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                Text(title)
+                Text(title, color = textColor, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 2.dp))
                 Row {
                     Text(stringResource(R.string.statistics_episodes_started_total), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Text(String.format(Locale.getDefault(), "%d / %d", statisticsData?.episodesStarted ?: 0, statisticsData?.numEpisodes ?: 0), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
@@ -537,7 +541,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, onDismissRequest: () -> Un
                 Row {
                     Button(onClick = { onDismissRequest() }) {Text(stringResource(android.R.string.ok)) }
                     Spacer(Modifier.weight(1f))
-                    Button(onClick = {
+                    if (showOpenFeed) Button(onClick = {
                         val feed = getFeed(feedId)
                         if (feed != null) {
                             feedOnDisplay = feed

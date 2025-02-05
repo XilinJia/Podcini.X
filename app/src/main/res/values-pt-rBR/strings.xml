@@ -516,14 +516,14 @@
   <string name="password_label">Senha</string>
   <string name="synchronization_login_butLabel">Log in</string>
   <string name="synchronization_selectDevice_explanation">Por favor selecione o dispositivo criado no servidor de sincronização ou crie um novo.</string>
-  <string name="gpodnetauth_device_name">Nome do dispositivo</string>
-  <string name="gpodnetauth_device_name_default">Podcini em %1$s</string>
-  <string name="gpodnetauth_existing_devices">Dispositivos existentes</string>
-  <string name="gpodnetauth_create_device">Criar dispositivo</string>
-  <string name="gpodnetauth_finish_descr">Parabéns! Sua conta gpodder.net agora está conectada ao seu dispositivo. O Podcini irá, daqui em diante, sincronizar automaticamente assinaturas do seu dispositivo com sua conta gpodder.net.</string>
-  <string name="gpodnetauth_finish_butsyncnow">Iniciar sincronização agora</string>
-  <string name="pref_gpodnet_setlogin_information_title">Alterar informações de login</string>
-  <string name="pref_gpodnet_setlogin_information_sum">Alterar informações de login da sua conta gpodder.net</string>
+
+
+
+
+
+
+
+
   <string name="synchronization_sync_changes_title">Sincronizar agora</string>
   <string name="synchronization_sync_summary">Sincronize as mudanças nas assinaturas e na situação dos episódios</string>
   <string name="synchronization_full_sync_title">Forçar sincronização completa</string>
@@ -580,7 +580,7 @@
   <string name="statistics_episodes_on_device">Episódios no dispositivo:</string>
   <string name="statistics_space_used">Espaço utilizado:</string>
   <string name="statistics_episodes_started_total">Episódios iniciados/total:</string>
-  <string name="statistics_view_all">Visualização para todos os podcasts »</string>
+
   <string name="edit_url_menu">Editar URL da fonte</string>
   <string name="edit_url_confirmation_msg">Alterar o endereço RSS pode facilmente desfazer a lista e o estado atual de reprodução do podcast. Nós NÃO recomendamos a mudança e NÃO forneceremos suporte caso algo dê errado. Este processo não pode ser desfeito. A inscrição danificada NÃO pode ser reparada com a alteração para o endereço anterior. É recomendável fazer um backup antes de prosseguir.</string>
   <!--PodciniSP-->
@@ -588,7 +588,7 @@
   <!--Add podcast fragment-->
   <string name="search_podcast_hint">Procurar podcast…</string>
   <string name="search_itunes_label">Pesquisar em Apple Podcasts</string>
-  <string name="search_fyyd_label">Pesquisar em fyyd</string>
+
   <string name="gpodnet_search_hint">Buscar no gpodder.net</string>
   <string name="advanced">Avançado</string>
   <string name="add_podcast_by_url">Adicionar podcast usando um endereço RSS</string>

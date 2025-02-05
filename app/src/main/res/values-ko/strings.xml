@@ -673,14 +673,14 @@
     <string name="password_label">비밀번호</string>
     <string name="synchronization_login_butLabel">로그인</string>
     <string name="synchronization_selectDevice_explanation">동기화 서버에 만든 장치를 선택하거나 새 장치를 만드십시오.</string>
-    <string name="gpodnetauth_device_name">장치 이름</string>
-    <string name="gpodnetauth_device_name_default">안테나팟, %1$s</string>
-    <string name="gpodnetauth_existing_devices">기존 장치</string>
-    <string name="gpodnetauth_create_device">장치 만들기</string>
-    <string name="gpodnetauth_finish_descr">축하합니다! gpodder.net 계정이 장치와 연결되었습니다. 이제 안테나팟에서 gpodder.net 계정의 구독 정보와 자동으로 동기화합니다.</string>
-    <string name="gpodnetauth_finish_butsyncnow">지금 동기화 시작</string>
-    <string name="pref_gpodnet_setlogin_information_title">로그인 정보 바꾸기</string>
-    <string name="pref_gpodnet_setlogin_information_sum">gpodder.net 계정의 로그인 정보를 바꿉니다.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">지금 동기화</string>
     <string name="synchronization_sync_summary">구독 및 에피소드 상태 변화 동기화</string>
     <string name="synchronization_full_sync_title">강제 전체 동기화</string>
@@ -745,8 +745,8 @@
     <string name="statistics_episodes_on_device">장치에 들어 있는 에피소드:</string>
     <string name="statistics_space_used">사용한 용량:</string>
     <string name="statistics_episodes_started_total">에피소드 시작/전체:</string>
-    <string name="statistics_view_this">View this podcast»</string>
-    <string name="statistics_view_all">모든 팟캐스트에 대한 뷰 »</string>
+
+
     <string name="feeds_related_to_author">Feeds likely related to the author »</string>
     <string name="edit_url_menu">피드 URL 편집</string>
     <string name="edit_url_confirmation_msg">RSS 주소를 바꾸면 재생 상태와 팟캐스트 에피소드 목록을 쉽게 망가뜨립니다. RSS 주소를 바꾸지 않기를 권하고, 잘못된 경우 어떤 지원도 하지 않을 것입니다. RSS 주소를 한번 바꾸면 되돌릴 수 없습니다. 구독이 한번 망가지면 주소를 되돌린다고 해도 바로잡을 수 없습니다. 계속 하기 전에 백업을 만드시길 권장합니다.</string>
@@ -759,7 +759,7 @@
     <string name="search_vistaguide_label">Search YouTube channels</string>
     <string name="search_itunes_label">애플 팟캐스트 검색</string>
     <string name="search_podcastindex_label">팟캐스트 인덱스 검색</string>
-    <string name="search_fyyd_label">fyyd 검색</string>
+
     <string name="gpodnet_search_hint">gpodder.net 검색</string>
     <string name="advanced">고급</string>
     <string name="add_podcast_by_url">RSS 주소로 팟캐스트 추가</string>

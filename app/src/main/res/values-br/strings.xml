@@ -449,14 +449,14 @@
   <string name="username_label">Anv implijer</string>
   <string name="password_label">Ger-tremen</string>
   <string name="synchronization_login_butLabel">Kevreañ</string>
-  <string name="gpodnetauth_device_name">Anv ar benveg</string>
-  <string name="gpodnetauth_device_name_default">Podcini war %1$s</string>
-  <string name="gpodnetauth_existing_devices">Binviji a zo anezho</string>
-  <string name="gpodnetauth_create_device">Krouiñ ur benveg</string>
-  <string name="gpodnetauth_finish_descr">Gourc\'hemennoù! Liammet eo ho kont gpodder.net gant ho penveg. Goubredet e vo ent emgefreek ar c\'houmanantoù war ho penveg gant ho kont gpodder.net.</string>
-  <string name="gpodnetauth_finish_butsyncnow">Kregiñ gant ar goubredañ bremañ </string>
-  <string name="pref_gpodnet_setlogin_information_title">Kemmañ an titouroù kennaskañ</string>
-  <string name="pref_gpodnet_setlogin_information_sum">Kemmañ ho titouroù kennaskañ evit ho kont gpodder.net.</string>
+
+
+
+
+
+
+
+
   <string name="synchronization_sync_changes_title">Goubredañ bremañ</string>
   <string name="synchronization_sync_summary">Goubredañ ar c\'houmanantoù hag ar c\'hemmoù e stad ar rannoù</string>
   <string name="synchronization_full_sync_title">Rediañ ur goubredañ klok</string>
@@ -508,13 +508,13 @@
   <string name="statistics_episodes_on_device">Rannoù war ar benveg:</string>
   <string name="statistics_space_used">Plas implijet:</string>
   <string name="statistics_episodes_started_total">Rannoù kroget/en holl :</string>
-  <string name="statistics_view_all">Diskouez an holl bodskignadoù »</string>
+
   <string name="edit_url_menu">Kemm URL ar wazh</string>
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">Oc\'h enporzhiañ ar c\'houmanantoù diwar arloadoù gant un arver unel…</string>
   <!--Add podcast fragment-->
   <string name="search_podcast_hint">Klask ur podskignad…</string>
-  <string name="search_fyyd_label">Klask war fydd</string>
+
   <string name="gpodnet_search_hint">Klask war gpodder.ner</string>
   <string name="advanced">Araokaet</string>
   <string name="add_podcast_by_url">Ouzhpennañ ur podskignad gant e chomlec\'h RSS</string>

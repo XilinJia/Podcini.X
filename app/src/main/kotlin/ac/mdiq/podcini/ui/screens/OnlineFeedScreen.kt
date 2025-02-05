@@ -22,10 +22,19 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Rating.Companion.fromCode
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
+import ac.mdiq.podcini.ui.actions.SwipeAction
+import ac.mdiq.podcini.ui.actions.SwipeActions
+import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
+import ac.mdiq.podcini.ui.actions.SwipeActions.NoActionSwipeAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
+import ac.mdiq.podcini.ui.compose.EpisodeVM
+import ac.mdiq.podcini.ui.compose.InforBar
+import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
+import ac.mdiq.podcini.ui.compose.stopMonitor
 import ac.mdiq.podcini.ui.utils.*
 import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.MiscFormatter.formatAbbrev
@@ -69,8 +78,6 @@ import java.util.*
  * and the activity will finish as soon as the error dialog is closed.
  */
 class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
-    val prefs: SharedPreferences by lazy { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
-
     var feedSource: String = ""
 
     internal var displayUpArrow = false
@@ -82,6 +89,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var isShared: Boolean = false
 
+    internal var showEpisodes by mutableStateOf(false)
     internal var showFeedDisplay by mutableStateOf(false)
     internal var showProgress by mutableStateOf(true)
     internal var autoDownloadChecked by mutableStateOf(false)
@@ -96,10 +104,25 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
             return 0
         }
 
+
+    internal var infoBarText = mutableStateOf("")
+    internal var swipeActions: SwipeActions
+    internal var leftActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
+    internal var rightActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
+
+    internal var showSwipeActionsDialog by mutableStateOf(false)
+
+    internal var episodes = mutableListOf<Episode>()
+    internal val vms = mutableStateListOf<EpisodeVM>()
+
     init {
         feedSource = onlineFeedSource
         feedUrl = onlineFeedUrl
         isShared = isOnlineFeedShared
+
+        swipeActions = SwipeActions(context, TAG)
+        leftActionState.value = swipeActions.actions.left[0]
+        rightActionState.value = swipeActions.actions.right[0]
     }
 
     @Volatile
@@ -115,6 +138,17 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal var isFeedFoundBySearch = false
 
     internal var dialog: Dialog? = null
+
+    internal fun buildMoreItems() {
+//        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+        if (nextItems.isNotEmpty()) vms.addAll(nextItems)
+    }
+
+    internal fun refreshSwipeTelltale() {
+        leftActionState.value = swipeActions.actions.left[0]
+        rightActionState.value = swipeActions.actions.right[0]
+    }
 
     internal fun handleFeed(feed_: Feed, map: Map<String, String>) {
         selectedDownloadUrl = feedBuilder.selectedDownloadUrl
@@ -272,7 +306,13 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
         handleUpdatedFeedStatus()
     }
 
-    internal fun showEpisodes(episodes: MutableList<Episode>) {
+    internal fun showEpisodes(episodes_: MutableList<Episode>) {
+        episodes = episodes_
+        stopMonitor(vms)
+        vms.clear()
+        buildMoreItems()
+        infoBarText.value = "${episodes.size} episodes"
+
         Logd(TAG, "showEpisodes ${episodes.size}")
         if (episodes.isEmpty()) return
         episodes.sortByDescending { it.pubDate }
@@ -281,8 +321,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
             episodes[i].id = id_++
             episodes[i].isRemote.value = true
         }
-        onlineEpisodes = episodes
-        mainNavController.navigate(Screens.OnlineEpisodes.name)
+        showEpisodes = true
     }
 
     internal fun handleUpdatedFeedStatus() {
@@ -290,9 +329,6 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
         if (dli == null || selectedDownloadUrl == null) return
 
         when {
-//            feedSource != "VistaGuide" -> {
-//                binding.subscribeButton.isEnabled = false
-//            }
             dli.isDownloadingEpisode(selectedDownloadUrl!!) -> {
                 enableSubscribe = false
                 subButTextRes = R.string.subscribe_label
@@ -308,13 +344,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                     if (feedSource == "VistaGuide") {
                         feed1.prefStreamOverDownload = true
                         feed1.autoDownload = false
-                    } else if (isEnableAutodownload) {
-                        val autoDownload = autoDownloadChecked
-                        feed1.autoDownload = autoDownload
-                        val editor = prefs.edit()
-                        editor?.putBoolean(PREF_LAST_AUTO_DOWNLOAD, autoDownload)
-                        editor?.apply()
-                    }
+                    } else if (isEnableAutodownload) feed1.autoDownload = autoDownloadChecked
                     if (username != null) {
                         feed1.username = username
                         feed1.password = password
@@ -346,10 +376,8 @@ fun OnlineFeedScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    
 //                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
 //                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
-
                     Logd(TAG, "feedUrl: ${vm.feedUrl}")
                     vm.feedBuilder = gearbox.formFeedBuilder(vm.feedUrl, vm.feedSource, context) { message, details ->
                         vm.errorMessage = message ?: "No message"
@@ -370,10 +398,16 @@ fun OnlineFeedScreen() {
 //                            }
                         vm.lookupUrlAndBuild(vm.feedUrl)
                     }
+                    lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
+                    vm.refreshSwipeTelltale()
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.isPaused = false
                     vm.procFlowEvents()
+                    stopMonitor(vm.vms)
+                    vm.vms.clear()
+                    vm.buildMoreItems()
+                    vm.infoBarText.value = "${vm.episodes.size} episodes"
                 }
                 Lifecycle.Event.ON_STOP -> {
                     vm.isPaused = true
@@ -388,6 +422,9 @@ fun OnlineFeedScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             vm.feeds = null
+            vm.episodes.clear()
+            stopMonitor(vm.vms)
+            vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -422,7 +459,7 @@ fun OnlineFeedScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar(title = { Text(text = "") }, 
+        TopAppBar(title = { Text(text = "Online feed") },
             navigationIcon = if (vm.displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
@@ -430,6 +467,11 @@ fun OnlineFeedScreen() {
                 { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }
             }
         )
+    }
+
+    if (vm.showSwipeActionsDialog) SwipeActionsSettingDialog(vm.swipeActions, onDismissRequest = { vm.showSwipeActionsDialog = false }) { actions ->
+        vm.swipeActions.actions = actions
+        vm.refreshSwipeTelltale()
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
@@ -487,64 +529,78 @@ fun OnlineFeedScreen() {
                         }
                     }) { Text(stringResource(vm.subButTextRes)) }
                     Spacer(modifier = Modifier.weight(0.1f))
-                    if (vm.enableEpisodes && vm.feed != null) Button(onClick = { vm.showEpisodes(vm.feed!!.episodes) }) { Text(stringResource(R.string.episodes_label)) }
+                    if (vm.showEpisodes) {
+                        Button(onClick = { vm.showEpisodes = false }) { Text(stringResource(R.string.feed)) }
+                    } else {
+                        if (vm.enableEpisodes && vm.feed != null) Button(onClick = { vm.showEpisodes(vm.feed!!.episodes) }) { Text(stringResource(R.string.episodes_label)) }
+                    }
                     Spacer(modifier = Modifier.weight(0.2f))
                 }
             }
-            Column {
+            if (vm.showEpisodes) {
+               InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
+               EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
+                   buildMoreItems = { vm.buildMoreItems() },
+                   leftSwipeCB = {
+                       if (vm.leftActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                       else vm.leftActionState.value.performAction(it)
+                   },
+                   rightSwipeCB = {
+                       if (vm.rightActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                       else vm.rightActionState.value.performAction(it)
+                   },
+               )
+           } else {
+               Column {
 //                    alternate_urls_spinner
-                if (vm.feedSource != "VistaGuide" && isEnableAutodownload) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
-                    Text(text = stringResource(R.string.auto_download_label),
-                        style = MaterialTheme.typography.bodyMedium.merge(), color = textColor,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }
-            }
-            val scrollState = rememberScrollState()
-            var numEpisodes by remember { mutableIntStateOf(vm.feed?.episodes?.size ?: 0) }
-            LaunchedEffect(Unit) {
-                while (true) {
-                    delay(1000)
-                    numEpisodes = vm.feed?.episodes?.size ?: 0
-                }
-            }
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
-                Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
-                Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
-                val sLog = remember { feedLogsMap_[vm.feed?.downloadUrl ?: ""] }
-                if (sLog != null) {
-                    val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
-                    val context = LocalContext.current
-                    val cancelDate = remember { formatAbbrev(context, Date(sLog.cancelDate)) }
-                    val ratingRes = remember { fromCode(sLog.rating).res }
-                    if (commentTextState.text.isNotEmpty()) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
-                            Text(stringResource(R.string.my_opinion_label), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom)
-                            Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null, modifier = Modifier.padding(start = 5.dp))
-                        }
-                        Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                        Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                    }
-                }
-                Text(vm.feed?.mostRecentItem?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                Text("${vm.feed?.language ?: ""} ${vm.feed?.type ?: ""} ${vm.feed?.lastUpdate ?: ""}", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-            }
+                   if (vm.feedSource != "VistaGuide" && isEnableAutodownload) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                       Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
+                       Text(text = stringResource(R.string.auto_download_label),
+                           style = MaterialTheme.typography.bodyMedium.merge(), color = textColor,
+                           modifier = Modifier.padding(start = 16.dp)
+                       )
+                   }
+               }
+               val scrollState = rememberScrollState()
+               var numEpisodes by remember { mutableIntStateOf(vm.feed?.episodes?.size ?: 0) }
+               LaunchedEffect(Unit) {
+                   while (true) {
+                       delay(1000)
+                       numEpisodes = vm.feed?.episodes?.size ?: 0
+                   }
+               }
+               Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
+                   Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge,
+                       modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
+                   Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge,
+                       modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                   Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
+                   val sLog = remember { feedLogsMap_[vm.feed?.downloadUrl ?: ""] }
+                   if (sLog != null) {
+                       val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
+                       val context = LocalContext.current
+                       val cancelDate = remember { formatAbbrev(context, Date(sLog.cancelDate)) }
+                       val ratingRes = remember { fromCode(sLog.rating).res }
+                       if (commentTextState.text.isNotEmpty()) {
+                           Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
+                               Text(stringResource(R.string.my_opinion_label), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom)
+                               Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null, modifier = Modifier.padding(start = 5.dp))
+                           }
+                           Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium,
+                               modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                           Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium,
+                               modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                       }
+                   }
+                   Text(vm.feed?.mostRecentItem?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                   Text("${vm.feed?.language ?: ""} ${vm.feed?.type ?: ""} ${vm.feed?.lastUpdate ?: ""}", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                   Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                   Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+               }
+           }
         }
     }
 }
 
 const val ARG_WAS_MANUAL_URL: String = "manual_url"
-private const val RESULT_ERROR = 2
 private const val TAG: String = "OnlineFeedScreen"
-
-private const val PREFS = "OnlineFeedViewFragmentPreferences"
-private const val PREF_LAST_AUTO_DOWNLOAD = "lastAutoDownload"
-private const val KEY_UP_ARROW = "up_arrow"

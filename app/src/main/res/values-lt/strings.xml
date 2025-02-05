@@ -386,14 +386,14 @@
   <string name="gpodnetauth_encryption_warning">Slaptažodis ir duomenys nėra užšifruojami!</string>
   <string name="username_label">Vartotojo vardas</string>
   <string name="password_label">Slaptažodis</string>
-  <string name="gpodnetauth_device_name">Įrenginio pavadinimas</string>
-  <string name="gpodnetauth_device_name_default">„Podcini“ %1$s įrenginyje</string>
-  <string name="gpodnetauth_existing_devices">Esami įrenginiai</string>
-  <string name="gpodnetauth_create_device">Sukurti įrenginį</string>
-  <string name="gpodnetauth_finish_descr">Sveikiname! Jūsų „gpodder.net“ paskyra susieta su šiuo įrenginiu. Nuo šiol „Podcini“ automatiškai sinchronizuos prenumeratas šiame įrenginyje su Jūsų „gpodder.net“ paskyra.</string>
-  <string name="gpodnetauth_finish_butsyncnow">Pradėti sinchronizavimą dabar</string>
-  <string name="pref_gpodnet_setlogin_information_title">Keisti prisijungimo duomenis</string>
-  <string name="pref_gpodnet_setlogin_information_sum">Keisti prisijungimo prie „gpodder.net“ paskyros duomenis.</string>
+
+
+
+
+
+
+
+
   <string name="synchronization_sync_changes_title">Sinchronizuoti dabar</string>
   <string name="synchronization_sync_summary">Sinchronizuoti prenumeratų ir epizodų būsenų pokyčius</string>
   <string name="synchronization_full_sync_title">Priverstinis pilnas sinchronizavimas</string>
@@ -443,12 +443,12 @@
   <string name="statistics_episodes_on_device">Epizodai įrenginyje:</string>
   <string name="statistics_space_used">Naudojama disko vieta:</string>
   <string name="statistics_episodes_started_total">Pradėti epizodai/iš viso:</string>
-  <string name="statistics_view_all">Žiūrėti visoms tinklalaidėms »</string>
+
   <!--PodciniSP-->
   <string name="sp_apps_importing_feeds_msg">Įkeliamos prenumeratos iš specializuotų programėlių…</string>
   <!--Add podcast fragment-->
   <string name="search_podcast_hint">Ieškoti tinklalaidės…</string>
-  <string name="search_fyyd_label">Ieškoti „fyyd“</string>
+
   <string name="gpodnet_search_hint">Ieškoti „gpodder.net“ svetainėje</string>
   <string name="advanced">Išplėstinis</string>
   <string name="add_podcast_by_url">Pridėti tinklalaidės RSS srauto adresą</string>

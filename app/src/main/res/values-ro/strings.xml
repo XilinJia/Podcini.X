@@ -689,14 +689,14 @@
     <string name="password_label">Parolă</string>
     <string name="synchronization_login_butLabel">Autentificare</string>
     <string name="synchronization_selectDevice_explanation">Te rugăm să selectezi dispozitivul creat pe server sau să creezi un dispozitiv nou.</string>
-    <string name="gpodnetauth_device_name">Numele dispozitivului</string>
-    <string name="gpodnetauth_device_name_default">Podcini pe %1$s</string>
-    <string name="gpodnetauth_existing_devices">Dispozitive existente</string>
-    <string name="gpodnetauth_create_device">Creează un dispozitiv</string>
-    <string name="gpodnetauth_finish_descr">Felicitări! contul tău gpodder.net este acum conectat cu dispozitivul tău. Podcini va sincroniza automat toate abonamentele de pe dispozitivul dumneavoastra cu contul gpodder.net</string>
-    <string name="gpodnetauth_finish_butsyncnow">Începe sincronizarea acum</string>
-    <string name="pref_gpodnet_setlogin_information_title">Schimbă informațiile de autentificare</string>
-    <string name="pref_gpodnet_setlogin_information_sum">Schimbă informațiile de autentificare pentru contul tău gpodder.net.</string>
+
+
+
+
+
+
+
+
     <string name="synchronization_sync_changes_title">Sincronizează acum</string>
     <string name="synchronization_sync_summary">Sincronizează schimbările abonamentelor și starea episoadelor </string>
     <string name="synchronization_full_sync_title">Forțează sincronizarea completă</string>
@@ -761,8 +761,8 @@
     <string name="statistics_episodes_on_device">Episoade pe acest dispozitiv:</string>
     <string name="statistics_space_used">Spațiu folosit:</string>
     <string name="statistics_episodes_started_total">Episoade pornite/total:</string>
-    <string name="statistics_view_this">Vezi acest podcast»</string>
-    <string name="statistics_view_all">Vizualizare a tuturor podcasturilor »</string>
+
+
     <string name="feeds_related_to_author">Fluxuri legate probabil de autor\"</string>
     <string name="edit_url_menu">Editează fluxurile URL</string>
     <string name="edit_url_confirmation_msg">Schimbarea adresei RSS poate distruge cu ușurință starea de redare și listele de episoade ale podcastului. NU recomandăm schimbarea acestuia și NU vă vom oferi asistență dacă ceva nu merge bine. Acest lucru nu poate fi anulat. Abonamentul defect NU POATE fi reparat prin simpla schimbare a adresei înapoi. Vă sugerăm să creați o copie de rezervă înainte de a continua.</string>
@@ -775,7 +775,7 @@
     <string name="search_vistaguide_label">Căutare canale YouTube</string>
     <string name="search_itunes_label">Caută în Apple Podcasts</string>
     <string name="search_podcastindex_label">Caută în Podcast Index</string>
-    <string name="search_fyyd_label">Caută în fyyd</string>
+
     <string name="gpodnet_search_hint">Caută pe gpodder.net</string>
     <string name="advanced">Avansat</string>
     <string name="add_podcast_by_url">Adaugă podcast folosind o adresă RSS</string>

@@ -246,7 +246,6 @@ class MainActivity : CastEnabledActivity() {
                             composable(Screens.OnlineSearch.name) { OnlineSearchScreen() }
                             composable(Screens.Discovery.name) { DiscoveryScreen() }
                             composable(Screens.OnlineFeed.name) { OnlineFeedScreen() }
-                            composable(Screens.OnlineEpisodes.name) { OnlineEpisodesScreen() }
                             composable(Screens.SearchResults.name) { SearchResultsScreen() }
                             composable(Screens.Logs.name) { LogsScreen() }
                             composable(Screens.Statistics.name) { StatisticsScreen() }
