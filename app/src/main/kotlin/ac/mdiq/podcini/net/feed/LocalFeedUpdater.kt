@@ -13,6 +13,7 @@ import ac.mdiq.podcini.storage.database.LogsAndStats
 import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -42,7 +43,7 @@ object LocalFeedUpdater {
             tryUpdateFeed(feed, context, documentFolder.uri, updaterProgressListener)
             if (mustReportDownloadSuccessful(feed)) reportSuccess(feed)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logs(TAG, e)
             reportError(feed, e.message)
         }
     }
@@ -124,7 +125,9 @@ object LocalFeedUpdater {
             }
         }
         // Did not find existing item. Scan metadata.
-        try { loadMetadata(item, file, context) } catch (e: Exception) { item.setDescriptionIfLonger(e.message) }
+        try { loadMetadata(item, file, context) } catch (e: Exception) {
+            Logs(TAG, e)
+            item.setDescriptionIfLonger(e.message) }
         return item
     }
 
@@ -137,6 +140,7 @@ object LocalFeedUpdater {
                     val simpleDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.getDefault())
                     item.pubDate = simpleDateFormat.parse(dateStr)?.time ?: 0L
                 } catch (e: ParseException) {
+                    Logs(TAG, e)
                     val date = DateUtils.parse(dateStr)
                     if (date != null) item.pubDate = date.time
                 }
@@ -153,25 +157,25 @@ object LocalFeedUpdater {
                     item.setDescriptionIfLonger(reader.comment)
                 }
             } catch (e: IOException) {
-                Logd(TAG, "Unable to parse ID3 of " + file.uri + ": " + e.message)
+                Logs(TAG, e, "Unable to parse ID3 of " + file.uri + ": ")
                 try {
                     context.contentResolver.openInputStream(file.uri)?.use { inputStream ->
                         val reader = VorbisCommentMetadataReader(inputStream)
                         reader.readInputStream()
                         item.setDescriptionIfLonger(reader.description)
                     }
-                } catch (e2: IOException) { Logd(TAG, "Unable to parse vorbis comments of " + file.uri + ": " + e2.message)
-                } catch (e2: VorbisCommentReaderException) { Logd(TAG, "Unable to parse vorbis comments of " + file.uri + ": " + e2.message) }
+                } catch (e2: IOException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ")
+                } catch (e2: VorbisCommentReaderException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ") }
             } catch (e: ID3ReaderException) {
-                Logd(TAG, "Unable to parse ID3 of " + file.uri + ": " + e.message)
+                Logs(TAG, e, "Unable to parse ID3 of " + file.uri + ": ")
                 try {
                     context.contentResolver.openInputStream(file.uri)?.use { inputStream ->
                         val reader = VorbisCommentMetadataReader(inputStream)
                         reader.readInputStream()
                         item.setDescriptionIfLonger(reader.description)
                     }
-                } catch (e2: IOException) { Logd(TAG, "Unable to parse vorbis comments of " + file.uri + ": " + e2.message)
-                } catch (e2: VorbisCommentReaderException) { Logd(TAG, "Unable to parse vorbis comments of " + file.uri + ": " + e2.message) }
+                } catch (e2: IOException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ")
+                } catch (e2: VorbisCommentReaderException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ") }
             }
         }
     }

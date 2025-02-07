@@ -3,7 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.preferences.AppPreferences.isEnableAutodownload
+import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
@@ -795,7 +795,7 @@ fun FeedSettingsScreen() {
                 }
             }
             var autoDownloadChecked by remember { mutableStateOf(vm.feed?.autoDownload == true) }
-            if (isEnableAutodownload && vm.feed?.type != Feed.FeedType.YOUTUBE.name) {
+            if (isAutodownloadEnabled && vm.feed?.type != Feed.FeedType.YOUTUBE.name) {
                 //                    auto download
                 Column {
                     Row(Modifier.fillMaxWidth()) {
@@ -807,7 +807,7 @@ fun FeedSettingsScreen() {
                                 vm.feed = upsertBlk(vm.feed!!) { f -> f.autoDownload = autoDownloadChecked }
                             })
                     }
-                    if (!isEnableAutodownload)
+                    if (!isAutodownloadEnabled)
                         Text(text = stringResource(R.string.auto_download_disabled_globally), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }

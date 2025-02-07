@@ -450,10 +450,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                 val selectedSpeeds: MutableList<Float> = ArrayList()
                 for (i in 0 until jsonArray.length()) selectedSpeeds.add(jsonArray.getDouble(i).toFloat())
                 return selectedSpeeds
-            } catch (e: JSONException) {
-                Logt(TAG, "Got JSON error when trying to get speeds from JSONArray")
-                e.printStackTrace()
-            }
+            } catch (e: JSONException) { Logs(TAG, e, "Got JSON error when trying to get speeds from JSONArray") }
         }
         return mutableListOf(1.0f, 1.25f, 1.5f)
     }
@@ -627,10 +624,7 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
                                 runOnce(context)
                             }
                         }
-                    } catch (e: Throwable) {
-                        e.printStackTrace()
-                        Logt("OpmlImportSelectionDialog", e.message ?: "Import error")
-                    }
+                    } catch (e: Throwable) { Logs("OpmlImportSelectionDialog", e) }
                 }
                 onDismissRequest()
             }) { Text(stringResource(R.string.confirm_label)) }

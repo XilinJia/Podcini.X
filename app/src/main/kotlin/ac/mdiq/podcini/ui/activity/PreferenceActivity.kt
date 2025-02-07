@@ -17,6 +17,7 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.util.toastMessages
@@ -304,7 +305,7 @@ class PreferenceActivity : ComponentActivity() {
 //                var line = ""
 //                while ((reader.readLine()?.also { line = it }) != null) licenseText.append(line).append("\n")
 //                MaterialAlertDialogBuilder(this@PreferenceActivity).setMessage(licenseText).show()
-//            } catch (e: IOException) { e.printStackTrace() }
+//            } catch (e: IOException) { Logs(TAG, e) }
 //        }
         val lazyListState = rememberLazyListState()
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -329,7 +330,7 @@ class PreferenceActivity : ComponentActivity() {
                                 licenseText = sb.toString()
                                 showLicense.value = true
 //                                MaterialAlertDialogBuilder(this@PreferenceActivity).setMessage(licenseText).show()
-                            } catch (e: IOException) { e.printStackTrace() }
+                            } catch (e: IOException) { Logs(TAG, e) }
 //                            showLicenseText(licenses[curLicenseIndex].licenseTextFile)
                         }) { Text("View license") }
                     }

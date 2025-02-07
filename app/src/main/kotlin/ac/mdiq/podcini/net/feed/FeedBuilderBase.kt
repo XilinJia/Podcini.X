@@ -161,7 +161,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
 //            urlsMap = fd.findLinks(feedFile, baseUrl)
 //            if (urlsMap.isEmpty()) return false
 //        } catch (e: IOException) {
-//            e.printStackTrace()
+//            Logs(TAG, e)
 //            return false
 //        }
 //

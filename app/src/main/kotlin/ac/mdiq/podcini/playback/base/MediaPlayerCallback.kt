@@ -10,7 +10,7 @@ interface MediaPlayerCallback {
 
     fun onMediaChanged(reloadUI: Boolean)
 
-    fun onPostPlayback(playable: Episode?, ended: Boolean, skipped: Boolean, playingNext: Boolean)
+    fun onPostPlayback(playable: Episode, ended: Boolean, skipped: Boolean, playingNext: Boolean)
 
     fun onPlaybackStart(playable: Episode, position: Int)
 

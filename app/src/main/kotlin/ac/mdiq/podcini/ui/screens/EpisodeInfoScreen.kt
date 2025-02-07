@@ -4,7 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
-import ac.mdiq.podcini.net.utils.NetworkUtils.isImageAllowed
+import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
@@ -147,7 +147,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         when {
             media == null -> txtvSize = ""
             media.size > 0 -> txtvSize = formatShortFileSize(context, media.size)
-            isImageAllowed && !media.checkedOnSizeButUnknown() -> {
+            isImageDownloadAllowed && !media.checkedOnSizeButUnknown() -> {
                 txtvSize = "{faw_spinner}"
                 lcScope.launch {
                     val sizeValue = getMediaSize(episode)
@@ -160,7 +160,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     private fun updateButtons() {
-        val dls = DownloadServiceInterface.get()
+        val dls = DownloadServiceInterface.impl
 
         val media: Episode? = episode
         if (media == null) {
@@ -374,7 +374,6 @@ fun EpisodeInfoScreen() {
                     //            TODO: need another event type?
                     EventFlow.postEvent(FlowEvent.EpisodePlayedEvent())
                     toastMassege = context.getString(R.string.on_demand_config_setting_changed)
-                    //        (vm.context as MainActivity).showSnackbarAbovePlayer(R.string.on_demand_config_setting_changed, Snackbar.LENGTH_SHORT)
                     onDismiss()
                 }) { Text("OK") }
             },
@@ -502,7 +501,7 @@ private const val TAG: String = "EpisodeInfoScreen"
 
 private suspend fun getMediaSize(episode: Episode?) : Long {
     return withContext(Dispatchers.IO) {
-        if (!isImageAllowed) return@withContext -1
+        if (!isImageDownloadAllowed) return@withContext -1
         val media = episode ?: return@withContext -1
 
         var size = Int.MIN_VALUE.toLong()

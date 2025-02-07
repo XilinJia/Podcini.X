@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.receiver
 
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -38,7 +39,7 @@ class MediaButtonReceiver : BroadcastReceiver() {
             serviceIntent.putExtra(EXTRA_KEYCODE, keyEvent.keyCode)
             serviceIntent.putExtra(EXTRA_SOURCE, keyEvent.source)
             serviceIntent.putExtra(EXTRA_HARDWAREBUTTON, keyEvent.eventTime > 0 || keyEvent.downTime > 0)
-            try { ContextCompat.startForegroundService(context, serviceIntent) } catch (e: Exception) { e.printStackTrace() }
+            try { ContextCompat.startForegroundService(context, serviceIntent) } catch (e: Exception) { Logs(TAG, e) }
         }
     }
 

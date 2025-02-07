@@ -144,13 +144,13 @@ object PodciniHttpClient {
                 var sslContext: SSLContext
                 try { sslContext = SSLContext.getInstance("TLSv1.3")
                 } catch (e: NoSuchAlgorithmException) {
-                    e.printStackTrace()
+                    Logs(TAG, e)
                     // In the play flavor (security provider can vary), some devices only support TLSv1.2.
                     sslContext = SSLContext.getInstance("TLSv1.2")
                 }
                 sslContext.init(null, arrayOf(trustManager), null)
                 factory = sslContext.socketFactory
-            } catch (e: GeneralSecurityException) { e.printStackTrace() }
+            } catch (e: GeneralSecurityException) { Logs(TAG, e) }
         }
 
         override fun getDefaultCipherSuites(): Array<String> {
@@ -209,7 +209,7 @@ object PodciniHttpClient {
                 TrafficStats.setThreadStatsTag(Thread.currentThread().id.toInt())
                 s.enabledProtocols = arrayOf("TLSv1.3", "TLSv1.2")
             } catch (e: IllegalArgumentException) {
-                e.printStackTrace()
+                Logs(TAG, e)
                 // In play flavor, supported cipher suites may vary.
                 // Old protocols might be necessary to keep things working.
                 s.enabledProtocols = arrayOf("TLSv1.2", "TLSv1.1", "TLSv1")
@@ -299,8 +299,8 @@ object PodciniHttpClient {
             factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
             factory.init(keystore)
             for (manager in factory.trustManagers) if (manager is X509TrustManager) return manager
-        } catch (e: NoSuchAlgorithmException) { e.printStackTrace()
-        } catch (e: KeyStoreException) { e.printStackTrace() }
+        } catch (e: NoSuchAlgorithmException) { Logs(TAG, e)
+        } catch (e: KeyStoreException) { Logs(TAG, e) }
         throw IllegalStateException("Unexpected default trust managers")
     }
 

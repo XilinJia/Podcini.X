@@ -32,7 +32,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
             // if we're not supposed to be auto-downloading when we're not charging, stop it
             if (!getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false)) {
                 Logd(TAG, "not charging anymore, canceling auto-download")
-                DownloadServiceInterface.get()?.cancelAll(context)
+                DownloadServiceInterface.impl?.cancelAll(context)
             } else Logd(TAG, "not charging anymore, but the user allows auto-download when on battery so we'll keep going")
         }
     }

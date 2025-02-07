@@ -13,6 +13,7 @@ import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.annotation.SuppressLint
 import android.app.UiModeManager
@@ -40,8 +41,6 @@ import kotlin.math.min
  */
 @SuppressLint("VisibleForTests")
 class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPlayerBase(context, callback) {
-    val TAG = this::class.simpleName ?: "Anonymous"
-
     @Volatile
     private var mediaInfo: MediaInfo? = null
     @Volatile
@@ -223,7 +222,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             } else {
                 if (curEpisode?.id != prevMedia?.id) {
                     prevMedia = curEpisode
-                    callback.onPostPlayback(prevMedia, false, false, true)
+                    callback.onPostPlayback(prevMedia!!, false, false, true)
                 }
                 setPlayerStatus(PlayerStatus.INDETERMINATE, null)
             }
@@ -259,11 +258,11 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             if (uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_CAR) setPlayerStatus(PlayerStatus.INITIALIZED, curEpisode)
             if (prepareImmediately) prepare()
         } catch (e: IOException) {
-            e.printStackTrace()
+            Logs(TAG, e)
             setPlayerStatus(PlayerStatus.ERROR, null)
             EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: ""))
         } catch (e: IllegalStateException) {
-            e.printStackTrace()
+            Logs(TAG, e)
             setPlayerStatus(PlayerStatus.ERROR, null)
             EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: ""))
         } finally { }
@@ -308,7 +307,6 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
     }
 
     override fun seekTo(t: Int) {
-//        Exception("Seeking to $t").printStackTrace()
         remoteMediaClient?.seek(MediaSeekOptions.Builder().setPosition(t.toLong()).setResumeState(MediaSeekOptions.RESUME_STATE_PLAY).build())?.addStatusListener {
             if (it.isSuccess) {
                 Logd(TAG, "seekTo Seek succeeded to position $t ms")
@@ -386,11 +384,13 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
         }
         when {
             shouldContinue || toStoppedState -> {
-                if (nextMedia == null) {
-                    remoteMediaClient?.stop()
-                    // Otherwise we rely on the chromecast callback to tell us the playback has stopped.
-                    callback.onPostPlayback(currentMedia, hasEnded, wasSkipped, false)
-                } else callback.onPostPlayback(currentMedia, hasEnded, wasSkipped, true)
+                if (currentMedia != null) {
+                    if (nextMedia == null) {
+                        remoteMediaClient?.stop()
+                        // Otherwise we rely on the chromecast callback to tell us the playback has stopped.
+                        callback.onPostPlayback(currentMedia, hasEnded, wasSkipped, false)
+                    } else callback.onPostPlayback(currentMedia, hasEnded, wasSkipped, true)
+                }
             }
             isPlaying -> callback.onPlaybackPause(currentMedia, currentMedia?.position ?: Episode.INVALID_TIME)
         }
@@ -399,6 +399,8 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
     override fun isCasting(): Boolean = true
 
     companion object {
+        private const val TAG = "CastMediaPlayer"
+
         /**
          * Converts [Episode] objects into a format suitable for sending to a Cast Device.
          * Before using this method, one should make sure isCastable(EpisodeMedia) returns
@@ -441,8 +443,8 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             metadata.putInt(KEY_FORMAT_VERSION, FORMAT_VERSION_VALUE)
             metadata.putString(KEY_STREAM_URL, media.downloadUrl!!)
 
-            Logd("MediaInfoCreator", "media: ${media.id} ${feedItem.title}")
-            Logd("MediaInfoCreator", "url: ${media.getMediaType()} $media.effectUrl")
+            Logd(TAG, "media: ${media.id} ${feedItem.title}")
+            Logd(TAG, "url: ${media.getMediaType()} $media.effectUrl")
             val builder = MediaInfo.Builder(media.effectUrl)
                 .setEntity(media.id.toString())
                 .setContentType(media.effectMimeType)
@@ -516,7 +518,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS) return null
             try {
                 if (castContext == null) castContext = CastContext.getSharedInstance(context.applicationContext)
-                if (castContext?.castState == CastState.CONNECTED) return CastMediaPlayer(context, callback) } catch (e: Exception) { e.printStackTrace() }
+                if (castContext?.castState == CastState.CONNECTED) return CastMediaPlayer(context, callback) } catch (e: Exception) { Logs(TAG, e) }
             return null
         }
     }

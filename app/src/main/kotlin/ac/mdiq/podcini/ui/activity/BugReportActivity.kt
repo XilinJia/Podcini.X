@@ -9,6 +9,7 @@ import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.error.CrashReportWriter
 import ac.mdiq.podcini.util.toastMassege
 import android.content.ClipData
@@ -55,7 +56,7 @@ class BugReportActivity : ComponentActivity() {
             val crashFile = CrashReportWriter.file
             if (crashFile.exists()) stacktrace = IOUtils.toString(FileInputStream(crashFile), Charset.forName("UTF-8"))
             else Logd(TAG, stacktrace)
-        } catch (e: IOException) { e.printStackTrace() }
+        } catch (e: IOException) { Logs(TAG, e) }
 
         crashDetailsTextView = """
             ${CrashReportWriter.systemInfo}
@@ -121,14 +122,8 @@ class BugReportActivity : ComponentActivity() {
                 val authority = getString(R.string.provider_authority)
                 val fileUri = FileProvider.getUriForFile(this, authority, filename)
                 IntentBuilder(this).setType("text/*").addStream(fileUri).setChooserTitle(R.string.share_file_label).startChooser()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                toastMassege = getString(R.string.log_file_share_exception)
-            }
-        } catch (e: IOException) {
-            e.printStackTrace()
-            toastMassege = e.message?:"No message"
-        }
+            } catch (e: Exception) { Logs(TAG, e, getString(R.string.log_file_share_exception)) }
+        } catch (e: IOException) { Logs(TAG, e) }
     }
 
     private fun sendEmail() {

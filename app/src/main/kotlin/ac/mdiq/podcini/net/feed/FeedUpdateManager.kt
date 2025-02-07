@@ -41,12 +41,6 @@ object FeedUpdateManager {
     private val updateInterval: Long
         get() = getPref(AppPrefs.prefAutoUpdateInterval, "12").toInt().toLong()
 
-    private val isAutoUpdateDisabled: Boolean
-        get() = updateInterval == 0L
-
-    private val lastUpdateTime: Long
-        get() = getPref(AppPrefs.prefLastFullUpdateTime, 0L)
-
     var nextRefreshTime by mutableStateOf("")
 
     /**
@@ -55,7 +49,7 @@ object FeedUpdateManager {
      */
     @JvmStatic
     fun restartUpdateAlarm(context: Context, replace: Boolean) {
-        if (isAutoUpdateDisabled) WorkManager.getInstance(context).cancelUniqueWork(feedUpdateWorkId)
+        if (updateInterval == 0L) WorkManager.getInstance(context).cancelUniqueWork(feedUpdateWorkId)
         else {
             var policy = ExistingPeriodicWorkPolicy.KEEP
             if (replace) {
@@ -90,6 +84,7 @@ object FeedUpdateManager {
             initialDelay = targetTime.timeInMillis - currentTime.timeInMillis
         }
         val intervalInMillis = (updateInterval * TimeUnit.HOURS.toMillis(1))
+        val lastUpdateTime = getPref(AppPrefs.prefLastFullUpdateTime, 0L)
         Logd(TAG, "lastUpdateTime: $lastUpdateTime updateInterval: $updateInterval")
         nextRefreshTime = if (lastUpdateTime == 0L) {
             if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
@@ -126,22 +121,19 @@ object FeedUpdateManager {
             feed != null && feed.isLocalFeed -> runOnce(context, feed, fullUpdate = fullUpdate)
             !networkAvailable() -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             isFeedRefreshAllowed -> runOnce(context, feed, fullUpdate = fullUpdate)
-            else -> confirmMobileRefresh(context, feed)
-        }
-    }
-
-    private fun confirmMobileRefresh(context: Context, feed: Feed?) {
-        val builder = MaterialAlertDialogBuilder(context)
-            .setTitle(R.string.feed_refresh_title)
-            .setPositiveButton(R.string.confirm_mobile_streaming_button_once) { _: DialogInterface?, _: Int -> runOnce(context, feed) }
-            .setNeutralButton(R.string.confirm_mobile_streaming_button_always) { _: DialogInterface?, _: Int ->
-                isAllowMobileFeedRefresh = true
-                runOnce(context, feed)
+            else -> {
+                val builder = MaterialAlertDialogBuilder(context)
+                    .setTitle(R.string.feed_refresh_title)
+                    .setPositiveButton(R.string.confirm_mobile_streaming_button_once) { _: DialogInterface?, _: Int -> runOnce(context, feed) }
+                    .setNeutralButton(R.string.confirm_mobile_streaming_button_always) { _: DialogInterface?, _: Int ->
+                        isAllowMobileFeedRefresh = true
+                        runOnce(context, feed)
+                    }
+                    .setNegativeButton(R.string.no, null)
+                if (isNetworkRestricted && isVpnOverWifi) builder.setMessage(R.string.confirm_mobile_feed_refresh_dialog_message_vpn)
+                else builder.setMessage(R.string.confirm_mobile_feed_refresh_dialog_message)
+                builder.show()
             }
-            .setNegativeButton(R.string.no, null)
-        if (isNetworkRestricted && isVpnOverWifi) builder.setMessage(R.string.confirm_mobile_feed_refresh_dialog_message_vpn)
-        else builder.setMessage(R.string.confirm_mobile_feed_refresh_dialog_message)
-
-        builder.show()
+        }
     }
 }

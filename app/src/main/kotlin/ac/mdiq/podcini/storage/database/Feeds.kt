@@ -28,6 +28,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.feedfilePath
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.showStackTrace
 import android.app.backup.BackupManager
 import android.content.Context
@@ -207,8 +208,8 @@ object Feeds {
                 resultFeed = searchFeedByIdentifyingValueOrID(newFeed)
                 // TODO: This doesn't appear needed as unlistedItems is still empty
 //                if (removeUnlistedItems && unlistedItems.isNotEmpty()) runBlocking { deleteEpisodes(context, unlistedItems).join() }
-            } catch (e: InterruptedException) { e.printStackTrace()
-            } catch (e: ExecutionException) { e.printStackTrace() }
+            } catch (e: InterruptedException) { Logs(TAG, e)
+            } catch (e: ExecutionException) { Logs(TAG, e) }
             return resultFeed
         }
 
@@ -316,8 +317,8 @@ object Feeds {
         try {
             upsertBlk(savedFeed) {}
             if (removeUnlistedItems && unlistedItems.isNotEmpty()) deleteEpisodesSync(context, unlistedItems)
-        } catch (e: InterruptedException) { e.printStackTrace()
-        } catch (e: ExecutionException) { e.printStackTrace() }
+        } catch (e: InterruptedException) { Logs(TAG, e)
+        } catch (e: ExecutionException) { Logs(TAG, e) }
         return resultFeed
     }
 
@@ -376,8 +377,8 @@ object Feeds {
 
         val resultFeed = savedFeed
         try { upsertBlk(savedFeed) {}
-        } catch (e: InterruptedException) { e.printStackTrace()
-        } catch (e: ExecutionException) { e.printStackTrace() }
+        } catch (e: InterruptedException) { Logs(TAG, e)
+        } catch (e: ExecutionException) { Logs(TAG, e) }
         return resultFeed
     }
 

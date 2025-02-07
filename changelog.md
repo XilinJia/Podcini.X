@@ -1,3 +1,13 @@
+# 8.5.3
+
+* enhanced getNextInQueue routine
+* likely fixed the nasty timeSpent problem that appears to mess up the numbers when manually switching episodes in Queues
+* restored setting of prefSkipSilence, not sure how well it works though
+* more printouts are stripped from release app or added to toast
+* all caught exceptions are logged with toasts
+* on metered network, if episode download is not set to allow, mass download shows a dialog
+* some code adjustments and cleaning
+
 # 8.5.2
 
 * corrected title of Session logs in Logs screen

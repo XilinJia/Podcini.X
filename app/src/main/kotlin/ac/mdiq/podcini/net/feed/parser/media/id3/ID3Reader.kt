@@ -3,6 +3,7 @@ package ac.mdiq.podcini.net.feed.parser.media.id3
 import ac.mdiq.podcini.net.feed.parser.media.id3.model.FrameHeader
 import ac.mdiq.podcini.net.feed.parser.media.id3.model.TagHeader
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.input.CountingInputStream
 import java.io.ByteArrayOutputStream
@@ -185,7 +186,11 @@ open class ID3Reader(private val inputStream: CountingInputStream) {
             val c = readByte()
             if (c.toInt() != 0) bytes.write(c.toInt())
         }
-        return try { charset.newDecoder().decode(ByteBuffer.wrap(bytes.toByteArray())).toString() } catch (e: MalformedInputException) { "" }
+        return try { charset.newDecoder().decode(ByteBuffer.wrap(bytes.toByteArray())).toString() }
+        catch (e: MalformedInputException) {
+            Logs(TAG, e)
+            ""
+        }
     }
 
     companion object {

@@ -195,20 +195,18 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
             }
             // stop playback of this episode
             if (status == PlayerStatus.PAUSED || status == PlayerStatus.PLAYING || status == PlayerStatus.PREPARED) exoPlayer?.stop()
-            if (prevMedia != null && curEpisode?.id != prevMedia?.id)
-                callback.onPostPlayback(prevMedia, ended = false, skipped = true, true)
+            if (prevMedia != null && curEpisode?.id != prevMedia?.id) callback.onPostPlayback(prevMedia!!, ended = false, skipped = true, true)
             setPlayerStatus(PlayerStatus.INDETERMINATE, null)
         }
 
         Logd(TAG, "playMediaObject preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
-        curEpisode = playable
-        val media_ = curEpisode!!
-        var item = media_
+        var item = playable
         if (item.playState < PlayState.PROGRESS.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
         val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
-        curIndexInQueue = eList.indexOfItemWithId(media_.id)
+        curIndexInQueue = eList.indexOfItemWithId(item.id)
+        curEpisode = item
 
-        prevMedia = curEpisode
+//        prevMedia = curEpisode
         this.isStreaming = streaming
         mediaType = curEpisode!!.getMediaType()
         videoSize = null
@@ -230,7 +228,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                             mediaItem = null
                             mediaSource = null
                             try { setDataSource(metadata, curEpisode!!) } catch (e: Throwable) {
-                                Logt(TAG, "setDataSource error: [${e.localizedMessage}] [${e.message}]")
+                                Logs(TAG, e, "setDataSource error: [${e.localizedMessage}]")
                                 EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: e.message ?: "")) }
                         }
                     }
@@ -247,11 +245,11 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 }
             }
         } catch (e: IOException) {
-            e.printStackTrace()
+            Logs(TAG, e)
             setPlayerStatus(PlayerStatus.ERROR, null)
             EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: ""))
         } catch (e: IllegalStateException) {
-            e.printStackTrace()
+            Logs(TAG, e)
             setPlayerStatus(PlayerStatus.ERROR, null)
             EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: ""))
         } finally { }
@@ -434,7 +432,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
 //            TODO: should use: exoPlayer!!.playWhenReady ?
             if (exoPlayer?.isPlaying == true) exoPlayer?.stop()
-        } catch (e: Exception) { e.printStackTrace() }
+        } catch (e: Exception) { Logs(TAG, e) }
         release()
         status = PlayerStatus.STOPPED
         isShutDown = true
@@ -514,7 +512,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
             audioSeekCompleteListener = Runnable {
                 Logd(TAG, "genericSeekCompleteListener $status ${exoPlayer?.isPlaying} $statusBeforeSeeking")
                 seekLatch?.countDown()
-                if ((status == PlayerStatus.PLAYING || exoPlayer?.isPlaying != true) && curEpisode != null) callback.onPlaybackStart(curEpisode!!, getPosition())
+                if ((status == PlayerStatus.PLAYING && exoPlayer?.isPlaying != true) && curEpisode != null) callback.onPlaybackStart(curEpisode!!, getPosition())
                 if (status == PlayerStatus.SEEKING && statusBeforeSeeking != null) setPlayerStatus(statusBeforeSeeking!!, curEpisode, getPosition())
             }
             bufferingUpdateListener = Consumer { percent: Int ->

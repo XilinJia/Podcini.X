@@ -8,7 +8,7 @@ import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
-import ac.mdiq.podcini.preferences.AppPreferences.isEnableAutodownload
+import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedByTitleAndAuthor
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
@@ -40,7 +40,6 @@ import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.MiscFormatter.formatAbbrev
 import android.app.Dialog
 import android.content.Context
-import android.content.SharedPreferences
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
@@ -325,7 +324,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun handleUpdatedFeedStatus() {
-        val dli = DownloadServiceInterface.get()
+        val dli = DownloadServiceInterface.impl
         if (dli == null || selectedDownloadUrl == null) return
 
         when {
@@ -344,7 +343,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                     if (feedSource == "VistaGuide") {
                         feed1.prefStreamOverDownload = true
                         feed1.autoDownload = false
-                    } else if (isEnableAutodownload) feed1.autoDownload = autoDownloadChecked
+                    } else if (isAutodownloadEnabled) feed1.autoDownload = autoDownloadChecked
                     if (username != null) {
                         feed1.username = username
                         feed1.password = password
@@ -553,7 +552,7 @@ fun OnlineFeedScreen() {
            } else {
                Column {
 //                    alternate_urls_spinner
-                   if (vm.feedSource != "VistaGuide" && isEnableAutodownload) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                   if (vm.feedSource != "VistaGuide" && isAutodownloadEnabled) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                        Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
                        Text(text = stringResource(R.string.auto_download_label),
                            style = MaterialTheme.typography.bodyMedium.merge(), color = textColor,

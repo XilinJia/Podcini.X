@@ -28,7 +28,7 @@ object DateUtils {
         requireNotNull(input) { "Date must not be null" }
         try {
             return RFC822_DATE_FORMAT.get()?.parse(input)
-        } catch (ignored: ParseException) { }
+        } catch (ignored: ParseException) { Logs(TAG, ignored) }
 
         var date = input.trim { it <= ' ' }.replace('/', '-').replace("( ){2,}+".toRegex(), " ")
 

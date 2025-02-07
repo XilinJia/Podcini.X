@@ -608,7 +608,6 @@ fun SubscriptionsScreen() {
             runOnIOScope { for (feed in selected) upsert(feed) { cbBlock(it) } }
             val numItems = selected.size
             toastMassege = context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems)
-//        (vm.context as MainActivity).showSnackbarAbovePlayer(vm.context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems), Snackbar.LENGTH_LONG)
         }
 
         @Composable

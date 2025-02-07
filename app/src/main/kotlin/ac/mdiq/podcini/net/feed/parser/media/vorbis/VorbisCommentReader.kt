@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.feed.parser.media.vorbis
 
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import org.apache.commons.io.EndianUtils
 import org.apache.commons.io.IOUtils
 import java.io.IOException
@@ -18,12 +19,8 @@ abstract class VorbisCommentReader internal constructor(private val input: Input
             findCommentHeader()
             val commentHeader = readCommentHeader()
             Logd(TAG, commentHeader.toString())
-            for (i in 0 until commentHeader.userCommentLength) {
-                readUserComment()
-            }
-        } catch (e: IOException) {
-            Logd(TAG, "Vorbis parser: " + e.message)
-        }
+            for (i in 0 until commentHeader.userCommentLength) readUserComment()
+        } catch (e: IOException) { Logs(TAG, e, "Vorbis parser: ") }
     }
 
     @Throws(IOException::class)
@@ -34,7 +31,6 @@ abstract class VorbisCommentReader internal constructor(private val input: Input
         for (bytesRead in 0 until SECOND_PAGE_MAX_LENGTH) {
             val data = input.read()
             if (data == -1) throw IOException("EOF while trying to find vorbis page")
-
             buffer[bytesRead % buffer.size] = data.toByte()
             if (bufferMatches(buffer, oggPageHeader, bytesRead)) break
         }
@@ -59,10 +55,7 @@ abstract class VorbisCommentReader internal constructor(private val input: Input
                 val value = readUtf8String(vectorLength - key.length - 1)
                 onContentVectorValue(key, value)
             } else IOUtils.skipFully(input, vectorLength - key.length - 1)
-
-        } catch (e: IOException) {
-            e.printStackTrace()
-        }
+        } catch (e: IOException) { Logs(TAG, e) }
     }
 
     @Throws(IOException::class)

@@ -3,7 +3,7 @@ package ac.mdiq.podcini.automation
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.isEnableAutodownload
+import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodeMedia
@@ -15,6 +15,7 @@ import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import androidx.annotation.VisibleForTesting
@@ -44,7 +45,7 @@ object AutoCleanups {
 
     @JvmStatic
     fun build(): EpisodeCleanupAlgorithm {
-        if (!isEnableAutodownload) return APNullCleanupAlgorithm()
+        if (!isAutodownloadEnabled) return APNullCleanupAlgorithm()
 
         return when (val cleanupValue = episodeCleanupValue) {
             EpisodeCleanupOptions.ExceptFavorites.num -> ExceptFavoriteCleanupAlgorithm()
@@ -81,7 +82,7 @@ object AutoCleanups {
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
             for (item in delete) {
                 try { runBlocking { deleteEpisodeMedia(context, item).join() }
-                } catch (e: InterruptedException) { e.printStackTrace() } catch (e: ExecutionException) { e.printStackTrace() }
+                } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
             }
             val counter = delete.size
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
@@ -126,7 +127,7 @@ object AutoCleanups {
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
             for (item in delete) {
                 try { runBlocking { deleteEpisodeMedia(context, item).join() }
-                } catch (e: InterruptedException) { e.printStackTrace() } catch (e: ExecutionException) { e.printStackTrace() }
+                } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
             }
             val counter = delete.size
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
@@ -187,7 +188,7 @@ object AutoCleanups {
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
             for (item in delete) {
                 try { runBlocking { deleteEpisodeMedia(context, item).join() }
-                } catch (e: InterruptedException) { e.printStackTrace() } catch (e: ExecutionException) { e.printStackTrace() }
+                } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
             }
             val counter = delete.size
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))

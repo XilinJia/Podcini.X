@@ -5,6 +5,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
@@ -37,11 +38,8 @@ object NetworkUtils {
             setAllowMobileFor(MobileUpdateOptions.streaming.name, allow)
         }
 
-    var isAllowMobileAutoDownload: Boolean
+    val isAllowMobileAutoDownload: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.auto_download.name)
-        set(allow) {
-            setAllowMobileFor(MobileUpdateOptions.auto_download.name, allow)
-        }
 
     val isAutoDownloadAllowed: Boolean
         get() {
@@ -66,20 +64,11 @@ object NetworkUtils {
             setAllowMobileFor(MobileUpdateOptions.feed_refresh.name, allow)
         }
 
-    var isAllowMobileEpisodeDownload: Boolean
+    val isAllowMobileEpisodeDownload: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.episode_download.name)
-        set(allow) {
-            setAllowMobileFor(MobileUpdateOptions.episode_download.name, allow)
-        }
 
-    var isAllowMobileImages: Boolean
-        get() = isAllowMobileFor(MobileUpdateOptions.images.name)
-        set(allow) {
-            setAllowMobileFor(MobileUpdateOptions.images.name, allow)
-        }
-
-    val isImageAllowed: Boolean
-        get() = isAllowMobileImages || !isNetworkRestricted
+    val isImageDownloadAllowed: Boolean
+        get() = isAllowMobileFor(MobileUpdateOptions.images.name) || !isNetworkRestricted
 
     val isStreamingAllowed: Boolean
         get() = isAllowMobileStreaming || !isNetworkRestricted
@@ -156,9 +145,7 @@ object NetworkUtils {
 
         val stringBuilder = StringBuilder()
         var line = ""
-        while (bufferedReader.readLine()?.also { line = it } != null) {
-            stringBuilder.append(line)
-        }
+        while (bufferedReader.readLine()?.also { line = it } != null) stringBuilder.append(line)
 
         bufferedReader.close()
         inputStream.close()
@@ -167,15 +154,15 @@ object NetworkUtils {
 
     fun getURIFromRequestUrl(source: String): URI {
         // try without encoding the URI
-        try { return URI(source) } catch (e: URISyntaxException) { Logd(TAG, "Source is not encoded, encoding now") }
+        try { return URI(source) } catch (e: URISyntaxException) { Logs(TAG, e, "Source is not encoded, encoding now") }
         try {
             val url = URL(source)
             return URI(url.protocol, url.userInfo, url.host, url.port, url.path, url.query, url.ref)
         } catch (e: MalformedURLException) {
-            Logd(TAG, "source: $source")
+            Logs(TAG, e, "source: $source")
             throw IllegalArgumentException(e)
         } catch (e: URISyntaxException) {
-            Logd(TAG, "source: $source")
+            Logs(TAG, e, "source: $source")
             throw IllegalArgumentException(e)
         }
     }

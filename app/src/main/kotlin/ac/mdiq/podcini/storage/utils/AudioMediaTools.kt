@@ -1,11 +1,13 @@
 package ac.mdiq.podcini.storage.utils
 
+import ac.mdiq.podcini.util.Logs
 import java.io.*
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 // converted to Kotlin from the java file: https://gist.github.com/DrustZ/d3d3fc8fcc1067433db4dd3079f8d187
 object AudioMediaTools {
+    private const val TAG = "AudioMediaTools"
     // TODO: need to accept uri rather than path
     fun mergeAudios(selection: Array<String>, outpath: String?, callback: OperationCallbacks?) {
         var RECORDER_SAMPLERATE = 0
@@ -51,23 +53,18 @@ object AudioMediaTools {
             for (i in selection.indices) mergeFilesStream[i]!!.close()
         } catch (e: FileNotFoundException) {
             callback?.onAudioOperationError(e)
-            e.printStackTrace()
+            Logs(TAG, e)
         } catch (e: IOException) {
             callback?.onAudioOperationError(e)
-            e.printStackTrace()
+            Logs(TAG, e)
         }
         var size: Long = 0
         try {
             val fileSize = FileInputStream(outpath)
             size = fileSize.channel.size()
             fileSize.close()
-        } catch (e1: FileNotFoundException) {
-            // TODO Auto-generated catch block
-            e1.printStackTrace()
-        } catch (e: IOException) {
-            // TODO Auto-generated catch block
-            e.printStackTrace()
-        }
+        } catch (e1: FileNotFoundException) { Logs(TAG, e1)
+        } catch (e: IOException) { Logs(TAG, e) }
 
         val RECORDER_BPP = 16
 
@@ -131,11 +128,11 @@ object AudioMediaTools {
         } catch (e: FileNotFoundException) {
             // TODO Auto-generated catch block
             callback?.onAudioOperationError(e)
-            e.printStackTrace()
+            Logs(TAG, e)
         } catch (e: IOException) {
             // TODO Auto-generated catch block
             callback?.onAudioOperationError(e)
-            e.printStackTrace()
+            Logs(TAG, e)
         }
     }
 

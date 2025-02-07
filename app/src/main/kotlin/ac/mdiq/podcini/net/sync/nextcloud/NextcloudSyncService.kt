@@ -5,6 +5,7 @@ import ac.mdiq.podcini.net.sync.ResponseMapper
 import ac.mdiq.podcini.net.sync.model.GpodnetUploadChangesResponse
 import ac.mdiq.podcini.net.sync.model.*
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import okhttp3.*
 import okhttp3.Credentials.basic
 import okhttp3.MediaType.Companion.toMediaType
@@ -31,13 +32,13 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
             val json = JSONObject(responseString)
             return ResponseMapper.readSubscriptionChangesFromJsonObject(json)
         } catch (e: JSONException) {
-            e.printStackTrace()
+            Logs(TAG, e)
             throw SyncServiceException(e)
         } catch (e: MalformedURLException) {
-            e.printStackTrace()
+            Logs(TAG, e)
             throw SyncServiceException(e)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logs(TAG, e)
             throw SyncServiceException(e)
         }
     }
@@ -53,7 +54,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
             val requestBody = RequestBody.create("application/json".toMediaType(), requestObject.toString())
             performRequest(url, "POST", requestBody)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logs(TAG, e)
             throw NextcloudSynchronizationServiceException(e)
         }
         return GpodnetUploadChangesResponse(System.currentTimeMillis() / 1000, HashMap())
@@ -69,13 +70,13 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
             val json = JSONObject(responseString)
             return ResponseMapper.readEpisodeActionsFromJsonObject(json)
         } catch (e: JSONException) {
-            e.printStackTrace()
+            Logs(TAG, e)
             throw SyncServiceException(e)
         } catch (e: MalformedURLException) {
-            e.printStackTrace()
+            Logs(TAG, e)
             throw SyncServiceException(e)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logs(TAG, e)
             throw SyncServiceException(e)
         }
     }
@@ -105,7 +106,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
             val requestBody = RequestBody.create("application/json".toMediaType(), list.toString())
             performRequest(url, "POST", requestBody)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logs(TAG, e)
             throw NextcloudSynchronizationServiceException(e)
         }
     }

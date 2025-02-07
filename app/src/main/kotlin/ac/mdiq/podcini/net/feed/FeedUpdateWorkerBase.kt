@@ -26,6 +26,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.Manifest
@@ -225,27 +226,27 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Wo
                 if (feed.imageUrl.isNullOrEmpty()) feed.imageUrl = Feed.PREFIX_GENERATIVE_COVER + feed.downloadUrl
             } catch (e: SAXException) {
                 isSuccessful = false
-                e.printStackTrace()
+                Logs(TAG, e)
                 reason = DownloadError.ERROR_PARSER_EXCEPTION
                 reasonDetailed = e.message
             } catch (e: IOException) {
                 isSuccessful = false
-                e.printStackTrace()
+                Logs(TAG, e)
                 reason = DownloadError.ERROR_PARSER_EXCEPTION
                 reasonDetailed = e.message
             } catch (e: ParserConfigurationException) {
                 isSuccessful = false
-                e.printStackTrace()
+                Logs(TAG, e)
                 reason = DownloadError.ERROR_PARSER_EXCEPTION
                 reasonDetailed = e.message
             } catch (e: FeedHandler.UnsupportedFeedtypeException) {
-                e.printStackTrace()
+                Logs(TAG, e)
                 isSuccessful = false
                 reason = DownloadError.ERROR_UNSUPPORTED_TYPE
                 if ("html".equals(e.rootElement, ignoreCase = true)) reason = DownloadError.ERROR_UNSUPPORTED_TYPE_HTML
                 reasonDetailed = e.message
             } catch (e: InvalidFeedException) {
-                e.printStackTrace()
+                Logs(TAG, e)
                 isSuccessful = false
                 reason = DownloadError.ERROR_PARSER_EXCEPTION
                 reasonDetailed = e.message

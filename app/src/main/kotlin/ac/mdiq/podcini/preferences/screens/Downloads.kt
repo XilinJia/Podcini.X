@@ -21,6 +21,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.deleteDirectoryRecursively
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.activity.PreferenceActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
+import ac.mdiq.podcini.util.Logs
 import android.app.Activity.RESULT_OK
 import android.content.DialogInterface
 import android.content.Intent
@@ -169,7 +170,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                         setTestRequired(false)
                     }
                 } catch (e: Throwable) {
-                    e.printStackTrace()
+                    Logs("DownloadsPreferencesScreen", e)
                     messageColor = Color.Red
                     message = String.format("%s %s: %s", "{faw_close}", activity.getString(R.string.proxy_test_failed), e.message)
                     setTestRequired(true)

@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.sync.model
 
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import org.json.JSONException
 import org.json.JSONObject
@@ -241,9 +242,7 @@ class EpisodeAction private constructor(builder: Builder) {
                     val parser = SimpleDateFormat(PATTERN_ISO_DATEFORMAT, Locale.US)
                     parser.timeZone = TimeZone.getTimeZone("UTC")
                     builder.timestamp(parser.parse(utcTimestamp))
-                } catch (e: ParseException) {
-                    e.printStackTrace()
-                }
+                } catch (e: ParseException) { Logs(TAG, e) }
             }
             val guid = `object`.optString("guid")
             if (guid.isNotEmpty()) builder.guid(guid)

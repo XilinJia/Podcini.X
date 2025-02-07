@@ -8,6 +8,9 @@ import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.wifiSyncEnabledKey
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
+import ac.mdiq.podcini.net.utils.NetworkUtils
+import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileEpisodeDownload
+import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
@@ -54,6 +57,7 @@ import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
 import android.app.Activity
 import android.content.Context
+import android.content.DialogInterface
 import android.net.Uri
 import android.text.format.Formatter
 import android.util.TypedValue
@@ -102,6 +106,7 @@ import androidx.documentfile.provider.DocumentFile
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.realm.kotlin.notifications.SingleQueryChange
 import io.realm.kotlin.notifications.UpdatedObject
 import kotlinx.coroutines.*
@@ -441,7 +446,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
     var longPressIndex by remember { mutableIntStateOf(-1) }
-    val dls = remember { DownloadServiceInterface.get() }
+    val dls = remember { DownloadServiceInterface.impl }
     val context = LocalContext.current
 
     val showConfirmYoutubeDialog = remember { mutableStateOf(false) }
@@ -489,8 +494,21 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 isExpanded = false
                 selectMode = false
                 Logd(TAG, "ic_download: ${selected.size}")
-                for (episode in selected) {
-                    if (episode.feed != null && !episode.feed!!.isLocalFeed) DownloadServiceInterface.get()?.download(activity, episode)
+                fun download(now: Boolean) {
+                    for (episode in selected) {
+                        if (episode.feed != null && !episode.feed!!.isLocalFeed) DownloadServiceInterface.impl?.downloadNow(activity, episode, now)
+                    }
+                }
+                if (isAllowMobileEpisodeDownload || !isNetworkRestricted) download(true)
+                else {
+                    val builder = MaterialAlertDialogBuilder(context)
+                        .setTitle(R.string.confirm_mobile_download_dialog_title)
+                        .setPositiveButton(R.string.confirm_mobile_download_dialog_download_later) { _: DialogInterface?, _: Int -> download(false) }
+                        .setNeutralButton(R.string.confirm_mobile_download_dialog_allow_this_time) { _: DialogInterface?, _: Int -> download(true) }
+                        .setNegativeButton(R.string.cancel_label, null)
+                    if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) builder.setMessage(R.string.confirm_mobile_download_dialog_message_vpn)
+                    else builder.setMessage(R.string.confirm_mobile_download_dialog_message)
+                    builder.show()
                 }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), "Download")

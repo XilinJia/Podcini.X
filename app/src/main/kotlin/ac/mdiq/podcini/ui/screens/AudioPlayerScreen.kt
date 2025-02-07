@@ -9,12 +9,12 @@ import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.MediaPlayerInfo
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.cast.CastEnabledActivity
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curDurationFB
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curPositionFB
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curSpeedFB
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideoLocally
@@ -767,8 +767,8 @@ fun AudioPlayerScreen() {
             fun copyText(text: String): Boolean {
                 val clipboardManager: ClipboardManager? = ContextCompat.getSystemService(context, ClipboardManager::class.java)
                 clipboardManager?.setPrimaryClip(ClipData.newPlainText("Podcini", text))
+                // TODO: if (Build.VERSION.SDK_INT <= 32) necessary?
                 toastMassege = context.getString(R.string.copied_to_clipboard)
-//            if (Build.VERSION.SDK_INT <= 32) (context as MainActivity).showSnackbarAbovePlayer(context.getString(R.string.copied_to_clipboard), Snackbar.LENGTH_SHORT)
                 return true
             }
             gearbox.PlayerDetailedGearPanel(vm)
@@ -883,8 +883,8 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
     private val statusUpdate: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             Logd(TAG, "statusUpdate onReceive called with action: ${intent.action}")
-            if (playbackService != null && PlaybackService.mPlayerInfo != null) {
-                val info = PlaybackService.mPlayerInfo!!
+            if (playbackService != null && mPlayerInfo != null) {
+                val info = mPlayerInfo!!
 //                Logd(TAG, "statusUpdate onReceive $prevStatus ${MediaPlayerBase.status} ${info.playerStatus} ${curMedia?.id} ${info.playable?.id}.")
                 if (prevStatus != info.playerStatus || curEpisode == null || curEpisode!!.id != info.playable?.id) {
                     Logd(TAG, "statusUpdate onReceive doing updates")
@@ -978,7 +978,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
         try {
             activity.unregisterReceiver(statusUpdate)
             activity.unregisterReceiver(notificationReceiver)
-        } catch (e: IllegalArgumentException) {/* ignore */ }
+        } catch (e: IllegalArgumentException) { Logs(TAG, e) }
         initialized = false
         cancelFlowEvents()
     }
@@ -1019,8 +1019,8 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
      */
     private fun updateStatus() {
         Logd(TAG, "Querying service info")
-        if (playbackService != null && PlaybackService.mPlayerInfo != null) {
-            status = PlaybackService.mPlayerInfo!!.playerStatus
+        if (playbackService != null && mPlayerInfo != null) {
+            status = mPlayerInfo!!.playerStatus
 //            curMedia = PlaybackService.mPlayerInfo!!.playable
             // make sure that new media is loaded if it's available
             mediaInfoLoaded = false
@@ -1033,8 +1033,11 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
     }
 }
 
-
 private const val TAG = "AudioPlayerScreen"
 var media3Controller: MediaController? = null
 
+private val mPlayerInfo: MediaPlayerInfo?
+    get() = playbackService?.mPlayer?.playerInfo
 
+private val curPositionFB: Int
+    get() = playbackService?.curPosition ?: curEpisode?.position ?: Episode.INVALID_TIME

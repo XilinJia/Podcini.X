@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.ui.activity
 
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.error.CrashReportWriter
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -33,7 +34,7 @@ class SplashActivity : Activity() {
                     finish()
                 }
             } catch (e: Throwable) {
-                e.printStackTrace()
+                Logs("SplashActivity", e)
                 CrashReportWriter.write(e)
 //                Toast.makeText(this@SplashActivity, e.localizedMessage, Toast.LENGTH_LONG).show()
                 finish()

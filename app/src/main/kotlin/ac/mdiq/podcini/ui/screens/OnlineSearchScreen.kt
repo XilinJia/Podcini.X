@@ -5,7 +5,8 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.searcher.*
-import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.isOPMLRestored
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
@@ -205,7 +206,7 @@ fun OnlineSearchScreen() {
                     val PAFeed = realm.query(PAFeed::class).find()
                     Logd(TAG, "size of directory: ${PAFeed.size}")
                     vm.loadToplist()
-                    if (isOPMLRestored && feedCount == 0) vm.showOPMLRestoreDialog.value = true
+                    if (getPref(AppPrefs.prefOPMLRestore, false) && feedCount == 0) vm.showOPMLRestoreDialog.value = true
                 }
                 Lifecycle.Event.ON_START -> vm.procFlowEvents()
                 Lifecycle.Event.ON_RESUME -> {}
@@ -260,10 +261,8 @@ fun OnlineSearchScreen() {
                     }
                 }
             } catch (e: Throwable) {
-//                Logs(TAG, e)
-                e.printStackTrace()
+                Logs(TAG, e)
                 toastMassege = e.localizedMessage?: "No messaage"
-//                vm.mainAct?.showSnackbarAbovePlayer(e.localizedMessage?: "No messaage", Snackbar.LENGTH_LONG)
             }
         }
     }
@@ -333,9 +332,8 @@ fun OnlineSearchScreen() {
             Text(stringResource(R.string.add_local_folder), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 try { addLocalFolderLauncher.launch(null)
                 } catch (e: ActivityNotFoundException) {
-                    e.printStackTrace()
+                    Logs(TAG, e)
                     toastMassege = context.getString(R.string.unable_to_start_system_file_manager)
-//                    vm.mainAct?.showSnackbarAbovePlayer(R.string.unable_to_start_system_file_manager, Snackbar.LENGTH_LONG)
                 }
             }))
             gearbox.GearSearchText()
@@ -351,9 +349,8 @@ fun OnlineSearchScreen() {
             Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 try { chooseOpmlImportPathLauncher.launch("*/*")
                 } catch (e: ActivityNotFoundException) {
-                    e.printStackTrace()
+                    Logs(TAG, e)
                     toastMassege = context.getString(R.string.unable_to_start_system_file_manager)
-//                    vm.mainAct?.showSnackbarAbovePlayer(R.string.unable_to_start_system_file_manager, Snackbar.LENGTH_LONG)
                 }
             }))
         }

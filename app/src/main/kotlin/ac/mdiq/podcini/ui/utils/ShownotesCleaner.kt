@@ -4,6 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.utils.DurationConverter.durationStringLongToMs
 import ac.mdiq.podcini.storage.utils.DurationConverter.durationStringShortToMs
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.graphics.Color
 import android.util.TypedValue
@@ -33,7 +34,7 @@ class ShownotesCleaner(context: Context) {
             val templateStream = context.assets.open("shownotes-style.css")
             styleString = IOUtils.toString(templateStream, "UTF-8")
             templateStream.close()
-        } catch (e: IOException) { e.printStackTrace() }
+        } catch (e: IOException) { Logs(TAG, e) }
         webviewStyle = String.format(Locale.US, styleString!!, colorPrimary, colorAccent, margin, margin, margin, margin)
     }
 
@@ -155,7 +156,7 @@ class ShownotesCleaner(context: Context) {
         fun getTimecodeLinkTime(link: String?): Int {
             if (isTimecodeLink(link)) {
                 val m = TIMECODE_LINK_REGEX.matcher(link!!)
-                try { if (m.find()) return m.group(1)?.toInt()?:0 } catch (e: NumberFormatException) { e.printStackTrace() }
+                try { if (m.find()) return m.group(1)?.toInt()?:0 } catch (e: NumberFormatException) { Logs(TAG, e) }
             }
             return -1
         }

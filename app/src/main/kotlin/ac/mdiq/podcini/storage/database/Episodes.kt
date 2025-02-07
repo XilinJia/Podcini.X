@@ -211,7 +211,7 @@ object Episodes {
                 sendLocalBroadcast(context, ACTION_SHUTDOWN_PLAYBACK_SERVICE)
             }
             if (episode.feed != null && !episode.feed!!.isLocalFeed) {
-                DownloadServiceInterface.get()?.cancel(context, episode)
+                DownloadServiceInterface.impl?.cancel(context, episode)
                 if (episode.downloaded) deleteMediaSync(context, episode)
             }
         }

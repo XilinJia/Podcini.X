@@ -4,6 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.net.Uri
@@ -224,10 +225,7 @@ object StorageUtils {
                 val f = File(getAppContext().getExternalFilesDir(null), ".nomedia")
                 if (!f.exists()) {
                     try { f.createNewFile()
-                    } catch (e: IOException) {
-                        Logt(TAG, "Could not create .nomedia file")
-                        e.printStackTrace()
-                    }
+                    } catch (e: IOException) { Logs(TAG, e, "Could not create .nomedia file") }
                     Logd(TAG, ".nomedia file created")
                 }
             }

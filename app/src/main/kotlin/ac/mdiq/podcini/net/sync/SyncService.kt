@@ -162,8 +162,8 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
                     deleteFeedSync(context, feedID)
                     EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feedID))
                 }
-            } catch (e: InterruptedException) { e.printStackTrace()
-            } catch (e: ExecutionException) { e.printStackTrace() }
+            } catch (e: InterruptedException) { Logs(TAG, e)
+            } catch (e: ExecutionException) { Logs(TAG, e) }
         } else Logt(TAG, "removeFeedWithDownloadUrl: Could not find feed with url: $downloadUrl")
     }
 

@@ -31,7 +31,7 @@ object ClientConfigurator {
         UsageStatistics.init(context)
         SslProviderInstaller.install(context)
         NetworkUtils.init(context)
-        DownloadServiceInterface.setImpl(DownloadServiceInterfaceImpl())
+        DownloadServiceInterface.impl = DownloadServiceInterfaceImpl()
         SynchronizationQueueSink.setServiceStarterImpl { SyncService.sync(context) }
         setCacheDirectory(File(context.cacheDir, "okhttp"))
         setProxyConfig(proxyConfig)

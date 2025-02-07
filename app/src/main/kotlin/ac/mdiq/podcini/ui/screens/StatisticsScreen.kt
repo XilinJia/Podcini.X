@@ -141,7 +141,6 @@ fun StatisticsScreen() {
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(statisticsData.statsItems, key = { _, item -> item.feed.id }) { index, item ->
                 Row(Modifier.background(MaterialTheme.colorScheme.surface).fillMaxWidth().clickable(onClick = {
-                    Logd(TAG, "icon clicked!")
                     feedId = item.feed.id
                     feedTitle = item.feed.title ?: "No title"
                     showFeedStats = true
@@ -472,7 +471,7 @@ fun getStatistics(includeMarkedAsPlayed: Boolean, timeFilterFrom: Long, timeFilt
                 } else {
                     feedPlayedTime += m.playedDuration
                     timeSpent += m.timeSpent
-                    Logd(TAG, "m.playedDuration: ${m.playedDuration} m.timeSpent: ${m.timeSpent}")
+                    Logd(TAG, "m.playedDuration: ${m.playedDuration} m.timeSpent: ${m.timeSpent} ${m.title}")
                     if (m.playbackCompletionTime > 0 && m.playedDuration > 0) episodesStarted += 1
                 }
                 durationWithSkip += m.duration
@@ -501,7 +500,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, showOpenFeed: Boolean = fa
             val data = getStatistics(false, 0, Long.MAX_VALUE, feedId)
             data.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.timePlayed.compareTo(item1.timePlayed) }
             if (data.statsItems.isNotEmpty()) statisticsData = data.statsItems[0]
-        } catch (error: Throwable) { error.printStackTrace() }
+        } catch (error: Throwable) { Logs(TAG, error) }
     }
     LaunchedEffect(Unit) { loadStatistics() }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {

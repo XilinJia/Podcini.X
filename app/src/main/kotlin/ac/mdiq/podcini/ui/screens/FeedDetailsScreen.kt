@@ -138,7 +138,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         if (feed != null) {
             val pos: Int = vms.indexOfItem(event.episode.id)
             if (pos >= 0) {
-                if (!isFilteredOut(event.episode) && pos < vms.size) vms[pos].isPlayingState = event.isPlaying()
+                if (!isFilteredOut(event.episode) && pos < vms.size)  vms[pos].isPlayingState = event.isPlaying()
                 if (event.isPlaying()) upsertBlk(feed!!) { it.lastPlayed = Date().time }
             }
         }
@@ -357,14 +357,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                     feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
                     if (feed != null) updateFeed(context, feed!!, true)
                 }
-                withContext(Dispatchers.Main) {
-//                    toastMassege = context.getString(R.string.done)
-//                    (context as MainActivity).showSnackbarAbovePlayer(string.ok, Snackbar.LENGTH_SHORT)
-                }
-            } catch (e: Throwable) { withContext(Dispatchers.Main) {
-                Logt(TAG, e.localizedMessage?:"No message")
-//                (context as MainActivity).showSnackbarAbovePlayer(e.localizedMessage?:"No message", Snackbar.LENGTH_LONG)
-            } }
+                withContext(Dispatchers.Main) { toastMassege = context.getString(R.string.OK) }
+            } catch (e: Throwable) { withContext(Dispatchers.Main) { Logt(TAG, e.localizedMessage?:"No message") } }
         }
     }
 

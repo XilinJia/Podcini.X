@@ -22,7 +22,6 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.showStackTrace
 import kotlinx.coroutines.Job
 import java.util.*
 
@@ -344,7 +343,7 @@ object Queues {
         private fun isItemAtPositionDownloading(position: Int, queueItems: List<Episode>): Boolean {
             val curItem = try { queueItems[position] } catch (e: IndexOutOfBoundsException) { null }
             if (curItem?.downloadUrl == null) return false
-            return DownloadServiceInterface.get()?.isDownloadingEpisode(curItem.downloadUrl!!)?:false
+            return DownloadServiceInterface.impl?.isDownloadingEpisode(curItem.downloadUrl!!)?:false
         }
         private fun getCurrentlyPlayingPosition(queueItems: List<Episode>, currentPlaying: Episode?): Int {
             if (currentPlaying == null) return -1

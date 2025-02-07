@@ -18,6 +18,7 @@ import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import androidx.core.content.ContextCompat.getString
@@ -58,7 +59,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
                 while (!receivedBye) {
                     try { receivedBye = receiveFromPeer()
                     } catch (e: SocketTimeoutException) {
-                        Logt("Guest", getString(context, R.string.sync_error_host_not_respond))
+                        Logs("Guest", e, getString(context, R.string.sync_error_host_not_respond))
                         logout()
                         EventFlow.postEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_in_progress, "100"))
                         EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_error, getString(context, R.string.sync_error_host_not_respond)))
@@ -71,7 +72,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
                 while (!receivedBye) {
                     try { receivedBye = receiveFromPeer()
                     } catch (e: SocketTimeoutException) {
-                        Logt("Host", getString(context, R.string.sync_error_guest_not_respond))
+                        Logs("Host", e, getString(context, R.string.sync_error_guest_not_respond))
                         logout()
                         EventFlow.postEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_in_progress, "100"))
                         EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_error, getString(context, R.string.sync_error_guest_not_respond)))
@@ -135,17 +136,17 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
                                 sendToPeer("Hello", "Hello, Client")
                                 break
                             } catch (e: SocketTimeoutException) {
-                                Logt("Server", "Guest not responding in 120 seconds, giving up")
+                                Logs("Server", e, "Guest not responding in 120 seconds, giving up")
                                 loginFail = true
                                 break
                             }
                         }
                     } catch (e: Exception) {
-                        Logt("Server", "No guest connecing in 120 seconds, giving up")
+                        Logs("Server", e, "No guest connecing in 120 seconds, giving up")
                         loginFail = true
                     }
                 } catch (e: BindException) {
-                    Logt("Server", "Failed to start server: Port $hostPort already in use")
+                    Logs("Server", e, "Failed to start server: Port $hostPort already in use")
                     loginFail = true
                 }
             }
@@ -294,7 +295,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
             }
             sendToPeer("EpisodeActions", list.toString())
         } catch (e: Exception) {
-            e.printStackTrace()
+            Logs(TAG, e)
             throw SyncServiceException(e)
         }
     }

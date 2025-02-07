@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
 import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.ContentResolver
 import android.content.Context
@@ -183,14 +184,11 @@ class Episode : RealmObject {
     var lastPlayedTime: Long = 0 // Last time this media was played (in ms)
 
     var startPosition: Int = -1
-
     var playedDurationWhenStarted: Int = 0
-
     var playedDuration: Int = 0 // How many ms of this file have been played
 
     var timeSpentOnStart: Long = 0 // How many ms of this file have been played in actual time
     var startTime: Long = 0 // time in ms when start playing
-
     var timeSpent: Long = 0 // How many ms of this file have been played in actual time
 
     // File size in Byte
@@ -636,7 +634,7 @@ class Episode : RealmObject {
      * Position held by this EpisodeMedia should be set accurately before a call to this method is made.
      */
     fun onPlaybackStart() {
-        Logd(TAG, "onPlaybackStart ${System.currentTimeMillis()}")
+        Logd(TAG, "onPlaybackStart ${System.currentTimeMillis()} timeSpent: $timeSpent")
         startPosition = max(position.toDouble(), 0.0).toInt()
         playedDurationWhenStarted = playedDuration
         timeSpentOnStart = timeSpent
@@ -654,6 +652,7 @@ class Episode : RealmObject {
         Logd(TAG, "onPlaybackPause $position $duration")
         if (position > startPosition) playedDuration = playedDurationWhenStarted + position - startPosition
         if (startTime > 0) timeSpent = timeSpentOnStart + (System.currentTimeMillis() - startTime)
+        Logd(TAG, "onPlaybackPause startTime: $startTime timeSpent: $timeSpent")
         startPosition = position
         startTime = 0
     }
@@ -663,8 +662,9 @@ class Episode : RealmObject {
      */
     fun onPlaybackCompleted() {
         Logd(TAG, "onPlaybackCompleted $position $duration")
-        if (position > startPosition && position > playedDuration) playedDuration = playedDurationWhenStarted + position - startPosition
+        if (position > startPosition) playedDuration = playedDurationWhenStarted + position - startPosition
         if (startTime > 0) timeSpent = timeSpentOnStart + (System.currentTimeMillis() - startTime)
+        Logd(TAG, "onPlaybackCompleted startTime: $startTime timeSpent: $timeSpent")
         startPosition = -1
         startTime = 0
     }
@@ -731,8 +731,8 @@ class Episode : RealmObject {
                 val chapters = readOggChaptersFromInputStream(inVal)
                 if (chapters.isNotEmpty()) return chapters
             }
-        } catch (e: IOException) { Logt(TAG, "Unable to load vorbis chapters: " + e.message)
-        } catch (e: VorbisCommentReaderException) { Logt(TAG, "Unable to load vorbis chapters: " + e.message) }
+        } catch (e: IOException) { Logt(TAG, "Unable to load vorbis chapters: ")
+        } catch (e: VorbisCommentReaderException) { Logs(TAG, e, "Unable to load vorbis chapters: ") }
         return listOf()
     }
 
@@ -814,7 +814,7 @@ class Episode : RealmObject {
 //                    hasEmbeddedPicture = image != null
 //                }
 //            } catch (e: Exception) {
-//                e.printStackTrace()
+//                Logs(TAG, e)
 //                hasEmbeddedPicture = false
 //            }
         }
@@ -824,7 +824,7 @@ class Episode : RealmObject {
 
     fun getEpisodeListImageLocation(): String? {
         Logd("ImageResourceUtils", "getEpisodeListImageLocation called")
-        return if (useEpisodeCoverSetting) imageLocation
+        return if (getPref(AppPrefs.prefEpisodeCover, false)) imageLocation
         else feed?.imageUrl
     }
 
@@ -833,7 +833,7 @@ class Episode : RealmObject {
      */
     class MediaMetadataRetrieverCompat : MediaMetadataRetriever(), AutoCloseable {
         override fun close() {
-            try { release() } catch (e: IOException) { e.printStackTrace() }
+            try { release() } catch (e: IOException) { Logs(TAG, e) }
         }
     }
 
@@ -841,9 +841,6 @@ class Episode : RealmObject {
 
     companion object {
         val TAG: String = Episode::class.simpleName ?: "Anonymous"
-
-        val useEpisodeCoverSetting: Boolean
-            get() = getPref(AppPrefs.prefEpisodeCover, false)
 
         // from EpisodeMedia
         const val INVALID_TIME: Int = -1

@@ -298,25 +298,27 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      * It will also call [MediaPlayerCallback.onPlaybackPause] or [MediaPlayerCallback.onPlaybackStart]
      * depending on the status change.
      * @param newStatus The new PlayerStatus. This must not be null.
-     * @param newMedia  The new playable object of the PSMP object. This can be null.
+     * @param media  The new playable object of the PSMP object. This can be null.
      * @param position  The position to be set to the current EpisodeMedia object in case playback started or paused.
      * Will be ignored if given the value of [Episode.INVALID_TIME].
      */
+    // TODO: this routine can be very problematic!!!
     @Synchronized
-    protected fun setPlayerStatus(newStatus: PlayerStatus, newMedia: Episode?, position: Int = Episode.INVALID_TIME) {
-        Logd(TAG, "${this.javaClass.simpleName}: Setting player status to $newStatus")
+    protected fun setPlayerStatus(newStatus: PlayerStatus, media: Episode?, position: Int = Episode.INVALID_TIME) {
+        Logd(TAG, "setPlayerStatus: Setting player status to $newStatus from $status")
         this.oldStatus = status
         status = newStatus
-        if (newMedia != null) {
+        if (media != null) {
             // TODO: test, this appears not necessary
 //            setPlayable(newMedia)
-            if (newStatus != PlayerStatus.INDETERMINATE) {
+            if (newStatus != PlayerStatus.INDETERMINATE && newStatus != PlayerStatus.SEEKING) {
                 when {
-                    oldStatus == PlayerStatus.PLAYING && newStatus != PlayerStatus.PLAYING -> callback.onPlaybackPause(newMedia, position)
-                    oldStatus != PlayerStatus.PLAYING && newStatus == PlayerStatus.PLAYING -> callback.onPlaybackStart(newMedia, position)
+                    oldStatus == PlayerStatus.PLAYING && newStatus != PlayerStatus.PLAYING && media.id == prevMedia?.id -> callback.onPlaybackPause(media, position)
+                    oldStatus != PlayerStatus.PLAYING && newStatus == PlayerStatus.PLAYING -> callback.onPlaybackStart(media, position)
                 }
             }
         }
+        if (media != null && status == PlayerStatus.PLAYING) prevMedia = media
         callback.statusChanged(MediaPlayerInfo(oldStatus, status, curEpisode))
     }
 

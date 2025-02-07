@@ -31,7 +31,7 @@ class ConnectivityActionReceiver : BroadcastReceiver() {
             // otherwise cancel all downloads
             if (isNetworkRestricted) {
                 Logt(TAG, "Device is no longer connected to Wi-Fi. Cancelling ongoing downloads")
-                DownloadServiceInterface.get()?.cancelAll(context)
+                DownloadServiceInterface.impl?.cancelAll(context)
             }
         }
     }

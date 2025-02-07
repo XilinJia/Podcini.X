@@ -79,7 +79,7 @@ fun PlaybackPreferencesScreen() {
                             }))
                     })
             }
-            Text(stringResource(R.string.pref_fast_forward_sum), color = textColor)
+            Text(stringResource(R.string.pref_fast_forward_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -102,7 +102,7 @@ fun PlaybackPreferencesScreen() {
                             }))
                     })
             }
-            Text(stringResource(R.string.pref_rewind_sum), color = textColor)
+            Text(stringResource(R.string.pref_rewind_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
         var showSpeedDialog by remember { mutableStateOf(false) }
         if (showSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = prefPlaybackSpeed, maxSpeed = 3f, isGlobal = true,
@@ -131,6 +131,7 @@ fun PlaybackPreferencesScreen() {
             speedforwardSpeed = round(10 * speed_) / 10
         }
         TitleSummaryActionColumn(R.string.pref_speed_forward, R.string.pref_speed_forward_sum) { showFFSpeedDialog = true }
+        TitleSummarySwitchPrefRow(R.string.pref_skip_silence_title, R.string.pref_skip_silence_sum, AppPrefs.prefSkipSilence)
         TitleSummarySwitchPrefRow(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, AppPrefs.prefStreamOverDownload)
         TitleSummarySwitchPrefRow(R.string.pref_low_quality_on_mobile_title, R.string.pref_low_quality_on_mobile_sum, AppPrefs.prefLowQualityOnMobile)
         TitleSummarySwitchPrefRow(R.string.pref_use_adaptive_progress_title, R.string.pref_use_adaptive_progress_sum, AppPrefs.prefUseAdaptiveProgressUpdate)

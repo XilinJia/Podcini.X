@@ -27,6 +27,7 @@ import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.app.Notification
@@ -90,7 +91,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 WorkManager.getInstance(context).cancelAllWorkByTag(tag)
             } catch (exception: Throwable) {
                 WorkManager.getInstance(context).cancelAllWorkByTag(tag)
-                exception.printStackTrace()
+                Logs(TAG, exception)
             }
         }
     }
@@ -135,13 +136,13 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             var result: Result
             try { result = performDownload(media, request)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Logs(TAG, e)
                 result = Result.failure()
             }
             if (result == Result.failure() && downloader?.downloadRequest?.destination != null)
                 FileUtils.deleteQuietly(File(downloader!!.downloadRequest.destination!!))
             progressUpdaterThread.interrupt()
-            try { progressUpdaterThread.join() } catch (e: InterruptedException) { e.printStackTrace() }
+            try { progressUpdaterThread.join() } catch (e: InterruptedException) { Logs(TAG, e) }
             synchronized(notificationProgress) {
                 notificationProgress.remove(media.getEpisodeTitle())
                 if (notificationProgress.isEmpty()) {

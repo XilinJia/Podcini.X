@@ -11,6 +11,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.FeedFunding
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import androidx.core.text.HtmlCompat
 import org.apache.commons.io.input.XmlStreamReader
@@ -103,31 +104,24 @@ class FeedHandler {
                         }
                     } else {
                         // Apparently exception happens on some devices...
-                        try { eventType = xpp.next() } catch (e: RuntimeException) { throw UnsupportedFeedtypeException("Unable to get type") }
+                        try { eventType = xpp.next() } catch (e: RuntimeException) {
+                            Logs(TAG, e, "Unable to get type")
+                            throw UnsupportedFeedtypeException("Unable to get type") }
                     }
                 }
             } catch (e: XmlPullParserException) {
-                e.printStackTrace()
+                Logs(TAG, e)
                 // XML document might actually be a HTML document -> try to parse as HTML
                 var rootElement: String? = null
                 try {
                     Jsoup.parse(File(feed.fileUrl!!))
                     rootElement = "html"
-                } catch (e1: IOException) {
-                    Logd(TAG, "IOException: " + feed.fileUrl)
-                    e1.printStackTrace()
-                }
+                } catch (e1: IOException) { Logs(TAG, e1, "IOException: " + feed.fileUrl) }
                 throw UnsupportedFeedtypeException(Type.INVALID, rootElement)
-            } catch (e: IOException) {
-                Logd(TAG, "IOException: " + feed.fileUrl)
-                e.printStackTrace()
+            } catch (e: IOException) { Logs(TAG, e, "IOException: " + feed.fileUrl)
             } finally {
                 if (reader != null) {
-                    try { reader.close()
-                    } catch (e: IOException) {
-                        Logd(TAG, "IOException: $reader")
-                        e.printStackTrace()
-                    }
+                    try { reader.close() } catch (e: IOException) { Logs(TAG, e, "IOException: $reader") }
                 }
             }
         }
@@ -137,19 +131,12 @@ class FeedHandler {
 
     private fun createReader(feed: Feed): Reader? {
         if (feed.fileUrl.isNullOrBlank()) return null
-
-        val reader: Reader
-        try { reader = XmlStreamReader(File(feed.fileUrl!!))
-        } catch (e: FileNotFoundException) {
-            Logd(TAG, "FileNotFoundException: " + feed.fileUrl)
-            e.printStackTrace()
-            return null
-        } catch (e: IOException) {
-            Logd(TAG, "IOException: " + feed.fileUrl)
-            e.printStackTrace()
-            return null
-        }
-        return reader
+        try {
+            val reader: Reader = XmlStreamReader(File(feed.fileUrl!!))
+            return reader
+        } catch (e: FileNotFoundException) { Logs(TAG, e, "FileNotFoundException: " + feed.fileUrl)
+        } catch (e: IOException) { Logs(TAG, e, "IOException: " + feed.fileUrl) }
+        return null
     }
 
     enum class Type {
@@ -427,7 +414,7 @@ class FeedHandler {
                                 LINK_REL_ENCLOSURE -> {
                                     val strSize: String? = attributes.getValue(LINK_LENGTH)
                                     var size: Long = 0
-                                    try { if (strSize != null) size = strSize.toLong() } catch (e: NumberFormatException) { Logd(TAG, "Length attribute could not be parsed.") }
+                                    try { if (strSize != null) size = strSize.toLong() } catch (e: NumberFormatException) { Logs(TAG, e, "Length attribute could not be parsed.") }
                                     val mimeType: String? = getMimeType(attributes.getValue(LINK_TYPE), href)
                                     val currItem = state.currentItem
                                     if (isMediaFile(mimeType) && currItem != null) currItem.fillMedia(href, size, mimeType)
@@ -634,7 +621,7 @@ class FeedHandler {
                     try {
                         val durationMs = inMillis(content)
                         state.tempObjects[DURATION] = durationMs.toInt()
-                    } catch (e: NumberFormatException) { Logt(NSTAG, String.format("Duration '%s' could not be parsed", content)) }
+                    } catch (e: NumberFormatException) { Logs(NSTAG, e, String.format("Duration '%s' could not be parsed", content)) }
                 }
                 SUBTITLE == localName -> {
                     when {
@@ -708,7 +695,7 @@ class FeedHandler {
                             var size: Long = 0
                             val sizeStr: String? = attributes.getValue(SIZE)
                             if (!sizeStr.isNullOrEmpty()) {
-                                try { size = sizeStr.toLong() } catch (e: NumberFormatException) { Logt(TAG, "Size \"$sizeStr\" could not be parsed.") }
+                                try { size = sizeStr.toLong() } catch (e: NumberFormatException) { Logs(TAG, e, "Size \"$sizeStr\" could not be parsed.") }
                             }
                             var durationMs = 0
                             val durationStr: String? = attributes.getValue(DURATION)
@@ -716,7 +703,7 @@ class FeedHandler {
                                 try {
                                     val duration = durationStr.toLong()
                                     durationMs = TimeUnit.MILLISECONDS.convert(duration, TimeUnit.SECONDS).toInt()
-                                } catch (e: NumberFormatException) { Logt(TAG, "Duration \"$durationStr\" could not be parsed") }
+                                } catch (e: NumberFormatException) { Logs(TAG, e, "Duration \"$durationStr\" could not be parsed") }
                             }
                             Logd(TAG, "handleElementStart creating media: ${state.currentItem?.title} $url $size $mimeType")
                             state.currentItem?.fillMedia(url, size, mimeType)
@@ -831,7 +818,7 @@ class FeedHandler {
                             size = attributes.getValue(ENC_LEN)?.toLong() ?: 0
                             // less than 16kb is suspicious, check manually
                             if (size < 16384) size = 0
-                        } catch (e: NumberFormatException) { Logd(TAG, "Length attribute could not be parsed.") }
+                        } catch (e: NumberFormatException) { Logs(TAG, e, "Length attribute could not be parsed.") }
                         state.currentItem?.fillMedia(url, size, mimeType)
                     }
                 }
@@ -935,7 +922,7 @@ class FeedHandler {
                             val imageUrl: String? = attributes.getValue(IMAGE)
                             val chapter = Chapter(start, title, link, imageUrl)
                             currentItem.chapters?.add(chapter)
-                        } catch (e: NumberFormatException) { Logt(TAG, "Unable to read chapter. ${e.message}") }
+                        } catch (e: NumberFormatException) { Logs(TAG, e, "Unable to read chapter. ${e.message}") }
                     }
                 }
             }

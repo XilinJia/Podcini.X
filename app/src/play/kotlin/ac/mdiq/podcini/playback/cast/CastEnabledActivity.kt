@@ -27,7 +27,7 @@ abstract class CastEnabledActivity : ComponentActivity() {
 //        if (canCast) {
 //            try { CastContext.getSharedInstance(this)
 //            } catch (e: Exception) {
-//                e.printStackTrace()
+//                Logs(TAG, e)
 //                canCast = false
 //            }
 //        }

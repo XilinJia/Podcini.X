@@ -80,9 +80,6 @@ abstract class EpisodeActionButton internal constructor(@JvmField var item: Epis
     val label by mutableIntStateOf(label)
     var drawable by mutableIntStateOf(drawable)
 
-    val isEpisodeDownloadAllowed: Boolean
-        get() = isAllowMobileEpisodeDownload || !isNetworkRestricted
-
     abstract fun onClick(context: Context)
 
     open fun forItem(item_: Episode): EpisodeActionButton {
@@ -91,7 +88,7 @@ abstract class EpisodeActionButton internal constructor(@JvmField var item: Epis
 //        val media = item.media ?: return TTSActionButton(item)
         val isDownloadingMedia = when (item.downloadUrl) {
             null -> false
-            else -> DownloadServiceInterface.get()?.isDownloadingEpisode(item.downloadUrl!!) == true
+            else -> DownloadServiceInterface.impl?.isDownloadingEpisode(item.downloadUrl!!) == true
         }
         Logd("ItemActionButton", "forItem: local feed: ${item.feed?.isLocalFeed} downloaded: ${item.downloaded} playing: ${isCurrentlyPlaying(item)}  ${item.title} ")
         return when {
@@ -179,8 +176,8 @@ class VisitWebsiteActionButton(item: Episode) : EpisodeActionButton(item, R.stri
 
 class CancelDownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.cancel_download_label, R.drawable.ic_cancel) {
     override fun onClick(context: Context) {
-        DownloadServiceInterface.get()?.cancel(context, item)
-        if (AppPreferences.isEnableAutodownload) {
+        DownloadServiceInterface.impl?.cancel(context, item)
+        if (AppPreferences.isAutodownloadEnabled) {
             val item_ = upsertBlk(item) { it.disableAutoDownload() }
             EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item_))
         }
@@ -392,14 +389,14 @@ class DownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.d
     override fun onClick(context: Context) {
         if (shouldNotDownload(item)) return
         UsageStatistics.logAction(UsageStatistics.ACTION_DOWNLOAD)
-        if (isEpisodeDownloadAllowed) DownloadServiceInterface.get()?.downloadNow(context, item, false)
+        if (isAllowMobileEpisodeDownload || !isNetworkRestricted) DownloadServiceInterface.impl?.downloadNow(context, item, false)
         else {
             val builder = MaterialAlertDialogBuilder(context)
                 .setTitle(R.string.confirm_mobile_download_dialog_title)
-                .setPositiveButton(R.string.confirm_mobile_download_dialog_download_later) { _: DialogInterface?, _: Int -> DownloadServiceInterface.get()?.downloadNow(context, item, false) }
-                .setNeutralButton(R.string.confirm_mobile_download_dialog_allow_this_time) { _: DialogInterface?, _: Int -> DownloadServiceInterface.get()?.downloadNow(context, item, true) }
+                .setPositiveButton(R.string.confirm_mobile_download_dialog_download_later) { _: DialogInterface?, _: Int -> DownloadServiceInterface.impl?.downloadNow(context, item, false) }
+                .setNeutralButton(R.string.confirm_mobile_download_dialog_allow_this_time) { _: DialogInterface?, _: Int -> DownloadServiceInterface.impl?.downloadNow(context, item, true) }
                 .setNegativeButton(R.string.cancel_label, null)
-            if (NetworkUtils.isNetworkRestricted && NetworkUtils.isVpnOverWifi) builder.setMessage(R.string.confirm_mobile_download_dialog_message_vpn)
+            if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) builder.setMessage(R.string.confirm_mobile_download_dialog_message_vpn)
             else builder.setMessage(R.string.confirm_mobile_download_dialog_message)
             builder.show()
         }
@@ -408,7 +405,7 @@ class DownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.d
 
     private fun shouldNotDownload(media: Episode?): Boolean {
         if (media?.downloadUrl == null) return true
-        val isDownloading = DownloadServiceInterface.get()?.isDownloadingEpisode(media.downloadUrl!!) == true
+        val isDownloading = DownloadServiceInterface.impl?.isDownloadingEpisode(media.downloadUrl!!) == true
         return isDownloading || media.downloaded
     }
 }
@@ -494,7 +491,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                             Logt(TAG, "Error generating audio file $tempFile.absolutePath")
                             break
                         }
-                    } catch (e: Exception) { Logt(TAG, "writing temp file error: ${e.message}")}
+                    } catch (e: Exception) { Logs(TAG, e, "writing temp file error")}
                     startIndex += chunkLength
                     i++
                     while (i - j > 0) runBlocking { delay(100) }

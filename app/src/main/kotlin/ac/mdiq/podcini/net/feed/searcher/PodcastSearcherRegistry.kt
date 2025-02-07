@@ -4,6 +4,7 @@ import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -69,7 +70,10 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
             return PodcastSearchResult(title, imageUrl, feedUrl, author, count, update, -1, "PodcastIndex")
         }
 
-        val encodedQuery = try { withContext(Dispatchers.IO) { URLEncoder.encode(query, "UTF-8") } } catch (e: UnsupportedEncodingException) { query }
+        val encodedQuery = try { withContext(Dispatchers.IO) { URLEncoder.encode(query, "UTF-8") } } catch (e: UnsupportedEncodingException) {
+            Logs("PodcastIndexPodcastSearcher", e)
+            query
+        }
         val formattedUrl = String.format(SEARCH_API_URL, encodedQuery)
         val podcasts: MutableList<PodcastSearchResult> = ArrayList()
         try {
@@ -122,7 +126,7 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
                 messageDigest.update(clearString.toByteArray(charset("UTF-8")))
                 return toHex(messageDigest.digest())
             } catch (ignored: Exception) {
-                ignored.printStackTrace()
+                Logs("PodcastIndexPodcastSearcher", ignored)
                 return null
             }
         }
@@ -150,7 +154,10 @@ class ItunesPodcastSearcher : PodcastSearcher {
             return PodcastSearchResult(title, imageUrl, feedUrl, author, null, null, -1, "Itunes")
         }
 
-        val encodedQuery = try { withContext(Dispatchers.IO) { URLEncoder.encode(query, "UTF-8") } } catch (e: UnsupportedEncodingException) { query }
+        val encodedQuery = try { withContext(Dispatchers.IO) { URLEncoder.encode(query, "UTF-8") } } catch (e: UnsupportedEncodingException) {
+            Logs("ItunesPodcastSearcher", e)
+            query
+        }
         val formattedUrl = String.format(ITUNES_API_URL, encodedQuery)
 
         val client = PodciniHttpClient.getHttpClient()

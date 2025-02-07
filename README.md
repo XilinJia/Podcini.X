@@ -27,6 +27,17 @@ Podcini.X requests for permission for unrestricted background activities for uni
 
 If you intend to sync through a server, NextCloud server has been tested, but caution is advised. 
 
+## Notable features
+
+1. Based in Jetpack Compose, using on `media3` with `AudioOffloadMode` enabled (nicer to device battery).
+2. Features multiple, natural and circular play queues associable with any podcast.
+3. Presents synthetic podcasts and allows episodes to be shelved to any synthetic podcast.
+4. Allows setting personal notes, 5-level rating, and 12-level play state on every episode.
+5. Boasts sophisticated filtering and sorting on episodes and podcasts.
+6. Handles auto-download governed by policy and limit settings of individual feed (podcast).
+7. Spotlights `instant sync` across devices without a server.
+8. Offers Readability and Text-to-Speech for RSS contents.
+
 ## Usage and notable features description 
 <details> <summary>Click to expand</summary>
 

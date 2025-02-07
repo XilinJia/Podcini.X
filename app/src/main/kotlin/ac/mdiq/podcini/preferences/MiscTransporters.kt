@@ -14,6 +14,7 @@ import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
@@ -102,7 +103,7 @@ class EpisodesProgressWriter : ExportWriter {
                 }
                 writer.write(list.toString())
             } catch (e: Exception) {
-                e.printStackTrace()
+                Logs(TAG, e)
                 throw SyncServiceException(e)
             }
         }

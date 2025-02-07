@@ -6,7 +6,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.isEnableAutodownload
+import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesSync
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodesCount
@@ -18,6 +18,7 @@ import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -94,7 +95,7 @@ object AutoDownloads {
         override fun autoDownloadEpisodeMedia(context: Context, feeds: List<Feed>?): Runnable {
             return Runnable {
                 // true if we should auto download based on network status
-                val networkShouldAutoDl = (isAutoDownloadAllowed && isEnableAutodownload)
+                val networkShouldAutoDl = (isAutoDownloadAllowed && isAutodownloadEnabled)
                 // true if we should auto download based on power status
                 val powerShouldAutoDl = (deviceCharging(context) || getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false))
                 Logd(TAG, "autoDownloadEpisodeMedia prepare $networkShouldAutoDl $powerShouldAutoDl")
@@ -224,19 +225,16 @@ object AutoDownloads {
                                 toastMassege = "Enqueueing ${itemsToDownload.size} items for download"
                                 for (e in itemsToDownload) {
                                     Logd(TAG, "autoDownloadEpisodeMedia reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
-                                    DownloadServiceInterface.get()?.download(context, e)
+                                    DownloadServiceInterface.impl?.download(context, e)
                                 }
                             }
-                            toastMassege = "Auto downloaded spisodes: ${itemsToDownload.size}"
+                            toastMassege = "Auto downloaded episodes: ${itemsToDownload.size}"
                             itemsToDownload.clear()
                         }
                         candidates.clear()
                     }
                 }
-                else {
-                    toastMassege = "auto downloaded not performed: network: $networkShouldAutoDl power: $powerShouldAutoDl"
-                    Logd(TAG, "not auto downloaded networkShouldAutoDl: $networkShouldAutoDl powerShouldAutoDl $powerShouldAutoDl")
-                }
+                else Logt(TAG, "Auto download not performed: networkShouldAutoDl: $networkShouldAutoDl powerShouldAutoDl $powerShouldAutoDl")
             }
         }
     }

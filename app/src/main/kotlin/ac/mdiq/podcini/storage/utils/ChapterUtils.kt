@@ -3,6 +3,7 @@ package ac.mdiq.podcini.storage.utils
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import okhttp3.CacheControl
 import okhttp3.Request
@@ -33,7 +34,7 @@ object ChapterUtils {
             val request: Request = Builder().url(url).cacheControl(cacheControl).build()
             response = getHttpClient().newCall(request).execute()
             if (response.isSuccessful && response.body != null) return parse(response.body!!.string())
-        } catch (e: IOException) { e.printStackTrace()
+        } catch (e: IOException) { Logs(TAG, e)
         } finally { response?.close() }
         return listOf()
     }
@@ -97,7 +98,7 @@ object ChapterUtils {
                 chapters.add(Chapter(startTime * 1000L, title, link, img))
             }
             return chapters
-        } catch (e: JSONException) { e.printStackTrace() }
+        } catch (e: JSONException) { Logs(TAG, e) }
         return listOf()
     }
 

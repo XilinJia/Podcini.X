@@ -14,7 +14,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.cast.CastEnabledActivity
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.defaultPage
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
@@ -50,7 +49,6 @@ import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
-
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -145,7 +143,7 @@ class MainActivity : CastEnabledActivity() {
                     isBSExpanded -> isBSExpanded = false
                     mainNavController.previousBackStackEntry != null -> mainNavController.popBackStack()
                     else -> {
-                        val toPage = defaultPage
+                        val toPage = getPref(AppPrefs.prefDefaultPage, "")
                         if (getLastNavScreen() == toPage || AppPreferences.DefaultPages.Remember.name == toPage) {
                             if (getPref(AppPrefs.prefBackButtonOpensDrawer, false)) openDrawer()
                             else {
@@ -334,7 +332,7 @@ class MainActivity : CastEnabledActivity() {
                         }
                         updatedEpisodes[downloadUrl] = DownloadStatus(status, progress)
                     }
-                    DownloadServiceInterface.get()?.setCurrentDownloads(updatedEpisodes)
+                    DownloadServiceInterface.impl?.setCurrentDownloads(updatedEpisodes)
                     EventFlow.postStickyEvent(FlowEvent.EpisodeDownloadEvent(updatedEpisodes))
                 }
         }
@@ -630,7 +628,6 @@ class MainActivity : CastEnabledActivity() {
                     "STATISTCS" -> mainNavController.navigate(Screens.Statistics.name)
                     else -> {
                         toastMassege = getString(R.string.app_action_not_found) + feature
-//                        showSnackbarAbovePlayer(getString(R.string.app_action_not_found)+feature, Snackbar.LENGTH_LONG)
                         return
                     }
                 }

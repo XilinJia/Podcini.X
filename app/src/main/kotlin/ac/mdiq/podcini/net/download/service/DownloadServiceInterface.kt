@@ -4,7 +4,6 @@ import android.content.Context
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.storage.model.Episode
 
-
 abstract class DownloadServiceInterface {
     private var currentDownloads: Map<String, DownloadStatus> = HashMap()
 
@@ -45,14 +44,6 @@ abstract class DownloadServiceInterface {
         const val WORK_DATA_MEDIA_ID: String = "media_id"
         const val WORK_DATA_WAS_QUEUED: String = "was_queued"
 
-        private var impl: DownloadServiceInterface? = null
-
-        fun get(): DownloadServiceInterface? {
-            return impl
-        }
-
-        fun setImpl(impl: DownloadServiceInterface?) {
-            Companion.impl = impl
-        }
+        var impl: DownloadServiceInterface? = null
     }
 }

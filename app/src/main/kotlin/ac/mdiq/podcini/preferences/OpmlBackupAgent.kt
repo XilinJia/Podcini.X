@@ -152,9 +152,6 @@ class OpmlBackupAgent : BackupAgentHelper() {
         private val TAG: String = OpmlBackupAgent::class.simpleName ?: "Anonymous"
         private const val OPML_BACKUP_KEY = "opml"
 
-        val isOPMLRestored: Boolean
-            get() = getPref(AppPrefs.prefOPMLRestore, false)
-
         fun performRestore(context: Context) {
             Logd(TAG, "performRestore")
             val tempFile = File(context.filesDir, "opml_restored.txt")

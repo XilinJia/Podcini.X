@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.playback.cast
 
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
@@ -18,7 +19,7 @@ open class CastStateListener(context: Context) : SessionManagerListener<CastSess
                 castCtx = CastContext.getSharedInstance(context)
                 castCtx.sessionManager.addSessionManagerListener(this, CastSession::class.java)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Logs("CastStateListener", e)
                 castCtx = null
             }
             castContext = castCtx

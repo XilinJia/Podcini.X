@@ -4,6 +4,7 @@ import ac.mdiq.podcini.net.feed.parser.media.id3.model.FrameHeader
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.EmbeddedChapterImage.Companion.makeUrl
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import org.apache.commons.io.input.CountingInputStream
 import java.io.IOException
@@ -61,7 +62,7 @@ class ChapterReader(input: CountingInputStream) : ID3Reader(input) {
                     val decodedLink = URLDecoder.decode(url, "ISO-8859-1")
                     chapter.link = decodedLink
                     Logd(TAG, "Found link: " + chapter.link)
-                } catch (iae: IllegalArgumentException) { Logt(TAG, "Bad URL found in ID3 data") }
+                } catch (e: IllegalArgumentException) { Logs(TAG, e, "Bad URL found in ID3 data") }
             }
             FRAME_ID_PICTURE -> {
                 val encoding = readByte()

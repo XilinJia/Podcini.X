@@ -7,15 +7,11 @@ import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.ProxyConfig
 import ac.mdiq.podcini.storage.utils.StorageUtils.createNoMediaFile
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
-import android.os.Build
 import android.view.KeyEvent
-import androidx.annotation.VisibleForTesting
 import androidx.preference.PreferenceManager
 import java.net.Proxy
 
@@ -48,55 +44,23 @@ object AppPreferences {
             }
         }
 
-
-    val isThemeColorTinted: Boolean
-        get() = Build.VERSION.SDK_INT >= 31 && getPref(AppPrefs.prefTintedColors, false)
-
     val videoPlayMode: Int
-        get() {
-            try { return getPref(AppPrefs.prefVideoPlaybackMode, "1").toInt()
-            } catch (e: NumberFormatException) {
-                Logs(TAG, e)
-                putPref(AppPrefs.prefVideoPlaybackMode, "1")
-                return 1
-            }
-        }
+        get() = getPref(AppPrefs.prefVideoPlaybackMode, "1").toInt()
 
-    var isSkipSilence: Boolean
+    val isSkipSilence: Boolean
         get() = getPref(AppPrefs.prefSkipSilence, false)
-        set(value) {
-            putPref(AppPrefs.prefSkipSilence, value)
-        }
 
-    @set:VisibleForTesting
-    var isEnableAutodownload: Boolean
+    val isAutodownloadEnabled: Boolean
         get() = getPref(AppPrefs.prefEnableAutoDl, false)
-        set(enabled) {
-            putPref(AppPrefs.prefEnableAutoDl, enabled)
-        }
 
     var speedforwardSpeed: Float
-        get() {
-            try { return getPref(AppPrefs.prefSpeedforwardSpeed, "0.00").toFloat()
-            } catch (e: NumberFormatException) {
-                Logs(TAG, e)
-                speedforwardSpeed = 0.0f
-                return 0.0f
-            }
-        }
+        get() = getPref(AppPrefs.prefSpeedforwardSpeed, "0.00").toFloat()
         set(speed) {
             putPref(AppPrefs.prefSpeedforwardSpeed, speed.toString())
         }
 
     var fallbackSpeed: Float
-        get() {
-            try { return getPref(AppPrefs.prefFallbackSpeed, "0.00").toFloat()
-            } catch (e: NumberFormatException) {
-                Logs(TAG, e)
-                fallbackSpeed = 0.0f
-                return 0.0f
-            }
-        }
+        get() = getPref(AppPrefs.prefFallbackSpeed, "0.00").toFloat()
         set(speed) {
             putPref(AppPrefs.prefFallbackSpeed, speed.toString())
         }
@@ -134,28 +98,10 @@ object AppPreferences {
             else putPref(AppPrefs.prefProxyPassword.name, config.password)
         }
 
-    var defaultPage: String?
-        get() = getPref(AppPrefs.prefDefaultPage, MainActivity.Screens.Subscriptions.name)
-        set(defaultPage) {
-            putPref(AppPrefs.prefDefaultPage, defaultPage)
-        }
-
     var isStreamOverDownload: Boolean
         get() = getPref(AppPrefs.prefStreamOverDownload, false)
         set(stream) {
             putPref(AppPrefs.prefStreamOverDownload, stream)
-        }
-
-    var prefLowQualityMedia: Boolean
-        get() = getPref(AppPrefs.prefLowQualityOnMobile, false)
-        set(stream) {
-            putPref(AppPrefs.prefLowQualityOnMobile, stream)
-        }
-
-    var prefAdaptiveProgressUpdate: Boolean
-        get() = getPref(AppPrefs.prefUseAdaptiveProgressUpdate, true)
-        set(value) {
-            putPref(AppPrefs.prefUseAdaptiveProgressUpdate, value)
         }
 
     /**

@@ -11,6 +11,8 @@ import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.toastMassege
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.foundation.BorderStroke
@@ -43,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -167,6 +170,7 @@ object SleepTimerPreferences {
         var showTimeDisplay by remember { mutableStateOf(false) }
         var showTimeSetup by remember { mutableStateOf(true) }
         var timerText by remember { mutableStateOf(getDurationStringLong(timeLeft.toInt())) }
+        val context = LocalContext.current
 
         fun timerUpdated(event: FlowEvent.SleepTimerUpdatedEvent) {
             showTimeDisplay = !event.isOver && !event.isCancelled
@@ -217,7 +221,7 @@ object SleepTimerPreferences {
                             onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) etxtTime = it })
                         Button(modifier = Modifier.fillMaxWidth(), onClick = {
                             if (!PlaybackService.isRunning) {
-//                        Snackbar.make(content, R.string.no_media_playing_label, Snackbar.LENGTH_LONG).show()
+                                toastMassege = context.getString(R.string.no_media_playing_label)
                                 return@Button
                             }
                             try {
@@ -233,10 +237,7 @@ object SleepTimerPreferences {
                                 showTimeSetup = false
                                 showTimeDisplay = true
 //                        closeKeyboard(content)
-                            } catch (e: NumberFormatException) {
-                                e.printStackTrace()
-//                        Snackbar.make(content, R.string.time_dialog_invalid_input, Snackbar.LENGTH_LONG).show()
-                            }
+                            } catch (e: NumberFormatException) { Logs(TAG, e, context.getString(R.string.time_dialog_invalid_input)) }
                         }) { Text(stringResource(R.string.set_sleeptimer_label)) }
                     }
                     if (showTimeDisplay || timeLeft > 0) {

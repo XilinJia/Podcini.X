@@ -559,6 +559,7 @@
     <string name="pref_fast_forward_sum">Customize the number of seconds to jump forward when the fast forward button is clicked</string>
     <string name="pref_rewind">Rewind skip time</string>
     <string name="pref_rewind_sum">Customize the number of seconds to jump backwards when the rewind button is clicked</string>
+
     <string name="pref_playback_video_mode">Video play mode</string>
     <string name="pref_playback_video_mode_sum">Choose how video episode is played by default</string>
     <string name="pref_video_mode_full_screen">Full screen</string>
@@ -597,6 +598,7 @@
     <string name="pref_enqueue_downloaded_title">Enqueue downloaded</string>
     <string name="pref_enqueue_downloaded_summary">Add downloaded episodes to the queue</string>
     <string name="pref_skip_silence_title">Skip silence in audio</string>
+    <string name="pref_skip_silence_sum">Whether silence in playback is skipped</string>
     <string name="behavior">Behavior</string>
     <string name="pref_select_properties">Select properties</string>
     <string name="pref_import_media_files_later">Media files can only be imported after importing the database.</string>
