@@ -12,7 +12,7 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_OTHER
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
@@ -108,7 +108,7 @@ object InTheatre {
                     if (curEpisode != null) curEpisode = curEpisode
                 }
                 Logd(TAG, "loadPlayableFromPreferences: curMedia: ${curEpisode?.id}")
-            } else Logt(TAG, "Could not restore EpisodeMedia object from preferences")
+            } else Loge(TAG, "Could not restore EpisodeMedia object from preferences")
         }
     }
 

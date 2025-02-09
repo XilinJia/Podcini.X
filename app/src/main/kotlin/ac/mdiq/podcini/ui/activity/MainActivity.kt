@@ -24,8 +24,7 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.monitorFeeds
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.ui.compose.CustomTheme
-import ac.mdiq.podcini.ui.compose.CustomToast
+import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.*
 import ac.mdiq.podcini.ui.utils.*
@@ -34,7 +33,6 @@ import ac.mdiq.podcini.util.*
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.DialogInterface
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -46,7 +44,6 @@ import android.os.PowerManager
 import android.os.StrictMode
 import android.provider.Settings
 import android.view.KeyEvent
-import android.view.MenuItem
 import android.view.View
 import android.widget.EditText
 import androidx.activity.OnBackPressedCallback
@@ -73,7 +70,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 
@@ -89,14 +85,19 @@ class MainActivity : CastEnabledActivity() {
             checkAndRequestUnrestrictedBackgroundActivity(this)
             return@registerForActivityResult
         }
-        MaterialAlertDialogBuilder(this)
-            .setMessage(R.string.notification_permission_text)
-            .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int -> checkAndRequestUnrestrictedBackgroundActivity(this) }
-            .setNegativeButton(R.string.cancel_label) { _: DialogInterface?, _: Int -> checkAndRequestUnrestrictedBackgroundActivity(this) }
-            .show()
+        commonConfirm = CommonConfirmAttrib(
+            title = getString(R.string.notification_check_permission),
+            message = getString(R.string.notification_permission_text),
+            confirmRes = android.R.string.ok,
+            cancelRes = R.string.cancel_label,
+            onConfirm = { checkAndRequestUnrestrictedBackgroundActivity(this) },
+            onCancel = { checkAndRequestUnrestrictedBackgroundActivity(this) })
     }
 
     var showUnrestrictedBackgroundPermissionDialog by mutableStateOf(false)
+
+    private var hasFeedUpdateObserverStarted = false
+    private var hasDownloadObserverStarted = false
 
     enum class Screens {
         Subscriptions,
@@ -139,7 +140,7 @@ class MainActivity : CastEnabledActivity() {
             override fun handleOnBackPressed() {
                 Logd(TAG, "handleOnBackPressed called")
                 when {
-                    isDrawerOpen -> closeDrawer()
+                    drawerState.isOpen -> closeDrawer()
                     isBSExpanded -> isBSExpanded = false
                     mainNavController.previousBackStackEntry != null -> mainNavController.popBackStack()
                     else -> {
@@ -163,11 +164,13 @@ class MainActivity : CastEnabledActivity() {
 
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
 //            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            MaterialAlertDialogBuilder(this)
-                .setMessage(R.string.notification_permission_text)
-                .setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int -> requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) }
-                .setNegativeButton(R.string.cancel_label) { _: DialogInterface?, _: Int -> checkAndRequestUnrestrictedBackgroundActivity(this@MainActivity) }
-                .show()
+            commonConfirm = CommonConfirmAttrib(
+                title = getString(R.string.notification_check_permission),
+                message = getString(R.string.notification_permission_text),
+                confirmRes = android.R.string.ok,
+                cancelRes = R.string.cancel_label,
+                onConfirm = { requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+                onCancel = { checkAndRequestUnrestrictedBackgroundActivity(this@MainActivity) })
         } else checkAndRequestUnrestrictedBackgroundActivity(this)
 
         runOnIOScope {  checkFirstLaunch() }
@@ -178,6 +181,10 @@ class MainActivity : CastEnabledActivity() {
         WorkManager.getInstance(this)
             .getWorkInfosByTagLiveData(FeedUpdateManager.WORK_TAG_FEED_UPDATE)
             .observe(this) { workInfos: List<WorkInfo> ->
+                if (!hasFeedUpdateObserverStarted) {
+                    hasFeedUpdateObserverStarted = true
+                    return@observe
+                }
                 var isRefreshingFeeds = false
                 for (workInfo in workInfos) {
                     when (workInfo.state) {
@@ -231,6 +238,7 @@ class MainActivity : CastEnabledActivity() {
                         toastMessages.add(toastMassege)
                         toastMassege = ""
                     })
+                    if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                     CompositionLocalProvider(LocalNavController provides navController) {
                         NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {
                             composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
@@ -301,6 +309,10 @@ class MainActivity : CastEnabledActivity() {
             WorkManager.getInstance(this@MainActivity)
                 .getWorkInfosByTagLiveData(DownloadServiceInterface.WORK_TAG)
                 .observe(this@MainActivity) { workInfos: List<WorkInfo> ->
+                    if (!hasDownloadObserverStarted) {
+                        hasDownloadObserverStarted = true
+                        return@observe
+                    }
                     val updatedEpisodes: MutableMap<String, DownloadStatus> = HashMap()
                     for (workInfo in workInfos) {
                         var downloadUrl: String? = null
@@ -309,7 +321,6 @@ class MainActivity : CastEnabledActivity() {
                                 downloadUrl = tag.substring(DownloadServiceInterface.WORK_TAG_EPISODE_URL.length)
                         }
                         if (downloadUrl == null) continue
-
 //                        Logd(TAG, "workInfo.state: ${workInfo.state}")
                         var status: Int
                         status = when (workInfo.state) {
@@ -317,11 +328,11 @@ class MainActivity : CastEnabledActivity() {
                             WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> DownloadStatus.State.QUEUED.ordinal
                             WorkInfo.State.SUCCEEDED -> DownloadStatus.State.COMPLETED.ordinal
                             WorkInfo.State.FAILED -> {
-                                Logt(TAG, "download failed $downloadUrl")
+                                Loge(TAG, "download failed $downloadUrl")
                                 DownloadStatus.State.COMPLETED.ordinal
                             }
                             WorkInfo.State.CANCELLED -> {
-                                Logd(TAG, "download cancelled $downloadUrl")
+                                Logt(TAG, "download cancelled $downloadUrl")
                                 DownloadStatus.State.COMPLETED.ordinal
                             }
                         }
@@ -341,56 +352,10 @@ class MainActivity : CastEnabledActivity() {
 //        if (Build.VERSION.SDK_INT >= 33) requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
 //    }
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        //        setPlayerVisible(audioPlayerView.visibility == View.VISIBLE)
-        val playerHeight = resources.getDimension(R.dimen.external_player_height).toInt()
-        Logd(TAG, "playerHeight: $playerHeight ${navigationBarInsets.bottom}")
-//        bottomSheet.peekHeight = playerHeight + navigationBarInsets.bottom
-    }
-
-    /**
-     * View.generateViewId stores the current ID in a static variable.
-     * When the process is killed, the variable gets reset.
-     * This makes sure that we do not get ID collisions
-     * and therefore errors when trying to restore state from another view.
-     */
-//    private fun ensureGeneratedViewIdGreaterThan(minimum: Int) {
-//        while (View.generateViewId() <= minimum) {
-//            // Generate new IDs
-//        }
-//    }
-
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(Extras.generated_view_id.name, View.generateViewId())
     }
-
-//    fun setupToolbarToggle(toolbar: MaterialToolbar, displayUpArrow: Boolean) {
-//        Logd(TAG, "setupToolbarToggle ${drawerLayout?.id} $displayUpArrow")
-//        // Tablet layout does not have a drawer
-//        when {
-//            drawerLayout != null -> {
-//                if (drawerToggle != null) drawerLayout!!.removeDrawerListener(drawerToggle!!)
-//                drawerToggle = object : ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.drawer_open, R.string.drawer_close) {
-//                    override fun onDrawerOpened(drawerView: View) {
-//                        super.onDrawerOpened(drawerView)
-//                        Logd(TAG, "Drawer opened")
-////                        navDrawerFragment.loadData()
-//                    }
-//                }
-//                drawerLayout!!.addDrawerListener(drawerToggle!!)
-//                drawerToggle!!.syncState()
-//                drawerToggle!!.isDrawerIndicatorEnabled = !displayUpArrow
-//                drawerToggle!!.toolbarNavigationClickListener = View.OnClickListener { supportFragmentManager.popBackStack() }
-//            }
-//            !displayUpArrow -> toolbar.navigationIcon = null
-//            else -> {
-//                toolbar.setNavigationIcon(getDrawableFromAttr(this, androidx.appcompat.R.attr.homeAsUpIndicator))
-//                toolbar.setNavigationOnClickListener { supportFragmentManager.popBackStack() }
-//            }
-//        }
-//    }
 
     override fun onDestroy() {
         Logd(TAG, "onDestroy")
@@ -410,25 +375,6 @@ class MainActivity : CastEnabledActivity() {
             edit.apply()
         }
     }
-
-    fun setPlayerVisible(visible_: Boolean?) {
-        Logd(TAG, "setPlayerVisible $visible_")
-//        val visible = visible_ ?: (bottomSheet.state != BottomSheetBehavior.STATE_COLLAPSED)
-
-//        bottomSheet.setLocked(!visible)
-//        if (visible) bottomSheetCallback.onStateChanged(dummyView, bottomSheet.state)    // Update toolbar visibility
-//        else bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED)
-
-//        val params = mainView.layoutParams as MarginLayoutParams
-//        val externalPlayerHeight = resources.getDimension(R.dimen.external_player_height).toInt()
-//        Logd(TAG, "externalPlayerHeight: $externalPlayerHeight ${navigationBarInsets.bottom}")
-//        params.setMargins(navigationBarInsets.left, 0, navigationBarInsets.right, navigationBarInsets.bottom + (if (visible) externalPlayerHeight else 0))
-//        mainView.layoutParams = params
-//        audioPlayerView.visibility = if (visible) View.VISIBLE else View.GONE
-    }
-
-    fun isPlayerVisible(): Boolean = true
-//        audioPlayerView.visibility == View.VISIBLE
 
     fun loadScreen(tag: String?, args: Bundle?) {
         var tag = tag
@@ -490,18 +436,6 @@ class MainActivity : CastEnabledActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         lastTheme = getNoTitleTheme(this) // Don't recreate activity when a result is pending
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        Logd(TAG, "onOptionsItemSelected ${item.title}")
-        when {
-//            drawerToggle != null && drawerToggle!!.onOptionsItemSelected(item) -> return true // Tablet layout does not have a drawer
-//            item.itemId == android.R.id.home -> {
-//                if (supportFragmentManager.backStackEntryCount > 0) supportFragmentManager.popBackStack()
-//                return true
-//            }
-            else -> return super.onOptionsItemSelected(item)
-        }
     }
 
     private var eventSink: Job?     = null
@@ -698,9 +632,6 @@ class MainActivity : CastEnabledActivity() {
         fun closeDrawer() {
             lcScope?.launch { drawerState.close() }
         }
-
-        val isDrawerOpen: Boolean
-            get() = drawerState.isOpen
 
         var isBSExpanded by mutableStateOf(false)
 

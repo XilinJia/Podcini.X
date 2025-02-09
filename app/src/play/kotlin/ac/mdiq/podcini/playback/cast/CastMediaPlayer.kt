@@ -14,7 +14,7 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import android.annotation.SuppressLint
 import android.app.UiModeManager
 import android.content.ContentResolver
@@ -121,7 +121,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
         val position = mediaStatus.streamPosition.toInt()
         // check for incompatible states
         if ((state == MediaStatus.PLAYER_STATE_PLAYING || state == MediaStatus.PLAYER_STATE_PAUSED) && currentMedia == null) {
-            Logt(TAG, "onStatusUpdated returned playing or pausing state, but with no media")
+            Loge(TAG, "onStatusUpdated returned playing or pausing state, but with no media")
             state = MediaStatus.PLAYER_STATE_UNKNOWN
             stateChanged = oldState != MediaStatus.PLAYER_STATE_UNKNOWN
         }
@@ -131,7 +131,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             // We don't want setPlayerStatus to handle the onPlaybackPause callback
             setPlayerStatus(PlayerStatus.INDETERMINATE, currentMedia)
         }
-        Logt(TAG, "onStatusUpdated state: $state")
+        Logd(TAG, "onStatusUpdated state: $state")
         setBuffering(state == MediaStatus.PLAYER_STATE_BUFFERING)
         when (state) {
             MediaStatus.PLAYER_STATE_PLAYING -> {
@@ -179,7 +179,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
                         return
                     }
                     MediaStatus.IDLE_REASON_ERROR -> {
-                        Logt(TAG, "Got an error status from the Chromecast. Skipping, if possible, to the next episode...")
+                        Loge(TAG, "Got an error status from the Chromecast. Skipping, if possible, to the next episode...")
                         EventFlow.postEvent(FlowEvent.PlayerErrorEvent("Chromecast error code 1"))
                         endPlayback(false, wasSkipped = false, shouldContinue = true, toStoppedState = true)
                         return
@@ -188,7 +188,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
                 }
             }
             MediaStatus.PLAYER_STATE_UNKNOWN -> if (status != PlayerStatus.INDETERMINATE || curEpisode !== currentMedia) setPlayerStatus(PlayerStatus.INDETERMINATE, currentMedia)
-            else -> Logt(TAG, "Remote media state undetermined!")
+            else -> Loge(TAG, "Remote media state undetermined!")
         }
         if (mediaChanged) {
             callback.onMediaChanged(true)
@@ -220,8 +220,8 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
                 Logd(TAG, "Method call to playMediaObject was ignored: media file already playing.")
                 return
             } else {
-                if (curEpisode?.id != prevMedia?.id) {
-                    prevMedia = curEpisode
+                if (prevMedia != null && curEpisode?.id != prevMedia?.id) {
+//                    prevMedia = curEpisode
                     callback.onPostPlayback(prevMedia!!, false, false, true)
                 }
                 setPlayerStatus(PlayerStatus.INDETERMINATE, null)
@@ -311,7 +311,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             if (it.isSuccess) {
                 Logd(TAG, "seekTo Seek succeeded to position $t ms")
                 if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, t, curEpisode!!.duration))
-            } else Logt(TAG, "Seek failed")
+            } else Loge(TAG, "seekTo failed")
         }
     }
 

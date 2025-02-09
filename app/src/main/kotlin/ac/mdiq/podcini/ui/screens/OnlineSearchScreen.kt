@@ -193,9 +193,6 @@ fun OnlineSearchScreen() {
                 Lifecycle.Event.ON_CREATE -> {
                     vm.mainAct = context as? MainActivity
                     Logd(TAG, "fragment onCreateView")
-//                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
-//                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
-
                     val displayMetrics: DisplayMetrics = context.resources.displayMetrics
                     val screenWidthDp: Float = displayMetrics.widthPixels / displayMetrics.density
                     if (screenWidthDp > 600) vm.numColumns = 6

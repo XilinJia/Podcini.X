@@ -12,7 +12,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.FeedFunding
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import androidx.core.text.HtmlCompat
 import org.apache.commons.io.input.XmlStreamReader
 import org.jsoup.Jsoup

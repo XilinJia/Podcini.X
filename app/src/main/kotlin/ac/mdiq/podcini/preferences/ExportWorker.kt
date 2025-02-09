@@ -5,7 +5,8 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.net.Uri
 import androidx.annotation.StringRes
@@ -41,7 +42,7 @@ class ExportWorker private constructor(private val exportWriter: ExportWriter, p
                 exportWriter.writeDocument(feeds_, writer, context)
                 output
             } catch (e: IOException) {
-                Logt(TAG, "Error during file export. ${e.message}")
+                Logs(TAG, e, "Error during file export.")
                 null
             } finally { writer?.close() }
         }

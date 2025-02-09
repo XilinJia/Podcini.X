@@ -199,10 +199,10 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
             EventFlow.events.collectLatest { event ->
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
-                    is FlowEvent.FeedListEvent -> loadSubscriptions()
-                    is FlowEvent.EpisodePlayedEvent -> loadSubscriptions()
-                    is FlowEvent.FeedTagsChangedEvent -> loadSubscriptions()
-                    is FlowEvent.FeedChangeEvent -> loadSubscriptions()
+                    is FlowEvent.FeedListEvent -> loadSubscriptions(true)
+                    is FlowEvent.EpisodePlayedEvent -> loadSubscriptions(true)
+                    is FlowEvent.FeedTagsChangedEvent -> loadSubscriptions(true)
+                    is FlowEvent.FeedChangeEvent -> loadSubscriptions(true)
                     else -> {}
                 }
             }
@@ -212,10 +212,10 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received sticky event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.FeedUpdatingEvent -> {
-                        Logd(TAG, "FeedUpdateRunningEvent: ${event.isRunning}")
+                        Logd(TAG, "FeedUpdateRunningEvent: ${event.isRunning} ${event.id}")
                         infoTextUpdate = if (event.isRunning) " " + context.getString(R.string.refreshing_label) else ""
                         txtvInformation = (infoTextFiltered + infoTextUpdate)
-                        if (!event.isRunning && event.id != prevFeedUpdatingEvent?.id) loadSubscriptions()
+                        if (!event.isRunning && event.id != prevFeedUpdatingEvent?.id) loadSubscriptions(true)
                         prevFeedUpdatingEvent = event
                     }
                     else -> {}
@@ -225,10 +225,12 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     private var loadingJob: Job? = null
-    internal fun loadSubscriptions() {
+    internal fun loadSubscriptions(force: Boolean = false) {
         if (loadingJob != null) {
-            loadingJob?.cancel()
-            feedListFiltered.clear()
+            if (force) {
+                loadingJob?.cancel()
+                feedListFiltered.clear()
+            } else return
         }
         loadingJob = lcScope.launch {
             val feedList: List<Feed>
@@ -273,7 +275,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     worker.exportFile(selectedItems)
                 }
             }
-        } catch (e: Exception) { Logt(TAG, "exportOPML error: ${e.message}") }
+        } catch (e: Exception) { Loge(TAG, "exportOPML error: ${e.message}") }
     }
 
     private fun sortArrays2CodeSet() {
@@ -328,7 +330,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
             if (tagsQueryStr.isNotEmpty())  fQueryStr += " AND $tagsQueryStr"
             val queuesQueryStr = queryStringOfQueues()
             if (queuesQueryStr.isNotEmpty())  fQueryStr += " AND $queuesQueryStr"
-            Logd(TAG, "sortFeeds() called $feedsFilter $fQueryStr")
+            Logd(TAG, "sortFeeds() called [$feedsFilter] [$fQueryStr]")
             return getFeedList(fQueryStr).toMutableList()
         }
 
@@ -510,8 +512,6 @@ fun SubscriptionsScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-//                        displayUpArrow = parentFragmentManager.backStackEntryCount != 0
-//                        displayUpArrow = savedInstanceState?.getBoolean(KEY_UP_ARROW) ?: false
                     vm.getSortingPrefs()
 //                    if (arguments != null) vm.displayedFolder = requireArguments().getString(ARGUMENT_FOLDER, null)
                     vm.resetTags()
@@ -826,7 +826,7 @@ fun SubscriptionsScreen() {
                             vm.exportOPML(uri, selected)
                         }?.launch(intentPickAction)
                         return@clickable
-                    } catch (e: ActivityNotFoundException) { Logt(TAG, "No activity found. Should never happen...") }
+                    } catch (e: ActivityNotFoundException) { Loge(TAG, "No activity found. Should never happen...") }
                     // if on SDK lower than API 21 or the implicit intent failed, fallback to the legacy export process
                     vm.exportOPML(null, selected)
                 }) {
@@ -1354,7 +1354,7 @@ fun SubscriptionsScreen() {
         fun onFilterChanged(newFilterValues: Set<String>) {
             vm.feedsFilter = StringUtils.join(newFilterValues, ",")
             Logd(TAG, "onFilterChanged: ${vm.feedsFilter}")
-            vm.loadSubscriptions()
+            vm.loadSubscriptions(true)
         }
         Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
             val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
@@ -1508,12 +1508,12 @@ fun SubscriptionsScreen() {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 20.dp, end = 20.dp)) {
                 Spinner(items = vm.spinnerTexts, selectedIndex = vm.queueFilterIndex) { index: Int ->
                     vm.queueFilterIndex = index
-                    vm.loadSubscriptions()
+                    vm.loadSubscriptions(true)
                 }
                 Spacer(Modifier.weight(1f))
                 Spinner(items = vm.tags, selectedIndex = vm.tagFilterIndex) { index: Int ->
                     vm.tagFilterIndex = index
-                    vm.loadSubscriptions()
+                    vm.loadSubscriptions(true)
                 }
             }
             if (vm.noSubscription) Text(stringResource(R.string.no_subscriptions_label))

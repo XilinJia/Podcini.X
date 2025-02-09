@@ -12,7 +12,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import android.content.Context
 import android.net.Uri
 import android.os.ParcelFileDescriptor
@@ -37,7 +37,7 @@ class PreferencesTransporter(val prefsDirName: String) {
                     val destFile = exportSubDir.createFile("text/xml", file.name)
                     if (destFile != null) copyFile(file, destFile, context)
                 }
-            } else Logt("Error", "shared_prefs directory not found")
+            } else Loge("exportToDocument", "shared_prefs directory not found")
         } catch (e: IOException) {
             Logs(TAG, e)
             throw e
@@ -51,7 +51,7 @@ class PreferencesTransporter(val prefsDirName: String) {
             inputStream.close()
             outputStream?.close()
         } catch (e: IOException) {
-            Logt("Error", "Error copying file: $e")
+            Logs("copyFile", e, "Error copying file:")
             throw e
         }
     }
@@ -63,7 +63,7 @@ class PreferencesTransporter(val prefsDirName: String) {
             inputStream?.close()
             outputStream.close()
         } catch (e: IOException) {
-            Logt("Error", "Error copying file: $e")
+            Loge("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -78,7 +78,7 @@ class PreferencesTransporter(val prefsDirName: String) {
             val exportedDir = DocumentFile.fromTreeUri(context, uri) ?: throw IOException("Backup directory is not valid")
             val sharedPreferencesDir = context.applicationContext.filesDir.parentFile?.listFiles { file -> file.name.startsWith("shared_prefs") }?.firstOrNull()
             if (sharedPreferencesDir != null) sharedPreferencesDir.listFiles()?.forEach { file -> file.delete() }
-            else Logt("Error", "shared_prefs directory not found")
+            else Loge("Error", "shared_prefs directory not found")
             val files = exportedDir.listFiles()
             var hasPodciniRPrefs = false
             for (file in files) {
@@ -183,7 +183,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             outputStream.close()
             if (move) sourceFile.delete()
         } catch (e: IOException) {
-            Logt("Error", "Error copying file: $e")
+            Loge("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -227,7 +227,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             outputStream.close()
             if (move) sourceFile.delete()
         } catch (e: IOException) {
-            Logt("Error", "Error copying file: $e")
+            Loge("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -275,7 +275,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             outputStream.close()
             if (move) sourceFile.delete()
         } catch (e: IOException) {
-            Logt("Error", "Error copying file: $e")
+            Loge("Error", "Error copying file: $e")
             throw e
         }
     }
@@ -328,7 +328,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             outputStream.close()
             if (move) sourceFile.delete()
         } catch (e: IOException) {
-            Logt("Error", "Error copying file: $e")
+            Loge("Error", "Error copying file: $e")
             throw e
         }
     }

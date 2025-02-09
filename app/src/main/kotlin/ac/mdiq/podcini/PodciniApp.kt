@@ -8,7 +8,7 @@ import ac.mdiq.podcini.receiver.SPAReceiver
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.ui.activity.SplashActivity
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.config.ApplicationCallbacks
 import ac.mdiq.podcini.util.config.ClientConfig
 import ac.mdiq.podcini.util.config.ClientConfigurator
@@ -58,7 +58,7 @@ class PodciniApp : Application() {
     fun sendSPAppsQueryFeedsIntent(context: Context): Boolean {
         val appContext = context.applicationContext
         if (appContext == null) {
-            Logt("App", "Unable to get application context")
+            Loge("App", "Unable to get application context")
             return false
         }
         if (!getPref(PREF_HAS_QUERIED_SP_APPS, false)) {

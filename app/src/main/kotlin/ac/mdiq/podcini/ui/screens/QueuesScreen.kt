@@ -203,7 +203,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                                 vms.removeAt(pos)
                             }
                         } else {
-                            Logt(TAG, "Trying to remove item non-existent from queue ${e.id} ${e.title}")
+                            Loge(TAG, "Trying to remove item non-existent from queue ${e.id} ${e.title}")
                             continue
                         }
                     }
@@ -356,8 +356,6 @@ fun QueuesScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-//                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
-//                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
                     if (isQueueKeepSorted) vm.sortOrder = queueKeepSortedOrder ?: EpisodeSortOrder.DATE_NEW_OLD
 
                     vm.queueNames = vm.queues.map { it.name }.toMutableStateList()

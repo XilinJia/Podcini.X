@@ -10,7 +10,7 @@ import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.error.DownloadErrorLabel.from
 import android.content.Context
 import kotlinx.coroutines.*
@@ -41,7 +41,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             }
             "XML" -> {}
             else -> {
-                Logt(TAG, "unknown url type $urlType")
+                Loge(TAG, "unknown url type $urlType")
                 showError("unknown url type $urlType", "")
                 return
             }
@@ -122,7 +122,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
         val connection = URL(url).openConnection() as HttpURLConnection
         var type: String? = null
         try { type = connection.contentType } catch (e: IOException) {
-            Logt(TAG, "Error connecting to URL. ${e.message}")
+            Loge(TAG, "Error connecting to URL. ${e.message}")
             showError(e.message, "")
         } finally { connection.disconnect() }
         if (type == null) return null

@@ -28,15 +28,9 @@ import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.view.ShownotesWebView
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.toastMassege
-import ac.mdiq.podcini.util.toastMessages
 import android.content.ComponentName
-import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.media.AudioManager
@@ -75,7 +69,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.media3.ui.PlayerView
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.Dispatchers
@@ -152,7 +145,7 @@ class VideoplayerActivity : CastEnabledActivity() {
                     toastMessages.add(toastMassege)
                     toastMassege = ""
                 })
-
+                if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                 Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
                     if (landscape) Box(modifier = Modifier.fillMaxSize()) { VideoPlayer() }
                     else {
@@ -359,12 +352,12 @@ class VideoplayerActivity : CastEnabledActivity() {
     }
 
     private fun onEventMainThread(event: FlowEvent.MessageEvent) {
-        val errorDialog = MaterialAlertDialogBuilder(this)
-        errorDialog.setMessage(event.message)
-        errorDialog.setPositiveButton(event.actionText) { _: DialogInterface?, _: Int ->
-            event.action?.accept(this)
-        }
-        errorDialog.show()
+        commonConfirm = CommonConfirmAttrib(
+            title = "",
+            message = event.message,
+            confirmRes = android.R.string.ok,
+            cancelRes = R.string.cancel_label,
+            onConfirm = { event.action?.accept(this) })
     }
 
     @OptIn(ExperimentalMaterial3Api::class)

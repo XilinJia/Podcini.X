@@ -5,7 +5,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -60,7 +60,7 @@ object StorageUtils {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     val pickedDir = DocumentFile.fromTreeUri(getAppContext(), uri)
                     if (pickedDir == null || !pickedDir.isDirectory) {
-                        Logt("SpaceCheck", "Invalid directory URI: $customMediaUriString")
+                        Loge("SpaceCheck", "Invalid directory URI: $customMediaUriString")
                         return 0L
                     }
                     val storageManager = getAppContext().getSystemService(Context.STORAGE_SERVICE) as StorageManager
@@ -135,13 +135,8 @@ object StorageUtils {
             }
             "content" -> {
                 try { getAppContext().contentResolver.openFileDescriptor(destinationUri, "rw")?.close()
-                } catch (e: FileNotFoundException) {
-                    Logt(TAG, "file not exist $destinationUri: ${e.message}")
-                    false
-                } catch (e: Exception) {
-                    Logt(TAG, "Error checking file existence: ${e.message}")
-                    false
-                }
+                } catch (e: FileNotFoundException) { Logs(TAG, e, "file not exist $destinationUri:")
+                } catch (e: Exception) { Logs(TAG, e, "Error checking file existence:") }
             }
             else -> throw IllegalArgumentException("Unsupported URI scheme: ${destinationUri.scheme}")
         }
@@ -170,11 +165,11 @@ object StorageUtils {
         val typeDir = if (type == null) baseDir else File(baseDir, type)
         if (!typeDir.exists()) {
             if (!baseDir.canWrite()) {
-                Logt(TAG, "Base dir is not writable " + baseDir.absolutePath)
+                Loge(TAG, "Base dir is not writable " + baseDir.absolutePath)
                 return null
             }
             if (!typeDir.mkdirs()) {
-                Logt(TAG, "Could not create type dir " + typeDir.absolutePath)
+                Loge(TAG, "Could not create type dir " + typeDir.absolutePath)
                 return null
             }
         }

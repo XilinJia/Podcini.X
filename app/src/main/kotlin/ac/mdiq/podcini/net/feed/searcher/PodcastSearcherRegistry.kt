@@ -4,6 +4,7 @@ import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
+import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfig
 import kotlinx.coroutines.Dispatchers
@@ -126,7 +127,7 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
                 messageDigest.update(clearString.toByteArray(charset("UTF-8")))
                 return toHex(messageDigest.digest())
             } catch (ignored: Exception) {
-                Logs("PodcastIndexPodcastSearcher", ignored)
+                Logd("PodcastIndexPodcastSearcher", ignored.message ?: "sha1 error")
                 return null
             }
         }

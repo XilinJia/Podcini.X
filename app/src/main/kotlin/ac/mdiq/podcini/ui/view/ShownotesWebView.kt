@@ -113,7 +113,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
             R.id.go_to_position_item -> {
                 if (ShownotesCleaner.isTimecodeLink(selectedUrl) && timecodeSelectedListener != null)
                     timecodeSelectedListener!!.accept(ShownotesCleaner.getTimecodeLinkTime(selectedUrl))
-                else Logt(TAG, "Selected go_to_position_item, but URL was no timecode link: $selectedUrl")
+                else Loge(TAG, "Selected go_to_position_item, but URL was not timecode link: $selectedUrl")
             }
             else -> {
                 selectedUrl = null

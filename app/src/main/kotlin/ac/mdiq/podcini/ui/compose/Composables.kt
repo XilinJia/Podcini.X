@@ -236,6 +236,45 @@ fun TitleSummarySwitchPrefRow(titleRes: Int, summaryRes: Int, pref: AppPrefs) {
     }
 }
 
+var commonConfirm by mutableStateOf<CommonConfirmAttrib?>(null)
+data class CommonConfirmAttrib(
+    val title: String,
+    val message: String,
+    val confirmRes: Int,
+    val onConfirm: ()->Unit,
+    val cancelRes: Int,
+    val onCancel: ()->Unit = { commonConfirm = null },
+    val neutralRes: Int = 0,
+    val onNeutral: (()->Unit)? = null
+)
+
+@Composable
+fun CommonConfirmDialog(c: CommonConfirmAttrib) {
+    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { commonConfirm = null },
+        title = { Text(c.title) },
+        text = {
+            Column {
+                val scrollState = rememberScrollState()
+                Column(modifier = Modifier.verticalScroll(scrollState)) { Text(c.message) }
+                if (c.neutralRes > 0) TextButton(onClick = {
+                    c.onNeutral?.invoke()
+                    commonConfirm = null
+                }) { Text(stringResource(c.neutralRes)) }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                c.onConfirm()
+                commonConfirm = null
+            }) { Text(stringResource(c.confirmRes)) }
+        },
+        dismissButton = { TextButton(onClick = {
+            c.onCancel()
+            commonConfirm = null
+        }) { Text(stringResource(c.cancelRes)) } }
+    )
+}
+
 @Composable
 fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boolean>, cancellable: Boolean = true, onConfirm: () -> Unit) {
     if (showDialog.value) {

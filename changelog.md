@@ -1,3 +1,11 @@
+# 8.5.4
+
+* adjusted toast categories: notifications, errors, exceptions
+* replaced Android MaterialAlertdialog with Compose dialog
+* disabled toasting of some ignorable errors
+* avoid emitting FeedUpdatingEvent on start that causes unnecessary reload in Subscriptions screen
+* avoid emitting EpisodeDownloadEvent on start 
+
 # 8.5.3
 
 * enhanced getNextInQueue routine

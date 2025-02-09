@@ -27,10 +27,11 @@ import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.utils.AudioMediaTools
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.FEObj
 import ac.mdiq.podcini.util.*
 import android.content.Context
-import android.content.DialogInterface
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.speech.tts.TextToSpeech
@@ -57,7 +58,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.text.HtmlCompat
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
@@ -189,7 +189,7 @@ class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_
     override fun onClick(context: Context) {
         Logd("PlayActionButton", "onClick called file: ${item.fileUrl}")
         if (!item.fileExists()) {
-            Logt(TAG, context.getString(R.string.error_file_not_found))
+            Loge(TAG, context.getString(R.string.error_file_not_found))
             notifyMissingEpisodeMediaFile(context, item)
             return
         }
@@ -232,7 +232,7 @@ class PlayPauseActionButton(item: Episode) : EpisodeActionButton(item, R.string.
         if (!isPlaying) {
             Logd("PlayActionButton", "onClick called file: ${item.fileUrl}")
             if (!item.fileExists()) {
-                Logt(TAG, context.getString(R.string.error_file_not_found))
+                Loge(TAG, context.getString(R.string.error_file_not_found))
                 notifyMissingEpisodeMediaFile(context, item)
                 return
             }
@@ -279,26 +279,21 @@ class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.str
 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
         UsageStatistics.logAction(UsageStatistics.ACTION_STREAM)
         if (!NetworkUtils.isStreamingAllowed) {
-            StreamingConfirmationDialog(context, item).show()
+            commonConfirm = CommonConfirmAttrib(
+                title = context.getString(R.string.stream_label),
+                message = context.getString(R.string.confirm_mobile_streaming_notification_message),
+                confirmRes = R.string.confirm_mobile_streaming_button_always,
+                cancelRes = R.string.cancel_label,
+                neutralRes = R.string.confirm_mobile_streaming_button_once,
+                onConfirm = {
+                    NetworkUtils.isAllowMobileStreaming = true
+                    stream(context, item)
+                },
+                onNeutral = { stream(context, item) })
             return
         }
         stream(context, item)
         actionState.value = label
-    }
-
-    class StreamingConfirmationDialog(private val context: Context, private val playable: Episode) {
-        fun show() {
-            MaterialAlertDialogBuilder(context)
-                .setTitle(R.string.stream_label)
-                .setMessage(R.string.confirm_mobile_streaming_notification_message)
-                .setPositiveButton(R.string.confirm_mobile_streaming_button_once) { _: DialogInterface?, _: Int -> stream(context, playable) }
-                .setNegativeButton(R.string.confirm_mobile_streaming_button_always) { _: DialogInterface?, _: Int ->
-                    NetworkUtils.isAllowMobileStreaming = true
-                    stream(context, playable)
-                }
-                .setNeutralButton(R.string.cancel_label, null)
-                .show()
-        }
     }
 
     companion object {
@@ -320,7 +315,17 @@ class StreamPauseActionButton(item: Episode) : EpisodeActionButton(item, R.strin
         if (!isPlaying) {
             UsageStatistics.logAction(UsageStatistics.ACTION_STREAM)
             if (!NetworkUtils.isStreamingAllowed) {
-                StreamingConfirmationDialog(context, item).show()
+                commonConfirm = CommonConfirmAttrib(
+                    title = context.getString(R.string.stream_label),
+                    message = context.getString(R.string.confirm_mobile_streaming_notification_message),
+                    confirmRes = R.string.confirm_mobile_streaming_button_always,
+                    cancelRes = R.string.cancel_label,
+                    neutralRes = R.string.confirm_mobile_streaming_button_once,
+                    onConfirm = {
+                        NetworkUtils.isAllowMobileStreaming = true
+                        StreamActionButton.Companion.stream(context, item)
+                    },
+                    onNeutral = { StreamActionButton.Companion.stream(context, item) })
                 return
             }
             stream(context, item)
@@ -330,21 +335,6 @@ class StreamPauseActionButton(item: Episode) : EpisodeActionButton(item, R.strin
         actionState.value = label
         isPlaying = !isPlaying
         drawable = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_stream
-    }
-
-    class StreamingConfirmationDialog(private val context: Context, private val playable: Episode) {
-        fun show() {
-            MaterialAlertDialogBuilder(context)
-                .setTitle(R.string.stream_label)
-                .setMessage(R.string.confirm_mobile_streaming_notification_message)
-                .setPositiveButton(R.string.confirm_mobile_streaming_button_once) { _: DialogInterface?, _: Int -> stream(context, playable) }
-                .setNegativeButton(R.string.confirm_mobile_streaming_button_always) { _: DialogInterface?, _: Int ->
-                    NetworkUtils.isAllowMobileStreaming = true
-                    stream(context, playable)
-                }
-                .setNeutralButton(R.string.cancel_label, null)
-                .show()
-        }
     }
 
     companion object {
@@ -391,14 +381,14 @@ class DownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.d
         UsageStatistics.logAction(UsageStatistics.ACTION_DOWNLOAD)
         if (isAllowMobileEpisodeDownload || !isNetworkRestricted) DownloadServiceInterface.impl?.downloadNow(context, item, false)
         else {
-            val builder = MaterialAlertDialogBuilder(context)
-                .setTitle(R.string.confirm_mobile_download_dialog_title)
-                .setPositiveButton(R.string.confirm_mobile_download_dialog_download_later) { _: DialogInterface?, _: Int -> DownloadServiceInterface.impl?.downloadNow(context, item, false) }
-                .setNeutralButton(R.string.confirm_mobile_download_dialog_allow_this_time) { _: DialogInterface?, _: Int -> DownloadServiceInterface.impl?.downloadNow(context, item, true) }
-                .setNegativeButton(R.string.cancel_label, null)
-            if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) builder.setMessage(R.string.confirm_mobile_download_dialog_message_vpn)
-            else builder.setMessage(R.string.confirm_mobile_download_dialog_message)
-            builder.show()
+            commonConfirm = CommonConfirmAttrib(
+                title = context.getString(R.string.confirm_mobile_download_dialog_title),
+                message = context.getString(if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
+                confirmRes = R.string.confirm_mobile_download_dialog_download_later,
+                cancelRes = R.string.cancel_label,
+                neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
+                onConfirm = { DownloadServiceInterface.impl?.downloadNow(context, item, false) },
+                onNeutral = { DownloadServiceInterface.impl?.downloadNow(context, item, true) })
         }
         actionState.value = label
     }
@@ -418,7 +408,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
     override fun onClick(context: Context) {
         Logd("TTSActionButton", "onClick called")
         if (item.link.isNullOrEmpty()) {
-            Logt(TAG, context.getString(R.string.episode_has_no_content))
+            Loge(TAG, context.getString(R.string.episode_has_no_content))
             return
         }
         processing = 1
@@ -445,9 +435,9 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                 if (item.feed?.language != null) {
                     val result = FEObj.tts?.setLanguage(Locale(item.feed!!.language!!))
                     if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                        Logt(TAG, "TTS language not supported ${item.feed!!.language} $result")
+//                        Loge(TAG, "TTS language not supported ${item.feed!!.language} $result")
                         withContext(Dispatchers.Main) {
-                            Logt(TAG, context.getString(R.string.language_not_supported_by_tts) + " ${item.feed!!.language} $result")
+                            Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " ${item.feed!!.language} $result")
                         }
                     }
                 }
@@ -464,10 +454,10 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                     }
                     @Deprecated("Deprecated in Java")
                     override fun onError(utteranceId: String) {
-                        Logt(TAG, "onError utterance error: $utteranceId $readerText")
+                        Loge(TAG, "onError utterance error: $utteranceId $readerText")
                     }
                     override fun onError(utteranceId: String, errorCode: Int) {
-                        Logt(TAG, "onError1 utterance error: $utteranceId $errorCode $readerText")
+                        Loge(TAG, "onError1 utterance error: $utteranceId $errorCode $readerText")
                     }
                 })
 
@@ -488,7 +478,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                         status = FEObj.tts?.synthesizeToFile(chunk, null, tempFile, tempFile.absolutePath) ?: 0
                         Logd(TAG, "status: $status chunk: ${chunk.substring(0, min(80, chunk.length))}")
                         if (status == TextToSpeech.ERROR) {
-                            Logt(TAG, "Error generating audio file $tempFile.absolutePath")
+                            Loge(TAG, "Error generating audio file ${tempFile.absolutePath}")
                             break
                         }
                     } catch (e: Exception) { Logs(TAG, e, "writing temp file error")}
@@ -525,7 +515,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                     f.delete()
                 }
                 FEObj.ttsWorking = false
-            } else Logt(TAG, context.getString(R.string.episode_has_no_content))
+            } else Loge(TAG, context.getString(R.string.episode_has_no_content))
 
             item = upsertBlk(item) { it.playState = PlayState.UNPLAYED.code }
 

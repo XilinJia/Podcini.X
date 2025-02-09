@@ -2,7 +2,7 @@ package ac.mdiq.podcini.net.sync.model
 
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import org.json.JSONException
 import org.json.JSONObject
 import java.text.ParseException
@@ -101,7 +101,7 @@ class EpisodeAction private constructor(builder: Builder) {
                 obj.put("isFavorite", this.isFavorite)
             }
         } catch (e: JSONException) {
-            Logt(TAG, "writeToJSONObject(): " + e.message)
+            Logs(TAG, e, "writeToJSONObject(): ")
             return null
         }
         return obj
@@ -128,7 +128,7 @@ class EpisodeAction private constructor(builder: Builder) {
                 obj.put("total", this.total)
             }
         } catch (e: JSONException) {
-            Logt(TAG, "writeToJSONObject(): " + e.message)
+            Logs(TAG, e, "writeToJSONObject(): ")
             return null
         }
         return obj
@@ -229,10 +229,9 @@ class EpisodeAction private constructor(builder: Builder) {
             if (podcast.isNullOrEmpty() || episode.isNullOrEmpty() || actionString.isNullOrEmpty()) return null
 
             val action: Action
-            try {
-                action = Action.valueOf(actionString.uppercase())
+            try { action = Action.valueOf(actionString.uppercase())
             } catch (e: IllegalArgumentException) {
-                Logt(TAG, "IllegalArgumentException: ${e.message}")
+                Logs(TAG, e)
                 return null
             }
             val builder = Builder(podcast, episode, action)

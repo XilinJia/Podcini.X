@@ -4,7 +4,7 @@ import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.showStackTrace
 import android.net.Uri
 import io.realm.kotlin.MutableRealm

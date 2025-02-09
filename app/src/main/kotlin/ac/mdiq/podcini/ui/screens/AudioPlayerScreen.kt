@@ -165,11 +165,11 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     is FlowEvent.PlaybackServiceEvent -> {
 //                        if (event.action == FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN)
 //                            (context as? MainActivity)?.bottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
-                        when (event.action) {
-                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN -> actMain?.setPlayerVisible(false)
-                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED -> if (curEpisode != null) actMain?.setPlayerVisible(true)
+//                        when (event.action) {
+//                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN -> actMain?.setPlayerVisible(false)
+//                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED -> if (curEpisode != null) actMain?.setPlayerVisible(true)
 //                PlaybackServiceEvent.Action.SERVICE_RESTARTED -> (context as MainActivity).setPlayerVisible(true)
-                        }
+//                        }
                     }
                     is BufferUpdateEvent -> bufferUpdate(event)
                     is FlowEvent.PlayEvent -> onPlayEvent(event)
@@ -225,7 +225,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             updateUi(curItem!!)
             setItem(currentitem)
         }
-        actMain?.setPlayerVisible(true)
+//        actMain?.setPlayerVisible(true)
         setIsShowPlay(event.action == FlowEvent.PlayEvent.Action.END)
     }
     internal fun onPositionUpdate(event: FlowEvent.PlaybackPositionEvent) {
@@ -240,7 +240,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         duration = convertOnSpeed(event.duration, curSpeedFB)
         val remainingTime: Int = convertOnSpeed(max((event.duration - event.position).toDouble(), 0.0).toInt(), curSpeedFB)
         if (curPosition == Episode.INVALID_TIME || duration == Episode.INVALID_TIME) {
-            Logt(TAG, "Could not react to position observer update because of invalid time")
+            Loge(TAG, "Could not react to position observer update because of invalid time")
             return
         }
         showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
@@ -324,10 +324,10 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                 }
                 if (!homeText.isNullOrEmpty()) cleanedNotes = shownotesCleaner?.processShownotes(homeText!!, 0)
-                else Logt(TAG, context.getString(R.string.web_content_not_available))
+                else Loge(TAG, context.getString(R.string.web_content_not_available))
             } else {
                 cleanedNotes = shownotesCleaner?.processShownotes(curItem?.description ?: "", curItem?.duration ?: 0)
-                if (cleanedNotes.isNullOrEmpty()) Logt(TAG, context.getString(R.string.web_content_not_available))
+                if (cleanedNotes.isNullOrEmpty()) Loge(TAG, context.getString(R.string.web_content_not_available))
             }
         }
     }
@@ -375,10 +375,10 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         if (actMain == null) return
 //        val actMain = (context as? MainActivity) ?: return
         if (curEpisode == null) {
-            if (actMain.isPlayerVisible()) actMain.setPlayerVisible(false)
+//            if (actMain.isPlayerVisible()) actMain.setPlayerVisible(false)
             return
         }
-        if (!actMain.isPlayerVisible()) actMain.setPlayerVisible(true)
+//        if (!actMain.isPlayerVisible()) actMain.setPlayerVisible(true)
         if (!loadItemsRunning) {
             loadItemsRunning = true
             val curMediaChanged = curItem == null || curEpisode?.id != curItem?.id
@@ -445,14 +445,14 @@ fun AudioPlayerScreen() {
                             }
                             override fun onPlaybackEnd() {
                                 vm.setIsShowPlay(true)
-                                vm.actMain.setPlayerVisible(false)
+//                                vm.actMain.setPlayerVisible(false)
                             }
                         }
                         vm.controller!!.init()
                     }
                     isBSExpanded = false
                     if (vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
-                    vm.actMain?.setPlayerVisible(curEpisode != null)
+//                    vm.actMain?.setPlayerVisible(curEpisode != null)
                     if (curEpisode != null) vm.updateUi(curEpisode!!)
                 }
                 Lifecycle.Event.ON_START -> {
@@ -894,7 +894,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
                     handleStatus()
                 }
             } else {
-                Logd(TAG, "statusUpdate onReceive: Couldn't receive status update: playbackService was null")
+                Logt(TAG, "statusUpdate onReceive: Couldn't receive status update: playbackService was null")
                 if (!isRunning) {
                     status = PlayerStatus.STOPPED
                     handleStatus()
@@ -909,7 +909,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
             val type = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_TYPE, -1)
             val code = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_CODE, -1)
             if (code == -1 || type == -1) {
-                Logd(TAG, "Bad arguments. Won't handle intent")
+                Logt(TAG, "Bad arguments. Won't handle intent. code: $code type: $type")
                 return
             }
             when (type) {
@@ -1025,7 +1025,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
             // make sure that new media is loaded if it's available
             mediaInfoLoaded = false
             handleStatus()
-        } else Logt(TAG, "queryService() was called without an existing connection to playbackservice")
+        } else Loge(TAG, "queryService() was called without an existing connection to playbackservice")
     }
 
     companion object {

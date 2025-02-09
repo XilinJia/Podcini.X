@@ -273,7 +273,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     private fun showFeedInformation(feed: Feed, alternateFeedUrls: Map<String, String>) {
         showProgress = false
         showFeedDisplay = true
-        if (isFeedFoundBySearch) Logt(TAG, context.getString(R.string.no_feed_url_podcast_found_by_search))
+        if (isFeedFoundBySearch) Loge(TAG, context.getString(R.string.no_feed_url_podcast_found_by_search))
 
 //        if (alternateFeedUrls.isEmpty()) binding.alternateUrlsSpinner.visibility = View.GONE
 //        else {
@@ -375,8 +375,6 @@ fun OnlineFeedScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-//                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
-//                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
                     Logd(TAG, "feedUrl: ${vm.feedUrl}")
                     vm.feedBuilder = gearbox.formFeedBuilder(vm.feedUrl, vm.feedSource, context) { message, details ->
                         vm.errorMessage = message ?: "No message"
@@ -384,7 +382,7 @@ fun OnlineFeedScreen() {
                         vm.showErrorDialog = true
                     }
                     if (vm.feedUrl.isEmpty()) {
-                        Logt(TAG, "feedUrl is null.")
+                        Loge(TAG, "feedUrl is null.")
                         vm.showNoPodcastFoundDialog = true
                     } else {
                         Logd(TAG, "Activity was started with url ${vm.feedUrl}")

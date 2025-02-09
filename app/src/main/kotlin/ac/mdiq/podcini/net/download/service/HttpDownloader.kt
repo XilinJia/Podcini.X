@@ -13,7 +13,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
 import ac.mdiq.podcini.storage.utils.StorageUtils.freeSpaceAvailable
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import android.net.Uri
 import okhttp3.*
 import okhttp3.internal.http.StatusLine
@@ -359,7 +359,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
         var httpClient = getHttpClient()
         try { return httpClient.newCall(httpReq.build()).execute()
         } catch (e: IOException) {
-            Logt(TAG, e.toString())
+            Logs(TAG, e)
             if (e.message != null && e.message!!.contains("PROTOCOL_ERROR")) {
                 // Apparently some servers announce they support SPDY but then actually don't.
                 httpClient = httpClient.newBuilder().protocols(listOf(Protocol.HTTP_1_1)).build()

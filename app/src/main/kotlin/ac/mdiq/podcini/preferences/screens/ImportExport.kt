@@ -14,7 +14,8 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.MiscFormatter.dateStampFilename
 import android.app.Activity.RESULT_OK
 import android.content.ActivityNotFoundException
@@ -367,7 +368,7 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
         try {
             result.launch(intentPickAction)
             return
-        } catch (e: ActivityNotFoundException) { Logt(TAG, "No activity found. Should never happen...") }
+        } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
         // If we are using a SDK lower than API 21 or the implicit intent failed fallback to the legacy export process
         exportWithWriter(writer, null, exportType)
     }
@@ -464,7 +465,7 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         val showAPImportDialog = remember { mutableStateOf(false) }
         ComfirmDialog(titleRes = R.string.import_AP_label, message = stringResource(R.string.import_SQLite_message), showDialog = showAPImportDialog) {
-            try { chooseAPImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logt(TAG, "No activity found. Should never happen...") }
+            try { chooseAPImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
         }
         TitleSummaryActionColumn(R.string.import_AP_label, 0) { showAPImportDialog.value = true }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
@@ -489,7 +490,7 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
                 },
                 confirmButton = {
                     TextButton(onClick = {
-                        try { choosePAImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logt(TAG, "No activity found. Should never happen...") }
+                        try { choosePAImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
                         showPAImportDialog.value = false
                     }) { Text(stringResource(R.string.confirm_label)) }
                 },
@@ -501,7 +502,7 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
         TitleSummaryActionColumn(R.string.opml_export_label, R.string.opml_export_summary) { openExportPathPicker(ExportTypes.OPML, chooseOpmlExportPathLauncher, OpmlWriter()) }
         if (showOpmlImportSelectionDialog) OpmlImportSelectionDialog(readElements) { showOpmlImportSelectionDialog = false }
         TitleSummaryActionColumn(R.string.opml_import_label, R.string.opml_import_summary) {
-            try { chooseOpmlImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logt(TAG, "No activity found. Should never happen...") } }
+            try { chooseOpmlImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") } }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         TitleSummaryActionColumn(R.string.progress_export_label, R.string.progress_export_summary) { openExportPathPicker(ExportTypes.PROGRESS, chooseProgressExportPathLauncher, EpisodesProgressWriter()) }
         val showProgressImportDialog = remember { mutableStateOf(false) }

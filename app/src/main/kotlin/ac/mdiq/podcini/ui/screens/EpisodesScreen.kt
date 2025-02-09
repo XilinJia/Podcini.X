@@ -431,8 +431,6 @@ fun EpisodesScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-//                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
-//                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     vm.refreshSwipeTelltale()
                     vm.curIndex = getPref(AppPrefs.prefEpisodesCurIndex, 0)

@@ -2,13 +2,13 @@ package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatRfc822Date
 import android.Manifest
 import android.content.Context
-import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.text.Spannable
@@ -16,7 +16,6 @@ import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import android.util.Xml
 import androidx.core.app.ActivityCompat
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -153,7 +152,7 @@ class OpmlTransporter {
 //           TODO: on first install app: java.io.IOException: Underlying input stream returned zero bytes
                 try { eventType = xpp.next()
                 } catch(e: Exception) {
-                    Logt(TAG, "xpp.next() invalid: $e")
+                    Logs(TAG, e, "xpp.next() invalid:")
                     break
                 }
             }
@@ -191,22 +190,22 @@ class OpmlTransporter {
                                 return@withContext
                             }
                         }
-                        val alert = MaterialAlertDialogBuilder(context)
-                        alert.setTitle(R.string.error_label)
+
                         val userReadable = context.getString(R.string.opml_reader_error)
                         val details = e.message
                         val total = """
-                    $userReadable
-                    
-                    $details
-                    """.trimIndent()
+                            $userReadable
+                            
+                            $details
+                            """.trimIndent()
                         val errorMessage = SpannableString(total)
                         errorMessage.setSpan(ForegroundColorSpan(-0x77777778), userReadable.length, total.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                        alert.setMessage(errorMessage)
-                        alert.setPositiveButton(android.R.string.ok) { _: DialogInterface?, _: Int ->
-//                            finish()
-                        }
-                        alert.show()
+                        commonConfirm = CommonConfirmAttrib(
+                            title = context.getString(R.string.error_label),
+                            message = errorMessage.toString(),
+                            confirmRes = android.R.string.ok,
+                            cancelRes = R.string.cancel_label,
+                            onConfirm = {})
                         CB(listOf())
                     }
                 }

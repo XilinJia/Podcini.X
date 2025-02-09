@@ -73,6 +73,8 @@
 
     <string name="unrestricted_background_permission_text">In order to successfully play a list of episodes in the background, Podcini needs Permission for Unrestricted Background Activity. Note on some brands, there are sustomized settings for this, please ensure to set them accordingly.</string>
 
+
+    <string name="notification_check_permission">Check permission</string>
     <string name="notification_permission_text">Since Android 13, top level notification is needed for normal refresh and playback. You may disallow notifications of sub-catergories at your wish.</string>
     <string name="notification_permission_denied">You denied the permission.</string>
 

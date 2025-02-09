@@ -21,7 +21,8 @@ import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import kotlinx.coroutines.Job
 import java.util.*
 
@@ -68,7 +69,7 @@ object Queues {
             try { return EnqueueLocation.valueOf(valStr)
             } catch (t: Throwable) {
                 // should never happen but just in case
-                Logt(TAG, "getEnqueueLocation: invalid value '$valStr' Use default. ${t.message}")
+                Logs(TAG, t, "getEnqueueLocation: invalid value '$valStr' Use default.")
                 return EnqueueLocation.BACK
             }
         }
@@ -299,7 +300,7 @@ object Queues {
                 episodes.add(to, episode)
                 if (broadcastUpdate) EventFlow.postEvent(FlowEvent.QueueEvent.moved(episode, to))
             }
-        } else Logt(TAG, "moveQueueItemHelper: Could not load queue")
+        } else Loge(TAG, "moveQueueItemHelper: Could not load queue")
         curQueue.episodes.clear()
 //        curQueue.episodes.addAll(episodes)
         curQueue = upsertBlk(curQueue) {

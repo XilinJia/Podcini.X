@@ -26,19 +26,14 @@ object DateUtils {
     @JvmStatic
     fun parse(input: String?): Date? {
         requireNotNull(input) { "Date must not be null" }
-        try {
-            return RFC822_DATE_FORMAT.get()?.parse(input)
-        } catch (ignored: ParseException) { Logs(TAG, ignored) }
+        try { return RFC822_DATE_FORMAT.get()?.parse(input) } catch (ignored: ParseException) { Logd(TAG, ignored.message ?: "parse date error") }
 
         var date = input.trim { it <= ' ' }.replace('/', '-').replace("( ){2,}+".toRegex(), " ")
-
         // remove colon from timezone to avoid differences between Android and Java SimpleDateFormat
         date = date.replace("([+-]\\d\\d):(\\d\\d)$".toRegex(), "$1$2")
-
         // CEST is widely used but not in the "ISO 8601 Time zone" list. Let's hack around.
         date = date.replace("CEST$".toRegex(), "+0200")
         date = date.replace("CET$".toRegex(), "+0100")
-
         // some generators use "Sept" for September
         date = date.replace("\\bSept\\b".toRegex(), "Sep")
 
@@ -46,20 +41,16 @@ object DateUtils {
         if (date.contains(".")) {
             val start = date.indexOf('.')
             var current = start + 1
-            while (current < date.length && Character.isDigit(date[current])) {
-                current++
-            }
+            while (current < date.length && Character.isDigit(date[current])) current++
             // even more precise than microseconds: discard further decimal places
-            when {
-                current - start > 4 -> {
-                    date = if (current < date.length - 1) date.substring(0, start + 4) + date.substring(current) else date.substring(0, start + 4)
-                    // less than 4 decimal places: pad to have a consistent format for the parser
-                }
+            date = when {
+                current - start >= 4 -> if (current < date.length - 1) date.substring(0, start + 4) + date.substring(current) else date.substring(0, start + 4)
+                // less than 4 decimal places: pad to have a consistent format for the parser
                 current - start < 4 -> {
-                    date = if (current < date.length - 1)
-                        (date.substring(0, current) + StringUtils.repeat("0", 4 - (current - start)) + date.substring(current))
+                    if (current < date.length - 1) (date.substring(0, current) + StringUtils.repeat("0", 4 - (current - start)) + date.substring(current))
                     else date.substring(0, current) + StringUtils.repeat("0", 4 - (current - start))
                 }
+                else -> ""
             }
         }
         val patterns = arrayOf("dd MMM yy HH:mm:ss Z",

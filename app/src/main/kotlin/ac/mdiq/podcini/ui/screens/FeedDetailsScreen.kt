@@ -200,7 +200,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 
     private fun refreshHeaderView() {
         if (feed == null) {
-            Logt(TAG, "Unable to refresh header view")
+            Loge(TAG, "Unable to refresh header view")
             return
         }
         if (!headerCreated) headerCreated = true
@@ -308,8 +308,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 if (status == TextToSpeech.SUCCESS) {
                     FEObj.ttsReady = true
                     semaphore.release()
-                    Logt(TAG, "TTS init success")
-                } else Logt(TAG, context.getString(R.string.tts_init_failed))
+                    Loge(TAG, "TTS init success")
+                } else Loge(TAG, context.getString(R.string.tts_init_failed))
             }
         }
     }
@@ -358,7 +358,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                     if (feed != null) updateFeed(context, feed!!, true)
                 }
                 withContext(Dispatchers.Main) { toastMassege = context.getString(R.string.OK) }
-            } catch (e: Throwable) { withContext(Dispatchers.Main) { Logt(TAG, e.localizedMessage?:"No message") } }
+            } catch (e: Throwable) { withContext(Dispatchers.Main) { Loge(TAG, e.localizedMessage?:"No message") } }
         }
     }
 
@@ -388,9 +388,6 @@ fun FeedDetailsScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    
-//                    displayUpArrow = parentFragmentManager.backStackEntryCount != 0
-//                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
                     vm.feed = feedOnDisplay
                     vm.feedID = vm.feed?.id ?: 0
                     vm.txtvAuthor = vm.feed?.author ?: ""
@@ -427,7 +424,7 @@ fun FeedDetailsScreen() {
     BackHandler { mainNavController.popBackStack() }
 
     ComfirmDialog(0, stringResource(R.string.reconnect_local_folder_warning), vm.showConnectLocalFolderConfirm) {
-        try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logt(TAG, "No activity found. Should never happen...") }
+        try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Loge(TAG, "No activity found. Should never happen...") }
     }
 
     var showEditConfirmDialog by remember { mutableStateOf(false) }

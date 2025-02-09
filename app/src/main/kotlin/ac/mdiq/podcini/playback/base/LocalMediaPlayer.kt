@@ -206,7 +206,6 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         curIndexInQueue = eList.indexOfItemWithId(item.id)
         curEpisode = item
 
-//        prevMedia = curEpisode
         this.isStreaming = streaming
         mediaType = curEpisode!!.getMediaType()
         videoSize = null
@@ -394,16 +393,11 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         var volumeLeft = volumeLeft
         var volumeRight = volumeRight
         Logd(TAG, "setVolume: $volumeLeft $volumeRight")
-        val playable = curEpisode
-        if (playable != null) {
-            var adaptionFactor = 1f
-            if (playable.volumeAdaptionSetting != VolumeAdaptionSetting.OFF) adaptionFactor = playable.volumeAdaptionSetting.adaptionFactor
-            else {
-                val feed = playable.feed
-                if (feed != null) {
-                    val volumeAdaptionSetting = feed.volumeAdaptionSetting
-                    adaptionFactor = volumeAdaptionSetting.adaptionFactor
-                }
+        if (curEpisode != null) {
+            val adaptionFactor = when {
+                curEpisode?.volumeAdaptionSetting != VolumeAdaptionSetting.OFF -> curEpisode!!.volumeAdaptionSetting.adaptionFactor
+                curEpisode!!.feed != null -> curEpisode!!.feed!!.volumeAdaptionSetting.adaptionFactor
+                else -> 1f
             }
             if (adaptionFactor != 1f) {
                 volumeLeft *= adaptionFactor
@@ -523,7 +517,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 }
             }
             audioErrorListener = Consumer { message: String ->
-                Logt(TAG, "PlayerErrorEvent: $message")
+                Loge(TAG, "PlayerErrorEvent: $message")
                 EventFlow.postEvent(FlowEvent.PlayerErrorEvent(message))
             }
         }

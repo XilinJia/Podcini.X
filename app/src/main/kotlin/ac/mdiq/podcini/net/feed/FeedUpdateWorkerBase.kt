@@ -27,7 +27,7 @@ import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.Manifest
 import android.app.Notification
@@ -129,7 +129,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Wo
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
-            Logt(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
+            Loge(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
             return
         }
         val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()

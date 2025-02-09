@@ -9,7 +9,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.webkit.WebSettings
@@ -96,25 +96,25 @@ class EpisodeTextVM(val context: Context, val lcScope: CoroutineScope) {
                                     if (episode?.feed?.language != null) {
                                         val result = tts?.setLanguage(Locale(episode!!.feed!!.language!!))
                                         if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                                            Logt(TAG, context.getString(R.string.language_not_supported_by_tts) + "${episode?.feed?.language}")
+                                            Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + "${episode?.feed?.language}")
                                         }
                                     }
-                                    Logt(TAG, "TTS init success")
-                                } else Logt(TAG, context.getString(R.string.tts_init_failed))
+                                    Loge(TAG, "TTS init success")
+                                } else Loge(TAG, context.getString(R.string.tts_init_failed))
                             }
                         }
                         withContext(Dispatchers.Main) {
                             readMode = true
                             Logd(TAG, "cleanedNotes: $cleanedNotes")
                         }
-                    } else Logt(TAG, context.getString(R.string.web_content_not_available))
+                    } else Loge(TAG, context.getString(R.string.web_content_not_available))
                 }
             }
             !episode?.link.isNullOrEmpty() -> {
                 webUrl = episode!!.link!!
                 readMode = false
             }
-            else -> Logt(TAG, context.getString(R.string.web_content_not_available))
+            else -> Loge(TAG, context.getString(R.string.web_content_not_available))
         }
     }
 }
@@ -136,7 +136,7 @@ fun EpisodeTextScreen() {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     if (!vm.episode?.link.isNullOrEmpty()) vm.prepareContent()
-                    else Logt(TAG, context.getString(R.string.web_content_not_available))
+                    else Loge(TAG, context.getString(R.string.web_content_not_available))
                 }
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}

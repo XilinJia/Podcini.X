@@ -134,12 +134,7 @@ fun LogsScreen() {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-                    
-//                        vm.displayUpArrow = parentFragmentManager.backStackEntryCount != 0
-//                        if (savedInstanceState != null) vm.displayUpArrow = savedInstanceState.getBoolean(KEY_UP_ARROW)
-                    vm.loadDownloadLog()
-                }
+                Lifecycle.Event.ON_CREATE -> vm.loadDownloadLog()
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_STOP -> {}
                 Lifecycle.Event.ON_DESTROY -> {}
@@ -438,7 +433,7 @@ fun LogsScreen() {
                                         showAction = false
                                         val feed: Feed? = getFeed(status.feedfileId)
                                         if (feed == null) {
-                                            Logt(TAG, "Could not find feed for feed id: " + status.feedfileId)
+                                            Loge(TAG, "Could not find feed for feed id: " + status.feedfileId)
                                             return@clickable
                                         }
                                         FeedUpdateManager.runOnce(context, feed)

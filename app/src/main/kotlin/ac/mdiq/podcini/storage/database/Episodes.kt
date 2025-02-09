@@ -23,19 +23,19 @@ import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.EpisodeVM
+import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.sendLocalBroadcast
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import android.app.backup.BackupManager
 import android.content.Context
-import android.content.DialogInterface
 import android.net.Uri
 import androidx.core.app.NotificationManagerCompat
 import androidx.documentfile.provider.DocumentFile
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.realm.kotlin.ext.isManaged
 import kotlinx.coroutines.Job
 import java.io.File
@@ -108,12 +108,12 @@ object Episodes {
         }
 
         if (localItems.isNotEmpty()) {
-            MaterialAlertDialogBuilder(context)
-                .setTitle(R.string.delete_episode_label)
-                .setMessage(R.string.delete_local_feed_warning_body)
-                .setPositiveButton(R.string.delete_label) { dialog: DialogInterface?, which: Int -> for (item in localItems) deleteEpisodeMedia(context, item) }
-                .setNegativeButton(R.string.cancel_label, null)
-                .show()
+            commonConfirm = CommonConfirmAttrib(
+                title = context.getString(R.string.delete_episode_label),
+                message = context.getString(R.string.delete_local_feed_warning_body),
+                confirmRes = R.string.delete_label,
+                cancelRes = R.string.cancel_label,
+                onConfirm = { for (item in localItems) deleteEpisodeMedia(context, item) })
         }
     }
 
@@ -139,7 +139,7 @@ object Episodes {
                 // Local feed
                 val documentFile = DocumentFile.fromSingleUri(context, Uri.parse(url))
                 if (documentFile == null || !documentFile.exists() || !documentFile.delete()) {
-                    Logt(TAG, "deleteMediaSync delete media file failed: $url")
+                    Loge(TAG, "deleteMediaSync delete media file failed: $url")
                     EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
                     return episode
                 }
@@ -159,7 +159,7 @@ object Episodes {
                 }
                 val mediaFile = File(path)
                 if (mediaFile.exists() && !mediaFile.delete()) {
-                    Logt(TAG, "deleteMediaSync delete media file failed: $url")
+                    Loge(TAG, "deleteMediaSync delete media file failed: $url")
                     val evt = FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_failed_simple) + ": $url")
                     EventFlow.postEvent(evt)
                     return episode

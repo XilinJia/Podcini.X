@@ -24,6 +24,7 @@ import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.toastMassege
 import android.content.Context.WIFI_SERVICE
@@ -184,7 +185,7 @@ fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
                         when (event.messageResId) {
                             R.string.sync_status_error -> {
                                 errorMessage = event.message
-                                Logt(TAG, errorMessage)
+                                Loge(TAG, errorMessage)
                                 onDismissRequest()
                             }
                             R.string.sync_status_success -> {
@@ -192,7 +193,7 @@ fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
                                 onDismissRequest()
                             }
                             R.string.sync_status_in_progress -> progressMessage = event.message
-                            else -> Logt(TAG, "Sync result unknown ${event.messageResId}")
+                            else -> Loge(TAG, "Sync result unknown ${event.messageResId}")
                         }
                     }
                     else -> {}

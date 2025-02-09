@@ -18,6 +18,7 @@ import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.content.Intent
@@ -234,7 +235,7 @@ object AutoDownloads {
                         candidates.clear()
                     }
                 }
-                else Logt(TAG, "Auto download not performed: networkShouldAutoDl: $networkShouldAutoDl powerShouldAutoDl $powerShouldAutoDl")
+                else Logt(TAG, "Auto download not performed: network allowed: $networkShouldAutoDl power allowed $powerShouldAutoDl")
             }
         }
     }

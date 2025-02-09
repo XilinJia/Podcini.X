@@ -9,6 +9,8 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.app.backup.BackupAgentHelper
 import android.app.backup.BackupDataInputStream
@@ -79,7 +81,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 val bytes = byteStream.toByteArray()
                 data.writeEntityHeader(OPML_ENTITY_KEY, bytes.size)
                 data.writeEntityData(bytes, bytes.size)
-            } catch (e: IOException) { Logt(TAG, "Error during backup. ${e.message}")
+            } catch (e: IOException) { Logs(TAG, e, "Error during backup.")
             } finally { IOUtils.closeQuietly(writer) }
         }
         
@@ -110,8 +112,8 @@ class OpmlBackupAgent : BackupAgentHelper() {
                         }
                     }
                 }
-            } catch (e: XmlPullParserException) { Logt(TAG, "Error while parsing the OPML file, ${e.message}")
-            } catch (e: IOException) { Logt(TAG, "Failed to restore OPML backup. ${e.message}")
+            } catch (e: XmlPullParserException) { Logs(TAG, e, "Error while parsing the OPML file,")
+            } catch (e: IOException) { Logs(TAG, e, "Failed to restore OPML backup.")
             } finally {
                 if (linesRead > 0) {
                     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(mContext)
@@ -139,7 +141,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 outState.write(checksum)
                 outState.flush()
                 outState.close()
-            } catch (e: IOException) { Logt(TAG, "Failed to write new state description. ${e.message}") }
+            } catch (e: IOException) { Logs(TAG, e, "Failed to write new state description.") }
         }
 
         companion object {
@@ -166,7 +168,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 }
                 Logt(TAG, "${opmlElements.size} feeds were restored")
                 runOnce(context)
-            } else Logt(TAG, "No backup data found")
+            } else Loge(TAG, "No backup data found")
         }
     }
 }

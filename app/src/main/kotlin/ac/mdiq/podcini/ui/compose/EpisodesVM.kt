@@ -57,7 +57,6 @@ import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
 import android.app.Activity
 import android.content.Context
-import android.content.DialogInterface
 import android.net.Uri
 import android.text.format.Formatter
 import android.util.TypedValue
@@ -106,7 +105,6 @@ import androidx.documentfile.provider.DocumentFile
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import io.realm.kotlin.notifications.SingleQueryChange
 import io.realm.kotlin.notifications.UpdatedObject
 import kotlinx.coroutines.*
@@ -194,7 +192,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
                                     episode = changes.obj     // direct assignment doesn't update member like media??
                                 }
 //                                Logd("EpisodeVM", "episodeMonitor $playedState $playedState ")
-                            } else Logd("EpisodeVM", "episodeMonitor index out bound")
+                            } else Logt("EpisodeVM", "episodeMonitor index out bound")
                         }
                         else -> {}
                     }
@@ -501,14 +499,14 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 }
                 if (isAllowMobileEpisodeDownload || !isNetworkRestricted) download(true)
                 else {
-                    val builder = MaterialAlertDialogBuilder(context)
-                        .setTitle(R.string.confirm_mobile_download_dialog_title)
-                        .setPositiveButton(R.string.confirm_mobile_download_dialog_download_later) { _: DialogInterface?, _: Int -> download(false) }
-                        .setNeutralButton(R.string.confirm_mobile_download_dialog_allow_this_time) { _: DialogInterface?, _: Int -> download(true) }
-                        .setNegativeButton(R.string.cancel_label, null)
-                    if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) builder.setMessage(R.string.confirm_mobile_download_dialog_message_vpn)
-                    else builder.setMessage(R.string.confirm_mobile_download_dialog_message)
-                    builder.show()
+                    commonConfirm = CommonConfirmAttrib(
+                        title = context.getString(R.string.confirm_mobile_download_dialog_title),
+                        message = context.getString(if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
+                        confirmRes = R.string.confirm_mobile_download_dialog_download_later,
+                        cancelRes = R.string.cancel_label,
+                        neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
+                        onConfirm = { download(false) },
+                        onNeutral = { download(true) })
                 }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), "Download")

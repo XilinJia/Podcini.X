@@ -164,7 +164,7 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
                 }
             } catch (e: InterruptedException) { Logs(TAG, e)
             } catch (e: ExecutionException) { Logs(TAG, e) }
-        } else Logt(TAG, "removeFeedWithDownloadUrl: Could not find feed with url: $downloadUrl")
+        } else Loge(TAG, "removeFeedWithDownloadUrl: Could not find feed with url: $downloadUrl")
     }
 
     private fun waitForDownloadServiceCompleted() {
@@ -399,7 +399,7 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
                         remoteActionsThatOverrideLocalActions[key] = remoteAction
                     }
                     EpisodeAction.Action.DELETE -> {}
-                    else -> Logt(TAG, "Unknown remoteAction: $remoteAction")
+                    else -> Loge(TAG, "Unknown remoteAction: $remoteAction")
                 }
             }
             return remoteActionsThatOverrideLocalActions

@@ -20,7 +20,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -723,15 +723,15 @@ class Episode : RealmObject {
                 val chapters = readId3ChaptersFrom(inVal)
                 if (chapters.isNotEmpty()) return chapters
             }
-        } catch (e: IOException) { Logt(TAG, "Unable to load ID3 chapters: " + e.message)
-        } catch (e: ID3ReaderException) { Logt(TAG, "Unable to load ID3 chapters: " + e.message) }
+        } catch (e: IOException) { Logs(TAG, e, "Unable to load ID3 chapters: ")
+        } catch (e: ID3ReaderException) { Logs(TAG, e, "Unable to load ID3 chapters: ") }
 
         try {
             openStream(context).use { inVal ->
                 val chapters = readOggChaptersFromInputStream(inVal)
                 if (chapters.isNotEmpty()) return chapters
             }
-        } catch (e: IOException) { Logt(TAG, "Unable to load vorbis chapters: ")
+        } catch (e: IOException) { Logs(TAG, e, "Unable to load vorbis chapters: ")
         } catch (e: VorbisCommentReaderException) { Logs(TAG, e, "Unable to load vorbis chapters: ") }
         return listOf()
     }

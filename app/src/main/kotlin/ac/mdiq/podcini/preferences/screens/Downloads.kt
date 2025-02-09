@@ -23,7 +23,6 @@ import ac.mdiq.podcini.ui.activity.PreferenceActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.util.Logs
 import android.app.Activity.RESULT_OK
-import android.content.DialogInterface
 import android.content.Intent
 import android.net.Uri
 import android.util.Patterns
@@ -47,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -433,16 +431,16 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
             Switch(checked = isChecked, onCheckedChange = {
                 isChecked = it
                 if (blockAutoDeleteLocal && it) {
-                    MaterialAlertDialogBuilder(activity)
-                        .setMessage(R.string.pref_auto_local_delete_dialog_body)
-                        .setPositiveButton(R.string.yes) { _: DialogInterface?, _: Int ->
+                    commonConfirm = CommonConfirmAttrib(
+                        title = "",
+                        message = activity.getString(R.string.pref_auto_local_delete_dialog_body),
+                        confirmRes = R.string.yes,
+                        cancelRes = R.string.cancel_label,
+                        onConfirm = {
                             blockAutoDeleteLocal = false
                             putPref(AppPrefs.prefAutoDeleteLocal, it)
-//                                                (findPreference<Preference>(Prefs.prefAutoDeleteLocal.name) as TwoStatePreference?)!!.isChecked = true
                             blockAutoDeleteLocal = true
-                        }
-                        .setNegativeButton(R.string.cancel_label, null)
-                        .show()
+                        })
                 }
             })
         }

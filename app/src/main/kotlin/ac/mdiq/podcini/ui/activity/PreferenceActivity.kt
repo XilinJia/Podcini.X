@@ -18,7 +18,7 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.util.toastMessages
 import android.content.ClipData
@@ -87,7 +87,8 @@ class PreferenceActivity : ComponentActivity() {
                     toastMessages.add(toastMassege)
                     toastMassege = ""
                 })
-                Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) }, 
+                if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+                Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) },
                     navigationIcon = { IconButton(onClick = {
                         if (navController.previousBackStackEntry != null) navController.popBackStack()
                         else onBackPressed()
@@ -296,7 +297,7 @@ class PreferenceActivity : ComponentActivity() {
                     licenses.add(LicenseItem(lib.getNamedItem("name").textContent,
                         String.format("By %s, %s license", lib.getNamedItem("author").textContent, lib.getNamedItem("license").textContent), lib.getNamedItem("website").textContent, lib.getNamedItem("licenseText").textContent))
                 }
-            }.invokeOnCompletion { throwable -> if (throwable!= null) Logt(TAG, throwable.message ?: "Error") }
+            }.invokeOnCompletion { throwable -> if (throwable!= null) Logs(TAG, throwable) }
         }
 //        fun showLicenseText(licenseTextFile: String) {
 //            try {

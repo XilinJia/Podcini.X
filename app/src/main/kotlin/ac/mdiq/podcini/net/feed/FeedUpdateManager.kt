@@ -12,18 +12,18 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.Context
-import android.content.DialogInterface
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.work.*
 import androidx.work.Constraints.Builder
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -122,17 +122,17 @@ object FeedUpdateManager {
             !networkAvailable() -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             isFeedRefreshAllowed -> runOnce(context, feed, fullUpdate = fullUpdate)
             else -> {
-                val builder = MaterialAlertDialogBuilder(context)
-                    .setTitle(R.string.feed_refresh_title)
-                    .setPositiveButton(R.string.confirm_mobile_streaming_button_once) { _: DialogInterface?, _: Int -> runOnce(context, feed) }
-                    .setNeutralButton(R.string.confirm_mobile_streaming_button_always) { _: DialogInterface?, _: Int ->
+                commonConfirm = CommonConfirmAttrib(
+                    title = context.getString(R.string.feed_refresh_title),
+                    message = context.getString(if (isNetworkRestricted && isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
+                    confirmRes = R.string.confirm_mobile_streaming_button_once,
+                    cancelRes = R.string.no,
+                    neutralRes = R.string.confirm_mobile_streaming_button_always,
+                    onConfirm = { runOnce(context, feed)  },
+                    onNeutral = {
                         isAllowMobileFeedRefresh = true
                         runOnce(context, feed)
-                    }
-                    .setNegativeButton(R.string.no, null)
-                if (isNetworkRestricted && isVpnOverWifi) builder.setMessage(R.string.confirm_mobile_feed_refresh_dialog_message_vpn)
-                else builder.setMessage(R.string.confirm_mobile_feed_refresh_dialog_message)
-                builder.show()
+                    })
             }
         }
     }

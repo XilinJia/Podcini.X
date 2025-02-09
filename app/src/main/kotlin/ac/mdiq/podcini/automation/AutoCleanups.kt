@@ -16,6 +16,7 @@ import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import androidx.annotation.VisibleForTesting

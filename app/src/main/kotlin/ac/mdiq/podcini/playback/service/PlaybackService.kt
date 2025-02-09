@@ -22,7 +22,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.SleepTimerPreferences
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.autoEnable
@@ -100,7 +99,7 @@ class PlaybackService : MediaLibraryService() {
     internal lateinit var taskManager: TaskManager
     internal var isSpeedForward = false
     internal var isFallbackSpeed = false
-    internal var currentitem: Episode? = null
+//    internal var currentitem: Episode? = null
 
     private val scope = CoroutineScope(Dispatchers.Main)
 
@@ -176,7 +175,7 @@ class PlaybackService : MediaLibraryService() {
                             unpauseIfPauseOnDisconnect(false)
                         }
                     }
-                } else Logt(TAG, "Received invalid ACTION_HEADSET_PLUG intent")
+                } else Loge(TAG, "Received invalid ACTION_HEADSET_PLUG intent")
             }
         }
     }
@@ -212,15 +211,13 @@ class PlaybackService : MediaLibraryService() {
                 if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, curPosition, curDuration))
                 // skip ending
                 val remainingTime = curDuration - curPosition
-                val item = curEpisode ?: currentitem ?: return
+                val item = curEpisode ?: return
                 val skipEnd = item.feed?.endingSkip?:0
                 val skipEndMS = skipEnd * 1000
 //                  Logd(TAG, "skipEndingIfNecessary: checking " + remainingTime + " " + skipEndMS + " speed " + currentPlaybackSpeed)
                 if (skipEnd > 0 && skipEndMS < curDuration && (remainingTime - skipEndMS < 0)) {
                     Logd(TAG, "skipEndingIfNecessary: Skipping the remaining $remainingTime $skipEndMS speed $curSpeed")
-                    val context = applicationContext
-                    val skipMesg = context.getString(R.string.pref_feed_skip_ending_toast, skipEnd)
-                    Logt(TAG, skipMesg)
+                    Logt(TAG, applicationContext.getString(R.string.pref_feed_skip_ending_toast, skipEnd))
                     autoSkippedFeedMediaId = item.identifyingValue
                     mPlayer?.skip()
                 }
@@ -375,8 +372,7 @@ class PlaybackService : MediaLibraryService() {
                     if (skipIntroMS < duration || duration <= 0) {
                         Logd(TAG, "skipIntro " + playable.getEpisodeTitle())
                         mPlayer?.seekTo(skipIntroMS)
-                        val skipIntroMesg = applicationContext.getString(R.string.pref_feed_skip_intro_toast, skipIntro)
-                        Logt(TAG, skipIntroMesg)
+                        Logt(TAG, applicationContext.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
                     }
                 }
             }
@@ -639,7 +635,9 @@ class PlaybackService : MediaLibraryService() {
         recreateMediaSessionIfNeeded()
 
         castStateListener = object : CastStateListener(this) {
-            override fun onSessionStartedOrEnded() = recreateMediaPlayer()
+            override fun onSessionStartedOrEnded() {
+                recreateMediaPlayer()
+            }
         }
         EventFlow.postEvent(FlowEvent.PlaybackServiceEvent(FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED))
     }
@@ -691,7 +689,6 @@ class PlaybackService : MediaLibraryService() {
         isRunning = false
         currentMediaType = MediaType.UNKNOWN
         castStateListener.destroy()
-        currentitem = null
 
         LocalMediaPlayer.cleanup()
         mediaSession?.run {
@@ -713,9 +710,7 @@ class PlaybackService : MediaLibraryService() {
         super.onDestroy()
     }
 
-    fun isServiceReady(): Boolean {
-        return mediaSession?.player?.playbackState != STATE_IDLE && mediaSession?.player?.playbackState != STATE_ENDED
-    }
+    fun isServiceReady(): Boolean = mediaSession?.player?.playbackState != STATE_IDLE && mediaSession?.player?.playbackState != STATE_ENDED
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? {
         return mediaSession
@@ -728,17 +723,16 @@ class PlaybackService : MediaLibraryService() {
         val keyEvent: KeyEvent? = if (Build.VERSION.SDK_INT >= VERSION_CODES.TIRAMISU) intent?.getParcelableExtra(EXTRA_KEY_EVENT, KeyEvent::class.java)
         else intent?.getParcelableExtra(EXTRA_KEY_EVENT)
 
-        val playable = curEpisode
-        Logd(TAG, "onStartCommand flags=$flags startId=$startId keycode=$keycode keyEvent=$keyEvent customAction=$customAction hardwareButton=$hardwareButton action=${intent?.action.toString()} ${playable?.getEpisodeTitle()}")
-        if (keycode == -1 && playable == null && customAction == null) {
-            Logt(TAG, "onStartCommand PlaybackService was started with no arguments, return")
+        Logd(TAG, "onStartCommand flags=$flags startId=$startId keycode=$keycode keyEvent=$keyEvent customAction=$customAction hardwareButton=$hardwareButton action=${intent?.action.toString()} ${curEpisode?.getEpisodeTitle()}")
+        if (keycode == -1 && curEpisode == null && customAction == null) {
+            Loge(TAG, "onStartCommand PlaybackService was started with no arguments, return")
             return START_NOT_STICKY
         }
         if ((flags and START_FLAG_REDELIVERY) != 0) {
             Logd(TAG, "onStartCommand is a redelivered intent, calling stopForeground now. return")
             return START_NOT_STICKY
         }
-        if (keycode == -1 && playable != null && status == PlayerStatus.PLAYING && mPlayer?.prevMedia?.id == playable.id) {
+        if (keycode == -1 && curEpisode != null && status == PlayerStatus.PLAYING && mPlayer?.prevMedia?.id == curEpisode?.id) {
 //          pause button on notification also calls onStartCommand
             Logd(TAG, "onStartCommand playing same media: $status, return")
             return super.onStartCommand(intent, flags, startId)
@@ -754,7 +748,7 @@ class PlaybackService : MediaLibraryService() {
                 handleKeycode(keyEvent.keyCode, !hardwareButton)
                 return super.onStartCommand(intent, flags, startId)
             }
-            playable != null -> {
+            curEpisode != null -> {
                 if (Build.VERSION.SDK_INT >= 26) {
                     val CHANNEL_ID = "podcini playback service"
                     val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -905,11 +899,9 @@ class PlaybackService : MediaLibraryService() {
             }
             else -> {
                 Logd(TAG, "Unhandled key code: $keycode")
-                if (info?.playable != null && info.playerStatus == PlayerStatus.PLAYING) {
-                    // only notify the user about an unknown key event if it is actually doing something
-                    val message = String.format(resources.getString(R.string.unknown_media_key), keycode)
-                    Logt(TAG, message)
-                }
+                // only notify the user about an unknown key event if it is actually doing something
+                if (info?.playable != null && info.playerStatus == PlayerStatus.PLAYING)
+                    Loge(TAG, String.format(resources.getString(R.string.unknown_media_key), keycode))
             }
         }
         return false
@@ -961,7 +953,7 @@ class PlaybackService : MediaLibraryService() {
                     is FlowEvent.SleepTimerUpdatedEvent -> onSleepTimerUpdate(event)
                     is FlowEvent.FeedChangeEvent -> onFeedPrefsChanged(event)
                     is FlowEvent.PlayerErrorEvent -> onPlayerError(event)
-                    is FlowEvent.PlayEvent -> if (event.action != Action.END) currentitem = event.episode
+                    is FlowEvent.PlayEvent -> if (event.action != Action.END) curEpisode = unmanaged(event.episode)
                     is FlowEvent.EpisodeMediaEvent -> onEpisodeMediaEvent(event)
                     else -> {}
                 }
@@ -974,7 +966,6 @@ class PlaybackService : MediaLibraryService() {
             for (e in event.episodes) {
                 if (e.id == curEpisode?.id) {
                     curEpisode = unmanaged(e)
-                    curEpisode = curEpisode
                     mPlayer?.endPlayback(hasEnded = false, wasSkipped = true, shouldContinue = true, toStoppedState = true)
                     break
                 }
@@ -990,7 +981,6 @@ class PlaybackService : MediaLibraryService() {
                 if (e.id == curEpisode?.id) {
                     Logd(TAG, "onQueueEvent: queue event removed ${e.title}")
                     mPlayer?.endPlayback(hasEnded = false, wasSkipped = true, shouldContinue = true, toStoppedState = true)
-//                    queueChanged++
                     break
                 }
             }
@@ -1004,9 +994,9 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun onFeedPrefsChanged(event: FlowEvent.FeedChangeEvent) {
-        val item = curEpisode ?: currentitem
-        if (item?.feed?.id == event.feed.id) {
-            item.feed = null
+//        val item = curEpisode
+        if (curEpisode?.feed?.id == event.feed.id) {
+            curEpisode?.feed = null
 //            seems no need to pause??
 //            if (MediaPlayerBase.status == PlayerStatus.PLAYING) {
 //                mPlayer?.pause(abandonFocus = false, reinit = false)
@@ -1020,10 +1010,8 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private fun onBufferUpdate(event: FlowEvent.BufferUpdateEvent) {
-        if (event.hasEnded()) {
-            if (curEpisode != null && curEpisode!!.duration <= 0 && (mPlayer?.getDuration()?:0) > 0)
+        if (event.hasEnded() && curEpisode != null && curEpisode!!.duration <= 0 && (mPlayer?.getDuration()?:0) > 0)
                 curEpisode!!.duration = (mPlayer!!.getDuration())
-        }
     }
 
     private fun onSleepTimerUpdate(event: FlowEvent.SleepTimerUpdatedEvent) {
@@ -1052,8 +1040,8 @@ class PlaybackService : MediaLibraryService() {
     }
 
     @Synchronized
-    private fun persistCurrentPosition(fromMediaPlayer: Boolean, playable: Episode?, position: Int) {
-        var playable = playable
+    private fun persistCurrentPosition(fromMediaPlayer: Boolean, playable_: Episode?, position: Int) {
+        var playable = playable_
         var position = position
         val duration_: Int
         if (fromMediaPlayer) {
@@ -1415,14 +1403,8 @@ class PlaybackService : MediaLibraryService() {
             const val MIN_POSITION_SAVER_INTERVAL: Int = 5000   // in millisoconds
             const val NOTIFICATION_THRESHOLD: Long = 10000  // in millisoconds
 
-            var prefAdaptiveProgressUpdate: Boolean
-                get() = getPref(AppPrefs.prefUseAdaptiveProgressUpdate, true)
-                set(value) {
-                    putPref(AppPrefs.prefUseAdaptiveProgressUpdate, value)
-                }
-
             fun positionUpdateInterval(duration: Int): Long {
-                return if (prefAdaptiveProgressUpdate) max(MIN_POSITION_SAVER_INTERVAL, duration/50).toLong()
+                return if (getPref(AppPrefs.prefUseAdaptiveProgressUpdate, true)) max(MIN_POSITION_SAVER_INTERVAL, duration/50).toLong()
                 else MIN_POSITION_SAVER_INTERVAL.toLong()
             }
         }
@@ -1546,7 +1528,7 @@ class PlaybackService : MediaLibraryService() {
                     playbackService?.mPlayer?.prepare()
                     playbackService?.taskManager?.restartSleepTimer()
                 }
-                else -> Logt(TAG, "Play/Pause button was pressed and PlaybackService state was unknown")
+                else -> Loge(TAG, "Play/Pause button was pressed and PlaybackService state was unknown")
             }
         }
 
