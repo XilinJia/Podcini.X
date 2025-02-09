@@ -1,35 +1,37 @@
-
 Podcini, an open source podcast instrument, attuned to Puccini, adorned with pasticcini and aromatized with porcini, invites your harmonious heartbeats.
 
 Do I hear your heartbeats?  Great!
 
-Common functionalities of a podcast player are well supported:
-
-* Search, discover and subscribe to podcasts, by key words, simple RSS URLs, or OPML files.
-* Download, stream or queue episodes, and enjoy them the way you like with adjustable playback speeds.
-* Save effort, battery power and mobile data usage with powerful automation controls for downloading episodes.
-* If the feed contains no media (plain RSS feed), Text-to-Speech engine is used to play the text.
-* Listening progress can be instantly synced through a NextCloud server or across devices in the same wifi network without a server.
+Common functionalities of a podcast player are well-supported:
+<ul>
+<li>Search, discover and subscribe to podcasts, by keywords, simple RSS URLs, or OPML files.</li>
+<li>Download, stream or queue episodes, and enjoy them the way you like with adjustable playback speeds.</li>
+<li>Save effort, battery power and mobile data usage with powerful automation controls for downloading episodes.</li>
+<li>If the feed contains no media (plain RSS feed), Text-to-Speech engine is used to play the text.</li>
+<li>Listening progress can be instantly synced through a NextCloud server or across devices in the same Wi-Fi network without a server.</li>
+</ul>
 
 So what's special with this podcast app among the many?
 
 Well, aside from doing the above well, the following make it stand out:
-
-1. It's open sourced, free to use and free of ads, free as in beer and free as in speech!
-2. It takes advantage of modern frameworks to be efficient and conserve energy.
-3. In addition to subscriptions, it allows you to create your own synthetic podcasts to compile your interested episodes from various podcasts to better focus on your interests.
-4. While the list of episodes (filtered and sorted by you) in each podcast serves a natural playlist for you, it also empowers you with multiple queues each associable with any podcasts to group similar contents for better listening.
-5. On any podcast/episode, you can assign 5 levels of rating allowing you to make better decisions on where to put your attention.
-6. You have 12 levels of play states (like to play soon, add in queue, or play again) to better plan and record your listening experiences.
-7. You can also keep your personal notes with your opinions/comments on each podcast/episode.
-8. It has sophisticated sorting and filtering options for you to better select contents.
-9. Sure, you can play any episodes in your car's speakers
-10. And, it's not all about audio, video is well handled.
-11. You can cast the audio/video to Chromecast speakers/screens.
+<ol>
+<li>It's open sourced, free to use and free of ads, free as in beer and free as in speech!</li>
+<li>It takes advantage of modern frameworks to be efficient and conserve energy.</li>
+<li>In addition to subscriptions, it allows you to create your own synthetic podcasts to compile your interested episodes from various podcasts to better focus on your interests.</li>
+<li>While the list of episodes (filtered and sorted by you) in each podcast serves a natural playlist for you, it also empowers you with multiple queues each associable with any podcasts to group similar contents for better listening.</li>
+<li>On any podcast/episode, you can assign 5 levels of rating allowing you to make better decisions on where to put your attention.</li>
+<li>You have 12 levels of play states (like to play soon, add in queue, or play again) to better plan and record your listening experiences.</li>
+<li>You can also keep your personal notes with your opinions/comments on each podcast/episode.</li>
+<li>It has sophisticated sorting and filtering options for you to better select contents.</li>
+<li>Sure, you can play any episodes in your car's speakers.</li>
+<li>And, it's not all about audio, video is well handled.</li>
+<li>You can cast the audio/video to Chromecast speakers/screens.</li>
+</ol>
 
 Some other podcast players can also do all of the above?
 
 <b>Join the Podcini community!</b>
 
-Podcini is under active development by volunteers. You can contribute too, with code, comments or critics.
-https://github.com/XilinJia/Podcini.X
+Podcini is under active development by volunteers.
+You can contribute too, with code, comments or improvements.
+See source code on <a href="https://github.com/XilinJia/Podcini.X">github.com/XilinJia/Podcini.X</a>
