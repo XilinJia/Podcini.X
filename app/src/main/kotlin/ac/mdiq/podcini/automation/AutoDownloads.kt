@@ -16,10 +16,9 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.toastMassege
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -125,7 +124,7 @@ object AutoDownloads {
                                     EpisodeFilter.States.unplayed.name, EpisodeFilter.States.inQueue.name,
                                     EpisodeFilter.States.inProgress.name, EpisodeFilter.States.skipped.name)
                             val downloadedCount = getEpisodesCount(dlFilter, f.id)
-                            var allowedDLCount = f.autoDLMaxEpisodes - downloadedCount
+                            var allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount
                             Logd(TAG, "autoDownloadEpisodeMedia ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")
                             Logd(TAG, "autoDownloadEpisodeMedia autoDLPolicy: ${f.autoDLPolicy.name}")
                             if (allowedDLCount > 0 || f.autoDLPolicy.replace) {
@@ -133,7 +132,7 @@ object AutoDownloads {
                                 when (f.autoDLPolicy) {
                                     Feed.AutoDownloadPolicy.ONLY_NEW -> {
                                         if (f.autoDLPolicy.replace) {
-                                            allowedDLCount = f.autoDLMaxEpisodes
+                                            allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
                                             queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(${3*allowedDLCount})"
                                             Logd(TAG, "autoDownloadEpisodeMedia queryString: $queryString")
                                             episodes = realm.query(Episode::class).query(queryString).find().toMutableList()

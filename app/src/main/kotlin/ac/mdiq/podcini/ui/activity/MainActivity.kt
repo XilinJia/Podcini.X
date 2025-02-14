@@ -173,7 +173,14 @@ class MainActivity : CastEnabledActivity() {
                 onCancel = { checkAndRequestUnrestrictedBackgroundActivity(this@MainActivity) })
         } else checkAndRequestUnrestrictedBackgroundActivity(this)
 
-        runOnIOScope {  checkFirstLaunch() }
+        runOnIOScope {
+            if (prefs.getBoolean(Extras.prefMainActivityIsFirstLaunch.name, true)) {
+                restartUpdateAlarm(this, true)
+                val edit = prefs.edit()
+                edit.putBoolean(Extras.prefMainActivityIsFirstLaunch.name, false)
+                edit.apply()
+            }
+        }
 
         restartUpdateAlarm(this, false)
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
@@ -215,9 +222,9 @@ class MainActivity : CastEnabledActivity() {
             } else lcScope?.launch { sheetState.bottomSheetState.hide() }
         }
         val dynamicBottomPadding by derivedStateOf {
-            when {
-                sheetState.bottomSheetState.currentValue == SheetValue.Expanded -> 300.dp
-                sheetState.bottomSheetState.currentValue == SheetValue.PartiallyExpanded -> 110.dp
+            when (sheetState.bottomSheetState.currentValue) {
+                SheetValue.Expanded -> 300.dp
+                SheetValue.PartiallyExpanded -> 110.dp
                 else -> 0.dp
             }
         }
@@ -367,16 +374,7 @@ class MainActivity : CastEnabledActivity() {
         super.onDestroy()
     }
 
-    private fun checkFirstLaunch() {
-        if (prefs.getBoolean(Extras.prefMainActivityIsFirstLaunch.name, true)) {
-            restartUpdateAlarm(this, true)
-            val edit = prefs.edit()
-            edit.putBoolean(Extras.prefMainActivityIsFirstLaunch.name, false)
-            edit.apply()
-        }
-    }
-
-    fun loadScreen(tag: String?, args: Bundle?) {
+    private fun loadScreen(tag: String?, args: Bundle?) {
         var tag = tag
         var args = args
         Logd(TAG, "loadFragment(tag: $tag, args: $args)")

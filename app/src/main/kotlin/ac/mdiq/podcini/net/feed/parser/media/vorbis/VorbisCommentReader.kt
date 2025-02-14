@@ -120,9 +120,7 @@ abstract class VorbisCommentReader internal constructor(private val input: Input
     fun bufferMatches(haystack: ByteArray, needle: ByteArray, position: Int): Boolean {
         for (i in needle.indices) {
             var posInHaystack = position - i
-            while (posInHaystack < 0) {
-                posInHaystack += haystack.size
-            }
+            while (posInHaystack < 0) posInHaystack += haystack.size
             posInHaystack %= haystack.size
             if (haystack[posInHaystack] != needle[needle.size - 1 - i]) return false
         }
@@ -136,9 +134,7 @@ abstract class VorbisCommentReader internal constructor(private val input: Input
             val vendorName = readUtf8String(vendorLength)
             val userCommentLength = EndianUtils.readSwappedUnsignedInteger(input)
             return VorbisCommentHeader(vendorName, userCommentLength)
-        } catch (e: UnsupportedEncodingException) {
-            throw VorbisCommentReaderException(e)
-        }
+        } catch (e: UnsupportedEncodingException) { throw VorbisCommentReaderException(e) }
     }
 
     @Throws(IOException::class)

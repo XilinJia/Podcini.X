@@ -64,6 +64,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import okhttp3.Request.Builder
 import java.io.File
 import java.util.*
@@ -121,7 +122,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
         if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.collectLatest { event ->
+            EventFlow.stickyEvents.drop(1).collectLatest { event ->
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)
@@ -310,7 +311,6 @@ fun EpisodeInfoScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             vm.episode = null
-            gearbox.clearGearData()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }

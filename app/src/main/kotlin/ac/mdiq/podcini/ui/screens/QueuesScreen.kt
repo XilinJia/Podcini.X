@@ -74,6 +74,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import java.text.NumberFormat
 import java.util.*
 import kotlin.math.max
@@ -153,7 +154,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
         if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.collectLatest { event ->
+            EventFlow.stickyEvents.drop(1).collectLatest { event ->
                 Logd(TAG, "Received sticky event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)

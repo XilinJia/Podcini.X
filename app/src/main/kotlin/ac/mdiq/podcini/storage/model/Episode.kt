@@ -230,9 +230,6 @@ class Episode : RealmObject {
     var effectMimeType = ""
 
     @Ignore
-    var bitrate by mutableIntStateOf(0)
-
-    @Ignore
     var webviewData by mutableStateOf<String?>(null)
 
     // above from EpisodeMedia

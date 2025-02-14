@@ -269,12 +269,12 @@ fun FeedSettingsScreen() {
         Dialog(onDismissRequest = onDismiss) {
             Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    var newCache by remember { mutableStateOf((vm.feed?.autoDLMaxEpisodes ?: 1).toString()) }
+                    var newCache by remember { mutableStateOf((vm.feed?.autoDLMaxEpisodes ?: 3).toString()) }
                     TextField(value = newCache, onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) newCache = it },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.max_episodes_cache)) })
                     Button(onClick = {
                         if (newCache.isNotEmpty()) {
-                            vm.feed = upsertBlk(vm.feed!!) { it.autoDLMaxEpisodes = newCache.toIntOrNull() ?: 1 }
+                            vm.feed = upsertBlk(vm.feed!!) { it.autoDLMaxEpisodes = newCache.toIntOrNull() ?: 3 }
                             onDismiss()
                         }
                     }) { Text(stringResource(R.string.confirm_label)) }

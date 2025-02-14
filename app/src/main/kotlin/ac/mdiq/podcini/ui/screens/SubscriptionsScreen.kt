@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -77,6 +78,7 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import org.apache.commons.lang3.StringUtils
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -208,7 +210,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
         if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.collectLatest { event ->
+            EventFlow.stickyEvents.drop(1).collectLatest { event ->
                 Logd(TAG, "Received sticky event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.FeedUpdatingEvent -> {
@@ -522,7 +524,10 @@ fun SubscriptionsScreen() {
                     vm.feedCountState = vm.feedListFiltered.size.toString() + " / " + feedCount.toString()
                     vm.loadSubscriptions()
                 }
-                Lifecycle.Event.ON_START -> vm.procFlowEvents()
+                Lifecycle.Event.ON_START -> {
+                    vm.procFlowEvents()
+                    gearbox.cleanGearData()
+                }
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
                 Lifecycle.Event.ON_DESTROY -> {}

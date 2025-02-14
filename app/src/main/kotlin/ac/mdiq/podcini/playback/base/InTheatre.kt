@@ -14,6 +14,7 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
 import io.realm.kotlin.query.Sort
@@ -45,6 +46,8 @@ object InTheatre {
     var curMediaId by mutableLongStateOf(-1L)
 
     var curState: CurrentState      // managed
+
+    var bitrate by mutableIntStateOf(0)
 
     init {
         curQueue = PlayQueue()

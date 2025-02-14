@@ -10,10 +10,12 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.ui.screens.AudioPlayerVM
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
-import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.source.MediaSource
 import kotlinx.coroutines.CoroutineScope
@@ -33,7 +35,7 @@ open class GearBoxBase {
 
     open fun isGearUrl(url: URL): Boolean = false
 
-    open fun clearGearData() {}
+    open fun cleanGearData() {}
     open fun buildWebviewData(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
 
     open fun buildCleanedNotes(curItem_: Episode, shownotesCleaner: ShownotesCleaner?): Pair<Episode, String?> {

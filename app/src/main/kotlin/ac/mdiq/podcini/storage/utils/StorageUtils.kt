@@ -129,8 +129,10 @@ object StorageUtils {
             "file" -> {
                 val file = File(destinationUri.path!!)
                 if (!file.exists()) {
-                    file.parentFile?.mkdirs()
-                    file.createNewFile()
+                    try {
+                        file.parentFile?.mkdirs()
+                        file.createNewFile()
+                    } catch (e: IOException) { Logs(TAG, e, "ensureMediaFileExists Unable to create file") }
                 }
             }
             "content" -> {

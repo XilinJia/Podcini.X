@@ -4,6 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.playback.PlaybackServiceStarter
+import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.curState
@@ -39,9 +40,14 @@ import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
+import ac.mdiq.podcini.ui.utils.episodeOnDisplay
+import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.ui.view.ShownotesWebView
 import ac.mdiq.podcini.util.*
@@ -324,10 +330,10 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                 }
                 if (!homeText.isNullOrEmpty()) cleanedNotes = shownotesCleaner?.processShownotes(homeText!!, 0)
-                else Loge(TAG, context.getString(R.string.web_content_not_available))
+                else Logt(TAG, context.getString(R.string.web_content_not_available))
             } else {
                 cleanedNotes = shownotesCleaner?.processShownotes(curItem?.description ?: "", curItem?.duration ?: 0)
-                if (cleanedNotes.isNullOrEmpty()) Loge(TAG, context.getString(R.string.web_content_not_available))
+                if (cleanedNotes.isNullOrEmpty()) Logt(TAG, context.getString(R.string.web_content_not_available))
             }
         }
     }
@@ -633,7 +639,7 @@ fun AudioPlayerScreen() {
         Row {
             Text(DurationConverter.getDurationStringLong(vm.curPosition), color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
-            if ((curEpisode?.bitrate ?: 0) > 0) Text(formatLargeInteger(curEpisode?.bitrate?:0) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
+            if (bitrate > 0) Text(formatLargeInteger(bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
             vm.showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
             Text(vm.txtvLengtTexth, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
@@ -707,10 +713,23 @@ fun AudioPlayerScreen() {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable {
                 isBSExpanded = false
             })
-            var homeIcon by remember { mutableIntStateOf(R.drawable.baseline_home_24)}
+            if (vm.curItem != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = textColor, contentDescription = "Open podcast",
+                modifier = Modifier.clickable {
+                    if (feedItem.feed != null) {
+                        feedOnDisplay = feedItem.feed!!
+                        feedScreenMode = FeedScreenMode.List
+                        mainNavController.navigate(Screens.FeedDetails.name)
+                        isBSExpanded = false
+                    }
+                })
+            var homeIcon by remember { mutableIntStateOf(R.drawable.outline_home_24)}
             Icon(imageVector = ImageVector.vectorResource(homeIcon), tint = textColor, contentDescription = "Home", modifier = Modifier.clickable {
-                homeIcon = if (vm.showHomeText) R.drawable.ic_home else R.drawable.outline_home_24
-                vm.buildHomeReaderText()
+//                homeIcon = if (vm.showHomeText) R.drawable.ic_home else R.drawable.outline_home_24
+//                vm.buildHomeReaderText()
+                if (vm.curItem != null) {
+                    episodeOnDisplay = vm.curItem!!
+                    mainNavController.navigate(Screens.EpisodeInfo.name)
+                }
             })
             if (mediaType == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
@@ -722,22 +741,15 @@ fun AudioPlayerScreen() {
                     }
                     VideoPlayerActivityStarter(context).start()
                 })
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
+                if (vm.curItem != null) showVolumeDialog = true
+            })
             if (vm.controller != null) {
                 val sleepRes = if (vm.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep
                 Icon(imageVector = ImageVector.vectorResource(sleepRes), tint = textColor, contentDescription = "Sleep timer", modifier = Modifier.clickable { showSleepTimeDialog = true })
             }
-            if (vm.curItem != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = textColor, contentDescription = "Open podcast",
-                modifier = Modifier.clickable {
-                    if (feedItem.feedId != null) {
-                        val intent: Intent = MainActivity.getIntentToOpenFeed(context, feedItem.feedId!!)
-                        context.startActivity(intent)
-                    }
-                })
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), tint = textColor, contentDescription = "Share", modifier = Modifier.clickable {
                 if (vm.curItem != null) showShareDialog = true
-            })
-            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
-                if (vm.curItem != null) showVolumeDialog = true
             })
             Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_offline_share_24), tint = textColor, contentDescription = "Share Note", modifier = Modifier.clickable {
                 val notes = if (vm.showHomeText) vm.readerhtml else feedItem.description

@@ -1,3 +1,13 @@
+# 8.5.5
+
+* avoided some screens reload due to past FeedUpdatingEvent and EpisodeDownloadEvent
+* ensured SyncService to wait for FeedUpdatingEvent
+* super class Worker is changed to CoroutineWorker
+* rearranged and amended topbar items in AudioPlayer
+	* home button now opens EpisodeInfo
+* feed auto-downloaded cache set to 0 now taken as unlimited
+* updated Compose dependencies
+
 # 8.5.4
 
 * adjusted toast categories: notifications, errors, exceptions

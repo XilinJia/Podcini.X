@@ -53,6 +53,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import org.apache.commons.lang3.StringUtils
 import java.io.File
 import java.util.*
@@ -143,7 +144,7 @@ class EpisodesVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
         if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.collectLatest { event ->
+            EventFlow.stickyEvents.drop(1).collectLatest { event ->
                 Logd(TAG, "Received sticky event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)

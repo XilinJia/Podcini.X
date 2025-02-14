@@ -24,11 +24,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.utils.NotificationUtils
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.*
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.app.Notification
 import android.app.NotificationManager
@@ -38,14 +34,16 @@ import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.work.*
 import androidx.work.Constraints.Builder
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.apache.commons.io.FileUtils
 import java.io.File
+import java.lang.InterruptedException
+import java.lang.Runnable
+import java.lang.Thread
 import java.net.URI
 import java.util.*
 import java.util.concurrent.ExecutionException
@@ -88,11 +86,8 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                         if (item_ != null) removeFromQueueSync(curQueue, item_)
                     }
                 }
-                WorkManager.getInstance(context).cancelAllWorkByTag(tag)
-            } catch (exception: Throwable) {
-                WorkManager.getInstance(context).cancelAllWorkByTag(tag)
-                Logs(TAG, exception)
-            }
+            } catch (exception: Throwable) { Logs(TAG, exception)
+            } finally { WorkManager.getInstance(context).cancelAllWorkByTag(tag) }
         }
     }
 
@@ -100,12 +95,12 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         WorkManager.getInstance(context).cancelAllWorkByTag(WORK_TAG)
     }
 
-    class EpisodeDownloadWorker(context: Context, params: WorkerParameters) : Worker(context, params) {
+    class EpisodeDownloadWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
         private var downloader: Downloader? = null
         private val isLastRunAttempt: Boolean
             get() = runAttemptCount >= 2
 
-        override fun doWork(): Result {
+        override suspend fun doWork(): Result {
             Logd(TAG, "starting doWork")
             ClientConfigurator.initialize(applicationContext)
             val mediaId = inputData.getLong(WORK_DATA_MEDIA_ID, 0)
@@ -133,14 +128,16 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 }
             }
             progressUpdaterThread.start()
-            var result: Result
-            try { result = performDownload(media, request)
+            var result: Result = Result.failure()
+            try { result = performDownload(request)
             } catch (e: Exception) {
                 Logs(TAG, e)
                 result = Result.failure()
+            } finally {
+                if (result == Result.failure() && downloader?.downloadRequest?.destination != null)
+                    FileUtils.deleteQuietly(File(downloader!!.downloadRequest.destination!!))
+                downloader?.cancel()
             }
-            if (result == Result.failure() && downloader?.downloadRequest?.destination != null)
-                FileUtils.deleteQuietly(File(downloader!!.downloadRequest.destination!!))
             progressUpdaterThread.interrupt()
             try { progressUpdaterThread.join() } catch (e: InterruptedException) { Logs(TAG, e) }
             synchronized(notificationProgress) {
@@ -153,36 +150,19 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             Logd(TAG, "Worker for " + media.downloadUrl + " returned.")
             return result
         }
-        override fun onStopped() {
-            super.onStopped()
-            downloader?.cancel()
+
+        override suspend fun getForegroundInfo(): ForegroundInfo {
+            return withContext(Dispatchers.Main) { ForegroundInfo(R.id.notification_downloading, generateProgressNotification()) }
         }
-        override fun getForegroundInfoAsync(): ListenableFuture<ForegroundInfo> {
-            return Futures.immediateFuture(ForegroundInfo(R.id.notification_downloading, generateProgressNotification()))
-        }
-        private fun performDownload(media: Episode, request: DownloadRequest): Result {
+
+        private fun performDownload(request: DownloadRequest): Result {
             Logd(TAG, "starting performDownload: ${request.destination}")
             if (request.destination == null) {
                 Loge(TAG, "performDownload request.destination is null")
                 return Result.failure()
             }
 
-            // TODO: need to save file name in episode
             ensureMediaFileExists(Uri.parse(request.destination))
-
-//            val dest = File(request.destination)
-//            if (!dest.exists()) {
-//                try { dest.createNewFile() } catch (e: IOException) { Logs(TAG, "performDownload Unable to create file") }
-//            }
-//            if (dest.exists()) {
-//                try {
-//                    var episode = realm.query(Episode::class).query("id == ${media.id}").first().find()
-//                    if (episode != null) {
-//                        episode = upsertBlk(episode) { it.setfileUrlOrNull(request.destination) }
-//                        EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.updated(episode))
-//                    } else Logs(TAG, "performDownload media.episode is null")
-//                } catch (e: Exception) { Logs(TAG, "performDownload Exception in writeFileUrl: " + e.message) }
-//            }
 
             downloader = DefaultDownloaderFactory().create(request)
             if (downloader == null) {

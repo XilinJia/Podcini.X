@@ -44,18 +44,21 @@ import androidx.collection.ArrayMap
 import androidx.core.app.NotificationCompat
 import androidx.work.*
 import androidx.work.Constraints.Builder
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import org.apache.commons.lang3.StringUtils
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
 
-open class SyncService(context: Context, params: WorkerParameters) : Worker(context, params) {
+open class SyncService(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     val TAG = this::class.simpleName ?: "Anonymous"
 
     protected val synchronizationQueueStorage = SynchronizationQueueStorage(context)
 
-     override fun doWork(): Result {
+     override suspend fun doWork(): Result {
         Logd(TAG, "doWork() called")
         val activeSyncProvider = getActiveSyncProvider() ?: return Result.failure()
         Logd(TAG, "doWork() got syn provider")
@@ -65,7 +68,7 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
         try {
             activeSyncProvider.login()
             syncSubscriptions(activeSyncProvider)
-            waitForDownloadServiceCompleted()
+            runBlocking { waitForDownloadServiceCompleted() }
 
 //            sync Episode changes
 //            syncEpisodeActions(activeSyncProvider)
@@ -82,12 +85,15 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
         } catch (e: Exception) {
             EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_error))
             SynchronizationSettings.setLastSynchronizationAttemptSuccess(false)
-            Logs(TAG, e)
             if (e is SyncServiceException) {
                 // Do not spam users with notification and retry before notifying
-                if (runAttemptCount % 3 == 2) updateErrorNotification(e)
+                if (runAttemptCount % 3 == 2) {
+                    Logs(TAG, e)
+                    updateErrorNotification(e)
+                }
                 return Result.retry()
             } else {
+                Logs(TAG, e)
                 updateErrorNotification(e)
                 return Result.failure()
             }
@@ -167,21 +173,18 @@ open class SyncService(context: Context, params: WorkerParameters) : Worker(cont
         } else Loge(TAG, "removeFeedWithDownloadUrl: Could not find feed with url: $downloadUrl")
     }
 
-    private fun waitForDownloadServiceCompleted() {
+    private suspend fun waitForDownloadServiceCompleted() {
         Logd(TAG, "waitForDownloadServiceCompleted called")
         EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_wait_for_downloads))
-        val scope = CoroutineScope(Dispatchers.IO)
-        scope.launch {
-            EventFlow.stickyEvents.collectLatest { event ->
-                Logd(TAG, "Received sticky event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.FeedUpdatingEvent -> if (!event.isRunning) return@collectLatest
-                    else -> {}
-                }
-            }
-            return@launch
-        }
-        scope.cancel()
+        val event = EventFlow.stickyEvents
+            .filter { it is FlowEvent.FeedUpdatingEvent }
+            .map { it as FlowEvent.FeedUpdatingEvent }
+            .firstOrNull { !it.isRunning }
+        if (event == null || !event.isRunning!!) return
+        EventFlow.stickyEvents
+            .filter { it is FlowEvent.FeedUpdatingEvent }
+            .map { it as FlowEvent.FeedUpdatingEvent }
+            .first { !it.isRunning }
     }
 
     fun getEpisodeActions(syncServiceImpl: ISyncService) : Pair<Long, Long> {

@@ -26,8 +26,8 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.Manifest
 import android.app.Notification
@@ -37,12 +37,12 @@ import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkManager
-import androidx.work.Worker
 import androidx.work.WorkerParameters
-import com.google.common.util.concurrent.Futures
-import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.xml.sax.SAXException
 import java.io.File
 import java.io.IOException
@@ -50,11 +50,11 @@ import java.util.*
 import java.util.concurrent.Callable
 import javax.xml.parsers.ParserConfigurationException
 
-open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Worker(context, params) {
+open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     protected val TAG = "FeedUpdateWorkerBase"
     private val notificationManager = NotificationManagerCompat.from(context)
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         ClientConfigurator.initialize(applicationContext)
         val feedsToUpdate: MutableList<Feed>
         val feedId = inputData.getLong(EXTRA_FEED_ID, -1L)
@@ -114,8 +114,12 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Wo
             .build()
     }
 
-    override fun getForegroundInfoAsync(): ListenableFuture<ForegroundInfo> {
-        return Futures.immediateFuture(ForegroundInfo(R.id.notification_updating_feeds, createNotification(null)))
+//    override fun getForegroundInfoAsync(): ListenableFuture<ForegroundInfo> {
+//        return Futures.immediateFuture(ForegroundInfo(R.id.notification_updating_feeds, createNotification(null)))
+//    }
+
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        return withContext(Dispatchers.Main) { ForegroundInfo(R.id.notification_updating_feeds, createNotification(null)) }
     }
 
     private fun refreshFeeds(feedsToUpdate: MutableList<Feed>, force: Boolean, fullUpdate: Boolean) {

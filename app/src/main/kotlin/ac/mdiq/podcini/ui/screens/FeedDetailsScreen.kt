@@ -71,6 +71,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
 import org.apache.commons.lang3.StringUtils
 import java.util.*
 import java.util.concurrent.ExecutionException
@@ -125,15 +126,45 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     }
     private var eventSink: Job? = null
     private var eventStickySink: Job? = null
-    private var eventKeySink: Job?     = null
+//    private var eventKeySink: Job? = null
     internal fun cancelFlowEvents() {
         eventSink?.cancel()
         eventSink = null
         eventStickySink?.cancel()
         eventStickySink = null
-        eventKeySink?.cancel()
-        eventKeySink = null
+//        eventKeySink?.cancel()
+//        eventKeySink = null
     }
+    internal fun procFlowEvents() {
+        if (eventSink == null) eventSink = lcScope.launch {
+            EventFlow.events.collectLatest { event ->
+                Logd(TAG, "Received event: ${event.TAG}")
+                when (event) {
+                    is FlowEvent.PlayEvent -> if (feedScreenMode == FeedScreenMode.List) onPlayEvent(event)
+                    is FlowEvent.FeedChangeEvent -> if (feed?.id == event.feed.id) loadFeed(true)
+                    is FlowEvent.FeedListEvent -> if (feed != null && event.contains(feed!!)) loadFeed(true)
+                    else -> {}
+                }
+            }
+        }
+        if (eventStickySink == null) eventStickySink = lcScope.launch {
+            EventFlow.stickyEvents.drop(1).collectLatest { event ->
+                Logd(TAG, "Received sticky event: ${event.TAG}")
+                when (event) {
+                    is FlowEvent.EpisodeDownloadEvent -> if (feedScreenMode == FeedScreenMode.List) onEpisodeDownloadEvent(event)
+                    is FlowEvent.FeedUpdatingEvent -> if (feedScreenMode == FeedScreenMode.List) onFeedUpdateRunningEvent(event)
+                    else -> {}
+                }
+            }
+        }
+//        if (eventKeySink == null) eventKeySink = lifecycleScope.launch {
+//            EventFlow.keyEvents.collectLatest { event ->
+//                Logd(TAG, "Received key event: $event, ignored")
+////                onKeyUp(event)
+//            }
+//        }
+    }
+
     private fun onPlayEvent(event: FlowEvent.PlayEvent) {
         if (feed != null) {
             val pos: Int = vms.indexOfItem(event.episode.id)
@@ -157,40 +188,10 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    internal fun procFlowEvents() {
-        if (eventSink == null) eventSink = lcScope.launch {
-            EventFlow.events.collectLatest { event ->
-                Logd(TAG, "Received event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.PlayEvent -> if (feedScreenMode == FeedScreenMode.List) onPlayEvent(event)
-                    is FlowEvent.FeedChangeEvent -> if (feed?.id == event.feed.id) loadFeed()
-                    is FlowEvent.FeedListEvent -> if (feed != null && event.contains(feed!!)) loadFeed()
-                    else -> {}
-                }
-            }
-        }
-        if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.collectLatest { event ->
-                Logd(TAG, "Received sticky event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.EpisodeDownloadEvent -> if (feedScreenMode == FeedScreenMode.List) onEpisodeDownloadEvent(event)
-                    is FlowEvent.FeedUpdatingEvent -> if (feedScreenMode == FeedScreenMode.List) onFeedUpdateRunningEvent(event)
-                    else -> {}
-                }
-            }
-        }
-//        if (eventKeySink == null) eventKeySink = lifecycleScope.launch {
-//            EventFlow.keyEvents.collectLatest { event ->
-//                Logd(TAG, "Received key event: $event, ignored")
-////                onKeyUp(event)
-//            }
-//        }
-    }
-
     private fun onFeedUpdateRunningEvent(event: FlowEvent.FeedUpdatingEvent) {
         infoTextUpdate = if (event.isRunning) context.getString(R.string.refreshing_label) else ""
         infoBarText.value = "$infoTextFiltered $infoTextUpdate"
-        if (!event.isRunning) loadFeed()
+        if (!event.isRunning) loadFeed(true)
     }
 
     internal fun refreshSwipeTelltale() {
@@ -225,7 +226,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     private var loadJob: Job? = null
-    internal fun loadFeed() {
+    internal fun loadFeed(force: Boolean = false) {
         if (feedScreenMode == FeedScreenMode.Info) {
             feed = realm.query(Feed::class).query("id == $0", feedOnDisplay.id).first().find()
             rating = feed?.rating ?: Rating.UNRATED.code
@@ -233,9 +234,11 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         }
         Logd(TAG, "loadFeed called $feedID")
         if (loadJob != null) {
-            loadJob?.cancel()
-            stopMonitor(vms)
-            vms.clear()
+            if (force) {
+                loadJob?.cancel()
+                stopMonitor(vms)
+                vms.clear()
+            } else return
         }
         loadJob = lcScope.launch {
             try {
@@ -540,7 +543,7 @@ fun FeedDetailsScreen() {
                 } else {
                     Button(onClick = {
                         feedScreenMode = FeedScreenMode.List
-                        if (vm.episodes.isEmpty()) vm.loadFeed()
+                        if (vm.episodes.isEmpty()) vm.loadFeed(true)
                     }) { Text(vm.feed?.episodes?.size.toString() + " " + stringResource(R.string.episodes_label)) }
                     Spacer(modifier = Modifier.width(15.dp))
                 }

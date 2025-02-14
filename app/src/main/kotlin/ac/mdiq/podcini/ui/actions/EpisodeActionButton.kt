@@ -90,7 +90,7 @@ abstract class EpisodeActionButton internal constructor(@JvmField var item: Epis
             null -> false
             else -> DownloadServiceInterface.impl?.isDownloadingEpisode(item.downloadUrl!!) == true
         }
-        Logd("ItemActionButton", "forItem: local feed: ${item.feed?.isLocalFeed} downloaded: ${item.downloaded} playing: ${isCurrentlyPlaying(item)}  ${item.title} ")
+//        Logd("ItemActionButton", "forItem: local feed: ${item.feed?.isLocalFeed} downloaded: ${item.downloaded} playing: ${isCurrentlyPlaying(item)}  ${item.title} ")
         return when {
             isCurrentlyPlaying(item) -> PauseActionButton(item)
             item.feed?.isLocalFeed == true -> PlayLocalActionButton(item)

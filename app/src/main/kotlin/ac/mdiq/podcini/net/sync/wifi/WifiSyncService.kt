@@ -19,7 +19,6 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
 import android.content.Context
 import androidx.core.content.ContextCompat.getString
 import androidx.work.*
@@ -37,7 +36,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
 
     var loginFail = false
 
-    override fun doWork(): Result {
+    override suspend fun doWork(): Result {
         Logd(TAG, "doWork() called")
 
         SynchronizationSettings.updateLastSynchronizationAttempt()
