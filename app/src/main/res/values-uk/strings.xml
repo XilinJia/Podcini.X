@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">Віконний режим</string>
     <string name="feed_video_mode_fullscreen">На весь екран</string>
     <string name="feed_video_mode_audioonly">Тільки аудіо</string>
-    <string name="feed_auto_download_policy">Автозавантаження політики</string>
-    <string name="feed_auto_download_new">Тільки нові елементи</string>
+
+    <string name="feed_auto_dleq_new">Тільки нові елементи</string>
     <string name="replace">Заміняти</string>
-    <string name="feed_auto_download_newer">Невідтворювані</string>
-    <string name="feed_auto_download_older">Найстаріші</string>
-    <string name="feed_auto_download_soon">Позначено як Незабаром</string>
+    <string name="feed_auto_dleq_newer">Невідтворювані</string>
+    <string name="feed_auto_dleq_older">Найстаріші</string>
+    <string name="feed_auto_dleq_soon">Позначено як Незабаром</string>
     <string name="put_in_queue_label">Add to queue…</string>
     <string name="remove_from_other_queues">Видалити з інших черг</string>
     <string name="create_synthetic_first_note">Спочатку потрібно створити синтетичні канали</string>

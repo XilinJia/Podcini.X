@@ -373,7 +373,7 @@ fun EpisodeInfoScreen() {
                     // Update all visible lists to reflect new streaming action button
                     //            TODO: need another event type?
                     EventFlow.postEvent(FlowEvent.EpisodePlayedEvent())
-                    toastMassege = context.getString(R.string.on_demand_config_setting_changed)
+                    Logt(TAG, context.getString(R.string.on_demand_config_setting_changed))
                     onDismiss()
                 }) { Text("OK") }
             },
@@ -477,10 +477,8 @@ fun EpisodeInfoScreen() {
                     factory = { context ->
                         ShownotesWebView(context).apply {
                             setTimecodeSelectedListener { time: Int -> seekTo(time) }
-                            setPageFinishedListener {
-                                // Restoring the scroll position might not always work
-                                postDelayed({ }, 50)
-                            }
+                            // Restoring the scroll position might not always work
+                            setPageFinishedListener { postDelayed({ }, 50) }
                         }
                     }, update = {
                         Logd(TAG, "AndroidView update: [${vm.episode!!.webviewData}]")

@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">Vindue tilstand</string>
     <string name="feed_video_mode_fullscreen">Fuld skærm</string>
     <string name="feed_video_mode_audioonly">Kun lyd</string>
-    <string name="feed_auto_download_policy">Auto-download politik</string>
-    <string name="feed_auto_download_new">Kun nye elementer</string>
+
+    <string name="feed_auto_dleq_new">Kun nye elementer</string>
     <string name="replace">Erstat</string>
-    <string name="feed_auto_download_newer">Nyeste uspillede</string>
-    <string name="feed_auto_download_older">Ældste uspillede</string>
-    <string name="feed_auto_download_soon">Markeret som snart</string>
+    <string name="feed_auto_dleq_newer">Nyeste uspillede</string>
+    <string name="feed_auto_dleq_older">Ældste uspillede</string>
+    <string name="feed_auto_dleq_soon">Markeret som snart</string>
     <string name="put_in_queue_label">Føj til kø…</string>
     <string name="remove_from_other_queues">Fjern fra andre køer</string>
     <string name="create_synthetic_first_note">Du skal først oprette nogle syntetiske feeds</string>

@@ -123,12 +123,12 @@
     <string name="feed_video_mode_window">Mode fenêtre</string>
     <string name="feed_video_mode_fullscreen">Plein écran</string>
     <string name="feed_video_mode_audioonly">Audio uniquement</string>
-    <string name="feed_auto_download_policy">Politique de téléchargement automatique</string>
-    <string name="feed_auto_download_new">Seulement les nouveaux éléments</string>
+
+    <string name="feed_auto_dleq_new">Seulement les nouveaux éléments</string>
     <string name="replace">Remplacer</string>
-    <string name="feed_auto_download_newer">Les plus récents non joués</string>
-    <string name="feed_auto_download_older">Les plus anciens non joués</string>
-    <string name="feed_auto_download_soon">Marqué comme bientôt</string>
+    <string name="feed_auto_dleq_newer">Les plus récents non joués</string>
+    <string name="feed_auto_dleq_older">Les plus anciens non joués</string>
+    <string name="feed_auto_dleq_soon">Marqué comme bientôt</string>
     <string name="put_in_queue_label">Add to queue…</string>
     <string name="remove_from_other_queues">Retirer des autres files d\'attente</string>
     <string name="create_synthetic_first_note">Vous devez d\'abord créer des flux synthétiques</string>

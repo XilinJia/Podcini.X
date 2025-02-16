@@ -34,16 +34,9 @@ import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.work.*
 import androidx.work.Constraints.Builder
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import org.apache.commons.io.FileUtils
 import java.io.File
-import java.lang.InterruptedException
-import java.lang.Runnable
-import java.lang.Thread
 import java.net.URI
 import java.util.*
 import java.util.concurrent.ExecutionException
@@ -274,8 +267,8 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             return builder.build()
         }
 
-        class MediaDownloadedHandler(private val context: Context, var updatedStatus: DownloadResult, private val request: DownloadRequest) : Runnable {
-            override fun run() {
+        class MediaDownloadedHandler(private val context: Context, var updatedStatus: DownloadResult, private val request: DownloadRequest) {
+            fun run() {
                 var item = realm.query(Episode::class).query("id == ${request.feedfileId}").first().find()
                 if (item == null) {
                     Loge(TAG, "Could not find downloaded episode object in database")

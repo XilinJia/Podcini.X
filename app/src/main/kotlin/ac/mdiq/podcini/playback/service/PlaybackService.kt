@@ -86,9 +86,6 @@ import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import java.util.*
-import java.util.concurrent.ScheduledFuture
-import java.util.concurrent.ScheduledThreadPoolExecutor
-import java.util.concurrent.TimeUnit
 import kotlin.math.max
 import kotlin.math.sqrt
 
@@ -99,7 +96,6 @@ class PlaybackService : MediaLibraryService() {
     internal lateinit var taskManager: TaskManager
     internal var isSpeedForward = false
     internal var isFallbackSpeed = false
-//    internal var currentitem: Episode? = null
 
     private val scope = CoroutineScope(Dispatchers.Main)
 
@@ -1175,19 +1171,14 @@ class PlaybackService : MediaLibraryService() {
      * The PlaybackServiceTaskManager(PSTM) uses a callback object (PSTMCallback) to notify the PlaybackService about updates from the running tasks.
      */
     class TaskManager(private val context: Context, private val callback: PSTMCallback) {
-        private val schedExecutor: ScheduledThreadPoolExecutor = ScheduledThreadPoolExecutor(SCHED_EX_POOL_SIZE) { r: Runnable? ->
-            val t = Thread(r)
-            t.priority = Thread.MIN_PRIORITY
-            t
-        }
-
-        private var positionSaverFuture: ScheduledFuture<*>? = null
-        private var sleepTimerFuture: ScheduledFuture<*>? = null
         private var sleepTimer: SleepTimer? = null
+
+        private var positionSaverJob: Job? = null
+        private var sleepTimerJob: Job? = null
 
         @get:Synchronized
         val isSleepTimerActive: Boolean
-            get() = sleepTimerFuture?.isCancelled == false && sleepTimerFuture?.isDone == false && (sleepTimer?.timeLeft ?: 0) > 0
+            get() = sleepTimerJob != null && (sleepTimer?.timeLeft ?: 0) > 0
 
         /**
          * Returns the current sleep timer time or 0 if the sleep timer is not active.
@@ -1196,26 +1187,36 @@ class PlaybackService : MediaLibraryService() {
         val sleepTimerTimeLeft: Long
             get() = if (isSleepTimerActive) sleepTimer!!.timeLeft else 0
 
-        @get:Synchronized
-        val isPositionSaverActive: Boolean
-            get() = positionSaverFuture != null && !positionSaverFuture!!.isCancelled && !positionSaverFuture!!.isDone
+        private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
+        fun scheduleTask(delay: Long, block: suspend () -> Unit): Job {
+            return scope.launch {
+                delay(delay)
+                block()
+            }
+        }
+
+        fun scheduleTaskRepeating(initialDelay: Long, period: Long, block: suspend () -> Unit): Job {
+            return scope.launch {
+                delay(initialDelay)
+                while (isActive) {
+                    block()
+                    delay(period)
+                }
+            }
+        }
         @Synchronized
         fun startPositionSaver(delayInterval: Long) {
-            if (!isPositionSaverActive) {
-                var positionSaver = Runnable { callback.positionSaverTick() }
-                positionSaver = useMainThreadIfNecessary(positionSaver)
-                positionSaverFuture = schedExecutor.scheduleWithFixedDelay(positionSaver, delayInterval, delayInterval, TimeUnit.MILLISECONDS)
+            if (positionSaverJob == null) {
+                positionSaverJob = scheduleTaskRepeating(delayInterval, delayInterval) { callback.positionSaverTick() }
                 Logd(TAG, "Started PositionSaver")
-            } else Logd(TAG, "Call to startPositionSaver was ignored.")
+            }
         }
 
         @Synchronized
         fun cancelPositionSaver() {
-            if (isPositionSaverActive) {
-                positionSaverFuture!!.cancel(false)
-                Logd(TAG, "Cancelled PositionSaver")
-            }
+            positionSaverJob?.cancel()
+            positionSaverJob = null
         }
 
         /**
@@ -1228,18 +1229,16 @@ class PlaybackService : MediaLibraryService() {
         fun setSleepTimer(waitingTime: Long) {
             require(waitingTime > 0) { "Waiting time <= 0" }
             Logd(TAG, "Setting sleep timer to $waitingTime milliseconds")
-            if (isSleepTimerActive) sleepTimerFuture!!.cancel(true)
+            if (isSleepTimerActive) sleepTimerJob!!.cancel()
             sleepTimer = SleepTimer(waitingTime)
-            sleepTimerFuture = schedExecutor.schedule(sleepTimer, 0, TimeUnit.MILLISECONDS)
+            sleepTimerJob = scheduleTask(0) { SleepTimer(waitingTime) }
             EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.justEnabled(waitingTime))
         }
 
         @Synchronized
         fun disableSleepTimer() {
-            if (isSleepTimerActive) {
-                Logd(TAG, "Disabling sleep timer")
-                sleepTimer!!.cancel()
-            }
+            sleepTimer?.cancel()
+            sleepTimer = null
         }
 
         @Synchronized
@@ -1257,8 +1256,6 @@ class PlaybackService : MediaLibraryService() {
          */
         @Synchronized
         fun startChapterLoader(media: Episode) {
-//        chapterLoaderFuture?.dispose()
-//        chapterLoaderFuture = null
             val scope = CoroutineScope(Dispatchers.Main)
             scope.launch(Dispatchers.IO) {
                 try {
@@ -1275,8 +1272,6 @@ class PlaybackService : MediaLibraryService() {
         fun cancelAllTasks() {
             cancelPositionSaver()
             disableSleepTimer()
-//        chapterLoaderFuture?.dispose()
-//        chapterLoaderFuture = null
         }
 
         /**
@@ -1285,44 +1280,25 @@ class PlaybackService : MediaLibraryService() {
          */
         fun shutdown() {
             cancelAllTasks()
-            schedExecutor.shutdownNow()
-        }
-
-        private fun useMainThreadIfNecessary(runnable: Runnable): Runnable {
-            if (Looper.myLooper() == Looper.getMainLooper()) {
-                // Called in main thread => ExoPlayer is used
-                // Run on ui thread even if called from schedExecutor
-                val handler = Handler(Looper.getMainLooper())
-                return Runnable { handler.post(runnable) }
-            } else return runnable
         }
 
         /**
          * Sleeps for a given time and then pauses playback.
          */
-        internal inner class SleepTimer(private val waitingTime: Long) : Runnable {
+        internal inner class SleepTimer(private val waitingTime: Long) {
             var timeLeft = waitingTime
 
             private var hasVibrated = false
             private var shakeListener: ShakeListener? = null
+            private var job: Job? = null
 
-            override fun run() {
-                Logd(TAG, "Starting SleepTimer")
-                var lastTick = System.currentTimeMillis()
+            fun start() {
+                job?.cancel()
+
                 EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.updated(timeLeft))
-                while (timeLeft > 0) {
-                    try { Thread.sleep(SLEEP_TIMER_UPDATE_INTERVAL)
-                    } catch (e: InterruptedException) {
-                        Logs(TAG, e, "Thread was interrupted while waiting")
-                        break
-                    }
-
-                    val now = System.currentTimeMillis()
-                    timeLeft -= now - lastTick
-                    lastTick = now
-
-                    EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.updated(timeLeft))
-                    if (timeLeft < NOTIFICATION_THRESHOLD) {
+                job = CoroutineScope(Dispatchers.Default).launch {
+                    try {
+                        delay(waitingTime - NOTIFICATION_THRESHOLD)
                         Logd(TAG, "Sleep timer is about to expire")
                         if (SleepTimerPreferences.vibrate() && !hasVibrated) {
                             val v = context.getSystemService(VIBRATOR_SERVICE) as? Vibrator
@@ -1331,14 +1307,13 @@ class PlaybackService : MediaLibraryService() {
                                 hasVibrated = true
                             }
                         }
-                        if (shakeListener == null && SleepTimerPreferences.shakeToReset()) shakeListener = ShakeListener(context, this)
-                    }
-                    if (timeLeft <= 0) {
+                        if (shakeListener == null && SleepTimerPreferences.shakeToReset()) shakeListener = ShakeListener(context, this@SleepTimer)
+                        delay(NOTIFICATION_THRESHOLD)
                         Logd(TAG, "Sleep timer expired")
                         shakeListener?.pause()
                         shakeListener = null
                         hasVibrated = false
-                    }
+                    } catch (e: CancellationException) { Logs(TAG, e, "SleepTimer cancelation error") }
                 }
             }
             fun restart() {
@@ -1348,7 +1323,8 @@ class PlaybackService : MediaLibraryService() {
                 shakeListener = null
             }
             fun cancel() {
-                sleepTimerFuture!!.cancel(true)
+                sleepTimerJob?.cancel()
+                sleepTimerJob = null
                 shakeListener?.pause()
                 EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.cancelled())
             }

@@ -234,9 +234,7 @@ class VideoplayerActivity : CastEnabledActivity() {
         AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
             ShownotesWebView(context).apply {
                 setTimecodeSelectedListener { time: Int -> seekTo(time) }
-                setPageFinishedListener {
-                    postDelayed({ }, 50)
-                }
+                setPageFinishedListener { postDelayed({ }, 50) }
             }
         }, update = { webView -> webView.loadDataWithBaseURL("https://127.0.0.1", if (cleanedNotes.isNullOrBlank()) "No notes" else cleanedNotes!!, "text/html", "utf-8", "about:blank") })
     }
@@ -357,7 +355,7 @@ class VideoplayerActivity : CastEnabledActivity() {
             message = event.message,
             confirmRes = android.R.string.ok,
             cancelRes = R.string.cancel_label,
-            onConfirm = { event.action?.accept(this) })
+            onConfirm = { event.action?.invoke(this) })
     }
 
     @OptIn(ExperimentalMaterial3Api::class)

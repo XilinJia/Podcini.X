@@ -19,6 +19,7 @@ import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.util.toastMessages
 import android.content.ClipData
@@ -179,7 +180,7 @@ class PreferenceActivity : ComponentActivity() {
 
     fun onEventMainThread(event: FlowEvent.MessageEvent) {
         val s = Snackbar.make(findViewById(android.R.id.content), event.message, Snackbar.LENGTH_LONG)
-        if (event.action != null) s.setAction(event.actionText) { event.action.accept(this) }
+        if (event.action != null) s.setAction(event.actionText) { event.action(this) }
         s.show()
     }
 
@@ -261,7 +262,7 @@ class PreferenceActivity : ComponentActivity() {
                     val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText(getString(R.string.bug_report_title), PreferenceManager.getDefaultSharedPreferences(this@PreferenceActivity).getString("about_version", "Default summary"))
                     clipboard.setPrimaryClip(clip)
-                    if (Build.VERSION.SDK_INT <= 32) toastMassege = getString(R.string.copied_to_clipboard)
+                    if (Build.VERSION.SDK_INT <= 32) Logt(TAG, getString(R.string.copied_to_clipboard))
                 })) {
                     Text(stringResource(R.string.podcini_version), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                     Text(String.format("%s (%s)", BuildConfig.VERSION_NAME, BuildConfig.COMMIT_HASH), color = textColor)
@@ -277,7 +278,7 @@ class PreferenceActivity : ComponentActivity() {
                     setType("message/rfc822")
                 }
                 if (emailIntent.resolveActivity(packageManager) != null) startActivity(emailIntent)
-                else toastMassege = getString(R.string.need_email_client)
+                else Logt(TAG, getString(R.string.need_email_client))
             }
         }
     }

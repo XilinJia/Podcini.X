@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">Ikkunan tila</string>
     <string name="feed_video_mode_fullscreen">Koko näyttö</string>
     <string name="feed_video_mode_audioonly">Vain ääni</string>
-    <string name="feed_auto_download_policy">Automaattinen lataus käytäntö</string>
-    <string name="feed_auto_download_new">Vain uudet kohteet</string>
+
+    <string name="feed_auto_dleq_new">Vain uudet kohteet</string>
     <string name="replace">Korvaa</string>
-    <string name="feed_auto_download_newer">Uusimmat soittamattomat</string>
-    <string name="feed_auto_download_older">Vanhin soittamaton</string>
-    <string name="feed_auto_download_soon">Merkitse pian</string>
+    <string name="feed_auto_dleq_newer">Uusimmat soittamattomat</string>
+    <string name="feed_auto_dleq_older">Vanhin soittamaton</string>
+    <string name="feed_auto_dleq_soon">Merkitse pian</string>
     <string name="put_in_queue_label">Lisää jonoon…</string>
     <string name="remove_from_other_queues">Poista muista jonoista</string>
     <string name="create_synthetic_first_note">Sinun täytyy luoda ensin synteettisiä syötteitä</string>

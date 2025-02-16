@@ -442,7 +442,7 @@ fun LogsScreen() {
                                         showAction = false
                                         val item_ = realm.query(Episode::class).query("id == $0", status.feedfileId).first().find()
                                         if (item_ != null) DownloadActionButton(item_).onClick(context)
-                                        toastMassege = context.getString(R.string.status_downloading_label)
+                                        Logt(TAG, context.getString(R.string.status_downloading_label))
                                     }
                                 }
                             })

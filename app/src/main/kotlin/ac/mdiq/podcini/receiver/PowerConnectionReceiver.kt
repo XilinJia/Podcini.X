@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.receiver
 
-import ac.mdiq.podcini.automation.AutoDownloads.autodownloadEpisodeMedia
+import ac.mdiq.podcini.automation.AutoDownloads.autodownload
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -27,7 +27,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
             // downloading now. They shouldn't mind.
             // autodownloadUndownloadedItems will make sure we're on the right wifi networks,
             // etc... so we don't have to worry about it.
-            autodownloadEpisodeMedia(context)
+            autodownload(context)
         } else {
             // if we're not supposed to be auto-downloading when we're not charging, stop it
             if (!getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false)) {

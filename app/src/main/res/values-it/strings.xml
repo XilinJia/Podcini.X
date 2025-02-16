@@ -123,12 +123,12 @@
     <string name="feed_video_mode_window">Modalità finestra</string>
     <string name="feed_video_mode_fullscreen">Schermo intero</string>
     <string name="feed_video_mode_audioonly">Solo audio</string>
-    <string name="feed_auto_download_policy">Auto download policy</string>
-    <string name="feed_auto_download_new">Solo nuovi elementi</string>
+
+    <string name="feed_auto_dleq_new">Solo nuovi elementi</string>
     <string name="replace">Sostituisci</string>
-    <string name="feed_auto_download_newer">Ultime non riprodotte</string>
-    <string name="feed_auto_download_older">Più vecchio non riprodotto</string>
-    <string name="feed_auto_download_soon">Segnato a breve</string>
+    <string name="feed_auto_dleq_newer">Ultime non riprodotte</string>
+    <string name="feed_auto_dleq_older">Più vecchio non riprodotto</string>
+    <string name="feed_auto_dleq_soon">Segnato a breve</string>
     <string name="put_in_queue_label">Aggiungi alla coda…</string>
     <string name="remove_from_other_queues">Rimuovi da altre code</string>
     <string name="create_synthetic_first_note">Devi prima creare alcuni feed sintetici</string>

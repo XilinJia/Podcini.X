@@ -4,7 +4,6 @@ import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.showStackTrace
 import android.net.Uri
 import io.realm.kotlin.MutableRealm
@@ -43,7 +42,7 @@ object RealmDB {
                 PAFeed::class,
             ))
             .name("Podcini.realm")
-            .schemaVersion(43)
+            .schemaVersion(45)
             .migration({ mContext ->
                 val oldRealm = mContext.oldRealm // old realm using the previous schema
                 val newRealm = mContext.newRealm // new realm using the new schema
@@ -51,10 +50,7 @@ object RealmDB {
                     Logd(TAG, "migrating DB from below 25")
                     mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
                         newObject?.run {
-                            set(
-                                "rating",
-                                if (oldObject.getValue<Boolean>(fieldName = "isFavorite")) 2L else 0L
-                            )
+                            set("rating", if (oldObject.getValue<Boolean>(fieldName = "isFavorite")) 2L else 0L)
                         }
                     }
                 }
@@ -70,9 +66,8 @@ object RealmDB {
                     Logd(TAG, "migrating DB from below 28")
                     mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
                         newObject?.run {
-                            if (oldObject.getValue<Long>(fieldName = "playState") == 1L) {
-                                set("playState", 10L)
-                            } else {
+                            if (oldObject.getValue<Long>(fieldName = "playState") == 1L) set("playState", 10L)
+                            else {
                                 val media = oldObject.getObject(propertyName = "media")
                                 var position = 0L
                                 if (media != null) position = media.getValue(propertyName = "position", Long::class)
@@ -176,22 +171,6 @@ object RealmDB {
                 }
                 if (oldRealm.schemaVersion() < 39) {
                     Logd(TAG, "migrating DB from below 39")
-//                    val oldEpisodes = oldRealm.query(className = "Episode").find()
-//                    for (oe in oldEpisodes) {
-//                        try {
-//                            val fileUrl = oe.getNullableValue("fileUrl", String::class)
-//                            if (!fileUrl.isNullOrBlank()) {
-//                                val f = File(fileUrl)
-//                                val uri = Uri.fromFile(f)
-//                                val ne = newRealm.findLatest(oe)
-//                                ne?.set("fileUrl", uri.toString())
-//                            }
-//                        } catch (e: Throwable) {
-//                            Logs(TAG, " can't create uri from fileUrl")
-//                            val ne = newRealm.findLatest(oe)
-//                            ne?.set("fileUrl", "")
-//                        }
-//                    }
                     mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
                         newObject?.run {
                             try {
@@ -205,6 +184,17 @@ object RealmDB {
                             } catch (e: Throwable) {
                                 Logs(TAG, e, " can't create uri from fileUrl")
                                 set("fileUrl", "")
+                            }
+                        }
+                    }
+                }
+                if (oldRealm.schemaVersion() < 45) {
+                    Logd(TAG, "migrating DB from below 45")
+                    mContext.enumerate(className = "Feed") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
+                        newObject?.run {
+                            if (oldObject.getValue<Long>(fieldName = "autoDLPolicyCode") == 3L) {
+                                Logd(TAG, "setting autoDLSoon to true")
+                                set("autoDLSoon", true)
                             }
                         }
                     }

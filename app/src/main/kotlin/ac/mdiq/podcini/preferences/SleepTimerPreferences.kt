@@ -12,6 +12,7 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.toastMassege
 import android.content.Context
 import android.content.SharedPreferences
@@ -221,7 +222,7 @@ object SleepTimerPreferences {
                             onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) etxtTime = it })
                         Button(modifier = Modifier.fillMaxWidth(), onClick = {
                             if (!PlaybackService.isRunning) {
-                                toastMassege = context.getString(R.string.no_media_playing_label)
+                                Logt(TAG, context.getString(R.string.no_media_playing_label))
                                 return@Button
                             }
                             try {

@@ -103,7 +103,7 @@ fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: Runnable?) {
+fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: ()->Unit) {
     val message = if (feeds.size == 1) {
         if (feeds[0].isLocalFeed) stringResource(R.string.feed_delete_confirmation_local_msg) + feeds[0].title
         else stringResource(R.string.feed_delete_confirmation_msg) + feeds[0].title
@@ -121,7 +121,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                     modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
                 )
                 Button(onClick = {
-                    callback?.run()
+                    callback()
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
                             for (f in feeds) {

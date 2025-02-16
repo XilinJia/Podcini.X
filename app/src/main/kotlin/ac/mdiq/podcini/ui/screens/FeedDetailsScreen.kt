@@ -360,7 +360,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                     feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
                     if (feed != null) updateFeed(context, feed!!, true)
                 }
-                withContext(Dispatchers.Main) { toastMassege = context.getString(R.string.OK) }
+                withContext(Dispatchers.Main) { Logt(TAG, context.getString(R.string.OK)) }
             } catch (e: Throwable) { withContext(Dispatchers.Main) { Loge(TAG, e.localizedMessage?:"No message") } }
         }
     }
@@ -623,9 +623,6 @@ fun FeedDetailsScreen() {
 
     if (vm.showRemoveFeedDialog) RemoveFeedDialog(listOf(vm.feed!!), onDismissRequest = { vm.showRemoveFeedDialog = false }) {
         mainNavController.navigate("DefaultPage")
-//        (context as MainActivity).loadFragment(AppPreferences.defaultPage, null)
-//        // Make sure fragment is hidden before actually starting to delete
-//        context.supportFragmentManager.executePendingTransactions()
     }
     if (vm.showFilterDialog) EpisodesFilterDialog(filter = vm.feed!!.episodeFilter,
         onDismissRequest = { vm.showFilterDialog = false }) { filter ->
@@ -633,9 +630,7 @@ fun FeedDetailsScreen() {
             Logd(TAG, "persist Episode Filter(): feedId = [${vm.feed?.id}], filterValues = [${filter.propertySet}]")
             runOnIOScope {
                 val feed_ = realm.query(Feed::class, "id == ${vm.feed!!.id}").first().find()
-                if (feed_ != null) vm.feed = upsert(feed_) {
-                    it.episodeFilter = filter
-                }
+                if (feed_ != null) vm.feed = upsert(feed_) { it.episodeFilter = filter }
             }
         }
     }
@@ -707,7 +702,7 @@ fun FeedDetailsScreen() {
                         val clipData: ClipData = ClipData.newPlainText(url, url)
                         val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         cm.setPrimaryClip(clipData)
-                        toastMassege = context.getString(R.string.copied_to_clipboard)
+                        Logt(TAG, context.getString(R.string.copied_to_clipboard))
                     }
                 })
                 if (!vm.feed?.paymentLinkList.isNullOrEmpty()) {

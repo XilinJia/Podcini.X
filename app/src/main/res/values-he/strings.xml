@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">Window mode</string>
     <string name="feed_video_mode_fullscreen">Full screen</string>
     <string name="feed_video_mode_audioonly">Audio only</string>
-    <string name="feed_auto_download_policy">Auto download policy</string>
-    <string name="feed_auto_download_new">Only new items</string>
+
+    <string name="feed_auto_dleq_new">Only new items</string>
     <string name="replace">Replace</string>
-    <string name="feed_auto_download_newer">Newest unplayed</string>
-    <string name="feed_auto_download_older">Oldest unplayed</string>
-    <string name="feed_auto_download_soon">Marked as Soon</string>
+    <string name="feed_auto_dleq_newer">Newest unplayed</string>
+    <string name="feed_auto_dleq_older">Oldest unplayed</string>
+    <string name="feed_auto_dleq_soon">Marked as Soon</string>
     <string name="put_in_queue_label">Add to queue…</string>
     <string name="remove_from_other_queues">Remove from other queues</string>
     <string name="create_synthetic_first_note">You need to create some synthetic feeds first</string>

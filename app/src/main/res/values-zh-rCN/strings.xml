@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">窗口模式</string>
     <string name="feed_video_mode_fullscreen">全屏</string>
     <string name="feed_video_mode_audioonly">仅音频</string>
-    <string name="feed_auto_download_policy">自动下载策略</string>
-    <string name="feed_auto_download_new">仅新项目</string>
+
+    <string name="feed_auto_dleq_new">仅新项目</string>
     <string name="replace">替换</string>
-    <string name="feed_auto_download_newer">最新未播放</string>
-    <string name="feed_auto_download_older">最早未播放</string>
-    <string name="feed_auto_download_soon">标记为很快的</string>
+    <string name="feed_auto_dleq_newer">最新未播放</string>
+    <string name="feed_auto_dleq_older">最早未播放</string>
+    <string name="feed_auto_dleq_soon">标记为很快的</string>
     <string name="put_in_queue_label">添加到队列…</string>
     <string name="remove_from_other_queues">从其他队列移除</string>
     <string name="create_synthetic_first_note">您需要先创建一些合成源</string>

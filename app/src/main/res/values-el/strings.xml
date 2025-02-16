@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">Λειτουργία παραθύρου</string>
     <string name="feed_video_mode_fullscreen">Πλήρης οθόνη</string>
     <string name="feed_video_mode_audioonly">Μόνο ήχος</string>
-    <string name="feed_auto_download_policy">Πολιτική αυτόματων λήψεων</string>
-    <string name="feed_auto_download_new">Μόνο νέα στοιχεία</string>
+
+    <string name="feed_auto_dleq_new">Μόνο νέα στοιχεία</string>
     <string name="replace">Αντικατάσταση</string>
-    <string name="feed_auto_download_newer">Νεότερα μη παιγμένα</string>
-    <string name="feed_auto_download_older">Παλαιότερα δεν παιχτηκαν</string>
-    <string name="feed_auto_download_soon">Επισήμανση ως Σύντομα</string>
+    <string name="feed_auto_dleq_newer">Νεότερα μη παιγμένα</string>
+    <string name="feed_auto_dleq_older">Παλαιότερα δεν παιχτηκαν</string>
+    <string name="feed_auto_dleq_soon">Επισήμανση ως Σύντομα</string>
     <string name="put_in_queue_label">Add to queue…</string>
     <string name="remove_from_other_queues">Αφαίρεση από άλλες ουρές</string>
     <string name="create_synthetic_first_note">Θα πρέπει πρώτα να δημιουργήσετε κάποιες συνθετικές ροές</string>

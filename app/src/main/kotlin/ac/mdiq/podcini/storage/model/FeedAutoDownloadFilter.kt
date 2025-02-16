@@ -11,7 +11,7 @@ import java.util.regex.Pattern
 class FeedAutoDownloadFilter(
         val includeFilterRaw: String? = "",
         val excludeFilterRaw: String? = "",
-        val minimalDurationFilter: Int = -1,
+        val minimalDurationFilter: Int = -1,    // in seconds
         val markExcludedPlayed: Boolean = false) : Serializable {
 
     val includeTerms: List<String> by lazy { parseTerms(includeFilterRaw) }
@@ -42,9 +42,7 @@ class FeedAutoDownloadFilter(
         if (includeTerms.isEmpty() && excludeTerms.isEmpty() && minimalDurationFilter <= -1) return true
 
         // Check if the episode is long enough if minimal duration filter is on, Minimal Duration is stored in seconds
-        if (hasMinimalDurationFilter()) {
-            if (item.duration > 0 && item.duration / 1000 < minimalDurationFilter) return false
-        }
+        if (hasMinimalDurationFilter() && item.duration > 0 && item.duration / 1000 < minimalDurationFilter) return false
 
         // check using lowercase so the users don't have to worry about case.
         val title = item.title?.lowercase(Locale.getDefault())?:""
@@ -64,8 +62,7 @@ class FeedAutoDownloadFilter(
         // default to including, but if they've set both, then exclude
         if (!hasIncludeFilter() && hasExcludeFilter()) return true
 
-        // if they only set minimal duration filter and arrived here, autodownload
-        // should happen
+        // if they only set minimal duration filter and arrived here, autodownload should happen
         if (hasMinimalDurationFilter()) return true
 
         return false

@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">Venster modus</string>
     <string name="feed_video_mode_fullscreen">Volledig scherm</string>
     <string name="feed_video_mode_audioonly">Alleen audio</string>
-    <string name="feed_auto_download_policy">Automatische download beleid</string>
-    <string name="feed_auto_download_new">Alleen nieuwe items</string>
+
+    <string name="feed_auto_dleq_new">Alleen nieuwe items</string>
     <string name="replace">Vervangen</string>
-    <string name="feed_auto_download_newer">Nieuwste niet afgespeeld</string>
-    <string name="feed_auto_download_older">Oudste niet afgespeeld</string>
-    <string name="feed_auto_download_soon">Gemarkeerd als binnenkort</string>
+    <string name="feed_auto_dleq_newer">Nieuwste niet afgespeeld</string>
+    <string name="feed_auto_dleq_older">Oudste niet afgespeeld</string>
+    <string name="feed_auto_dleq_soon">Gemarkeerd als binnenkort</string>
     <string name="put_in_queue_label">Toevoegen aan wachtrij…</string>
     <string name="remove_from_other_queues">Verwijderen uit andere wachtrijen</string>
     <string name="create_synthetic_first_note">U moet eerst wat synthetische feeds maken</string>

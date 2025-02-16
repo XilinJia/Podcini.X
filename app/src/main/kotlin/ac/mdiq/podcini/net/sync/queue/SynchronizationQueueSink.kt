@@ -4,20 +4,19 @@ import android.content.Context
 import ac.mdiq.podcini.net.sync.LockingAsyncExecutor
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.lastSyncAttempt
-
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.storage.model.Episode
 
 object SynchronizationQueueSink {
     // To avoid a dependency loop of every class to SyncService, and from SyncService back to every class.
-    private var serviceStarterImpl = Runnable {}
+    private var serviceStarterImpl = {}
 
-    fun setServiceStarterImpl(serviceStarter: Runnable) {
+    fun setServiceStarterImpl(serviceStarter: ()->Unit) {
         serviceStarterImpl = serviceStarter
     }
 
     fun syncNow() {
-        serviceStarterImpl.run()
+        serviceStarterImpl()
     }
 
     fun syncNowIfNotSyncedRecently() {

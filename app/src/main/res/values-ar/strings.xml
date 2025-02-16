@@ -121,12 +121,12 @@
     <string name="feed_video_mode_window">وضع النافذة</string>
     <string name="feed_video_mode_fullscreen">ملء الشاشة</string>
     <string name="feed_video_mode_audioonly">الصوت فقط</string>
-    <string name="feed_auto_download_policy">سياسة التحميل التلقائي</string>
-    <string name="feed_auto_download_new">العناصر الجديدة فقط</string>
+
+    <string name="feed_auto_dleq_new">العناصر الجديدة فقط</string>
     <string name="replace">استبدل</string>
-    <string name="feed_auto_download_newer">الأحدث لم يتم عرضه</string>
-    <string name="feed_auto_download_older">الأقدم لم يتم تشغيله</string>
-    <string name="feed_auto_download_soon">وضع علامة قريباً</string>
+    <string name="feed_auto_dleq_newer">الأحدث لم يتم عرضه</string>
+    <string name="feed_auto_dleq_older">الأقدم لم يتم تشغيله</string>
+    <string name="feed_auto_dleq_soon">وضع علامة قريباً</string>
     <string name="put_in_queue_label">إضافة إلى قائمة الانتظار…</string>
     <string name="remove_from_other_queues">إزالة من قوائم الانتظار الأخرى</string>
     <string name="create_synthetic_first_note">تحتاج إلى إنشاء بعض التغذية الاصطناعية أولاً</string>

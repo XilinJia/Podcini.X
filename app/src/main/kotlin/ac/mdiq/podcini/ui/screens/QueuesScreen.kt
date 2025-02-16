@@ -476,7 +476,7 @@ fun QueuesScreen() {
                                 vm.isQueueLocked = !vm.isQueueLocked
                                 putPref(AppPrefs.prefQueueLocked, vm.isQueueLocked)
                                 vm.dragDropEnabled = !(isQueueKeepSorted || vm.isQueueLocked)
-                                toastMassege =  context.getString(if (vm.isQueueLocked) R.string.queue_locked else R.string.queue_unlocked)
+                                Logt(TAG, context.getString(if (vm.isQueueLocked) R.string.queue_locked else R.string.queue_unlocked))
                                 expanded = false
                             }
                             DropdownMenuItem(text = {

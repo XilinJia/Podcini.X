@@ -729,6 +729,7 @@ fun AudioPlayerScreen() {
                 if (vm.curItem != null) {
                     episodeOnDisplay = vm.curItem!!
                     mainNavController.navigate(Screens.EpisodeInfo.name)
+                    isBSExpanded = false
                 }
             })
             if (mediaType == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
@@ -780,7 +781,7 @@ fun AudioPlayerScreen() {
                 val clipboardManager: ClipboardManager? = ContextCompat.getSystemService(context, ClipboardManager::class.java)
                 clipboardManager?.setPrimaryClip(ClipData.newPlainText("Podcini", text))
                 // TODO: if (Build.VERSION.SDK_INT <= 32) necessary?
-                toastMassege = context.getString(R.string.copied_to_clipboard)
+                Logt(TAG, context.getString(R.string.copied_to_clipboard))
                 return true
             }
             gearbox.PlayerDetailedGearPanel(vm)
@@ -830,8 +831,8 @@ fun AudioPlayerScreen() {
             AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
                 ShownotesWebView(context).apply {
                     setTimecodeSelectedListener { time: Int -> seekTo(time) }
+                    // Restoring the scroll position might not always work
                     setPageFinishedListener {
-                        // Restoring the scroll position might not always work
 //                        postDelayed({ restoreFromPreference() }, 50)
                         postDelayed({ }, 50)
                     }
@@ -921,7 +922,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
             val type = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_TYPE, -1)
             val code = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_CODE, -1)
             if (code == -1 || type == -1) {
-                Logt(TAG, "Bad arguments. Won't handle intent. code: $code type: $type")
+                Loge(TAG, "Bad arguments. Won't handle intent. code: $code type: $type")
                 return
             }
             when (type) {

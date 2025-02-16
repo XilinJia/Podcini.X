@@ -4,7 +4,6 @@ import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodeMedia
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
@@ -16,7 +15,6 @@ import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import androidx.annotation.VisibleForTesting
@@ -27,28 +25,11 @@ import java.util.concurrent.ExecutionException
 object AutoCleanups {
     private val TAG: String = AutoCleanups::class.simpleName ?: "Anonymous"
 
-    private var episodeCleanupValue: Int
-        get() = getPref(AppPrefs.prefEpisodeCleanup, "0").toIntOrNull() ?: EpisodeCleanupOptions.Never.num
-        set(episodeCleanupValue) {
-            putPref(AppPrefs.prefEpisodeCleanup, episodeCleanupValue.toString())
-        }
-
-    /**
-     * Removed downloaded episodes outside of the queue if the episode cache is full. Episodes with a smaller
-     * 'playbackCompletionDate'-value will be deleted first.
-     * This method should NOT be executed on the GUI thread.
-     * @param context Used for accessing the DB.
-     */
-//    only used in tests
-    fun performAutoCleanup(context: Context) {
-        build().performCleanup(context)
-    }
-
     @JvmStatic
     fun build(): EpisodeCleanupAlgorithm {
         if (!isAutodownloadEnabled) return APNullCleanupAlgorithm()
-
-        return when (val cleanupValue = episodeCleanupValue) {
+        val cleanupValue = getPref(AppPrefs.prefEpisodeCleanup, "0").toIntOrNull() ?: EpisodeCleanupOptions.Never.num
+        return when (cleanupValue) {
             EpisodeCleanupOptions.ExceptFavorites.num -> ExceptFavoriteCleanupAlgorithm()
             EpisodeCleanupOptions.NotInQueue.num -> APQueueCleanupAlgorithm()
             EpisodeCleanupOptions.Never.num -> APNullCleanupAlgorithm()
@@ -82,8 +63,7 @@ object AutoCleanups {
             }
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
             for (item in delete) {
-                try { runBlocking { deleteEpisodeMedia(context, item).join() }
-                } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
+                try { runBlocking { deleteEpisodeMedia(context, item).join() } } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
             }
             val counter = delete.size
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
@@ -109,9 +89,7 @@ object AutoCleanups {
                 val candidates: MutableList<Episode> = ArrayList()
                 val downloadedItems = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_NEW_OLD)
                 val idsInQueues = getInQueueEpisodeIds()
-                for (item in downloadedItems) {
-                    if (item.downloaded && !idsInQueues.contains(item.id) && !item.isSUPER) candidates.add(item)
-                }
+                for (item in downloadedItems) if (item.downloaded && !idsInQueues.contains(item.id) && !item.isSUPER) candidates.add(item)
                 return candidates
             }
         override fun getReclaimableItems(): Int {
@@ -127,8 +105,7 @@ object AutoCleanups {
             }
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
             for (item in delete) {
-                try { runBlocking { deleteEpisodeMedia(context, item).join() }
-                } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
+                try { runBlocking { deleteEpisodeMedia(context, item).join() } } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
             }
             val counter = delete.size
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
@@ -169,7 +146,7 @@ object AutoCleanups {
                 for (item in downloadedItems) {
                     if (item.downloaded && !idsInQueues.contains(item.id) && item.playState >= PlayState.PLAYED.code && !item.isSUPER) {
                         // make sure this candidate was played at least the proper amount of days prior to now
-                        if (item?.playbackCompletionDate != null && item.playbackCompletionDate!!.before(mostRecentDateForDeletion)) candidates.add(item)
+                        if (item.playbackCompletionDate != null && item.playbackCompletionDate!!.before(mostRecentDateForDeletion)) candidates.add(item)
                     }
                 }
                 return candidates
@@ -188,8 +165,7 @@ object AutoCleanups {
             }
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
             for (item in delete) {
-                try { runBlocking { deleteEpisodeMedia(context, item).join() }
-                } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
+                try { runBlocking { deleteEpisodeMedia(context, item).join() } } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
             }
             val counter = delete.size
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))

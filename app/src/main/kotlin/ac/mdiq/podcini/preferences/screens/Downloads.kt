@@ -369,6 +369,33 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                 }
             }
         }
+        TitleSummaryActionColumn(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum) { navController.navigate(Screens.AutoDownloadScreen.name) }
+        TitleSummarySwitchPrefRow(R.string.pref_auto_delete_title, R.string.pref_auto_delete_sum, AppPrefs.prefAutoDelete)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(stringResource(R.string.pref_auto_local_delete_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.pref_auto_local_delete_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+            }
+            var isChecked by remember { mutableStateOf(getPref(AppPrefs.prefAutoDeleteLocal, false)) }
+            Switch(checked = isChecked, onCheckedChange = {
+                isChecked = it
+                if (blockAutoDeleteLocal && it) {
+                    commonConfirm = CommonConfirmAttrib(
+                        title = "",
+                        message = activity.getString(R.string.pref_auto_local_delete_dialog_body),
+                        confirmRes = R.string.yes,
+                        cancelRes = R.string.cancel_label,
+                        onConfirm = {
+                            blockAutoDeleteLocal = false
+                            putPref(AppPrefs.prefAutoDeleteLocal, it)
+                            blockAutoDeleteLocal = true
+                        })
+                }
+            })
+        }
+        TitleSummarySwitchPrefRow(R.string.pref_keeps_important_episodes_title, R.string.pref_keeps_important_episodes_sum, AppPrefs.prefFavoriteKeepsEpisode)
+        TitleSummarySwitchPrefRow(R.string.pref_delete_removes_from_queue_title, R.string.pref_delete_removes_from_queue_sum, AppPrefs.prefDeleteRemovesFromQueue)
+        Text(stringResource(R.string.download_pref_details), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp))
         var showSetCustomFolderDialog by remember { mutableStateOf(false) }
         if (showSetCustomFolderDialog) {
             var sumTextRes = if (useCustomMediaDir) R.string.pref_custom_media_dir_sum1 else R.string.pref_custom_media_dir_sum
@@ -420,34 +447,6 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
             }
             if (useCustomMediaDir) TextButton(onClick = { showResetCustomFolderDialog = true }) { Text(stringResource(R.string.reset)) }
         }
-        TitleSummaryActionColumn(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum) { navController.navigate(Screens.AutoDownloadScreen.name) }
-        TitleSummarySwitchPrefRow(R.string.pref_auto_delete_title, R.string.pref_auto_delete_sum, AppPrefs.prefAutoDelete)
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.pref_auto_local_delete_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.pref_auto_local_delete_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
-            }
-            var isChecked by remember { mutableStateOf(getPref(AppPrefs.prefAutoDeleteLocal, false)) }
-            Switch(checked = isChecked, onCheckedChange = {
-                isChecked = it
-                if (blockAutoDeleteLocal && it) {
-                    commonConfirm = CommonConfirmAttrib(
-                        title = "",
-                        message = activity.getString(R.string.pref_auto_local_delete_dialog_body),
-                        confirmRes = R.string.yes,
-                        cancelRes = R.string.cancel_label,
-                        onConfirm = {
-                            blockAutoDeleteLocal = false
-                            putPref(AppPrefs.prefAutoDeleteLocal, it)
-                            blockAutoDeleteLocal = true
-                        })
-                }
-            })
-        }
-        TitleSummarySwitchPrefRow(R.string.pref_keeps_important_episodes_title, R.string.pref_keeps_important_episodes_sum, AppPrefs.prefFavoriteKeepsEpisode)
-        TitleSummarySwitchPrefRow(R.string.pref_delete_removes_from_queue_title, R.string.pref_delete_removes_from_queue_sum, AppPrefs.prefDeleteRemovesFromQueue)
-        Text(stringResource(R.string.download_pref_details), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 10.dp))
         var showMeteredNetworkOptions by remember { mutableStateOf(false) }
         TitleSummaryActionColumn(R.string.pref_metered_network_title, R.string.pref_mobileUpdate_sum) { showMeteredNetworkOptions = true }
         if (showMeteredNetworkOptions) {

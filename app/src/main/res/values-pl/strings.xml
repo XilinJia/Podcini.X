@@ -122,12 +122,12 @@
     <string name="feed_video_mode_window">Tryb okna</string>
     <string name="feed_video_mode_fullscreen">Pełny ekran</string>
     <string name="feed_video_mode_audioonly">Tylko dźwięk</string>
-    <string name="feed_auto_download_policy">Automatyczna polityka pobierania</string>
-    <string name="feed_auto_download_new">Tylko nowe elementy</string>
+
+    <string name="feed_auto_dleq_new">Tylko nowe elementy</string>
     <string name="replace">Zamień</string>
-    <string name="feed_auto_download_newer">Najnowsze niezagrane</string>
-    <string name="feed_auto_download_older">Najstarsze nieodtwarzane</string>
-    <string name="feed_auto_download_soon">Oznaczone jako wkrótce.</string>
+    <string name="feed_auto_dleq_newer">Najnowsze niezagrane</string>
+    <string name="feed_auto_dleq_older">Najstarsze nieodtwarzane</string>
+    <string name="feed_auto_dleq_soon">Oznaczone jako wkrótce.</string>
     <string name="put_in_queue_label">Dodaj do kolejki…</string>
     <string name="remove_from_other_queues">Usuń z innych linii</string>
     <string name="create_synthetic_first_note">Najpierw musisz stworzyć syntetyczne kanały</string>

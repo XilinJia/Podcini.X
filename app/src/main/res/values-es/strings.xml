@@ -122,12 +122,12 @@
     <string name="feed_video_mode_window">Modo de ventana</string>
     <string name="feed_video_mode_fullscreen">Pantalla completa</string>
     <string name="feed_video_mode_audioonly">Sólo audio</string>
-    <string name="feed_auto_download_policy">Política de descarga automática</string>
-    <string name="feed_auto_download_new">Sólo elementos nuevos</string>
+
+    <string name="feed_auto_dleq_new">Sólo elementos nuevos</string>
     <string name="replace">Reemplazar</string>
-    <string name="feed_auto_download_newer">Más reciente no jugado</string>
-    <string name="feed_auto_download_older">Lo más antiguo no jugado</string>
-    <string name="feed_auto_download_soon">Marcado como pronto</string>
+    <string name="feed_auto_dleq_newer">Más reciente no jugado</string>
+    <string name="feed_auto_dleq_older">Lo más antiguo no jugado</string>
+    <string name="feed_auto_dleq_soon">Marcado como pronto</string>
     <string name="put_in_queue_label">Añadir a la cola…</string>
     <string name="remove_from_other_queues">Eliminar de otras colas</string>
     <string name="create_synthetic_first_note">Necesitas crear algunos feeds sintéticos primero</string>

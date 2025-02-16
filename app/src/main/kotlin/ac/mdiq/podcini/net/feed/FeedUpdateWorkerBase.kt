@@ -1,7 +1,8 @@
 package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.automation.AutoDownloads.autodownloadEpisodeMedia
+import ac.mdiq.podcini.automation.AutoDownloads.autodownload
+import ac.mdiq.podcini.automation.AutoDownloads.autoenqueue
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.service.DefaultDownloaderFactory
 import ac.mdiq.podcini.net.download.service.DownloadRequest
@@ -86,7 +87,8 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         val fullUpdate = inputData.getBoolean(EXTRA_FULL_UPDATE, false)
         refreshFeeds(feedsToUpdate, force, fullUpdate)
         notificationManager.cancel(R.id.notification_updating_feeds)
-        autodownloadEpisodeMedia(applicationContext, feedsToUpdate.toList())
+        autoenqueue(feedsToUpdate.toList())
+        autodownload(applicationContext, feedsToUpdate.toList())
         feedsToUpdate.clear()
         Logd(TAG, "feedId: $feedId prefAutoUpdateStartTime: [${getPref(AppPrefs.prefAutoUpdateStartTime, ":")}]")
         if (feedId == -1L && getPref(AppPrefs.prefAutoUpdateStartTime, ":") == ":") {

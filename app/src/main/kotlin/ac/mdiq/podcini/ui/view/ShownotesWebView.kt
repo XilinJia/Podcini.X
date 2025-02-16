@@ -21,7 +21,6 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.ContextCompat
-import androidx.core.util.Consumer
 import com.google.android.material.snackbar.Snackbar
 import kotlin.math.max
 
@@ -30,8 +29,8 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
      * URL that was selected via long-press.
      */
     private var selectedUrl: String? = null
-    private var timecodeSelectedListener: Consumer<Int>? = null
-    private var pageFinishedListener: Runnable? = null
+    private var timecodeSelectedListener: ((Int) -> Unit)? = null
+    private var pageFinishedListener: (()->Unit)? = null
 
     constructor(context: Context) : super(context) {
         setup()
@@ -59,14 +58,14 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 if (ShownotesCleaner.isTimecodeLink(url) && timecodeSelectedListener != null)
-                    timecodeSelectedListener!!.accept(ShownotesCleaner.getTimecodeLinkTime(url))
+                    timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(url))
                 else IntentUtils.openInBrowser(context, url)
                 return true
             }
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 Logd(TAG, "Page finished")
-                pageFinishedListener?.run()
+                pageFinishedListener?.invoke()
             }
         })
     }
@@ -84,7 +83,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
                 Logd(TAG, "E-Mail of webview was long-pressed. Extra: " + r.extra)
                 ContextCompat.getSystemService(context, ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Podcini", r.extra))
                 // TODO: is checking SDK_INT <= 32 necessary?
-                toastMassege = context.getString(R.string.copied_to_clipboard)
+                Logt(TAG, context.getString(R.string.copied_to_clipboard))
                 return true
             }
             else -> {
@@ -112,7 +111,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
             }
             R.id.go_to_position_item -> {
                 if (ShownotesCleaner.isTimecodeLink(selectedUrl) && timecodeSelectedListener != null)
-                    timecodeSelectedListener!!.accept(ShownotesCleaner.getTimecodeLinkTime(selectedUrl))
+                    timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(selectedUrl))
                 else Loge(TAG, "Selected go_to_position_item, but URL was not timecode link: $selectedUrl")
             }
             else -> {
@@ -157,11 +156,11 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         }
     }
 
-    fun setTimecodeSelectedListener(timecodeSelectedListener: Consumer<Int>?) {
+    fun setTimecodeSelectedListener(timecodeSelectedListener: ((Int) -> Unit)?) {
         this.timecodeSelectedListener = timecodeSelectedListener
     }
 
-    fun setPageFinishedListener(pageFinishedListener: Runnable?) {
+    fun setPageFinishedListener(pageFinishedListener: (()->Unit)?) {
         this.pageFinishedListener = pageFinishedListener
     }
 

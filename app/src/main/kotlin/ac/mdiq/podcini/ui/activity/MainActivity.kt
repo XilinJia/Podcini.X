@@ -559,7 +559,7 @@ class MainActivity : CastEnabledActivity() {
                     "SUBSCRIPTIONS" -> mainNavController.navigate(Screens.Subscriptions.name)
                     "STATISTCS" -> mainNavController.navigate(Screens.Statistics.name)
                     else -> {
-                        toastMassege = getString(R.string.app_action_not_found) + feature
+                        Logt(TAG, getString(R.string.app_action_not_found) + feature)
                         return
                     }
                 }

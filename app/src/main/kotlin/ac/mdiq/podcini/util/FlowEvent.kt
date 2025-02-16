@@ -2,10 +2,12 @@ package ac.mdiq.podcini.util
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.storage.model.*
+import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.EpisodeSortOrder
+import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.Rating
 import android.content.Context
 import android.view.KeyEvent
-import androidx.core.util.Consumer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -189,7 +191,7 @@ sealed class FlowEvent {
 
     data class FeedUpdatingEvent(val isRunning: Boolean) : FlowEvent()
 
-    data class MessageEvent(val message: String, val action: Consumer<Context>? = null, val actionText: String? = null) : FlowEvent()
+    data class MessageEvent(val message: String, val action: ((Context)->Unit)? = null, val actionText: String? = null) : FlowEvent()
 
 //    data class SwipeActionsChangedEvent(val dummy: Unit = Unit) : FlowEvent()
 

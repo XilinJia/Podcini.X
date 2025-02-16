@@ -122,12 +122,12 @@
     <string name="feed_video_mode_window">Modo de janela</string>
     <string name="feed_video_mode_fullscreen">Tela cheia</string>
     <string name="feed_video_mode_audioonly">Somente áudio</string>
-    <string name="feed_auto_download_policy">Política de download automático</string>
-    <string name="feed_auto_download_new">Apenas novos itens</string>
+
+    <string name="feed_auto_dleq_new">Apenas novos itens</string>
     <string name="replace">Substituir</string>
-    <string name="feed_auto_download_newer">Recentes não reproduzidos</string>
-    <string name="feed_auto_download_older">Antigos não tocados</string>
-    <string name="feed_auto_download_soon">Marcado em breve</string>
+    <string name="feed_auto_dleq_newer">Recentes não reproduzidos</string>
+    <string name="feed_auto_dleq_older">Antigos não tocados</string>
+    <string name="feed_auto_dleq_soon">Marcado em breve</string>
     <string name="put_in_queue_label">Adicionar à fila…</string>
     <string name="remove_from_other_queues">Remover de outras filas</string>
     <string name="create_synthetic_first_note">Primeiro, você precisa criar alguns feeds sintéticos</string>

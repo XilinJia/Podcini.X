@@ -607,12 +607,12 @@ fun SubscriptionsScreen() {
         var refreshing by remember { mutableStateOf(false)}
 
         var showRemoveFeedDialog by remember { mutableStateOf(false) }
-        if (showRemoveFeedDialog) RemoveFeedDialog(selected, onDismissRequest = {showRemoveFeedDialog = false}, null)
+        if (showRemoveFeedDialog) RemoveFeedDialog(selected, onDismissRequest = {showRemoveFeedDialog = false}) {}
 
         fun saveFeed(cbBlock: (Feed)->Unit) {
             runOnIOScope { for (feed in selected) upsert(feed) { cbBlock(it) } }
             val numItems = selected.size
-            toastMassege = context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems)
+            Logt(TAG, context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems))
         }
 
         @Composable

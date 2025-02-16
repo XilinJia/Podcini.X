@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">Režim okna</string>
     <string name="feed_video_mode_fullscreen">Celá obrazovka</string>
     <string name="feed_video_mode_audioonly">Pouze zvuk</string>
-    <string name="feed_auto_download_policy">Zásady automatického stahování</string>
-    <string name="feed_auto_download_new">Pouze nové položky</string>
+
+    <string name="feed_auto_dleq_new">Pouze nové položky</string>
     <string name="replace">Nahradit</string>
-    <string name="feed_auto_download_newer">Nejnovější nepřehrávané</string>
-    <string name="feed_auto_download_older">Nejstarší nepřehrávané</string>
-    <string name="feed_auto_download_soon">Označeno brzy</string>
+    <string name="feed_auto_dleq_newer">Nejnovější nepřehrávané</string>
+    <string name="feed_auto_dleq_older">Nejstarší nepřehrávané</string>
+    <string name="feed_auto_dleq_soon">Označeno brzy</string>
     <string name="put_in_queue_label">Přidat do fronty…</string>
     <string name="remove_from_other_queues">Odebrat z ostatních front</string>
     <string name="create_synthetic_first_note">Musíš nejdříve vytvořit nějaké syntetické zdroje</string>

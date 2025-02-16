@@ -33,8 +33,7 @@ var toastMassege by mutableStateOf("")
 
 fun Logt(t: String, m: String) {
     if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
-    if (getPref(AppPreferences.AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: $m"
-    else toastMessages.add("$t: $m")
+    toastMassege = "$t: $m"
 }
 
 fun showStackTrace() {

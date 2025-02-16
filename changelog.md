@@ -1,3 +1,24 @@
+# 8.6.0
+
+* fixed EpisodeInfo opened from AudioPlayer shows behind AudioPlayer
+* fixed auto-download filter duration unit mismatch issue
+* in feed settings
+	* rearranged some items
+	* added auto-enqueue
+		* requires feed associated queue not set to None
+		* mutually exclusive with auto-download setting in the feed
+		* works in similar ways as auto-download except that the episodes are not downloaded but only added to associated queue
+		* also ruled by settings of policy and cache etc in the feed
+* added AutoEnqueueAlgorithm
+* in each auto-download feed, number of candidates is at max equal to the number allowed, a change from having some extras
+	* also ruled by settings of policy and cache etc in the feed
+* auto-download Soon is no longer a normal policy but an option taking precedence over normal policies
+* cleaned AutoDownloadAlgorithm
+* Runnable in Thread is converted to Coroutine in AutoDownloadAlgorithm and in PlaybackService for position server and sleep time, improving efficiency
+* replaced Runnable and Consumer with Kotlin functions in most cases
+* in Settings->Downloads, "Use custom media folder" is relocated to Details
+* adjusted some toast messages
+
 # 8.5.5
 
 * avoided some screens reload due to past FeedUpdatingEvent and EpisodeDownloadEvent

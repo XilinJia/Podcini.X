@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">Fönster läge</string>
     <string name="feed_video_mode_fullscreen">Helskärm</string>
     <string name="feed_video_mode_audioonly">Endast ljud</string>
-    <string name="feed_auto_download_policy">Automatisk hämtningspolicy</string>
-    <string name="feed_auto_download_new">Endast nya objekt</string>
+
+    <string name="feed_auto_dleq_new">Endast nya objekt</string>
     <string name="replace">Ersätt</string>
-    <string name="feed_auto_download_newer">Nyaste ospelade</string>
-    <string name="feed_auto_download_older">Äldsta ospelade</string>
-    <string name="feed_auto_download_soon">Markerad som snart</string>
+    <string name="feed_auto_dleq_newer">Nyaste ospelade</string>
+    <string name="feed_auto_dleq_older">Äldsta ospelade</string>
+    <string name="feed_auto_dleq_soon">Markerad som snart</string>
     <string name="put_in_queue_label">Lägg till i kö…</string>
     <string name="remove_from_other_queues">Ta bort från andra köer</string>
     <string name="create_synthetic_first_note">Du måste skapa några syntetiska flöden först</string>

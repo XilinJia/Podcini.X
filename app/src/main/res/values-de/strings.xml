@@ -123,12 +123,12 @@
     <string name="feed_video_mode_window">Fenstermodus</string>
     <string name="feed_video_mode_fullscreen">Vollbild</string>
     <string name="feed_video_mode_audioonly">Nur Audio</string>
-    <string name="feed_auto_download_policy">Auto-Download-Richtlinie</string>
-    <string name="feed_auto_download_new">Nur neue Artikel</string>
+
+    <string name="feed_auto_dleq_new">Nur neue Artikel</string>
     <string name="replace">Ersetzen</string>
-    <string name="feed_auto_download_newer">Neueste nicht gespielt</string>
-    <string name="feed_auto_download_older">Älteste Wiedergabe</string>
-    <string name="feed_auto_download_soon">Als bald markiert</string>
+    <string name="feed_auto_dleq_newer">Neueste nicht gespielt</string>
+    <string name="feed_auto_dleq_older">Älteste Wiedergabe</string>
+    <string name="feed_auto_dleq_soon">Als bald markiert</string>
     <string name="put_in_queue_label">Zur Warteschlange… hinzufügen</string>
     <string name="remove_from_other_queues">Aus anderen Warteschlangen entfernen</string>
     <string name="create_synthetic_first_note">Du musst zuerst einige synthetische Feeds erstellen</string>

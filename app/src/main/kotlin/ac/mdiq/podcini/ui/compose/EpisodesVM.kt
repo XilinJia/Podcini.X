@@ -192,7 +192,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
                                     episode = changes.obj     // direct assignment doesn't update member like media??
                                 }
 //                                Logd("EpisodeVM", "episodeMonitor $playedState $playedState ")
-                            } else Logt("EpisodeVM", "episodeMonitor index out bound")
+                            } else Loge("EpisodeVM", "episodeMonitor index out bound")
                         }
                         else -> {}
                     }

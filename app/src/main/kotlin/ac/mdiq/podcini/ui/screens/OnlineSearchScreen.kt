@@ -257,10 +257,7 @@ fun OnlineSearchScreen() {
                         mainNavController.navigate(Screens.FeedDetails.name)
                     }
                 }
-            } catch (e: Throwable) {
-                Logs(TAG, e)
-                toastMassege = e.localizedMessage?: "No messaage"
-            }
+            } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
         }
     }
 
@@ -327,11 +324,7 @@ fun OnlineSearchScreen() {
             Text(stringResource(R.string.advanced), color = textColor, fontWeight = FontWeight.Bold)
             Text(stringResource(R.string.add_podcast_by_url), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = { vm.showAddViaUrlDialog() }))
             Text(stringResource(R.string.add_local_folder), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
-                try { addLocalFolderLauncher.launch(null)
-                } catch (e: ActivityNotFoundException) {
-                    Logs(TAG, e)
-                    toastMassege = context.getString(R.string.unable_to_start_system_file_manager)
-                }
+                try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
             }))
             gearbox.GearSearchText()
             Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
@@ -344,11 +337,7 @@ fun OnlineSearchScreen() {
             }))
             if (vm.showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { vm.showOpmlImportSelectionDialog = false }
             Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
-                try { chooseOpmlImportPathLauncher.launch("*/*")
-                } catch (e: ActivityNotFoundException) {
-                    Logs(TAG, e)
-                    toastMassege = context.getString(R.string.unable_to_start_system_file_manager)
-                }
+                try { chooseOpmlImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
             }))
         }
     }

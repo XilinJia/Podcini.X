@@ -125,7 +125,7 @@ class Feed : RealmObject {
 
     @Ignore
     val isLocalFeed: Boolean
-        get() = downloadUrl?.startsWith(PREFIX_LOCAL_FOLDER) ?: false
+        get() = downloadUrl?.startsWith(PREFIX_LOCAL_FOLDER) == true
 
     @Ignore
     var episodeFilter: EpisodeFilter = EpisodeFilter("")
@@ -252,6 +252,8 @@ class Feed : RealmObject {
 
     var autoDownload: Boolean = false
 
+    var autoEnqueue: Boolean = false
+
     @Ignore
     var queue: PlayQueue? = null
         get() = when {
@@ -325,6 +327,8 @@ class Feed : RealmObject {
     var autoDLExclude: String? = ""
     var autoDLMinDuration: Int = -1
     var markExcludedPlayed: Boolean = false
+
+    var autoDLSoon: Boolean = false
 
     var autoDLMaxEpisodes: Int = 3
     var countingPlayed: Boolean = true      // relates to autoDLMaxEpisodes
@@ -476,11 +480,11 @@ class Feed : RealmObject {
     }
 
     enum class AutoDownloadPolicy(val code: Int, val resId: Int, var replace: Boolean) {
-        ONLY_NEW(0, R.string.feed_auto_download_new, false),
-        NEWER(1, R.string.feed_auto_download_newer, false),
-        OLDER(2, R.string.feed_auto_download_older, false),
-        SOON(3, R.string.feed_auto_download_soon, false),
-        FILTER_SORT(4, R.string.feed_auto_download_filter_sort, false);
+        ONLY_NEW(0, R.string.feed_auto_dleq_new, false),
+        NEWER(1, R.string.feed_auto_dleq_newer, false),
+        OLDER(2, R.string.feed_auto_dleq_older, false),
+//        SOON(3, R.string.feed_auto_dleq_soon, false),
+        FILTER_SORT(4, R.string.feed_auto_dleq_filter_sort, false);
 
         companion object {
             fun fromCode(code: Int): AutoDownloadPolicy {

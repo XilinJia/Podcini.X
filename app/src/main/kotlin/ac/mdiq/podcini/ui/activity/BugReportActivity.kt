@@ -10,6 +10,7 @@ import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.error.CrashReportWriter
 import ac.mdiq.podcini.util.toastMassege
 import android.content.ClipData
@@ -86,7 +87,7 @@ class BugReportActivity : ComponentActivity() {
                     val clip = ClipData.newPlainText(getString(R.string.bug_report_title), crashDetailsTextView)
                     clipboard.setPrimaryClip(clip)
                     Logd(TAG, "Build.VERSION.SDK_INT: ${Build.VERSION.SDK_INT}")
-                    toastMassege = getString(R.string.copied_to_clipboard)
+                    Logt(TAG, getString(R.string.copied_to_clipboard))
                 }) { Text(stringResource(R.string.copy_to_clipboard)) }
                 Button(modifier = Modifier.fillMaxWidth(), onClick = { sendEmail() }) { Text(stringResource(R.string.email_developer)) }
                 Text(crashDetailsTextView, color = textColor)
@@ -134,7 +135,7 @@ class BugReportActivity : ComponentActivity() {
             setType("message/rfc822")
         }
         if (emailIntent.resolveActivity(packageManager) != null) startActivity(emailIntent)
-        else toastMassege = getString(R.string.need_email_client)
+        else Logt(TAG, getString(R.string.need_email_client))
     }
     companion object {
         private val TAG: String = BugReportActivity::class.simpleName ?: "Anonymous"

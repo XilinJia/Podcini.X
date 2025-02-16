@@ -120,12 +120,12 @@
     <string name="feed_video_mode_window">Режим окна</string>
     <string name="feed_video_mode_fullscreen">Полный экран</string>
     <string name="feed_video_mode_audioonly">Только аудио</string>
-    <string name="feed_auto_download_policy">Политика автозагрузки</string>
-    <string name="feed_auto_download_new">Только новые элементы</string>
+
+    <string name="feed_auto_dleq_new">Только новые элементы</string>
     <string name="replace">Заменить</string>
-    <string name="feed_auto_download_newer">Новейшие неигровые</string>
-    <string name="feed_auto_download_older">Старые неигровые</string>
-    <string name="feed_auto_download_soon">Помечено как скоро</string>
+    <string name="feed_auto_dleq_newer">Новейшие неигровые</string>
+    <string name="feed_auto_dleq_older">Старые неигровые</string>
+    <string name="feed_auto_dleq_soon">Помечено как скоро</string>
     <string name="put_in_queue_label">Добавить в очередь…</string>
     <string name="remove_from_other_queues">Удалить из других очередей</string>
     <string name="create_synthetic_first_note">Сначала нужно создать синтетические каналы</string>

@@ -122,12 +122,12 @@
     <string name="feed_video_mode_window">ウィンドウモード</string>
     <string name="feed_video_mode_fullscreen">全画面</string>
     <string name="feed_video_mode_audioonly">音声のみ</string>
-    <string name="feed_auto_download_policy">自動ダウンロードポリシー</string>
-    <string name="feed_auto_download_new">新しいアイテムのみ</string>
+
+    <string name="feed_auto_dleq_new">新しいアイテムのみ</string>
     <string name="replace">置換</string>
-    <string name="feed_auto_download_newer">最近再生されなかった曲</string>
-    <string name="feed_auto_download_older">再生されていない古い順</string>
-    <string name="feed_auto_download_soon">まもなくとしてマーク</string>
+    <string name="feed_auto_dleq_newer">最近再生されなかった曲</string>
+    <string name="feed_auto_dleq_older">再生されていない古い順</string>
+    <string name="feed_auto_dleq_soon">まもなくとしてマーク</string>
     <string name="put_in_queue_label">Add to queue…</string>
     <string name="remove_from_other_queues">他のキューから削除</string>
     <string name="create_synthetic_first_note">最初に合成フィードを作成する必要があります</string>

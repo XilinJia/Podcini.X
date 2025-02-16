@@ -316,7 +316,7 @@ fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
             TitleSummaryActionColumn(R.string.synchronization_full_sync_title, R.string.synchronization_force_sync_summary) { SyncService.fullSync(activity) }
             TitleSummaryActionColumn(R.string.synchronization_logout, 0) {
                 SynchronizationCredentials.clear(activity)
-                toastMassege = activity.getString(R.string.pref_synchronization_logout_toast)
+                Logt("SynchronizationPreferencesScreen", activity.getString(R.string.pref_synchronization_logout_toast))
                 setSelectedSyncProvider(null)
                 loggedIn = isProviderConnected
             }

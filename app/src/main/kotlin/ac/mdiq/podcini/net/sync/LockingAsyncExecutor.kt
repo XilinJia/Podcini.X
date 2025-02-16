@@ -15,28 +15,15 @@ object LockingAsyncExecutor {
      * in progress). If the lock is free, the runnable is directly executed in the calling thread to prevent overhead.
      */
     @JvmStatic
-    fun executeLockedAsync(runnable: Runnable) {
+    fun executeLockedAsync(runnable: ()->Unit) {
         if (lock.tryLock()) {
-            try {
-                runnable.run()
-            } finally {
-                lock.unlock()
-            }
+            try { runnable() } finally { lock.unlock() }
         } else {
-//            Completable.fromRunnable {
-//                lock.lock()
-//                try {
-//                    runnable.run()
-//                } finally {
-//                    lock.unlock()
-//                }
-//            }.subscribeOn(Schedulers.io()).subscribe()
-
             val coroutineScope = CoroutineScope(Dispatchers.Main)
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {
                     lock.lock()
-                    try { runnable.run() } finally { lock.unlock() }
+                    try { runnable() } finally { lock.unlock() }
                 }
             }
         }
