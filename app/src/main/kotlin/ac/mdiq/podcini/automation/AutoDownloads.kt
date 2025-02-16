@@ -145,11 +145,12 @@ object AutoDownloads {
         val feeds = feeds ?: getFeedList()
         feeds.forEach { f ->
             if (((dl && f.autoDownload) || (!dl && f.autoEnqueue)) && !f.isLocalFeed) {
-                val dlFilter =
+                val dlFilter = if (dl) {
                     if (f.countingPlayed) EpisodeFilter(EpisodeFilter.States.downloaded.name)
                     else EpisodeFilter(EpisodeFilter.States.downloaded.name,
                         EpisodeFilter.States.unplayed.name, EpisodeFilter.States.inQueue.name,
                         EpisodeFilter.States.inProgress.name, EpisodeFilter.States.skipped.name)
+                } else EpisodeFilter(EpisodeFilter.States.inQueue.name)
                 val downloadedCount = getEpisodesCount(dlFilter, f.id)
                 var allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount
                 Logd(TAG, "autoDownloadEpisodeMedia ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")

@@ -190,11 +190,28 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
       * with Replace, new items will replace old downloaded items
     * Newest: the newest items (not necessarily new) are downloaded
     * Oldest: the oldest items are downloaded
-    * Marked as Soon: only those marked as Soon are downloaded (in order of pub date descending)
     * Current filter and sort: the items to be downloaded depend on the current filtering and sorting criteria set in FeedDetailed screen
       * the current filtering and sorting criteria are copied so, once set, future changes won't affect auto-download behavior
+  * Those marked as Soon can be separately enabled, and once enabled, takes precedence over normal policies
   * After auto download run, episodes with New status in the feed is changed to Unplayed.
   * In auto download feed setting, inclusive and exclusive filters can be set (if needed) 
+    * there are now separate dialogs for inclusive and exclusive filters where filter tokens can be specified independently
+    * on exclusive dialog, there are optional check boxes "Exclude episodes shorter than" and "Mark excluded episodes played"
+* Auto enqueue algorithm is based on settings in individual feed.
+  * Auto enqueue run after feed refresh, scheduled or manual
+  * Auto-enqueuing of episodes in any feed need to be separately enabled in the feed settings.
+  * Each feed has its own limit (Episode cache) for number of episodes enqueued, this limit rules in combination of the global limit for the app.
+  * Each feed can have its own enqueue policy 
+    * Only new: only new items at refresh time are enqueue candidates.
+      * without Replace, if old enqueued items (fulfilling the allowed cache) have not been played, new items will not be enqueued.
+      * with Replace, new items will replace old enqueued items
+    * Newest: the newest items (not necessarily new) are enqueued
+    * Oldest: the oldest items are enqueued
+    * Current filter and sort: the items to be enqueued depend on the current filtering and sorting criteria set in FeedDetailed screen
+      * the current filtering and sorting criteria are copied so, once set, future changes won't affect auto-enqueue behavior
+  * Those marked as Soon can be separately enabled, and once enabled, takes precedence over normal policies
+ * After auto-enqueue run, episodes with New status in the feed is changed to Unplayed.
+  * In auto-enqueue feed setting, inclusive and exclusive filters can be set (if needed) 
     * there are now separate dialogs for inclusive and exclusive filters where filter tokens can be specified independently
     * on exclusive dialog, there are optional check boxes "Exclude episodes shorter than" and "Mark excluded episodes played"
 * Sleep timer has a new option of "To the end of episode"
