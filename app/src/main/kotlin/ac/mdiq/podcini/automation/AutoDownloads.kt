@@ -78,6 +78,23 @@ object AutoDownloads {
                     }
                 }
                 assembleFeedsCandidates(feeds, candidates, toReplace)
+                runOnIOScope {
+                    val feeds = feeds ?: getFeedList()
+                    feeds.forEach { f ->
+                        realm.write {
+                            while (true) {
+                                val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${PlayState.NEW.code} LIMIT(20)").find()
+                                if (episodesNew.isEmpty()) break
+                                Logd(AutoDownloads.TAG, "autoDownloadEpisodeMedia episodesNew: ${episodesNew.size}")
+                                episodesNew.map { e ->
+                                    e.setPlayed(false)
+                                    Logd(AutoDownloads.TAG, "autoDownloadEpisodeMedia reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
+                                    copyToRealm(e, UpdatePolicy.ALL)
+                                }
+                            }
+                        }
+                    }
+                }
                 if (candidates.isNotEmpty()) {
                     val autoDownloadableCount = candidates.size
                     if (toReplace.isNotEmpty()) deleteEpisodesSync(context, toReplace.toList())
@@ -235,20 +252,6 @@ object AutoDownloads {
                     episodes.clear()
                 }
                 Logd(TAG, "autoDownloadEpisodeMedia ${f.title} candidate size: ${candidates.size}")
-            }
-            runOnIOScope {
-                realm.write {
-                    while (true) {
-                        val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${PlayState.NEW.code} LIMIT(20)").find()
-                        if (episodesNew.isEmpty()) break
-                        Logd(TAG, "autoDownloadEpisodeMedia episodesNew: ${episodesNew.size}")
-                        episodesNew.map { e ->
-                            e.setPlayed(false)
-                            Logd(TAG, "autoDownloadEpisodeMedia reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
-                            copyToRealm(e, UpdatePolicy.ALL)
-                        }
-                    }
-                }
             }
         }
     }

@@ -594,6 +594,20 @@ fun FeedSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.pref_feed_skip_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
+            if (vm.feed?.type != Feed.FeedType.YOUTUBE.name) {
+                //                    auto delete
+                Column {
+                    Row(Modifier.fillMaxWidth()) {
+                        val showDialog = remember { mutableStateOf(false) }
+                        if (showDialog.value) AutoDeleteDialog(onDismissRequest = { showDialog.value = false })
+                        Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Text(text = stringResource(R.string.auto_delete_label), style = CustomTextStyles.titleCustom, color = textColor,
+                            modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                    }
+                    Text(text = stringResource(R.string.auto_delete) + ": " + stringResource(vm.autoDeleteSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+            }
             if ((vm.feed?.id ?: 0) > MAX_SYNTHETIC_ID) {
                 //                    refresh
                 Column {
@@ -610,20 +624,6 @@ fun FeedSettingsScreen() {
                         )
                     }
                     Text(text = stringResource(R.string.keep_updated_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                }
-            }
-            if (vm.feed?.type != Feed.FeedType.YOUTUBE.name) {
-                //                    auto delete
-                Column {
-                    Row(Modifier.fillMaxWidth()) {
-                        val showDialog = remember { mutableStateOf(false) }
-                        if (showDialog.value) AutoDeleteDialog(onDismissRequest = { showDialog.value = false })
-                        Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.auto_delete_label), style = CustomTextStyles.titleCustom, color = textColor,
-                            modifier = Modifier.clickable(onClick = { showDialog.value = true }))
-                    }
-                    Text(text = stringResource(vm.autoDeleteSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }
             if (vm.curPrefQueue != "None") {
@@ -696,9 +696,24 @@ fun FeedSettingsScreen() {
                                 var newCache by remember { mutableStateOf((vm.feed?.autoDLMaxEpisodes ?: 3).toString()) }
                                 TextField(value = newCache, onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) newCache = it },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.max_episodes_cache)) })
+                                //                    counting played
+                                var countingPlayed by remember { mutableStateOf(vm.feed?.countingPlayed != false) }
+                                if (autoDownloadChecked) Column {
+                                    HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
+                                    Row(Modifier.fillMaxWidth()) {
+                                        Checkbox(checked = countingPlayed, modifier = Modifier.height(24.dp), onCheckedChange = { countingPlayed = it })
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(text = stringResource(R.string.pref_auto_download_counting_played_title), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                                    }
+                                    Text(text = stringResource(R.string.pref_auto_download_counting_played_summary), style = MaterialTheme.typography.bodySmall, color = textColor)
+                                    HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
+                                }
                                 Button(onClick = {
                                     if (newCache.isNotEmpty()) {
-                                        vm.feed = upsertBlk(vm.feed!!) { it.autoDLMaxEpisodes = newCache.toIntOrNull() ?: 3 }
+                                        vm.feed = upsertBlk(vm.feed!!) {
+                                            it.autoDLMaxEpisodes = newCache.toIntOrNull() ?: 3
+                                            if (autoDownloadChecked) it.countingPlayed = countingPlayed
+                                        }
                                         onDismiss()
                                     }
                                 }) { Text(stringResource(R.string.confirm_label)) }
@@ -715,21 +730,6 @@ fun FeedSettingsScreen() {
                             modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                     }
                     Text(text = stringResource(R.string.pref_episode_cache_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                }
-                //                    counting played
-                if (autoDownloadChecked) Column(modifier = Modifier.padding(start = 20.dp)) {
-                    Row(Modifier.fillMaxWidth()) {
-                        Text(text = stringResource(R.string.pref_auto_download_counting_played_title), style = CustomTextStyles.titleCustom, color = textColor)
-                        Spacer(modifier = Modifier.weight(1f))
-                        var checked by remember { mutableStateOf(vm.feed?.countingPlayed != false) }
-                        Switch(checked = checked, modifier = Modifier.height(24.dp),
-                            onCheckedChange = {
-                                checked = it
-                                vm.feed = upsertBlk(vm.feed!!) { f -> f.countingPlayed = checked }
-                            }
-                        )
-                    }
-                    Text(text = stringResource(R.string.pref_auto_download_counting_played_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
                 //                    include Soon
                 Column(modifier = Modifier.padding(start = 20.dp)) {

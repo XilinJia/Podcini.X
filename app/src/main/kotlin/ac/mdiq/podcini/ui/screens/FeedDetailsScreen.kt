@@ -656,10 +656,11 @@ fun FeedDetailsScreen() {
         val scrollState = rememberScrollState()
         var showEditComment by remember { mutableStateOf(false) }
         val localTime = remember { System.currentTimeMillis() }
-        var editCommentText by remember { mutableStateOf(TextFieldValue((if (vm.feed?.comment.isNullOrBlank()) "" else vm.feed!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")) }
+        var editCommentText by remember { mutableStateOf(TextFieldValue(vm.feed?.comment ?: "")) }
         var commentTextState by remember { mutableStateOf(TextFieldValue(vm.feed?.comment ?: "")) }
         if (showEditComment) LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = {showEditComment = false},
             onSave = {
+                commentTextState = editCommentText
                 if (vm.feed != null) {
                     runOnIOScope {
                         vm.feed = upsert(vm.feed!!) {
@@ -681,7 +682,10 @@ fun FeedDetailsScreen() {
             Text(HtmlToPlainText.getPlainText(vm.feed?.description?:""), color = textColor, style = MaterialTheme.typography.bodyMedium)
             Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isBlank()) " (Add)" else "",
                 color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
-                modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
+                modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable {
+                    editCommentText = TextFieldValue((if (vm.feed?.comment.isNullOrBlank()) "" else vm.feed!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
+                    showEditComment = true
+                })
             if (commentTextState.text.isNotBlank()) Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
 
             Text(stringResource(R.string.statistics_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))

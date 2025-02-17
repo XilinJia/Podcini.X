@@ -12,9 +12,9 @@ import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.UsageStatistics
 import ac.mdiq.podcini.storage.database.Queues.addToQueue
 import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
+import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayState
@@ -389,14 +389,16 @@ fun EpisodeInfoScreen() {
 
     var showEditComment by remember { mutableStateOf(false) }
     val localTime = remember { System.currentTimeMillis() }
-    var editCommentText by remember { mutableStateOf(TextFieldValue((if (vm.episode?.comment.isNullOrBlank()) "" else vm.episode!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")) }
+    var editCommentText by remember { mutableStateOf(TextFieldValue( vm.episode?.comment ?: "") ) }
     var commentTextState by remember { mutableStateOf(TextFieldValue(vm.episode?.comment?:"")) }
-    if (showEditComment) LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = {showEditComment = false},
+    if (showEditComment) LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false},
         onSave = {
-            runOnIOScope { if (vm.episode != null) vm.episode = upsert(vm.episode!!) {
+            commentTextState = editCommentText
+            if (vm.episode != null) vm.episode = upsertBlk(vm.episode!!) {
+                Logd(TAG, "onSave editCommentText [${editCommentText.text}]")
                 it.comment = editCommentText.text
                 it.commentTime = localTime
-            } }
+            }
         })
 
     var showChooseRatingDialog by remember { mutableStateOf(false) }
@@ -485,9 +487,12 @@ fun EpisodeInfoScreen() {
                         it.loadDataWithBaseURL("https://127.0.0.1", vm.episode!!.webviewData?:"", "text/html", "utf-8", "about:blank") })
                 if (!vm.episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
-                Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isEmpty()) " (Add)" else "",
+                Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isBlank()) " (Add)" else "",
                     color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
-                    modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
+                    modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable {
+                        editCommentText = TextFieldValue((if (vm.episode?.comment.isNullOrBlank()) "" else vm.episode!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
+                        showEditComment = true
+                    })
                 Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                 Text(vm.itemLink, color = textColor, style = MaterialTheme.typography.bodySmall)
             }

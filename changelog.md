@@ -1,3 +1,10 @@
+# 8.6.2
+
+* fixed malfunctioning adding opinions
+* fixed auto-download not function caused by auto-downloadable episodes being reset by auto-enqueue algorithm
+* moved setting of counting played in feed settings into "Episode cache" dialog
+* moved "Auto delete episode" setting in feed settings and added explanation text
+
 # 8.6.1
 
 * fixed auto-download setting not persisted in feed settings

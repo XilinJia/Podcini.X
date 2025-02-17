@@ -14,7 +14,6 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayState
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.*
 import ac.mdiq.podcini.util.EventFlow
@@ -47,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.runBlocking
 import java.util.*
 
@@ -260,8 +258,8 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             return getAppContext().getString(R.string.add_opinion_label)
         }
         override fun performAction(item: Episode) {
-//            onEpisode = realm.query(Episode::class).query("id == ${item.id}").first().find()
-            onEpisode = item
+            onEpisode = realm.query(Episode::class).query("id == ${item.id}").first().find()
+//            onEpisode = item
             localTime = System.currentTimeMillis()
             editCommentText = TextFieldValue((if (onEpisode?.comment.isNullOrBlank()) "" else onEpisode!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
             showEditComment = true

@@ -631,6 +631,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
         Column(modifier.padding(start = 6.dp, end = 6.dp)
             .combinedClickable(onClick = {
                 Logd(TAG, "clicked: ${vm.episode.title}")
+//                Logd(TAG, "clicked: ${vm.episode.comment}")
                 if (selectMode) toggleSelected(vm)
                 else {
                     episodeOnDisplay = vm.episode
