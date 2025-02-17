@@ -659,7 +659,7 @@ fun FeedSettingsScreen() {
                             if (autoEnqueueChecked) autoDownloadChecked = false
                             vm.feed = upsertBlk(vm.feed!!) { f ->
                                 f.autoEnqueue = autoEnqueueChecked
-                                if (autoEnqueueChecked) f.autoDownload = false
+                                f.autoDownload = autoDownloadChecked
                             }
                         })
                 }
@@ -673,10 +673,10 @@ fun FeedSettingsScreen() {
                             onCheckedChange = {
                                 autoDownloadChecked = it
                                 if (autoDownloadChecked) autoEnqueueChecked = false
-                                vm.feed = upsertBlk(vm.feed!!) { f -> {
+                                vm.feed = upsertBlk(vm.feed!!) { f ->
                                     f.autoDownload = autoDownloadChecked
-                                    if (autoDownloadChecked) f.autoEnqueue = false
-                                } }
+                                    f.autoEnqueue = autoEnqueueChecked
+                                }
                             })
                     }
                 }

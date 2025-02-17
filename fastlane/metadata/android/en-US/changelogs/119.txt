@@ -1,0 +1,3 @@
+# 8.6.1
+
+* fixed auto-download setting not persisted in feed settings

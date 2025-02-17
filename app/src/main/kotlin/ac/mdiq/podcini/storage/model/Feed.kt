@@ -414,6 +414,7 @@ class Feed : RealmObject {
             this.password = other.password
             this.playSpeed = other.playSpeed
             this.autoDownload = other.autoDownload
+            this.autoEnqueue = other.autoEnqueue
         }
     }
 

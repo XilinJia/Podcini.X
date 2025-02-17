@@ -1,3 +1,7 @@
+# 8.6.1
+
+* fixed auto-download setting not persisted in feed settings
+
 # 8.6.0
 
 * fixed EpisodeInfo opened from AudioPlayer shows behind AudioPlayer
