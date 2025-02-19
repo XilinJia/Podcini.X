@@ -107,7 +107,7 @@
     <string name="close_label">Fechar</string>
     <string name="retry_label">Tentar novamente</string>
     <string name="auto_download_label">Incluir nas descargas automáticas</string>
-    <string name="auto_delete_label">Eliminar episódio automaticamente</string>
+    <string name="auto_delete_episode">Eliminar episódio automaticamente</string>
     <string name="feed_volume_adapdation">Ajuste de volume</string>
     <string name="feed_volume_adaptation_summary">Ajustar volume dos episódios deste podcast para: %1$s</string>
     <string name="feed_volume_reduction_off">Não ajustar</string>
@@ -384,7 +384,7 @@
     <string name="pref_custom_media_dir_sum1">Pasta de mídia personalizada foi definida. Deseja alterar?</string>
     <string name="pref_custom_media_dir_sum2">Pasta de mídia personalizada foi definida. Deseja redefinir para o padrão?</string>
     <string name="pref_auto_delete_sum">Eliminar episódio ao terminar a reprodução</string>
-    <string name="pref_auto_delete_title">Eliminação automática</string>
+    <string name="auto_delete">Eliminação automática</string>
     <string name="pref_auto_local_delete_title">Eliminação automática para pastas locais</string>
     <string name="pref_auto_local_delete_sum">Incluir pastas locais na funcionalidade Eliminação automática</string>
     <string name="pref_auto_local_delete_dialog_body">Tem a certeza de que deseja ativar a eliminação automática\? Para pastas locais, esta opção elimina os episódios da aplicação, do dispositivo e não será possível uma nova descarga. Ativar eliminação automática\?</string>
@@ -807,7 +807,7 @@
     <string name="rss">Resposta</string>
     <string name="has_video">Possui vídeo</string>
     <string name="has_comments">comentou</string>
-    <string name="auto_delete">Excluir automaticamente</string>
+
     <string name="always">sempre</string>
     <string name="never">nunca</string>
     <string name="auto_download">Baixar automaticamente</string>

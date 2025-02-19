@@ -19,7 +19,9 @@ import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.runBlocking
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.ExecutionException
 
 object AutoCleanups {

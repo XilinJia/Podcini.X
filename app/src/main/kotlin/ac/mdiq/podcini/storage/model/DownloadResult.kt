@@ -5,8 +5,7 @@ import ac.mdiq.podcini.net.download.DownloadError.Companion.fromCode
 import io.realm.kotlin.types.RealmObject
 import io.realm.kotlin.types.annotations.Ignore
 import io.realm.kotlin.types.annotations.PrimaryKey
-
-import java.util.*
+import java.util.Date
 
 /**
  * Contains status attributes for one download

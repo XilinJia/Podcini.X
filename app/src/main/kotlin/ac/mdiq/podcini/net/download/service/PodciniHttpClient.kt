@@ -10,14 +10,17 @@ import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.annotation.SuppressLint
 import android.net.TrafficStats
-import okhttp3.*
-import okhttp3.Credentials.basic
-import okhttp3.Interceptor.Chain
-import okhttp3.OkHttpClient.Builder
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.IOException
-import java.net.*
+import java.net.CookieManager
+import java.net.CookiePolicy
+import java.net.HttpURLConnection
+import java.net.InetAddress
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.Socket
+import java.net.SocketAddress
 import java.nio.charset.Charset
 import java.security.GeneralSecurityException
 import java.security.KeyStore
@@ -27,7 +30,23 @@ import java.security.cert.CertificateException
 import java.security.cert.CertificateFactory
 import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
-import javax.net.ssl.*
+import javax.net.ssl.SSLContext
+import javax.net.ssl.SSLSocket
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.TrustManager
+import javax.net.ssl.TrustManagerFactory
+import javax.net.ssl.X509TrustManager
+import okhttp3.Cache
+import okhttp3.ConnectionSpec
+import okhttp3.Credentials.basic
+import okhttp3.Interceptor
+import okhttp3.Interceptor.Chain
+import okhttp3.JavaNetCookieJar
+import okhttp3.OkHttpClient
+import okhttp3.OkHttpClient.Builder
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.Route
 
 /**
  * Provides access to a HttpClient singleton.

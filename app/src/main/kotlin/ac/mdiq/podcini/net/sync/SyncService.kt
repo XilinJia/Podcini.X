@@ -35,23 +35,33 @@ import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.utils.NotificationUtils
-import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.os.Build
 import androidx.collection.ArrayMap
 import androidx.core.app.NotificationCompat
-import androidx.work.*
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints.Builder
+import androidx.work.CoroutineWorker
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.apache.commons.lang3.StringUtils
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.TimeUnit
 
 open class SyncService(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     val TAG = this::class.simpleName ?: "Anonymous"
@@ -100,7 +110,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         } finally { setCurrentlyActive(false) }
     }
 
-     @Throws(SyncServiceException::class)
+    @Throws(SyncServiceException::class)
     private fun syncSubscriptions(syncServiceImpl: ISyncService) {
         Logd(TAG, "syncSubscriptions called")
         val lastSync = SynchronizationSettings.lastSubscriptionSynchronizationTimestamp
@@ -180,7 +190,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             .filter { it is FlowEvent.FeedUpdatingEvent }
             .map { it as FlowEvent.FeedUpdatingEvent }
             .firstOrNull { !it.isRunning }
-        if (event == null || !event.isRunning!!) return
+        if (event == null || !event.isRunning) return
         EventFlow.stickyEvents
             .filter { it is FlowEvent.FeedUpdatingEvent }
             .map { it as FlowEvent.FeedUpdatingEvent }

@@ -30,6 +30,7 @@ import ac.mdiq.podcini.ui.screens.*
 import ac.mdiq.podcini.ui.utils.*
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
@@ -175,14 +176,14 @@ class MainActivity : CastEnabledActivity() {
 
         runOnIOScope {
             if (prefs.getBoolean(Extras.prefMainActivityIsFirstLaunch.name, true)) {
-                restartUpdateAlarm(this, true)
+                restartUpdateAlarm(applicationContext, true)
                 val edit = prefs.edit()
                 edit.putBoolean(Extras.prefMainActivityIsFirstLaunch.name, false)
                 edit.apply()
             }
         }
 
-        restartUpdateAlarm(this, false)
+        restartUpdateAlarm(applicationContext, false)
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
 
         WorkManager.getInstance(this)
@@ -242,7 +243,7 @@ class MainActivity : CastEnabledActivity() {
                     bottom = dynamicBottomPadding
                 )) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = {
-                        toastMessages.add(toastMassege)
+                        toastMessages.add(localDateTimeString() + " " + toastMassege)
                         toastMassege = ""
                     })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)

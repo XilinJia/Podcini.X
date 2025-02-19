@@ -9,16 +9,21 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.error.DownloadErrorLabel.from
 import android.content.Context
-import kotlinx.coroutines.*
-import org.jsoup.Jsoup
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import org.jsoup.Jsoup
 
 open class FeedBuilderBase(val context: Context, val showError: (String?, String)->Unit) {
     protected val TAG = "FeedBuilder"

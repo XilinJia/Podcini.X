@@ -37,9 +37,9 @@ import android.net.Uri
 import androidx.core.app.NotificationManagerCompat
 import androidx.documentfile.provider.DocumentFile
 import io.realm.kotlin.ext.isManaged
-import kotlinx.coroutines.Job
 import java.io.File
-import java.util.*
+import java.util.Locale
+import kotlinx.coroutines.Job
 import kotlin.math.min
 
 object Episodes {

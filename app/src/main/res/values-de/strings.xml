@@ -108,7 +108,7 @@
     <string name="close_label">Schließen</string>
     <string name="retry_label">Erneut versuchen</string>
     <string name="auto_download_label">Automatisch herunterladen</string>
-    <string name="auto_delete_label">Episode automatisch löschen</string>
+    <string name="auto_delete_episode">Episode automatisch löschen</string>
     <string name="feed_volume_adapdation">Lautstärkeanpassung</string>
     <string name="feed_volume_adaptation_summary">Lautstärke für Episoden dieses Podcasts lauter oder leiser stellen: %1$s</string>
     <string name="feed_volume_reduction_off">Keine Anpassung</string>
@@ -385,7 +385,7 @@
     <string name="pref_custom_media_dir_sum1">Benutzerdefinierter Medienordner ist gesetzt. Möchten Sie ändern?</string>
     <string name="pref_custom_media_dir_sum2">Benutzerdefinierter Medienordner ist gesetzt. Möchten Sie auf Standard zurücksetzen?</string>
     <string name="pref_auto_delete_sum">Episode löschen, wenn die Wiedergabe endet</string>
-    <string name="pref_auto_delete_title">Automatisches Löschen</string>
+    <string name="auto_delete">Automatisches Löschen</string>
     <string name="pref_auto_local_delete_title">Automatisches Löschen aus lokalen Ordnern</string>
     <string name="pref_auto_local_delete_sum">Lokale Ordner in die automatische Löschfunktion einbeziehen</string>
     <string name="pref_auto_local_delete_dialog_body">Beachte, dass bei lokalen Ordnern die Episoden aus Podcini entfernt und die zugehörigen Mediendateien aus dem Gerätespeicher gelöscht werden. Sie können dann nicht mehr über Podcini heruntergeladen werden. Automatisches Löschen aktivieren\?</string>
@@ -808,7 +808,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">Hat Video</string>
     <string name="has_comments">Hat kommentiert</string>
-    <string name="auto_delete">Auto-Löschen</string>
+
     <string name="always">Immer</string>
     <string name="never">Nie</string>
     <string name="auto_download">Automatischer Download</string>

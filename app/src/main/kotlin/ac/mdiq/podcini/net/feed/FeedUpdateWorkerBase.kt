@@ -29,6 +29,7 @@ import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.Manifest
 import android.app.Notification
@@ -47,7 +48,7 @@ import kotlinx.coroutines.withContext
 import org.xml.sax.SAXException
 import java.io.File
 import java.io.IOException
-import java.util.*
+import java.util.Date
 import java.util.concurrent.Callable
 import javax.xml.parsers.ParserConfigurationException
 
@@ -80,7 +81,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         }
         if (!inputData.getBoolean(EXTRA_EVEN_ON_MOBILE, false) && !allAreLocal) {
             if (!networkAvailable() || !isFeedRefreshAllowed) {
-                Logd(TAG, "Blocking automatic update")
+                Loge(TAG, "Refresh not performed: network unavailable or isFeedRefreshAllowed: $isFeedRefreshAllowed")
                 return Result.retry()
             }
         }
@@ -152,7 +153,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
                     else -> refreshFeed(feed, force, fullUpdate)
                 }
             } catch (e: Exception) {
-                Logd(TAG, "update failed ${e.message}")
+                Loge(TAG, "update failed ${e.message}")
                 Feeds.persistFeedLastUpdateFailed(feed, true)
                 val status = DownloadResult(feed.id, feed.title?:"", DownloadError.ERROR_IO_ERROR, false, e.message?:"")
                 LogsAndStats.addDownloadStatus(status)
@@ -172,8 +173,11 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         val downloader = DefaultDownloaderFactory().create(request) ?: throw Exception("Unable to create downloader")
         downloader.call()
         if (!downloader.result.isSuccessful) {
-            if (downloader.cancelled || downloader.result.reason == DownloadError.ERROR_DOWNLOAD_CANCELLED) return
-            Logd(TAG, "update failed: unsuccessful cancelled?")
+            if (downloader.cancelled || downloader.result.reason == DownloadError.ERROR_DOWNLOAD_CANCELLED) {
+                Logt(TAG, "Refresh feed cancelled")
+                return
+            }
+            Logt(TAG, "update failed: unsuccessful. cancelled?")
             Feeds.persistFeedLastUpdateFailed(feed, true)
             LogsAndStats.addDownloadStatus(downloader.result)
             return
@@ -181,7 +185,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         val feedUpdateTask = FeedUpdateTask(applicationContext, request)
         val success = if (fullUpdate) feedUpdateTask.run() else feedUpdateTask.runSimple()
         if (!success) {
-            Logd(TAG, "update failed: unsuccessful")
+            Logt(TAG, "update failed: unsuccessful")
             Feeds.persistFeedLastUpdateFailed(feed, true)
             LogsAndStats.addDownloadStatus(feedUpdateTask.downloadStatus)
             return
@@ -312,6 +316,5 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
             Feeds.updateFeedSimple(feedHandlerResult!!.feed)
             return true
         }
-
     }
 }

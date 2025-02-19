@@ -24,7 +24,7 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import kotlinx.coroutines.Job
-import java.util.*
+import kotlin.random.Random
 
 object Queues {
     private val TAG: String = Queues::class.simpleName ?: "Anonymous"
@@ -318,22 +318,16 @@ object Queues {
          */
         fun calcPosition(queueItems: List<Episode>, currentPlaying: Episode?): Int {
             if (queueItems.isEmpty()) return 0
-            when (enqueueLocation) {
-                EnqueueLocation.BACK -> return queueItems.size
+            return when (enqueueLocation) {
+                EnqueueLocation.BACK -> queueItems.size
                 // Return not necessarily 0, so that when a list of items are downloaded and enqueued
                 // in succession of calls (e.g., users manually tapping download one by one),
                 // the items enqueued are kept the same order.
                 // Simply returning 0 will reverse the order.
-                EnqueueLocation.FRONT -> return getPositionOfFirstNonDownloadingItem(0, queueItems)
-                EnqueueLocation.AFTER_CURRENTLY_PLAYING -> {
-                    val currentlyPlayingPosition = getCurrentlyPlayingPosition(queueItems, currentPlaying)
-                    return getPositionOfFirstNonDownloadingItem(currentlyPlayingPosition + 1, queueItems)
-                }
-                EnqueueLocation.RANDOM -> {
-                    val random = Random()
-                    return random.nextInt(queueItems.size + 1)
-                }
-//                else -> throw AssertionError("calcPosition() : unrecognized enqueueLocation option: $enqueueLocation")
+                EnqueueLocation.FRONT -> getPositionOfFirstNonDownloadingItem(0, queueItems)
+                EnqueueLocation.AFTER_CURRENTLY_PLAYING -> getPositionOfFirstNonDownloadingItem(getCurrentlyPlayingPosition(queueItems, currentPlaying) + 1, queueItems)
+                EnqueueLocation.RANDOM -> Random.Default.nextInt(queueItems.size + 1)
+        //                else -> throw AssertionError("calcPosition() : unrecognized enqueueLocation option: $enqueueLocation")
             }
         }
         private fun getPositionOfFirstNonDownloadingItem(startPosition: Int, queueItems: List<Episode>): Int {
@@ -344,7 +338,7 @@ object Queues {
         private fun isItemAtPositionDownloading(position: Int, queueItems: List<Episode>): Boolean {
             val curItem = try { queueItems[position] } catch (e: IndexOutOfBoundsException) { null }
             if (curItem?.downloadUrl == null) return false
-            return DownloadServiceInterface.impl?.isDownloadingEpisode(curItem.downloadUrl!!)?:false
+            return DownloadServiceInterface.impl?.isDownloadingEpisode(curItem.downloadUrl!!) == true
         }
         private fun getCurrentlyPlayingPosition(queueItems: List<Episode>, currentPlaying: Episode?): Int {
             if (currentPlaying == null) return -1

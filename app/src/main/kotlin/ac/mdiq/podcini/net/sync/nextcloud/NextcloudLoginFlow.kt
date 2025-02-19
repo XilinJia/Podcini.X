@@ -6,7 +6,15 @@ import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import kotlinx.coroutines.*
+import java.io.IOException
+import java.net.URI
+import java.net.URL
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -14,9 +22,6 @@ import okhttp3.Request.Builder
 import okhttp3.RequestBody
 import org.json.JSONException
 import org.json.JSONObject
-import java.io.IOException
-import java.net.URI
-import java.net.URL
 
 class NextcloudLoginFlow(
         private val httpClient: OkHttpClient,

@@ -13,16 +13,22 @@ import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import android.annotation.SuppressLint
 import android.app.UiModeManager
 import android.content.ContentResolver
 import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
-import androidx.media3.common.MediaMetadata
-import com.google.android.gms.cast.*
+import com.google.android.gms.cast.CastDevice
+import com.google.android.gms.cast.MediaError
+import com.google.android.gms.cast.MediaInfo
+import com.google.android.gms.cast.MediaLoadOptions
+import com.google.android.gms.cast.MediaLoadRequestData
+import com.google.android.gms.cast.MediaMetadata
+import com.google.android.gms.cast.MediaSeekOptions
+import com.google.android.gms.cast.MediaStatus
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession
 import com.google.android.gms.cast.framework.CastState
@@ -31,7 +37,7 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.images.WebImage
 import java.io.IOException
-import java.util.*
+import java.util.Calendar
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
@@ -269,7 +275,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
-    override fun setDataSource(metadata: MediaMetadata, media: Episode) {
+    override fun setDataSource(metadata: androidx.media3.common.MediaMetadata, media: Episode) {
         Logd(TAG, "setDataSource1 called")
         if (!gearbox.formCastMediaSource(media)) {
             media.effectUrl = media.downloadUrl ?: ""
@@ -411,11 +417,11 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
          */
         fun from(media: Episode?): MediaInfo? {
             if (media == null) return null
-            val metadata = MediaMetadata(com.google.android.gms.cast.MediaMetadata.MEDIA_TYPE_GENERIC)
+            val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_GENERIC)
             val feedItem = media
-            metadata.putString(com.google.android.gms.cast.MediaMetadata.KEY_TITLE, media.getEpisodeTitle())
+            metadata.putString(MediaMetadata.KEY_TITLE, media.getEpisodeTitle())
             val subtitle = media.feed?.title?:""
-            metadata.putString(com.google.android.gms.cast.MediaMetadata.KEY_SUBTITLE, subtitle)
+            metadata.putString(MediaMetadata.KEY_SUBTITLE, subtitle)
 
             val feed: Feed? = feedItem.feed
             // Manual because cast does not support embedded images
@@ -423,9 +429,9 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             if (url.isNotEmpty()) metadata.addImage(WebImage(Uri.parse(url)))
             val calendar = Calendar.getInstance()
             calendar.time = feedItem.getPubDate()
-            metadata.putDate(com.google.android.gms.cast.MediaMetadata.KEY_RELEASE_DATE, calendar)
+            metadata.putDate(MediaMetadata.KEY_RELEASE_DATE, calendar)
             if (feed != null) {
-                if (!feed.author.isNullOrEmpty()) metadata.putString(com.google.android.gms.cast.MediaMetadata.KEY_ARTIST, feed.author!!)
+                if (!feed.author.isNullOrEmpty()) metadata.putString(MediaMetadata.KEY_ARTIST, feed.author!!)
                 if (!feed.downloadUrl.isNullOrEmpty()) metadata.putString(KEY_FEED_URL, feed.downloadUrl!!)
                 if (!feed.link.isNullOrEmpty()) metadata.putString(KEY_FEED_WEBSITE, feed.link!!)
             }

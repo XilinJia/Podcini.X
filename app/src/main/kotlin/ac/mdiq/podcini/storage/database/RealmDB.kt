@@ -17,8 +17,8 @@ import io.realm.kotlin.dynamic.getValueSet
 import io.realm.kotlin.ext.isManaged
 import io.realm.kotlin.types.RealmObject
 import io.realm.kotlin.types.TypedRealmObject
-import kotlinx.coroutines.*
 import java.io.File
+import kotlinx.coroutines.*
 import kotlin.coroutines.ContinuationInterceptor
 
 object RealmDB {

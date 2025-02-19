@@ -17,8 +17,13 @@ import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
-import ac.mdiq.podcini.storage.model.*
+import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.EpisodeFilter
+import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
@@ -61,10 +66,10 @@ object AutoDownloads {
             val networkShouldAutoDl = (isAutoDownloadAllowed && isAutodownloadEnabled)
             // true if we should auto download based on power status
             val powerShouldAutoDl = (deviceCharging(context) || getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false))
-            Logd(TAG, "autoDownloadEpisodeMedia prepare $networkShouldAutoDl $powerShouldAutoDl")
+            Logd(TAG, "run prepare $networkShouldAutoDl $powerShouldAutoDl")
             // we should only auto download if both network AND power are happy
             if (networkShouldAutoDl && powerShouldAutoDl) {
-                Logd(TAG, "autoDownloadEpisodeMedia Performing auto-dl of undownloaded episodes")
+                Logd(TAG, "run Performing auto-dl of undownloaded episodes")
                 val toReplace: MutableSet<Episode> = mutableSetOf()
                 val candidates: MutableSet<Episode> = mutableSetOf()
                 val queues = realm.query(PlayQueue::class).find()
@@ -73,7 +78,7 @@ object AutoDownloads {
                     for (qn in includedQueues) {
                         val q = queues.first { it.name == qn }
                         val queueItems = realm.query(Episode::class).query("id IN $0 AND downloaded == false", q.episodeIds).find()
-                        Logd(TAG, "autoDownloadEpisodeMedia add from queue: ${q.name} ${queueItems.size}")
+                        Logd(TAG, "run add from queue: ${q.name} ${queueItems.size}")
                         if (queueItems.isNotEmpty()) candidates.addAll(queueItems)
                     }
                 }
@@ -85,16 +90,17 @@ object AutoDownloads {
                             while (true) {
                                 val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${PlayState.NEW.code} LIMIT(20)").find()
                                 if (episodesNew.isEmpty()) break
-                                Logd(AutoDownloads.TAG, "autoDownloadEpisodeMedia episodesNew: ${episodesNew.size}")
+                                Logd(TAG, "run episodesNew: ${episodesNew.size}")
                                 episodesNew.map { e ->
                                     e.setPlayed(false)
-                                    Logd(AutoDownloads.TAG, "autoDownloadEpisodeMedia reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
+                                    Logd(TAG, "run reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
                                     copyToRealm(e, UpdatePolicy.ALL)
                                 }
                             }
                         }
                     }
                 }
+                Logd(TAG, "run candidates ${candidates.size} for download")
                 if (candidates.isNotEmpty()) {
                     val autoDownloadableCount = candidates.size
                     if (toReplace.isNotEmpty()) deleteEpisodesSync(context, toReplace.toList())
@@ -102,26 +108,28 @@ object AutoDownloads {
                     val deletedCount = toReplace.size + AutoCleanups.build().makeRoomForEpisodes(context, autoDownloadableCount - toReplace.size)
                     val appEpisodeCache = getPref(AppPrefs.prefEpisodeCacheSize, "0").toInt()
                     val cacheIsUnlimited = appEpisodeCache <= AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED
+                    Logd(TAG, "run cacheIsUnlimited: $cacheIsUnlimited appEpisodeCache: $appEpisodeCache downloadedCount: $downloadedCount autoDownloadableCount: $autoDownloadableCount deletedCount: $deletedCount")
                     val allowedCount =
                         if (cacheIsUnlimited || appEpisodeCache >= downloadedCount + autoDownloadableCount) autoDownloadableCount
                         else appEpisodeCache - (downloadedCount - deletedCount)
+                    Logd(TAG, "run allowedCount $allowedCount")
                     if (allowedCount > 0) {
                         var itemsToDownload = candidates.toMutableList()
                         if (allowedCount < candidates.size) itemsToDownload = itemsToDownload.subList(0, allowedCount)
                         if (itemsToDownload.isNotEmpty()) {
-                            Logt(TAG, "Enqueueing ${itemsToDownload.size} items for download")
+                            Logt(TAG, "run Enqueueing ${itemsToDownload.size} items for download")
                             for (e in itemsToDownload) {
-                                Logd(TAG, "autoDownloadEpisodeMedia reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
+                                Logd(TAG, "run reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
                                 DownloadServiceInterface.impl?.download(context, e)
                             }
                         }
                         Logt(TAG, "Auto downloaded episodes: ${itemsToDownload.size}")
                         itemsToDownload.clear()
-                    }
+                    } else Logt(TAG, "Auto download not performed: candidates: ${candidates.size} allowedCount: $allowedCount")
                     candidates.clear()
                 }
             }
-            else Logt(TAG, "Auto download not performed: network allowed: $networkShouldAutoDl power allowed $powerShouldAutoDl")
+            else Logt(TAG, "Auto download not performed: network: $networkShouldAutoDl power: $powerShouldAutoDl")
         }
 
         fun deviceCharging(context: Context): Boolean {
@@ -137,20 +145,18 @@ object AutoDownloads {
     class AutoEnqueueAlgorithm {
         private val TAG = "AutoEnqueueAlgorithm"
         suspend fun run(feeds: List<Feed>?) {
-            Logd(TAG, "Performing auto-dl of undownloaded episodes")
+            Logd(TAG, "Performing auto-enqueue of undownloaded episodes")
             val toReplace: MutableSet<Episode> = mutableSetOf()
             val candidates: MutableSet<Episode> = mutableSetOf()
 
             assembleFeedsCandidates(feeds, candidates, toReplace, dl = false)
             if (candidates.isNotEmpty()) {
                 if (toReplace.isNotEmpty()) removeFromAllQueuesSync(*toReplace.toTypedArray())
-                if (candidates.isNotEmpty()) {
-                    Logt(TAG, "Enqueueing ${candidates.size} items")
-                    for (e in candidates) {
-                        Logd(TAG, "reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
-                        val q = e.feed?.queue ?: continue
-                        addToQueueSync(e, q)
-                    }
+                Logd(TAG, "Enqueueing ${candidates.size} items")
+                for (e in candidates) {
+                    Logd(TAG, "adding to queue ${e.title} ${e.playState} ${e.downloadUrl}")
+                    val q = e.feed?.queue ?: continue
+                    addToQueueSync(e, q)
                 }
                 Logt(TAG, "Auto enqueued episodes: ${candidates.size}")
                 candidates.clear()
@@ -170,8 +176,8 @@ object AutoDownloads {
                 } else EpisodeFilter(EpisodeFilter.States.inQueue.name)
                 val downloadedCount = getEpisodesCount(dlFilter, f.id)
                 var allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount
-                Logd(TAG, "autoDownloadEpisodeMedia ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")
-                Logd(TAG, "autoDownloadEpisodeMedia autoDLPolicy: ${f.autoDLPolicy.name}")
+                Logd(TAG, "assembleFeedsCandidates ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")
+                Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${f.autoDLPolicy.name}")
                 var episodes = mutableListOf<Episode>()
                 var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND downloaded == false"
                 if (allowedDLCount > 0) {
@@ -190,16 +196,16 @@ object AutoDownloads {
                             if (f.autoDLPolicy.replace) {
                                 allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
                                 queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
-                                Logd(TAG, "autoDownloadEpisodeMedia queryString: $queryString")
+                                Logd(TAG, "assembleFeedsCandidates queryString: $queryString")
                                 val es = realm.query(Episode::class).query(queryString).find()
                                 if (es.isNotEmpty()) {
                                     val numToDelete = es.size + downloadedCount - allowedDLCount
-                                    Logd(TAG, "autoDownloadEpisodeMedia numToDelete: $numToDelete")
+                                    Logd(TAG, "assembleFeedsCandidates numToDelete: $numToDelete")
                                     val toDelete_ = getEpisodes(dlFilter, f.id, numToDelete)
                                     if (toDelete_.isNotEmpty()) toReplace.addAll(toDelete_)
-                                    Logd(TAG, "autoDownloadEpisodeMedia toDelete_: ${toDelete_.size}")
+                                    Logd(TAG, "assembleFeedsCandidates toDelete_: ${toDelete_.size}")
                                     episodes.addAll(es)
-                                    Logd(TAG, "autoDownloadEpisodeMedia episodes: ${episodes.size}")
+                                    Logd(TAG, "assembleFeedsCandidates episodes: ${episodes.size}")
                                 }
                             } else {
                                 queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
@@ -243,7 +249,7 @@ object AutoDownloads {
                         for (e in episodes) {
                             if (isCurMedia(e)) continue
                             if (f.autoDownloadFilter?.meetsAutoDLCriteria(e) == true) {
-                                Logd(TAG, "autoDownloadEpisodeMedia add to cadidates: ${e.title} ${e.downloaded}")
+                                Logd(TAG, "assembleFeedsCandidates add to candidates: ${e.title} ${e.downloaded}")
                                 candidates.add(e)
                                 if (++count >= allowedDLCount) break
                             } else upsertBlk(e) { it.setPlayed(true)}
@@ -251,7 +257,7 @@ object AutoDownloads {
                     }
                     episodes.clear()
                 }
-                Logd(TAG, "autoDownloadEpisodeMedia ${f.title} candidate size: ${candidates.size}")
+                Logd(TAG, "assembleFeedsCandidates ${f.title} candidate size: ${candidates.size}")
             }
         }
     }

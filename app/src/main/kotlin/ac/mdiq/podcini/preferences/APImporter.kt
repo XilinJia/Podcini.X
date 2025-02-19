@@ -88,7 +88,6 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
             val columnCount = cursor.columnCount
             while (cursor.moveToNext()) {
                 val feed = Feed()
-//                val pref = FeedPreferences()
                 for (i in 0 until columnCount) {
                     val columnName = cursor.getColumnName(i)
                     when (columnName) {
@@ -116,7 +115,6 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
                     }
                 }
                 Logd(TAG, "feed title: ${feed.title}")
-//                feed.preferences = pref
                 buildEpisodes(db, feed)
 
                 feed.id = 0L

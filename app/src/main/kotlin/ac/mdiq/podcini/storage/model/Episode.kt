@@ -20,14 +20,12 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
 import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.webkit.URLUtil.guessFileName
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.documentfile.provider.DocumentFile
@@ -39,6 +37,13 @@ import io.realm.kotlin.types.RealmSet
 import io.realm.kotlin.types.annotations.Ignore
 import io.realm.kotlin.types.annotations.Index
 import io.realm.kotlin.types.annotations.PrimaryKey
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.InputStream
+import java.util.Date
 import okhttp3.Request
 import okhttp3.Request.Builder
 import org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR
@@ -46,8 +51,6 @@ import org.apache.commons.io.FilenameUtils.getExtension
 import org.apache.commons.io.input.CountingInputStream
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
-import java.io.*
-import java.util.*
 import kotlin.math.max
 
 class Episode : RealmObject {
@@ -447,7 +450,7 @@ class Episode : RealmObject {
         this.mimeType = mimeType
         setfileUrlOrNull(null)
         this.downloadUrl = downloadUrl
-        Logd(TAG, "fillMedia downloadUrl: $downloadUrl")
+//        Logd(TAG, "fillMedia downloadUrl: $downloadUrl")
     }
 
     // from EpisodeMedia

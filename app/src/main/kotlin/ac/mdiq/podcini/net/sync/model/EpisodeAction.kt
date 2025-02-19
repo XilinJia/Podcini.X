@@ -2,12 +2,13 @@ package ac.mdiq.podcini.net.sync.model
 
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
 import org.json.JSONException
 import org.json.JSONObject
 import java.text.ParseException
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class EpisodeAction private constructor(builder: Builder) {
     val podcast: String? = builder.podcast

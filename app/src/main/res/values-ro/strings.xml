@@ -105,7 +105,7 @@
     <string name="close_label">închide</string>
     <string name="retry_label">Reîncearcă</string>
     <string name="auto_download_label">Include în descărcările automate</string>
-    <string name="auto_delete_label">Șterge epidosul automat</string>
+    <string name="auto_delete_episode">Șterge epidosul automat</string>
     <string name="feed_volume_adapdation">Adaptarea volumului</string>
     <string name="feed_volume_adaptation_summary">Modifică volumul acestui podcast: %1$s</string>
     <string name="feed_volume_reduction_off">Nu există adaptări ale volumului</string>
@@ -387,7 +387,7 @@
     <string name="pref_custom_media_dir_sum1">Folderul personalizat media este setat. Doriți să modificați?</string>
     <string name="pref_custom_media_dir_sum2">Folderul personalizat media este setat. Doriți să resetați la valorile implicite?</string>
     <string name="pref_auto_delete_sum">Sterge episodul când redarea este completă</string>
-    <string name="pref_auto_delete_title">Șterge automat</string>
+    <string name="auto_delete">Șterge automat</string>
     <string name="pref_auto_local_delete_title">Ștergere automată din dosarul local</string>
     <string name="pref_auto_local_delete_sum">Include dosare locale în funcționalitatea de ștergere automată</string>
     <string name="pref_auto_local_delete_dialog_body">Reține faptul ca pentru dosare locale această funcție va elimina episoade din Podcini și va șterge fișiere media din memoria dispozitivului folosit. Aceste fișiere nu vor mai putea fi descărcate din nou folosind Podcini. Dorești activarea duncției de ștergere automată\?</string>
@@ -813,7 +813,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">Are videoclip</string>
     <string name="has_comments">A comentat</string>
-    <string name="auto_delete">Ștergere automată</string>
+
     <string name="always">Întotdeauna</string>
     <string name="never">Niciodată</string>
     <string name="auto_download">Descărcare automată</string>

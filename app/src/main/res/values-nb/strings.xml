@@ -99,7 +99,7 @@
   <string name="close_label">Lukk</string>
   <string name="retry_label">Prøv igjen</string>
   <string name="auto_download_label">Inkluder i automatiske nedlastninger</string>
-  <string name="auto_delete_label">Slett episode automatisk</string>
+  <string name="auto_delete_episode">Slett episode automatisk</string>
   <string name="feed_auto_download_always">Alltid</string>
   <string name="feed_auto_download_never">Aldri</string>
 
@@ -309,7 +309,7 @@
   <string name="button_action_restart_episode">Omstart episode</string>
   <string name="pref_followQueue_sum">Hopp til neste element i køen når avspillingen er ferdig</string>
   <string name="pref_auto_delete_sum">Slett episode når avspillingen er ferdig</string>
-  <string name="pref_auto_delete_title">Automatisk sletting</string>
+  <string name="auto_delete">Automatisk sletting</string>
 
 
   <string name="pref_skip_keeps_episodes_sum">Behold episoder når de hoppes over</string>

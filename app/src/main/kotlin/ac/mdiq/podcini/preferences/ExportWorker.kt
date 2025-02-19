@@ -10,10 +10,14 @@ import android.content.Context
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.documentfile.provider.DocumentFile
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.OutputStream
+import java.io.OutputStreamWriter
+import java.nio.charset.Charset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.*
-import java.nio.charset.Charset
 
 enum class ExportTypes(val contentType: String, val outputNameTemplate: String, @field:StringRes val labelResId: Int) {
     OPML("text/x-opml", "podcini-feeds-%s.opml", R.string.opml_export_label),

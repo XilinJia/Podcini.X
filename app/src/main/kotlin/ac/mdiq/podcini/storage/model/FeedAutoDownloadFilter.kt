@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.storage.model
 
 import java.io.Serializable
-import java.util.*
+import java.util.Locale
 import java.util.regex.Pattern
 
 // We're storing the strings and not the parsed terms because

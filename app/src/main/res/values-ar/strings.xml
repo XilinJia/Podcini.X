@@ -106,7 +106,7 @@
     <string name="close_label">اغلاق</string>
     <string name="retry_label">اعادة المحاولة</string>
     <string name="auto_download_label">تضمين في التنزيل التلقائي</string>
-    <string name="auto_delete_label">مسح الحلقات تلقائيا</string>
+    <string name="auto_delete_episode">مسح الحلقات تلقائيا</string>
     <string name="feed_volume_adapdation">التكيف مع الحجم</string>
     <string name="feed_volume_adaptation_summary">قم بتشغيل مستوى الصوت لحلقات هذا التدوين إلى الأعلى أو لأسفل: %1$s</string>
     <string name="feed_volume_reduction_off">لا يوجد تعديل</string>
@@ -403,7 +403,7 @@
     <string name="pref_custom_media_dir_sum1">تم تعيين مجلد الوسائط المخصص. هل تريد التغيير؟</string>
     <string name="pref_custom_media_dir_sum2">تم تعيين مجلد الوسائط المخصص. هل تريد إعادة التعيين إلى الافتراضي؟</string>
     <string name="pref_auto_delete_sum">أمسح الحلقة عندما ينتهي تشغيلها</string>
-    <string name="pref_auto_delete_title">مسح تلقائي</string>
+    <string name="auto_delete">مسح تلقائي</string>
     <string name="pref_auto_local_delete_title">حذف تلقائي من المجلدات المحلية</string>
     <string name="pref_auto_local_delete_sum">تضمين المجلدات المحلية في وظيفة الحذف التلقائي</string>
     <string name="pref_auto_local_delete_dialog_body">لاحظ أنه للمجلدات المحلية سيؤدي هذا إلى إزالة الحلقات من Podcini وحذف ملفات الوسائط الخاصة بها من وحدة تخزين جهازك. لا يمكن تنزيلها مرة أخرى من خلال Podcini. تمكين الحذف التلقائي\؟</string>
@@ -838,7 +838,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">لديه فيديو</string>
     <string name="has_comments">قام بالتعليق</string>
-    <string name="auto_delete">حذف تلقائي</string>
+
     <string name="always">دائما</string>
     <string name="never">لا</string>
     <string name="auto_download">التحميل التلقائي</string>

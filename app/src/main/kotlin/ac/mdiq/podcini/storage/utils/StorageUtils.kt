@@ -4,8 +4,8 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.net.Uri
 import android.os.Build
@@ -15,18 +15,20 @@ import android.provider.DocumentsContract
 import android.provider.MediaStore
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import org.apache.commons.io.FilenameUtils.*
-import org.apache.commons.lang3.ArrayUtils
-import org.apache.commons.lang3.StringUtils
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.UnsupportedEncodingException
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR
+import org.apache.commons.io.FilenameUtils.getBaseName
+import org.apache.commons.io.FilenameUtils.getExtension
+import org.apache.commons.lang3.ArrayUtils
+import org.apache.commons.lang3.StringUtils
 
 /**
  * Utility functions for handling storage errors

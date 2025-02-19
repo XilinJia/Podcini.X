@@ -20,7 +20,7 @@ import io.realm.kotlin.types.RealmSet
 import io.realm.kotlin.types.annotations.Ignore
 import io.realm.kotlin.types.annotations.Index
 import io.realm.kotlin.types.annotations.PrimaryKey
-import java.util.*
+import java.util.Date
 
 class Feed : RealmObject {
     @PrimaryKey

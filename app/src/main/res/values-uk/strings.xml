@@ -105,7 +105,7 @@
     <string name="close_label">Закрити</string>
     <string name="retry_label">Повторити знову</string>
     <string name="auto_download_label">Включити до автозавантаження</string>
-    <string name="auto_delete_label">Автоматичне видалення епізодів</string>
+    <string name="auto_delete_episode">Автоматичне видалення епізодів</string>
     <string name="feed_volume_adapdation">Адаптація гучності</string>
     <string name="feed_volume_adaptation_summary">Збільшити або збільшити гучність епізодів цього подкасту: %1$s</string>
     <string name="feed_volume_reduction_off">Без змін</string>
@@ -392,7 +392,7 @@
     <string name="pref_custom_media_dir_sum1">Користувальницька папка вибрана. Хочете змінити?</string>
     <string name="pref_custom_media_dir_sum2">Користувальницька папка вибрана. Хочете скинути до типових?</string>
     <string name="pref_auto_delete_sum">Видалити епізод після повного відтворення</string>
-    <string name="pref_auto_delete_title">Автовидалення</string>
+    <string name="auto_delete">Автовидалення</string>
     <string name="pref_auto_local_delete_title">Автовидалення з локальних тек</string>
     <string name="pref_auto_local_delete_sum">Функція автовидалення видалятиме також і локальні теки</string>
     <string name="pref_auto_local_delete_dialog_body">Зверніть увагу, що для локальних тек це призведе до видалення епізодів з Podcini і видалення їхніх медіафайлів зі сховища вашого пристрою. Їх не можна буде знову завантажити через Podcini. Увімкнути автоматичне видалення\?</string>
@@ -821,7 +821,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">З відео</string>
     <string name="has_comments">Прокоментував</string>
-    <string name="auto_delete">Автоматично видаляти</string>
+
     <string name="always">Завжди</string>
     <string name="never">Ніколи</string>
     <string name="auto_download">Автоматичне завантаження</string>

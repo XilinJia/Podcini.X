@@ -96,7 +96,7 @@
   <string name="close_label">Itxi</string>
   <string name="retry_label">Saiatu berriro</string>
   <string name="auto_download_label">Sartu deskarga automatikoetan</string>
-  <string name="auto_delete_label">Ezabatu automatikoki saioa</string>
+  <string name="auto_delete_episode">Ezabatu automatikoki saioa</string>
   <string name="feed_volume_adapdation">Bolumena egokitzea</string>
   <string name="feed_volume_reduction_off">Egokitzerik ez</string>
   <string name="feed_volume_reduction_light">Jaitsiera arina</string>
@@ -302,7 +302,7 @@
   <string name="button_action_restart_episode">Hasi berriz saioa</string>
   <string name="pref_followQueue_sum">Erreprodukzioa amaitzean ilarako hurrengo elementura  jauzi</string>
   <string name="pref_auto_delete_sum">Saioa ezabatu erreprodukzioa amaitzean</string>
-  <string name="pref_auto_delete_title">Ezabatu automatikoki</string>
+  <string name="auto_delete">Ezabatu automatikoki</string>
 
   <string name="pref_skip_keeps_episodes_sum">Saioak gorde jaustean</string>
   <string name="pref_skip_keeps_episodes_title">Mantendu saltatutako saioak</string>

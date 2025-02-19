@@ -102,7 +102,7 @@
   <string name="close_label">Fechar</string>
   <string name="retry_label">Tentar novamente</string>
   <string name="auto_download_label">Incluir em downloads automáticos</string>
-  <string name="auto_delete_label">Excluir episódio automaticamente</string>
+  <string name="auto_delete_episode">Excluir episódio automaticamente</string>
   <string name="feed_auto_download_always">Sempre</string>
   <string name="feed_auto_download_never">Nunca</string>
 
@@ -318,7 +318,7 @@
   <string name="button_action_restart_episode">Reiniciar o episódio</string>
   <string name="pref_followQueue_sum">Pular para o próximo item da fila ao completar a reprodução</string>
   <string name="pref_auto_delete_sum">Excluir o episódio ao completar a reprodução</string>
-  <string name="pref_auto_delete_title">Remoção automática</string>
+  <string name="auto_delete">Remoção automática</string>
 
 
   <string name="pref_skip_keeps_episodes_sum">Mantém os episódios quando eles forem pulados</string>

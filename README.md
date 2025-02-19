@@ -21,7 +21,6 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 ### Note:
 
 #### Translation service is moved to Crowdin, see link down below.
-#### Podcini.X is now fully Compose-based, supports auto-backups, importing databases from AntennaPod and Podcast Addict, and customizing downloaded media folder.
 #### For Podcini to show up on car's HUD with Android Auto, please read AnroidAuto.md for instructions.
 #### If you need to cast to an external speaker or screen, you should install the "play" apk, not the "free" apk, that's about the difference between the two.
 
@@ -31,7 +30,7 @@ If you intend to sync through a server, NextCloud server has been tested, but ca
 
 ## Notable features
 
-1. Is based on Jetpack Compose, using `media3` with `AudioOffloadMode` enabled (nicer to device battery).
+1. Is fully based on Jetpack Compose, using `media3` with `AudioOffloadMode` enabled (nicer to device battery).
 2. Features multiple, natural and circular play queues associable with any podcast.
 3. Presents synthetic podcasts and allows episodes to be shelved to any synthetic podcast.
 4. Allows setting personal notes, 5-level rating, and 12-level play state on every episode.
@@ -39,6 +38,7 @@ If you intend to sync through a server, NextCloud server has been tested, but ca
 6. Handles auto-download governed by policy and limit settings of individual feed (podcast).
 7. Spotlights `instant sync` across devices without a server.
 8. Offers Readability and Text-to-Speech for RSS contents.
+9. Supports auto-backups, customized media folder and importing DB from other apps
 
 ## Usage and notable features description 
 <details> <summary>Click to expand</summary>

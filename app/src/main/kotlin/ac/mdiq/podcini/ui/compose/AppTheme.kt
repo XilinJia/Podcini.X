@@ -9,7 +9,11 @@ import android.util.TypedValue
 import androidx.annotation.AttrRes
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
+import androidx.compose.material3.Typography
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -42,12 +46,12 @@ fun getColorFromAttr(context: Context, @AttrRes attrColor: Int): Int {
 }
 
 private val LightColors = lightColorScheme().copy(
-    tertiary = Color(0xFF7D551B),
+    tertiary = Color(0xFF4E3511),
     tertiaryContainer = Color(0xFFB6EEEE),
 )
 private val DarkColors = darkColorScheme().copy(
     tertiary = Color(0xFFE9A43E),
-    tertiaryContainer = Color(0xFF1B5D64),
+    tertiaryContainer = Color(0xFF0D343E),
 )
 
 @Composable

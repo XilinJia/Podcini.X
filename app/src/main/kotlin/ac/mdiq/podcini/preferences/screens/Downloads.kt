@@ -20,7 +20,13 @@ import ac.mdiq.podcini.storage.model.ProxyConfig
 import ac.mdiq.podcini.storage.utils.StorageUtils.deleteDirectoryRecursively
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.activity.PreferenceActivity.Screens
-import ac.mdiq.podcini.ui.compose.*
+import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.Spinner
+import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
+import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
+import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.Logs
 import android.app.Activity.RESULT_OK
 import android.content.Intent
@@ -28,14 +34,39 @@ import android.net.Uri
 import android.util.Patterns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -46,6 +77,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.SocketAddress
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,11 +92,6 @@ import okhttp3.Request
 import okhttp3.Request.Builder
 import okhttp3.Response
 import okhttp3.Route
-import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.Proxy
-import java.net.SocketAddress
-import java.util.concurrent.TimeUnit
 
 @Suppress("EnumEntryName")
 enum class MobileUpdateOptions(val res: Int) {
@@ -319,7 +350,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                                 if (refreshInterval.isEmpty()) refreshInterval = "0"
                                 putPref(AppPrefs.prefAutoUpdateInterval, refreshInterval)
                                 showIcon = false
-                                restartUpdateAlarm(activity, true)
+                                restartUpdateAlarm(activity.applicationContext, true)
                             }))
                     })
             }
@@ -362,7 +393,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                                 }
                                 putPref(AppPrefs.prefAutoUpdateStartTime, "$h:$m")
                                 showIcon = false
-                                restartUpdateAlarm(activity, true)
+                                restartUpdateAlarm(activity.applicationContext, true)
                             }))
                     }
                     Text(stringResource(R.string.feed_refresh_start_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -370,7 +401,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
             }
         }
         TitleSummaryActionColumn(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum) { navController.navigate(Screens.AutoDownloadScreen.name) }
-        TitleSummarySwitchPrefRow(R.string.pref_auto_delete_title, R.string.pref_auto_delete_sum, AppPrefs.prefAutoDelete)
+        TitleSummarySwitchPrefRow(R.string.auto_delete, R.string.pref_auto_delete_sum, AppPrefs.prefAutoDelete)
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(stringResource(R.string.pref_auto_local_delete_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
@@ -482,7 +513,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                         putPref(AppPrefs.prefMobileUpdateTypes, tempSelectedOptions)
                         val optionsDiff = (tempSelectedOptions - initMobileOptions) + (initMobileOptions - tempSelectedOptions)
                         if (optionsDiff.contains(MobileUpdateOptions.feed_refresh.name) || optionsDiff.contains(MobileUpdateOptions.auto_download.name))
-                            restartUpdateAlarm(activity, true)
+                            restartUpdateAlarm(activity.applicationContext, true)
                         showMeteredNetworkOptions = false
                     }) { Text(text = "OK") }
                 },

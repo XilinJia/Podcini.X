@@ -6,7 +6,9 @@ import org.apache.commons.lang3.StringUtils
 import java.text.ParseException
 import java.text.ParsePosition
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Parses several date formats.

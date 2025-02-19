@@ -105,7 +105,7 @@
     <string name="close_label">Zavřít</string>
     <string name="retry_label">Zkusit znovu</string>
     <string name="auto_download_label">Zahrnout do automaticky stahovaných</string>
-    <string name="auto_delete_label">Automatické mazání epizod</string>
+    <string name="auto_delete_episode">Automatické mazání epizod</string>
     <string name="feed_volume_adapdation">Přizpůsobení hlasitosti</string>
     <string name="feed_volume_adaptation_summary">Zvyšte nebo snižte hlasitost epizod tohoto podcastu: %1$s</string>
     <string name="feed_volume_reduction_off">Bez přizpůsobení</string>
@@ -392,7 +392,7 @@
     <string name="pref_custom_media_dir_sum1">Vlastní složka médií je nastavena. Chcete ji změnit?</string>
     <string name="pref_custom_media_dir_sum2">Vlastní složka médií je nastavena. Chcete obnovit na výchozí?</string>
     <string name="pref_auto_delete_sum">Smazat díl po jeho přehrání</string>
-    <string name="pref_auto_delete_title">Automatické mazání</string>
+    <string name="auto_delete">Automatické mazání</string>
     <string name="pref_auto_local_delete_title">Automatické smazání z lokálních složek</string>
     <string name="pref_auto_local_delete_sum">Zahrnout lokální složky ve funkci automatického mazání</string>
     <string name="pref_auto_local_delete_dialog_body">U místních složek dojde k odstranění epizod z aplikace Podcini a k odstranění jejich mediálních souborů z úložiště zařízení. Nelze je znovu stáhnout prostřednictvím Podciniu. Povolit automatické mazání\?</string>
@@ -821,7 +821,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">Má video</string>
     <string name="has_comments">Má komentář</string>
-    <string name="auto_delete">Automaticky odstranit</string>
+
     <string name="always">Vždy</string>
     <string name="never">Nikdy</string>
     <string name="auto_download">Automatické stahování</string>

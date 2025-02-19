@@ -105,7 +105,7 @@
     <string name="close_label">Κλείσιμο</string>
     <string name="retry_label">Επανάληψη</string>
     <string name="auto_download_label">Συμπερίληψη στις αυτόματες λήψεις</string>
-    <string name="auto_delete_label">Αυτόματη διαγραφή επεισοδίου</string>
+    <string name="auto_delete_episode">Αυτόματη διαγραφή επεισοδίου</string>
     <string name="feed_volume_adapdation">Προσαρμογή όγκου</string>
     <string name="feed_volume_adaptation_summary">Γυρίστε την ένταση για επεισόδια αυτού του podcast επάνω ή κάτω: %1$s</string>
     <string name="feed_volume_reduction_off">Καμία προσαρμογή</string>
@@ -382,7 +382,7 @@
     <string name="pref_custom_media_dir_sum1">Ο προσαρμοσμένος φάκελος πολυμέσων έχει οριστεί. Θέλετε να αλλάξετε?</string>
     <string name="pref_custom_media_dir_sum2">Ο προσαρμοσμένος φάκελος πολυμέσων έχει οριστεί. Θέλετε να επαναφέρετε στην προεπιλογή?</string>
     <string name="pref_auto_delete_sum">Διαγραφή επεισοδίου όταν ολοκληρωθεί η αναπαραγωγή</string>
-    <string name="pref_auto_delete_title">Αυτόματη διαγραφή</string>
+    <string name="auto_delete">Αυτόματη διαγραφή</string>
     <string name="pref_auto_local_delete_title">Αυτόματη διαγραφή από τοπικούς φακέλους</string>
     <string name="pref_auto_local_delete_sum">Συμπερίληψη τοπικών φακέλων στη λειτουργία αυτόματης διαγραφής</string>
     <string name="pref_auto_local_delete_dialog_body">Σημειώστε ότι για τοπικούς φακέλους αυτό θα αφαιρέσει επεισόδια από το Podcini και θα διαγράψει τα αρχεία πολυμέσων τους από τον αποθηκευτικό χώρο της συσκευής σας. Δεν μπορούν να κατέβουν ξανά μέσω Podcini. Ενεργοποιήστε την αυτόματη διαγραφή\?</string>
@@ -805,7 +805,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">Έχει βίντεο</string>
     <string name="has_comments">Έχει σχολιάσει</string>
-    <string name="auto_delete">Αυτόματη διαγραφή</string>
+
     <string name="always">Πάντα</string>
     <string name="never">Ποτέ</string>
     <string name="auto_download">Αυτόματη λήψη</string>

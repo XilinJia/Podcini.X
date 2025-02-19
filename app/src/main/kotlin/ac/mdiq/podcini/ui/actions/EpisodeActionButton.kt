@@ -30,7 +30,13 @@ import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.FEObj
-import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.IntentUtils
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -58,13 +64,13 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.text.HtmlCompat
+import java.io.File
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.Readability4J
-import java.io.File
-import java.util.*
 import kotlin.math.max
 import kotlin.math.min
 

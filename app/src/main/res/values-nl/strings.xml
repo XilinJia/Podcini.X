@@ -105,7 +105,7 @@
     <string name="close_label">Sluiten</string>
     <string name="retry_label">Opnieuw</string>
     <string name="auto_download_label">Meenemen bij automatisch downloaden</string>
-    <string name="auto_delete_label">Aflevering automatisch verwijderen</string>
+    <string name="auto_delete_episode">Aflevering automatisch verwijderen</string>
     <string name="feed_volume_adapdation">Volume aanpassen</string>
     <string name="feed_volume_adaptation_summary">Zet afleveringen van deze podcast omhoog of omlaag: %1$s</string>
     <string name="feed_volume_reduction_off">Geen aanpassing</string>
@@ -382,7 +382,7 @@
     <string name="pref_custom_media_dir_sum1">Aangepaste mediamap is ingesteld. Wilt u wijzigen?</string>
     <string name="pref_custom_media_dir_sum2">Aangepaste mediamap is ingesteld. Wil je terugzetten naar standaard?</string>
     <string name="pref_auto_delete_sum">Afleveringen verwijderen als ze zijn afgespeeld</string>
-    <string name="pref_auto_delete_title">Automatisch verwijderen</string>
+    <string name="auto_delete">Automatisch verwijderen</string>
     <string name="pref_auto_local_delete_title">Automatisch verwijderen uit lokale mappen</string>
     <string name="pref_auto_local_delete_sum">Lokale mappen opnemen in de functionaliteit automatisch verwijderen</string>
     <string name="pref_auto_local_delete_dialog_body">Merk op dat dit voor lokale mappen afleveringen van Podcini verwijdert en hun mediabestanden uit de opslag van uw apparaat verwijdert. Ze kunnen niet opnieuw worden gedownload via Podcini. Automatisch verwijderen inschakelen?</string>
@@ -805,7 +805,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">Heeft video</string>
     <string name="has_comments">Heeft gereageerd</string>
-    <string name="auto_delete">Automatisch verwijderen</string>
+
     <string name="always">altijd</string>
     <string name="never">Nooit</string>
     <string name="auto_download">Automatische download</string>

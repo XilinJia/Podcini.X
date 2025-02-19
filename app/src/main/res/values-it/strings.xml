@@ -108,7 +108,7 @@
     <string name="close_label">Chiudi</string>
     <string name="retry_label">Riprova</string>
     <string name="auto_download_label">Includi nei download automatici</string>
-    <string name="auto_delete_label">Eliminazione automatica episodi</string>
+    <string name="auto_delete_episode">Eliminazione automatica episodi</string>
     <string name="feed_volume_adapdation">Adattamento del volume</string>
     <string name="feed_volume_adaptation_summary">Alza o abbassa il volume per gli episodi di questo podcast: %1$s</string>
     <string name="feed_volume_reduction_off">Nessun adattamento</string>
@@ -385,7 +385,7 @@
     <string name="pref_custom_media_dir_sum1">La cartella multimediale personalizzata è impostata. Vuoi cambiare?</string>
     <string name="pref_custom_media_dir_sum2">La cartella multimediale personalizzata è impostata. Vuoi resettare a quella predefinita?</string>
     <string name="pref_auto_delete_sum">Elimina l\'episodio al termine della riproduzione</string>
-    <string name="pref_auto_delete_title">Elimina automaticamente</string>
+    <string name="auto_delete">Elimina automaticamente</string>
     <string name="pref_auto_local_delete_title">Eliminazione automatica da cartelle locali</string>
     <string name="pref_auto_local_delete_sum">Includi le cartelle locali nella funzione di eliminazione automatica</string>
     <string name="pref_auto_local_delete_dialog_body">Nota che per le cartelle locali questa funzione rimuoverà gli episodi da Podcini ed eliminerà i file multimediali dallo spazio di archiviazione del tuo dispositivo. Non potranno essere scaricati di nuovo attraverso Podcini. Sei sicuro di voler abilitare l\'eliminazione automatica\?</string>
@@ -808,7 +808,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">Ha video</string>
     <string name="has_comments">Ha commentato</string>
-    <string name="auto_delete">Eliminazione automatica</string>
+
     <string name="always">Sempre</string>
     <string name="never">Mai</string>
     <string name="auto_download">Download automatico</string>

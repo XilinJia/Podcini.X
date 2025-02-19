@@ -100,7 +100,7 @@
   <string name="close_label">Tanca</string>
   <string name="retry_label">Reintenta</string>
   <string name="auto_download_label">Inclou a baixades automàtiques</string>
-  <string name="auto_delete_label">Elimina l\'episodi automàticament</string>
+  <string name="auto_delete_episode">Elimina l\'episodi automàticament</string>
   <string name="feed_auto_download_always">Sempre</string>
   <string name="feed_auto_download_never">Mai</string>
 
@@ -316,7 +316,7 @@
   <string name="button_action_restart_episode">Reiniciar episodi</string>
   <string name="pref_followQueue_sum">Salta al següent element de la cua en acabar la reproducció</string>
   <string name="pref_auto_delete_sum">Suprimeix l\'episodi quan s\'acabi de reproduir</string>
-  <string name="pref_auto_delete_title">Suprimir automàticament</string>
+  <string name="auto_delete">Suprimir automàticament</string>
 
 
   <string name="pref_skip_keeps_episodes_sum">Mantenir episodis quan són omesos</string>

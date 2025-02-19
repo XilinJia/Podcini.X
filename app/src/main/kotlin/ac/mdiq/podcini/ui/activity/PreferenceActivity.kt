@@ -18,8 +18,8 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
 import ac.mdiq.podcini.util.toastMassege
 import ac.mdiq.podcini.util.toastMessages
 import android.content.ClipData
@@ -29,7 +29,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.MenuItem
-
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
@@ -60,14 +59,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.preference.PreferenceManager
 import com.google.android.material.snackbar.Snackbar
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStreamReader
 import javax.xml.parsers.DocumentBuilderFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 class PreferenceActivity : ComponentActivity() {
     val TAG = "PreferenceActivity"
@@ -85,7 +84,7 @@ class PreferenceActivity : ComponentActivity() {
             val navController = rememberNavController()
             CustomTheme(this) {
                 if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = {
-                    toastMessages.add(toastMassege)
+                    toastMessages.add(localDateTimeString() + " " + toastMassege)
                     toastMassege = ""
                 })
                 if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)

@@ -105,7 +105,7 @@
     <string name="close_label">关闭</string>
     <string name="retry_label">重试</string>
     <string name="auto_download_label">包含在自动下载中</string>
-    <string name="auto_delete_label">自动删除剧集</string>
+    <string name="auto_delete_episode">自动删除剧集</string>
     <string name="feed_volume_adapdation">音量调整</string>
     <string name="feed_volume_adaptation_summary">将音量转向上或下播客的剧集: %1$s</string>
     <string name="feed_volume_reduction_off">没有适配器</string>
@@ -377,7 +377,7 @@
     <string name="pref_custom_media_dir_sum1">自定义媒体文件夹已设置。想要更改吗？</string>
     <string name="pref_custom_media_dir_sum2">自定义媒体文件夹已设置。想要重置为默认吗？</string>
     <string name="pref_auto_delete_sum">播放完成后删除剧集</string>
-    <string name="pref_auto_delete_title">自动删除</string>
+    <string name="auto_delete">自动删除</string>
     <string name="pref_auto_local_delete_title">自动从本地文件夹删除</string>
     <string name="pref_auto_local_delete_sum">自动删除功能中包含本地文件夹</string>
     <string name="pref_auto_local_delete_dialog_body">请注意，对于本地文件夹，这将会从Podcini中删除剧集，并从您的设备存储设备中删除媒体文件。 无法通过 Podcini下载它们。是否启用自动删除\？</string>
@@ -797,7 +797,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">有视频</string>
     <string name="has_comments">已评论</string>
-    <string name="auto_delete">自动删除</string>
+
     <string name="always">总是显示</string>
     <string name="never">从不使用</string>
     <string name="auto_download">自动下载</string>

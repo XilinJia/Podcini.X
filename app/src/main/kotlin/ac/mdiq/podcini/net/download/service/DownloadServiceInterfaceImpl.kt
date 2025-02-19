@@ -24,7 +24,11 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.utils.NotificationUtils
-import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfigurator
 import android.app.Notification
 import android.app.NotificationManager
@@ -32,16 +36,30 @@ import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import androidx.core.app.NotificationCompat
-import androidx.work.*
+import androidx.work.Constraints
 import androidx.work.Constraints.Builder
-import kotlinx.coroutines.*
-import org.apache.commons.io.FileUtils
+import androidx.work.CoroutineWorker
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.ForegroundInfo
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
 import java.io.File
 import java.net.URI
-import java.util.*
+import java.util.Locale
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import org.apache.commons.io.FileUtils
 
 class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
     override fun downloadNow(context: Context, item: Episode, ignoreConstraints: Boolean) {

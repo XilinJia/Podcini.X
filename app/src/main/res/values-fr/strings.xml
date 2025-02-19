@@ -108,7 +108,7 @@
     <string name="close_label">Fermer</string>
     <string name="retry_label">Réessayer</string>
     <string name="auto_download_label">Téléchargement automatique</string>
-    <string name="auto_delete_label">Suppression automatique des épisodes</string>
+    <string name="auto_delete_episode">Suppression automatique des épisodes</string>
     <string name="feed_volume_adapdation">Ajustement du volume</string>
     <string name="feed_volume_adaptation_summary">Ajustement du volume des épisodes : %1$s</string>
     <string name="feed_volume_reduction_off">Aucun ajustement</string>
@@ -385,7 +385,7 @@
     <string name="pref_custom_media_dir_sum1">Le dossier de médias personnalisé est défini. Voulez-vous le modifier?</string>
     <string name="pref_custom_media_dir_sum2">Le dossier de médias personnalisé est défini. Voulez-vous réinitialiser à la valeur par défaut ?</string>
     <string name="pref_auto_delete_sum">Supprimer l\'épisode quand la lecture est finie</string>
-    <string name="pref_auto_delete_title">Suppression automatique</string>
+    <string name="auto_delete">Suppression automatique</string>
     <string name="pref_auto_local_delete_title">Suppression automatique pour dossiers locaux</string>
     <string name="pref_auto_local_delete_sum">Inclure les dossiers locaux lors de la suppression automatique</string>
     <string name="pref_auto_local_delete_dialog_body">Attention la suppression des épisodes des dossiers locaux dans Podcini les suppriment aussi de votre appareil. Ils seront définitivement perdus et ne pourront pas être \"retélécharger\" à partir d\'Podcini. Activer quand même l\'option \?</string>
@@ -808,7 +808,7 @@
     <string name="rss">Flux RSS</string>
     <string name="has_video">A une vidéo</string>
     <string name="has_comments">A commenté</string>
-    <string name="auto_delete">Suppression automatique</string>
+
     <string name="always">Toujours</string>
     <string name="never">Jamais</string>
     <string name="auto_download">Téléchargement automatique</string>

@@ -17,7 +17,10 @@ import java.io.UnsupportedEncodingException
 import java.net.URLEncoder
 import java.security.MessageDigest
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 import java.util.regex.Pattern
 
 object PodcastSearcherRegistry {

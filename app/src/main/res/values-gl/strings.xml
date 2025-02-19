@@ -101,7 +101,7 @@
   <string name="close_label">Pechar</string>
   <string name="retry_label">Reintentar</string>
   <string name="auto_download_label">Incluír en descargas automáticas</string>
-  <string name="auto_delete_label">Borrado automático do episodio</string>
+  <string name="auto_delete_episode">Borrado automático do episodio</string>
   <string name="feed_volume_adapdation">Volume adaptable</string>
   <string name="feed_volume_adaptation_summary">Subir ou baixar o volume para os episodios deste podcast: %1$s</string>
   <string name="feed_volume_reduction_off">Sen modificación</string>
@@ -326,7 +326,7 @@
   <string name="button_action_restart_episode">Reiniciar episodio</string>
   <string name="pref_followQueue_sum">Saltar ao seguinte elemento na cola cando remata o episodio</string>
   <string name="pref_auto_delete_sum">Eliminar o episodio cando remata a súa reprodución</string>
-  <string name="pref_auto_delete_title">Eliminación automática</string>
+  <string name="auto_delete">Eliminación automática</string>
   <string name="pref_auto_local_delete_title">Eliminación automática desde cartafoles locais</string>
   <string name="pref_auto_local_delete_sum">Incluír cartafoles locais na ferramenta Eliminación Automática</string>
   <string name="pref_auto_local_delete_dialog_body">Ten en conta que respecto dos cartafoles locais eliminarás os episodios de Podcini e elimnarás os ficheiros multimedia da almacenaxe do dispositivo. Non poderás descargalos de novo usando Podcini. Activar eliminación automática?</string>

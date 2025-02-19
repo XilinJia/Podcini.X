@@ -22,9 +22,18 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.work.*
+import androidx.work.BackoffPolicy
 import androidx.work.Constraints.Builder
-import java.util.*
+import androidx.work.Data
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OutOfQuotaPolicy
+import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 object FeedUpdateManager {
@@ -39,9 +48,14 @@ object FeedUpdateManager {
     const val EXTRA_EVEN_ON_MOBILE: String = "even_on_mobile"
 
     private val updateInterval: Long
-        get() = getPref(AppPrefs.prefAutoUpdateInterval, "12").toInt().toLong()
+        get() = getPref(AppPrefs.prefAutoUpdateInterval, "12").toLong()
 
     var nextRefreshTime by mutableStateOf("")
+
+    private fun isWorkScheduled(workName: String, context: Context): Boolean {
+        val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(workName).get()
+        return workInfos.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }
+    }
 
     /**
      * Start / restart periodic auto feed refresh
@@ -55,7 +69,11 @@ object FeedUpdateManager {
             if (replace) {
                 putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
                 policy = ExistingPeriodicWorkPolicy.UPDATE
+            } else {
+                val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(feedUpdateWorkId).get()
+                if (workInfos.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }) return
             }
+
             val initialDelay = getInitialDelay(context)
             val workRequest: PeriodicWorkRequest = PeriodicWorkRequest.Builder(gearbox.feedUpdateWorkerClass(), updateInterval, TimeUnit.HOURS)
                 .setConstraints(Builder()

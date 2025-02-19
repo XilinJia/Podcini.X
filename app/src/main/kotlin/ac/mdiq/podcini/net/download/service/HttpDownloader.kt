@@ -13,16 +13,23 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
 import ac.mdiq.podcini.storage.utils.StorageUtils.freeSpaceAvailable
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
 import android.net.Uri
-import okhttp3.*
+import okhttp3.CacheControl
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.ResponseBody
 import okhttp3.internal.http.StatusLine
 import org.apache.commons.io.IOUtils
-import java.io.*
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
+import java.io.RandomAccessFile
 import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
-import java.util.*
+import java.util.Locale
 
 class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 

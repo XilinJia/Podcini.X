@@ -12,7 +12,6 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.FeedFunding
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
 import androidx.core.text.HtmlCompat
 import org.apache.commons.io.input.XmlStreamReader
 import org.jsoup.Jsoup
@@ -27,7 +26,7 @@ import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.Reader
-import java.util.*
+import java.util.Stack
 import java.util.concurrent.TimeUnit
 import javax.xml.parsers.ParserConfigurationException
 import javax.xml.parsers.SAXParserFactory
@@ -921,7 +920,7 @@ class FeedHandler {
                             val link: String? = attributes.getValue(HREF)
                             val imageUrl: String? = attributes.getValue(IMAGE)
                             val chapter = Chapter(start, title, link, imageUrl)
-                            currentItem.chapters?.add(chapter)
+                            currentItem.chapters.add(chapter)
                         } catch (e: NumberFormatException) { Logs(TAG, e, "Unable to read chapter. ${e.message}") }
                     }
                 }

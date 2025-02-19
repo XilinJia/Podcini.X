@@ -101,7 +101,7 @@
   <string name="close_label">סגירה</string>
   <string name="retry_label">לנסות שוב</string>
   <string name="auto_download_label">לכלול בהורדות אוטומטיות</string>
-  <string name="auto_delete_label">מחיקת פרק אוטומטית</string>
+  <string name="auto_delete_episode">מחיקת פרק אוטומטית</string>
   <string name="feed_volume_adapdation">התאמת עוצמת שמע</string>
   <string name="feed_volume_adaptation_summary">הנמכה או הגברה של עוצמת השמע לפרקים של הפודקאסט הזה: %1$s</string>
   <string name="feed_volume_reduction_off">ללא התאמה</string>
@@ -338,7 +338,7 @@
   <string name="button_action_restart_episode">התחלת פרק מחדש</string>
   <string name="pref_followQueue_sum">לעבור לפריט הבא בתור כאשר הניגון מסתיים</string>
   <string name="pref_auto_delete_sum">מחיקת פרק כשהניגון מסתיים</string>
-  <string name="pref_auto_delete_title">מחיקה אוטומטית</string>
+  <string name="auto_delete">מחיקה אוטומטית</string>
   <string name="pref_auto_local_delete_title">מחיקה אוטומטית מהתיקיות המקומיות</string>
   <string name="pref_auto_local_delete_sum">לכלול את התיקיות המקומיות ביכולת המחיקה האוטומטית</string>
   <string name="pref_auto_local_delete_dialog_body">נא לשים לב שעבור תיקיות מקומיות פעולה זו תסיר פרקים מאנטנה־פּוֹד ותמחק את קובצי המדיה שלהן מאחסון המכשיר שלך. אי אפשר להוריד אותם שום דרך אנטנה־פּוֹד. להפעיל מחיקה אוטומטית?</string>

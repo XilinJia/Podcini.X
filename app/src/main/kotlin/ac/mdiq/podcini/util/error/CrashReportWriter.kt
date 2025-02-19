@@ -9,14 +9,15 @@ import java.io.File
 import java.io.IOException
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 
 class CrashReportWriter : Thread.UncaughtExceptionHandler {
-    private val defaultHandler: Thread.UncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
+    private val defaultHandler: Thread.UncaughtExceptionHandler? = Thread.getDefaultUncaughtExceptionHandler()
 
     override fun uncaughtException(thread: Thread, ex: Throwable) {
         write(ex)
-        defaultHandler.uncaughtException(thread, ex)
+        defaultHandler?.uncaughtException(thread, ex)
     }
 
     companion object {

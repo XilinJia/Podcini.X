@@ -10,9 +10,12 @@ import ac.mdiq.podcini.net.feed.parser.utils.DateUtils
 import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils
 import ac.mdiq.podcini.storage.database.Feeds
 import ac.mdiq.podcini.storage.database.LogsAndStats
-import ac.mdiq.podcini.storage.model.*
+import ac.mdiq.podcini.storage.model.DownloadResult
+import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.MediaType
+import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -20,13 +23,14 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.annotation.VisibleForTesting
 import androidx.documentfile.provider.DocumentFile
-
-import org.apache.commons.io.input.CountingInputStream
 import java.io.BufferedInputStream
 import java.io.IOException
 import java.text.ParseException
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
+import org.apache.commons.io.input.CountingInputStream
 
 object LocalFeedUpdater {
     private val TAG: String = LocalFeedUpdater::class.simpleName ?: "Anonymous"

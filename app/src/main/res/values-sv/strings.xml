@@ -105,7 +105,7 @@
     <string name="close_label">Stäng</string>
     <string name="retry_label">Försök igen</string>
     <string name="auto_download_label">Inkludera i automatiska nedladdningar</string>
-    <string name="auto_delete_label">Automatisk episodrensning</string>
+    <string name="auto_delete_episode">Automatisk episodrensning</string>
     <string name="feed_volume_adapdation">Volymanpassning</string>
     <string name="feed_volume_adaptation_summary">Justera volymen upp eller ner för avsnitt av denna podcast: %1$s</string>
     <string name="feed_volume_reduction_off">Ingen anpassning</string>
@@ -382,7 +382,7 @@
     <string name="pref_custom_media_dir_sum1">Anpassad mediamapp är inställd. Vill du ändra?</string>
     <string name="pref_custom_media_dir_sum2">Anpassad mediamapp är inställd. Vill du återställa till standard?</string>
     <string name="pref_auto_delete_sum">Ta bort episoden när uppspelningen är klar</string>
-    <string name="pref_auto_delete_title">Automatisk borttagning</string>
+    <string name="auto_delete">Automatisk borttagning</string>
     <string name="pref_auto_local_delete_title">Radera automatiskt från lokala kataloger</string>
     <string name="pref_auto_local_delete_sum">Inkludera lokala kataloger i funktionen för automatisk radering</string>
     <string name="pref_auto_local_delete_dialog_body">Notera att detta kommer att ta bort avsnitt från Podcini för lokala kataloger och radera deras mediafiler från enhetens lagring. De kanb inte laddas ner igen via Podcini. Aktivera automatisk radering\?</string>
@@ -805,7 +805,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">Har video</string>
     <string name="has_comments">Har kommenterat</string>
-    <string name="auto_delete">Ta bort automatiskt</string>
+
     <string name="always">Alltid</string>
     <string name="never">Aldrig</string>
     <string name="auto_download">Automatisk nedladdning</string>

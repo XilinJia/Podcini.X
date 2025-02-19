@@ -5,8 +5,13 @@ import ac.mdiq.podcini.net.sync.LockingAsyncExecutor
 import ac.mdiq.podcini.net.sync.LockingAsyncExecutor.executeLockedAsync
 import ac.mdiq.podcini.net.sync.SyncService
 import ac.mdiq.podcini.net.sync.SynchronizationSettings
-import ac.mdiq.podcini.net.sync.model.*
+import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.model.EpisodeAction.Companion.readFromJsonObject
+import ac.mdiq.podcini.net.sync.model.EpisodeActionChanges
+import ac.mdiq.podcini.net.sync.model.ISyncService
+import ac.mdiq.podcini.net.sync.model.SubscriptionChanges
+import ac.mdiq.podcini.net.sync.model.SyncServiceException
+import ac.mdiq.podcini.net.sync.model.UploadChangesResponse
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
@@ -21,15 +26,23 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import androidx.core.content.ContextCompat.getString
-import androidx.work.*
-import org.apache.commons.lang3.StringUtils
-import org.json.JSONArray
+import androidx.work.BackoffPolicy
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequest
+import androidx.work.WorkManager
+import androidx.work.WorkerParameters
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
-import java.net.*
-import java.util.*
+import java.net.BindException
+import java.net.ConnectException
+import java.net.ServerSocket
+import java.net.Socket
+import java.net.SocketTimeoutException
+import java.util.Date
 import java.util.concurrent.TimeUnit
+import org.apache.commons.lang3.StringUtils
+import org.json.JSONArray
 import kotlin.math.min
 
 class WifiSyncService(val context: Context, params: WorkerParameters) : SyncService(context, params), ISyncService {

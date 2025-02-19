@@ -6,9 +6,8 @@ import ac.mdiq.podcini.util.config.ClientConfig
 import android.content.Context
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiManager.WifiLock
-import java.util.*
+import java.util.Date
 import java.util.concurrent.Callable
-import kotlin.concurrent.Volatile
 
 abstract class Downloader(val downloadRequest: DownloadRequest) : Callable<Downloader> {
     @Volatile

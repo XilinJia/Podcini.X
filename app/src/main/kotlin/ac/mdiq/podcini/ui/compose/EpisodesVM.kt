@@ -36,10 +36,18 @@ import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
-import ac.mdiq.podcini.storage.model.*
+import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeFilter.EpisodesFilterGroup
+import ac.mdiq.podcini.storage.model.EpisodeSortOrder
+import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.newId
+import ac.mdiq.podcini.storage.model.MediaType
+import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.model.Rating
+import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
@@ -51,10 +59,15 @@ import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
+import ac.mdiq.podcini.util.ShareUtils
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
@@ -63,22 +76,76 @@ import android.util.TypedValue
 import android.view.Gravity
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.*
-import androidx.compose.foundation.gestures.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -107,15 +174,21 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import io.realm.kotlin.notifications.SingleQueryChange
 import io.realm.kotlin.notifications.UpdatedObject
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.distinctUntilChanged
 import java.io.File
 import java.net.URL
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.Date
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 const val VMS_CHUNK_SIZE = 50
@@ -469,29 +542,25 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
     @Composable
     fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
         var isExpanded by remember { mutableStateOf(false) }
+        fun onSelected() {
+            isExpanded = false
+            selectMode = false
+        }
         val options = mutableListOf<@Composable () -> Unit>(
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                isExpanded = false
-                selectMode = false
-                Logd(TAG, "ic_delete: ${selected.size}")
-                runOnIOScope {
-                    for (item_ in selected) {
-                        var item = item_
-                        if (!item.downloaded && item.feed?.isLocalFeed != true) continue
-                        val almostEnded = hasAlmostEnded(item)
-                        if (almostEnded && item.playState < PlayState.PLAYED.code) item = setPlayStateSync(PlayState.PLAYED.code, item, almostEnded, false)
-                        if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
-                        deleteEpisodeMedia(activity, item)
-                    }
-                }
-//                    LocalDeleteModal.deleteEpisodesWarnLocal(activity, selected)
+                showPlayStateDialog = true
+                onSelected()
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "Delete media")
-                Text(stringResource(id = R.string.delete_episode_label)) } },
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), "Toggle played state")
+                Text(stringResource(id = R.string.set_play_state_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                isExpanded = false
-                selectMode = false
-                Logd(TAG, "ic_download: ${selected.size}")
+                onSelected()
+                showChooseRatingDialog = true
+            }, verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), "Set rating")
+                Text(stringResource(id = R.string.set_rating_label)) } },
+            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                onSelected()
                 fun download(now: Boolean) {
                     for (episode in selected) {
                         if (episode.feed != null && !episode.feed!!.isLocalFeed) DownloadServiceInterface.impl?.downloadNow(activity, episode, now)
@@ -512,18 +581,19 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), "Download")
                 Text(stringResource(id = R.string.download_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                showPlayStateDialog = true
-                isExpanded = false
-                selectMode = false
-                Logd(TAG, "ic_mark_played: ${selected.size}")
-//                    setPlayState(PlayState.UNSPECIFIED.code, false, *selected.toTypedArray())
+                onSelected()
+                Queues.addToQueue(*selected.toTypedArray())
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), "Toggle played state")
-                Text(stringResource(id = R.string.set_play_state_label)) } },
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to active queue")
+                Text(stringResource(id = R.string.add_to_queue_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                isExpanded = false
-                selectMode = false
-                Logd(TAG, "ic_playlist_remove: ${selected.size}")
+                onSelected()
+                showPutToQueueDialog = true
+            }, verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to queue...")
+                Text(stringResource(id = R.string.put_in_queue_label)) } },
+            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                onSelected()
                 runOnIOScope {
                     for (item_ in selected) {
                         var item = item_
@@ -533,59 +603,43 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         if (item.playState < PlayState.SKIPPED.code) setPlayState(PlayState.SKIPPED.code, false, item)
                     }
                     removeFromQueueSync(curQueue, *selected.toTypedArray())
-//                        removeFromQueue(*selected.toTypedArray())
                 }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), "Remove from active queue")
                 Text(stringResource(id = R.string.remove_from_queue_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                isExpanded = false
-                selectMode = false
-                Logd(TAG, "ic_playlist_play: ${selected.size}")
-                Queues.addToQueue(*selected.toTypedArray())
+                onSelected()
+                runOnIOScope {
+                    for (item_ in selected) {
+                        var item = item_
+                        if (!item.downloaded && item.feed?.isLocalFeed != true) continue
+                        val almostEnded = hasAlmostEnded(item)
+                        if (almostEnded && item.playState < PlayState.PLAYED.code) item = setPlayStateSync(PlayState.PLAYED.code, item, almostEnded, false)
+                        if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
+                        deleteEpisodeMedia(activity, item)
+                    }
+                }
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to active queue")
-                Text(stringResource(id = R.string.add_to_queue_label)) } },
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "Delete media")
+                Text(stringResource(id = R.string.delete_episode_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                isExpanded = false
-                selectMode = false
-                Logd(TAG, "shelve_label: ${selected.size}")
+                onSelected()
                 showShelveDialog = true
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_shelves_24), "Shelve")
                 Text(stringResource(id = R.string.shelve_label)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                isExpanded = false
-                selectMode = false
-                Logd(TAG, "ic_playlist_play: ${selected.size}")
-                showPutToQueueDialog = true
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to queue...")
-                Text(stringResource(id = R.string.put_in_queue_label)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                selectMode = false
-                Logd(TAG, "ic_star: ${selected.size}")
-                showChooseRatingDialog = true
-                isExpanded = false
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), "Set rating")
-                Text(stringResource(id = R.string.set_rating_label)) } },
         )
         if (selected.isNotEmpty() && selected[0].isRemote.value)
             options.add {
                 Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    isExpanded = false
-                    selectMode = false
-                    Logd(TAG, "reserve: ${selected.size}")
+                    onSelected()
                     CoroutineScope(Dispatchers.IO).launch {
                         ytUrls.clear()
                         for (e in selected) {
-                            Logd(TAG, "downloadUrl: ${e.downloadUrl}")
                             val url = URL(e.downloadUrl ?: "")
                             if (gearbox.isGearUrl(url)) ytUrls.add(e.downloadUrl!!)
                             else addToMiscSyndicate(e)
                         }
-                        Logd(TAG, "youtubeUrls: ${ytUrls.size}")
                         withContext(Dispatchers.Main) { showConfirmYoutubeDialog.value = ytUrls.isNotEmpty() }
                     }
                 }, verticalAlignment = Alignment.CenterVertically) {
@@ -596,10 +650,8 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
         if (feed != null && feed.isSynthetic()) {
             options.add {
                 Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    isExpanded = false
-                    selectMode = false
+                    onSelected()
                     showEraseDialog = true
-                    Logd(TAG, "reserve: ${selected.size}")
                 }, verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_delete_forever_24), "Erase episodes")
                     Text(stringResource(id = R.string.erase_episodes_label))

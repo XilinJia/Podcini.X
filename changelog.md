@@ -1,3 +1,13 @@
+# 8.6.3
+
+* cleared out most star imports
+* added checks (even though it sounds unnecessary) to ensure feed update task not doubly scheduled
+* reordered and tuned colors in multi-selection menus
+* ComboSwipeAction menu only shows relevant actions
+* added some more toast message in refresh and auto-download routines
+* ensured toast messages are created in Main dispatcher
+* messages in log now has time stamp
+
 # 8.6.2
 
 * fixed malfunctioning adding opinions

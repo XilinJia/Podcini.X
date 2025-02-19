@@ -24,12 +24,28 @@ import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.ui.compose.*
+import ac.mdiq.podcini.ui.compose.ChaptersDialog
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
+import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.CustomTheme
+import ac.mdiq.podcini.ui.compose.CustomToast
+import ac.mdiq.podcini.ui.compose.MediaPlayerErrorDialog
+import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
+import ac.mdiq.podcini.ui.compose.ShareDialog
+import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.ui.compose.isLightTheme
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.view.ShownotesWebView
-import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
+import ac.mdiq.podcini.util.toastMassege
+import ac.mdiq.podcini.util.toastMessages
 import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -45,13 +61,34 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -142,7 +179,7 @@ class VideoplayerActivity : CastEnabledActivity() {
 
                 LaunchedEffect(curMediaId) { cleanedNotes = null }
                 if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = {
-                    toastMessages.add(toastMassege)
+                    toastMessages.add(localDateTimeString() + " " + toastMassege)
                     toastMassege = ""
                 })
                 if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)

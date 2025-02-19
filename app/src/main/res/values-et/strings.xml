@@ -91,7 +91,7 @@
   <string name="close_label">Sulge</string>
   <string name="retry_label">Proovi uuesti</string>
   <string name="auto_download_label">Lisa automaatsetesse allalaadimistesse</string>
-  <string name="auto_delete_label">Saadete automaatne kustutamine</string>
+  <string name="auto_delete_episode">Saadete automaatne kustutamine</string>
   <string name="feed_auto_download_always">Alati</string>
   <string name="feed_auto_download_never">Mitte kunagi</string>
   <string name="episode_cleanup_never">Mitte kunagi</string>

@@ -15,45 +15,116 @@ import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
-import ac.mdiq.podcini.storage.model.*
+import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.EpisodeFilter
+import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
+import ac.mdiq.podcini.storage.model.FeedFilter
+import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
-import ac.mdiq.podcini.ui.compose.*
+import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.NonlazyGrid
+import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
+import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
+import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
+import ac.mdiq.podcini.ui.compose.SimpleSwitchDialog
+import ac.mdiq.podcini.ui.compose.Spinner
+import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
+import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import android.app.Activity.RESULT_OK
-import android.content.*
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import android.content.SharedPreferences
 import android.net.Uri
 import android.view.Gravity
 import androidx.activity.compose.BackHandler
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -76,13 +147,31 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.drop
-import org.apache.commons.lang3.StringUtils
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
+import org.apache.commons.lang3.StringUtils
+import kotlin.Boolean
+import kotlin.Comparator
+import kotlin.Exception
+import kotlin.Int
+import kotlin.Long
+import kotlin.OptIn
+import kotlin.String
+import kotlin.Throwable
+import kotlin.Unit
+import kotlin.apply
+import kotlin.getValue
+import kotlin.lazy
 
 class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     val prefs: SharedPreferences by lazy { context.getSharedPreferences("SubscriptionsFragmentPrefs", Context.MODE_PRIVATE) }
@@ -747,76 +836,61 @@ fun SubscriptionsScreen() {
         fun EpisodeSpeedDial(selected: SnapshotStateList<Feed>, modifier: Modifier = Modifier) {
             val TAG = "EpisodeSpeedDial ${selected.size}"
             var isExpanded by remember { mutableStateOf(false) }
+            fun onSelected() {
+                isExpanded = false
+                vm.selectMode = false
+            }
             val options = listOf<@Composable () -> Unit>(
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    showRemoveFeedDialog = true
-                    isExpanded = false
-                    vm.selectMode = false
-                    Logd(TAG, "ic_delete: ${selected.size}")
-                }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "")
-                    Text(stringResource(id = R.string.remove_feed_label)) } },
-                { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     showKeepUpdateDialog = true
-                    isExpanded = false
-                    vm.selectMode = false
-                    Logd(TAG, "ic_refresh: ${selected.size}")
+                    onSelected()
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_refresh), "")
                     Text(stringResource(id = R.string.keep_updated)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    isExpanded = false
-                    vm.selectMode = false
-                    Logd(TAG, "ic_download: ${selected.size}")
+                    onSelected()
                     showAutoDownloadSwitchDialog = true
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), "")
                     Text(stringResource(id = R.string.auto_download_label)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     showAutoDeleteHandlerDialog = true
-                    isExpanded = false
-                    vm.selectMode = false
-                    Logd(TAG, "ic_delete_auto: ${selected.size}")
+                    onSelected()
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete_auto), "")
-                    Text(stringResource(id = R.string.auto_delete_label)) } },
+                    Text(stringResource(id = R.string.auto_delete_episode)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    isExpanded = false
-                    vm.selectMode = false
-                    Logd(TAG, "ic_playback_speed: ${selected.size}")
+                    onSelected()
                     showSpeedDialog = true
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playback_speed), "")
                     Text(stringResource(id = R.string.playback_speed)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    isExpanded = false
-                    vm.selectMode = false
-                    Logd(TAG, "ic_tag: ${selected.size}")
+                    onSelected()
                     showTagsSettingDialog = true
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_tag), "")
                     Text(stringResource(id = R.string.edit_tags)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     showAssociateDialog = true
-                    isExpanded = false
-                    vm.selectMode = false
-                    Logd(TAG, "ic_playlist_play: ${selected.size}")
-//                        associatedQueuePrefHandler()
+                    onSelected()
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "")
                     Text(stringResource(id = R.string.pref_feed_associated_queue)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    vm.selectMode = false
-                    Logd(TAG, "ic_star: ${selected.size}")
+                    onSelected()
                     showChooseRatingDialog = true
-                    isExpanded = false
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), "Set rating")
                     Text(stringResource(id = R.string.set_rating_label)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    isExpanded = false
-                    vm.selectMode = false
-                    Logd(TAG, "baseline_import_export_24: ${selected.size}")
+                    showRemoveFeedDialog = true
+                    onSelected()
+                }) {
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "")
+                    Text(stringResource(id = R.string.remove_feed_label)) } },
+                { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                    onSelected()
                     val exportType = ExportTypes.OPML_SELECTED
                     val title = String.format(exportType.outputNameTemplate, SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()))
                     val intentPickAction = Intent(Intent.ACTION_CREATE_DOCUMENT)

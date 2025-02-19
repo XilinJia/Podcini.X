@@ -16,8 +16,13 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting
-import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.app.UiModeManager
 import android.content.Context
@@ -25,8 +30,19 @@ import android.content.res.Configuration
 import android.media.audiofx.LoudnessEnhancer
 import android.util.Pair
 import android.view.SurfaceHolder
-import androidx.media3.common.*
-import androidx.media3.common.Player.*
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
+import androidx.media3.common.Format
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player.DISCONTINUITY_REASON_SEEK
+import androidx.media3.common.Player.DiscontinuityReason
+import androidx.media3.common.Player.Listener
+import androidx.media3.common.Player.PositionInfo
+import androidx.media3.common.Player.STATE_BUFFERING
+import androidx.media3.common.Player.STATE_ENDED
+import androidx.media3.common.Player.STATE_IDLE
+import androidx.media3.common.Player.State
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.datasource.HttpDataSource.HttpDataSourceException
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -39,10 +55,15 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector.SelectionOv
 import androidx.media3.exoplayer.trackselection.ExoTrackSelection
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
-import kotlinx.coroutines.*
 import java.io.IOException
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPlayerBase(context, callback) {
 

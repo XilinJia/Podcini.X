@@ -105,7 +105,7 @@
     <string name="close_label">Ukončiť</string>
     <string name="retry_label">Skúsiť znova</string>
     <string name="auto_download_label">Zahrnúť do automatického sťahovania</string>
-    <string name="auto_delete_label">Automaticky vymazať epizódu</string>
+    <string name="auto_delete_episode">Automaticky vymazať epizódu</string>
     <string name="feed_volume_adapdation">Prispôsobenie hlasitosti</string>
     <string name="feed_volume_adaptation_summary">Zvýšiť alebo znížiť hlasitosť epizód tohto podcastu: %1$s</string>
     <string name="feed_volume_reduction_off">Žiadne prispôsobenie</string>
@@ -392,7 +392,7 @@
     <string name="pref_custom_media_dir_sum1">Custom media folder is set. Want to change?</string>
     <string name="pref_custom_media_dir_sum2">Custom media folder is set. Want to reset to default?</string>
     <string name="pref_auto_delete_sum">Zmazať epizódu po dokončení prehrávania</string>
-    <string name="pref_auto_delete_title">Automatické mazanie</string>
+    <string name="auto_delete">Automatické mazanie</string>
     <string name="pref_auto_local_delete_title">Automatické mazanie z lokálnych priečinkov</string>
     <string name="pref_auto_local_delete_sum">Zahrnúť lokálne priečinky do funkcie Automatického mazania</string>
     <string name="pref_auto_local_delete_dialog_body">Vezmite na vedomie, že toto pre lokálne priečinky odstráni epizódy z Podcini a zmaže ich mediálne súbory z úložiska vášho zariadenia. Nedajú sa znova stiahnuť cez Podcini. Povoliť automatické mazanie\?</string>
@@ -821,7 +821,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">Has video</string>
     <string name="has_comments">Has commented</string>
-    <string name="auto_delete">Auto delete</string>
+
     <string name="always">Always</string>
     <string name="never">Never</string>
     <string name="auto_download">Auto download</string>
