@@ -161,7 +161,7 @@
     <string name="feed_delete_confirmation_msg_batch">Tem a certeza de que deseja eliminar os podcasts selecionados, TODOS os seus episódios (inclusive descarregados) e as estatísticas\?</string>
     <string name="feed_delete_confirmation_local_msg">Tem a certeza de que deseja eliminar o podcast \"%1$s\" e as suas estatísticas\? Os ficheiros existentes na pasta não serão eliminados.</string>
     <string name="not_erase_message">Apenas episódios de feeds sintéticos podem ser apagados.</string>
-    <string name="feed_delete_reason_msg">Para referência futura, você pode gravar um motivo aqui:</string>
+    <string name="reason_to_delete_msg">Para referência futura, você pode gravar um motivo aqui:</string>
     <string name="load_complete_feed">Recarregar podcast</string>
     <string name="multi_select">Seleção múltipla</string>
     <string name="filtered_label">Filtrados</string>
@@ -739,7 +739,7 @@
     <string name="add_term">Adicionar termo</string>
     <string name="exclude_terms">Excluir episódios que possuam qualquer um dos termos abaixo</string>
     <string name="include_terms">Incluir apenas os episódios que possuam qualquer um dos termos abaixo</string>
-    <string name="exclude_episodes_shorter_than">Excluir episódios com duração inferior a</string>
+
     <string name="mark_excluded_episodes_played">Marcar episódios excluídos reproduzidos</string>
     <string name="use_wide_layout">Usar layout amplo</string>
     <string name="use_wide_layout_summary">Layout amplo na lista de episódios mostra uma imagem maior, mais adequada para conteúdos de vídeo.</string>
@@ -747,7 +747,7 @@
     <string name="keep_updated_summary">Incluir este podcast ao recarregar (automaticamente) todos os podcasts</string>
     <string name="audo_add_new_queue">Adicionar novo automaticamente à fila</string>
     <string name="audo_add_new_queue_summary">Adicionar automaticamente novos episódios neste podcast para a fila designada quando (automaticamente)atualizando</string>
-    <string name="auto_download_disabled_globally">A descarga automática está desativada nas definições Podcini</string>
+
     <string name="statistics_length_played">Duração de todos os iniciados:</string>
     <string name="statistics_time_played">Tempo de reprodução:</string>
     <string name="statistics_time_spent">Tempo gasto:</string>

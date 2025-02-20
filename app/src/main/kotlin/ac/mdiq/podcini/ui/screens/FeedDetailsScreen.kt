@@ -25,7 +25,7 @@ import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
-import ac.mdiq.podcini.ui.actions.SwipeActions.NoActionSwipeAction
+import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
@@ -149,8 +149,8 @@ import org.apache.commons.lang3.StringUtils
 
 class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var swipeActions: SwipeActions
-    internal var leftActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
-    internal var rightActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
+    internal var leftActionState = mutableStateOf<SwipeAction>(NoAction())
+    internal var rightActionState = mutableStateOf<SwipeAction>(NoAction())
     internal var showSwipeActionsDialog by mutableStateOf(false)
 
     internal var feedID: Long = 0
@@ -524,14 +524,15 @@ fun FeedDetailsScreen() {
             text = { Text(stringResource(R.string.edit_url_confirmation_msg)) },
             confirmButton = {
                 TextButton(onClick = {
-                    try {
-                        runBlocking { updateFeedDownloadURL(vm.feed?.downloadUrl?:"", editedUrl).join() }
+                    runOnIOScope {
+                        try {
+                            updateFeedDownloadURL(vm.feed?.downloadUrl ?: "", editedUrl)
+                            vm.feed?.downloadUrl = editedUrl
+                            runOnce(context, vm.feed)
+                        } catch (e: ExecutionException) { throw RuntimeException(e) } catch (e: InterruptedException) { throw RuntimeException(e) }
                         vm.feed?.downloadUrl = editedUrl
-                        runOnce(context, vm.feed)
-                    } catch (e: ExecutionException) { throw RuntimeException(e)
-                    } catch (e: InterruptedException) { throw RuntimeException(e) }
-                    vm.feed?.downloadUrl = editedUrl
-                    vm.txtvUrl = vm.feed?.downloadUrl
+                        withContext(Dispatchers.Main) { vm.txtvUrl = vm.feed?.downloadUrl }
+                    }
                     onDismiss()
                 }) { Text("OK") }
             },
@@ -823,12 +824,12 @@ fun FeedDetailsScreen() {
                     buildMoreItems = { vm.buildMoreItems() },
                     refreshCB = { FeedUpdateManager.runOnceOrAsk(context, vm.feed) },
                     leftSwipeCB = {
-                        if (vm.leftActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                        if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
                         else vm.leftActionState.value.performAction(it)
                     },
                     rightSwipeCB = {
                         Logd(TAG, "vm.rightActionState: ${vm.rightActionState.value.getId()}")
-                        if (vm.rightActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                        if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
                         else vm.rightActionState.value.performAction(it)
                     },
                 )

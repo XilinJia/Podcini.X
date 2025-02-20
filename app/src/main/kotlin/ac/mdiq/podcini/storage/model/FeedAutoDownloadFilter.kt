@@ -11,7 +11,8 @@ import java.util.regex.Pattern
 class FeedAutoDownloadFilter(
         val includeFilterRaw: String? = "",
         val excludeFilterRaw: String? = "",
-        val minimalDurationFilter: Int = -1,    // in seconds
+        val minDurationFilter: Int = 0,    // in seconds
+        val maxDurationFilter: Int = 0,    // in seconds
         val markExcludedPlayed: Boolean = false) : Serializable {
 
     val includeTerms: List<String> by lazy { parseTerms(includeFilterRaw) }
@@ -27,9 +28,7 @@ class FeedAutoDownloadFilter(
         // from http://stackoverflow.com/questions/7804335/split-string-on-spaces-in-java-except-if-between-quotes-i-e-treat-hello-wor
         val list: MutableList<String> = ArrayList()
         val m = Pattern.compile("([^\"]\\S*|\".+?\")\\s*").matcher(filter.toString())
-        while (m.find()) {
-            if (m.group(1) != null) list.add(m.group(1)!!.replace("\"", ""))
-        }
+        while (m.find()) if (m.group(1) != null) list.add(m.group(1)!!.replace("\"", ""))
         return list
     }
 
@@ -39,31 +38,29 @@ class FeedAutoDownloadFilter(
      */
     fun meetsAutoDLCriteria(item: Episode): Boolean {
         // nothing has been specified, so include everything
-        if (includeTerms.isEmpty() && excludeTerms.isEmpty() && minimalDurationFilter <= -1) return true
+        if (includeTerms.isEmpty() && excludeTerms.isEmpty() && minDurationFilter <= 0 && maxDurationFilter <= 0) return true
 
         // Check if the episode is long enough if minimal duration filter is on, Minimal Duration is stored in seconds
-        if (hasMinimalDurationFilter() && item.duration > 0 && item.duration / 1000 < minimalDurationFilter) return false
+        if (hasMinDurationFilter() && item.duration > 0 && item.duration / 1000 < minDurationFilter) return false
+
+        if (hasMaxDurationFilter() && item.duration > 0 && item.duration / 1000 > maxDurationFilter) return false
 
         // check using lowercase so the users don't have to worry about case.
         val title = item.title?.lowercase(Locale.getDefault())?:""
 
         // if it's explicitly excluded, it shouldn't be autodownloaded
         // even if it has include terms
-        for (term in excludeTerms) {
-            if (title.contains(term.trim { it <= ' ' }.lowercase(Locale.getDefault()))) return false
-        }
+        for (term in excludeTerms) if (title.contains(term.trim { it <= ' ' }.lowercase(Locale.getDefault()))) return false
 
-        for (term in includeTerms) {
-            if (title.contains(term.trim { it <= ' ' }.lowercase(Locale.getDefault()))) return true
-        }
+        for (term in includeTerms) if (title.contains(term.trim { it <= ' ' }.lowercase(Locale.getDefault()))) return true
 
         // now's the tricky bit
         // if they haven't set an include filter, but they have set an exclude filter
         // default to including, but if they've set both, then exclude
         if (!hasIncludeFilter() && hasExcludeFilter()) return true
 
-        // if they only set minimal duration filter and arrived here, autodownload should happen
-        if (hasMinimalDurationFilter()) return true
+        // if they only set min or max duration filter and arrived here, autodownload should happen
+        if (hasMinDurationFilter() || hasMaxDurationFilter()) return true
 
         return false
     }
@@ -82,5 +79,7 @@ class FeedAutoDownloadFilter(
 
     fun hasExcludeFilter(): Boolean = !excludeFilterRaw.isNullOrEmpty()
 
-    fun hasMinimalDurationFilter(): Boolean = minimalDurationFilter > -1
+    fun hasMinDurationFilter(): Boolean = minDurationFilter > 0
+
+    fun hasMaxDurationFilter(): Boolean = maxDurationFilter > 0
 }

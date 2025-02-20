@@ -159,7 +159,7 @@
     <string name="feed_delete_confirmation_msg_batch">Bekræft, at du vil fjerne de valgte podcasts, ALLE deres afsnit (inklusive overførte afsnit) og deres statistikker.</string>
     <string name="feed_delete_confirmation_local_msg">Bekræft, at du vil fjerne podcasten \"%1$s\" og dens statistikker. Filerne i den lokale kildemappe vil ikke blive slettet.</string>
     <string name="not_erase_message">Kun episoder fra syntetisk foder kan slettes.</string>
-    <string name="feed_delete_reason_msg">For fremtidig reference, kan du registrere en grund her:</string>
+    <string name="reason_to_delete_msg">For fremtidig reference, kan du registrere en grund her:</string>
     <string name="load_complete_feed">Opdater hele podcasten</string>
     <string name="multi_select">Vælg flere</string>
     <string name="filtered_label">Filtrerede</string>
@@ -737,7 +737,7 @@
     <string name="add_term">Tilføj etikette</string>
     <string name="exclude_terms">Medtag ikke afsnit, der indeholder en af følgende termer</string>
     <string name="include_terms">Medtag kun afsnit, der indeholder en af nedenstående termer</string>
-    <string name="exclude_episodes_shorter_than">Medtag ikke afsnit, der er kortere end</string>
+
     <string name="mark_excluded_episodes_played">Markér udelukkede episoder spillet</string>
     <string name="use_wide_layout">Brug bredt layout</string>
     <string name="use_wide_layout_summary">Bred layout på episode liste viser større billede, mere egnet til video indhold.</string>
@@ -745,7 +745,7 @@
     <string name="keep_updated_summary">Inkludér denne podcast når alle podcasts opdateres</string>
     <string name="audo_add_new_queue">Tilføj automatisk ny til kø</string>
     <string name="audo_add_new_queue_summary">Tilføj automatisk nye episoder i denne podcast til den angivne kø, når (auto-)opfriskning</string>
-    <string name="auto_download_disabled_globally">Automatisk download slået fra i de generelle Podcini indstilinger</string>
+
     <string name="statistics_length_played">Varighed af alle startet:</string>
     <string name="statistics_time_played">Afspillet tid:</string>
     <string name="statistics_time_spent">Tid brugt:</string>

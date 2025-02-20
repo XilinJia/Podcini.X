@@ -162,7 +162,7 @@
     <string name="feed_delete_confirmation_msg_batch">Conferma che vuoi eliminare i podcast selezionati, TUTTI i loro episodi (inclusi quelli scaricati) e le loro statistiche.</string>
     <string name="feed_delete_confirmation_local_msg">Conferma di voler eliminare il podcast \"%1$s\" e le sue statistiche. I file nella cartella locale non verranno eliminati.</string>
     <string name="not_erase_message">Solo gli episodi da feed sintetici possono essere cancellati.</string>
-    <string name="feed_delete_reason_msg">Per riferimento futuro, è possibile registrare un motivo qui:</string>
+    <string name="reason_to_delete_msg">Per riferimento futuro, è possibile registrare un motivo qui:</string>
     <string name="load_complete_feed">Aggiorna podcast completo</string>
     <string name="multi_select">Selezione multipla</string>
     <string name="filtered_label">Filtrati</string>
@@ -740,7 +740,7 @@
     <string name="add_term">Aggiungi termine</string>
     <string name="exclude_terms">Escludi gli episodi che contengono qualsiasi termine qui sotto</string>
     <string name="include_terms">Includi solo gli episodi che contengono uno dei termini qui sotto</string>
-    <string name="exclude_episodes_shorter_than">Escludi episodi più brevi di</string>
+
     <string name="mark_excluded_episodes_played">Segna gli episodi esclusi riprodotti</string>
     <string name="use_wide_layout">Usa layout largo</string>
     <string name="use_wide_layout_summary">Ampio layout nella lista degli episodi mostra immagine più grande, più adatto per contenuti video.</string>
@@ -748,7 +748,7 @@
     <string name="keep_updated_summary">Includi questo podcast nell\'(auto-)aggiornamento generale</string>
     <string name="audo_add_new_queue">Aggiungi automaticamente nuovo alla coda</string>
     <string name="audo_add_new_queue_summary">Aggiungi automaticamente nuovi episodi in questo podcast alla coda designata quando (auto-)aggiorna</string>
-    <string name="auto_download_disabled_globally">Il download automatico è disabilitato nelle impostazioni generali.</string>
+
     <string name="statistics_length_played">Durata di tutto iniziato:</string>
     <string name="statistics_time_played">Tempo di riproduzione:</string>
     <string name="statistics_time_spent">Tempo trascorso:</string>

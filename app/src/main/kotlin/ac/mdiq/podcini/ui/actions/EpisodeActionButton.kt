@@ -3,7 +3,7 @@ package ac.mdiq.podcini.ui.actions
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils
-import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileEpisodeDownload
+import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.playback.PlaybackServiceStarter
 import ac.mdiq.podcini.playback.base.InTheatre
@@ -12,14 +12,15 @@ import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
 import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.isStreamOverDownload
+import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.UsageStatistics
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
-import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocal
+import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
 import ac.mdiq.podcini.storage.database.RealmDB
 import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -102,8 +103,8 @@ abstract class EpisodeActionButton internal constructor(@JvmField var item: Epis
             item.feed?.isLocalFeed == true -> PlayLocalActionButton(item)
             item.downloaded -> PlayActionButton(item)
             isDownloadingMedia -> CancelDownloadActionButton(item)
-            isStreamOverDownload || item.feed == null || item.feedId == null || item.feed?.type == Feed.FeedType.YOUTUBE.name
-                    || item.feed?.prefStreamOverDownload == true -> StreamActionButton(item)
+            item.feed == null || item.feedId == null || item.feed?.type == Feed.FeedType.YOUTUBE.name
+                    || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> StreamActionButton(item)
             else -> DownloadActionButton(item)
         }
     }
@@ -292,7 +293,7 @@ class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.str
                 cancelRes = R.string.cancel_label,
                 neutralRes = R.string.confirm_mobile_streaming_button_once,
                 onConfirm = {
-                    NetworkUtils.isAllowMobileStreaming = true
+                    NetworkUtils.mobileAllowStreaming = true
                     stream(context, item)
                 },
                 onNeutral = { stream(context, item) })
@@ -328,7 +329,7 @@ class StreamPauseActionButton(item: Episode) : EpisodeActionButton(item, R.strin
                     cancelRes = R.string.cancel_label,
                     neutralRes = R.string.confirm_mobile_streaming_button_once,
                     onConfirm = {
-                        NetworkUtils.isAllowMobileStreaming = true
+                        NetworkUtils.mobileAllowStreaming = true
                         StreamActionButton.Companion.stream(context, item)
                     },
                     onNeutral = { StreamActionButton.Companion.stream(context, item) })
@@ -360,8 +361,10 @@ class DeleteActionButton(item: Episode) : EpisodeActionButton(item, R.string.del
             return (item.downloaded || item.feed?.isLocalFeed == true)
         }
     override fun onClick(context: Context) {
-        deleteEpisodesWarnLocal(context, listOf(item))
-        actionState.value = label
+        runOnIOScope {
+            deleteEpisodesWarnLocalRepeat(context, listOf(item))
+            withContext(Dispatchers.Main) {  actionState.value = label }
+        }
     }
 }
 
@@ -385,7 +388,7 @@ class DownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.d
     override fun onClick(context: Context) {
         if (shouldNotDownload(item)) return
         UsageStatistics.logAction(UsageStatistics.ACTION_DOWNLOAD)
-        if (isAllowMobileEpisodeDownload || !isNetworkRestricted) DownloadServiceInterface.impl?.downloadNow(context, item, false)
+        if (mobileAllowEpisodeDownload || !isNetworkRestricted) DownloadServiceInterface.impl?.downloadNow(context, item, false)
         else {
             commonConfirm = CommonConfirmAttrib(
                 title = context.getString(R.string.confirm_mobile_download_dialog_title),

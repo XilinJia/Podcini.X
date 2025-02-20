@@ -168,7 +168,7 @@
     <string name="feed_delete_confirmation_msg_batch">نرجو تأكيد رغبتك في مسح كل البودكاستات المحددة وحلقاتها (بما فيها المنزلة)، وإحصاءاتها.</string>
     <string name="feed_delete_confirmation_local_msg">نرجو تأكيد رغبتك في إزالة بودكاست \"%1$s\" وإحصاءاته. لن يتم مسح الملفات المنزلة.</string>
     <string name="not_erase_message">لا يمكن محو سوى الحلقات من التغذية الاصطناعية.</string>
-    <string name="feed_delete_reason_msg">للحصول على مرجع في المستقبل، يمكنك تسجيل سبب هنا:</string>
+    <string name="reason_to_delete_msg">للحصول على مرجع في المستقبل، يمكنك تسجيل سبب هنا:</string>
     <string name="load_complete_feed">حدث كامل البودكاست</string>
     <string name="multi_select">اختيار متعدد</string>
     <string name="filtered_label">مصفى</string>
@@ -770,7 +770,7 @@
     <string name="add_term">إضافة مصطلح</string>
     <string name="exclude_terms">استبعد الحلقات التي تحتوي على أي من المصطلحات أدناه</string>
     <string name="include_terms">اشمل الحلقات التي تحتوي على أي من المصطلحات أدناه</string>
-    <string name="exclude_episodes_shorter_than">استبعد الحلقات الاقصر من</string>
+
     <string name="mark_excluded_episodes_played">تحديد الحلقات المستبعدة التي تم تشغيلها</string>
     <string name="use_wide_layout">استخدام تخطيط واسع</string>
     <string name="use_wide_layout_summary">التخطيط الواسع لقائمة الحلقات يظهر صورة أكبر، أكثر ملاءمة لمحتوى الفيديو.</string>
@@ -778,7 +778,7 @@
     <string name="keep_updated_summary">قم بإضافة هذا البودكاست عند تحديث (أو التحديث التلقائي) جميع ملفات البودكاستات</string>
     <string name="audo_add_new_queue">إضافة تلقائية جديدة إلى قائمة الانتظار</string>
     <string name="audo_add_new_queue_summary">إضافة حلقات جديدة تلقائياً في هذا البث الصوتي إلى قائمة الانتظار المحددة عند التحديث التلقائي</string>
-    <string name="auto_download_disabled_globally">التنزيل التلقائي معطل في الإعدادات الرئيسية لـ Podcini</string>
+
     <string name="statistics_length_played">مدة الكل بدأ:</string>
     <string name="statistics_time_played">وقت التشغيل الكامل:</string>
     <string name="statistics_time_spent">الوقت المستغرق:</string>

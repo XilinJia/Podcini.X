@@ -620,10 +620,10 @@
   <string name="add_term">Engadir termo</string>
   <string name="exclude_terms">Excluír episodios que conteñen algún destes termos</string>
   <string name="include_terms">Incluír só episodios que conteñen algún destes termos</string>
-  <string name="exclude_episodes_shorter_than">Excluír episodios máis curtos que</string>
+
   <string name="keep_updated">Manter actualizado</string>
   <string name="keep_updated_summary">Incluír este podcast ao (auto-)actualizar todos os podcast</string>
-  <string name="auto_download_disabled_globally">A descarga automática está desactivada nos axustes principais de Podcini</string>
+
   <string name="statistics_time_played">Tempo de reprodución:</string>
   <string name="statistics_total_duration">Duración total (estimada):</string>
   <string name="statistics_episodes_on_device">Episodios no dispositivo:</string>

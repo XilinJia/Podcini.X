@@ -174,16 +174,22 @@ class MainActivity : CastEnabledActivity() {
                 onCancel = { checkAndRequestUnrestrictedBackgroundActivity(this@MainActivity) })
         } else checkAndRequestUnrestrictedBackgroundActivity(this)
 
-        runOnIOScope {
-            if (prefs.getBoolean(Extras.prefMainActivityIsFirstLaunch.name, true)) {
-                restartUpdateAlarm(applicationContext, true)
-                val edit = prefs.edit()
-                edit.putBoolean(Extras.prefMainActivityIsFirstLaunch.name, false)
-                edit.apply()
-            }
-        }
+//        runOnIOScope {
+//            if (prefs.getBoolean(Extras.prefMainActivityIsFirstLaunch.name, true)) {
+//                restartUpdateAlarm(applicationContext, true)
+//                val edit = prefs.edit()
+//                edit.putBoolean(Extras.prefMainActivityIsFirstLaunch.name, false)
+//                edit.apply()
+//            }
+//        }
 
-        restartUpdateAlarm(applicationContext, false)
+        val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
+        val lastScheduledVersion = prefs.getString(Extras.lastVersion.name, "0")
+        if (currentVersion != lastScheduledVersion) {
+            restartUpdateAlarm(applicationContext, true)
+            prefs.edit().putString(Extras.lastVersion.name, currentVersion).apply()
+        } else restartUpdateAlarm(applicationContext, false)
+
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
 
         WorkManager.getInstance(this)
@@ -604,6 +610,7 @@ class MainActivity : CastEnabledActivity() {
 
     @Suppress("EnumEntryName")
     enum class Extras {
+        lastVersion,
         prefMainActivityIsFirstLaunch,
         fragment_feed_id,
         fragment_feed_url,

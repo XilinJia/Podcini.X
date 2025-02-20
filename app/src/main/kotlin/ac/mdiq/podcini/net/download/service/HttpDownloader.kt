@@ -12,7 +12,9 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.FEEDFILETYPE_FEED
 import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
 import ac.mdiq.podcini.storage.utils.StorageUtils.freeSpaceAvailable
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import android.net.Uri
 import okhttp3.CacheControl
 import okhttp3.Protocol
@@ -91,7 +93,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
             //                    Logd(TAG,"buffer: $buffer")
             when {
                 !response.isSuccessful && response.code == HttpURLConnection.HTTP_NOT_MODIFIED -> {
-                    Logd(TAG, "Feed '" + downloadRequest.source + "' not modified since last update, Download canceled")
+                    Logt(TAG, "Feed '" + downloadRequest.source + "' not modified since last update, Download canceled")
                     onCancelled()
                     return
                 }
@@ -129,6 +131,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                     val freeSpace = freeSpaceAvailable
                     Logd(TAG, "Free space is $freeSpace")
                     if (downloadRequest.size != DownloadResult.SIZE_UNKNOWN.toLong() && downloadRequest.size > freeSpace) {
+                        Loge(TAG, "Not enough space: require: ${downloadRequest.size} have only: $freeSpace")
                         onFail(DownloadError.ERROR_NOT_ENOUGH_SPACE, null)
                         return
                     }
@@ -166,17 +169,10 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                     }
                 }
             }
-        } catch (e: IllegalArgumentException) {
-            Logs(TAG, e)
-            onFail(DownloadError.ERROR_MALFORMED_URL, e.message)
-        } catch (e: SocketTimeoutException) {
-            Logs(TAG, e)
-            onFail(DownloadError.ERROR_CONNECTION_ERROR, e.message)
-        } catch (e: UnknownHostException) {
-            Logs(TAG, e)
-            onFail(DownloadError.ERROR_UNKNOWN_HOST, e.message)
+        } catch (e: IllegalArgumentException) { onFail(DownloadError.ERROR_MALFORMED_URL, e.message)
+        } catch (e: SocketTimeoutException) { onFail(DownloadError.ERROR_CONNECTION_ERROR, e.message)
+        } catch (e: UnknownHostException) { onFail(DownloadError.ERROR_UNKNOWN_HOST, e.message)
         } catch (e: IOException) {
-            Logs(TAG, e)
             if (wasDownloadBlocked(e)) {
                 onFail(DownloadError.ERROR_IO_BLOCKED, e.message)
                 return
@@ -187,10 +183,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                 return
             }
             onFail(DownloadError.ERROR_IO_ERROR, e.message)
-        } catch (e: NullPointerException) {
-            // might be thrown by connection.getInputStream()
-            Logs(TAG, e)
-            onFail(DownloadError.ERROR_CONNECTION_ERROR, downloadRequest.source)
+        } catch (e: NullPointerException) { onFail(DownloadError.ERROR_CONNECTION_ERROR, downloadRequest.source)    // might be thrown by connection.getInputStream()
         } finally {
             IOUtils.closeQuietly(out)
             IOUtils.closeQuietly(responseBody)
@@ -331,10 +324,8 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                 }
             }
         } catch (e: IllegalArgumentException) {
-            Logs(TAG, e)
             onFail(DownloadError.ERROR_MALFORMED_URL, e.message)
         } catch (e: SocketTimeoutException) {
-            Logs(TAG, e)
             onFail(DownloadError.ERROR_CONNECTION_ERROR, e.message)
         } catch (e: UnknownHostException) {
             Logs(TAG, e)
@@ -353,7 +344,6 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
             onFail(DownloadError.ERROR_IO_ERROR, e.message)
         } catch (e: NullPointerException) {
             // might be thrown by connection.getInputStream()
-            Logs(TAG, e)
             onFail(DownloadError.ERROR_CONNECTION_ERROR, downloadRequest.source)
         } finally {
 //            IOUtils.closeQuietly(out)
@@ -438,7 +428,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
     }
 
     private fun onFail(reason: DownloadError, reasonDetailed: String?) {
-        Logd(TAG, "onFail() called with: reason = [$reason], reasonDetailed = [$reasonDetailed]")
+        Loge(TAG, "onFail() called with: reason = [$reason], reasonDetailed = [$reasonDetailed]")
         result.setFailed(reason, reasonDetailed?:"")
     }
 

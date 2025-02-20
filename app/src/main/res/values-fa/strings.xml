@@ -159,7 +159,7 @@
     <string name="feed_delete_confirmation_msg_batch">لطفا تأیید کنید که می‌خواهید پادکست‌های گزیده و تمامی قسمت‌ها (از جمله قسمت‌های بار گرفته) و آمارهایشان را بردارید.</string>
     <string name="feed_delete_confirmation_local_msg">لطفا تأیید کنید که می‌خواهید پادکست «%1$s» و آمارهایش را بردارید. پرونده‌ها در شاخهٔ منبع محلّی حذف نخواهند شد.</string>
     <string name="not_erase_message">Only episodes from synthetic feeds can be erased.</string>
-    <string name="feed_delete_reason_msg">For future reference, you can record a reason here:</string>
+    <string name="reason_to_delete_msg">For future reference, you can record a reason here:</string>
     <string name="load_complete_feed">تازه‌سازی تمام پادکست</string>
     <string name="multi_select">چندانتخابی</string>
     <string name="filtered_label">فیلتر شده</string>
@@ -737,7 +737,7 @@
     <string name="add_term">افزودن عبارت</string>
     <string name="exclude_terms">قسمت های حاوی هر یک از عبارات زیر را حذف کنید</string>
     <string name="include_terms">فقط قسمت هایی را شامل هر یک از عبارات زیر را نگه دار</string>
-    <string name="exclude_episodes_shorter_than">حذف قسمت‌های کوتاه‌تر از</string>
+
     <string name="mark_excluded_episodes_played">Mark excluded episodes played</string>
     <string name="use_wide_layout">Use wide layout</string>
     <string name="use_wide_layout_summary">Wide layout on episode list shows larger image, more suitable for video contents.</string>
@@ -745,7 +745,7 @@
     <string name="keep_updated_summary">هنگام بازخوانی (خودکار) همه پادکست ها ، این پادکست را وارد کنید</string>
     <string name="audo_add_new_queue">Auto add new to queue</string>
     <string name="audo_add_new_queue_summary">Automatically add new episodes in this podcast to the designated queue when (auto-)refreshing</string>
-    <string name="auto_download_disabled_globally">بارگیری خودکار در تنظیمات اصلی  آنتن پاد غیرفعال است</string>
+
     <string name="statistics_length_played">Duration of all started:</string>
     <string name="statistics_time_played">مدت زمان اجرا</string>
     <string name="statistics_time_spent">Time spent:</string>

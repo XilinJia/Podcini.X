@@ -571,10 +571,10 @@
   <string name="episode_filters_description">Lista de termos utilizados para decidir se um episódio deve ser incluído ou excluído no download automático</string>
   <string name="exclude_terms">Excluir episódios que possuam qualquer um dos termos abaixo</string>
   <string name="include_terms">Incluir apenas os episódios que possuam qualquer um dos termos abaixo</string>
-  <string name="exclude_episodes_shorter_than">Excluir episódios mais curtos que</string>
+
   <string name="keep_updated">Manter atualizado</string>
   <string name="keep_updated_summary">Incluir este podcast ao atualizar (automaticamente) todos os podcasts</string>
-  <string name="auto_download_disabled_globally">O download automático está desativado nas configurações principais do Podcini</string>
+
   <string name="statistics_time_played">Tempo reproduzido:</string>
   <string name="statistics_total_duration">Duração total (estimada):</string>
   <string name="statistics_episodes_on_device">Episódios no dispositivo:</string>

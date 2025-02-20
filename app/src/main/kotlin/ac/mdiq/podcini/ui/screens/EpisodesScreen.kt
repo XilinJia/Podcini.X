@@ -24,7 +24,7 @@ import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
-import ac.mdiq.podcini.ui.actions.SwipeActions.NoActionSwipeAction
+import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
@@ -96,8 +96,8 @@ class EpisodesVM(val context: Context, val lcScope: CoroutineScope) {
     internal var displayUpArrow = false
 
     internal var infoBarText = mutableStateOf("")
-    internal var leftActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
-    internal var rightActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
+    internal var leftActionState = mutableStateOf<SwipeAction>(NoAction())
+    internal var rightActionState = mutableStateOf<SwipeAction>(NoAction())
     internal var showSwipeActionsDialog by mutableStateOf(false)
 
     var swipeActions: SwipeActions = SwipeActions(context, TAG)
@@ -514,7 +514,7 @@ fun EpisodesScreen() {
                 Logd(TAG, "Item selected: $index")
                 vm.curIndex = index
                 putPref(AppPrefs.prefEpisodesCurIndex, index)
-                vm.actionButtonToPass = if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name)  {it -> DeleteActionButton(it) } else null
+                vm.actionButtonToPass = if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name)  { it -> DeleteActionButton(it) } else null
                 vm.loadItems()
             }
         },
@@ -564,11 +564,11 @@ fun EpisodesScreen() {
             EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
                 buildMoreItems = { vm.buildMoreItems() },
                 leftSwipeCB = {
-                    if (vm.leftActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                    if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
                     else vm.leftActionState.value.performAction(it)
                 },
                 rightSwipeCB = {
-                    if (vm.rightActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                    if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
                     else vm.rightActionState.value.performAction(it)
                 },
                 actionButton_ = vm.actionButtonToPass

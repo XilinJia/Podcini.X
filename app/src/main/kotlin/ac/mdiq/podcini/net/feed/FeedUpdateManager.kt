@@ -3,7 +3,7 @@ package ac.mdiq.podcini.net.feed
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileFeedRefresh
+import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.isVpnOverWifi
@@ -77,7 +77,7 @@ object FeedUpdateManager {
             val initialDelay = getInitialDelay(context)
             val workRequest: PeriodicWorkRequest = PeriodicWorkRequest.Builder(gearbox.feedUpdateWorkerClass(), updateInterval, TimeUnit.HOURS)
                 .setConstraints(Builder()
-                    .setRequiredNetworkType(if (isAllowMobileFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED)
+                    .setRequiredNetworkType(if (mobileAllowFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED)
                     .build())
                 .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
                 .setBackoffCriteria(BackoffPolicy.LINEAR, updateInterval*15, TimeUnit.MINUTES)
@@ -148,7 +148,7 @@ object FeedUpdateManager {
                     neutralRes = R.string.confirm_mobile_streaming_button_always,
                     onConfirm = { runOnce(context, feed)  },
                     onNeutral = {
-                        isAllowMobileFeedRefresh = true
+                        mobileAllowFeedRefresh = true
                         runOnce(context, feed)
                     })
             }

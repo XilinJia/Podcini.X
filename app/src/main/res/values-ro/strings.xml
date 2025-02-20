@@ -161,7 +161,7 @@
     <string name="feed_delete_confirmation_msg_batch">Vă rugăm să confirmați că doriți să eliminați toate podcasturile selectate și TOATE episoadele aferente (inclusiv episoadele descărcate).</string>
     <string name="feed_delete_confirmation_local_msg">Vă rugăm confirmați că doriți să ștergeți podcastul \"%1$s\". Fișierele din folderul local nu vor fi șterse.</string>
     <string name="not_erase_message">Numai episoadele din furajele sintetice pot fi șterse.</string>
-    <string name="feed_delete_reason_msg">Pentru referințe viitoare, puteți înregistra un motiv aici:</string>
+    <string name="reason_to_delete_msg">Pentru referințe viitoare, puteți înregistra un motiv aici:</string>
     <string name="load_complete_feed">Reîncarcă tot podcastul</string>
     <string name="multi_select">Selectare multiplă</string>
     <string name="filtered_label">Filtrate</string>
@@ -745,7 +745,7 @@
     <string name="add_term">Adaugă termen</string>
     <string name="exclude_terms">Exclude episoadele ce conțin termenii de mai jos</string>
     <string name="include_terms">Include numai episoade ce conțin oricare din termenii de mai jos</string>
-    <string name="exclude_episodes_shorter_than">Exclude episoadele mai scurte de</string>
+
     <string name="mark_excluded_episodes_played">Marchează episoadele jucate excluse</string>
     <string name="use_wide_layout">Utilizează aspect larg</string>
     <string name="use_wide_layout_summary">Aspectul larg din lista de episoade arată o imagine mai mare, mai potrivită pentru conținutul video.</string>
@@ -753,7 +753,7 @@
     <string name="keep_updated_summary">Include acest podcast când reîmprospătarea automată a podcasturilor este pornită</string>
     <string name="audo_add_new_queue">Adăugare automată la coadă</string>
     <string name="audo_add_new_queue_summary">Adaugă automat episoade noi în acest podcast la coada de redare desemnată atunci când (auto-)reîmprospătarea</string>
-    <string name="auto_download_disabled_globally">Descărcarea automată este oprită în setările generale ale Podcini</string>
+
     <string name="statistics_length_played">Durata tuturor a început:</string>
     <string name="statistics_time_played">Timpul redat:</string>
     <string name="statistics_time_spent">Timp petrecut:</string>

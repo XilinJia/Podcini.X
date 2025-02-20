@@ -15,7 +15,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -39,7 +38,10 @@ import androidx.documentfile.provider.DocumentFile
 import io.realm.kotlin.ext.isManaged
 import java.io.File
 import java.util.Locale
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlin.math.min
 
 object Episodes {
@@ -100,31 +102,50 @@ object Episodes {
         return if (media != null) realm.copyFromRealm(media) else null
     }
 
-    fun deleteEpisodesWarnLocal(context: Context, items: Iterable<Episode>) {
+    suspend fun deleteEpisodesWarnLocalRepeat(context: Context, items: Iterable<Episode>) {
         val localItems: MutableList<Episode> = mutableListOf()
+        val repeatItems: MutableList<Episode> = mutableListOf()
         for (item in items) {
             if (item.feed?.isLocalFeed == true) localItems.add(item)
+            if (item.playState == PlayState.AGAIN.code || item.playState == PlayState.FOREVER.code) repeatItems.add(item)
             else deleteEpisodeMedia(context, item)
         }
 
+        var waiting = false
         if (localItems.isNotEmpty()) {
-            commonConfirm = CommonConfirmAttrib(
-                title = context.getString(R.string.delete_episode_label),
-                message = context.getString(R.string.delete_local_feed_warning_body),
-                confirmRes = R.string.delete_label,
-                cancelRes = R.string.cancel_label,
-                onConfirm = { for (item in localItems) deleteEpisodeMedia(context, item) })
+            waiting = true
+            withContext(Dispatchers.Main) {
+                commonConfirm = CommonConfirmAttrib(
+                    title = context.getString(R.string.delete_episode_label),
+                    message = context.getString(R.string.delete_local_feed_warning_body),
+                    confirmRes = R.string.delete_label,
+                    cancelRes = R.string.cancel_label,
+                    onConfirm = {
+                        for (item in localItems) deleteEpisodeMedia(context, item)
+                        waiting = false
+                    })
+            }
+        }
+
+        while(waiting) runBlocking { delay(1000) }
+        if (repeatItems.isNotEmpty()) {
+            withContext(Dispatchers.Main) {
+                commonConfirm = CommonConfirmAttrib(
+                    title = context.getString(R.string.delete_episode_label),
+                    message = context.getString(R.string.delete_repeat_warning_msg),
+                    confirmRes = R.string.delete_label,
+                    cancelRes = R.string.cancel_label,
+                    onConfirm = { for (item in repeatItems) deleteEpisodeMedia(context, item) })
+            }
         }
     }
 
     // @JvmStatic is needed because some Runnable blocks call this
     @JvmStatic
-    fun deleteEpisodeMedia(context: Context, episode: Episode) : Job {
+    fun deleteEpisodeMedia(context: Context, episode: Episode) {
         Logd(TAG, "deleteMediaOfEpisode called ${episode.title}")
-        return runOnIOScope {
-            val episode_ = deleteMediaSync(context, episode)
-            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(episode_)
-        }
+        val episode_ = deleteMediaSync(context, episode)
+        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(episode_)
     }
 
     fun deleteMediaSync(context: Context, episode: Episode): Episode {
@@ -226,23 +247,10 @@ object Episodes {
         backupManager.dataChanged()
     }
 
-    fun setRating(episode: Episode, rating: Int) : Job {
+    suspend fun setRating(episode: Episode, rating: Int) {
         Logd(TAG, "setRating called $rating")
-        return runOnIOScope {
-            val result = upsert(episode) { it.rating = rating }
-            EventFlow.postEvent(FlowEvent.RatingEvent(result, result.rating))
-        }
-    }
-
-    /**
-     * Sets the 'read'-attribute of all specified FeedItems
-     * @param played  New value of the 'read'-attribute, one of Episode.PLAYED, Episode.NEW, Episode.UNPLAYED
-     * @param episodes   the FeedItems.
-     * @param resetMediaPosition true if this method should also reset the position of the Episode's EpisodeMedia object.
-     */
-    fun setPlayState(played: Int, resetMediaPosition: Boolean, vararg episodes: Episode) : Job {
-        Logd(TAG, "setPlayState called")
-        return runOnIOScope { for (episode in episodes) setPlayStateSync(played, episode, resetMediaPosition) }
+        val result = upsert(episode) { it.rating = rating }
+        EventFlow.postEvent(FlowEvent.RatingEvent(result, result.rating))
     }
 
     suspend fun setPlayStateSync(played: Int, episode: Episode, resetMediaPosition: Boolean, removeFromQueue: Boolean = true) : Episode {

@@ -398,12 +398,10 @@ object Feeds {
         }
     }
 
-    fun updateFeedDownloadURL(original: String, updated: String) : Job {
+    fun updateFeedDownloadURL(original: String, updated: String) {
         Logd(TAG, "updateFeedDownloadURL(original: $original, updated: $updated)")
-        return runOnIOScope {
-            val feed = realm.query(Feed::class).query("downloadUrl == $0", original).first().find()
-            if (feed != null) upsert(feed) { it.downloadUrl = updated }
-        }
+        val feed = realm.query(Feed::class).query("downloadUrl == $0", original).first().find()
+        if (feed != null) upsertBlk(feed) { it.downloadUrl = updated }
     }
 
     private fun addNewFeedsSync(context: Context, vararg feeds: Feed) {

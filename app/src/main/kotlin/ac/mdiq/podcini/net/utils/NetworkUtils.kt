@@ -4,7 +4,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
-import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import android.annotation.SuppressLint
 import android.content.Context
@@ -32,16 +31,16 @@ object NetworkUtils {
 
     private lateinit var context: Context
 
-    var isAllowMobileStreaming: Boolean
+    var mobileAllowStreaming: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.streaming.name)
         set(allow) {
             setAllowMobileFor(MobileUpdateOptions.streaming.name, allow)
         }
 
-    val isAllowMobileAutoDownload: Boolean
+    private val mobileAllowAutoDownload: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.auto_download.name)
 
-    val isAutoDownloadAllowed: Boolean
+    val networkAllowAutoDownload: Boolean
         get() {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val network = cm.activeNetwork ?: return false
@@ -49,32 +48,32 @@ object NetworkUtils {
             return when {
                 networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
                     if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) true
-                    else isAllowMobileAutoDownload
+                    else mobileAllowAutoDownload
                 }
                 networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
                 else -> {
-                    isAllowMobileAutoDownload || networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+                    mobileAllowAutoDownload || networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
                 }
             }
         }
 
-    var isAllowMobileFeedRefresh: Boolean
+    var mobileAllowFeedRefresh: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.feed_refresh.name)
         set(allow) {
             setAllowMobileFor(MobileUpdateOptions.feed_refresh.name, allow)
         }
 
-    val isAllowMobileEpisodeDownload: Boolean
+    val mobileAllowEpisodeDownload: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.episode_download.name)
 
     val isImageDownloadAllowed: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.images.name) || !isNetworkRestricted
 
     val isStreamingAllowed: Boolean
-        get() = isAllowMobileStreaming || !isNetworkRestricted
+        get() = mobileAllowStreaming || !isNetworkRestricted
 
     val isFeedRefreshAllowed: Boolean
-        get() = isAllowMobileFeedRefresh || !isNetworkRestricted
+        get() = mobileAllowFeedRefresh || !isNetworkRestricted
 
     val isNetworkRestricted: Boolean
         get() {

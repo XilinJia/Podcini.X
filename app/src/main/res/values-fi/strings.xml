@@ -159,7 +159,7 @@
     <string name="feed_delete_confirmation_msg_batch">Vahvista, että haluat poistaa valitut podcastit, KAIKKI niiden jaksot (mukaan lukien ladatut jaksot) ja niiden tilastot.</string>
     <string name="feed_delete_confirmation_local_msg">Vahvista, että haluat poistaa podcastin \"%1$s\" ja sen tilastot. Paikallisia tiedostoja ei poisteta.</string>
     <string name="not_erase_message">Vain synteettisten rehujen jaksot voidaan poistaa.</string>
-    <string name="feed_delete_reason_msg">Tulevaisuuden viitteeksi voit tallentaa syyn täältä:</string>
+    <string name="reason_to_delete_msg">Tulevaisuuden viitteeksi voit tallentaa syyn täältä:</string>
     <string name="load_complete_feed">Päivitä podcast</string>
     <string name="multi_select">Monivalinta</string>
     <string name="filtered_label">Suodatettu</string>
@@ -737,7 +737,7 @@
     <string name="add_term">Lisää termi</string>
     <string name="exclude_terms">Jätä ulkopuolelle jaksot, jotka sisältävät minkä tahansa allaolevista termeistä</string>
     <string name="include_terms">Sisällytä vain jaksot, jotka sisältävät minkä tahansa allaolevista termeistä</string>
-    <string name="exclude_episodes_shorter_than">Jätä ulkopuolelle lyhyemmät jaksot kuin</string>
+
     <string name="mark_excluded_episodes_played">Merkitse pois jätetyt jaksot</string>
     <string name="use_wide_layout">Käytä leveää asettelua</string>
     <string name="use_wide_layout_summary">Laaja ulkoasu episodiluettelossa näyttää suuremman kuvan, joka soveltuu paremmin videon sisältöön.</string>
@@ -745,7 +745,7 @@
     <string name="keep_updated_summary">Sisällytä tämä podcast kun kaikki podcastit (auto)päivitetään</string>
     <string name="audo_add_new_queue">Lisää uusi automaattisesti jonoon</string>
     <string name="audo_add_new_queue_summary">Lisää automaattisesti uudet jaksot tähän podcastiin määritettyyn jonoon kun (automaattinen päivitys)</string>
-    <string name="auto_download_disabled_globally">Automaattinen lataaminen on pysäytetty Podciniin asetuksissa</string>
+
     <string name="statistics_length_played">Kaikkien aloitettujen toimien kesto:</string>
     <string name="statistics_time_played">Toistoaika:</string>
     <string name="statistics_time_spent">Käytetty aika:</string>

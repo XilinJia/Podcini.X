@@ -2,7 +2,7 @@ package ac.mdiq.podcini.playback.service
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileStreaming
+import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowStreaming
 import ac.mdiq.podcini.net.utils.NetworkUtils.isStreamingAllowed
 import ac.mdiq.podcini.playback.PlaybackServiceStarter
 import ac.mdiq.podcini.playback.base.*
@@ -765,7 +765,7 @@ class PlaybackService : MediaLibraryService() {
                 val allowStreamThisTime = intent?.getBooleanExtra(EXTRA_ALLOW_STREAM_THIS_TIME, false) == true
                 val allowStreamAlways = intent?.getBooleanExtra(EXTRA_ALLOW_STREAM_ALWAYS, false) == true
                 sendNotificationBroadcast(NOTIFICATION_TYPE_RELOAD, 0)
-                if (allowStreamAlways) isAllowMobileStreaming = true
+                if (allowStreamAlways) mobileAllowStreaming = true
                 startPlaying(allowStreamThisTime)
 //                    return super.onStartCommand(intent, flags, startId)
 //                return START_NOT_STICKY

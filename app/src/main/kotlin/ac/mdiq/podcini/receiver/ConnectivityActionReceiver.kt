@@ -2,7 +2,7 @@ package ac.mdiq.podcini.receiver
 
 import ac.mdiq.podcini.automation.AutoDownloads.autodownload
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
-import ac.mdiq.podcini.net.utils.NetworkUtils.isAutoDownloadAllowed
+import ac.mdiq.podcini.net.utils.NetworkUtils.networkAllowAutoDownload
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
@@ -24,7 +24,7 @@ class ConnectivityActionReceiver : BroadcastReceiver() {
     }
 
     private fun networkChangedDetected(context: Context) {
-        if (isAutoDownloadAllowed) {
+        if (networkAllowAutoDownload) {
             Logd(TAG, "auto-dl network available, starting auto-download")
             autodownload(context)
         } else { // if new network is Wi-Fi, finish ongoing downloads,

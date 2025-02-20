@@ -580,10 +580,10 @@
   <string name="add_term">Legg til begrep</string>
   <string name="exclude_terms">Ekskluder episoder som inneholder noen av begrep nede</string>
   <string name="include_terms">Inkluderer bare episoder som inneholder noen av begrep nede</string>
-  <string name="exclude_episodes_shorter_than">Ekskludere episoder kortere enn</string>
+
   <string name="keep_updated">Hold oppdatert</string>
   <string name="keep_updated_summary">Inkluder denne podkasten når alle podkaster oppdateres</string>
-  <string name="auto_download_disabled_globally">Automatisk nedlasting er deaktivert i Podcini-innstillingene</string>
+
   <string name="statistics_time_played">Avspillingstid:</string>
   <string name="statistics_total_duration">Total lengde (estimert):</string>
   <string name="statistics_episodes_on_device">Episoder på enhenten:</string>

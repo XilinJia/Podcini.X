@@ -163,7 +163,7 @@
     <string name="feed_delete_confirmation_msg_batch">Potvrďte prosím, že chcete smazat vybrané podcasty a VŠECHNY jejich epizody (včetně stažených epizod) a jejich statistiky.</string>
     <string name="feed_delete_confirmation_local_msg">Potvrďte prosím, že chcete smazat podcast \"%1$s\" a jeho statistiky. Soubory v místním úložišti nebudou smazány.</string>
     <string name="not_erase_message">Vymazat lze pouze epizody ze syntetických kanálů.</string>
-    <string name="feed_delete_reason_msg">Pro budoucí reference, můžete zde zaznamenat důvod:</string>
+    <string name="reason_to_delete_msg">Pro budoucí reference, můžete zde zaznamenat důvod:</string>
     <string name="load_complete_feed">Aktualizovat celý podcast</string>
     <string name="multi_select">Výběr více položek</string>
     <string name="filtered_label">Filtrované</string>
@@ -753,7 +753,7 @@
     <string name="add_term">Přidat položku</string>
     <string name="exclude_terms">Vyloučit epizody obsahující některý z níže uvedených výrazů</string>
     <string name="include_terms">Zahrnout pouze epizody, které obsahují některý z níže uvedených výrazů</string>
-    <string name="exclude_episodes_shorter_than">Vyloučit epizody kratší než</string>
+
     <string name="mark_excluded_episodes_played">Označit odehrané vyloučené epizody</string>
     <string name="use_wide_layout">Použít široké rozložení</string>
     <string name="use_wide_layout_summary">Široké rozložení na seznamu epizod zobrazuje větší obrázek, vhodnější pro obsah videa.</string>
@@ -761,7 +761,7 @@
     <string name="keep_updated_summary">Zahrnout tento podcast při (automatickém) obnovování všech podcastů</string>
     <string name="audo_add_new_queue">Automaticky přidat do fronty</string>
     <string name="audo_add_new_queue_summary">Automaticky přidávat nové epizody v tomto kanálu do určené fronty při (auto-)obnovování</string>
-    <string name="auto_download_disabled_globally">Automatické stahování je zakázané v hlavním nastavení Podciniu</string>
+
     <string name="statistics_length_played">Doba trvání všech začátků:</string>
     <string name="statistics_time_played">Přehráno celkem:</string>
     <string name="statistics_time_spent">Uplynulý čas:</string>

@@ -632,10 +632,10 @@
   <string name="add_term">הוספת תקופה</string>
   <string name="exclude_terms">החרגת פרקים שמכילים ביטוי כלשהו מאלו שלהלן</string>
   <string name="include_terms">הכללת פרקים שמכילים ביטוי כלשהו מאלו שלהלן</string>
-  <string name="exclude_episodes_shorter_than">החרגת פרקים שאורכם אינו עולה על</string>
+
   <string name="keep_updated">לשמור על עדכניות</string>
   <string name="keep_updated_summary">לכלול את הפודקאסט בעת רענון (אוטומטי) של כל הפודקאסטים</string>
-  <string name="auto_download_disabled_globally">הורדה אוטומטית מושבתת בהגדרות הראשיות של אנטנה־פּוֹד</string>
+
   <string name="statistics_time_played">זמן הנגינה:</string>
   <string name="statistics_total_duration">משך זמן כולל (הערכה):</string>
   <string name="statistics_episodes_on_device">פרקים על המכשיר הזה:</string>

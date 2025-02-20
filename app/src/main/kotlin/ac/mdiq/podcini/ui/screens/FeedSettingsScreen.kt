@@ -4,6 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
+import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
@@ -446,25 +447,6 @@ fun FeedSettingsScreen() {
                     Text(text = stringResource(vm.videoModeSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }
-            if (vm.feed?.type != Feed.FeedType.YOUTUBE.name) {
-                //                    prefer streaming
-                Column {
-                    Row(Modifier.fillMaxWidth()) {
-                        Icon(ImageVector.vectorResource(id = R.drawable.ic_stream), "", tint = textColor)
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.pref_stream_over_download_title), style = CustomTextStyles.titleCustom, color = textColor)
-                        Spacer(modifier = Modifier.weight(1f))
-                        var checked by remember { mutableStateOf(vm.feed?.prefStreamOverDownload == true) }
-                        Switch(checked = checked, modifier = Modifier.height(24.dp),
-                            onCheckedChange = {
-                                checked = it
-                                vm.feed = upsertBlk(vm.feed!!) { f -> f.prefStreamOverDownload = checked }
-                            }
-                        )
-                    }
-                    Text(text = stringResource(R.string.pref_stream_over_download_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                }
-            }
             if (vm.feed?.type == Feed.FeedType.YOUTUBE.name) {
                 //                    audio quality
                 Column {
@@ -627,6 +609,33 @@ fun FeedSettingsScreen() {
                     Text(text = stringResource(R.string.authentication_descr), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }
+            var autoDownloadChecked by remember { mutableStateOf(vm.feed?.autoDownload == true) }
+            var preferStreaming by remember { mutableStateOf(vm.feed?.prefStreamOverDownload == true) }
+            if (vm.feed?.type != Feed.FeedType.YOUTUBE.name) {
+                //                    prefer streaming
+                Column {
+                    Row(Modifier.fillMaxWidth()) {
+                        Icon(ImageVector.vectorResource(id = R.drawable.ic_stream), "", tint = textColor)
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Text(text = stringResource(R.string.pref_stream_over_download_title), style = CustomTextStyles.titleCustom, color = textColor)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Switch(checked = preferStreaming, modifier = Modifier.height(24.dp),
+                            onCheckedChange = {
+                                preferStreaming = it
+                                if (preferStreaming) {
+                                    prefStreamOverDownload = true
+                                    autoDownloadChecked = false
+                                }
+                                vm.feed = upsertBlk(vm.feed!!) { f ->
+                                    f.prefStreamOverDownload = preferStreaming
+                                    if (preferStreaming) f.autoDownload = false
+                                }
+                            }
+                        )
+                    }
+                    Text(text = stringResource(R.string.pref_stream_over_download_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+            }
             //                    auto skip
             Column {
                 Row(Modifier.fillMaxWidth()) {
@@ -690,7 +699,6 @@ fun FeedSettingsScreen() {
                     Text(text = stringResource(R.string.audo_add_new_queue_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }
-            var autoDownloadChecked by remember { mutableStateOf(vm.feed?.autoDownload == true) }
             var autoEnqueueChecked by remember { mutableStateOf(vm.feed?.autoEnqueue == true) }
             Row(Modifier.fillMaxWidth()) {
                 Text(text = stringResource(R.string.auto_colon), style = CustomTextStyles.titleCustom, color = textColor)
@@ -711,7 +719,7 @@ fun FeedSettingsScreen() {
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = stringResource(R.string.download), style = CustomTextStyles.titleCustom, color = textColor)
                 if (vm.feed?.type != Feed.FeedType.YOUTUBE.name) {
-                    if (isAutodownloadEnabled) {
+                    if (isAutodownloadEnabled && !preferStreaming) {
                         //                    auto download
                         Spacer(modifier = Modifier.width(10.dp))
                         Switch(checked = autoDownloadChecked, modifier = Modifier.height(24.dp),
@@ -730,7 +738,7 @@ fun FeedSettingsScreen() {
                 Text(text = stringResource(R.string.auto_enqueue_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 if (vm.curPrefQueue == "None") Text(text = stringResource(R.string.auto_enqueue_sum1), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 Text(text = stringResource(R.string.auto_download_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
-                if (!isAutodownloadEnabled) Text(text = stringResource(R.string.auto_download_disabled_globally), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                if (!isAutodownloadEnabled) Text(text = stringResource(R.string.auto_download_disabled_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
             if (autoDownloadChecked || autoEnqueueChecked) {
                 @Composable
@@ -856,7 +864,8 @@ fun FeedSettingsScreen() {
                                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(stringResource(R.string.episode_filters_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                                     var termList = remember { if (inexcl == ADLIncExc.EXCLUDE) filter.excludeTerms.toMutableStateList() else filter.includeTerms.toMutableStateList() }
-                                    var filterDuration by remember { mutableStateOf(filter.hasMinimalDurationFilter()) }
+                                    var filterMinDuration by remember { mutableStateOf(filter.hasMinDurationFilter()) }
+                                    var filterMaxDuration by remember { mutableStateOf(filter.hasMaxDurationFilter()) }
                                     var excludeChecked by remember { mutableStateOf(filter.hasExcludeFilter()) }
                                     var includeChecked by remember { mutableStateOf(filter.hasIncludeFilter()) }
                                     Row {
@@ -893,34 +902,47 @@ fun FeedSettingsScreen() {
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                     HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                                    var filterDurationMinutes by remember { mutableStateOf((filter.minimalDurationFilter / 60).toString()) }
+                                    var filterMinDurationMinutes by remember { mutableStateOf((filter.minDurationFilter / 60).toString()) }
+                                    var filterMaxDurationMinutes by remember { mutableStateOf((filter.maxDurationFilter / 60).toString()) }
                                     var markPlayedChecked by remember { mutableStateOf(filter.markExcludedPlayed) }
                                     if (inexcl == ADLIncExc.EXCLUDE) {
                                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                            Checkbox(checked = filterDuration, onCheckedChange = { isChecked -> filterDuration = isChecked })
-                                            Text(text = stringResource(R.string.exclude_episodes_shorter_than), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                                            if (filterDuration) {
-                                                BasicTextField(value = filterDurationMinutes, onValueChange = { if (it.all { it.isDigit() }) filterDurationMinutes = it },
+                                            Checkbox(checked = filterMinDuration, onCheckedChange = { isChecked -> filterMinDuration = isChecked })
+                                            Text(text = stringResource(R.string.exclude_shorter_than), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                            if (filterMinDuration) {
+                                                BasicTextField(value = filterMinDurationMinutes, onValueChange = { if (it.all { it.isDigit() }) filterMinDurationMinutes = it },
                                                     textStyle = TextStyle(fontSize = 16.sp, color = textColor),
-                                                    modifier = Modifier.width(40.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
+                                                    modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
+                                                )
+                                                Text(stringResource(R.string.time_minutes), color = textColor)
+                                            }
+                                        }
+                                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                            Checkbox(checked = filterMaxDuration, onCheckedChange = { isChecked -> filterMaxDuration = isChecked })
+                                            Text(text = stringResource(R.string.exclude_longer_than), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                                            if (filterMaxDuration) {
+                                                BasicTextField(value = filterMaxDurationMinutes, onValueChange = { if (it.all { it.isDigit() }) filterMaxDurationMinutes = it },
+                                                    textStyle = TextStyle(fontSize = 16.sp, color = textColor),
+                                                    modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
                                                 )
                                                 Text(stringResource(R.string.time_minutes), color = textColor)
                                             }
                                         }
                                     }
-                                    Row {
+                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                         Checkbox(checked = markPlayedChecked, onCheckedChange = { isChecked -> markPlayedChecked = isChecked })
                                         Text(text = stringResource(R.string.mark_excluded_episodes_played), style = MaterialTheme.typography.bodyMedium.merge())
                                     }
                                     Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
                                         Button(onClick = {
                                             if (inexcl == ADLIncExc.EXCLUDE) {
-                                                var minimalDuration = if (filterDuration) filterDurationMinutes.toInt() * 60 else -1
+                                                var minDuration = if (filterMinDuration) filterMinDurationMinutes.toInt() * 60 else -1
+                                                var maxDuration = if (filterMaxDuration) filterMaxDurationMinutes.toInt() * 60 else -1
                                                 val excludeFilter = toFilterString(termList)
-                                                onConfirmed(FeedAutoDownloadFilter(filter.includeFilterRaw, excludeFilter, minimalDuration, markPlayedChecked))
+                                                onConfirmed(FeedAutoDownloadFilter(filter.includeFilterRaw, excludeFilter, minDuration, maxDuration, markPlayedChecked))
                                             } else {
                                                 val includeFilter = toFilterString(termList)
-                                                onConfirmed(FeedAutoDownloadFilter(includeFilter, filter.excludeFilterRaw, filter.minimalDurationFilter, filter.markExcludedPlayed))
+                                                onConfirmed(FeedAutoDownloadFilter(includeFilter, filter.excludeFilterRaw, filter.minDurationFilter, filter.maxDurationFilter, filter.markExcludedPlayed))
                                             }
                                             onDismiss()
                                         }) { Text(stringResource(R.string.confirm_label)) }

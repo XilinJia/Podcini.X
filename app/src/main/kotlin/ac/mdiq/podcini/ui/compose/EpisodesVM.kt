@@ -9,8 +9,8 @@ import ac.mdiq.podcini.net.sync.SynchronizationSettings.wifiSyncEnabledKey
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.utils.NetworkUtils
-import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileEpisodeDownload
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
+import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
@@ -20,14 +20,13 @@ import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Episodes
-import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodeMedia
+import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.deleteMediaSync
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
-import ac.mdiq.podcini.storage.database.Episodes.setPlayState
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
 import ac.mdiq.podcini.storage.database.Feeds.addToMiscSyndicate
 import ac.mdiq.podcini.storage.database.Feeds.allowForAutoDelete
-import ac.mdiq.podcini.storage.database.Queues
+import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesQuiet
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
@@ -187,7 +186,6 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
@@ -284,7 +282,7 @@ fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
                         .padding(4.dp)
                         .clickable {
-                            for (item in selected) Episodes.setRating(item, rating.code)
+                            runOnIOScope { for (item in selected) Episodes.setRating(item, rating.code) }
                             onDismissRequest()
                         }) {
                         Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
@@ -297,18 +295,19 @@ fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
+fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, ignoreCB: ()->Unit) {
     val context = LocalContext.current
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 for (state in PlayState.entries.reversed()) {
                     if (state.userSet) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)
-                            .clickable {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
+                            if (state == PlayState.IGNORED) ignoreCB()
+                            else runOnIOScope {
                                 for (item in selected) {
                                     val hasAlmostEnded = hasAlmostEnded(item)
-                                    var item_ = runBlocking { setPlayStateSync(state.code, item, hasAlmostEnded, false) }
+                                    var item_ = setPlayStateSync(state.code, item, hasAlmostEnded, false)
                                     when (state) {
                                         PlayState.UNPLAYED -> {
                                             if (isProviderConnected && item_.feed?.isLocalFeed != true) {
@@ -338,13 +337,14 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                                             }
                                         }
                                         PlayState.QUEUE -> {
-                                            if (item_.feed?.queue != null) runBlocking { addToQueueSync(item, item.feed?.queue) }
+                                            if (item_.feed?.queue != null) addToQueueSync(item, item.feed?.queue)
                                         }
                                         else -> {}
                                     }
                                 }
-                                onDismissRequest()
-                            }) {
+                            }
+                            onDismissRequest()
+                        }) {
                             Icon(imageVector = ImageVector.vectorResource(id = state.res), "")
                             Text(state.name, Modifier.padding(start = 4.dp))
                         }
@@ -377,22 +377,24 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                 Row {
                     Spacer(Modifier.weight(1f))
                     Button(onClick = {
-                        if (removeChecked) {
-                            val toRemove = mutableSetOf<Long>()
-                            val toRemoveCur = mutableListOf<Episode>()
-                            selected.forEach { e -> if (curQueue.contains(e)) toRemoveCur.add(e) }
-                            selected.forEach { e ->
-                                for (q in queues) {
-                                    if (q.contains(e)) {
-                                        toRemove.add(e.id)
-                                        break
+                        runOnIOScope {
+                            if (removeChecked) {
+                                val toRemove = mutableSetOf<Long>()
+                                val toRemoveCur = mutableListOf<Episode>()
+                                selected.forEach { e -> if (curQueue.contains(e)) toRemoveCur.add(e) }
+                                selected.forEach { e ->
+                                    for (q in queues) {
+                                        if (q.contains(e)) {
+                                            toRemove.add(e.id)
+                                            break
+                                        }
                                     }
                                 }
+                                if (toRemove.isNotEmpty()) removeFromAllQueuesQuiet(toRemove.toList())
+                                if (toRemoveCur.isNotEmpty()) EventFlow.postEvent(FlowEvent.QueueEvent.removed(toRemoveCur))
                             }
-                            if (toRemove.isNotEmpty()) runBlocking { removeFromAllQueuesQuiet(toRemove.toList()) }
-                            if (toRemoveCur.isNotEmpty()) EventFlow.postEvent(FlowEvent.QueueEvent.removed(toRemoveCur))
+                            selected.forEach { e -> addToQueueSync(e, toQueue) }
                         }
-                        selected.forEach { e -> runBlocking { addToQueueSync(e, toQueue) } }
                         onDismissRequest()
                     }) { Text(stringResource(R.string.confirm_label)) }
                 }
@@ -462,7 +464,7 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
             if (feed == null || !feed.isSynthetic()) Text(stringResource(R.string.not_erase_message), modifier = Modifier.padding(10.dp))
             else Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(message + ": ${selected.size}")
-                Text(stringResource(R.string.feed_delete_reason_msg))
+                Text(stringResource(R.string.reason_to_delete_msg))
                 BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor),
                     modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp)
                         .border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
@@ -503,6 +505,40 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
     }
 }
 
+@Composable
+fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
+    val message = stringResource(R.string.ignore_episodes_confirmation_msg)
+    val textColor = MaterialTheme.colorScheme.onSurface
+    var textState by remember { mutableStateOf(TextFieldValue("")) }
+
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(message + ": ${selected.size}")
+                Text(stringResource(R.string.reason_to_delete_msg))
+                BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor),
+                    modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+                Button(onClick = {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            for (e in selected) {
+                                val hasAlmostEnded = hasAlmostEnded(e)
+                                val item_ = setPlayStateSync(PlayState.IGNORED.code, e, hasAlmostEnded, false)
+                                Logd("IgnoreEpisodesDialog", "item_: ${item_.title} ${item_.playState}")
+                                upsert(item_) {
+                                    it.comment = if (item_.comment.isBlank()) "" else (item_.comment + "\n")
+                                    it.comment += localDateTimeString() + "\nReason to ignore:\n" + textState.text
+                                }
+                            }
+                        } catch (e: Throwable) { Logs("EraseEpisodesDialog", e) }
+                    }
+                    onDismissRequest()
+                }) { Text(stringResource(R.string.confirm_label)) }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed? = null, layoutMode: Int = 0,
@@ -527,8 +563,9 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
     var showChooseRatingDialog by remember { mutableStateOf(false) }
     if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
 
+    var showIgnoreDialog by remember { mutableStateOf(false) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
-    if (showPlayStateDialog) PlayStateDialog(selected) { showPlayStateDialog = false }
+    if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }) { showIgnoreDialog = true }
 
     var showPutToQueueDialog by remember { mutableStateOf(false) }
     if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
@@ -538,6 +575,8 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
 
     var showEraseDialog by remember { mutableStateOf(false) }
     if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismissRequest = { showEraseDialog = false })
+
+    if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismissRequest = { showIgnoreDialog = false })
 
     @Composable
     fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
@@ -551,7 +590,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 showPlayStateDialog = true
                 onSelected()
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), "Toggle played state")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), "Set played state")
                 Text(stringResource(id = R.string.set_play_state_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
@@ -566,7 +605,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         if (episode.feed != null && !episode.feed!!.isLocalFeed) DownloadServiceInterface.impl?.downloadNow(activity, episode, now)
                     }
                 }
-                if (isAllowMobileEpisodeDownload || !isNetworkRestricted) download(true)
+                if (mobileAllowEpisodeDownload || !isNetworkRestricted) download(true)
                 else {
                     commonConfirm = CommonConfirmAttrib(
                         title = context.getString(R.string.confirm_mobile_download_dialog_title),
@@ -582,7 +621,13 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 Text(stringResource(id = R.string.download_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
-                Queues.addToQueue(*selected.toTypedArray())
+                runOnIOScope { selected.forEach { addToQueueSync(it) } }
+            }, verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to associated or active queue")
+                Text(stringResource(id = R.string.add_to_associated_queue)) } },
+            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                onSelected()
+                addToActiveQueue(*selected.toTypedArray())
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to active queue")
                 Text(stringResource(id = R.string.add_to_queue_label)) } },
@@ -600,7 +645,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         val almostEnded = hasAlmostEnded(item)
                         if (almostEnded && item.playState < PlayState.PLAYED.code) item = setPlayStateSync(PlayState.PLAYED.code, item, almostEnded, false)
                         if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
-                        if (item.playState < PlayState.SKIPPED.code) setPlayState(PlayState.SKIPPED.code, false, item)
+                        if (item.playState < PlayState.SKIPPED.code) setPlayStateSync(PlayState.SKIPPED.code, item, false)
                     }
                     removeFromQueueSync(curQueue, *selected.toTypedArray())
                 }
@@ -616,8 +661,8 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         val almostEnded = hasAlmostEnded(item)
                         if (almostEnded && item.playState < PlayState.PLAYED.code) item = setPlayStateSync(PlayState.PLAYED.code, item, almostEnded, false)
                         if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
-                        deleteEpisodeMedia(activity, item)
                     }
+                    deleteEpisodesWarnLocalRepeat(activity, selected)
                 }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "Delete media")
@@ -789,7 +834,6 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                     }))
             Box(Modifier.weight(1f).height(imageHeight)) {
                 TitleColumn(vm, index, modifier = Modifier.fillMaxWidth())
-//                var actionButton by remember(vm.episode.id) { mutableStateOf(vm.actionButton.forItem(vm.episode)) }
                 fun isDownloading(): Boolean {
                     return vms[index].downloadState > DownloadStatus.State.UNKNOWN.ordinal && vms[index].downloadState < DownloadStatus.State.COMPLETED.ordinal
                 }
@@ -800,14 +844,12 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         Logd(TAG, "LaunchedEffect $index isPlayingState: ${vms[index].isPlayingState} ${vm.episode.playState} ${vms[index].episode.title}")
                         Logd(TAG, "LaunchedEffect $index downloadState: ${vms[index].downloadState} ${vm.episode.downloaded} ${vm.dlPercent}")
                         vm.actionButton = vm.actionButton.forItem(vm.episode)
-//                        if (vm.actionButton.label != actionButton.label) actionButton = vm.actionButton
                         Logd(TAG, "LaunchedEffect vm.actionButton: ${vm.actionButton.TAG}")
                     }
                 } else {
                     LaunchedEffect(Unit) {
                         Logd(TAG, "LaunchedEffect init actionButton")
                         vm.actionButton = actionButton_(vm.episode)
-//                        actionButton = vm.actionButton
                     }
                 }
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.width(40.dp).height(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd)

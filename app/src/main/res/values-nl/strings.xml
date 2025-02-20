@@ -159,7 +159,7 @@
     <string name="feed_delete_confirmation_msg_batch">Bevestig dat je de geselecteerde podcasts, ALLE bijbehorende (gedownloade) afleveringen en de statistieken ervan wilt verwijderen.</string>
     <string name="feed_delete_confirmation_local_msg">Bevestig dat je de podcast \'%1$s\' en de statistieken ervan wilt verwijderen. De bestanden in de lokale bronmap worden niet verwijderd.</string>
     <string name="not_erase_message">Alleen afleveringen van synthetische feeds kunnen worden gewist.</string>
-    <string name="feed_delete_reason_msg">Voor toekomstige referenties kunt u hier een reden opnemen:</string>
+    <string name="reason_to_delete_msg">Voor toekomstige referenties kunt u hier een reden opnemen:</string>
     <string name="load_complete_feed">Volledige podcast vernieuwen</string>
     <string name="multi_select">Meerdere selecteren</string>
     <string name="filtered_label">Gefilterd</string>
@@ -737,7 +737,7 @@
     <string name="add_term">Term toevoegen</string>
     <string name="exclude_terms">Afleveringen die onderstaande termen bevatten uitsluiten</string>
     <string name="include_terms">Afleveringen die onderstaande termen bevatten opnemen</string>
-    <string name="exclude_episodes_shorter_than">Afleveringen uitsluiten die korter zijn dan</string>
+
     <string name="mark_excluded_episodes_played">Gespeelde uitgesloten afleveringen markeren</string>
     <string name="use_wide_layout">Gebruik brede schermindeling</string>
     <string name="use_wide_layout_summary">Brede lay-out op afleveringslijst toont grotere afbeeldingen, die beter geschikt zijn voor videoinhoud.</string>
@@ -745,7 +745,7 @@
     <string name="keep_updated_summary">Deze podcast meenemen bij het (automatisch) vernieuwen van alle podcasts</string>
     <string name="audo_add_new_queue">Automatisch nieuwe aan de wachtrij toevoegen</string>
     <string name="audo_add_new_queue_summary">Automatisch nieuwe afleveringen toevoegen in deze podcast aan de wachtrij wanneer (automatisch )versen</string>
-    <string name="auto_download_disabled_globally">Automatisch downloaden is uitgeschakeld in de Podcini-instellingen</string>
+
     <string name="statistics_length_played">Duur van alle gestart:</string>
     <string name="statistics_time_played">Afgespeeld:</string>
     <string name="statistics_time_spent">Tijd besteed:</string>

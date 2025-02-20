@@ -162,7 +162,7 @@
     <string name="feed_delete_confirmation_msg_batch">Confirmer que vous voulez supprimer les podcasts sélectionnés, TOUS leurs épisodes (y compris ceux téléchargés) et leurs statistiques.</string>
     <string name="feed_delete_confirmation_local_msg">Merci de confirmer que vous voulez supprimer le podcast \"%1$s\" et ses statistiques. Les fichiers du dossier local  / source ne seront pas effacés.</string>
     <string name="not_erase_message">Seuls les épisodes des flux synthétiques peuvent être effacés.</string>
-    <string name="feed_delete_reason_msg">Pour une référence future, vous pouvez enregistrer une raison ici:</string>
+    <string name="reason_to_delete_msg">Pour une référence future, vous pouvez enregistrer une raison ici:</string>
     <string name="load_complete_feed">Mettre à jour tout le podcast</string>
     <string name="multi_select">Sélection multiple</string>
     <string name="filtered_label">Filtré</string>
@@ -740,7 +740,7 @@
     <string name="add_term">Ajouter le mot</string>
     <string name="exclude_terms">Exclure les épisodes avec les mots ci-dessous</string>
     <string name="include_terms">N\'inclure que les épisodes avec les mots ci-dessous</string>
-    <string name="exclude_episodes_shorter_than">Exclure les épisodes de moins de</string>
+
     <string name="mark_excluded_episodes_played">Marquer les épisodes exclus joués</string>
     <string name="use_wide_layout">Utiliser la mise en page large</string>
     <string name="use_wide_layout_summary">La mise en page étendue de la liste des épisodes montre une image plus grande, plus appropriée pour le contenu vidéo.</string>
@@ -748,7 +748,7 @@
     <string name="keep_updated_summary">Inclure ce podcast lors de la mise à jour des podcasts</string>
     <string name="audo_add_new_queue">Ajouter automatiquement à la file d\'attente</string>
     <string name="audo_add_new_queue_summary">Ajouter automatiquement les nouveaux épisodes dans ce podcast à la file d\'attente désignée lorsque (auto-)actualisation</string>
-    <string name="auto_download_disabled_globally">Le téléchargement automatique n\'est pas activé dans les préférences</string>
+
     <string name="statistics_length_played">Durée de tous les débuts :</string>
     <string name="statistics_time_played">Temps de lecture :</string>
     <string name="statistics_time_spent">Temps passé :</string>

@@ -313,7 +313,7 @@
   <string name="authentication_label">Autenticación</string>
   <string name="episode_filters_description">La llista de términos que s\'usa pa decidir si un episodiu habría incluyise o escluyise de la descarga automática</string>
   <string name="keep_updated_summary">Inclúi esti podcast al refrescar (automáticamente) tolos podcasts</string>
-  <string name="auto_download_disabled_globally">La descarga automática ta desactivada nos axustes principales d\'Podcini</string>
+
   <string name="statistics_episodes_on_device">Episodios nel preséu:</string>
   <string name="statistics_space_used">Espaciu n\'usu:</string>
 

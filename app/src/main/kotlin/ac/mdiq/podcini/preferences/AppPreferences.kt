@@ -98,7 +98,7 @@ object AppPreferences {
             else putPref(AppPrefs.prefProxyPassword.name, config.password)
         }
 
-    var isStreamOverDownload: Boolean
+    var prefStreamOverDownload: Boolean
         get() = getPref(AppPrefs.prefStreamOverDownload, false)
         set(stream) {
             putPref(AppPrefs.prefStreamOverDownload, stream)

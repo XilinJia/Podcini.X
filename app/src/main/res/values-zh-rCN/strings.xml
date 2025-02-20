@@ -157,7 +157,7 @@
     <string name="feed_delete_confirmation_msg_batch">请确认您想要移除选定的播客，所有剧集(包括已下载的剧集)及其统计。</string>
     <string name="feed_delete_confirmation_local_msg">请确认您想要移除播客\"%1$s及其统计。 本地源文件夹中的文件将不会被删除。</string>
     <string name="not_erase_message">只有合成源的剧集才能被擦除。</string>
-    <string name="feed_delete_reason_msg">为了将来的参考，您可以在此记录一个理由：</string>
+    <string name="reason_to_delete_msg">为了将来的参考，您可以在此记录一个理由：</string>
     <string name="load_complete_feed">刷新完整播客</string>
     <string name="multi_select">多选</string>
     <string name="filtered_label">已过滤</string>
@@ -729,7 +729,7 @@
     <string name="add_term">添加条目</string>
     <string name="exclude_terms">排除包含以下任何条款的剧集</string>
     <string name="include_terms">仅包括包含以下任何条款的剧集</string>
-    <string name="exclude_episodes_shorter_than">排除短于剧集</string>
+
     <string name="mark_excluded_episodes_played">标记已播放的剧集</string>
     <string name="use_wide_layout">使用宽布局</string>
     <string name="use_wide_layout_summary">剧集列表上的宽布局显示更大的图像，更适合视频内容。</string>
@@ -737,7 +737,7 @@
     <string name="keep_updated_summary">当(自动)刷新所有播客时包括这个播客。</string>
     <string name="audo_add_new_queue">自动添加新到队列</string>
     <string name="audo_add_new_queue_summary">当(自动)刷新时，自动将播客中的新剧集添加到指定队列</string>
-    <string name="auto_download_disabled_globally">在主Podcini设置中禁用自动下载</string>
+
     <string name="statistics_length_played">所有开始时间：</string>
     <string name="statistics_time_played">播放时间：</string>
     <string name="statistics_time_spent">花费时间：</string>

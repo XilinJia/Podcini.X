@@ -165,7 +165,7 @@
     <string name="feed_delete_confirmation_msg_batch">Potwierdź, że chcesz usunąć wybrane podcasty, WSZYSTKIE ich odcinki (w tym pobrane odcinki) i ich statystyki.</string>
     <string name="feed_delete_confirmation_local_msg">Potwierdź, że chcesz usunąć podcast \"%1$s\" i jego statystyki. Pliki w lokalnym folderze źródłowym nie zostaną usunięte.</string>
     <string name="not_erase_message">Tylko odcinki z syntetycznych kanałów mogą być skasowane.</string>
-    <string name="feed_delete_reason_msg">Dla przyszłego odniesienia możesz zapisać powód tutaj:</string>
+    <string name="reason_to_delete_msg">Dla przyszłego odniesienia możesz zapisać powód tutaj:</string>
     <string name="load_complete_feed">Odśwież cały podcast</string>
     <string name="multi_select">Wybierz wiele</string>
     <string name="filtered_label">Przefiltrowany</string>
@@ -755,7 +755,7 @@
     <string name="add_term">Dodaj termin</string>
     <string name="exclude_terms">Wyklucz odcinki zawierające dowolne z poniższych wyrażeń</string>
     <string name="include_terms">Uwzględnij tylko odcinki zawierające dowolne z poniższych wyrażeń</string>
-    <string name="exclude_episodes_shorter_than">Wyklucz odcinki krótsze niż</string>
+
     <string name="mark_excluded_episodes_played">Oznacz odtworzone odcinki wykluczone</string>
     <string name="use_wide_layout">Użyj szerokiego układu</string>
     <string name="use_wide_layout_summary">Szeroki układ na liście odcinków pokazuje większy obraz, bardziej odpowiedni dla zawartości wideo.</string>
@@ -763,7 +763,7 @@
     <string name="keep_updated_summary">Uwzględnij ten podcast przy (automatycznym) odświeżaniu wszystkich kanałów</string>
     <string name="audo_add_new_queue">Automatycznie dodaj nowe do kolejki</string>
     <string name="audo_add_new_queue_summary">Automatycznie dodaj nowe odcinki w tym podcastie do wyznaczonej kolejki, gdy (auto-)odświeżanie</string>
-    <string name="auto_download_disabled_globally">Automatyczne pobieranie jest wyłączone w globalnych ustawieniach Podcini</string>
+
     <string name="statistics_length_played">Czas trwania wszystkich rozpoczętych:</string>
     <string name="statistics_time_played">Czas odtwarzania:</string>
     <string name="statistics_time_spent">Czas spędzony:</string>

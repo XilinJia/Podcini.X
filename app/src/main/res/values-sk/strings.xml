@@ -163,7 +163,7 @@
     <string name="feed_delete_confirmation_msg_batch">Potvrďte prosím, že chcete zmazať vybrané podcasty, VŠETKY ich epizódy (vrátane stiahonutých epizód) a ich štatistiky.</string>
     <string name="feed_delete_confirmation_local_msg">Potvrďte, prosím, že chcete zmazať podcast „%1$s“ a jeho štatistiky. Súbory v lokálnom zdrojovom priečinku sa nezmažú.</string>
     <string name="not_erase_message">Only episodes from synthetic feeds can be erased.</string>
-    <string name="feed_delete_reason_msg">For future reference, you can record a reason here:</string>
+    <string name="reason_to_delete_msg">For future reference, you can record a reason here:</string>
     <string name="load_complete_feed">Obnoviť celý podcast</string>
     <string name="multi_select">Viacnásobný výber</string>
     <string name="filtered_label">Filtrované</string>
@@ -753,7 +753,7 @@
     <string name="add_term">Pridať termín</string>
     <string name="exclude_terms">Vynechať epizódy, ktoré obsahujú hociktoré z nižšie uvedených termínov</string>
     <string name="include_terms">Zahrnúť epizódy, ktoré obsahujú hociktoré z nižšie uvedených termínov</string>
-    <string name="exclude_episodes_shorter_than">Vynechať epizódy kratšie ako</string>
+
     <string name="mark_excluded_episodes_played">Mark excluded episodes played</string>
     <string name="use_wide_layout">Use wide layout</string>
     <string name="use_wide_layout_summary">Wide layout on episode list shows larger image, more suitable for video contents.</string>
@@ -761,7 +761,7 @@
     <string name="keep_updated_summary">Zahrnúť tento podcast pri (automatickej) obnove všetkých podcastov</string>
     <string name="audo_add_new_queue">Auto add new to queue</string>
     <string name="audo_add_new_queue_summary">Automatically add new episodes in this podcast to the designated queue when (auto-)refreshing</string>
-    <string name="auto_download_disabled_globally">Automatické sťahovanie je zakázané v hlavných nastaveniach Podciniu</string>
+
     <string name="statistics_length_played">Duration of all started:</string>
     <string name="statistics_time_played">Doba prehrávania:</string>
     <string name="statistics_time_spent">Time spent:</string>

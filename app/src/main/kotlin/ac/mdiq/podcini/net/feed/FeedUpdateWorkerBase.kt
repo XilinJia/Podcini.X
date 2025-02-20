@@ -76,7 +76,6 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
             Logd(TAG, "doWork updating single feed: ${feed.title} ${feed.downloadUrl}")
             if (!feed.isLocalFeed) allAreLocal = false
             feedsToUpdate = mutableListOf(feed)
-//                feedsToUpdate.add(feed) // Needs to be updatable, so no singletonList
             force = true
         }
         if (!inputData.getBoolean(EXTRA_EVEN_ON_MOBILE, false) && !allAreLocal) {
@@ -149,7 +148,6 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
                 Logd(TAG, "updating local feed? ${feed.isLocalFeed} ${feed.title}")
                 when {
                     feed.isLocalFeed -> LocalFeedUpdater.updateFeed(feed, applicationContext, null)
-//                    feed.type == Feed.FeedType.YOUTUBE.name -> refreshYTFeed(feed, fullUpdate)
                     else -> refreshFeed(feed, force, fullUpdate)
                 }
             } catch (e: Exception) {
@@ -174,7 +172,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         downloader.call()
         if (!downloader.result.isSuccessful) {
             if (downloader.cancelled || downloader.result.reason == DownloadError.ERROR_DOWNLOAD_CANCELLED) {
-                Logt(TAG, "Refresh feed cancelled")
+                Logt(TAG, "feed refresh cancelled")
                 return
             }
             Logt(TAG, "update failed: unsuccessful. cancelled?")

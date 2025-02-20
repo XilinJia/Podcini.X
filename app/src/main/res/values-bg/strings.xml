@@ -158,7 +158,7 @@
     <string name="feed_delete_confirmation_msg_batch">Please confirm that you want to remove the selected podcasts, ALL their episodes (including downloaded episodes), and its statistics.</string>
     <string name="feed_delete_confirmation_local_msg">Please confirm that you want to remove the podcast \"%1$s\" and its statistics. The files in the local source folder will not be deleted.</string>
     <string name="not_erase_message">Only episodes from synthetic feeds can be erased.</string>
-    <string name="feed_delete_reason_msg">For future reference, you can record a reason here:</string>
+    <string name="reason_to_delete_msg">For future reference, you can record a reason here:</string>
     <string name="load_complete_feed">Refresh complete podcast</string>
     <string name="multi_select">Multi select</string>
     <string name="filtered_label">Filtered</string>
@@ -736,7 +736,7 @@
     <string name="add_term">Add term</string>
     <string name="exclude_terms">Exclude episodes containing any of the terms below</string>
     <string name="include_terms">Include only episodes containing any of the terms below</string>
-    <string name="exclude_episodes_shorter_than">Exclude episodes shorter than</string>
+
     <string name="mark_excluded_episodes_played">Mark excluded episodes played</string>
     <string name="use_wide_layout">Use wide layout</string>
     <string name="use_wide_layout_summary">Wide layout on episode list shows larger image, more suitable for video contents.</string>
@@ -744,7 +744,7 @@
     <string name="keep_updated_summary">Include this podcast when (auto-)refreshing all podcasts</string>
     <string name="audo_add_new_queue">Auto add new to queue</string>
     <string name="audo_add_new_queue_summary">Automatically add new episodes in this podcast to the designated queue when (auto-)refreshing</string>
-    <string name="auto_download_disabled_globally">Auto download is disabled in the main Podcini settings</string>
+
     <string name="statistics_length_played">Duration of all started:</string>
     <string name="statistics_time_played">Time played:</string>
     <string name="statistics_time_spent">Time spent:</string>

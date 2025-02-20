@@ -31,7 +31,7 @@ import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
-import ac.mdiq.podcini.ui.actions.SwipeActions.NoActionSwipeAction
+import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
@@ -131,10 +131,10 @@ import kotlin.math.max
 class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     internal var swipeActions: SwipeActions
     internal var swipeActionsBin: SwipeActions
-    internal var leftActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
-    internal var rightActionState = mutableStateOf<SwipeAction>(NoActionSwipeAction())
-    internal var leftActionStateBin = mutableStateOf<SwipeAction>(NoActionSwipeAction())
-    internal var rightActionStateBin = mutableStateOf<SwipeAction>(NoActionSwipeAction())
+    internal var leftActionState = mutableStateOf<SwipeAction>(NoAction())
+    internal var rightActionState = mutableStateOf<SwipeAction>(NoAction())
+    internal var leftActionStateBin = mutableStateOf<SwipeAction>(NoAction())
+    internal var rightActionStateBin = mutableStateOf<SwipeAction>(NoAction())
 
     internal var infoTextUpdate = ""
     internal var infoText = ""
@@ -657,11 +657,11 @@ fun QueuesScreen() {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                 InforBar(vm.infoBarText, leftAction = vm.leftActionStateBin, rightAction = vm.rightActionStateBin, actionConfig = { vm.showSwipeActionsDialog = true })
                 val leftCB = { episode: Episode ->
-                    if (vm.leftActionStateBin.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                    if (vm.leftActionStateBin.value is NoAction) vm.showSwipeActionsDialog = true
                     else vm.leftActionStateBin.value.performAction(episode)
                 }
                 val rightCB = { episode: Episode ->
-                    if (vm.rightActionStateBin.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                    if (vm.rightActionStateBin.value is NoAction) vm.showSwipeActionsDialog = true
                     else vm.rightActionStateBin.value.performAction(episode)
                 }
                 EpisodeLazyColumn(context as MainActivity, vms = vm.vms, leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) })
@@ -678,11 +678,11 @@ fun QueuesScreen() {
 
                     InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
                     val leftCB = { episode: Episode ->
-                        if (vm.leftActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                        if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
                         else vm.leftActionState.value.performAction(episode)
                     }
                     val rightCB = { episode: Episode ->
-                        if (vm.rightActionState.value is NoActionSwipeAction) vm.showSwipeActionsDialog = true
+                        if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
                         else vm.rightActionState.value.performAction(episode)
                     }
                     EpisodeLazyColumn(context as MainActivity, vms = vm.vms,

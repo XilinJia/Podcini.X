@@ -159,7 +159,7 @@
     <string name="feed_delete_confirmation_msg_batch">選択したポッドキャスト、すべてのエピソード(ダウンロードしたエピソードを含む)、およびその統計を削除することを確認してください。</string>
     <string name="feed_delete_confirmation_local_msg">ポッドキャスト「%1$s」とその統計を削除することを確認してください。 ローカルソースフォルダ内のファイルは削除されません。</string>
     <string name="not_erase_message">合成フィードからのエピソードのみ消去できます。</string>
-    <string name="feed_delete_reason_msg">今後の参照では、理由を記録することができます:</string>
+    <string name="reason_to_delete_msg">今後の参照では、理由を記録することができます:</string>
     <string name="load_complete_feed">ポッドキャストをすべて更新</string>
     <string name="multi_select">複数選択</string>
     <string name="filtered_label">フィルター処理されています</string>
@@ -731,7 +731,7 @@
     <string name="add_term">用語を追加</string>
     <string name="exclude_terms">以下の用語のいずれかを含むエピソードを除外する</string>
     <string name="include_terms">以下の用語のいずれかを含むエピソードのみを含める</string>
-    <string name="exclude_episodes_shorter_than">指定時間より短いエピソードを除外する</string>
+
     <string name="mark_excluded_episodes_played">除外エピソードの再生をマーク</string>
     <string name="use_wide_layout">幅広いレイアウトを使用</string>
     <string name="use_wide_layout_summary">エピソードリストの広いレイアウトは、より大きな画像を示します, ビデオのコンテンツに適しています.</string>
@@ -739,7 +739,7 @@
     <string name="keep_updated_summary">すべてのポッドキャストを (自動) 更新する時にこのポッドキャストを含めます</string>
     <string name="audo_add_new_queue">自動的にキューに追加</string>
     <string name="audo_add_new_queue_summary">(自動)更新時に指定されたキューにこのポッドキャストに新しいエピソードを自動的に追加</string>
-    <string name="auto_download_disabled_globally">メインの Podcini 設定で自動ダウンロードが無効になっています</string>
+
     <string name="statistics_length_played">すべての開始時間:</string>
     <string name="statistics_time_played">再生時間:</string>
     <string name="statistics_time_spent">経過時間:</string>

@@ -500,9 +500,9 @@
   <string name="episode_filters_description">Roll an termenoù implijet evit dibab ma rank ur rann bezañ ebarzhet pe laosket a-gostez pa vez pellgarget ent emgefreek</string>
   <string name="exclude_terms">Skarzhañ kuit ar rannoù gant unan eus an termenoù amañ didan</string>
   <string name="include_terms">Enklozañ ar rannoù gant unan eus an termenoù amañ dindan hepken</string>
-  <string name="exclude_episodes_shorter_than">Skarzhañ kuit ar rannoù berroc\'h eget</string>
+
   <string name="keep_updated_summary">Ebarzhiñ ar podskignad pa vez hizivaet an holl bodskignadoù</string>
-  <string name="auto_download_disabled_globally">N\'eo ket gweredekaet al lenn emgefreek e arventennoù pennañ Podcini</string>
+
   <string name="statistics_time_played">Padelezh lennet :</string>
   <string name="statistics_total_duration">Padelezh a-bezh (priziet) :</string>
   <string name="statistics_episodes_on_device">Rannoù war ar benveg:</string>

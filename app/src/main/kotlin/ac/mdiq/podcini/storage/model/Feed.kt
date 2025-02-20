@@ -315,17 +315,19 @@ class Feed : RealmObject {
 
     @Ignore
     var autoDownloadFilter: FeedAutoDownloadFilter? = null
-        get() = field ?: FeedAutoDownloadFilter(autoDLInclude, autoDLExclude, autoDLMinDuration, markExcludedPlayed)
+        get() = field ?: FeedAutoDownloadFilter(autoDLInclude, autoDLExclude, autoDLMinDuration, autoDLMaxDuration, markExcludedPlayed)
         set(value) {
             field = value
             autoDLInclude = value?.includeFilterRaw ?: ""
             autoDLExclude = value?.excludeFilterRaw ?: ""
-            autoDLMinDuration = value?.minimalDurationFilter ?: -1
+            autoDLMinDuration = value?.minDurationFilter ?: 0
+            autoDLMaxDuration = value?.maxDurationFilter ?: 0
             markExcludedPlayed = value?.markExcludedPlayed == true
         }
     var autoDLInclude: String? = ""
     var autoDLExclude: String? = ""
-    var autoDLMinDuration: Int = -1
+    var autoDLMinDuration: Int = 0
+    var autoDLMaxDuration: Int = 0
     var markExcludedPlayed: Boolean = false
 
     var autoDLSoon: Boolean = false

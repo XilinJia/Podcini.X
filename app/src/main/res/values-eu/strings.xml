@@ -546,7 +546,7 @@
   <string name="episode_filters_description">Saio bat deskarga automatikotik kanpo utzi behar den edo ez erabakitzeko erabilitako terminoen zerrenda</string>
   <string name="keep_updated">Mantendu eguneratuta</string>
   <string name="keep_updated_summary">Eguneratu podcast hau ere podcast guztiak (auto-)eguneratzean</string>
-  <string name="auto_download_disabled_globally">Deskarga automatikoa desgaituta dago Podcini-en lehentasun orokorretan</string>
+
   <string name="statistics_time_played">Jokatutako denbora:</string>
   <string name="statistics_total_duration">Iraupena guztira (zenbatespena):</string>
   <string name="statistics_episodes_on_device">Gailuko saioak:</string>

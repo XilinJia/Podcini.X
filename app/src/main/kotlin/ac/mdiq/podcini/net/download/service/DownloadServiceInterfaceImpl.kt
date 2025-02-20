@@ -6,7 +6,7 @@ import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileEpisodeDownload
+import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -206,7 +206,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             LogsAndStats.addDownloadStatus(status)
             if (status.reason == DownloadError.ERROR_FORBIDDEN || status.reason == DownloadError.ERROR_NOT_FOUND
                     || status.reason == DownloadError.ERROR_UNAUTHORIZED || status.reason == DownloadError.ERROR_IO_BLOCKED) {
-                Loge(TAG, "performDownload failure on various reasons")
+                Loge(TAG, "performDownload failure on various reasons ${status.reason?.name}")
                 // Fail fast, these are probably unrecoverable
                 sendErrorNotification(request.title?:"")
                 return Result.failure()
@@ -318,9 +318,9 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                             durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                             if (durationStr != null) it.duration = (durationStr.toInt())
                         }
-                    } catch (e: NumberFormatException) { Logd(TAG, "Invalid file duration: $durationStr")
+                    } catch (e: NumberFormatException) { Logs(TAG, e, "Invalid file duration: $durationStr")
                     } catch (e: Exception) {
-                        Logs(TAG, e, "Get duration failed.")
+                        Logs(TAG, e, "Get duration failed. Reset to 30sc")
                         it.duration = 30000
                     }
                     Logd(TAG, "run() set duration: ${it.duration}")
@@ -347,7 +347,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         private val TAG: String = DownloadServiceInterfaceImpl::class.simpleName ?: "Anonymous"
 
         private val constraints: Constraints
-            get() = Builder().setRequiredNetworkType(if (isAllowMobileEpisodeDownload) NetworkType.CONNECTED else NetworkType.UNMETERED).build()
+            get() = Builder().setRequiredNetworkType(if (mobileAllowEpisodeDownload) NetworkType.CONNECTED else NetworkType.UNMETERED).build()
 
         private fun getRequest(item: Episode): OneTimeWorkRequest.Builder {
             Logd(TAG, "starting getRequest")

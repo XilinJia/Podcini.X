@@ -163,7 +163,7 @@
     <string name="feed_delete_confirmation_msg_batch">Подтвердите, что хотите удалить выбранные подкасты, все их выпуски (включая загруженные) и их статистику.</string>
     <string name="feed_delete_confirmation_local_msg">Подтвердите, что хотите удалить подкаст «%1$s» и его статистику. Файлы в локальной исходной папке не будут удалены.</string>
     <string name="not_erase_message">Можно стереть только эпизоды из синтетических каналов.</string>
-    <string name="feed_delete_reason_msg">Для дальнейшей ссылки вы можете указать причину здесь:</string>
+    <string name="reason_to_delete_msg">Для дальнейшей ссылки вы можете указать причину здесь:</string>
     <string name="load_complete_feed">Обновить весь подкаст</string>
     <string name="multi_select">Множественный выбор</string>
     <string name="filtered_label">Отфильтровано</string>
@@ -753,7 +753,7 @@
     <string name="add_term">Добавить условие</string>
     <string name="exclude_terms">Исключить выпуски подпадающие под любое из условий</string>
     <string name="include_terms">Включать выпуски подпадающие под любое из условий</string>
-    <string name="exclude_episodes_shorter_than">Исключить выпуски короче чем</string>
+
     <string name="mark_excluded_episodes_played">Пометить воспроизведенные эпизоды</string>
     <string name="use_wide_layout">Использовать широкий макет</string>
     <string name="use_wide_layout_summary">Широкий макет в списке эпизодов показывает большее изображение, более подходящее для видео содержимого.</string>
@@ -761,7 +761,7 @@
     <string name="keep_updated_summary">Обновлять подкаст при (авто)обновлении всех подкастов</string>
     <string name="audo_add_new_queue">Автоматическое добавление в очередь</string>
     <string name="audo_add_new_queue_summary">Автоматически добавлять новые выпуски в этот подкаст в указанную очередь при (авто-)обновлении</string>
-    <string name="auto_download_disabled_globally">Автоматическая загрузка отключена в основных настройках Podcini</string>
+
     <string name="statistics_length_played">Продолжительность всех запущено:</string>
     <string name="statistics_time_played">Времени прослушивания:</string>
     <string name="statistics_time_spent">Время:</string>

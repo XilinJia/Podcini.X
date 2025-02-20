@@ -3,10 +3,11 @@ package ac.mdiq.podcini.ui.actions
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
-import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocal
+import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.Queues.addToQueue
+import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
+import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -17,6 +18,7 @@ import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
+import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
@@ -93,13 +95,33 @@ abstract class SwipeAction {
 }
 
 class SwipeActions(private val context: Context, private val tag: String) : DefaultLifecycleObserver {
+
     val actionsList: List<SwipeAction> = listOf(
-        NoActionSwipeAction(), ComboSwipeAction(),
-        AddToQueueSwipeAction(), PutToQueueSwipeAction(),
-        StartDownloadSwipeAction(), SetRatingSwipeAction(), AddCommentSwipeAction(),
-        SetPlaybackStateSwipeAction(), RemoveFromQueueSwipeAction(),
-        DeleteSwipeAction(), RemoveFromHistorySwipeAction(),
-        ShelveSwipeAction(), EraseSwipeAction())
+        NoAction(), Combo(),
+        SetPlaybackState(),
+        AddToAssociatedQueue(), AddToActiveQueue(), PutToQueue(),
+        RemoveFromQueue(),
+        SetRating(), AddComment(),
+        Download(),
+        Delete(), RemoveFromHistory(),
+        Shelve(), Erase())
+
+    enum class ActionTypes {
+        NO_ACTION,
+        COMBO,
+        RATING,
+        COMMENT,
+        SET_PLAY_STATE,
+        ADD_TO_QUEUE,
+        ADD_TO_ASSOCIATED,
+        PUT_TO_QUEUE,
+        REMOVE_FROM_QUEUE,
+        START_DOWNLOAD,
+        DELETE,
+        REMOVE_FROM_HISTORY,
+        SHELVE,
+        ERASE
+    }
 
     var actions by mutableStateOf<RightLeftActions>(getPrefs(tag, ""))
 
@@ -120,9 +142,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
     inner class RightLeftActions(actions_: String) {
         @JvmField
-        var right: MutableList<SwipeAction> = mutableListOf(NoActionSwipeAction(), NoActionSwipeAction())
+        var right: MutableList<SwipeAction> = mutableListOf(NoAction(), NoAction())
         @JvmField
-        var left: MutableList<SwipeAction> = mutableListOf(NoActionSwipeAction(), NoActionSwipeAction())
+        var left: MutableList<SwipeAction> = mutableListOf(NoAction(), NoAction())
 
         init {
             val actions = actions_.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
@@ -135,23 +157,33 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    enum class ActionTypes {
-        NO_ACTION,
-        COMBO,
-        RATING,
-        COMMENT,
-        SET_PLAY_STATE,
-        ADD_TO_QUEUE,
-        PUT_TO_QUEUE,
-        REMOVE_FROM_QUEUE,
-        START_DOWNLOAD,
-        DELETE,
-        REMOVE_FROM_HISTORY,
-        SHELVE,
-        ERASE
+    inner class SetPlaybackState : SwipeAction() {
+        var showPlayStateDialog by mutableStateOf(false)
+        override fun getId(): String {
+            return ActionTypes.SET_PLAY_STATE.name
+        }
+        override fun getActionIcon(): Int {
+            return R.drawable.ic_mark_played
+        }
+        override fun getActionColor(): Int {
+            return R.attr.icon_gray
+        }
+        override fun getTitle(): String {
+            return getAppContext().getString(R.string.set_play_state_label)
+        }
+        override fun performAction(item: Episode) {
+            super.performAction(item)
+            showPlayStateDialog = true
+        }
+        @Composable
+        override fun ActionOptions() {
+            var showIgnoreDialog by remember { mutableStateOf(false) }
+            if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEpisode!!), onDismissRequest = { showIgnoreDialog = false })
+            if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!), onDismissRequest = { showPlayStateDialog = false }) { showIgnoreDialog = true }
+        }
     }
 
-    inner class AddToQueueSwipeAction : SwipeAction() {
+    inner class AddToActiveQueue : SwipeAction() {
         override fun getId(): String {
             return ActionTypes.ADD_TO_QUEUE.name
         }
@@ -159,6 +191,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             return R.drawable.ic_playlist_play
         }
         override fun enabled(): Boolean {
+            if (onEpisode?.feed?.queue != null) return false
             return onEpisode != null && !curQueue.contains(onEpisode!!)
         }
         override fun getActionColor(): Int {
@@ -169,11 +202,58 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
         override fun performAction(item: Episode) {
             super.performAction(item)
-            addToQueue(item)
+            addToActiveQueue(item)
         }
     }
 
-    inner class ComboSwipeAction : SwipeAction() {
+    inner class AddToAssociatedQueue : SwipeAction() {
+        override fun getId(): String {
+            return ActionTypes.ADD_TO_ASSOCIATED.name
+        }
+        override fun getActionIcon(): Int {
+            return R.drawable.ic_playlist_play
+        }
+        override fun enabled(): Boolean {
+            val q = onEpisode?.feed?.queue ?: return false
+            return !q.contains(onEpisode!!)
+        }
+        override fun getActionColor(): Int {
+            return android.R.attr.colorAccent
+        }
+        override fun getTitle(): String {
+            return getAppContext().getString(R.string.add_to_associated_queue)
+        }
+        override fun performAction(item: Episode) {
+            super.performAction(item)
+            if (item.feed?.queue != null) runOnIOScope { addToQueueSync(item) }
+        }
+    }
+
+    inner class PutToQueue : SwipeAction() {
+        var showPutToQueueDialog by mutableStateOf(false)
+        override fun getId(): String {
+            return ActionTypes.PUT_TO_QUEUE.name
+        }
+        override fun getActionIcon(): Int {
+            return R.drawable.ic_playlist_play
+        }
+        override fun getActionColor(): Int {
+            return R.attr.icon_gray
+        }
+        override fun getTitle(): String {
+            return getAppContext().getString(R.string.put_in_queue_label)
+        }
+        override fun performAction(item: Episode) {
+            super.performAction(item)
+            showPutToQueueDialog = true
+        }
+        @Composable
+        override fun ActionOptions() {
+            if (showPutToQueueDialog && onEpisode != null) PutToQueueDialog(listOf(onEpisode!!)) { showPutToQueueDialog = false }
+        }
+    }
+
+    inner class Combo : SwipeAction() {
         var showDialog by mutableStateOf(false)
         var useAction by mutableStateOf<SwipeAction?>(null)
         override fun getId(): String {
@@ -222,7 +302,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class DeleteSwipeAction : SwipeAction() {
+    inner class Delete : SwipeAction() {
         override fun getId(): String {
             return ActionTypes.DELETE.name
         }
@@ -242,16 +322,17 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             var item = item_
             super.performAction(item)
             if (!item.downloaded && item.feed?.isLocalFeed != true) return
-            val almostEnded = hasAlmostEnded(item)
-            if (almostEnded && item.playState < PlayState.PLAYED.code)
-                item = runBlocking { setPlayStateSync(PlayState.PLAYED.code, item, resetMediaPosition = true, removeFromQueue = false) }
-            if (almostEnded) item = upsertBlk(item) { it.playbackCompletionDate = Date() }
-
-            deleteEpisodesWarnLocal(context, listOf(item))
+            runOnIOScope {
+                val almostEnded = hasAlmostEnded(item)
+                if (almostEnded && item.playState < PlayState.PLAYED.code)
+                    item = setPlayStateSync(PlayState.PLAYED.code, item, resetMediaPosition = true, removeFromQueue = false)
+                if (almostEnded) item = upsertBlk(item) { it.playbackCompletionDate = Date() }
+                deleteEpisodesWarnLocalRepeat(context, listOf(item))
+            }
         }
     }
 
-    inner class SetRatingSwipeAction : SwipeAction() {
+    inner class SetRating : SwipeAction() {
         var showChooseRatingDialog by mutableStateOf(false)
         override fun getId(): String {
             return ActionTypes.RATING.name
@@ -275,7 +356,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class AddCommentSwipeAction : SwipeAction() {
+    inner class AddComment : SwipeAction() {
         var showEditComment by mutableStateOf(false)
         var localTime by mutableLongStateOf(System.currentTimeMillis())
         var editCommentText by mutableStateOf(TextFieldValue(""))
@@ -315,7 +396,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    class NoActionSwipeAction : SwipeAction() {
+    class NoAction : SwipeAction() {
         override fun getId(): String {
             return ActionTypes.NO_ACTION.name
         }
@@ -331,7 +412,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class RemoveFromHistorySwipeAction : SwipeAction() {
+    inner class RemoveFromHistory : SwipeAction() {
         val TAG = this::class.simpleName ?: "Anonymous"
 
         override fun getId(): String {
@@ -371,7 +452,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class RemoveFromQueueSwipeAction : SwipeAction() {
+    inner class RemoveFromQueue : SwipeAction() {
         override fun getId(): String {
             return ActionTypes.REMOVE_FROM_QUEUE.name
         }
@@ -399,31 +480,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class PutToQueueSwipeAction : SwipeAction() {
-        var showPutToQueueDialog by mutableStateOf(false)
-        override fun getId(): String {
-            return ActionTypes.PUT_TO_QUEUE.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_playlist_play
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_gray
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.put_in_queue_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
-            showPutToQueueDialog = true
-        }
-        @Composable
-        override fun ActionOptions() {
-            if (showPutToQueueDialog && onEpisode != null) PutToQueueDialog(listOf(onEpisode!!)) { showPutToQueueDialog = false }
-        }
-    }
-
-    inner class StartDownloadSwipeAction : SwipeAction() {
+    inner class Download : SwipeAction() {
         override fun getId(): String {
             return ActionTypes.START_DOWNLOAD.name
         }
@@ -445,31 +502,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class SetPlaybackStateSwipeAction : SwipeAction() {
-        var showPlayStateDialog by mutableStateOf(false)
-        override fun getId(): String {
-            return ActionTypes.SET_PLAY_STATE.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_mark_played
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_gray
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.set_play_state_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
-            showPlayStateDialog = true
-        }
-        @Composable
-        override fun ActionOptions() {
-            if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!)) { showPlayStateDialog = false }
-        }
-    }
-
-    inner class ShelveSwipeAction : SwipeAction() {
+    inner class Shelve : SwipeAction() {
         var showShelveDialog by mutableStateOf(false)
         override fun getId(): String {
             return ActionTypes.SHELVE.name
@@ -493,7 +526,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class EraseSwipeAction : SwipeAction() {
+    inner class Erase : SwipeAction() {
         var showEraseDialog by mutableStateOf(false)
         override fun getId(): String {
             return ActionTypes.ERASE.name

@@ -159,7 +159,7 @@
     <string name="feed_delete_confirmation_msg_batch">Vänligen bekräfta att du vill ta bort markerade podcasts. ALLA dess avsnitt (inklusive nedladdade avsnitt) och dess statistik.</string>
     <string name="feed_delete_confirmation_local_msg">Vänligen bekräfta att du vill ta bort podcast \"%1$s\" och dess statistik. Filerna i den lokala källkatalogen kommer inte att tas bort.</string>
     <string name="not_erase_message">Endast episoder från syntetiska flöden kan raderas.</string>
-    <string name="feed_delete_reason_msg">För framtida referens kan du registrera en anledning här:</string>
+    <string name="reason_to_delete_msg">För framtida referens kan du registrera en anledning här:</string>
     <string name="load_complete_feed">Uppdatera hela podcasten</string>
     <string name="multi_select">Välj flera</string>
     <string name="filtered_label">Filtrerad</string>
@@ -737,7 +737,7 @@
     <string name="add_term">Lägg till term</string>
     <string name="exclude_terms">Exkludera episoder som innehåller något av termerna nedan</string>
     <string name="include_terms">Inkludera endast episoder som innehåller någon av termerna nedan</string>
-    <string name="exclude_episodes_shorter_than">Exkludera episoder kortare än</string>
+
     <string name="mark_excluded_episodes_played">Markera som exkluderad avsnitt spelade</string>
     <string name="use_wide_layout">Använd bred layout</string>
     <string name="use_wide_layout_summary">Bred layout på episodlistan visar större bild, mer lämplig för videoinnehåll.</string>
@@ -745,7 +745,7 @@
     <string name="keep_updated_summary">Inkludera detta flöde vid (auto-)uppdatering av alla podcasts</string>
     <string name="audo_add_new_queue">Lägg automatiskt till ny i kö</string>
     <string name="audo_add_new_queue_summary">Lägg automatiskt till nya avsnitt i den här podcasten i den angivna kön när (auto-)uppdateringen</string>
-    <string name="auto_download_disabled_globally">Automatisk nedladdning är avstängt i Podcinis huvudinställningar</string>
+
     <string name="statistics_length_played">Varaktighet för alla började:</string>
     <string name="statistics_time_played">Tid spelad:</string>
     <string name="statistics_time_spent">Tidsåtgång:</string>

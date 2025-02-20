@@ -10,7 +10,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.UsageStatistics
-import ac.mdiq.podcini.storage.database.Queues.addToQueue
+import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -35,6 +35,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
@@ -416,12 +417,11 @@ fun EpisodeInfoScreen() {
     @Composable
     fun OnDemandConfigDialog(onDismiss: () -> Unit) {
         AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { },
-            text = {
-                Text(stringResource(if (offerStreaming) R.string.on_demand_config_stream_text else R.string.on_demand_config_download_text))
-            },
+            text = { Text(stringResource(if (offerStreaming) R.string.on_demand_config_stream_text else R.string.on_demand_config_download_text)) },
             confirmButton = {
                 TextButton(onClick = {
-                    AppPreferences.isStreamOverDownload = offerStreaming
+                    if (offerStreaming) AppPreferences.prefStreamOverDownload = offerStreaming
+                    if (vm.episode?.feed != null) vm.episode!!.feed = upsertBlk(vm.episode!!.feed!!) { it.prefStreamOverDownload = offerStreaming }
                     // Update all visible lists to reflect new streaming action button
                     //            TODO: need another event type?
                     EventFlow.postEvent(FlowEvent.EpisodePlayedEvent())
@@ -459,8 +459,11 @@ fun EpisodeInfoScreen() {
     var showChaptersDialog by remember { mutableStateOf(false) }
     if (showChaptersDialog && vm.episode != null) ChaptersDialog(media = vm.episode!!, onDismissRequest = {showChaptersDialog = false})
 
+    var showIgnoreDialog by remember { mutableStateOf(false) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
-    if (showPlayStateDialog) PlayStateDialog(listOf(vm.episode!!)) { showPlayStateDialog = false }
+    if (showPlayStateDialog) PlayStateDialog(listOf(vm.episode!!), onDismissRequest = { showPlayStateDialog = false }) { showIgnoreDialog = true }
+
+    if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(vm.episode!!), onDismissRequest = { showIgnoreDialog = false })
 
     if (vm.showShareDialog && vm.episode != null && vm.actMain != null) ShareDialog(vm.episode!!, vm.actMain) { vm.showShareDialog = false }
 
@@ -484,7 +487,7 @@ fun EpisodeInfoScreen() {
                     Spacer(modifier = Modifier.weight(0.2f))
                     val inQueueIconRes = R.drawable.ic_playlist_remove
                     Icon(imageVector = ImageVector.vectorResource(inQueueIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue",
-                        modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { addToQueue(vm.episode!!) }))
+                        modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { addToActiveQueue(vm.episode!!) }))
                 }
                 Spacer(modifier = Modifier.weight(0.2f))
                 Logd(TAG, "ratingIconRes rating: ${vm.rating}")
@@ -495,7 +498,7 @@ fun EpisodeInfoScreen() {
                 if (vm.hasMedia) Icon(imageVector = ImageVector.vectorResource(vm.actionButton1?.drawable ?: R.drawable.ic_questionmark), tint = textColor, contentDescription = "butAction1",
                     modifier = Modifier.width(24.dp).height(24.dp).clickable(onClick = {
                         when {
-                            vm.actionButton1 is StreamActionButton && !AppPreferences.isStreamOverDownload
+                            vm.actionButton1 is StreamActionButton && vm.episode?.feed?.prefStreamOverDownload != true
                                     && UsageStatistics.hasSignificantBiasTo(UsageStatistics.ACTION_STREAM) -> {
                                 offerStreaming = true
                                 showOnDemandConfigDialog = true
@@ -510,7 +513,7 @@ fun EpisodeInfoScreen() {
                 Box(modifier = Modifier.width(40.dp).height(40.dp).align(Alignment.CenterVertically), contentAlignment = Alignment.Center) {
                     Icon(imageVector = ImageVector.vectorResource(vm.actionButton2?.drawable ?: R.drawable.ic_questionmark), tint = textColor, contentDescription = "butAction2", modifier = Modifier.width(24.dp).height(24.dp).clickable {
                         when {
-                            vm.actionButton2 is DownloadActionButton && AppPreferences.isStreamOverDownload
+                            vm.actionButton2 is DownloadActionButton && vm.episode?.feed?.prefStreamOverDownload == true
                                     && UsageStatistics.hasSignificantBiasTo(UsageStatistics.ACTION_DOWNLOAD) -> {
                                 offerStreaming = false
                                 showOnDemandConfigDialog = true

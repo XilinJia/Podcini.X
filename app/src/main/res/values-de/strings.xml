@@ -162,7 +162,7 @@
     <string name="feed_delete_confirmation_msg_batch">Bitte bestätige, dass du die ausgewählten Podcasts, ALLE ihre Episoden (einschließlich heruntergeladener Episoden) und Statistiken löschen möchtest.</string>
     <string name="feed_delete_confirmation_local_msg">Bitte bestätige, dass du den Podcast \"%1$s\" und seine Statistiken löschen möchtest. Die Dateien im lokalen Quellordner werden nicht gelöscht.</string>
     <string name="not_erase_message">Nur Episoden aus synthetischen Feeds können gelöscht werden.</string>
-    <string name="feed_delete_reason_msg">Für zukünftige Referenzen können Sie hier einen Grund feststellen:</string>
+    <string name="reason_to_delete_msg">Für zukünftige Referenzen können Sie hier einen Grund feststellen:</string>
     <string name="load_complete_feed">Kompletten Podcast aktualisieren</string>
     <string name="multi_select">Mehrere auswählen</string>
     <string name="filtered_label">Gefiltert</string>
@@ -740,7 +740,7 @@
     <string name="add_term">Begriff hinzufügen</string>
     <string name="exclude_terms">Episoden ausschließen, die einen der folgenden Begriffe enthalten.</string>
     <string name="include_terms">Nur Episoden einbeziehen, die einen der folgenden Begriffe enthalten</string>
-    <string name="exclude_episodes_shorter_than">Episoden ausschließen, die kürzer sind als</string>
+
     <string name="mark_excluded_episodes_played">Ausgeschlossene gespielte Episoden markieren</string>
     <string name="use_wide_layout">Breites Layout verwenden</string>
     <string name="use_wide_layout_summary">Weites Layout auf der Episodenliste zeigt ein größeres Bild, besser geeignet für Video-Inhalte.</string>
@@ -748,7 +748,7 @@
     <string name="keep_updated_summary">Diesen Podcast bei der (automatischen) Aktualisierung berücksichtigen</string>
     <string name="audo_add_new_queue">Automatisch zur Warteschlange hinzufügen</string>
     <string name="audo_add_new_queue_summary">Automatisch neue Episoden in diesem Podcast zur angegebenen Warteschlange hinzufügen, wenn (auto-)das Aktualisieren erfolgt</string>
-    <string name="auto_download_disabled_globally">Automatisches Herunterladen ist in den Einstellungen deaktiviert</string>
+
     <string name="statistics_length_played">Dauer von allen gestartet:</string>
     <string name="statistics_time_played">Abspielzeit:</string>
     <string name="statistics_time_spent">Zeitaufwand:</string>

@@ -163,7 +163,7 @@
     <string name="feed_delete_confirmation_msg_batch">Будь ласка, підтвердьте, що ви хочете видалити вибрані подкасти, а також УСІ їхні епізоди (разом із завантаженими) і статистику.</string>
     <string name="feed_delete_confirmation_local_msg">Будь ласка, підтвердьте, що ви хочете видалити подкаст \"%1$s\" і його статистику. Файли в теці локального джерела не будуть видалені.</string>
     <string name="not_erase_message">Будуть стерті тільки епізоди з синтетичних стрічок.</string>
-    <string name="feed_delete_reason_msg">Для майбутнього довідника ви можете записати причину тут:</string>
+    <string name="reason_to_delete_msg">Для майбутнього довідника ви можете записати причину тут:</string>
     <string name="load_complete_feed">Оновити весь подкаст</string>
     <string name="multi_select">Мультивибір</string>
     <string name="filtered_label">Фільтровані</string>
@@ -753,7 +753,7 @@
     <string name="add_term">Додати термін</string>
     <string name="exclude_terms">Виключити епізоди, що містять будь-яку з наведених нижче умов</string>
     <string name="include_terms">Включати лише епізоди, що містять будь-який з наведених нижче термінів</string>
-    <string name="exclude_episodes_shorter_than">Виключити епізоди коротші, ніж</string>
+
     <string name="mark_excluded_episodes_played">Позначити виключені епізоди зіграні</string>
     <string name="use_wide_layout">Використовувати типову розкладку</string>
     <string name="use_wide_layout_summary">Широкий макет з списку епізодів показує більше зображення, більше підходяще для контенту відео.</string>
@@ -761,7 +761,7 @@
     <string name="keep_updated_summary">Включати цей подкаст під час (автоматичного) оновлення всіх подкастів</string>
     <string name="audo_add_new_queue">Автоматично додавати нові до черги</string>
     <string name="audo_add_new_queue_summary">Автоматично додавати нові епізоди в цьому подкасті до призначеної черги, коли (автооновлення)</string>
-    <string name="auto_download_disabled_globally">Автозавантаження вимкнено в налаштуваннях Podcini</string>
+
     <string name="statistics_length_played">Тривалість всього початоку:</string>
     <string name="statistics_time_played">Час відтворення:</string>
     <string name="statistics_time_spent">Витрачений час:</string>

@@ -1,3 +1,18 @@
+# 8.7.0
+
+* ensure update worker is re-launched on a new version of the app
+* shows confirmation dialog for adding a comment when setting episodes to Ignore
+* show confirmation dialog when deleting repeat episodes
+* adjusted order of Combo swipe actions
+* added "add to associated queue" in swipe actions and episodes multi-select menu, and it take precedence to add to active queue
+* in feed settings, enabling prefer streaming turns off auto-download of the feed and turns on global setting of prefer streaming
+* likely fixed a persistence issue of prefer streaming in feed settings 
+* added max duration filter for auto-download and auto-enqueue
+	* now both episodes with duration shorter than min duration or longer than max duration can be excluded
+* in auto-download algorithm, queue item is added for auto-download only when either the global setting or the feed setting of "prefer streaming" is false
+* in episodes list, stream button is shown on an episode when prefer streaming is set both globally and in the feed
+* tuned some toast messages
+
 # 8.6.3
 
 * cleared out most star imports

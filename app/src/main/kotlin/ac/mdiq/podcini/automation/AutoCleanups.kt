@@ -18,7 +18,6 @@ import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import androidx.annotation.VisibleForTesting
-import kotlinx.coroutines.runBlocking
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -65,7 +64,7 @@ object AutoCleanups {
             }
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
             for (item in delete) {
-                try { runBlocking { deleteEpisodeMedia(context, item).join() } } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
+                try { deleteEpisodeMedia(context, item) } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
             }
             val counter = delete.size
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
@@ -107,7 +106,7 @@ object AutoCleanups {
             }
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
             for (item in delete) {
-                try { runBlocking { deleteEpisodeMedia(context, item).join() } } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
+                try { deleteEpisodeMedia(context, item) } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
             }
             val counter = delete.size
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
@@ -167,7 +166,7 @@ object AutoCleanups {
             }
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
             for (item in delete) {
-                try { runBlocking { deleteEpisodeMedia(context, item).join() } } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
+                try { deleteEpisodeMedia(context, item) } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
             }
             val counter = delete.size
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))

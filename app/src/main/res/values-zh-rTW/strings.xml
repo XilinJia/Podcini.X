@@ -366,7 +366,7 @@
   <string name="authentication_descr">修改此 Podcast 的帳號與密碼。</string>
   <string name="episode_filters_description">自動下載時要列入或排除的條件清單</string>
   <string name="keep_updated_summary">自動更新所有 Podcast 時，也包括此 Podcast</string>
-  <string name="auto_download_disabled_globally">Podcini 的主設定中已停用自動下載功能</string>
+
   <string name="statistics_episodes_on_device">裝置上的單集：</string>
   <string name="statistics_space_used">佔用空間：</string>
 

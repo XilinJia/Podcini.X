@@ -2,12 +2,13 @@ package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.automation.AutoCleanups.EpisodeCleanupAlgorithm
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
-import ac.mdiq.podcini.net.utils.NetworkUtils.isAutoDownloadAllowed
+import ac.mdiq.podcini.net.utils.NetworkUtils.networkAllowAutoDownload
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
+import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesSync
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodesCount
@@ -40,7 +41,7 @@ object AutoDownloads {
     private const val TAG = "AutoDownloads"
 
     fun autodownload(context: Context, feeds: List<Feed>? = null): Job {
-        return CoroutineScope(Dispatchers.IO).launch { AutoDownloadAlgorithm().run(context, feeds) }
+        return CoroutineScope(Dispatchers.IO).launch { if (isAutodownloadEnabled) AutoDownloadAlgorithm().run(context, feeds) }
     }
 
     fun autoenqueue(feeds: List<Feed>? = null): Job {
@@ -62,13 +63,10 @@ object AutoDownloads {
          * @param context  Used for accessing the DB.
          */
         fun run(context: Context, feeds: List<Feed>?) {
-            // true if we should auto download based on network status
-            val networkShouldAutoDl = (isAutoDownloadAllowed && isAutodownloadEnabled)
-            // true if we should auto download based on power status
             val powerShouldAutoDl = (deviceCharging(context) || getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false))
-            Logd(TAG, "run prepare $networkShouldAutoDl $powerShouldAutoDl")
+            Logd(TAG, "run prepare $networkAllowAutoDownload $powerShouldAutoDl")
             // we should only auto download if both network AND power are happy
-            if (networkShouldAutoDl && powerShouldAutoDl) {
+            if (networkAllowAutoDownload && powerShouldAutoDl) {
                 Logd(TAG, "run Performing auto-dl of undownloaded episodes")
                 val toReplace: MutableSet<Episode> = mutableSetOf()
                 val candidates: MutableSet<Episode> = mutableSetOf()
@@ -79,7 +77,7 @@ object AutoDownloads {
                         val q = queues.first { it.name == qn }
                         val queueItems = realm.query(Episode::class).query("id IN $0 AND downloaded == false", q.episodeIds).find()
                         Logd(TAG, "run add from queue: ${q.name} ${queueItems.size}")
-                        if (queueItems.isNotEmpty()) candidates.addAll(queueItems)
+                        if (queueItems.isNotEmpty()) queueItems.forEach { if (!prefStreamOverDownload || it.feed?.prefStreamOverDownload != true) candidates.add(it) }
                     }
                 }
                 assembleFeedsCandidates(feeds, candidates, toReplace)
@@ -128,8 +126,7 @@ object AutoDownloads {
                     } else Logt(TAG, "Auto download not performed: candidates: ${candidates.size} allowedCount: $allowedCount")
                     candidates.clear()
                 }
-            }
-            else Logt(TAG, "Auto download not performed: network: $networkShouldAutoDl power: $powerShouldAutoDl")
+            } else Logt(TAG, "Auto download not performed: network: $networkAllowAutoDownload power: $powerShouldAutoDl")
         }
 
         fun deviceCharging(context: Context): Boolean {
