@@ -212,7 +212,7 @@ object AppPreferences {
         // Episodes
         prefEpisodesSort("" + EpisodeSortOrder.DATE_NEW_OLD.code),
         prefEpisodesFilter(""),
-        prefEpisodesCurIndex(0),
+        prefFacetsCurIndex(0),
         prefDownloadsFilter(EpisodeFilter.States.downloaded.name),
 
         // Playback

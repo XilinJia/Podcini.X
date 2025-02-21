@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -114,7 +115,52 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
 
     var statsResult by mutableStateOf(StatisticsResult())
 
+    var chartData by mutableStateOf<LineChartData?>(null)
+    var timeSpentSum by mutableLongStateOf(0L)
+    var timeFilterFrom by mutableLongStateOf(0L)
+    var timeFilterTo by mutableLongStateOf(Long.MAX_VALUE)
+    var timePlayedToday by mutableLongStateOf(0L)
+    var timeSpentToday by mutableLongStateOf(0L)
+
+    var monthlyStats = mutableStateListOf<MonthlyStatisticsItem>()
+    var monthlyMaxDataValue by mutableFloatStateOf(1f)
+
+    internal var downloadstatsData by mutableStateOf<StatisticsResult?>(null)
+    internal var downloadChartData by mutableStateOf<LineChartData?>(null)
+
     internal val showResetDialog = mutableStateOf(false)
+
+    internal fun setTimeFilter(includeMarkedAsPlayed_: Boolean, timeFilterFrom_: Long, timeFilterTo_: Long) {
+        includeMarkedAsPlayed = includeMarkedAsPlayed_
+        timeFilterFrom = timeFilterFrom_
+        timeFilterTo = timeFilterTo_
+    }
+
+    internal fun loadStatistics() {
+        includeMarkedAsPlayed = prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false)
+        val statsToday = getStatistics(includeMarkedAsPlayed, LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), Long.MAX_VALUE)
+        for (item in statsToday.statsItems) {
+            timePlayedToday += item.timePlayed
+            timeSpentToday += item.timeSpent
+        }
+        timeFilterFrom = prefs.getLong(PREF_FILTER_FROM, 0)
+        timeFilterTo = prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE)
+        try {
+            statsResult = getStatistics(includeMarkedAsPlayed, timeFilterFrom, timeFilterTo)
+            statsResult.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.timePlayed.compareTo(item1.timePlayed) }
+            val dataValues = MutableList(statsResult.statsItems.size){0f}
+            for (i in statsResult.statsItems.indices) {
+                val item = statsResult.statsItems[i]
+                dataValues[i] = item.timePlayed.toFloat()
+                timeSpentSum += item.timeSpent
+            }
+            chartData = LineChartData(dataValues)
+            // When "from" is "today", set it to today
+            setTimeFilter(includeMarkedAsPlayed,
+                max(min(timeFilterFrom.toDouble(), System.currentTimeMillis().toDouble()), statsResult.oldestDate.toDouble()).toLong(),
+                min(timeFilterTo.toDouble(), System.currentTimeMillis().toDouble()).toLong())
+        } catch (error: Throwable) { Logs(TAG, error) }
+    }
 }
 
 @Composable
@@ -210,75 +256,44 @@ fun StatisticsScreen() {
     }
 
     @Composable
-    fun PlayedTime() {
-        val context = LocalContext.current
-        var chartData by remember { mutableStateOf<LineChartData>(LineChartData(mutableListOf())) }
-        var timeSpentSum by remember { mutableLongStateOf(0L) }
-        var timeFilterFrom by remember { mutableLongStateOf(0L) }
-        var timeFilterTo by remember { mutableLongStateOf(Long.MAX_VALUE) }
-        var timePlayedToday by remember { mutableLongStateOf(0L) }
-        var timeSpentToday by remember { mutableLongStateOf(0L) }
-
-        fun setTimeFilter(includeMarkedAsPlayed_: Boolean, timeFilterFrom_: Long, timeFilterTo_: Long) {
-            vm.includeMarkedAsPlayed = includeMarkedAsPlayed_
-            timeFilterFrom = timeFilterFrom_
-            timeFilterTo = timeFilterTo_
-        }
-        fun loadStatistics() {
-            vm.includeMarkedAsPlayed = vm.prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false)
-            val statsToday = getStatistics(vm.includeMarkedAsPlayed, LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), Long.MAX_VALUE)
-            for (item in statsToday.statsItems) {
-                timePlayedToday += item.timePlayed
-                timeSpentToday += item.timeSpent
-            }
-            timeFilterFrom = vm.prefs.getLong(PREF_FILTER_FROM, 0)
-            timeFilterTo = vm.prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE)
-            try {
-                vm.statsResult = getStatistics(vm.includeMarkedAsPlayed, timeFilterFrom, timeFilterTo)
-                vm.statsResult.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.timePlayed.compareTo(item1.timePlayed) }
-                val dataValues = MutableList(vm.statsResult.statsItems.size){0f}
-                for (i in vm.statsResult.statsItems.indices) {
-                    val item = vm.statsResult.statsItems[i]
-                    dataValues[i] = item.timePlayed.toFloat()
-                    timeSpentSum += item.timeSpent
-                }
-                chartData = LineChartData(dataValues)
-                // When "from" is "today", set it to today
-                setTimeFilter(vm.includeMarkedAsPlayed,
-                    max(min(timeFilterFrom.toDouble(), System.currentTimeMillis().toDouble()), vm.statsResult.oldestDate.toDouble()).toLong(),
-                    min(timeFilterTo.toDouble(), System.currentTimeMillis().toDouble()).toLong())
-            } catch (error: Throwable) { Logs(TAG, error) }
-        }
-        LaunchedEffect(Unit) { if (vm.statisticsState >= 0) loadStatistics() }
+    fun Overview() {
+        LaunchedEffect(Unit) { if (vm.statisticsState >= 0 && vm.chartData == null) vm.loadStatistics() }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.statistics_today), color = MaterialTheme.colorScheme.onSurface)
             Row {
-                Text(stringResource(R.string.duration) + ": " + getDurationStringShort(timePlayedToday.toInt()*1000, true), color = MaterialTheme.colorScheme.onSurface)
+                Text(stringResource(R.string.duration) + ": " + getDurationStringShort(vm.timePlayedToday.toInt()*1000, true), color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.width(20.dp))
-                Text( stringResource(R.string.spent) + ": " + getDurationStringShort(timeSpentToday.toInt()*1000, true), color = MaterialTheme.colorScheme.onSurface)
+                Text( stringResource(R.string.spent) + ": " + getDurationStringShort(vm.timeSpentToday.toInt()*1000, true), color = MaterialTheme.colorScheme.onSurface)
             }
             val headerCaption = if (vm.includeMarkedAsPlayed) stringResource(R.string.statistics_counting_total)
             else {
-                if (timeFilterFrom != 0L || timeFilterTo != Long.MAX_VALUE) {
+                if (vm.timeFilterFrom != 0L || vm.timeFilterTo != Long.MAX_VALUE) {
                     val skeleton = DateFormat.getBestDateTimePattern(Locale.getDefault(), "MMM yyyy")
                     val dateFormat = SimpleDateFormat(skeleton, Locale.getDefault())
-                    val dateFrom = dateFormat.format(Date(timeFilterFrom))
+                    val dateFrom = dateFormat.format(Date(vm.timeFilterFrom))
                     // FilterTo is first day of next month => Subtract one day
-                    val dateTo = dateFormat.format(Date(timeFilterTo - 24L * 3600000L))
+                    val dateTo = dateFormat.format(Date(vm.timeFilterTo - 24L * 3600000L))
                     stringResource(R.string.statistics_counting_range, dateFrom, dateTo)
                 } else stringResource(R.string.statistics_counting_total)
             }
             Text(headerCaption, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 20.dp))
             Row {
-                Text(stringResource(R.string.duration) + ": " + durationInHours(chartData.sum.toLong()), color = MaterialTheme.colorScheme.onSurface)
+                Text(stringResource(R.string.duration) + ": " + durationInHours((vm.chartData?.sum ?: 0).toLong()), color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.width(20.dp))
-                Text( stringResource(R.string.spent) + ": " + durationInHours(timeSpentSum), color = MaterialTheme.colorScheme.onSurface)
+                Text( stringResource(R.string.spent) + ": " + durationInHours(vm.timeSpentSum), color = MaterialTheme.colorScheme.onSurface)
             }
+        }
+    }
+
+    @Composable
+    fun PlayedTime() {
+        LaunchedEffect(Unit) { if (vm.statisticsState >= 0 && vm.chartData == null) vm.loadStatistics() }
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Spacer(Modifier.height(5.dp))
-            HorizontalLineChart(chartData)
+            if (vm.chartData != null) HorizontalLineChart(vm.chartData!!)
             Spacer(Modifier.height(5.dp))
-            StatsList(vm.statsResult, chartData) { item ->
+            if (vm.chartData != null) StatsList(vm.statsResult, vm.chartData!!) { item ->
                 context.getString(R.string.duration) + ": " + durationInHours(item.timePlayed) + " \t " + context.getString(R.string.spent) + ": " + durationInHours(item.timeSpent)
             }
         }
@@ -286,9 +301,6 @@ fun StatisticsScreen() {
 
     @Composable
     fun MonthlyStats() {
-        var monthlyStats = remember { mutableStateListOf<MonthlyStatisticsItem>() }
-        var monthlyMaxDataValue by remember { mutableFloatStateOf(1f) }
-
         fun loadMonthlyStatistics() {
             try {
                 vm.includeMarkedAsPlayed = vm.prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false)
@@ -326,20 +338,19 @@ fun StatisticsScreen() {
                     mItem.timeSpent = spent
                     months.add(mItem)
                 }
-                monthlyStats = months.toMutableStateList()
-                for (item in monthlyStats) monthlyMaxDataValue = max(monthlyMaxDataValue.toDouble(), item.timePlayed.toDouble()).toFloat()
-                Logd(TAG, "maxDataValue: $monthlyMaxDataValue")
+                vm.monthlyStats = months.toMutableStateList()
+                for (item in vm.monthlyStats) vm.monthlyMaxDataValue = max(vm.monthlyMaxDataValue.toDouble(), item.timePlayed.toDouble()).toFloat()
+                Logd(TAG, "maxDataValue: ${vm.monthlyMaxDataValue}")
             } catch (error: Throwable) { Logs(TAG, error) }
         }
         @Composable
         fun BarChart() {
             val barWidth = 40f
             val spaceBetweenBars = 16f
-            Canvas(modifier = Modifier.width((monthlyStats.size * (barWidth + spaceBetweenBars)).dp).height(150.dp)) {
-//                val canvasWidth = size.width
+            Canvas(modifier = Modifier.width((vm.monthlyStats.size * (barWidth + spaceBetweenBars)).dp).height(150.dp)) {
                 val canvasHeight = size.height
-                for (index in monthlyStats.indices) {
-                    val barHeight = (monthlyStats[index].timePlayed / monthlyMaxDataValue) * canvasHeight // Normalize height
+                for (index in vm.monthlyStats.indices) {
+                    val barHeight = (vm.monthlyStats[index].timePlayed / vm.monthlyMaxDataValue) * canvasHeight // Normalize height
                     Logd(TAG, "index: $index barHeight: $barHeight")
                     val xOffset = spaceBetweenBars + index * (barWidth + spaceBetweenBars) // Calculate x position
                     drawRect(color = Color.Cyan, topLeft = Offset(xOffset, canvasHeight - barHeight), size = Size(barWidth, barHeight))
@@ -352,20 +363,20 @@ fun StatisticsScreen() {
             val textColor = MaterialTheme.colorScheme.onSurface
             LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                itemsIndexed(monthlyStats) { index, _ ->
+                itemsIndexed(vm.monthlyStats) { index, _ ->
                     Row(Modifier.background(MaterialTheme.colorScheme.surface)) {
                         Column {
-                            val monthString = String.format(Locale.getDefault(), "%d-%d", monthlyStats[index].year, monthlyStats[index].month)
+                            val monthString = String.format(Locale.getDefault(), "%d-%d", vm.monthlyStats[index].year, vm.monthlyStats[index].month)
                             Text(monthString, color = textColor, style = MaterialTheme.typography.bodyLarge.merge())
-                            val hoursString = stringResource(R.string.duration) + ": " + String.format(Locale.getDefault(), "%.1f ", monthlyStats[index].timePlayed / 3600000.0f) + stringResource(R.string.time_hours) +
-                                    " \t " + stringResource(R.string.spent) + ": " + String.format(Locale.getDefault(), "%.1f ", monthlyStats[index].timeSpent / 3600000.0f) + stringResource(R.string.time_hours)
+                            val hoursString = stringResource(R.string.duration) + ": " + String.format(Locale.getDefault(), "%.1f ", vm.monthlyStats[index].timePlayed / 3600000.0f) + stringResource(R.string.time_hours) +
+                                    " \t " + stringResource(R.string.spent) + ": " + String.format(Locale.getDefault(), "%.1f ", vm.monthlyStats[index].timeSpent / 3600000.0f) + stringResource(R.string.time_hours)
                             Text(hoursString, color = textColor, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
             }
         }
-        if (vm.statisticsState >= 0) loadMonthlyStatistics()
+        if (vm.statisticsState >= 0 && vm.monthlyStats.isEmpty()) loadMonthlyStatistics()
         Column {
             Row(modifier = Modifier.horizontalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp)) { BarChart() }
             Spacer(Modifier.height(20.dp))
@@ -375,28 +386,24 @@ fun StatisticsScreen() {
 
     @Composable
     fun DownloadStats() {
-        val context = LocalContext.current
-        lateinit var downloadstatsData: StatisticsResult
-        lateinit var downloadChartData: LineChartData
-
         fun loadDownloadStatistics() {
-            downloadstatsData = getStatistics(false, 0, Long.MAX_VALUE, forDL = true)
-            downloadstatsData.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.totalDownloadSize.compareTo(item1.totalDownloadSize) }
-            val dataValues = MutableList(downloadstatsData.statsItems.size) { 0f }
-            for (i in downloadstatsData.statsItems.indices) {
-                val item = downloadstatsData.statsItems[i]
+            vm.downloadstatsData = getStatistics(false, 0, Long.MAX_VALUE, forDL = true)
+            vm.downloadstatsData!!.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.totalDownloadSize.compareTo(item1.totalDownloadSize) }
+            val dataValues = MutableList(vm.downloadstatsData!!.statsItems.size) { 0f }
+            for (i in vm.downloadstatsData!!.statsItems.indices) {
+                val item = vm.downloadstatsData!!.statsItems[i]
                 dataValues[i] = item.totalDownloadSize.toFloat()
             }
-            downloadChartData = LineChartData(dataValues)
+            vm.downloadChartData = LineChartData(dataValues)
         }
-        loadDownloadStatistics()
+        if (vm.downloadstatsData == null) loadDownloadStatistics()
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(stringResource(R.string.total_size_downloaded_podcasts), color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 20.dp, bottom = 10.dp))
-            Text(Formatter.formatShortFileSize(context, downloadChartData.sum.toLong()), color = MaterialTheme.colorScheme.onSurface)
+            Text(Formatter.formatShortFileSize(context, vm.downloadChartData!!.sum.toLong()), color = MaterialTheme.colorScheme.onSurface)
             Spacer(Modifier.height(5.dp))
-            HorizontalLineChart(downloadChartData)
+            if (vm.downloadChartData != null) HorizontalLineChart(vm.downloadChartData!!)
             Spacer(Modifier.height(5.dp))
-            StatsList(downloadstatsData, downloadChartData) { item ->
+            if (vm.downloadstatsData != null && vm.downloadChartData != null) StatsList(vm.downloadstatsData!!, vm.downloadChartData!!) { item ->
                 ("${Formatter.formatShortFileSize(context, item.totalDownloadSize)} • " + String.format(Locale.getDefault(), "%d%s", item.episodesDownloadCount, context.getString(R.string.episodes_suffix)))
             }
         }
@@ -431,20 +438,25 @@ fun StatisticsScreen() {
         vm.includeMarkedAsPlayed = includeMarkedAsPlayed_
         vm.statisticsState++
     }
-    val tabTitles = listOf(R.string.subscriptions_label, R.string.months_statistics_label, R.string.downloads_label)
+    val tabTitles = listOf(R.string.overview, R.string.subscriptions_label, R.string.months_statistics_label, R.string.downloads_label)
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            TabRow(modifier = Modifier.fillMaxWidth(), selectedTabIndex = vm.selectedTabIndex.value, divider = {}, indicator = { tabPositions ->
-                Box(modifier = Modifier.tabIndicatorOffset(tabPositions[vm.selectedTabIndex.value]).height(4.dp).background(Color.Blue))
-            }) {
+            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                 tabTitles.forEachIndexed { index, titleRes ->
-                    Tab(text = { Text(stringResource(titleRes)) }, selected = vm.selectedTabIndex.value == index, onClick = { vm.selectedTabIndex.value = index })
+                    Tab(modifier = Modifier.wrapContentWidth().padding(horizontal = 2.dp, vertical = 4.dp).background(shape = RoundedCornerShape(8.dp),
+                        color = if (vm.selectedTabIndex.value == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }),
+                        selected = vm.selectedTabIndex.value == index,
+                        onClick = { vm.selectedTabIndex.value = index },
+                        text = { Text(text = stringResource(titleRes), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium,
+                            color = if (vm.selectedTabIndex.value == index) MaterialTheme.colorScheme.primary else { MaterialTheme.colorScheme.onSurface }) }
+                    )
                 }
             }
             when (vm.selectedTabIndex.value) {
-                0 -> PlayedTime()
-                1 -> MonthlyStats()
-                2 -> DownloadStats()
+                0 -> Overview()
+                1 -> PlayedTime()
+                2 -> MonthlyStats()
+                3 -> DownloadStats()
             }
         }
     }

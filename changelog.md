@@ -1,3 +1,10 @@
+# 8.8.0
+
+* renamed screen Episodes to Facets and added showing of related feeds
+* added Overview tab in Statistics screen
+* restructured Statistics screen, enhanced loading efficiency when changing tabs
+* tuned some toast messages
+
 # 8.7.0
 
 * ensure update worker is re-launched on a new version of the app

@@ -104,7 +104,7 @@ class MainActivity : CastEnabledActivity() {
         Subscriptions,
         FeedDetails,
         FeedSettings,
-        Episodes,
+        Facets,
         EpisodeInfo,
         EpisodeText,
         Queues,
@@ -260,7 +260,7 @@ class MainActivity : CastEnabledActivity() {
                             composable(Screens.FeedSettings.name) { FeedSettingsScreen() }
                             composable(Screens.EpisodeInfo.name) { EpisodeInfoScreen() }
                             composable(Screens.EpisodeText.name) { EpisodeTextScreen() }
-                            composable(Screens.Episodes.name) { EpisodesScreen() }
+                            composable(Screens.Facets.name) { FacetsScreen() }
                             composable(Screens.Queues.name) { QueuesScreen() }
                             composable(Screens.Search.name) { SearchScreen() }
                             composable(Screens.OnlineSearch.name) { OnlineSearchScreen() }
@@ -386,7 +386,7 @@ class MainActivity : CastEnabledActivity() {
         var args = args
         Logd(TAG, "loadFragment(tag: $tag, args: $args)")
         when (tag) {
-            Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Episodes.name, Screens.Statistics.name ->
+            Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Facets.name, Screens.Statistics.name ->
                 mainNavController.navigate(tag)
             Screens.FeedDetails.name -> {
                 if (args == null) {
@@ -561,7 +561,7 @@ class MainActivity : CastEnabledActivity() {
             "/deeplink/main" -> {
                 val feature = uri.getQueryParameter("page") ?: return
                 when (feature) {
-                    "EPISODES" -> mainNavController.navigate(Screens.Episodes.name)
+                    "EPISODES" -> mainNavController.navigate(Screens.Facets.name)
                     "QUEUE" -> mainNavController.navigate(Screens.Queues.name)
                     "SUBSCRIPTIONS" -> mainNavController.navigate(Screens.Subscriptions.name)
                     "STATISTCS" -> mainNavController.navigate(Screens.Statistics.name)

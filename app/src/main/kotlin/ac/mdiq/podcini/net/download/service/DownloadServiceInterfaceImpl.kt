@@ -84,7 +84,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         Logd(TAG, "starting cancel")
         // This needs to be done here, not in the worker. Reason: The worker might or might not be running.
         val item_ = media
-        if (item_ != null) Episodes.deleteEpisodeMedia(context, item_) // Remove partially downloaded file
+        if (item_ != null) Episodes.deleteAndRemoveFromQueues(context, item_) // Remove partially downloaded file
         val tag = WORK_TAG_EPISODE_URL + media.downloadUrl
         val future: Future<List<WorkInfo>> = WorkManager.getInstance(context).getWorkInfosByTag(tag)
 
@@ -133,8 +133,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                             val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                             nm.notify(R.id.notification_downloading, generateProgressNotification())
                             sleep(1000)
-                        } catch (e: InterruptedException) { return
-                        } catch (e: ExecutionException) { return }
+                        } catch (e: InterruptedException) { return } catch (e: ExecutionException) { return }
                     }
                 }
             }

@@ -14,6 +14,7 @@
     <string name="add_feed_label">Add podcast</string>
     <string name="online_episodes_label">Online episodes</string>
     <string name="feed">Feed</string>
+    <string name="facets">Facets</string>
     <string name="episodes_label">Episodes</string>
     <string name="home_label">Home</string>
     <string name="queue_label">Queues</string>
@@ -28,6 +29,7 @@
     <string name="cancel_download_label">Cancel download</string>
     <string name="playback_history_label">History</string>
 
+    <string name="overview">Overview</string>
     <string name="months_statistics_label">Months</string>
 
     <string name="years_statistics_label">Years</string>

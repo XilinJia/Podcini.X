@@ -191,7 +191,7 @@ class NavItem(val iconRes: Int, val nameRes: Int) {
 val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.Subscriptions.name to NavItem(R.drawable.ic_subscriptions, R.string.subscriptions_label),
     Screens.Queues.name to NavItem(R.drawable.ic_playlist_play, R.string.queue_label),
-    Screens.Episodes.name to NavItem(R.drawable.ic_feed, R.string.episodes_label),
+    Screens.Facets.name to NavItem(R.drawable.baseline_view_in_ar_24, R.string.facets),
     Screens.Logs.name to NavItem(R.drawable.ic_history, R.string.logs_label),
     Screens.Statistics.name to NavItem(R.drawable.ic_chart_box, R.string.statistics_label),
     Screens.OnlineSearch.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
@@ -221,7 +221,7 @@ fun getDatasetStats() {
     feedCount = getFeedCount()
     navMap[Screens.Queues.name]?.count = realm.query(PlayQueue::class).find().sumOf { it.size()}
     navMap[Screens.Subscriptions.name]?.count = feedCount
-    navMap[Screens.Episodes.name]?.count = numItems
+    navMap[Screens.Facets.name]?.count = numItems
     navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +
             realm.query(SubscriptionLog::class).count().find().toInt() +
             realm.query(DownloadResult::class).count().find().toInt()

@@ -611,7 +611,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 val forFragment = remember(sa.tag) {
                     if (sa.tag != Screens.Queues.name) keys = keys.filter { a: SwipeAction -> a.getId() != ActionTypes.REMOVE_FROM_QUEUE.name }
                     when (sa.tag) {
-                        Screens.Episodes.name -> context.getString(R.string.episodes_label)
+                        Screens.Facets.name -> context.getString(R.string.facets)
                         Screens.OnlineEpisodes.name -> context.getString(R.string.online_episodes_label)
                         Screens.Search.name -> context.getString(R.string.search_label)
                         Screens.FeedDetails.name -> {

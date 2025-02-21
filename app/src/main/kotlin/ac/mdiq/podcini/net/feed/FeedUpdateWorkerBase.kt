@@ -172,10 +172,10 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         downloader.call()
         if (!downloader.result.isSuccessful) {
             if (downloader.cancelled || downloader.result.reason == DownloadError.ERROR_DOWNLOAD_CANCELLED) {
-                Logt(TAG, "feed refresh cancelled")
+                Logt(TAG, "feed refresh cancelled, likely due to feed not changed: ${feed.title}")
                 return
             }
-            Logt(TAG, "update failed: unsuccessful. cancelled?")
+            Logt(TAG, "feed update failed: unsuccessful. cancelled? ${feed.title}")
             Feeds.persistFeedLastUpdateFailed(feed, true)
             LogsAndStats.addDownloadStatus(downloader.result)
             return
@@ -183,7 +183,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         val feedUpdateTask = FeedUpdateTask(applicationContext, request)
         val success = if (fullUpdate) feedUpdateTask.run() else feedUpdateTask.runSimple()
         if (!success) {
-            Logt(TAG, "update failed: unsuccessful")
+            Logt(TAG, "feed update failed: unsuccessful: ${feed.title}")
             Feeds.persistFeedLastUpdateFailed(feed, true)
             LogsAndStats.addDownloadStatus(feedUpdateTask.downloadStatus)
             return

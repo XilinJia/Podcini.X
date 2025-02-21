@@ -108,7 +108,7 @@ object Episodes {
         for (item in items) {
             if (item.feed?.isLocalFeed == true) localItems.add(item)
             if (item.playState == PlayState.AGAIN.code || item.playState == PlayState.FOREVER.code) repeatItems.add(item)
-            else deleteEpisodeMedia(context, item)
+            else deleteAndRemoveFromQueues(context, item)
         }
 
         var waiting = false
@@ -121,7 +121,7 @@ object Episodes {
                     confirmRes = R.string.delete_label,
                     cancelRes = R.string.cancel_label,
                     onConfirm = {
-                        for (item in localItems) deleteEpisodeMedia(context, item)
+                        for (item in localItems) deleteAndRemoveFromQueues(context, item)
                         waiting = false
                     })
             }
@@ -135,22 +135,21 @@ object Episodes {
                     message = context.getString(R.string.delete_repeat_warning_msg),
                     confirmRes = R.string.delete_label,
                     cancelRes = R.string.cancel_label,
-                    onConfirm = { for (item in repeatItems) deleteEpisodeMedia(context, item) })
+                    onConfirm = { for (item in repeatItems) deleteAndRemoveFromQueues(context, item) })
             }
         }
     }
 
     // @JvmStatic is needed because some Runnable blocks call this
     @JvmStatic
-    fun deleteEpisodeMedia(context: Context, episode: Episode) {
+    fun deleteAndRemoveFromQueues(context: Context, episode: Episode) {
         Logd(TAG, "deleteMediaOfEpisode called ${episode.title}")
         val episode_ = deleteMediaSync(context, episode)
         if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(episode_)
     }
 
     fun deleteMediaSync(context: Context, episode: Episode): Episode {
-        Logd(TAG, "deleteMediaSync called")
-        Logd(TAG, String.format(Locale.US, "Requested to delete EpisodeMedia [id=%d, title=%s, downloaded=%s", episode.id, episode.getEpisodeTitle(), episode.downloaded))
+        Logd(TAG, String.format(Locale.US, "deleteMediaSync [id=%d, title=%s, downloaded=%s", episode.id, episode.getEpisodeTitle(), episode.downloaded))
         var localDelete = false
         val url = episode.fileUrl
         Logd(TAG, "deleteMediaSync $url")

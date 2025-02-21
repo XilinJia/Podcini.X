@@ -466,28 +466,23 @@ fun QueuesScreen() {
                 playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
             } else Text(title) },
             navigationIcon = if (vm.displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-                }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
+                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
             } else {
                 { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } }
             },
             actions = {
                 val binIconRes by remember(vm.showBin) { derivedStateOf { if (vm.showBin) R.drawable.playlist_play else R.drawable.ic_history } }
-//                var binIconRes by remember { mutableIntStateOf( if (showBin) R.drawable.playlist_play else R.drawable.ic_history) }
-//                var feedsIconRes = if (showFeeds) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24)
                 val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
                 IconButton(onClick = {
                     vm.showBin = !vm.showBin
                     showSpinner = !vm.showBin
                     title = if (vm.showBin) curQueue.name + " Bin" else ""
                     vm.refreshSwipeTelltale()
-//                    binIconRes = if (showBin) R.drawable.playlist_play else R.drawable.ic_history
                     vm.loadCurQueue(false)
                 }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
-                IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                if (!vm.showBin) IconButton(onClick = {
-//                    setSearchTerms("")
-                    mainNavController.navigate(Screens.Search.name)
+                IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) {
+                    Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
+                if (!vm.showBin) IconButton(onClick = { mainNavController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -629,12 +624,7 @@ fun QueuesScreen() {
                                 feedOnDisplay = feed
                                 feedScreenMode = FeedScreenMode.List
                                 mainNavController.navigate(Screens.FeedDetails.name)
-                            }, onLongClick = {
-                                Logd(TAG, "long clicked: ${feed.title}")
-//                                val inflater: MenuInflater = (context as MainActivity).menuInflater
-//                                inflater.inflate(R.menu.feed_context, contextMenu)
-//                                contextMenu.setHeaderTitle(feed.title)
-                            })
+                            }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
                     Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,
                         modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
