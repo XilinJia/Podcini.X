@@ -623,7 +623,7 @@
     <string name="favorites_export_label">Favoritexport</string>
     <string name="favorites_export_summary">Exportera sparade favoriter till fil</string>
     <string name="restore_subscriptions_label">Återställ prenumerationer</string>
-    <string name="restore_subscriptions_summary">Tidigare podcasts prenumerationer kan återställas. Vill du återställa dem?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Ställ in insomningstimer</string>
     <string name="disable_sleeptimer_label">Stäng av insomningstimer</string>

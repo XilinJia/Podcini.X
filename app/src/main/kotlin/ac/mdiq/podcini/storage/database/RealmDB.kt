@@ -42,7 +42,7 @@ object RealmDB {
                 PAFeed::class,
             ))
             .name("Podcini.realm")
-            .schemaVersion(46)
+            .schemaVersion(47)
             .migration({ mContext ->
                 val oldRealm = mContext.oldRealm // old realm using the previous schema
                 val newRealm = mContext.newRealm // new realm using the new schema
@@ -195,6 +195,20 @@ object RealmDB {
                             if (oldObject.getValue<Long>(fieldName = "autoDLPolicyCode") == 3L) {
                                 Logd(TAG, "setting autoDLSoon to true")
                                 set("autoDLSoon", true)
+                            }
+                        }
+                    }
+                }
+                if (oldRealm.schemaVersion() < 47) {
+                    Logd(TAG, "migrating DB from below 47")
+                    mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
+                        newObject?.run {
+                            val playState = oldObject.getValue<Long>(fieldName = "playState")
+                            if (playState >= PlayState.SKIPPED.code.toLong()) {
+                                var playTime = oldObject.getValue<Long>(fieldName = "lastPlayedTime")
+                                Logd(TAG, "setting playStateSetTime to $playTime")
+                                if (playTime == 0L) playTime = System.currentTimeMillis()
+                                set("playStateSetTime", playTime)
                             }
                         }
                     }

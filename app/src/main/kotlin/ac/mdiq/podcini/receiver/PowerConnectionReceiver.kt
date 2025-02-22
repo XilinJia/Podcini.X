@@ -19,7 +19,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
      override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         Logd(TAG, "onReceive charging intent: $action")
-        ClientConfigurator.initialize(context)
+        ClientConfigurator.initialize(context.applicationContext)
         if (Intent.ACTION_POWER_CONNECTED == action) {
             Logd(TAG, "charging, starting auto-download")
             // we're plugged in, this is a great time to auto-download if everything else is

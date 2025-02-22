@@ -628,7 +628,7 @@
     <string name="favorites_export_label">Exportă favorite</string>
     <string name="favorites_export_summary">Exportă favoritele salvate într-un fișier</string>
     <string name="restore_subscriptions_label">Restabilire abonamente</string>
-    <string name="restore_subscriptions_summary">Abonamentele la podcasturile anterioare pot fi restaurate. Doriți să le restaurați?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Setează cronometru somn</string>
     <string name="disable_sleeptimer_label">Oprește cronometru somn</string>

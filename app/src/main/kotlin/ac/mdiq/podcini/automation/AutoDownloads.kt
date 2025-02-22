@@ -81,23 +81,6 @@ object AutoDownloads {
                     }
                 }
                 assembleFeedsCandidates(feeds, candidates, toReplace)
-                runOnIOScope {
-                    val feeds = feeds ?: getFeedList()
-                    feeds.forEach { f ->
-                        realm.write {
-                            while (true) {
-                                val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${PlayState.NEW.code} LIMIT(20)").find()
-                                if (episodesNew.isEmpty()) break
-                                Logd(TAG, "run episodesNew: ${episodesNew.size}")
-                                episodesNew.map { e ->
-                                    e.setPlayed(false)
-                                    Logd(TAG, "run reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
-                                    copyToRealm(e, UpdatePolicy.ALL)
-                                }
-                            }
-                        }
-                    }
-                }
                 Logd(TAG, "run candidates ${candidates.size} for download")
                 if (candidates.isNotEmpty()) {
                     val autoDownloadableCount = candidates.size
@@ -249,12 +232,28 @@ object AutoDownloads {
                                 Logd(TAG, "assembleFeedsCandidates add to candidates: ${e.title} ${e.downloaded}")
                                 candidates.add(e)
                                 if (++count >= allowedDLCount) break
-                            } else upsertBlk(e) { it.setPlayed(true)}
+                            } else if (f.autoDownloadFilter?.markExcludedPlayed == true) upsertBlk(e) { it.setPlayed(true)}
                         }
                     }
                     episodes.clear()
                 }
                 Logd(TAG, "assembleFeedsCandidates ${f.title} candidate size: ${candidates.size}")
+                if (dl) {
+                    runOnIOScope {
+                        realm.write {
+                            while (true) {
+                                val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${PlayState.NEW.code} LIMIT(20)").find()
+                                if (episodesNew.isEmpty()) break
+                                Logd(TAG, "run episodesNew: ${episodesNew.size}")
+                                episodesNew.map { e ->
+                                    e.setPlayed(false)
+                                    Logd(TAG, "run reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
+                                    copyToRealm(e, UpdatePolicy.ALL)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

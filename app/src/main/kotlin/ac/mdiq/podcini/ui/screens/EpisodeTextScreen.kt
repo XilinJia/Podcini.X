@@ -10,6 +10,7 @@ import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.webkit.WebSettings
@@ -113,7 +114,7 @@ class EpisodeTextVM(val context: Context, val lcScope: CoroutineScope) {
                                             Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + "${episode?.feed?.language}")
                                         }
                                     }
-                                    Loge(TAG, "TTS init success")
+                                    Logt(TAG, "TTS init success")
                                 } else Loge(TAG, context.getString(R.string.tts_init_failed))
                             }
                         }

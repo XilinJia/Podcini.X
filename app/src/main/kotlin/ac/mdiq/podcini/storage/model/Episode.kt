@@ -97,7 +97,11 @@ class Episode : RealmObject {
 
     var podcastIndexChapterUrl: String? = null
 
+    @set:JvmName("setPlayStateProperty")
     var playState: Int
+        private set
+
+    var playStateSetTime: Long
 
     var paymentLink: String? = null
 
@@ -239,6 +243,7 @@ class Episode : RealmObject {
 
     constructor() {
         this.playState = PlayState.NEW.code
+        playStateSetTime = System.currentTimeMillis()
     }
 
     // used only in LocalFeedUpdater
@@ -249,6 +254,7 @@ class Episode : RealmObject {
         this.link = link
         this.pubDate = pubDate?.time ?: 0
         this.playState = state
+        playStateSetTime = System.currentTimeMillis()
         if (feed != null) this.feedId = feed.id
         this.feed = feed
     }
@@ -277,6 +283,7 @@ class Episode : RealmObject {
         if (includingState) {
             this.rating = other.rating
             this.playState = other.playState
+            this.playStateSetTime = other.playStateSetTime
             this.position = other.position
             this.playbackCompletionTime = other.playbackCompletionTime
             this.playedDuration = other.playedDuration
@@ -297,10 +304,17 @@ class Episode : RealmObject {
         else this.pubDate = 0
     }
 
+    @JvmName("setPlayStateFunction")
+    fun setPlayState(stat: PlayState) {
+        playState = stat.code
+        playStateSetTime = System.currentTimeMillis()
+    }
+
     fun isPlayed(): Boolean = playState >= PlayState.SKIPPED.code
 
     fun setPlayed(played: Boolean) {
         playState = if (played) PlayState.PLAYED.code else PlayState.UNPLAYED.code
+        playStateSetTime = System.currentTimeMillis()
     }
 
     /**

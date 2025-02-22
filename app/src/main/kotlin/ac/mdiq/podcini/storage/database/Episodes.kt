@@ -165,7 +165,7 @@ object Episodes {
                 }
                 episode = upsertBlk(episode) {
                     it.setfileUrlOrNull(null)
-                    if (it.playState < PlayState.SKIPPED.code) it.playState = PlayState.SKIPPED.code
+                    if (it.playState < PlayState.SKIPPED.code) it.setPlayState(PlayState.SKIPPED)
                 }
                 EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
                 localDelete = true
@@ -188,7 +188,7 @@ object Episodes {
                     it.downloaded = false
                     it.setfileUrlOrNull(null)
                     it.hasEmbeddedPicture = false
-                    if (it.playState < PlayState.SKIPPED.code) it.playState = PlayState.SKIPPED.code
+                    if (it.playState < PlayState.SKIPPED.code) it.setPlayState(PlayState.SKIPPED)
                 }
                 EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
             }
@@ -257,10 +257,10 @@ object Episodes {
         var episode_ = episode
         if (!episode.isManaged()) episode_ = realm.query(Episode::class).query("id == $0", episode.id).first().find() ?: episode
         val result = upsert(episode_) {
-            if (played != PlayState.UNSPECIFIED.code) it.playState = played
+            if (played != PlayState.UNSPECIFIED.code) it.setPlayState(PlayState.fromCode(played))
             else {
-                if (it.playState == PlayState.PLAYED.code) it.playState = PlayState.UNPLAYED.code
-                else it.playState = PlayState.PLAYED.code
+                if (it.playState == PlayState.PLAYED.code) it.setPlayState(PlayState.UNPLAYED)
+                else it.setPlayState(PlayState.PLAYED)
             }
             if (resetMediaPosition || it.playState == PlayState.PLAYED.code || it.playState == PlayState.IGNORED.code) it.setPosition(0)
         }

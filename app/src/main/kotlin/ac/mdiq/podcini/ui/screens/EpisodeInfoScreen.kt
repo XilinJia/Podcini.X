@@ -583,9 +583,7 @@ private suspend fun getMediaSize(episode: Episode?) : Long {
                     val response = client.newCall(httpReq.build()).execute()
                     if (response.isSuccessful) {
                         val contentLength = response.header("Content-Length")?:"0"
-                        try {
-                            size = contentLength.toInt().toLong()
-                        } catch (e: NumberFormatException) { Logs(TAG, e) }
+                        try { size = contentLength.toInt().toLong() } catch (e: NumberFormatException) { Logs(TAG, e) }
                     }
                 } catch (e: Exception) {
                     Logs(TAG, e)

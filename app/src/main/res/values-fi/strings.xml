@@ -623,7 +623,7 @@
     <string name="favorites_export_label">Suosikkien vienti</string>
     <string name="favorites_export_summary">Vie tallennetut suosikit tiedostoon</string>
     <string name="restore_subscriptions_label">Palauta tilaukset</string>
-    <string name="restore_subscriptions_summary">Aiemmat podcast-tilaukset voidaan palauttaa ennalleen. Haluatko palauttaa ne?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Aseta uniajastin</string>
     <string name="disable_sleeptimer_label">Lopeta uniajastin</string>

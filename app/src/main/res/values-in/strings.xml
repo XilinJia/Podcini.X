@@ -618,7 +618,7 @@
     <string name="favorites_export_label">Ekspor Favorit</string>
     <string name="favorites_export_summary">Ekspor favorites disimpan ke file</string>
     <string name="restore_subscriptions_label">Restore subscriptions</string>
-    <string name="restore_subscriptions_summary">Previous podcasts subscriptions can be restores.  Would you like to restore them?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Atur timer tidur</string>
     <string name="disable_sleeptimer_label">Nonaktifkan timer tidur</string>

@@ -18,8 +18,8 @@ class ConnectivityActionReceiver : BroadcastReceiver() {
         Logd(TAG, "onReceive called with action: ${intent.action}")
         if (intent.action == ConnectivityManager.CONNECTIVITY_ACTION) {
             Logd(TAG, "Received intent")
-            ClientConfigurator.initialize(context)
-            networkChangedDetected(context)
+            ClientConfigurator.initialize(context.applicationContext)
+            networkChangedDetected(context.applicationContext)
         }
     }
 

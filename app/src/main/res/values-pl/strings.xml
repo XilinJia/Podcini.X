@@ -635,7 +635,7 @@
     <string name="favorites_export_label">Eksport ulubionych</string>
     <string name="favorites_export_summary">Wyeksportuj ulubione do pliku</string>
     <string name="restore_subscriptions_label">Przywróć subskrypcje</string>
-    <string name="restore_subscriptions_summary">Poprzednie subskrypcje podcastów mogą być przywrócone. Czy chcesz je przywrócić?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Ustaw czas do wyłączenia</string>
     <string name="disable_sleeptimer_label">Wyłącz wyłącznik czasowy</string>

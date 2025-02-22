@@ -620,7 +620,7 @@
     <string name="favorites_export_label">お気に入り エクスポート</string>
     <string name="favorites_export_summary">保存したお気に入りをファイルにエクスポートする</string>
     <string name="restore_subscriptions_label">サブスクリプションを復元</string>
-    <string name="restore_subscriptions_summary">以前の Podcast サブスクリプションは復元できます。それらを復元しますか？</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">スリープタイマーをセット</string>
     <string name="disable_sleeptimer_label">スリープタイマーを無効にする</string>

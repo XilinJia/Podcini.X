@@ -644,7 +644,7 @@
     <string name="favorites_export_label">تصدير الحلقات المفضلة</string>
     <string name="favorites_export_summary">تصدير الحلقات المفضلة لملف</string>
     <string name="restore_subscriptions_label">استعادة الاشتراكات</string>
-    <string name="restore_subscriptions_summary">يمكن استعادة اشتراكات podcasts السابقة. هل ترغب في استعادتها؟</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">ضبط مؤقت النوم</string>
     <string name="disable_sleeptimer_label">إلغاء مؤقت النوم</string>

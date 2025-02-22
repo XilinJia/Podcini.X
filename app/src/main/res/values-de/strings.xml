@@ -626,7 +626,7 @@
     <string name="favorites_export_label">Favoriten exportieren</string>
     <string name="favorites_export_summary">Favoriten in einer Datei speichern</string>
     <string name="restore_subscriptions_label">Abonnements wiederherstellen</string>
-    <string name="restore_subscriptions_summary">Vorherige Podcasts-Abonnements können wieder hergestellt werden. Möchtest du sie wiederherstellen?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Timer einstellen</string>
     <string name="disable_sleeptimer_label">Schlummerfunktion deaktivieren</string>

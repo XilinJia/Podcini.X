@@ -623,7 +623,7 @@
     <string name="favorites_export_label">Favorieten exporteren</string>
     <string name="favorites_export_summary">Exporteer opgeslagen favorieten naar een bestand</string>
     <string name="restore_subscriptions_label">Abonnementen herstellen</string>
-    <string name="restore_subscriptions_summary">Eerdere podcasts abonnementen kunnen worden hersteld. Wilt u deze herstellen?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Slaaptimer instellen</string>
     <string name="disable_sleeptimer_label">Slaaptimer uitschakelen</string>

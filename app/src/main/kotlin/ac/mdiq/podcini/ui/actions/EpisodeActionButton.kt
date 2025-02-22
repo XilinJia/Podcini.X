@@ -421,7 +421,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
             return
         }
         processing = 1
-        item = upsertBlk(item) { it.playState = PlayState.BUILDING.code }
+        item = upsertBlk(item) { it.setPlayState(PlayState.BUILDING) }
         EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
         RealmDB.runOnIOScope {
             if (item.transcript == null) {
@@ -526,7 +526,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                 FEObj.ttsWorking = false
             } else Loge(TAG, context.getString(R.string.episode_has_no_content))
 
-            item = upsertBlk(item) { it.playState = PlayState.UNPLAYED.code }
+            item = upsertBlk(item) { it.setPlayState(PlayState.UNPLAYED) }
 
             processing = 100
             EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))

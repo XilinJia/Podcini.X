@@ -1,3 +1,15 @@
+# 8.8.1
+
+* when setting play state on an episode, a time stamp is recorded
+	* initialized playStateSetTime (for Skipped, Played, Again, Forever and Ignored) to the first launch time of this version
+* corrected statistics calculation for "include Marked As Played"
+* topbar action filter is re-enabled in Subscriptions tab in Statistics
+* clears memory on dispose of Statistics screen
+* amended auto-download algorithm: NEW episodes only in auto-download enabled feeds are auto-marked as Unplayed
+* fixed issue of empty text being set in auto-download exclusive filter that could prevent auto-download
+* made loading feeds more efficient in Facets when Spinner is for All
+* in OnlineSearch screen, the prompt (on reinstall) of restoring from OPML shows number of feeds included
+
 # 8.8.0
 
 * renamed screen Episodes to Facets and added showing of related feeds

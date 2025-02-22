@@ -735,7 +735,7 @@
     <string name="favorites_export_summary">Export saved favorites to file</string>
 
     <string name="restore_subscriptions_label">Restore subscriptions</string>
-    <string name="restore_subscriptions_summary">Previous podcasts subscriptions can be restores.  Would you like to restore them?</string>
+    <string name="restore_subscriptions_summary">Previously backed up %d subscriptions can be restores.  Would you like to restore them?</string>
 
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Set sleep timer</string>

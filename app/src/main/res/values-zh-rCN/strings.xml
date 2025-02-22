@@ -618,7 +618,7 @@
     <string name="favorites_export_label">收藏夹导出</string>
     <string name="favorites_export_summary">导出保存的收藏夹到文件</string>
     <string name="restore_subscriptions_label">还原订阅</string>
-    <string name="restore_subscriptions_summary">以前的播客订阅可以恢复。你想要还原它们吗？</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">设置睡眠计时器</string>
     <string name="disable_sleeptimer_label">禁用睡眠计时器</string>

@@ -332,7 +332,7 @@ class PlaybackService : MediaLibraryService() {
                     val item_ = realm.query(Episode::class).query("id == $0", item.id).first().find()
                     if (item_ != null) {
                         item = upsert(item_) {
-                            if (it.playState < PlayState.PLAYED.code || it.playState == PlayState.IGNORED.code) it.playState = PlayState.PLAYED.code
+                            if (it.playState < PlayState.PLAYED.code || it.playState == PlayState.IGNORED.code) it.setPlayState(PlayState.PLAYED)
                             upsertDB(it, item, item.position)
                             if (ended || (skipped && smartMarkAsPlayed)) it.setPosition(0)
                             if (ended || skipped || playingNext) it.playbackCompletionDate = Date()
@@ -1068,7 +1068,7 @@ class PlaybackService : MediaLibraryService() {
         it.playedDurationWhenStarted = playable.playedDurationWhenStarted
         it.setPosition(position)
         it.lastPlayedTime = (System.currentTimeMillis())
-        if (it.isNew) it.playState = PlayState.UNPLAYED.code
+        if (it.isNew) it.setPlayState(PlayState.UNPLAYED)
         if (it.startPosition >= 0 && it.position > it.startPosition)
             it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
         Logd(TAG, "upsertDB ${it.startTime} timeSpent: ${it.timeSpent} playedDuration: ${it.playedDuration}")

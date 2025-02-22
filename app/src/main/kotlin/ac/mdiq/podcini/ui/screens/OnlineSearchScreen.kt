@@ -111,6 +111,7 @@ class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
     internal var showGrid by mutableStateOf(false)
 
     internal val showOPMLRestoreDialog = mutableStateOf(false)
+    internal val numberOPMLFeedsToRestore = mutableIntStateOf(0)
     internal var numColumns by mutableIntStateOf(4)
     internal val searchResult = mutableStateListOf<PodcastSearchResult>()
 
@@ -235,7 +236,10 @@ fun OnlineSearchScreen() {
                     val PAFeed = realm.query(PAFeed::class).find()
                     Logd(TAG, "size of directory: ${PAFeed.size}")
                     vm.loadToplist()
-                    if (getPref(AppPrefs.prefOPMLRestore, false) && feedCount == 0) vm.showOPMLRestoreDialog.value = true
+                    if (getPref(AppPrefs.prefOPMLRestore, false) && feedCount == 0) {
+                        vm.numberOPMLFeedsToRestore.value = getPref(AppPrefs.prefOPMLFeedsToRestore, 0)
+                        vm.showOPMLRestoreDialog.value = true
+                    }
                 }
                 Lifecycle.Event.ON_START -> vm.procFlowEvents()
                 Lifecycle.Event.ON_RESUME -> {}
@@ -253,9 +257,8 @@ fun OnlineSearchScreen() {
     val textColor = MaterialTheme.colorScheme.onSurface
     val actionColor = MaterialTheme.colorScheme.tertiary
     val scrollState = rememberScrollState()
-    ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary), vm.showOPMLRestoreDialog) {
+    ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, vm.numberOPMLFeedsToRestore.value), vm.showOPMLRestoreDialog) {
         performRestore(context)
-//        parentFragmentManager.popBackStack()
     }
     val chooseOpmlImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult

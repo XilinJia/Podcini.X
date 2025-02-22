@@ -84,8 +84,7 @@ class SynchronizationQueueStorage(context: Context) {
     }
 
     private fun indexOf(string: String, array: JSONArray): Int {
-        try { for (i in 0 until array.length()) if (array.getString(i) == string) return i
-        } catch (jsonException: JSONException) { Logs("SynchronizationQueueStorage", jsonException) }
+        try { for (i in 0 until array.length()) if (array.getString(i) == string) return i } catch (jsonException: JSONException) { Logs("SynchronizationQueueStorage", jsonException) }
         return -1
     }
 

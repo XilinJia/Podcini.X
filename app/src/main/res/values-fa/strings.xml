@@ -623,7 +623,7 @@
     <string name="favorites_export_label">خارج کردن علاقه مندی ها</string>
     <string name="favorites_export_summary">محبوب‌های ذخیره شده در پرونده برون‌ریخته شدند</string>
     <string name="restore_subscriptions_label">Restore subscriptions</string>
-    <string name="restore_subscriptions_summary">Previous podcasts subscriptions can be restores.  Would you like to restore them?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">تنظیم زمان‌سنج خواب</string>
     <string name="disable_sleeptimer_label">از کار انداختن زمان‌سنج خواب</string>

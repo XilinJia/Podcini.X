@@ -202,7 +202,6 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
             val httpReq: Request.Builder = Request.Builder().url(uri.toURL())
             httpReq.tag(downloadRequest)
             httpReq.cacheControl(CacheControl.Builder().noStore().build())
-
             Logd(TAG, "starting download: " + downloadRequest.feedfileType + " " + uri.scheme)
 
             // set header explicitly so that okhttp doesn't do transparent gzip
@@ -323,15 +322,10 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                     }
                 }
             }
-        } catch (e: IllegalArgumentException) {
-            onFail(DownloadError.ERROR_MALFORMED_URL, e.message)
-        } catch (e: SocketTimeoutException) {
-            onFail(DownloadError.ERROR_CONNECTION_ERROR, e.message)
-        } catch (e: UnknownHostException) {
-            Logs(TAG, e)
-            onFail(DownloadError.ERROR_UNKNOWN_HOST, e.message)
+        } catch (e: IllegalArgumentException) { onFail(DownloadError.ERROR_MALFORMED_URL, e.message)
+        } catch (e: SocketTimeoutException) { onFail(DownloadError.ERROR_CONNECTION_ERROR, e.message)
+        } catch (e: UnknownHostException) { onFail(DownloadError.ERROR_UNKNOWN_HOST, e.message)
         } catch (e: IOException) {
-            Logs(TAG, e)
             if (wasDownloadBlocked(e)) {
                 onFail(DownloadError.ERROR_IO_BLOCKED, e.message)
                 return
@@ -342,13 +336,8 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                 return
             }
             onFail(DownloadError.ERROR_IO_ERROR, e.message)
-        } catch (e: NullPointerException) {
-            // might be thrown by connection.getInputStream()
-            onFail(DownloadError.ERROR_CONNECTION_ERROR, downloadRequest.source)
-        } finally {
-//            IOUtils.closeQuietly(out)
-            IOUtils.closeQuietly(responseBody)
-        }
+        } catch (e: NullPointerException) { onFail(DownloadError.ERROR_CONNECTION_ERROR, downloadRequest.source)    // might be thrown by connection.getInputStream()
+        } finally { IOUtils.closeQuietly(responseBody) }
     }
 
     @Throws(IOException::class)
@@ -368,9 +357,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
     private fun isContentTypeTextAndSmallerThan100kb(response: Response): Boolean {
         var contentLength = -1
         val contentLen = response.header("Content-Length")
-        if (contentLen != null) {
-            try { contentLength = contentLen.toInt() } catch (e: NumberFormatException) { Logs(TAG, e) }
-        }
+        if (contentLen != null) try { contentLength = contentLen.toInt() } catch (e: NumberFormatException) { Logs(TAG, e) }
         Logd(TAG, "content length: $contentLength")
         val contentType = response.header("Content-Type")
         Logd(TAG, "content type: $contentType")

@@ -191,6 +191,7 @@ object AppPreferences {
     enum class AppPrefs(val default: Any?) {
         prefOPMLBackup(true),
         prefOPMLRestore(false),
+        prefOPMLFeedsToRestore(0),
 
         // User Interface
         prefTheme("system"),

@@ -633,7 +633,7 @@
     <string name="favorites_export_label">Priljubljeni izvozi</string>
     <string name="favorites_export_summary">Izvozi shranjene priljubljene v datoteko</string>
     <string name="restore_subscriptions_label">Restore subscriptions</string>
-    <string name="restore_subscriptions_summary">Previous podcasts subscriptions can be restores.  Would you like to restore them?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Nastavite časovnik za spanje</string>
     <string name="disable_sleeptimer_label">Onemogočite časovnik spanja</string>

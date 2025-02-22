@@ -288,7 +288,7 @@ object Feeds {
                 val pubDate = episode.getPubDate()
                 if (priorMostRecentDate == null || priorMostRecentDate.before(pubDate) || priorMostRecentDate == pubDate) {
                     Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
-                    episode.playState = PlayState.NEW.code
+                    episode.setPlayState(PlayState.NEW)
                     if (savedFeed.autoAddNewToQueue == true) {
                         val q = savedFeed.queue
                         if (q != null) runOnIOScope {  addToQueueSync(episode, q) }
@@ -368,7 +368,7 @@ object Feeds {
             val pubDate = episode.getPubDate()
             if (priorMostRecentDate < pubDate) {
                 Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
-                episode.playState = PlayState.NEW.code
+                episode.setPlayState(PlayState.NEW)
                 if (savedFeed.autoAddNewToQueue == true) {
                     val q = savedFeed.queue
                     if (q != null) runOnIOScope {  addToQueueSync(episode, q) }

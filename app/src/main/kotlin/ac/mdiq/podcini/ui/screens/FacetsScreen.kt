@@ -10,6 +10,7 @@ import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
+import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -225,6 +226,11 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         rightActionState.value = swipeActions.actions.right[0]
     }
 
+    internal fun loadAssociatedFeeds() {
+        feedsAssociated.clear()
+        if (spinnerTexts[curIndex] == QuickAccess.All.name) feedsAssociated.addAll(getFeedList())
+        else feedsAssociated.addAll(episodes.mapNotNull { it.feed }.distinctBy { it.id })
+    }
     private var loadJob: Job? = null
     internal fun loadItems() {
         Logd(TAG, "loadItems() called")
@@ -237,13 +243,20 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
             try {
                 withContext(Dispatchers.IO) {
                     episodes.clear()
-                    episodes.addAll(loadEpisodes())
+                    episodes.addAll(when (spinnerTexts[curIndex]) {
+                        QuickAccess.New.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.new.name), episodesSortOrder, false)
+                        QuickAccess.Planned.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.soon.name, EpisodeFilter.States.later.name), episodesSortOrder, false)
+                        QuickAccess.Repeats.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.again.name, EpisodeFilter.States.forever.name), episodesSortOrder, false)
+                        QuickAccess.Liked.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.good.name, EpisodeFilter.States.superb.name), episodesSortOrder, false)
+                        QuickAccess.Commented.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.has_comments.name), episodesSortOrder, false)
+                        QuickAccess.History.name -> getHistory(0, Int.MAX_VALUE, sortOrder = episodesSortOrder).toMutableList()
+                        QuickAccess.Downloaded.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(prefFilterDownloads), episodesSortOrder, false)
+                        QuickAccess.All.name -> getEpisodes(0, Int.MAX_VALUE, filter, episodesSortOrder, false)
+                        else -> getEpisodes(0, Int.MAX_VALUE, filter, episodesSortOrder, false)
+                    })
                 }
                 withContext(Dispatchers.Main) {
-                    if (showFeeds) {
-                        feedsAssociated.clear()
-                        feedsAssociated.addAll(episodes.mapNotNull { it.feed }.distinctBy { it.id })
-                    }
+                    if (showFeeds) loadAssociatedFeeds()
                     stopMonitor(vms)
                     vms.clear()
                     buildMoreItems()
@@ -555,19 +568,12 @@ fun FacetsScreen() {
                 val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
                 IconButton(onClick = {
                     vm.showFeeds = !vm.showFeeds
-                    if (vm.showFeeds) {
-                        vm.feedsAssociated.clear()
-                        vm.feedsAssociated.addAll(vm.episodes.mapNotNull { it.feed }.distinctBy { it.id })
-                    }
+                    if (vm.showFeeds) vm.loadAssociatedFeeds()
                 }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                IconButton(onClick = { mainNavController.navigate(Screens.Search.name)
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                IconButton(onClick = { vm.showSortDialog = true
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
-                if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.All.name) IconButton(onClick = { vm.showFilterDialog = true
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
-                if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name) IconButton(onClick = { vm.showDatesFilter = true
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
+                IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
+                if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.All.name) IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
+                if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name) IconButton(onClick = { vm.showDatesFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name)

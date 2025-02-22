@@ -27,7 +27,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -55,8 +54,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -181,7 +178,14 @@ fun StatisticsScreen() {
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            vm.chartData = null
+            vm.statsResult = StatisticsResult()
+            vm.monthlyStats.clear()
+            vm.downloadstatsData = null
+            vm.downloadChartData = null
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -189,11 +193,9 @@ fun StatisticsScreen() {
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
         TopAppBar(title = { Text(stringResource(R.string.statistics_label)) }, 
-            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer()
-            }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } },
+            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } },
             actions = {
-                if (vm.selectedTabIndex.value == 0) IconButton(onClick = { vm.showFilter = true
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
+                if (vm.selectedTabIndex.value <= 1) IconButton(onClick = { vm.showFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     if (vm.selectedTabIndex.value == 0 || vm.selectedTabIndex.value == 1) DropdownMenuItem(text = { Text(stringResource(R.string.statistics_reset_data)) }, onClick = {
@@ -257,7 +259,7 @@ fun StatisticsScreen() {
 
     @Composable
     fun Overview() {
-        LaunchedEffect(Unit) { if (vm.statisticsState >= 0 && vm.chartData == null) vm.loadStatistics() }
+        LaunchedEffect(vm.statisticsState) { if (vm.chartData == null) vm.loadStatistics() }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.statistics_today), color = MaterialTheme.colorScheme.onSurface)
@@ -288,11 +290,11 @@ fun StatisticsScreen() {
 
     @Composable
     fun PlayedTime() {
-        LaunchedEffect(Unit) { if (vm.statisticsState >= 0 && vm.chartData == null) vm.loadStatistics() }
+        LaunchedEffect(vm.statisticsState) { if (vm.statisticsState >= 0 && vm.chartData == null) vm.loadStatistics() }
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Spacer(Modifier.height(5.dp))
+            Spacer(Modifier.height(10.dp))
             if (vm.chartData != null) HorizontalLineChart(vm.chartData!!)
-            Spacer(Modifier.height(5.dp))
+            Spacer(Modifier.height(10.dp))
             if (vm.chartData != null) StatsList(vm.statsResult, vm.chartData!!) { item ->
                 context.getString(R.string.duration) + ": " + durationInHours(item.timePlayed) + " \t " + context.getString(R.string.spent) + ": " + durationInHours(item.timeSpent)
             }
@@ -328,7 +330,7 @@ fun StatisticsScreen() {
                         dur += if (m.playedDuration > 0) m.playedDuration
                         else {
                             if (vm.includeMarkedAsPlayed) {
-                                if (m.playbackCompletionTime > 0 || m.playState >= PlayState.SKIPPED.code) m.duration
+                                if (m.playbackCompletionTime > 0 || m.isPlayed()) m.duration
                                 else if (m.position > 0) m.position else 0
                             } else m.position
                         }
@@ -428,6 +430,7 @@ fun StatisticsScreen() {
                         }
                     }
                 }
+                vm.chartData = null
                 vm.statisticsState++
             } catch (error: Throwable) { Logs(TAG, error) }
         }
@@ -436,6 +439,7 @@ fun StatisticsScreen() {
         oldestDate = vm.statsResult.oldestDate, onDismissRequest = {vm.showFilter = false} ) { timeFilterFrom, timeFilterTo, includeMarkedAsPlayed_ ->
         vm.prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, includeMarkedAsPlayed_)?.putLong(PREF_FILTER_FROM, timeFilterFrom)?.putLong(PREF_FILTER_TO, timeFilterTo)?.apply()
         vm.includeMarkedAsPlayed = includeMarkedAsPlayed_
+        vm.chartData = null
         vm.statisticsState++
     }
     val tabTitles = listOf(R.string.overview, R.string.subscriptions_label, R.string.months_statistics_label, R.string.downloads_label)
@@ -496,7 +500,12 @@ const val PREF_FILTER_TO: String = "filterTo"
 fun getStatistics(includeMarkedAsPlayed: Boolean, timeFilterFrom: Long, timeFilterTo: Long, feedId: Long = 0L, forDL: Boolean = false): StatisticsResult {
     Logd(TAG, "getStatistics called")
     val queryString = when {
-        feedId != 0L -> "feedId == $feedId AND ((lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo) OR downloaded == true)"
+        feedId != 0L -> {
+            val qs = "feedId == $feedId"
+            var qs1 = "(lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo)"
+            if (includeMarkedAsPlayed) qs1 = "(lastPlayedTime >= $timeFilterFrom AND lastPlayedTime < $timeFilterTo) OR (playStateSetTime >= $timeFilterFrom AND playStateSetTime < $timeFilterTo AND playState >= ${PlayState.SKIPPED.code})"
+            "$qs AND ($qs1)"
+        }
         forDL -> "downloaded == true"
         else -> "lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo"
     }
@@ -520,7 +529,7 @@ fun getStatistics(includeMarkedAsPlayed: Boolean, timeFilterFrom: Long, timeFilt
                 if (m.lastPlayedTime > 0 && m.lastPlayedTime < result.oldestDate) result.oldestDate = m.lastPlayedTime
                 feedTotalTime += m.duration
                 if (includeMarkedAsPlayed) {
-                    if ((m.playbackCompletionTime > 0 && m.playedDuration > 0) || m.playState >= PlayState.SKIPPED.code || m.position > 0) {
+                    if ((m.playbackCompletionTime > 0 && m.playedDuration > 0) || m.isPlayed() || m.position > 0) {
                         episodesStarted += 1
                         feedPlayedTime += m.duration
                         timeSpent += m.timeSpent

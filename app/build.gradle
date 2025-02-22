@@ -25,8 +25,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 123
-        versionName "8.8.0"
+        versionCode 124
+        versionName "8.8.1"
 
         ndkVersion "27.0.12077973"
 

@@ -194,10 +194,8 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                 when (event) {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
                     is FlowEvent.PlayEvent -> onPlayEvent(event)
-//                    is FlowEvent.PlayerSettingsEvent -> onPlayerSettingsEvent(event)
                     is FlowEvent.FeedChangeEvent -> onFeedPrefsChanged(event)
                     is FlowEvent.EpisodePlayedEvent -> onEpisodePlayedEvent(event)
-//                    is FlowEvent.SwipeActionsChangedEvent -> refreshSwipeTelltale()
                     else -> {}
                 }
             }
@@ -246,7 +244,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                         val pos: Int = queueItems.indexOfItemWithId(e.id)
                         if (pos >= 0) {
                             Logd(TAG, "removing episode $pos ${queueItems[pos].title} $e")
-//                            queueItems[pos].stopMonitoring.value = true
                             queueItems.removeAt(pos)
                             if (pos < vms.size) {
                                 vms[pos].stopMonitoring()
@@ -294,12 +291,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-//    private fun onPlayerSettingsEvent(event: FlowEvent.PlayerSettingsEvent) {
-//        if (showBin) return
-//        //        Logd(TAG, "onPlayerStatusChanged() called with event = [$event]")
-//        loadCurQueue(false)
-//    }
-
     private fun onEpisodePlayedEvent(event: FlowEvent.EpisodePlayedEvent) {
         // Sent when playback position is reset
         Logd(TAG, "onUnreadItemsChanged() called with event = [$event]")
@@ -343,7 +334,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             loadItemsRunning = true
             Logd(TAG, "loadCurQueue() called ${curQueue.name}")
             while (curQueue.name.isEmpty()) runBlocking { delay(100) }
-//            if (queueItems.isNotEmpty()) emptyViewHandler.hide()
             feedsAssociated = realm.query(Feed::class).query("queueId == ${curQueue.id}").find()
             queueItems.clear()
             stopMonitor(vms)
@@ -411,7 +401,6 @@ fun QueuesScreen() {
                     vm.queueNames = vm.queues.map { it.name }.toMutableStateList()
                     vm.spinnerTexts.clear()
                     vm.spinnerTexts.addAll(vm.queues.map { "${it.name} : ${it.size()}" })
-//        curIndex = queues.indexOf(curQueue)
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActionsBin)
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)

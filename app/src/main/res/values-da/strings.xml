@@ -623,7 +623,7 @@
     <string name="favorites_export_label">Eksport af favoritter</string>
     <string name="favorites_export_summary">Eksportér gemte favoritter til fil</string>
     <string name="restore_subscriptions_label">Gendan abonnementer</string>
-    <string name="restore_subscriptions_summary">Tidligere podcasts abonnementer kan gendannes. Vil du gendanne dem?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Indstil søvntimer</string>
     <string name="disable_sleeptimer_label">Slå søvntimer fra</string>

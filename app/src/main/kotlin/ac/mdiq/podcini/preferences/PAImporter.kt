@@ -65,11 +65,11 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                         "position_to_resume" -> episode.position = cursor.getInt(i)
                         "new_status" -> {
                             val n = cursor.getInt(i)
-                            if (n == 1) episode.playState = PlayState.NEW.code
+                            if (n == 1) episode.setPlayState(PlayState.NEW)
                         }
                         "playing_status" -> {
                             val p = cursor.getInt(i)
-                            if (p == 1) episode.playState = PlayState.PLAYED.code
+                            if (p == 1) episode.setPlayState(PlayState.PLAYED)
                         }
                         "duration_ms" -> episode.duration = cursor.getInt(i)
                         "playback_date" -> {

@@ -28,7 +28,7 @@ class FeedAutoDownloadFilter(
         // from http://stackoverflow.com/questions/7804335/split-string-on-spaces-in-java-except-if-between-quotes-i-e-treat-hello-wor
         val list: MutableList<String> = ArrayList()
         val m = Pattern.compile("([^\"]\\S*|\".+?\")\\s*").matcher(filter.toString())
-        while (m.find()) if (m.group(1) != null) list.add(m.group(1)!!.replace("\"", ""))
+        while (m.find()) if (!m.group(1).isNullOrBlank()) list.add(m.group(1)!!.replace("\"", ""))
         return list
     }
 
@@ -75,9 +75,9 @@ class FeedAutoDownloadFilter(
      */
     fun excludeOnly(): Boolean = hasExcludeFilter() && !hasIncludeFilter()
 
-    fun hasIncludeFilter(): Boolean = !includeFilterRaw.isNullOrEmpty()
+    fun hasIncludeFilter(): Boolean = !includeFilterRaw.isNullOrBlank()
 
-    fun hasExcludeFilter(): Boolean = !excludeFilterRaw.isNullOrEmpty()
+    fun hasExcludeFilter(): Boolean = !excludeFilterRaw.isNullOrBlank()
 
     fun hasMinDurationFilter(): Boolean = minDurationFilter > 0
 

@@ -623,7 +623,7 @@
     <string name="favorites_export_label">Εξαγωγή αγαπημένων</string>
     <string name="favorites_export_summary">Εξαγωγή αποθηκευμένων αγαπημένων σε αρχείο</string>
     <string name="restore_subscriptions_label">Επαναφορά συνδρομών</string>
-    <string name="restore_subscriptions_summary">Προηγούμενες συνδρομές podcasts μπορεί να αποκατασταθούν. Θα θέλατε να τις επαναφέρετε?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Ορισμός χρονομέτρου ύπνου</string>
     <string name="disable_sleeptimer_label">Απενεργοποίηση χρονομέτρου ύπνου</string>

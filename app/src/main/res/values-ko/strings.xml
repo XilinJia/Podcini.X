@@ -618,7 +618,7 @@
     <string name="favorites_export_label">즐겨찾기 내보내기</string>
     <string name="favorites_export_summary">저장한 즐겨찾기를 파일로 내보내기</string>
     <string name="restore_subscriptions_label">Restore subscriptions</string>
-    <string name="restore_subscriptions_summary">Previous podcasts subscriptions can be restores.  Would you like to restore them?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">취침 타이머 설정</string>
     <string name="disable_sleeptimer_label">취침 타이머 사용 않음</string>

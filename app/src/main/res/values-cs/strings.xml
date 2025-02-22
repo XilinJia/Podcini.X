@@ -633,7 +633,7 @@
     <string name="favorites_export_label">Export oblíbených</string>
     <string name="favorites_export_summary">Exportovat oblíbené do souboru</string>
     <string name="restore_subscriptions_label">Obnovit předplatné</string>
-    <string name="restore_subscriptions_summary">Předchozí odběry podcastů mohou být obnoveny. Chcete je obnovit?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Nastavit časovač vypnutí</string>
     <string name="disable_sleeptimer_label">Deaktivovat časovač vypnutí</string>

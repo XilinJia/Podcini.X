@@ -633,7 +633,7 @@
     <string name="favorites_export_label">Экспорт избранного</string>
     <string name="favorites_export_summary">Экспортировать сохраненное избранное в файл</string>
     <string name="restore_subscriptions_label">Восстановить подписки</string>
-    <string name="restore_subscriptions_summary">Предыдущие подписки подкастов могут быть восстановлены. Хотите восстановить их?</string>
+
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Установить таймер сна</string>
     <string name="disable_sleeptimer_label">Отключить таймер сна</string>

@@ -12,6 +12,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
@@ -51,7 +52,7 @@ class EpisodeProgressReader {
             it.playedDuration = action.playedDuration * 1000
             it.lastPlayedTime = (action.timestamp!!.time)
             it.rating = if (action.isFavorite) Rating.SUPER.code else Rating.UNRATED.code
-            it.playState = action.playState
+            it.setPlayState(PlayState.fromCode(action.playState))
             if (hasAlmostEnded(it)) {
                 Logd(TAG, "Marking as played: $action")
                 it.setPlayed(true)
