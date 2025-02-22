@@ -1,7 +1,7 @@
 # 8.8.1
 
 * when setting play state on an episode, a time stamp is recorded
-	* initialized playStateSetTime (for Skipped, Played, Again, Forever and Ignored) to the first launch time of this version
+	* initialized playStateSetTime (for Skipped, Played, Again, Forever and Ignored) to "last played time" if available or first launch time of this version
 * corrected statistics calculation for "include Marked As Played"
 * topbar action filter is re-enabled in Subscriptions tab in Statistics
 * clears memory on dispose of Statistics screen
