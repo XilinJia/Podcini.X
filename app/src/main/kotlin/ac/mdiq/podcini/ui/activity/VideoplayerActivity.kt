@@ -178,10 +178,7 @@ class VideoplayerActivity : CastEnabledActivity() {
                 if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
 
                 LaunchedEffect(curMediaId) { cleanedNotes = null }
-                if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = {
-                    toastMessages.add(localDateTimeString() + " " + toastMassege)
-                    toastMassege = ""
-                })
+                if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                 if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                 Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
                     if (landscape) Box(modifier = Modifier.fillMaxSize()) { VideoPlayer() }

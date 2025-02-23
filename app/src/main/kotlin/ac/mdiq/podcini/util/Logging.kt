@@ -17,6 +17,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 val LogScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+var toastMessages = mutableStateListOf<String>()
+var toastMassege by mutableStateOf("")
 
 fun Logd(t: String, m: String) {
     if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
@@ -26,7 +28,7 @@ fun Loge(t: String, m: String) {
     if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) Log.e(t, m)
     LogScope.launch {
         if (getPref(AppPreferences.AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: Error: $m"
-        else toastMessages.add("${localDateTimeString()} $t: Error: $m")
+        toastMessages.add("${localDateTimeString()} $t: Error: $m")
     }
 }
 
@@ -35,16 +37,16 @@ fun Logs(t: String, e: Throwable, m: String = "") {
     val me = e.message ?: "Error"
     LogScope.launch {
         if (getPref(AppPreferences.AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: $m $me"
-        else toastMessages.add("${localDateTimeString()} $t: $m $me")
+        toastMessages.add("${localDateTimeString()} $t: $m $me")
     }
 }
 
-var toastMessages = mutableStateListOf<String>()
-var toastMassege by mutableStateOf("")
-
 fun Logt(t: String, m: String) {
     if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
-    LogScope.launch { toastMassege = "$t: $m" }
+    LogScope.launch {
+        toastMassege = "$t: $m"
+        toastMessages.add("${localDateTimeString()} $t: $m")
+    }
 }
 
 fun showStackTrace() {

@@ -63,7 +63,10 @@ import org.apache.commons.io.FileUtils
 
 class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
     override fun downloadNow(context: Context, item: Episode, ignoreConstraints: Boolean) {
-        if (item.downloadUrl.isNullOrEmpty()) return
+        if (item.downloadUrl.isNullOrEmpty()) {
+            Loge(TAG, "downloadUrl is null or empty ${item.title}")
+            return
+        }
         Logd(TAG, "starting downloadNow")
         val workRequest: OneTimeWorkRequest.Builder = getRequest(item)
         workRequest.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
@@ -73,7 +76,10 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
     }
 
     override fun download(context: Context, item: Episode) {
-        if (item.downloadUrl.isNullOrEmpty()) return
+        if (item.downloadUrl.isNullOrEmpty()) {
+            Loge(TAG, "downloadUrl is null or empty ${item.title}")
+            return
+        }
         Logd(TAG, "starting download")
         val workRequest: OneTimeWorkRequest.Builder = getRequest(item)
         workRequest.setConstraints(constraints)

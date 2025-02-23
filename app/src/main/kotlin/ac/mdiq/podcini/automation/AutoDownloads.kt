@@ -97,14 +97,13 @@ object AutoDownloads {
                     if (allowedCount > 0) {
                         var itemsToDownload = candidates.toMutableList()
                         if (allowedCount < candidates.size) itemsToDownload = itemsToDownload.subList(0, allowedCount)
+                        Logt(TAG, "Auto download requesting episodes: ${itemsToDownload.size}")
                         if (itemsToDownload.isNotEmpty()) {
-                            Logt(TAG, "run Enqueueing ${itemsToDownload.size} items for download")
                             for (e in itemsToDownload) {
-                                Logd(TAG, "run reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
+                                Logd(TAG, "run download ${e.title} ${e.playState} ${e.downloadUrl}")
                                 DownloadServiceInterface.impl?.download(context, e)
                             }
                         }
-                        Logt(TAG, "Auto downloaded episodes: ${itemsToDownload.size}")
                         itemsToDownload.clear()
                     } else Logt(TAG, "Auto download not performed: candidates: ${candidates.size} allowedCount: $allowedCount")
                     candidates.clear()
@@ -175,7 +174,7 @@ object AutoDownloads {
                         Feed.AutoDownloadPolicy.ONLY_NEW -> {
                             if (f.autoDLPolicy.replace) {
                                 allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
-                                queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
+                                queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(3*$allowedDLCount)"
                                 Logd(TAG, "assembleFeedsCandidates queryString: $queryString")
                                 val es = realm.query(Episode::class).query(queryString).find()
                                 if (es.isNotEmpty()) {
@@ -188,22 +187,18 @@ object AutoDownloads {
                                     Logd(TAG, "assembleFeedsCandidates episodes: ${episodes.size}")
                                 }
                             } else {
-                                queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
+                                queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(3*$allowedDLCount)"
                                 val es = realm.query(Episode::class).query(queryString).find()
                                 if (es.isNotEmpty()) episodes.addAll(es)
                             }
                         }
                         Feed.AutoDownloadPolicy.NEWER -> {
-                            queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
+                            queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT(3*$allowedDLCount)"
                             val es = realm.query(Episode::class).query(queryString).find()
                             if (es.isNotEmpty()) episodes.addAll(es)
                         }
-//                        Feed.AutoDownloadPolicy.SOON -> {
-//                            queryString += " AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
-//                            episodes = realm.query(Episode::class).query(queryString).find().toMutableList()
-//                        }
                         Feed.AutoDownloadPolicy.OLDER -> {
-                            queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate ASC) LIMIT($allowedDLCount)"
+                            queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate ASC) LIMIT(3*$allowedDLCount)"
                             val es = realm.query(Episode::class).query(queryString).find()
                             if (es.isNotEmpty()) episodes.addAll(es)
                         }
@@ -232,7 +227,13 @@ object AutoDownloads {
                                 Logd(TAG, "assembleFeedsCandidates add to candidates: ${e.title} ${e.downloaded}")
                                 candidates.add(e)
                                 if (++count >= allowedDLCount) break
-                            } else if (f.autoDownloadFilter?.markExcludedPlayed == true) upsertBlk(e) { it.setPlayed(true)}
+                            } else {
+                                Logt(TAG, "episode not meed criteria: ${e.title}")
+                                upsertBlk(e) {
+                                    if (f.autoDownloadFilter?.markExcludedPlayed == true) it.setPlayed(true)
+                                    else it.disableAutoDownload()
+                                }
+                            }
                         }
                     }
                     episodes.clear()

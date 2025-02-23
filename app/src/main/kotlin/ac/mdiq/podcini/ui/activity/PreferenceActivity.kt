@@ -83,10 +83,7 @@ class PreferenceActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
             CustomTheme(this) {
-                if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = {
-                    toastMessages.add(localDateTimeString() + " " + toastMassege)
-                    toastMassege = ""
-                })
+                if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                 if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                 Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) },
                     navigationIcon = { IconButton(onClick = {

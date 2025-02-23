@@ -136,6 +136,8 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun loadStatistics() {
         includeMarkedAsPlayed = prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false)
         val statsToday = getStatistics(includeMarkedAsPlayed, LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), Long.MAX_VALUE)
+        timePlayedToday = 0
+        timeSpentToday = 0
         for (item in statsToday.statsItems) {
             timePlayedToday += item.timePlayed
             timeSpentToday += item.timeSpent
@@ -146,6 +148,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
             statsResult = getStatistics(includeMarkedAsPlayed, timeFilterFrom, timeFilterTo)
             statsResult.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.timePlayed.compareTo(item1.timePlayed) }
             val dataValues = MutableList(statsResult.statsItems.size){0f}
+            timeSpentSum = 0
             for (i in statsResult.statsItems.indices) {
                 val item = statsResult.statsItems[i]
                 dataValues[i] = item.timePlayed.toFloat()
@@ -507,7 +510,10 @@ fun getStatistics(includeMarkedAsPlayed: Boolean, timeFilterFrom: Long, timeFilt
             "$qs AND ($qs1)"
         }
         forDL -> "downloaded == true"
-        else -> "lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo"
+        else -> {
+            if (includeMarkedAsPlayed) "(lastPlayedTime >= $timeFilterFrom AND lastPlayedTime < $timeFilterTo) OR (playStateSetTime >= $timeFilterFrom AND playStateSetTime < $timeFilterTo AND playState >= ${PlayState.SKIPPED.code})"
+            else "lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo"
+        }
     }
     val medias = realm.query(Episode::class).query(queryString).find()
 

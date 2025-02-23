@@ -866,22 +866,26 @@ fun FeedSettingsScreen() {
                                     var termList = remember { if (inexcl == ADLIncExc.EXCLUDE) filter.excludeTerms.toMutableStateList() else filter.includeTerms.toMutableStateList() }
                                     var filterMinDuration by remember { mutableStateOf(filter.hasMinDurationFilter()) }
                                     var filterMaxDuration by remember { mutableStateOf(filter.hasMaxDurationFilter()) }
-                                    var excludeChecked by remember { mutableStateOf(filter.hasExcludeFilter()) }
-                                    var includeChecked by remember { mutableStateOf(filter.hasIncludeFilter()) }
+                                    var markPlayedChecked by remember { mutableStateOf(filter.markExcludedPlayed) }
+                                    var checked by remember { mutableStateOf(termList.isNotEmpty()) }
+                                    val textRes = remember { if (inexcl == ADLIncExc.EXCLUDE) R.string.exclude_terms else R.string.include_terms }
                                     Row {
-                                        if (inexcl != ADLIncExc.EXCLUDE) {
-                                            Checkbox(checked = includeChecked, onCheckedChange = { isChecked -> includeChecked = isChecked })
-                                            Text(text = stringResource(R.string.include_terms), style = MaterialTheme.typography.bodyMedium.merge(), modifier = Modifier.weight(1f))
-                                        } else {
-                                            Checkbox(checked = excludeChecked, onCheckedChange = { isChecked -> excludeChecked = isChecked })
-                                            Text(text = stringResource(R.string.exclude_terms), style = MaterialTheme.typography.bodyMedium.merge(), modifier = Modifier.weight(1f))
-                                        }
+                                        Checkbox(checked = checked, onCheckedChange = { isChecked ->
+                                            checked = isChecked
+                                            if (!checked) {
+                                                termList.clear()
+                                                filterMinDuration = false
+                                                filterMaxDuration = false
+                                                markPlayedChecked = false
+                                            }
+                                        })
+                                        Text(text = stringResource(textRes), style = MaterialTheme.typography.bodyMedium.merge(), modifier = Modifier.weight(1f))
                                     }
                                     FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                         termList.forEach {
                                             FilterChip(onClick = {  }, label = { Text(it) }, selected = false,
                                                 trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
-                                                    modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = {  })) })
+                                                    modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { termList.remove(it) })) })
                                         }
                                     }
                                     var text by remember { mutableStateOf("") }
@@ -895,6 +899,7 @@ fun FeedSettingsScreen() {
                                                         termList.add(newWord)
                                                         text = ""
                                                     }
+                                                    checked = termList.isNotEmpty()
                                                 }
                                             }
                                         ),
@@ -904,7 +909,6 @@ fun FeedSettingsScreen() {
                                     HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
                                     var filterMinDurationMinutes by remember { mutableStateOf((filter.minDurationFilter / 60).toString()) }
                                     var filterMaxDurationMinutes by remember { mutableStateOf((filter.maxDurationFilter / 60).toString()) }
-                                    var markPlayedChecked by remember { mutableStateOf(filter.markExcludedPlayed) }
                                     if (inexcl == ADLIncExc.EXCLUDE) {
                                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                             Checkbox(checked = filterMinDuration, onCheckedChange = { isChecked -> filterMinDuration = isChecked })
@@ -936,13 +940,17 @@ fun FeedSettingsScreen() {
                                     Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
                                         Button(onClick = {
                                             if (inexcl == ADLIncExc.EXCLUDE) {
-                                                var minDuration = if (filterMinDuration) filterMinDurationMinutes.toInt() * 60 else -1
-                                                var maxDuration = if (filterMaxDuration) filterMaxDurationMinutes.toInt() * 60 else -1
-                                                val excludeFilter = toFilterString(termList)
-                                                onConfirmed(FeedAutoDownloadFilter(filter.includeFilterRaw, excludeFilter, minDuration, maxDuration, markPlayedChecked))
+                                                if (checked) {
+                                                    var minDuration = if (filterMinDuration) filterMinDurationMinutes.toInt() * 60 else -1
+                                                    var maxDuration = if (filterMaxDuration) filterMaxDurationMinutes.toInt() * 60 else -1
+                                                    val excludeFilter = toFilterString(termList)
+                                                    onConfirmed(FeedAutoDownloadFilter(filter.includeFilterRaw, excludeFilter, minDuration, maxDuration, markPlayedChecked))
+                                                } else onConfirmed(FeedAutoDownloadFilter())
                                             } else {
-                                                val includeFilter = toFilterString(termList)
-                                                onConfirmed(FeedAutoDownloadFilter(includeFilter, filter.excludeFilterRaw, filter.minDurationFilter, filter.maxDurationFilter, filter.markExcludedPlayed))
+                                                if (checked) {
+                                                    val includeFilter = toFilterString(termList)
+                                                    onConfirmed(FeedAutoDownloadFilter(includeFilter, filter.excludeFilterRaw, filter.minDurationFilter, filter.maxDurationFilter, filter.markExcludedPlayed))
+                                                } else onConfirmed(FeedAutoDownloadFilter())
                                             }
                                             onDismiss()
                                         }) { Text(stringResource(R.string.confirm_label)) }

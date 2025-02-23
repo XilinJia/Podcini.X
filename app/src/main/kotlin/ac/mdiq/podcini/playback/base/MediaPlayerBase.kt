@@ -104,7 +104,11 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     protected open fun setDataSource(metadata: MediaMetadata, media: Episode) {
         Logd(TAG, "setDataSource1 called ${media.title}")
         Logd(TAG, "setDataSource1 url [${media.downloadUrl}]")
-        val url = media.downloadUrl ?: return
+        val url = media.downloadUrl
+        if (url.isNullOrBlank()) {
+            Loge(TAG, "setDataSource: media downloadUrl is null or blank ${media.title}")
+            return
+        }
         val feed = media.feed
         val user = feed?.username
         val password = feed?.password

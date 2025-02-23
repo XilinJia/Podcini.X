@@ -248,10 +248,7 @@ class MainActivity : CastEnabledActivity() {
                     end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
                     bottom = dynamicBottomPadding
                 )) {
-                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = {
-                        toastMessages.add(localDateTimeString() + " " + toastMassege)
-                        toastMassege = ""
-                    })
+                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                     CompositionLocalProvider(LocalNavController provides navController) {
                         NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {

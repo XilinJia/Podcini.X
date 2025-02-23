@@ -63,16 +63,12 @@ class Episode : RealmObject {
     @Index
     var identifier: String? = null
 
-//    @FullText
     var title: String? = null
 
-//    @FullText
     var shortDescription: String? = null
 
-//    @FullText
     var description: String? = null
 
-//    @FullText
     var transcript: String? = null
 
     var link: String? = null
@@ -131,7 +127,6 @@ class Episode : RealmObject {
     var isSUPER: Boolean = (rating == Rating.SUPER.code)
         private set
 
-//    @FullText
     var comment: String = ""
 
     var commentTime: Long = 0L
@@ -514,6 +509,7 @@ class Episode : RealmObject {
     }
 
     fun fileExists(): Boolean {
+        if (fileUrl == null) return false
         val fileuri = Uri.parse(fileUrl)
         if (fileuri == null) return false
         return when (fileuri.scheme) {

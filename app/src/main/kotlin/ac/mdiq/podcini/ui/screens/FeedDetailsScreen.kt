@@ -88,7 +88,6 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -142,7 +141,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 
@@ -441,6 +439,7 @@ enum class FeedScreenMode {
     Info
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FeedDetailsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -546,15 +545,9 @@ fun FeedDetailsScreen() {
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
-    fun FeedDetailsHeader(filterButColor: Color, filterClickCB: ()->Unit, filterLongClickCB: ()->Unit) {
+    fun FeedDetailsHeader() {
         val textColor = MaterialTheme.colorScheme.onSurface
-        var showChooseRatingDialog by remember { mutableStateOf(false) }
-        if (showChooseRatingDialog) ChooseRatingDialog(listOf(vm.feed!!)) {
-            showChooseRatingDialog = false
-            vm.feed = realm.query(Feed::class).query("id == $0", vm.feed!!.id).first().find()!!
-            vm.rating = vm.feed!!.rating
-        }
-        ConstraintLayout(modifier = Modifier.fillMaxWidth().height(110.dp)) {
+        ConstraintLayout(modifier = Modifier.fillMaxWidth().height(80.dp)) {
             val (bgImage, bgColor, controlRow, imgvCover) = createRefs()
             AsyncImage(model = vm.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser),
                 modifier = Modifier.fillMaxSize().blur(radiusX = 15.dp, radiusY = 15.dp).constrainAs(bgImage) {
@@ -571,54 +564,34 @@ fun FeedDetailsScreen() {
                 top.linkTo(parent.top)
                 start.linkTo(parent.start)
                 end.linkTo(parent.end)
-                width = Dimension.fillToConstraints
-            }) {
-                AsyncImage(model = vm.feed?.imageUrl ?: "", contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher),
-                    modifier = Modifier.width(100.dp).height(100.dp).padding(start = 16.dp, end = 16.dp).clickable(onClick = {
-                        if (vm.feed != null) feedScreenMode = FeedScreenMode.Info
-                    }))
-                Column(Modifier.padding(top = 10.dp)) {
-                    Text(vm.feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(vm.feed?.author ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp).constrainAs(controlRow) {
                 bottom.linkTo(parent.bottom)
-                start.linkTo(parent.start)
                 width = Dimension.fillToConstraints
             }) {
-                Spacer(modifier = Modifier.weight(0.7f))
-                val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
-                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
-                    modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(30.dp).height(30.dp).clickable(onClick = { showChooseRatingDialog = true }))
-                Spacer(modifier = Modifier.weight(0.2f))
-                if (feedScreenMode == FeedScreenMode.List) {
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), tint = textColor, contentDescription = "butSort",
-                        modifier = Modifier.width(40.dp).height(40.dp).padding(3.dp).clickable(onClick = { vm.showSortDialog = true }))
-                    Spacer(modifier = Modifier.width(15.dp))
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = if (filterButColor == Color.White) textColor else filterButColor, contentDescription = "butFilter",
-                        modifier = Modifier.width(40.dp).height(40.dp).padding(3.dp).combinedClickable(onClick = filterClickCB, onLongClick = filterLongClickCB))
-                }
-                Spacer(modifier = Modifier.width(15.dp))
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), tint = textColor, contentDescription = "butShowSettings",
-                    modifier = Modifier.width(40.dp).height(40.dp).padding(3.dp).clickable(onClick = {
+                AsyncImage(model = vm.feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher),
+                    modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
                         if (vm.feed != null) {
-                            feedOnDisplay = vm.feed!!
-                            mainNavController.navigate(Screens.FeedSettings.name)
+                            feedScreenMode = if (feedScreenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info
+                            if (vm.episodes.isEmpty()) vm.loadFeed(true)
                         }
                     }))
-                Spacer(modifier = Modifier.weight(0.4f))
-                if (feedScreenMode == FeedScreenMode.List) {
-                    Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                } else {
-                    Button(onClick = {
-                        feedScreenMode = FeedScreenMode.List
-                        if (vm.episodes.isEmpty()) vm.loadFeed(true)
-                    }) { Text(vm.feed?.episodes?.size.toString() + " " + stringResource(R.string.episodes_label)) }
-                    Spacer(modifier = Modifier.width(15.dp))
+                Column(modifier = Modifier.padding(start = 10.dp, top = 4.dp)) {
+                    Text(vm.feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(vm.feed?.author ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Row {
+                        Spacer(modifier = Modifier.weight(0.3f))
+                        if (feedScreenMode == FeedScreenMode.List) Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        else Text((vm.feed?.episodes?.size ?: 0).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                    }
                 }
             }
         }
+    }
+
+    var showChooseRatingDialog by remember { mutableStateOf(false) }
+    if (showChooseRatingDialog) ChooseRatingDialog(listOf(vm.feed!!)) {
+        showChooseRatingDialog = false
+        vm.feed = realm.query(Feed::class).query("id == $0", vm.feed!!.id).first().find()!!
+        vm.rating = vm.feed!!.rating
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -626,7 +599,8 @@ fun FeedDetailsScreen() {
     fun MyTopAppBar(displayUpArrow: Boolean) {
         val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text("") }, 
+        val textColor = MaterialTheme.colorScheme.onSurface
+        TopAppBar(title = { Text("") },
             navigationIcon = if (displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
@@ -642,8 +616,20 @@ fun FeedDetailsScreen() {
                     setSearchTerms(feed = vm.feed)
                     mainNavController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                if (!vm.feed?.link.isNullOrBlank() && vm.isCallable) IconButton(onClick = { IntentUtils.openInBrowser(context, vm.feed!!.link!!)
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
+                if (!vm.feed?.link.isNullOrBlank() && vm.isCallable) IconButton(onClick = { IntentUtils.openInBrowser(context, vm.feed!!.link!!) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
+                if (feedScreenMode == FeedScreenMode.List) {
+                    IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "butFilter",
+                        modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(onClick = { if (vm.enableFilter && vm.feed != null) vm.showFilterDialog = true }, onLongClick = { vm.filterLongClick() }))
+                }
+                val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
+                IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                IconButton(onClick = {
+                    if (vm.feed != null) {
+                        feedOnDisplay = vm.feed!!
+                        mainNavController.navigate(Screens.FeedSettings.name)
+                    }
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), contentDescription = "butShowSettings")}
                 if (vm.feed != null) {
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -815,9 +801,7 @@ fun FeedDetailsScreen() {
     vm.swipeActions.ActionOptionsDialog()
     Scaffold(topBar = { MyTopAppBar(displayUpArrow) }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            FeedDetailsHeader(filterButColor = vm.filterButtonColor.value, filterClickCB = {
-                if (vm.enableFilter && vm.feed != null) vm.showFilterDialog = true
-            }, filterLongClickCB = { vm.filterLongClick() })
+            FeedDetailsHeader()
             if (feedScreenMode == FeedScreenMode.List) {
                 InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
                 EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex,

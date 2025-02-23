@@ -7,11 +7,14 @@ import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.UsageStatistics
-import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
+import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
+import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
@@ -20,15 +23,11 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.utils.DurationConverter
-import ac.mdiq.podcini.ui.actions.CancelDownloadActionButton
-import ac.mdiq.podcini.ui.actions.DeleteActionButton
-import ac.mdiq.podcini.ui.actions.DownloadActionButton
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.PauseActionButton
 import ac.mdiq.podcini.ui.actions.PlayActionButton
 import ac.mdiq.podcini.ui.actions.PlayLocalActionButton
 import ac.mdiq.podcini.ui.actions.StreamActionButton
-import ac.mdiq.podcini.ui.actions.VisitWebsiteActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
@@ -56,13 +55,14 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.text.format.Formatter.formatShortFileSize
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -86,6 +86,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -138,7 +139,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal var itemLink by mutableStateOf("")
     internal var hasMedia by mutableStateOf(true)
     var rating by mutableStateOf(episode?.rating ?: Rating.UNRATED.code)
-    internal var inQueue by mutableStateOf(if (episode != null) curQueue.contains(episode!!) else false)
+    internal var inQueue by mutableStateOf(false)
     var isPlayed by mutableIntStateOf(episode?.playState ?: PlayState.UNSPECIFIED.code)
 
     var showShareDialog by mutableStateOf(false)
@@ -146,10 +147,10 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 //    internal var webviewData by mutableStateOf("")
     internal var showHomeScreen by mutableStateOf(false)
     internal var actionButton1 by mutableStateOf<EpisodeActionButton?>(null)
-    internal var actionButton2 by mutableStateOf<EpisodeActionButton?>(null)
 
     init {
         episode = episodeOnDisplay
+        inQueue = (episode!!.feed?.queue ?: curQueue).contains(episode!!)
     }
 
     private var eventSink: Job?     = null
@@ -213,38 +214,25 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         updateButtons()
     }
 
+    internal fun getButton():  EpisodeActionButton {
+        return when {
+            InTheatre.isCurrentlyPlaying(episode) -> PauseActionButton(episode!!)
+            episode!!.feed != null && episode!!.feed!!.isLocalFeed -> PlayLocalActionButton(episode!!)
+            episode!!.downloaded -> PlayActionButton(episode!!)
+            else -> StreamActionButton(episode!!)
+        }
+    }
+
     private fun updateButtons() {
         val dls = DownloadServiceInterface.impl
-
-        val media: Episode? = episode
-        if (media == null) {
-            // TODO: what's this?
-            if (episode != null) {
-//                actionButton1 = VisitWebsiteActionButton(episode!!)
-//                butAction1.visibility = View.INVISIBLE
-                actionButton2 = VisitWebsiteActionButton(episode!!)
-            }
+        if (episode == null) {
             hasMedia = false
-        } else {
-            hasMedia = true
-            if (media.duration > 0) txtvDuration = DurationConverter.getDurationStringLong(media.duration)
-            if (episode != null) {
-                actionButton1 = when {
-//                        media.getMediaType() == MediaType.FLASH -> VisitWebsiteActionButton(episode!!)
-                    InTheatre.isCurrentlyPlaying(media) -> PauseActionButton(episode!!)
-                    episode!!.feed != null && episode!!.feed!!.isLocalFeed -> PlayLocalActionButton(episode!!)
-                    media.downloaded -> PlayActionButton(episode!!)
-                    else -> StreamActionButton(episode!!)
-                }
-                actionButton2 = when {
-                    episode!!.feed?.type == Feed.FeedType.YOUTUBE.name -> VisitWebsiteActionButton(episode!!)
-                    dls != null && media.downloadUrl != null && dls.isDownloadingEpisode(media.downloadUrl!!) -> CancelDownloadActionButton(episode!!)
-                    !media.downloaded -> DownloadActionButton(episode!!)
-                    else -> DeleteActionButton(episode!!)
-                }
-//                if (actionButton2 != null && media.getMediaType() == MediaType.FLASH) actionButton2!!.visibility = View.GONE
-            }
+            return
         }
+        val media = episode!!
+        hasMedia = true
+        if (media.duration > 0) txtvDuration = DurationConverter.getDurationStringLong(media.duration)
+        actionButton1 = getButton()
     }
 
     internal fun openPodcast() {
@@ -270,7 +258,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         while (i < size) {
             val item_ = event.episodes[i]
             if (item_.id == episode?.id) {
-                inQueue = curQueue.contains(episode!!)
+                inQueue = (episode!!.feed?.queue ?: curQueue).contains(episode!!)
                 break
             }
             i++
@@ -320,7 +308,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                         Logd(TAG, "webviewData: [${episode!!.webviewData}]")
                         if (episode != null) {
                             rating = episode!!.rating
-                            inQueue = curQueue.contains(episode!!)
+                            inQueue = (episode!!.feed?.queue ?: curQueue).contains(episode!!)
                             isPlayed = episode!!.playState
                         }
                         updateAppearance()
@@ -333,6 +321,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun EpisodeInfoScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -369,49 +358,6 @@ fun EpisodeInfoScreen() {
     }
 
     val textColor = MaterialTheme.colorScheme.onSurface
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun MyTopAppBar() {
-        val context = LocalContext.current
-        var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text("") }, 
-            navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-            }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
-            actions = {
-                if (!vm.episode?.link.isNullOrEmpty()) IconButton(onClick = {
-                    vm.showHomeScreen = true
-                    episodeOnDisplay = vm.episode!!
-                    mainNavController.navigate(Screens.EpisodeText.name)
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
-                IconButton(onClick = {
-                    val url = vm.episode?.getLinkWithFallback()
-                    if (url != null) IntentUtils.openInBrowser(context, url)
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
-                IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    if (vm.episode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
-                        val notes = vm.episode!!.description
-                        if (!notes.isNullOrEmpty()) {
-                            val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                            val context = context
-                            val intent = ShareCompat.IntentBuilder(context)
-                                .setType("text/plain")
-                                .setText(shareText)
-                                .setChooserTitle(R.string.share_notes_label)
-                                .createChooserIntent()
-                            context.startActivity(intent)
-                        }
-                        expanded = false
-                    })
-                    if (vm.episode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
-                        vm.showShareDialog = true
-                        expanded = false
-                    })
-                }
-            }
-        )
-    }
 
     var offerStreaming by remember { mutableStateOf(false) }
     @Composable
@@ -467,65 +413,74 @@ fun EpisodeInfoScreen() {
 
     if (vm.showShareDialog && vm.episode != null && vm.actMain != null) ShareDialog(vm.episode!!, vm.actMain) { vm.showShareDialog = false }
 
+    @OptIn(ExperimentalMaterial3Api::class)
+    @Composable
+    fun MyTopAppBar() {
+        val context = LocalContext.current
+        var expanded by remember { mutableStateOf(false) }
+        TopAppBar(title = { Text("") },
+            navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
+            actions = {
+                IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(PlayState.fromCode(vm.isPlayed).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                if (vm.episode != null) {
+                    if (!vm.inQueue) IconButton(onClick = { runOnIOScope { addToQueueSync(vm.episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                    else IconButton(onClick = { runOnIOScope { removeFromQueueSync(vm.episode!!.feed?.queue ?: curQueue, vm.episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_remove), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                }
+                IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(vm.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                if (!vm.episode?.link.isNullOrEmpty()) IconButton(onClick = {
+                    vm.showHomeScreen = true
+                    episodeOnDisplay = vm.episode!!
+                    mainNavController.navigate(Screens.EpisodeText.name)
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
+                IconButton(onClick = {
+                    val url = vm.episode?.getLinkWithFallback()
+                    if (url != null) IntentUtils.openInBrowser(context, url)
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
+                IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    if (vm.episode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
+                        val notes = vm.episode!!.description
+                        if (!notes.isNullOrEmpty()) {
+                            val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                            val context = context
+                            val intent = ShareCompat.IntentBuilder(context)
+                                .setType("text/plain")
+                                .setText(shareText)
+                                .setChooserTitle(R.string.share_notes_label)
+                                .createChooserIntent()
+                            context.startActivity(intent)
+                        }
+                        expanded = false
+                    })
+                    if (vm.episode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
+                        vm.showShareDialog = true
+                        expanded = false
+                    })
+                }
+            }
+        )
+    }
+
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+        val buttonColor = MaterialTheme.colorScheme.tertiary
+        var showAltActionsDialog by remember { mutableStateOf(false) }
+        if (showAltActionsDialog) vm.actionButton1?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
+        LaunchedEffect(key1 = status) { vm.actionButton1 = vm.getButton() }
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 val imgLoc = vm.episode?.getEpisodeListImageLocation()
-                AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(56.dp).height(56.dp).clickable(onClick = { vm.openPodcast() }))
-                Column(modifier = Modifier.padding(start = 10.dp)) {
-                    Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().clickable { vm.openPodcast() })
-                    Text(vm.txtvTitle, color = textColor, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 5, overflow = TextOverflow.Ellipsis)
-                    Text("${vm.txtvPublished} · ${vm.txtvDuration} · ${vm.txtvSize}", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { vm.openPodcast() }))
+                Box(Modifier.weight(1f).padding(start = 10.dp).height(80.dp)) {
+                    Column {
+                        Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().clickable { vm.openPodcast() })
+                        Text(vm.txtvTitle, color = textColor, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 5, overflow = TextOverflow.Ellipsis)
+                        Text("${vm.txtvPublished} · ${vm.txtvDuration} · ${vm.txtvSize}", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    if (vm.actionButton1 != null) Icon(imageVector = ImageVector.vectorResource(vm.actionButton1!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).align(Alignment.BottomEnd).combinedClickable(
+                        onClick = { vm.actionButton1?.onClick(context) },
+                        onLongClick = { showAltActionsDialog = true }
+                    ))
                 }
-            }
-            Row(modifier = Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                Spacer(modifier = Modifier.weight(0.4f))
-                val playedIconRes = PlayState.fromCode(vm.isPlayed).res
-                Icon(imageVector = ImageVector.vectorResource(playedIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed",
-                    modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { showPlayStateDialog = true }))
-                if (vm.episode != null && !vm.inQueue) {
-                    Spacer(modifier = Modifier.weight(0.2f))
-                    val inQueueIconRes = R.drawable.ic_playlist_remove
-                    Icon(imageVector = ImageVector.vectorResource(inQueueIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue",
-                        modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { addToActiveQueue(vm.episode!!) }))
-                }
-                Spacer(modifier = Modifier.weight(0.2f))
-                Logd(TAG, "ratingIconRes rating: ${vm.rating}")
-                val ratingIconRes = Rating.fromCode(vm.rating).res
-                Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
-                    modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { showChooseRatingDialog = true }))
-                Spacer(modifier = Modifier.weight(0.2f))
-                if (vm.hasMedia) Icon(imageVector = ImageVector.vectorResource(vm.actionButton1?.drawable ?: R.drawable.ic_questionmark), tint = textColor, contentDescription = "butAction1",
-                    modifier = Modifier.width(24.dp).height(24.dp).clickable(onClick = {
-                        when {
-                            vm.actionButton1 is StreamActionButton && vm.episode?.feed?.prefStreamOverDownload != true
-                                    && UsageStatistics.hasSignificantBiasTo(UsageStatistics.ACTION_STREAM) -> {
-                                offerStreaming = true
-                                showOnDemandConfigDialog = true
-//                                showOnDemandConfigBalloon(true)
-                                return@clickable
-                            }
-                            vm.actionButton1 == null -> return@clickable  // Not loaded yet
-                            else -> vm.actionButton1?.onClick(context)
-                        }
-                    }))
-                Spacer(modifier = Modifier.weight(0.2f))
-                Box(modifier = Modifier.width(40.dp).height(40.dp).align(Alignment.CenterVertically), contentAlignment = Alignment.Center) {
-                    Icon(imageVector = ImageVector.vectorResource(vm.actionButton2?.drawable ?: R.drawable.ic_questionmark), tint = textColor, contentDescription = "butAction2", modifier = Modifier.width(24.dp).height(24.dp).clickable {
-                        when {
-                            vm.actionButton2 is DownloadActionButton && vm.episode?.feed?.prefStreamOverDownload == true
-                                    && UsageStatistics.hasSignificantBiasTo(UsageStatistics.ACTION_DOWNLOAD) -> {
-                                offerStreaming = false
-                                showOnDemandConfigDialog = true
-//                                showOnDemandConfigBalloon(false)
-                                return@clickable
-                            }
-                            vm.actionButton2 == null -> return@clickable  // Not loaded yet
-                            else -> vm.actionButton2?.onClick(context)
-                        }
-                    })
-                }
-                Spacer(modifier = Modifier.weight(0.4f))
             }
             if (!vm.hasMedia) Text("noMediaLabel", color = textColor, style = MaterialTheme.typography.bodyMedium)
             val scrollState = rememberScrollState()

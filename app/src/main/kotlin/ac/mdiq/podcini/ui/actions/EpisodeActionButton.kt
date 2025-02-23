@@ -115,7 +115,7 @@ abstract class EpisodeActionButton internal constructor(@JvmField var item: Epis
             Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                 Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Logd(TAG, "button label: $label")
-                    if (label != R.string.play_label && label != R.string.pause_label && label != R.string.download_label) {
+                    if (label != R.string.play_label && label != R.string.pause_label && label != R.string.stream_label && label != R.string.download_label) {
                         IconButton(onClick = {
                             PlayActionButton(item).onClick(context)
                             onDismiss()
@@ -403,7 +403,10 @@ class DownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.d
     }
 
     private fun shouldNotDownload(media: Episode?): Boolean {
-        if (media?.downloadUrl == null) return true
+        if (media?.downloadUrl.isNullOrBlank()) {
+            Loge(TAG, "episode downloadUrl is null or blank: ${media?.title}")
+            return true
+        }
         val isDownloading = DownloadServiceInterface.impl?.isDownloadingEpisode(media.downloadUrl!!) == true
         return isDownloading || media.downloaded
     }
@@ -423,7 +426,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
         processing = 1
         item = upsertBlk(item) { it.setPlayState(PlayState.BUILDING) }
         EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
-        RealmDB.runOnIOScope {
+        runOnIOScope {
             if (item.transcript == null) {
                 val url = item.link!!
                 val htmlSource = NetworkUtils.fetchHtmlSource(url)
