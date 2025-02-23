@@ -174,7 +174,7 @@ object AutoDownloads {
                         Feed.AutoDownloadPolicy.ONLY_NEW -> {
                             if (f.autoDLPolicy.replace) {
                                 allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
-                                queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(3*$allowedDLCount)"
+                                queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(${3*allowedDLCount})"
                                 Logd(TAG, "assembleFeedsCandidates queryString: $queryString")
                                 val es = realm.query(Episode::class).query(queryString).find()
                                 if (es.isNotEmpty()) {
@@ -187,18 +187,18 @@ object AutoDownloads {
                                     Logd(TAG, "assembleFeedsCandidates episodes: ${episodes.size}")
                                 }
                             } else {
-                                queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(3*$allowedDLCount)"
+                                queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(${3*allowedDLCount})"
                                 val es = realm.query(Episode::class).query(queryString).find()
                                 if (es.isNotEmpty()) episodes.addAll(es)
                             }
                         }
                         Feed.AutoDownloadPolicy.NEWER -> {
-                            queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT(3*$allowedDLCount)"
+                            queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT(${3*allowedDLCount})"
                             val es = realm.query(Episode::class).query(queryString).find()
                             if (es.isNotEmpty()) episodes.addAll(es)
                         }
                         Feed.AutoDownloadPolicy.OLDER -> {
-                            queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate ASC) LIMIT(3*$allowedDLCount)"
+                            queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate ASC) LIMIT(${3*allowedDLCount})"
                             val es = realm.query(Episode::class).query(queryString).find()
                             if (es.isNotEmpty()) episodes.addAll(es)
                         }
