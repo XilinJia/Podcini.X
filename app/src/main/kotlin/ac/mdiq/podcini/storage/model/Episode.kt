@@ -198,6 +198,10 @@ class Episode : RealmObject {
 
     var mimeType: String? = ""
 
+    var origFeedTitle: String? = null
+    var origFeeddownloadUrl: String? = null
+    var origFeedlink: String? = null
+
     @Ignore
     var playbackCompletionDate: Date? = null
         get() = field?.clone() as? Date

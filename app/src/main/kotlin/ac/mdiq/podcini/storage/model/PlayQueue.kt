@@ -31,9 +31,9 @@ class PlayQueue : RealmObject {
 
     var idsBinList: RealmList<Long> = realmListOf()
 
-    fun contains(episode: Episode): Boolean {
-        return episodeIds.contains(episode.id)
-    }
+    var binLimit: Int = 0
+
+    fun contains(episode: Episode): Boolean = episodeIds.contains(episode.id)
 
     fun update() {
         updated = Date().time
@@ -42,9 +42,7 @@ class PlayQueue : RealmObject {
 //    @Ignore
 //    var size by mutableIntStateOf( episodeIds.size )
 
-    fun size() : Int {
-        return episodeIds.size
-    }
+    fun size() : Int = episodeIds.size
 
     constructor() {}
 }

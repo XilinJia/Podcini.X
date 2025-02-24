@@ -24,7 +24,8 @@ import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.deleteMediaSync
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.Feeds.addToMiscSyndicate
+import ac.mdiq.podcini.storage.database.Feeds.shelveToFeed
+import ac.mdiq.podcini.storage.database.Feeds.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.Feeds.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
@@ -40,8 +41,6 @@ import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeFilter.EpisodesFilterGroup
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
-import ac.mdiq.podcini.storage.model.Feed.Companion.newId
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.PlayState
@@ -427,23 +426,7 @@ fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                 if (toFeed != null) Row {
                     Spacer(Modifier.weight(1f))
                     Button(onClick = {
-                        val eList: MutableList<Episode> = mutableListOf()
-                        for (e in selected) {
-                            var e_ = e
-                            if (!removeChecked || (e.feedId != null && e.feedId!! >= MAX_SYNTHETIC_ID)) {
-                                e_ = realm.copyFromRealm(e)
-                                e_.id = newId()
-                            } else {
-                                val feed = realm.query(Feed::class).query("id == $0", e_.feedId).first().find()
-                                if (feed != null) upsertBlk(feed) { it.episodes.remove(e_) }
-                            }
-                            upsertBlk(e_) {
-                                it.feed = toFeed
-                                it.feedId = toFeed!!.id
-                                eList.add(it)
-                            }
-                        }
-                        upsertBlk(toFeed!!) { it.episodes.addAll(eList) }
+                        runOnIOScope { shelveToFeed(selected, toFeed!!, removeChecked) }
                         onDismissRequest()
                     }) { Text(stringResource(R.string.confirm_label)) }
                 }
@@ -683,7 +666,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         for (e in selected) {
                             val url = URL(e.downloadUrl ?: "")
                             if (gearbox.isGearUrl(url)) ytUrls.add(e.downloadUrl!!)
-                            else addToMiscSyndicate(e)
+                            else addRemoteToMiscSyndicate(e)
                         }
                         withContext(Dispatchers.Main) { showConfirmYoutubeDialog.value = ytUrls.isNotEmpty() }
                     }

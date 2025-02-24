@@ -4,7 +4,6 @@ import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesSync
@@ -23,9 +22,10 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.Feed.AudioType
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
+import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
+import ac.mdiq.podcini.storage.model.Feed.Companion.newId
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.utils.StorageUtils.feedfilePath
@@ -235,7 +235,7 @@ object Feeds {
         }
         val priorMostRecent = savedFeed.mostRecentItem
         val priorMostRecentDate: Date? = priorMostRecent?.getPubDate()
-        var idLong = Feed.newId()
+        var idLong = newId()
         Logd(TAG, "updateFeed building savedFeedAssistant")
         val savedFeedAssistant = FeedAssistant(savedFeed)
 
@@ -348,7 +348,7 @@ object Feeds {
         }
         val priorMostRecent = savedFeed.mostRecentItem
         val priorMostRecentDate: Date = priorMostRecent?.getPubDate() ?: Date(0)
-        var idLong = Feed.newId()
+        var idLong = newId()
         Logd(TAG, "updateFeedSimple building savedFeedAssistant")
 
         // Look for new or updated Items
@@ -407,7 +407,7 @@ object Feeds {
     private fun addNewFeedsSync(context: Context, vararg feeds: Feed) {
         Logd(TAG, "addNewFeedsSync called")
         realm.writeBlocking {
-            var idLong = Feed.newId()
+            var idLong = newId()
             for (feed in feeds) {
                 feed.id = idLong
 //                if (feed.preferences == null)
@@ -474,43 +474,30 @@ object Feeds {
         return !feed.isLocalFeed || getPref(AppPrefs.prefAutoDeleteLocal, false)
     }
 
-    fun createYTSyndicates() {
-        getYoutubeSyndicate(true, false)
-        getYoutubeSyndicate(false, false)
-        getYoutubeSyndicate(true, true)
-        getYoutubeSyndicate(false, true)
-    }
-
-    private fun getYoutubeSyndicate(video: Boolean, music: Boolean): Feed {
-        var feedId: Long = if (video) 1 else 2
-        if (music) feedId += 2  // music feed takes ids 3 and 4
-        var feed = getFeed(feedId, true)
-        if (feed != null) return feed
-
-        val name = if (music) "YTMusic Syndicate" + if (video) "" else " Audio"
-        else "Youtube Syndicate" + if (video) "" else " Audio"
-        feed = createSynthetic(feedId, name)
-        feed.type = Feed.FeedType.YOUTUBE.name
-        feed.hasVideoMedia = video
-        feed.audioTypeSetting = if (music) AudioType.MUSIC else AudioType.SPEECH
-        feed.videoModePolicy = if (video) VideoMode.WINDOW_VIEW else VideoMode.AUDIO_ONLY
-        upsertBlk(feed) {}
-        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
-        return feed
-    }
-
-    fun addToSyndicate(episode: Episode, feed: Feed) : Int {
-        Logd(TAG, "addToYoutubeSyndicate: feed: ${feed.title}")
-        if (searchEpisodeByIdentifyingValue(feed.episodes, episode) != null) return 2
-
-        Logd(TAG, "addToSyndicate adding new episode: ${episode.title}")
-        episode.feed = feed
-        episode.id = Feed.newId()
-        episode.feedId = feed.id
-        upsertBlk(episode) {}
-        upsertBlk(feed) { it.episodes.add(episode) }
-        EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-        return 1
+    suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: Boolean = false) {
+        val eList: MutableList<Episode> = mutableListOf()
+        for (e in episodes) {
+            if (searchEpisodeByIdentifyingValue(toFeed.episodes, e) != null) continue
+            var e_ = e
+            if (!removeChecked || (e.feedId != null && e.feedId!! >= MAX_SYNTHETIC_ID)) {
+                e_ = realm.copyFromRealm(e)
+                e_.id = newId()
+                if (e.feedId != null && e.feedId!! >= MAX_SYNTHETIC_ID) {
+                    e_.origFeedTitle = e.feed?.title
+                    e_.origFeeddownloadUrl = e.feed?.downloadUrl
+                    e_.origFeedlink = e.feed?.link
+                }
+            } else {
+                val feed = realm.query(Feed::class).query("id == $0", e_.feedId).first().find()
+                if (feed != null) upsert(feed) { it.episodes.remove(e_) }
+            }
+            upsert(e_) {
+                it.feed = toFeed
+                it.feedId = toFeed.id
+                eList.add(it)
+            }
+        }
+        upsert(toFeed) { it.episodes.addAll(eList) }
     }
 
     fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
@@ -548,18 +535,35 @@ object Feeds {
         return feed
     }
 
-    fun addToMiscSyndicate(episode: Episode) {
+    fun addRemoteToMiscSyndicate(episode: Episode) {
         val feed = getMiscSyndicate()
         Logd(TAG, "addToMiscSyndicate: feed: ${feed.title}")
         if (searchEpisodeByIdentifyingValue(feed.episodes, episode) != null) return
         Logd(TAG, "addToMiscSyndicate adding new episode: ${episode.title}")
+//        if (episode.feedId != null && episode.feedId!! >= MAX_SYNTHETIC_ID) {
+//            episode.origFeedTitle = episode.feed?.title
+//            episode.origFeeddownloadUrl = episode.feed?.downloadUrl
+//            episode.origFeedlink = episode.feed?.link
+//        }
         episode.feed = feed
-        episode.id = Feed.newId()
+        episode.id = newId()
         episode.feedId = feed.id
         upsertBlk(episode) {}
         feed.episodes.add(episode)
         upsertBlk(feed) {}
         EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
+    }
+
+    fun getPreserveSyndicate(): Feed {
+        val feedId: Long = 21
+        var feed = getFeed(feedId, true)
+        if (feed != null) return feed
+
+        feed = createSynthetic(feedId, "Preserve Syndicate")
+        feed.type = Feed.FeedType.RSS.name
+        upsertBlk(feed) {}
+        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
+        return feed
     }
 
     /**
@@ -675,7 +679,8 @@ object Feeds {
         }
         fun clear() = map.clear()
     }
-    private object EpisodeAssistant {
+
+    object EpisodeAssistant {
         fun searchEpisodeByIdentifyingValue(episodes: List<Episode>?, searchItem: Episode): Episode? {
             if (episodes.isNullOrEmpty()) return null
             for (episode in episodes) if (episode.identifyingValue == searchItem.identifyingValue) return episode

@@ -60,6 +60,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -187,12 +188,11 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun updateAppearance() {
-        if (episode == null) {
-            Logd(TAG, "updateAppearance item is null")
-            return
-        }
+        if (episode == null) return
 
-        if (episode!!.feed != null) txtvPodcast = episode!!.feed!!.title ?: ""
+        if (episode!!.feed != null)
+            txtvPodcast = if (episode!!.feed!!.isSynthetic() && episode!!.origFeedTitle != null) episode!!.origFeedTitle!! else episode!!.feed!!.title ?: ""
+        
         txtvTitle = episode!!.title ?:""
         itemLink = episode!!.link?: ""
 
@@ -467,13 +467,15 @@ fun EpisodeInfoScreen() {
         if (showAltActionsDialog) vm.actionButton1?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
         LaunchedEffect(key1 = status) { vm.actionButton1 = vm.getButton() }
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { vm.openPodcast() })
+            }
+            Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 val imgLoc = vm.episode?.getEpisodeListImageLocation()
                 AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { vm.openPodcast() }))
                 Box(Modifier.weight(1f).padding(start = 10.dp).height(80.dp)) {
                     Column {
-                        Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().clickable { vm.openPodcast() })
-                        Text(vm.txtvTitle, color = textColor, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 5, overflow = TextOverflow.Ellipsis)
+                        Text(vm.txtvTitle, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis)
                         Text("${vm.txtvPublished} · ${vm.txtvDuration} · ${vm.txtvSize}", color = textColor, style = MaterialTheme.typography.bodyMedium)
                     }
                     if (vm.actionButton1 != null) Icon(imageVector = ImageVector.vectorResource(vm.actionButton1!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).align(Alignment.BottomEnd).combinedClickable(

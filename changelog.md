@@ -1,3 +1,19 @@
+# 8.9.0
+
+* stop toasting "feed update cancelled" messages
+* adjusted layouts of FeedDetails and EpisodeInfo screens
+* adjusted order of PlayStates Again, Forever and Skipped (DB migration is performed on first start)
+* when shelving episodes to a synthetic feed, title, downloadUrl and link of the original feed is preserved
+* in EpisodeInfo, if feed is synthetic, original feed title is shown if available, 
+* when unsubscribing feeds, dialog prompts to preserve important episodes (default to true)
+	* once checked, episodes rated Good or Super, having comments, or with play state set to Again or Forever are shelved to synthetic feed "Preserve Syndicate"
+* added algorithms auto-download/auto-enqueue on empty queue to download/enqueue episodes in associated feeds of the queue
+	* works only for policies other than "Only new" (all policies are still performed during update)
+	* auto-enqueue on empty queue is enabled
+	* auto-download on empty queue is optional and can be set in Settings->Downloads->Automatic downloads
+* added property binLimit in each queue (defaulted to 0, unlimited, not resettable in this version)
+* added ability to auto-trim bin when bin size exceeds 120% of binLimit
+
 # 8.8.2
 
 * straightened the filter settings in feed auto-download and auto-enqueue

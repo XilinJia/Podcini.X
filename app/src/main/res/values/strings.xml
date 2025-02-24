@@ -533,6 +533,9 @@
     <string name="pref_automatic_download_on_battery_title">Download when not charging</string>
     <string name="pref_automatic_download_on_battery_sum">Allow automatic download when the battery is not charging</string>
 
+    <string name="pref_autodl_queue_empty_title">Launch when queue gets empty</string>
+    <string name="pref_autodl_queue_empty_sum">When a queue becomes empty, automatic download starts for associated feeds where the policy is other than \"Only new items\"</string>
+
     <string name="pref_auto_download_include_queues_title">Include queue items</string>
     <string name="pref_auto_download_include_queues_sum">Episodes not downloaded in the selected queues will be included for download during auto-download process (at refresh time). Default setting includes all queues.</string>
     <string name="pref_auto_download_include_soon_title">Include "Soon"</string>
@@ -945,6 +948,7 @@
     <string name="synthetic">Synthetic</string>
     <string name="normal">Normal</string>
     <string name="feed_origin">Feed origin</string>
+    <string name="shelve_important">Shelve important episodes</string>
     <string name="youtube">Youtube</string>
     <string name="rss">RSS</string>
     <string name="has_video">Has video</string>

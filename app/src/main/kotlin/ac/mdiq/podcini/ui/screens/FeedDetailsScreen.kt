@@ -543,6 +543,13 @@ fun FeedDetailsScreen() {
     if (showEditUrlSettingsDialog) EditUrlSettingsDialog { showEditUrlSettingsDialog = false }
     if (showEditConfirmDialog) EditConfirmDialog { showEditConfirmDialog = false }
 
+    var showChooseRatingDialog by remember { mutableStateOf(false) }
+    if (showChooseRatingDialog) ChooseRatingDialog(listOf(vm.feed!!)) {
+        showChooseRatingDialog = false
+        vm.feed = realm.query(Feed::class).query("id == $0", vm.feed!!.id).first().find()!!
+        vm.rating = vm.feed!!.rating
+    }
+
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun FeedDetailsHeader() {
@@ -577,7 +584,9 @@ fun FeedDetailsScreen() {
                 Column(modifier = Modifier.padding(start = 10.dp, top = 4.dp)) {
                     Text(vm.feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(vm.feed?.author ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Row {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
+                        IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(start = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer)) }
                         Spacer(modifier = Modifier.weight(0.3f))
                         if (feedScreenMode == FeedScreenMode.List) Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         else Text((vm.feed?.episodes?.size ?: 0).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
@@ -585,13 +594,6 @@ fun FeedDetailsScreen() {
                 }
             }
         }
-    }
-
-    var showChooseRatingDialog by remember { mutableStateOf(false) }
-    if (showChooseRatingDialog) ChooseRatingDialog(listOf(vm.feed!!)) {
-        showChooseRatingDialog = false
-        vm.feed = realm.query(Feed::class).query("id == $0", vm.feed!!.id).first().find()!!
-        vm.rating = vm.feed!!.rating
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -622,8 +624,6 @@ fun FeedDetailsScreen() {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "butFilter",
                         modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(onClick = { if (vm.enableFilter && vm.feed != null) vm.showFilterDialog = true }, onLongClick = { vm.filterLongClick() }))
                 }
-                val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
-                IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                 IconButton(onClick = {
                     if (vm.feed != null) {
                         feedOnDisplay = vm.feed!!

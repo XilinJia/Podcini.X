@@ -1,6 +1,9 @@
 package ac.mdiq.podcini.storage.database
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.automation.AutoDownloads.autodownloadForQueue
+import ac.mdiq.podcini.automation.AutoDownloads.autoenqueueForQueue
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
@@ -46,6 +49,9 @@ object Queues {
         set(keepSorted) {
             putPref(AppPrefs.prefQueueKeepSorted, keepSorted)
         }
+
+    val autoDLOnEmptyQueue: Boolean
+        get() = getPref(AppPrefs.prefEnableAutoDLOnEmptyQueue, false)
 
     /**
      * Returns the sort order for the queue keep sorted mode.
@@ -180,22 +186,41 @@ object Queues {
         return runOnIOScope {
             curQueue = upsert(curQueue) {
                 it.idsBinList.addAll(it.episodeIds)
+                trimBin(it)
                 it.episodeIds.clear()
                 it.update()
             }
             for (e in curQueue.episodes) if (e.playState < PlayState.SKIPPED.code) setPlayStateSync(PlayState.SKIPPED.code, e, false)
             curQueue.episodes.clear()
             EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
+            autoenqueueForQueue(curQueue)
+            if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), curQueue)
+        }
+    }
+
+    private fun trimBin(queue: PlayQueue) {
+        if (queue.binLimit == 0) return
+        if (queue.idsBinList.size > queue.binLimit * 1.2) {
+            val newSize = (0.2 * queue.binLimit).toInt()
+            val subList = queue.idsBinList.subList(0, newSize)
+            queue.idsBinList.clear()
+            queue.idsBinList.addAll(subList)
         }
     }
 
     fun removeFromAllQueuesSync(vararg episodes: Episode) {
         Logd(TAG, "removeFromAllQueuesSync called ")
         val queues = realm.query(PlayQueue::class).find()
-        for (q in queues) if (q.id != curQueue.id) removeFromQueueSync(q, *episodes)
+        for (q in queues) {
+            if (q.id != curQueue.id) removeFromQueueSync(q, *episodes)
+        }
 //        ensure curQueue is last updated
         if (curQueue.size() > 0) removeFromQueueSync(curQueue, *episodes)
         else upsertBlk(curQueue) { it.update() }
+        if (curQueue.size() == 0) {
+            autoenqueueForQueue(curQueue)
+            if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), curQueue)
+        }
     }
 
     /**
@@ -203,11 +228,13 @@ object Queues {
      */
     internal fun removeFromQueueSync(queue_: PlayQueue?, vararg episodes: Episode) {
         Logd(TAG, "removeFromQueueSync called ")
-//        showStackTrace()
         if (episodes.isEmpty()) return
         var queue = queue_ ?: curQueue
-        if (queue.size() == 0) return
-
+        if (queue.size() == 0) {
+            autoenqueueForQueue(queue)
+            if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), queue)
+            return
+        }
         val events: MutableList<FlowEvent.QueueEvent> = mutableListOf()
         val indicesToRemove: MutableList<Int> = mutableListOf()
         val qItems = queue.episodes.toMutableList()
@@ -217,7 +244,6 @@ object Queues {
             if (eList.indexOfItemWithId(episode.id) >= 0) {
                 Logd(TAG, "removing from queue: ${episode.id} ${episode.title}")
                 indicesToRemove.add(i)
-//                if (setState && episode.playState < PlayState.SKIPPED.code) setPlayState(PlayState.SKIPPED.code, false, episode)
                 if (queue.id == curQueue.id) events.add(FlowEvent.QueueEvent.removed(episode))
             }
         }
@@ -227,6 +253,7 @@ object Queues {
                     val id = qItems[indicesToRemove[i]].id
                     it.idsBinList.remove(id)
                     it.idsBinList.add(id)
+                    trimBin(it)
                     qItems.removeAt(indicesToRemove[i])
                 }
                 it.update()
@@ -238,6 +265,10 @@ object Queues {
                 curQueue = queueNew
             }
             for (event in events) EventFlow.postEvent(event)
+            if (queueNew.size() == 0) {
+                autoenqueueForQueue(queueNew)
+                if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), queueNew)
+            }
         } else Logd(TAG, "Queue was not modified by call to removeQueueItem")
     }
 
@@ -246,18 +277,28 @@ object Queues {
         var idsInQueuesToRemove: MutableSet<Long>
         val queues = realm.query(PlayQueue::class).find()
         for (q in queues) {
-            if (q.size() == 0 || q.id == curQueue.id) continue
+            if (q.id == curQueue.id) continue
+            if (q.size() == 0) {
+                autoenqueueForQueue(q)
+                if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), q)
+                continue
+            }
             idsInQueuesToRemove = q.episodeIds.intersect(episodeIds.toSet()).toMutableSet()
             if (idsInQueuesToRemove.isNotEmpty()) {
                 val eList = realm.query(Episode::class).query("id IN $0", idsInQueuesToRemove).find()
                 for (e in eList) if (e.playState < PlayState.SKIPPED.code) setPlayStateSync(PlayState.SKIPPED.code, e, false)
-                upsert(q) {
+                val qNew = upsert(q) {
                     it.idsBinList.removeAll(idsInQueuesToRemove)
                     it.idsBinList.addAll(idsInQueuesToRemove)
+                    trimBin(it)
                     val qeids = it.episodeIds.minus(idsInQueuesToRemove)
                     it.episodeIds.clear()
                     it.episodeIds.addAll(qeids)
                     it.update()
+                }
+                if (qNew.size() == 0) {
+                    autoenqueueForQueue(qNew)
+                    if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), qNew)
                 }
             }
         }
@@ -265,6 +306,8 @@ object Queues {
         val q = curQueue
         if (q.size() == 0) {
             upsert(q) { it.update() }
+            autoenqueueForQueue(q)
+            if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), q)
             return
         }
         idsInQueuesToRemove = q.episodeIds.intersect(episodeIds.toSet()).toMutableSet()
@@ -274,10 +317,15 @@ object Queues {
             curQueue = upsert(q) {
                 it.idsBinList.removeAll(idsInQueuesToRemove)
                 it.idsBinList.addAll(idsInQueuesToRemove)
+                trimBin(it)
                 val qeids = it.episodeIds.minus(idsInQueuesToRemove)
                 it.episodeIds.clear()
                 it.episodeIds.addAll(qeids)
                 it.update()
+            }
+            if (curQueue.size() == 0) {
+                autoenqueueForQueue(curQueue)
+                if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), curQueue)
             }
         }
     }
@@ -301,7 +349,6 @@ object Queues {
             }
         } else Loge(TAG, "moveQueueItemHelper: Could not load queue")
         curQueue.episodes.clear()
-//        curQueue.episodes.addAll(episodes)
         curQueue = upsertBlk(curQueue) {
             it.episodeIds.clear()
             for (e in episodes) it.episodeIds.add(e.id)

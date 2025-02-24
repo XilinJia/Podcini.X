@@ -607,6 +607,7 @@ fun AutoDownloadPreferencesScreen() {
                 )
             }
             TitleSummarySwitchPrefRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, AppPrefs.prefEnableAutoDownloadOnBattery)
+            TitleSummarySwitchPrefRow(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum, AppPrefs.prefEnableAutoDLOnEmptyQueue)
 
             var showQueueOptions by remember { mutableStateOf(false) }
             TitleSummaryActionColumn(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum) { showQueueOptions = true }

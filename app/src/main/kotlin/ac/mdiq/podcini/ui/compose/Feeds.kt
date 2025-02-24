@@ -19,12 +19,16 @@ import ac.mdiq.podcini.storage.database.Feeds.buildTags
 import ac.mdiq.podcini.storage.database.Feeds.createSynthetic
 import ac.mdiq.podcini.storage.database.Feeds.deleteFeedSync
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
+import ac.mdiq.podcini.storage.database.Feeds.getPreserveSyndicate
 import ac.mdiq.podcini.storage.database.Feeds.getTags
+import ac.mdiq.podcini.storage.database.Feeds.shelveToFeed
 import ac.mdiq.podcini.storage.database.Feeds.updateFeed
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
@@ -162,7 +166,12 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                var saveImportant by remember { mutableStateOf(true) }
                 Text(message)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = saveImportant, onCheckedChange = { saveImportant = it })
+                    Text(text = stringResource(R.string.shelve_important), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
+                }
                 Text(stringResource(R.string.reason_to_delete_msg))
                 BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor),
                     modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
@@ -171,7 +180,12 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                     callback()
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
+                            val preserveFeed = if (saveImportant) getPreserveSyndicate() else null
                             for (f in feeds) {
+                                if (saveImportant) {
+                                    val eList = realm.query(Episode::class).query("feedId == ${f.id} AND (rating >= ${Rating.GOOD.code} OR comment != '' OR playState == ${PlayState.AGAIN.code} OR playState == ${PlayState.FOREVER.code})").find()
+                                    if (eList.isNotEmpty()) shelveToFeed(eList, preserveFeed!!)
+                                }
                                 if (!f.isSynthetic()) {
                                     val sLog = SubscriptionLog(f.id, f.title ?: "", f.downloadUrl ?: "", f.link ?: "", SubscriptionLog.Type.Feed.name)
                                     upsert(sLog) {

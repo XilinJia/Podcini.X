@@ -21,6 +21,9 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
+import ac.mdiq.podcini.storage.model.Feed.Companion.newId
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.EpisodeVM

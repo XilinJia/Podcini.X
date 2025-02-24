@@ -146,6 +146,9 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             item.id = 0L
             item.feedId = null
             item.feed = feed
+            item.origFeedlink = null
+            item.origFeeddownloadUrl = null
+            item.origFeedTitle = null
         }
         val fo = updateFeed(context, feed, false)
 //        if (fo?.downloadUrl != null || fo?.link != null) {

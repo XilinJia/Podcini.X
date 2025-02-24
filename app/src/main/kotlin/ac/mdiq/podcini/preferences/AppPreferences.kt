@@ -257,6 +257,7 @@ object AppPreferences {
         prefEpisodeCacheSize("25"),
         prefEnableAutoDl(false),
         prefEnableAutoDownloadOnBattery(false),
+        prefEnableAutoDLOnEmptyQueue(false),
         prefAutoDLIncludeQueues(setOf<String>()),   // special
 
         prefProxyType(Proxy.Type.DIRECT.name),

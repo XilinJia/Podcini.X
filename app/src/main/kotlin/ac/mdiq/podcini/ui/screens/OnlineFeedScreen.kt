@@ -352,8 +352,9 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
         handleUpdatedFeedStatus()
     }
 
-    internal fun showEpisodes(episodes_: MutableList<Episode>) {
-        episodes = episodes_
+    internal fun showEpisodes() {
+        if (feed == null) return
+        episodes = feed!!.episodes
         stopMonitor(vms)
         vms.clear()
         buildMoreItems()
@@ -366,6 +367,9 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
         for (i in 0..<episodes.size) {
             episodes[i].id = id_++
             episodes[i].isRemote.value = true
+            episodes[i].origFeedlink = feed!!.link
+            episodes[i].origFeeddownloadUrl = feed!!.downloadUrl
+            episodes[i].origFeedTitle = feed!!.title
         }
         showEpisodes = true
     }
@@ -576,7 +580,7 @@ fun OnlineFeedScreen() {
                     if (vm.showEpisodes) {
                         Button(onClick = { vm.showEpisodes = false }) { Text(stringResource(R.string.feed)) }
                     } else {
-                        if (vm.enableEpisodes && vm.feed != null) Button(onClick = { vm.showEpisodes(vm.feed!!.episodes) }) { Text(stringResource(R.string.episodes_label)) }
+                        if (vm.enableEpisodes && vm.feed != null) Button(onClick = { vm.showEpisodes() }) { Text(stringResource(R.string.episodes_label)) }
                     }
                     Spacer(modifier = Modifier.weight(0.2f))
                 }

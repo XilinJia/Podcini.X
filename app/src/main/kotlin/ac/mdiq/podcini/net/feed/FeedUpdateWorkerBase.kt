@@ -172,7 +172,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         downloader.call()
         if (!downloader.result.isSuccessful) {
             if (downloader.cancelled || downloader.result.reason == DownloadError.ERROR_DOWNLOAD_CANCELLED) {
-                Logt(TAG, "feed refresh cancelled, likely due to feed not changed: ${feed.title}")
+                Logd(TAG, "feed refresh cancelled, likely due to feed not changed: ${feed.title}")
                 return
             }
             Logt(TAG, "feed update failed: unsuccessful. cancelled? ${feed.title}")
