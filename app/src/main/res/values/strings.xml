@@ -287,6 +287,8 @@
     <string name="OK">OK</string>
     <string name="good">Good</string>
     <string name="Super">Super</string>
+    <string name="search_selected">Search selected</string>
+    <string name="select_text_to_search">Select any text to search</string>
     <string name="set_rating_label">Set rating</string>
     <string name="playstate">Play state</string>
     <string name="unspecified">Unspecified</string>
@@ -655,6 +657,7 @@
     <string name="search_status_no_results">No results were found</string>
 
     <string name="search_label">Search</string>
+    <string name="search_delimit">Search (delimit by comma or space)</string>
     <string name="no_results_for_query">No results were found for \"%1$s\"</string>
     <string name="search_online">Search online</string>
 

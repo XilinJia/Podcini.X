@@ -18,14 +18,17 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
+import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.ShelveDialog
+import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -36,6 +39,7 @@ import android.util.TypedValue
 import androidx.annotation.AttrRes
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,12 +53,14 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -69,9 +75,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
@@ -105,6 +113,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         AddToAssociatedQueue(), AddToActiveQueue(), PutToQueue(),
         RemoveFromQueue(),
         SetRating(), AddComment(),
+        SearchSelected(),
         Download(),
         Delete(), RemoveFromHistory(),
         Shelve(), Erase())
@@ -115,6 +124,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         RATING,
         COMMENT,
         SET_PLAY_STATE,
+        SEARCH_SELECTED,
         ADD_TO_QUEUE,
         ADD_TO_ASSOCIATED,
         PUT_TO_QUEUE,
@@ -283,7 +293,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         for (action in actionsList) {
-                            if (action.getId() == ActionTypes.NO_ACTION.name || action.getId() == ActionTypes.COMBO.name) continue
+                            if (action is NoAction || action is Combo) continue
                             if (!action.enabled()) continue
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
                                 useAction = action
@@ -392,7 +402,47 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                 it.commentTime = localTime
                             }
                             if (isCurMedia(onEpisode)) curEpisode = unmanaged(onEpisode!!)
-                            onEpisode = null    // this is needed, otherwise the realm.query clause does not update onEpisode for some reason
+//                            onEpisode = null    // this is needed, otherwise the realm.query clause does not update onEpisode for some reason
+                        }
+                    })
+            }
+        }
+    }
+
+    inner class SearchSelected : SwipeAction() {
+        var showSearchDialog by mutableStateOf(false)
+        override fun getId(): String {
+            return ActionTypes.SEARCH_SELECTED.name
+        }
+        override fun getActionIcon(): Int {
+            return R.drawable.ic_search
+        }
+        override fun getActionColor(): Int {
+            return R.attr.icon_yellow
+        }
+        override fun getTitle(): String {
+            return getAppContext().getString(R.string.search_selected)
+        }
+        override fun performAction(item: Episode) {
+            super.performAction(item)
+            showSearchDialog = true
+        }
+        @Composable
+        override fun ActionOptions() {
+            if (showSearchDialog && onEpisode?.title != null) {
+                var textFieldValue by remember { mutableStateOf(TextFieldValue(onEpisode!!.title!!)) }
+                val selectedText by remember(textFieldValue.selection) { mutableStateOf(
+                    if (textFieldValue.selection.collapsed) ""
+                    else textFieldValue.text.substring(startIndex = textFieldValue.selection.start, endIndex = textFieldValue.selection.end)) }
+                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showSearchDialog = false },
+                    title = { Text(stringResource(R.string.select_text_to_search), style = CustomTextStyles.titleCustom) },
+                    text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },
+                    confirmButton = {
+                        if (selectedText.isNotEmpty()) {
+                            Button(modifier = Modifier.padding(top = 8.dp), onClick = {
+                                setSearchTerms("$selectedText,")
+                                mainNavController.navigate(Screens.Search.name)
+                            }) { Text(stringResource(R.string.search_label)) }
                         }
                     })
             }
@@ -612,17 +662,17 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             if (!showPickerDialog) Dialog(onDismissRequest = { onDismissRequest() }) {
                 Logd("SwipeActions", "SwipeActions tag: ${sa.tag}")
                 val forFragment = remember(sa.tag) {
-                    if (sa.tag != Screens.Queues.name) keys = keys.filter { a: SwipeAction -> a.getId() != ActionTypes.REMOVE_FROM_QUEUE.name }
+                    if (sa.tag != Screens.Queues.name) keys = keys.filter { a: SwipeAction -> a !is RemoveFromQueue }
                     when (sa.tag) {
                         Screens.Facets.name -> context.getString(R.string.facets)
                         Screens.OnlineEpisodes.name -> context.getString(R.string.online_episodes_label)
                         Screens.Search.name -> context.getString(R.string.search_label)
                         Screens.FeedDetails.name -> {
-                            keys = keys.filter { a: SwipeAction -> a.getId() != ActionTypes.REMOVE_FROM_HISTORY.name }
+                            keys = keys.filter { a: SwipeAction -> a !is RemoveFromHistory }
                             context.getString(R.string.subscription)
                         }
                         Screens.Queues.name -> {
-                            keys = keys.filter { a: SwipeAction -> (a.getId() != ActionTypes.ADD_TO_QUEUE.name && a.getId() != ActionTypes.REMOVE_FROM_HISTORY.name) }
+                            keys = keys.filter { a: SwipeAction -> (a !is AddToActiveQueue && a !is RemoveFromHistory) }
                             context.getString(R.string.queue_label)
                         }
                         else -> { "" }

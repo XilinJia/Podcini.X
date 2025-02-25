@@ -332,7 +332,7 @@ class PlaybackService : MediaLibraryService() {
                     val item_ = realm.query(Episode::class).query("id == $0", item.id).first().find()
                     if (item_ != null) {
                         item = upsert(item_) {
-                            if (it.playState < PlayState.PLAYED.code || it.playState == PlayState.IGNORED.code) it.setPlayState(PlayState.PLAYED)
+                            if (it.playState < PlayState.AGAIN.code || it.playState == PlayState.IGNORED.code) it.setPlayState(PlayState.PLAYED)
                             upsertDB(it, item, item.position)
                             if (ended || (skipped && smartMarkAsPlayed)) it.setPosition(0)
                             if (ended || skipped || playingNext) it.playbackCompletionDate = Date()

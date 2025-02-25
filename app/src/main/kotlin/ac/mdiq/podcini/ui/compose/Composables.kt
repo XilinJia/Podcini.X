@@ -359,7 +359,8 @@ fun SearchBarRow(hintTextRes: Int, defaultText: String, performSearch: (String) 
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Logd("SearchBarRow", "defaultText: $defaultText")
         var queryText by remember { mutableStateOf(defaultText) }
-        TextField(value = queryText, onValueChange = { queryText = it }, label = { Text(stringResource(hintTextRes)) },
+        TextField(value = queryText, onValueChange = { queryText = it },
+            textStyle = TextStyle(fontSize = 16.sp), label = { Text(stringResource(hintTextRes)) },
             keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { performSearch(queryText) }), modifier = Modifier.weight(1f))
         Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), tint = textColor, contentDescription = "right_action_icon",

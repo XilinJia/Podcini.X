@@ -204,10 +204,10 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                 val results_ = withContext(Dispatchers.IO) {
                     if (query.isEmpty()) Triplet(listOf(), listOf(), listOf())
                     else {
-//                            val feedID = requireArguments().getLong(ARG_FEED)
-                        val items: List<Episode> = searchEpisodes(feedId, query)
-                        val feeds: List<Feed> = searchFeeds(query)
-                        val pafeeds = searchPAFeeds(query)
+                        val queryWords = (if (query.contains(",")) query.split(",").map { it.trim() } else query.split("\\s+".toRegex())).dropWhile { it.isEmpty() }.toTypedArray()
+                        val items: List<Episode> = searchEpisodes(feedId, queryWords)
+                        val feeds: List<Feed> = searchFeeds(queryWords)
+                        val pafeeds = searchPAFeeds(queryWords)
                         Logd(TAG, "performSearch items: ${items.size} feeds: ${feeds.size} pafeeds: ${pafeeds.size}")
                         Triplet(items, feeds, pafeeds)
                     }
@@ -233,9 +233,8 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         }.apply { invokeOnCompletion { searchJob = null } }
     }
 
-    private fun searchFeeds(query: String): List<Feed> {
+    private fun searchFeeds(queryWords: Array<String>): List<Feed> {
         Logd(TAG, "searchFeeds called ${SearchBy.AUTHOR.selected}")
-        val queryWords = query.split("\\s+".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
         val sb = StringBuilder()
         for (i in queryWords.indices) {
             var isStart = true
@@ -272,9 +271,8 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         return realm.query(Feed::class).query(queryString).find()
     }
 
-    private fun searchPAFeeds(query: String): List<PAFeed> {
+    private fun searchPAFeeds(queryWords: Array<String>): List<PAFeed> {
         Logd(TAG, "searchFeeds called ${SearchBy.AUTHOR.selected}")
-        val queryWords = query.split("\\s+".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
         val sb = StringBuilder()
         for (i in queryWords.indices) {
             var isStart = true
@@ -316,9 +314,8 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
      * @return A FutureTask object that executes the search request
      * and returns the search result as a List of FeedItems.
      */
-    private fun searchEpisodes(feedID: Long, query: String): List<Episode> {
+    private fun searchEpisodes(feedID: Long, queryWords: Array<String>): List<Episode> {
         Logd(TAG, "searchEpisodes called")
-        val queryWords = query.split("\\s+".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
         val sb = StringBuilder()
         for (i in queryWords.indices) {
             val sb1 = StringBuilder()
@@ -381,10 +378,7 @@ fun SearchScreen() {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
-                    if (vm.feedId > 0L) {
-                        vm.searchInFeed = true
-//                        vm.feedName = requireArguments().getString(ARG_FEED_NAME, "")
-                    }
+                    if (vm.feedId > 0L) vm.searchInFeed = true
                     vm.refreshSwipeTelltale()
                     if (vm.queryText.isNotBlank()) vm.search(vm.queryText)
                 }
@@ -408,13 +402,12 @@ fun SearchScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar( title = { SearchBarRow(R.string.search_label, defaultText = vm.queryText) {
+        TopAppBar( title = { SearchBarRow(R.string.search_delimit, defaultText = vm.queryText) {
             curSearchString = it
             vm.queryText = it
             vm.search(vm.queryText)
         }},
-            navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-            }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
+            navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
         )
     }
 

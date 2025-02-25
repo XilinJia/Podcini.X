@@ -1,0 +1,10 @@
+# 8.9.2
+
+* likely fixed the misbehaving "add comment" in SwipeActions
+* in Search screen, the text input allows using either comma or space as delimit
+	* when comma is present, the query text will be split by comma, otherwise, by space
+	* example: "text1 text2 text3" search for the three texts (with OR), while "text1 text2, text3" searches for "text1 text2" OR "text3"
+* avoided setting episode of state Again or Forever to Played after playing
+* added SwipeAction SearchSelected allowing to search any selected text
+* includeMarkedAsPlayed is an action item on the topbar of Statistics screen
+* in Overview tab of Statistics, enabling includeMarkedAsPlayed does not reset the period

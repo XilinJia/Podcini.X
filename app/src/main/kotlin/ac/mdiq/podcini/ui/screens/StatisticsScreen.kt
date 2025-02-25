@@ -198,7 +198,13 @@ fun StatisticsScreen() {
         TopAppBar(title = { Text(stringResource(R.string.statistics_label)) }, 
             navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } },
             actions = {
-                if (vm.selectedTabIndex.value <= 1) IconButton(onClick = { vm.showFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
+                if (vm.selectedTabIndex.value <= 1) {
+                    IconButton(onClick = {
+                        vm.includeMarkedAsPlayed = !vm.includeMarkedAsPlayed
+                        vm.prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, vm.includeMarkedAsPlayed)?.apply()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_mark_played), tint = if (vm.includeMarkedAsPlayed) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
+                    IconButton(onClick = { vm.showFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
+                }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     if (vm.selectedTabIndex.value == 0 || vm.selectedTabIndex.value == 1) DropdownMenuItem(text = { Text(stringResource(R.string.statistics_reset_data)) }, onClick = {
@@ -271,9 +277,7 @@ fun StatisticsScreen() {
                 Spacer(Modifier.width(20.dp))
                 Text( stringResource(R.string.spent) + ": " + getDurationStringShort(vm.timeSpentToday.toInt()*1000, true), color = MaterialTheme.colorScheme.onSurface)
             }
-            val headerCaption = if (vm.includeMarkedAsPlayed) stringResource(R.string.statistics_counting_total)
-            else {
-                if (vm.timeFilterFrom != 0L || vm.timeFilterTo != Long.MAX_VALUE) {
+            val headerCaption = if (vm.timeFilterFrom != 0L || vm.timeFilterTo != Long.MAX_VALUE) {
                     val skeleton = DateFormat.getBestDateTimePattern(Locale.getDefault(), "MMM yyyy")
                     val dateFormat = SimpleDateFormat(skeleton, Locale.getDefault())
                     val dateFrom = dateFormat.format(Date(vm.timeFilterFrom))
@@ -281,7 +285,7 @@ fun StatisticsScreen() {
                     val dateTo = dateFormat.format(Date(vm.timeFilterTo - 24L * 3600000L))
                     stringResource(R.string.statistics_counting_range, dateFrom, dateTo)
                 } else stringResource(R.string.statistics_counting_total)
-            }
+
             Text(headerCaption, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 20.dp))
             Row {
                 Text(stringResource(R.string.duration) + ": " + durationInHours((vm.chartData?.sum ?: 0).toLong()), color = MaterialTheme.colorScheme.onSurface)
@@ -438,7 +442,7 @@ fun StatisticsScreen() {
             } catch (error: Throwable) { Logs(TAG, error) }
         }
     }
-    if (vm.showFilter) DatesFilterDialog(inclPlayed = vm.prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false), from = vm.prefs.getLong(PREF_FILTER_FROM, 0), to = vm.prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE),
+    if (vm.showFilter) DatesFilterDialog(inclPlayed = vm.includeMarkedAsPlayed, from = vm.prefs.getLong(PREF_FILTER_FROM, 0), to = vm.prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE),
         oldestDate = vm.statsResult.oldestDate, onDismissRequest = {vm.showFilter = false} ) { timeFilterFrom, timeFilterTo, includeMarkedAsPlayed_ ->
         vm.prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, includeMarkedAsPlayed_)?.putLong(PREF_FILTER_FROM, timeFilterFrom)?.putLong(PREF_FILTER_TO, timeFilterTo)?.apply()
         vm.includeMarkedAsPlayed = includeMarkedAsPlayed_

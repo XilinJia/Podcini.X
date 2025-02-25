@@ -131,7 +131,6 @@ fun SearchResultsScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    
                     for (info in PodcastSearcherRegistry.searchProviders) {
                         Logd(TAG, "searchProvider: $info")
                         if (info.searcher.javaClass.getName() == onlineSearcherName) {
