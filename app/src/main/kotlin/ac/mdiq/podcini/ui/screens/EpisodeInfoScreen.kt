@@ -468,7 +468,7 @@ fun EpisodeInfoScreen() {
         LaunchedEffect(key1 = status) { vm.actionButton1 = vm.getButton() }
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.headlineSmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { vm.openPodcast() })
+                Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { vm.openPodcast() })
             }
             Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 val imgLoc = vm.episode?.getEpisodeListImageLocation()

@@ -607,17 +607,14 @@ fun AutoDownloadPreferencesScreen() {
                 )
             }
             TitleSummarySwitchPrefRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, AppPrefs.prefEnableAutoDownloadOnBattery)
-            TitleSummarySwitchPrefRow(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum, AppPrefs.prefEnableAutoDLOnEmptyQueue)
-
-            var showQueueOptions by remember { mutableStateOf(false) }
-            TitleSummaryActionColumn(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum) { showQueueOptions = true }
-            if (showQueueOptions) {
+            @Composable
+            fun IncludeQueueDialog(key: AppPrefs, defaultOn: Boolean, onDismiss: ()->Unit) {
                 val queues = remember { realm.query(PlayQueue::class).find() }
-                var selectedOptions by remember { mutableStateOf(getPref(AppPrefs.prefAutoDLIncludeQueues, queues.map { it.name }.toSet(), true)) }
+                var selectedOptions by remember { mutableStateOf(getPref(key, queues.map { it.name }.toSet(), defaultOn)) }
                 fun updateSepections(option: PlayQueue) {
                     selectedOptions = if (selectedOptions.contains(option.name)) selectedOptions - option.name else selectedOptions + option.name
                 }
-                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showQueueOptions = false },
+                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss,
                     title = { Text(stringResource(R.string.pref_autodl_queues_title), style = CustomTextStyles.titleCustom) },
                     text = {
                         val scrollState = rememberScrollState()
@@ -632,13 +629,23 @@ fun AutoDownloadPreferencesScreen() {
                     },
                     confirmButton = {
                         TextButton(onClick = {
-                            putPref(AppPrefs.prefAutoDLIncludeQueues, selectedOptions)
-                            showQueueOptions = false
+                            putPref(key, selectedOptions)
+                            onDismiss()
                         }) { Text(text = "OK") }
                     },
-                    dismissButton = { TextButton(onClick = { showQueueOptions = false }) { Text(stringResource(R.string.cancel_label)) } }
+                    dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
                 )
             }
+
+//            TitleSummarySwitchPrefRow(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum, AppPrefs.prefEnableAutoDLOnEmptyQueue)
+
+            var showEmptyQueueOptions by remember { mutableStateOf(false) }
+            TitleSummaryActionColumn(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum) { showEmptyQueueOptions = true }
+            if (showEmptyQueueOptions) IncludeQueueDialog(AppPrefs.prefAutoDLOnEmptyIncludeQueues, false) { showEmptyQueueOptions = false }
+            var showQueueOptions by remember { mutableStateOf(false) }
+
+            TitleSummaryActionColumn(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum) { showQueueOptions = true }
+            if (showQueueOptions) IncludeQueueDialog(AppPrefs.prefAutoDLIncludeQueues, true) { showQueueOptions = false }
         }
     }
 }

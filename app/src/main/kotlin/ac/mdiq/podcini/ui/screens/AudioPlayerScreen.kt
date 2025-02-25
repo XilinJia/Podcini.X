@@ -13,7 +13,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.MediaPlayerInfo
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.playback.cast.CastEnabledActivity
+import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curDurationFB
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curSpeedFB
@@ -828,7 +828,7 @@ fun AudioPlayerScreen() {
                     context.startActivity(intent)
                 }
             })
-            (context as? CastEnabledActivity)?.CastIconButton()
+            (context as? BaseActivity)?.CastIconButton()
         }
     }
 

@@ -2,7 +2,9 @@ package ac.mdiq.podcini.ui.actions
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
@@ -11,6 +13,7 @@ import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -373,8 +376,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             return getAppContext().getString(R.string.add_opinion_label)
         }
         override fun performAction(item: Episode) {
-            onEpisode = realm.query(Episode::class).query("id == ${item.id}").first().find()
-//            onEpisode = item
+            onEpisode = if (isCurMedia(item)) curEpisode else realm.query(Episode::class).query("id == ${item.id}").first().find()
             localTime = System.currentTimeMillis()
             editCommentText = TextFieldValue((if (onEpisode?.comment.isNullOrBlank()) "" else onEpisode!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
             showEditComment = true
@@ -385,10 +387,11 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false },
                     onSave = {
                         if (onEpisode != null) runOnIOScope {
-                             upsert(onEpisode!!) {
+                            onEpisode = upsert(onEpisode!!) {
                                 it.comment = editCommentText.text
                                 it.commentTime = localTime
                             }
+                            if (isCurMedia(onEpisode)) curEpisode = unmanaged(onEpisode!!)
                             onEpisode = null    // this is needed, otherwise the realm.query clause does not update onEpisode for some reason
                         }
                     })

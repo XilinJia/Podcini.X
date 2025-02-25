@@ -50,8 +50,8 @@ object Queues {
             putPref(AppPrefs.prefQueueKeepSorted, keepSorted)
         }
 
-    val autoDLOnEmptyQueue: Boolean
-        get() = getPref(AppPrefs.prefEnableAutoDLOnEmptyQueue, false)
+    val autoDLOnEmptyQueues: Set<String>
+        get() = getPref(AppPrefs.prefAutoDLOnEmptyIncludeQueues, setOf<String>())
 
     /**
      * Returns the sort order for the queue keep sorted mode.
@@ -194,7 +194,7 @@ object Queues {
             curQueue.episodes.clear()
             EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
             autoenqueueForQueue(curQueue)
-            if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), curQueue)
+            if(autoDLOnEmptyQueues.contains(curQueue.name)) autodownloadForQueue(getAppContext(), curQueue)
         }
     }
 
@@ -219,7 +219,7 @@ object Queues {
         else upsertBlk(curQueue) { it.update() }
         if (curQueue.size() == 0) {
             autoenqueueForQueue(curQueue)
-            if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), curQueue)
+            if(autoDLOnEmptyQueues.contains(curQueue.name)) autodownloadForQueue(getAppContext(), curQueue)
         }
     }
 
@@ -232,7 +232,7 @@ object Queues {
         var queue = queue_ ?: curQueue
         if (queue.size() == 0) {
             autoenqueueForQueue(queue)
-            if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), queue)
+            if(autoDLOnEmptyQueues.contains(queue.name)) autodownloadForQueue(getAppContext(), queue)
             return
         }
         val events: MutableList<FlowEvent.QueueEvent> = mutableListOf()
@@ -267,7 +267,7 @@ object Queues {
             for (event in events) EventFlow.postEvent(event)
             if (queueNew.size() == 0) {
                 autoenqueueForQueue(queueNew)
-                if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), queueNew)
+                if(autoDLOnEmptyQueues.contains(queueNew.name)) autodownloadForQueue(getAppContext(), queueNew)
             }
         } else Logd(TAG, "Queue was not modified by call to removeQueueItem")
     }
@@ -280,7 +280,7 @@ object Queues {
             if (q.id == curQueue.id) continue
             if (q.size() == 0) {
                 autoenqueueForQueue(q)
-                if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), q)
+                if(autoDLOnEmptyQueues.contains(q.name)) autodownloadForQueue(getAppContext(), q)
                 continue
             }
             idsInQueuesToRemove = q.episodeIds.intersect(episodeIds.toSet()).toMutableSet()
@@ -298,7 +298,7 @@ object Queues {
                 }
                 if (qNew.size() == 0) {
                     autoenqueueForQueue(qNew)
-                    if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), qNew)
+                    if(autoDLOnEmptyQueues.contains(qNew.name)) autodownloadForQueue(getAppContext(), qNew)
                 }
             }
         }
@@ -307,7 +307,7 @@ object Queues {
         if (q.size() == 0) {
             upsert(q) { it.update() }
             autoenqueueForQueue(q)
-            if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), q)
+            if(autoDLOnEmptyQueues.contains(q.name)) autodownloadForQueue(getAppContext(), q)
             return
         }
         idsInQueuesToRemove = q.episodeIds.intersect(episodeIds.toSet()).toMutableSet()
@@ -325,7 +325,7 @@ object Queues {
             }
             if (curQueue.size() == 0) {
                 autoenqueueForQueue(curQueue)
-                if(autoDLOnEmptyQueue) autodownloadForQueue(getAppContext(), curQueue)
+                if(autoDLOnEmptyQueues.contains(curQueue.name)) autodownloadForQueue(getAppContext(), curQueue)
             }
         }
     }

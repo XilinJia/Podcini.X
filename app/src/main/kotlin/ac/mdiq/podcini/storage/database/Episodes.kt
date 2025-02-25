@@ -33,6 +33,7 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.sendLocalBroadcast
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import android.app.backup.BackupManager
 import android.content.Context
 import android.net.Uri
@@ -157,45 +158,48 @@ object Episodes {
         val url = episode.fileUrl
         Logd(TAG, "deleteMediaSync $url")
         var episode = episode
-        when {
-            url != null && url.startsWith("content://") -> {
-                // Local feed
-                val documentFile = DocumentFile.fromSingleUri(context, Uri.parse(url))
-                if (documentFile == null || !documentFile.exists() || !documentFile.delete()) {
-                    Loge(TAG, "deleteMediaSync delete media file failed: $url")
-                    EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
-                    return episode
+        try {
+            when {
+                url != null && url.startsWith("content://") -> {
+                    // Local feed
+                    val documentFile = DocumentFile.fromSingleUri(context, Uri.parse(url))
+                    if (documentFile == null || !documentFile.exists() || !documentFile.delete()) {
+                        Loge(TAG, "deleteMediaSync delete media file failed: file not exists? ${episode.title} $url")
+                        EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
+                        return episode
+                    }
+                    episode = upsertBlk(episode) {
+                        it.setfileUrlOrNull(null)
+                        if (it.playState < PlayState.SKIPPED.code) it.setPlayState(PlayState.SKIPPED)
+                    }
+                    EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
+                    localDelete = true
                 }
-                episode = upsertBlk(episode) {
-                    it.setfileUrlOrNull(null)
-                    if (it.playState < PlayState.SKIPPED.code) it.setPlayState(PlayState.SKIPPED)
+                url != null -> {
+                    // delete downloaded media file
+                    val path = Uri.parse(url).path
+                    if (path == null) {
+                        Loge(TAG, "deleteMediaSync delete media file failed: file not exists? ${episode.title} $url")
+                        EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
+                        return episode
+                    }
+                    val mediaFile = File(path)
+                    if (mediaFile.exists() && !mediaFile.delete()) {
+                        Loge(TAG, "deleteMediaSync delete media file failed: file not exists? ${episode.title} $url")
+                        val evt = FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_failed_simple) + ": $url")
+                        EventFlow.postEvent(evt)
+                        return episode
+                    }
+                    episode = upsertBlk(episode) {
+                        it.downloaded = false
+                        it.setfileUrlOrNull(null)
+                        it.hasEmbeddedPicture = false
+                        if (it.playState < PlayState.SKIPPED.code) it.setPlayState(PlayState.SKIPPED)
+                    }
+                    EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
                 }
-                EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
-                localDelete = true
             }
-            url != null -> {
-                // delete downloaded media file
-                val path = Uri.parse(url).path
-                if (path == null) {
-                    EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
-                    return episode
-                }
-                val mediaFile = File(path)
-                if (mediaFile.exists() && !mediaFile.delete()) {
-                    Loge(TAG, "deleteMediaSync delete media file failed: $url")
-                    val evt = FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_failed_simple) + ": $url")
-                    EventFlow.postEvent(evt)
-                    return episode
-                }
-                episode = upsertBlk(episode) {
-                    it.downloaded = false
-                    it.setfileUrlOrNull(null)
-                    it.hasEmbeddedPicture = false
-                    if (it.playState < PlayState.SKIPPED.code) it.setPlayState(PlayState.SKIPPED)
-                }
-                EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
-            }
-        }
+        } catch (e: Throwable) { Logs(TAG, e, "deleteMediaSync failed") }
 
         if (episode.id == curState.curMediaId) {
             writeNoMediaPlaying()
@@ -245,8 +249,6 @@ object Episodes {
         // especially important if download or refresh failed, as the user should not be able
         // to retry these
         EventFlow.postEvent(FlowEvent.DownloadLogEvent())
-        val backupManager = BackupManager(context)
-        backupManager.dataChanged()
     }
 
     suspend fun setRating(episode: Episode, rating: Int) {

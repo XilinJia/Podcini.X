@@ -8,7 +8,7 @@ import ac.mdiq.podcini.playback.base.LocalMediaPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.playback.cast.CastEnabledActivity
+import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curDurationFB
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
@@ -114,7 +114,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class VideoplayerActivity : CastEnabledActivity() {
+class VideoplayerActivity : BaseActivity() {
     var switchToAudioOnly = false
 
     private var controllerFuture: ListenableFuture<MediaController>? = null

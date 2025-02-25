@@ -11,7 +11,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
-import ac.mdiq.podcini.playback.cast.CastEnabledActivity
+import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -74,7 +74,7 @@ import androidx.work.WorkManager
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 
-class MainActivity : CastEnabledActivity() {
+class MainActivity : BaseActivity() {
     private var lastTheme = 0
     private var navigationBarInsets = Insets.NONE
 

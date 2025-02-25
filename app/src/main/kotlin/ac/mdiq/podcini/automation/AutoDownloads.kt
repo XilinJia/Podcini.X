@@ -26,6 +26,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.content.Intent
@@ -171,14 +172,12 @@ object AutoDownloads {
                 Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${f.autoDLPolicy.name}")
                 var episodes = mutableListOf<Episode>()
                 var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND downloaded == false"
-                if (allowedDLCount > 0) {
-                    if (f.autoDLSoon) {
-                        val queryStringSoon = queryString + " AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
-                        val es = realm.query(Episode::class).query(queryStringSoon).find()
-                        if (es.isNotEmpty()) {
-                            episodes.addAll(es)
-                            allowedDLCount -= es.size
-                        }
+                if (allowedDLCount > 0 && f.autoDLSoon) {
+                    val queryStringSoon = queryString + " AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
+                    val es = realm.query(Episode::class).query(queryStringSoon).find()
+                    if (es.isNotEmpty()) {
+                        episodes.addAll(es)
+                        allowedDLCount -= es.size
                     }
                 }
                 if (allowedDLCount > 0 || f.autoDLPolicy.replace) {
@@ -187,7 +186,7 @@ object AutoDownloads {
                             if (!onlyExisting) {
                                 if (f.autoDLPolicy.replace) {
                                     allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
-                                    queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(${3 * allowedDLCount})"
+                                    queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(${allowedDLCount})"
                                     Logd(TAG, "assembleFeedsCandidates queryString: $queryString")
                                     val es = realm.query(Episode::class).query(queryString).find()
                                     if (es.isNotEmpty()) {
@@ -237,12 +236,17 @@ object AutoDownloads {
                         var count = 0
                         for (e in episodes) {
                             if (isCurMedia(e)) continue
+                            if (e.downloadUrl.isNullOrBlank()) {
+                                Loge(TAG, "episode downloadUrl is null or blank, skipped from auto-download: ${e.title}")
+                                upsertBlk(e) { it.disableAutoDownload() }
+                                continue
+                            }
                             if (f.autoDownloadFilter?.meetsAutoDLCriteria(e) == true) {
                                 Logd(TAG, "assembleFeedsCandidates add to candidates: ${e.title} ${e.downloaded}")
                                 candidates.add(e)
                                 if (++count >= allowedDLCount) break
                             } else {
-                                Logt(TAG, "episode not meed criteria: ${e.title}")
+                                Logt(TAG, "episode not meed criteria for auto-download: ${e.title}")
                                 upsertBlk(e) {
                                     if (f.autoDownloadFilter?.markExcludedPlayed == true) it.setPlayed(true)
                                     else it.disableAutoDownload()
@@ -253,7 +257,7 @@ object AutoDownloads {
                     episodes.clear()
                 }
                 Logd(TAG, "assembleFeedsCandidates ${f.title} candidate size: ${candidates.size}")
-                if (dl && !onlyExisting) {
+                if (!onlyExisting) {
                     runOnIOScope {
                         realm.write {
                             while (true) {

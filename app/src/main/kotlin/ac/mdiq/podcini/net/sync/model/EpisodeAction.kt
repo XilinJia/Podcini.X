@@ -230,8 +230,7 @@ class EpisodeAction private constructor(builder: Builder) {
             if (podcast.isNullOrEmpty() || episode.isNullOrEmpty() || actionString.isNullOrEmpty()) return null
 
             val action: Action
-            try { action = Action.valueOf(actionString.uppercase())
-            } catch (e: IllegalArgumentException) {
+            try { action = Action.valueOf(actionString.uppercase()) } catch (e: IllegalArgumentException) {
                 Logs(TAG, e)
                 return null
             }

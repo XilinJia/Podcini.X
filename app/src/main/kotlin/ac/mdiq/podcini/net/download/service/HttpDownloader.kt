@@ -93,7 +93,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
             //                    Logd(TAG,"buffer: $buffer")
             when {
                 !response.isSuccessful && response.code == HttpURLConnection.HTTP_NOT_MODIFIED -> {
-                    Logt(TAG, "Feed '" + downloadRequest.source + "' not modified since last update, Download canceled")
+                    Logd(TAG, "Feed '" + downloadRequest.source + "' not modified since last update, Download canceled")
                     onCancelled()
                     return
                 }
@@ -131,7 +131,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                     val freeSpace = freeSpaceAvailable
                     Logd(TAG, "Free space is $freeSpace")
                     if (downloadRequest.size != DownloadResult.SIZE_UNKNOWN.toLong() && downloadRequest.size > freeSpace) {
-                        Loge(TAG, "Not enough space: require: ${downloadRequest.size} have only: $freeSpace")
+                        Loge(TAG, "Not enough space: require: ${downloadRequest.size}, have only: $freeSpace")
                         onFail(DownloadError.ERROR_NOT_ENOUGH_SPACE, null)
                         return
                     }

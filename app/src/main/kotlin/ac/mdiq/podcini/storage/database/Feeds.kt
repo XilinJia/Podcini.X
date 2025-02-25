@@ -465,6 +465,8 @@ object Feeds {
                 }
             }
             if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedRemovedIfSyncActive(context, feed.downloadUrl!!)
+            val backupManager = BackupManager(context)
+            backupManager.dataChanged()
         }
     }
 

@@ -267,7 +267,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun buildMoreItems() {
-//        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         if (nextItems.isNotEmpty()) vms.addAll(nextItems)
     }
@@ -287,20 +286,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         getPermutor(sortOrder).reorder(episodes)
         if (offset > 0 && episodes.size > offset) episodes = episodes.subList(offset, min(episodes.size, offset+limit))
         return episodes
-    }
-
-    private fun loadEpisodes(): List<Episode> {
-        return when (spinnerTexts[curIndex]) {
-            QuickAccess.New.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.new.name), episodesSortOrder, false)
-            QuickAccess.Planned.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.soon.name, EpisodeFilter.States.later.name), episodesSortOrder, false)
-            QuickAccess.Repeats.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.again.name, EpisodeFilter.States.forever.name), episodesSortOrder, false)
-            QuickAccess.Liked.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.good.name, EpisodeFilter.States.superb.name), episodesSortOrder, false)
-            QuickAccess.Commented.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.has_comments.name), episodesSortOrder, false)
-            QuickAccess.History.name -> getHistory(0, Int.MAX_VALUE, sortOrder = episodesSortOrder).toMutableList()
-            QuickAccess.Downloaded.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(prefFilterDownloads), episodesSortOrder, false)
-            QuickAccess.All.name -> getEpisodes(0, Int.MAX_VALUE, filter, episodesSortOrder, false)
-            else -> getEpisodes(0, Int.MAX_VALUE, filter, episodesSortOrder, false)
-        }
     }
 
     var progressing by mutableStateOf(false)

@@ -7,7 +7,7 @@ import androidx.activity.ComponentActivity
 /**
  * Activity that allows for showing the MediaRouter button whenever there's a cast device in the network.
  */
-abstract class CastEnabledActivity : ComponentActivity() {
+abstract class BaseActivity : ComponentActivity() {
     val TAG = this::class.simpleName ?: "Anonymous"
 
     fun requestCastButton(menu: Menu?) {}
