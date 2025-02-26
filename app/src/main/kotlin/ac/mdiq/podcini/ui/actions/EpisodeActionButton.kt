@@ -3,8 +3,8 @@ package ac.mdiq.podcini.ui.actions
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils
-import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
+import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.PlaybackServiceStarter
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
@@ -18,7 +18,6 @@ import ac.mdiq.podcini.preferences.UsageStatistics
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.RealmDB
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
@@ -196,7 +195,7 @@ class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_
     override fun onClick(context: Context) {
         Logd("PlayActionButton", "onClick called file: ${item.fileUrl}")
         if (!item.fileExists()) {
-            Loge(TAG, context.getString(R.string.error_file_not_found))
+            Loge(TAG, context.getString(R.string.error_file_not_found) + ": ${item.title}")
             notifyMissingEpisodeMediaFile(context, item)
             return
         }
@@ -206,7 +205,7 @@ class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_
         } else {
             PlaybackService.clearCurTempSpeed()
             PlaybackServiceStarter(context, item).callEvenIfRunning(true).start()
-            if (item.playState < PlayState.PROGRESS.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
+            if (item.playState < PlayState.PROGRESS.code || item.playState == PlayState.SKIPPED.code || item.playState == PlayState.AGAIN.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
             EventFlow.postEvent(FlowEvent.PlayEvent(item))
         }
         playVideoIfNeeded(context, item)
@@ -221,55 +220,6 @@ class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_
         Logd(TAG, "notifyMissingEpisodeMediaFile called")
         Logt(TAG, "The feedmanager was notified about a missing episode. It will update its database now.")
         val episode = realm.query(Episode::class).query("id == ${media.id}").first().find()
-        if (episode != null) {
-            val episode_ = upsertBlk(episode) {
-                it.downloaded = false
-                it.fileUrl = null
-            }
-            EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode_))
-        }
-        EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.error_file_not_found)))
-    }
-}
-
-class PlayPauseActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_label, R.drawable.ic_play_24dp) {
-    private var isPlaying: Boolean = false
-
-    override fun onClick(context: Context) {
-        if (!isPlaying) {
-            Logd("PlayActionButton", "onClick called file: ${item.fileUrl}")
-            if (!item.fileExists()) {
-                Loge(TAG, context.getString(R.string.error_file_not_found))
-                notifyMissingEpisodeMediaFile(context, item)
-                return
-            }
-            if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
-                PlaybackService.playbackService?.mPlayer?.resume()
-                PlaybackService.playbackService?.taskManager?.restartSleepTimer()
-            } else {
-                PlaybackService.clearCurTempSpeed()
-                PlaybackServiceStarter(context, item).callEvenIfRunning(true).start()
-                if (item.playState < PlayState.PROGRESS.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
-                EventFlow.postEvent(FlowEvent.PlayEvent(item))
-            }
-            playVideoIfNeeded(context, item)
-        } else {
-            if (isCurrentlyPlaying(item)) context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_PAUSE))
-        }
-        actionState.value = label
-        isPlaying = !isPlaying
-        drawable = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play_24dp
-    }
-
-    /**
-     * Notifies the database about a missing EpisodeMedia file. This method will correct the EpisodeMedia object's
-     * values in the DB and send a FeedItemEvent.
-     */
-    fun notifyMissingEpisodeMediaFile(context: Context, media: Episode) {
-        Logd(TAG, "notifyMissingEpisodeMediaFile called")
-        Logt(TAG, "The feedmanager was notified about a missing episode. It will update its database now.")
-        val episode = realm.query(Episode::class).query("id == ${media.id}").first().find()
-//        val episode = media.episodeOrFetch()
         if (episode != null) {
             val episode_ = upsertBlk(episode) {
                 it.downloaded = false
@@ -307,48 +257,8 @@ class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.str
         fun stream(context: Context, media: Episode) {
             if (!InTheatre.isCurMedia(media)) PlaybackService.clearCurTempSpeed()
             PlaybackServiceStarter(context, media).shouldStreamThisTime(true).callEvenIfRunning(true).start()
-            val item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, media, false) }
-            EventFlow.postEvent(FlowEvent.PlayEvent(item))
-            playVideoIfNeeded(context, media)
-        }
-    }
-}
-
-class StreamPauseActionButton(item: Episode) : EpisodeActionButton(item, R.string.stream_label, R.drawable.ic_stream) {
-    private var isPlaying: Boolean = false
-
-    override fun onClick(context: Context) {
-//        Logd("StreamActionButton", "item.feed: ${item.feedId}")
-        if (!isPlaying) {
-            UsageStatistics.logAction(UsageStatistics.ACTION_STREAM)
-            if (!NetworkUtils.isStreamingAllowed) {
-                commonConfirm = CommonConfirmAttrib(
-                    title = context.getString(R.string.stream_label),
-                    message = context.getString(R.string.confirm_mobile_streaming_notification_message),
-                    confirmRes = R.string.confirm_mobile_streaming_button_always,
-                    cancelRes = R.string.cancel_label,
-                    neutralRes = R.string.confirm_mobile_streaming_button_once,
-                    onConfirm = {
-                        NetworkUtils.mobileAllowStreaming = true
-                        StreamActionButton.Companion.stream(context, item)
-                    },
-                    onNeutral = { StreamActionButton.Companion.stream(context, item) })
-                return
-            }
-            stream(context, item)
-        } else {
-            if (isCurrentlyPlaying(item)) context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_PAUSE))
-        }
-        actionState.value = label
-        isPlaying = !isPlaying
-        drawable = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_stream
-    }
-
-    companion object {
-        fun stream(context: Context, media: Episode) {
-            if (!InTheatre.isCurMedia(media)) PlaybackService.clearCurTempSpeed()
-            PlaybackServiceStarter(context, media).shouldStreamThisTime(true).callEvenIfRunning(true).start()
-            val item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, media, false) }
+            var item = media
+            if (item.playState < PlayState.PROGRESS.code || item.playState == PlayState.SKIPPED.code || item.playState == PlayState.AGAIN.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, media, false) }
             EventFlow.postEvent(FlowEvent.PlayEvent(item))
             playVideoIfNeeded(context, media)
         }
@@ -547,7 +457,7 @@ class PlayLocalActionButton(item: Episode) : EpisodeActionButton(item, R.string.
         } else {
             PlaybackService.clearCurTempSpeed()
             PlaybackServiceStarter(context, item).callEvenIfRunning(true).start()
-            item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
+            if (item.playState < PlayState.PROGRESS.code || item.playState == PlayState.SKIPPED.code || item.playState == PlayState.AGAIN.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
             EventFlow.postEvent(FlowEvent.PlayEvent(item))
         }
         if (item.getMediaType() == MediaType.VIDEO) context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))

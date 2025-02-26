@@ -16,6 +16,7 @@ enum class PlayState(val code: Int, val res: Int, color: Color?, val userSet: Bo
     FOREVER(8, R.drawable.baseline_light_mode_24, null, true),     // was 15
     SKIPPED(9, R.drawable.ic_skip_24dp, null, true),    // was 6
     PLAYED(10, R.drawable.ic_check, null, true),  // was 1
+    PASSED(17, R.drawable.baseline_low_priority_24, null, true),
     IGNORED(20, R.drawable.baseline_visibility_off_24, null, true);
 
     companion object {

@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
 import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import android.content.ContentResolver
 import android.content.Context
@@ -519,22 +520,26 @@ class Episode : RealmObject {
         return when (fileuri.scheme) {
             "file" -> {
                 val file = File(fileuri.path!!)
-                file.exists()
+                try { file.exists()
+                } catch (e: SecurityException) {
+                    Loge(TAG, "file can not be accessed $fileuri: ${e.message}")
+                    false
+                }
             }
             "content" -> {
                 try {
                     getAppContext().contentResolver.openFileDescriptor(fileuri, "r")?.close()
                     true
                 } catch (e: FileNotFoundException) {
-                    Logd(TAG, "file not exist $fileuri: ${e.message}")
+                    Loge(TAG, "file not exist $fileuri: ${e.message}")
                     false
                 } catch (e: Exception) {
-                    Logd(TAG, "Error checking file existence: ${e.message}")
+                    Loge(TAG, "Error checking file existence: ${e.message}")
                     false
                 }
             }
             else -> {
-                Logd(TAG, "Unsupported URI scheme: ${fileuri.scheme}")
+                Loge(TAG, "Unsupported URI scheme: ${fileuri.scheme}")
                 false
             }
         }

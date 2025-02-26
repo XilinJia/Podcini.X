@@ -1,3 +1,11 @@
+# 8.9.3
+
+* fixed includeMarkedAsPlayed action not reloading in Statistics
+* added play state Passed to distinguish from Ignored
+* when episode starts playing, if its state was below Progress, or was Skipped or Again, set the state to Progress
+* when episode is finished playing, if its state was below or equal Progress, or was Skipped, Passed or Ignored, set the state to Played
+* fixed settings for fallback speed and fast forward speed 
+
 # 8.9.2
 
 * likely fixed the misbehaving "add comment" in SwipeActions

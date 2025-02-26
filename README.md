@@ -59,13 +59,13 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
 * In addition to subscribed podcasts, synthetic podcasts can be created and work as subscribed podcasts but with extra features:
   * episodes can be copied/moved to any synthetic podcast
   * episodes from online feeds can be shelved into any synthetic podcasts without having to subscribe to the online feed
+* FeedDetailed screen has two views: FeedInfo and FeedEpisodes, which can be toggled by tapping on the cover image
 * FeedInfo view offers a link for direct search of feeds related to author
-* FeedInfo view has button showing number of episodes to open the FeedEpisodes view
 * A rating of Trash, Bad, OK, Good, Super can be set on any feed
 * In FeedInfo view, one can enter personal comments/notes under "My opinion" for the feed
 * on action bar of FeedEpisodes view there is a direct access to Queue
 * Long-press filter button in FeedEpisodes view enables/disables filters without changing filter settings
-* Podcast's settings can be accessed in FeedInfo and FeedEpisodes views
+* Podcast's settings can be accessed in FeedDetailed screen
 * "Prefer streaming over download" is now on setting of individual feed
 * Added audio type setting (Speech, Music, Movie) for improved audio processing
 * RSS feeds with no playable media can be subscribed and read/listened (via TTS)
@@ -77,8 +77,8 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
 
 * New share notes menu option on various episode views
 * instead of only favorite, there is a new rating system for every episode: Trash, Bad, OK, Good, Super
-* instead of Played or Unplayed status, there is a new play state system Unspecified, Building, New, Unplayed, Later, Soon, Queue, Progress, Skipped, Played, Again, Forever, Ignored
-  	* among which Unplayed, Later, Soon, Queue, Skipped, Played, Again, Forever, Ignored are settable by the user
+* instead of Played or Unplayed status, there is a new play state system Unspecified, Building, New, Unplayed, Later, Soon, Queue, Progress, Again, Forever, Skipped, Played, Passed, Ignored
+  	* among which Unplayed, Later, Soon, Queue, Again, Forever, Skipped, Played, Passed, Ignored are settable by the user
 	* when an episode is started to play, its state is set to Progress
 	* when an episode is manually set to Queue, it's added to the queue according to the associated queue setting of the feed
 	* when episode is added to a queue, its state is set to Queue, when it's removed from a queue, the state (if lower than Skipped) is set to Skipped
@@ -95,10 +95,11 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
 * Near the top of Subscriptions view, there are two spinners: Tags to filter subscriptions based on tags, Queues to filter subscriptions based on associated queues.
 * in Subscriptions view, click on cover image of a feed opens the FeedInfo view (not FeedEpisodes view)
 * FeedEpisodes has the option to show larger image on the list by changing the "Use wide layout" setting of the feed
-* Episodes view provides easy access to various filters:
+* Facets view provides easy access to various filters:
   * AllEpisodes, History and Download
   * New, Planned (for Soon and Later), Repeats (for Again and Forever), Liked (for Good and Super)
-* Episodes list is shown in views of Episodes, FeedEpisodes, and OnlineEpisodes
+  * in each of the filtered views, related feeds can be shown
+* Episodes list is shown in views of Facets, FeedEpisodes, and OnlineEpisodes
 * New and efficient ways of click and long-click operations on both podcast and episode lists:
   * click on title area opens the podcast/episode
   * long-press on title area automatically enters in selection mode

@@ -301,6 +301,7 @@
     <string name="in_progress">In progress</string>
     <string name="skipped">Skipped</string>
     <string name="played">Played</string>
+    <string name="passed">Passed</string>
     <string name="again">Again</string>
     <string name="forever">Forever</string>
     <string name="ignored">Ignored</string>

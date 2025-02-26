@@ -17,6 +17,7 @@ import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
+import ac.mdiq.podcini.util.Logd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -135,10 +136,11 @@ fun PlaybackPreferencesScreen() {
         var showFBSpeedDialog by remember { mutableStateOf(false) }
         if (showFBSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = fallbackSpeed, maxSpeed = 3f, isGlobal = true,
             onDismiss = { showFBSpeedDialog = false }) { speed ->
+            Logd("PlaybackPreferencesScreen", "speed: $speed")
             val speed_ = when {
                 speed < 0.0f -> 0.0f
                 speed > 3.0f -> 3.0f
-                else -> 0f
+                else -> speed
             }
             fallbackSpeed = round(100 * speed_) / 100f
         }
@@ -150,7 +152,7 @@ fun PlaybackPreferencesScreen() {
             val speed_ = when {
                 speed < 0.0f -> 0.0f
                 speed > 10.0f -> 10.0f
-                else -> 0f
+                else -> speed
             }
             speedforwardSpeed = round(10 * speed_) / 10
         }

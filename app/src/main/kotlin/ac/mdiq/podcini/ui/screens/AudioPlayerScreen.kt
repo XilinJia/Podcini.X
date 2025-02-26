@@ -518,14 +518,12 @@ fun AudioPlayerScreen() {
                             }
                             override fun onPlaybackEnd() {
                                 vm.setIsShowPlay(true)
-//                                vm.actMain.setPlayerVisible(false)
                             }
                         }
                         vm.controller!!.init()
                     }
                     isBSExpanded = false
                     if (vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
-//                    vm.actMain?.setPlayerVisible(curEpisode != null)
                     if (curEpisode != null) vm.updateUi(curEpisode!!)
                 }
                 Lifecycle.Event.ON_START -> {
@@ -636,8 +634,7 @@ fun AudioPlayerScreen() {
                         if (curEpisode != null) {
                             val media = curEpisode!!
                             vm.setIsShowPlay(!vm.isShowPlay)
-                            if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING &&
-                                    (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
+                            if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                                 playPause()
                                 context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
                             } else {
@@ -650,8 +647,8 @@ fun AudioPlayerScreen() {
                         } },
                     onLongClick = {
                         if (status == PlayerStatus.PLAYING) {
-                            val fallbackSpeed = AppPreferences.fallbackSpeed
-                            if (fallbackSpeed > 0.1f) toggleFallbackSpeed(fallbackSpeed)
+                            val speedFB = AppPreferences.fallbackSpeed
+                            if (speedFB > 0.1f) toggleFallbackSpeed(speedFB)
                         } }))
             Spacer(Modifier.weight(0.1f))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {

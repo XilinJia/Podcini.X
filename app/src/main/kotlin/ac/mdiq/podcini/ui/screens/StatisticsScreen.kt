@@ -202,6 +202,8 @@ fun StatisticsScreen() {
                     IconButton(onClick = {
                         vm.includeMarkedAsPlayed = !vm.includeMarkedAsPlayed
                         vm.prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, vm.includeMarkedAsPlayed)?.apply()
+                        vm.chartData = null
+                        vm.statisticsState++
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_mark_played), tint = if (vm.includeMarkedAsPlayed) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
                     IconButton(onClick = { vm.showFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
                 }
