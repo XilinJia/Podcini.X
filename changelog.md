@@ -1,3 +1,8 @@
+# 8.9.4
+
+* fixed auto-download not executing since 8.9.0
+* in episodes lists, fixed only selecting loaded episodes when Select all, Select all above, or Select all below is chosen
+
 # 8.9.3
 
 * fixed includeMarkedAsPlayed action not reloading in Statistics

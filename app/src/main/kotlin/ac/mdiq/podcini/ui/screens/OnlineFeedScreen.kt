@@ -586,66 +586,75 @@ fun OnlineFeedScreen() {
                 }
             }
             if (vm.showEpisodes) {
-               InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
-               EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
-                   buildMoreItems = { vm.buildMoreItems() },
-                   leftSwipeCB = {
-                       if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                       else vm.leftActionState.value.performAction(it)
-                   },
-                   rightSwipeCB = {
-                       if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                       else vm.rightActionState.value.performAction(it)
-                   },
-               )
-           } else {
-               Column {
+                fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
+                    return when (aboveOrBelow) {
+                        0 -> vm.episodes
+                        -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
+                        1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
+                        else -> listOf()
+                    }
+                }
+                InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
+                EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
+                    buildMoreItems = { vm.buildMoreItems() },
+                    leftSwipeCB = {
+                        if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
+                        else vm.leftActionState.value.performAction(it)
+                    },
+                    rightSwipeCB = {
+                        if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
+                        else vm.rightActionState.value.performAction(it)
+                    },
+                    multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) }
+                )
+            } else {
+                Column {
 //                    alternate_urls_spinner
-                   if (vm.feedSource != "VistaGuide" && isAutodownloadEnabled) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                       Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
-                       Text(text = stringResource(R.string.auto_download_label),
-                           style = MaterialTheme.typography.bodyMedium.merge(), color = textColor,
-                           modifier = Modifier.padding(start = 16.dp)
-                       )
-                   }
-               }
-               val scrollState = rememberScrollState()
-               var numEpisodes by remember { mutableIntStateOf(vm.feed?.episodes?.size ?: 0) }
-               LaunchedEffect(Unit) {
-                   while (true) {
-                       delay(1000)
-                       numEpisodes = vm.feed?.episodes?.size ?: 0
-                   }
-               }
-               Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
-                   Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge,
-                       modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
-                   Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge,
-                       modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                   Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
-                   val sLog = remember { feedLogsMap_[vm.feed?.downloadUrl ?: ""] }
-                   if (sLog != null) {
-                       val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
-                       val context = LocalContext.current
-                       val cancelDate = remember { formatAbbrev(context, Date(sLog.cancelDate)) }
-                       val ratingRes = remember { fromCode(sLog.rating).res }
-                       if (commentTextState.text.isNotEmpty()) {
-                           Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
-                               Text(stringResource(R.string.my_opinion_label), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom)
-                               Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null, modifier = Modifier.padding(start = 5.dp))
-                           }
-                           Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium,
-                               modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                           Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium,
-                               modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                       }
-                   }
-                   Text(vm.feed?.mostRecentItem?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                   Text("${vm.feed?.language ?: ""} ${vm.feed?.type ?: ""} ${vm.feed?.lastUpdate ?: ""}", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                   Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                   Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-               }
-           }
+                    if (vm.feedSource != "VistaGuide" && isAutodownloadEnabled) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
+                        Text(text = stringResource(R.string.auto_download_label),
+                            style = MaterialTheme.typography.bodyMedium.merge(), color = textColor,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                }
+                val scrollState = rememberScrollState()
+                var numEpisodes by remember { mutableIntStateOf(vm.feed?.episodes?.size ?: 0) }
+                LaunchedEffect(Unit) {
+                    while (true) {
+                        delay(1000)
+                        numEpisodes = vm.feed?.episodes?.size ?: 0
+                    }
+                }
+                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
+                    Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
+                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
+                    val sLog = remember { feedLogsMap_[vm.feed?.downloadUrl ?: ""] }
+                    if (sLog != null) {
+                        val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
+                        val context = LocalContext.current
+                        val cancelDate = remember { formatAbbrev(context, Date(sLog.cancelDate)) }
+                        val ratingRes = remember { fromCode(sLog.rating).res }
+                        if (commentTextState.text.isNotEmpty()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
+                                Text(stringResource(R.string.my_opinion_label), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom)
+                                Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null, modifier = Modifier.padding(start = 5.dp))
+                            }
+                            Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                            Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                        }
+                    }
+                    Text(vm.feed?.mostRecentItem?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text("${vm.feed?.language ?: ""} ${vm.feed?.type ?: ""} ${vm.feed?.lastUpdate ?: ""}", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                }
+            }
         }
     }
 }

@@ -53,11 +53,13 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.nio.charset.Charset
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import org.apache.commons.io.IOUtils
 
 class BugReportActivity : ComponentActivity() {
     private var crashDetailsTextView by mutableStateOf("")
-//    var toastMassege by mutableStateOf("")
     var showConfirmExport = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -91,9 +93,7 @@ class BugReportActivity : ComponentActivity() {
                     exportLog()
                     showConfirmExport.value = false
                 }
-                Button(modifier = Modifier.fillMaxWidth(), onClick = {
-                    openInBrowser(this@BugReportActivity, "${githubAddress}/issues")
-                }) { Text(stringResource(R.string.open_bug_tracker)) }
+                Button(modifier = Modifier.fillMaxWidth(), onClick = { openInBrowser(this@BugReportActivity, "${githubAddress}/issues") }) { Text(stringResource(R.string.open_bug_tracker)) }
                 Button(modifier = Modifier.fillMaxWidth(), onClick = {
                     val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
                     val clip = ClipData.newPlainText(getString(R.string.bug_report_title), crashDetailsTextView)
@@ -136,7 +136,7 @@ class BugReportActivity : ComponentActivity() {
                 val fileUri = FileProvider.getUriForFile(this, authority, filename)
                 IntentBuilder(this).setType("text/*").addStream(fileUri).setChooserTitle(R.string.share_file_label).startChooser()
             } catch (e: Exception) { Logs(TAG, e, getString(R.string.log_file_share_exception)) }
-        } catch (e: IOException) { Logs(TAG, e) }
+        } catch (e: IOException) { Logs(TAG, e, "Can't export logcat") }
     }
 
     private fun sendEmail() {

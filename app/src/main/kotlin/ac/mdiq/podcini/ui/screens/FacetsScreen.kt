@@ -623,6 +623,14 @@ fun FacetsScreen() {
             }
         }
     }
+    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
+        return when (aboveOrBelow) {
+            0 -> vm.episodes
+            -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
+            1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
+            else -> listOf()
+        }
+    }
 
     OpenDialogs()
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
@@ -639,7 +647,8 @@ fun FacetsScreen() {
                     if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
                     else vm.rightActionState.value.performAction(it)
                 },
-                actionButton_ = vm.actionButtonToPass
+                actionButton_ = vm.actionButtonToPass,
+                multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) }
             )
         }
     }

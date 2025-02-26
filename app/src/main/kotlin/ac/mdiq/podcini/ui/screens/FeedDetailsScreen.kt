@@ -798,6 +798,15 @@ fun FeedDetailsScreen() {
         }
     }
 
+    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
+        return when (aboveOrBelow) {
+            0 -> vm.episodes
+            -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
+            1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
+            else -> listOf()
+        }
+    }
+
     vm.swipeActions.ActionOptionsDialog()
     Scaffold(topBar = { MyTopAppBar(displayUpArrow) }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
@@ -816,6 +825,7 @@ fun FeedDetailsScreen() {
                         if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
                         else vm.rightActionState.value.performAction(it)
                     },
+                    multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) }
                 )
             } else DetailUI()
         }

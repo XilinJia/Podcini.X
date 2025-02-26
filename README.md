@@ -59,13 +59,13 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
 * In addition to subscribed podcasts, synthetic podcasts can be created and work as subscribed podcasts but with extra features:
   * episodes can be copied/moved to any synthetic podcast
   * episodes from online feeds can be shelved into any synthetic podcasts without having to subscribe to the online feed
-* FeedDetailed screen has two views: FeedInfo and FeedEpisodes, which can be toggled by tapping on the cover image
+* FeedDetails screen has two views: FeedInfo and FeedEpisodes, which can be toggled by tapping on the cover image
 * FeedInfo view offers a link for direct search of feeds related to author
 * A rating of Trash, Bad, OK, Good, Super can be set on any feed
 * In FeedInfo view, one can enter personal comments/notes under "My opinion" for the feed
 * on action bar of FeedEpisodes view there is a direct access to Queue
 * Long-press filter button in FeedEpisodes view enables/disables filters without changing filter settings
-* Podcast's settings can be accessed in FeedDetailed screen
+* Podcast's settings can be accessed in FeedDetails screen
 * "Prefer streaming over download" is now on setting of individual feed
 * Added audio type setting (Speech, Music, Movie) for improved audio processing
 * RSS feeds with no playable media can be subscribed and read/listened (via TTS)
@@ -193,7 +193,7 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
       * with Replace, new items will replace old downloaded items
     * Newest: the newest items (not necessarily new) are downloaded
     * Oldest: the oldest items are downloaded
-    * Current filter and sort: the items to be downloaded depend on the current filtering and sorting criteria set in FeedDetailed screen
+    * Current filter and sort: the items to be downloaded depend on the current filtering and sorting criteria set in FeedDetails screen
       * the current filtering and sorting criteria are copied so, once set, future changes won't affect auto-download behavior
   * Those marked as Soon can be separately enabled, and once enabled, takes precedence over normal policies
   * After auto download run, episodes with New status in the feed is changed to Unplayed.
@@ -210,7 +210,7 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
       * with Replace, new items will replace old enqueued items
     * Newest: the newest items (not necessarily new) are enqueued
     * Oldest: the oldest items are enqueued
-    * Current filter and sort: the items to be enqueued depend on the current filtering and sorting criteria set in FeedDetailed screen
+    * Current filter and sort: the items to be enqueued depend on the current filtering and sorting criteria set in FeedDetails screen
       * the current filtering and sorting criteria are copied so, once set, future changes won't affect auto-enqueue behavior
   * Those marked as Soon can be separately enabled, and once enabled, takes precedence over normal policies
  * After auto-enqueue run, episodes with New status in the feed is changed to Unplayed.

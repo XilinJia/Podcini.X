@@ -93,7 +93,7 @@ object AutoDownloads {
                         }
                     }
                 }
-                assembleFeedsCandidates(feeds, candidates, toReplace, onlyExisting)
+                assembleFeedsCandidates(feeds, candidates, toReplace, onlyExisting = onlyExisting)
                 Logd(TAG, "run candidates ${candidates.size} for download")
                 if (candidates.isNotEmpty()) {
                     val autoDownloadableCount = candidates.size
@@ -141,7 +141,7 @@ object AutoDownloads {
             val toReplace: MutableSet<Episode> = mutableSetOf()
             val candidates: MutableSet<Episode> = mutableSetOf()
 
-            assembleFeedsCandidates(feeds, candidates, toReplace, dl = false, onlyExisting)
+            assembleFeedsCandidates(feeds, candidates, toReplace, dl = false, onlyExisting = onlyExisting)
             if (candidates.isNotEmpty()) {
                 if (toReplace.isNotEmpty()) removeFromAllQueuesSync(*toReplace.toTypedArray())
                 Logd(TAG, "Enqueueing ${candidates.size} items")
@@ -159,6 +159,7 @@ object AutoDownloads {
     private fun assembleFeedsCandidates(feeds: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, onlyExisting: Boolean = false) {
         val feeds = feeds ?: getFeedList()
         feeds.forEach { f ->
+            Logd(TAG, "assembleFeedsCandidates: ${f.autoDownload} ${f.isLocalFeed} ${f.title}")
             if (((dl && f.autoDownload) || (!dl && f.autoEnqueue)) && !f.isLocalFeed) {
                 val dlFilter = if (dl) {
                     if (f.countingPlayed) EpisodeFilter(EpisodeFilter.States.downloaded.name)

@@ -528,7 +528,8 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                       buildMoreItems: (()-> Unit) = {},
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       refreshCB: (()->Unit)? = null, leftSwipeCB: ((Episode) -> Unit)? = null, rightSwipeCB: ((Episode) -> Unit)? = null,
-                      actionButton_: ((Episode)-> EpisodeActionButton)? = null) {
+                      actionButton_: ((Episode)-> EpisodeActionButton)? = null,
+                      multiSelectCB: ((Int, Int)->List<Episode>)? = null) {
     val TAG = "EpisodeLazyColumn"
     var selectMode by remember { mutableStateOf(false) }
     var selectedSize by remember { mutableStateOf(0) }
@@ -969,7 +970,9 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                     modifier = Modifier.width(35.dp).height(35.dp).padding(end = 10.dp)
                     .clickable(onClick = {
                         selected.clear()
-                        for (i in 0..longPressIndex) selected.add(vms[i].episode)
+                        val eList = multiSelectCB?.invoke(longPressIndex, -1)
+                        if (eList.isNullOrEmpty()) for (i in 0..longPressIndex) selected.add(vms[i].episode)
+                        else selected.addAll(eList)
                         selectedSize = selected.size
                         Logd(TAG, "selectedIds: ${selected.size}")
                     }))
@@ -977,7 +980,9 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                     modifier = Modifier.width(35.dp).height(35.dp).padding(end = 10.dp)
                     .clickable(onClick = {
                         selected.clear()
-                        for (i in longPressIndex..<vms.size) selected.add(vms[i].episode)
+                        val eList = multiSelectCB?.invoke(longPressIndex, 1)
+                        if (eList.isNullOrEmpty()) for (i in longPressIndex..<vms.size) selected.add(vms[i].episode)
+                        else selected.addAll(eList)
                         selectedSize = selected.size
                         Logd(TAG, "selectedIds: ${selected.size}")
                     }))
@@ -986,7 +991,9 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                     .clickable(onClick = {
                         if (selectedSize != vms.size) {
                             selected.clear()
-                            for (vm in vms) selected.add(vm.episode)
+                            val eList = multiSelectCB?.invoke(longPressIndex, 0)
+                            if (eList.isNullOrEmpty()) for (vm in vms) selected.add(vm.episode)
+                            else selected.addAll(eList)
                             selectAllRes = R.drawable.ic_select_none
                         } else {
                             selected.clear()

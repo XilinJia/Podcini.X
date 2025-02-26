@@ -631,6 +631,15 @@ fun QueuesScreen() {
         }
     }
 
+    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
+        return when (aboveOrBelow) {
+            0 -> vm.queueItems
+            -1 -> if (index < vm.queueItems.size) vm.queueItems.subList(0, index+1) else vm.queueItems
+            1 -> if (index < vm.queueItems.size) vm.queueItems.subList(index, vm.queueItems.size) else vm.queueItems
+            else -> listOf()
+        }
+    }
+
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showBin) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
@@ -643,7 +652,7 @@ fun QueuesScreen() {
                     if (vm.rightActionStateBin.value is NoAction) vm.showSwipeActionsDialog = true
                     else vm.rightActionStateBin.value.performAction(episode)
                 }
-                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) })
+                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) }, multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) } )
             }
         } else {
             if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
@@ -666,7 +675,8 @@ fun QueuesScreen() {
                     }
                     EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
                         isDraggable = vm.dragDropEnabled, dragCB = { iFrom, iTo -> runOnIOScope { moveInQueueSync(iFrom, iTo, true) } },
-                        leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) })
+                        leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) },
+                        multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) } )
                 }
             }
         }
