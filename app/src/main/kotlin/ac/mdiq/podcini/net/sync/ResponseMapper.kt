@@ -37,7 +37,7 @@ object ResponseMapper {
     @JvmStatic
     @Throws(JSONException::class)
     fun readEpisodeActionsFromJsonObject(`object`: JSONObject): EpisodeActionChanges {
-        val episodeActions: MutableList<EpisodeAction> = ArrayList()
+        val episodeActions: MutableList<EpisodeAction> = mutableListOf()
 
         val timestamp = `object`.getLong("timestamp")
         val jsonActions = `object`.getJSONArray("actions")

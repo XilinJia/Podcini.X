@@ -48,7 +48,7 @@ class CombinedSearcher : PodcastSearcher {
         val sortedResults = resultRanking.entries.toMutableList()
         sortedResults.sortWith { o1: Map.Entry<String?, Float>, o2: Map.Entry<String?, Float> -> o2.value.toDouble().compareTo(o1.value.toDouble()) }
 
-        val results: MutableList<PodcastSearchResult> = ArrayList()
+        val results: MutableList<PodcastSearchResult> = mutableListOf()
         for ((key) in sortedResults) {
             val v = urlToResult[key] ?: continue
             results.add(v)
@@ -62,7 +62,7 @@ class CombinedSearcher : PodcastSearcher {
 
     override val name: String
         get() {
-            val names = ArrayList<String?>()
+            val names = mutableListOf<String?>()
             for (i in PodcastSearcherRegistry.searchProviders.indices) {
                 val searchProviderInfo = PodcastSearcherRegistry.searchProviders[i]
                 val searcher = searchProviderInfo.searcher

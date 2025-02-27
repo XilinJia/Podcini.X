@@ -508,7 +508,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
         if (valueFromPrefs != null) {
             try {
                 val jsonArray = JSONArray(valueFromPrefs)
-                val selectedSpeeds: MutableList<Float> = ArrayList()
+                val selectedSpeeds: MutableList<Float> = mutableListOf()
                 for (i in 0 until jsonArray.length()) selectedSpeeds.add(jsonArray.getDouble(i).toFloat())
                 return selectedSpeeds
             } catch (e: JSONException) { Logs(TAG, e, "Got JSON error when trying to get speeds from JSONArray") }

@@ -28,7 +28,7 @@ object PodcastSearcherRegistry {
     var searchProviders: MutableList<SearcherInfo> = mutableListOf()
         get() {
             if (field.isEmpty()) {
-                field = ArrayList()
+                field = mutableListOf()
                 field.add(SearcherInfo(CombinedSearcher(), 1.0f))
                 if (gearbox.hasSearcher()) field.add(SearcherInfo(gearbox.getSearcher()!!, 1.0f))
                 field.add(SearcherInfo(ItunesPodcastSearcher(), 1.0f))
@@ -79,7 +79,7 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
             query
         }
         val formattedUrl = String.format(SEARCH_API_URL, encodedQuery)
-        val podcasts: MutableList<PodcastSearchResult> = ArrayList()
+        val podcasts: MutableList<PodcastSearchResult> = mutableListOf()
         try {
             val client = PodciniHttpClient.getHttpClient()
             val response = client.newCall(buildAuthenticatedRequest(formattedUrl)).execute()
@@ -166,7 +166,7 @@ class ItunesPodcastSearcher : PodcastSearcher {
 
         val client = PodciniHttpClient.getHttpClient()
         val httpReq: Request.Builder = Request.Builder().url(formattedUrl)
-        val podcasts: MutableList<PodcastSearchResult> = ArrayList()
+        val podcasts: MutableList<PodcastSearchResult> = mutableListOf()
         try {
             val response = client.newCall(httpReq.build()).execute()
 

@@ -250,7 +250,7 @@ object NetworkUtils {
      * @return Normalized list of path segments
      */
     private fun normalizePathSegments(input: List<String>): List<String> {
-        val result: MutableList<String> = ArrayList()
+        val result: MutableList<String> = mutableListOf()
         for (string in input) if (string.isNotEmpty()) result.add(string.lowercase())
         return result
     }

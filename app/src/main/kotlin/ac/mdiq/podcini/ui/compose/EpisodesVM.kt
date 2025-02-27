@@ -99,6 +99,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -525,6 +526,7 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed? = null, layoutMode: Int = 0,
+                      showCoverImage: Boolean = true, showActionButtons: Boolean = true,
                       buildMoreItems: (()-> Unit) = {},
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       refreshCB: (()->Unit)? = null, leftSwipeCB: ((Episode) -> Unit)? = null, rightSwipeCB: ((Episode) -> Unit)? = null,
@@ -709,16 +711,16 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
     @Composable
     fun TitleColumn(vm: EpisodeVM, index: Int, modifier: Modifier) {
         val textColor = MaterialTheme.colorScheme.onSurface
-        Column(modifier.padding(start = 6.dp, end = 6.dp)
-            .combinedClickable(onClick = {
+        Column(modifier.padding(start = 6.dp, end = 6.dp).combinedClickable(
+            onClick = {
                 Logd(TAG, "clicked: ${vm.episode.title}")
-//                Logd(TAG, "clicked: ${vm.episode.comment}")
                 if (selectMode) toggleSelected(vm)
                 else {
                     episodeOnDisplay = vm.episode
                     mainNavController.navigate(Screens.EpisodeInfo.name)
                 }
-            }, onLongClick = {
+            },
+            onLongClick = {
                 selectMode = !selectMode
                 vm.isSelected = selectMode
                 selected.clear()
@@ -744,34 +746,40 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                     if (vm.episode.getMediaType() == MediaType.VIDEO)
                         Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
                     val curContext = LocalContext.current
-                    val dateSizeText = " · " + formatDateTimeFlex(vm.episode.getPubDate()) +
+                    val dateSizeText = remember { " · " + formatDateTimeFlex(vm.episode.getPubDate()) +
                             " · " + getDurationStringLong(vm.durationState) +
                             (if (vm.episode.size > 0) " · " + Formatter.formatShortFileSize(curContext, vm.episode.size) else "") +
-                            (if (vm.viewCount > 0) " · " + formatLargeInteger(vm.viewCount) else "")
+                            (if (vm.viewCount > 0) " · " + formatLargeInteger(vm.viewCount) else "") }
                     Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             } else {
                 val curContext = LocalContext.current
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val playStateRes = PlayState.fromCode(vm.playedState).res
-                    Icon(imageVector = ImageVector.vectorResource(playStateRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "playState",
+                    Icon(imageVector = ImageVector.vectorResource(PlayState.fromCode(vm.playedState).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "playState",
                         modifier = Modifier.background(if (vm.playedState >= PlayState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
-                    val ratingIconRes = Rating.fromCode(vm.ratingState).res
                     if (vm.ratingState != Rating.UNRATED.code)
-                        Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
+                        Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(vm.ratingState).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
                             modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                     if (vm.episode.getMediaType() == MediaType.VIDEO)
                         Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
-                    val dateSizeText = " · " + getDurationStringLong(vm.durationState) +
-                            (if (vm.episode.size > 0) " · " + Formatter.formatShortFileSize(curContext, vm.episode.size) else "")
+                    val dateSizeText = remember { " · " + getDurationStringLong(vm.durationState) +
+                            (if (vm.episode.size > 0) " · " + Formatter.formatShortFileSize(curContext, vm.episode.size) else "") }
                     Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val dateSizeText = formatDateTimeFlex(vm.episode.getPubDate()) + (if (vm.viewCount > 0) " · " + formatLargeInteger(vm.viewCount) else "")
+                    val dateSizeText = remember { formatDateTimeFlex(vm.episode.getPubDate()) + (if (vm.viewCount > 0) " · " + formatLargeInteger(vm.viewCount) else "") }
                     Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (vm.viewCount > 0)
                         Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_people_alt_24), tint = textColor, contentDescription = "people", modifier = Modifier.width(16.dp).height(16.dp))
                 }
+            }
+            if (vm.playedState >= PlayState.SKIPPED.code) {
+                val playedText = if (vm.episode.lastPlayedTime > 0) "P:" + formatDateTimeFlex(vm.episode.lastPlayedDate) else ""
+                val completionText = if (vm.episode.playbackCompletionTime > 0) " · C:" + formatDateTimeFlex(vm.episode.playbackCompletionDate) else ""
+                val stateSetText = if (vm.episode.playStateSetTime > 0) " · S:" + formatDateTimeFlex(vm.episode.playStateSetDate) else ""
+                val durationText = if (vm.episode.playedDuration > 0) " · " + getDurationStringLong(vm.episode.playedDuration) else ""
+                val dateSizeText = remember { playedText + completionText + stateSetText + durationText }
+                Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -796,59 +804,52 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                             onDragStopped = { onDragEnd() }
                         ))
             }
-            val imgLoc = remember(vm.episode) { vm.episode.getEpisodeListImageLocation() }
-            AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
-                .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                contentDescription = "imgvCover",
-                modifier = Modifier.width(imageWidth).height(imageHeight)
-                    .clickable(onClick = {
-                        Logd(TAG, "icon clicked!")
-                        when {
-                            selectMode -> toggleSelected(vm)
-                            vm.episode.feed != null && vm.episode.feed?.isSynthetic() != true -> {
-                                feedOnDisplay = vm.episode.feed!!
-                                feedScreenMode = FeedScreenMode.Info
-                                mainNavController.navigate(Screens.FeedDetails.name)
+            if (showCoverImage) {
+                val imgLoc = remember(vm.episode) { vm.episode.getEpisodeListImageLocation() }
+                AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
+                    .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
+                    contentDescription = "imgvCover",
+                    modifier = Modifier.width(imageWidth).height(imageHeight)
+                        .clickable(onClick = {
+                            Logd(TAG, "icon clicked!")
+                            when {
+                                selectMode -> toggleSelected(vm)
+                                vm.episode.feed != null && vm.episode.feed?.isSynthetic() != true -> {
+                                    feedOnDisplay = vm.episode.feed!!
+                                    feedScreenMode = FeedScreenMode.Info
+                                    mainNavController.navigate(Screens.FeedDetails.name)
+                                }
+                                else -> {
+                                    episodeOnDisplay = vm.episode
+                                    mainNavController.navigate(Screens.EpisodeInfo.name)
+                                }
                             }
-                            else -> {
-                                episodeOnDisplay = vm.episode
-                                mainNavController.navigate(Screens.EpisodeInfo.name)
-                            }
-                        }
-                    }))
-            Box(Modifier.weight(1f).height(imageHeight)) {
+                        }))
+            }
+            Box(Modifier.weight(1f).wrapContentHeight()) {
                 TitleColumn(vm, index, modifier = Modifier.fillMaxWidth())
                 fun isDownloading(): Boolean {
                     return vms[index].downloadState > DownloadStatus.State.UNKNOWN.ordinal && vms[index].downloadState < DownloadStatus.State.COMPLETED.ordinal
                 }
-                if (actionButton_ == null) {
-                    LaunchedEffect(key1 = status, key2 = vm.downloadState) {
-                        if (index >= vms.size) return@LaunchedEffect
-                        if (isDownloading()) vm.dlPercent = dls?.getProgress(vms[index].episode.downloadUrl ?: "") ?: 0
-                        Logd(TAG, "LaunchedEffect $index isPlayingState: ${vms[index].isPlayingState} ${vm.episode.playState} ${vms[index].episode.title}")
-                        Logd(TAG, "LaunchedEffect $index downloadState: ${vms[index].downloadState} ${vm.episode.downloaded} ${vm.dlPercent}")
-                        vm.actionButton = vm.actionButton.forItem(vm.episode)
-                        Logd(TAG, "LaunchedEffect vm.actionButton: ${vm.actionButton.TAG}")
+                if (showActionButtons) {
+                    if (actionButton_ == null) {
+                        LaunchedEffect(key1 = status, key2 = vm.downloadState) {
+                            if (index >= vms.size) return@LaunchedEffect
+                            if (isDownloading()) vm.dlPercent = dls?.getProgress(vms[index].episode.downloadUrl ?: "") ?: 0
+                            Logd(TAG, "LaunchedEffect $index isPlayingState: ${vms[index].isPlayingState} ${vm.episode.playState} ${vms[index].episode.title}")
+                            Logd(TAG, "LaunchedEffect $index downloadState: ${vms[index].downloadState} ${vm.episode.downloaded} ${vm.dlPercent}")
+                            vm.actionButton = vm.actionButton.forItem(vm.episode)
+                            Logd(TAG, "LaunchedEffect vm.actionButton: ${vm.actionButton.TAG}")
+                        }
+                    } else LaunchedEffect(Unit) { vm.actionButton = actionButton_(vm.episode) }
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.width(40.dp).height(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd)
+                        .pointerInput(Unit) { detectTapGestures(onLongPress = { vms[index].showAltActionsDialog = true }, onTap = { vm.actionButton.onClick(activity) }) }) {
+                        Icon(imageVector = ImageVector.vectorResource(vm.actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp))
+                        if (isDownloading() && vm.dlPercent >= 0) CircularProgressIndicator(progress = { 0.01f * vm.dlPercent }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.width(33.dp).height(37.dp))
+                        if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.width(33.dp).height(37.dp))
                     }
-                } else {
-                    LaunchedEffect(Unit) {
-                        Logd(TAG, "LaunchedEffect init actionButton")
-                        vm.actionButton = actionButton_(vm.episode)
-                    }
+                    if (vm.showAltActionsDialog) vm.actionButton.AltActionsDialog(activity, onDismiss = { vm.showAltActionsDialog = false })
                 }
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.width(40.dp).height(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd)
-                    .pointerInput(Unit) {
-                        detectTapGestures(onLongPress = { vms[index].showAltActionsDialog = true }, onTap = { vm.actionButton.onClick(activity) })
-                    }) {
-//                    val actionRes by remember(vm.actionButton.drawable) { derivedStateOf { vm.actionButton.drawable } }
-//                    Logd(TAG, "actionRes: $index ${vm.actionButton.TAG}")
-                    Icon(imageVector = ImageVector.vectorResource(vm.actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp))
-                    if (isDownloading() && vm.dlPercent >= 0) CircularProgressIndicator(progress = { 0.01f * vm.dlPercent },
-                        strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.width(33.dp).height(37.dp))
-                    if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing },
-                        strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.width(33.dp).height(37.dp))
-                }
-                if (vm.showAltActionsDialog) vm.actionButton.AltActionsDialog(activity, onDismiss = { vm.showAltActionsDialog = false })
             }
         }
     }
@@ -957,7 +958,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                                 draggedIndex = null
                                 yOffset = 0f
                             })
-                        ProgressRow(vm, index)
+                        if (showActionButtons) ProgressRow(vm, index)
                     }
                 }
             }

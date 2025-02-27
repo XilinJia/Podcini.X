@@ -156,7 +156,7 @@ class FavoritesWriter : ExportWriter {
         for (item in favoritesList) {
             var feedEpisodes = feedMap[item.feedId]
             if (feedEpisodes == null) {
-                feedEpisodes = ArrayList()
+                feedEpisodes = mutableListOf()
                 if (item.feedId != null) feedMap[item.feedId!!] = feedEpisodes
             }
             feedEpisodes.add(item)

@@ -728,7 +728,7 @@ fun FeedDetailsScreen() {
                 }
             })
         var showFeedStats by remember { mutableStateOf(false) }
-        if (showFeedStats) FeedStatisticsDialog(vm.feed?.title?: "No title", vm.feed?.id?:0) { showFeedStats = false }
+        if (showFeedStats) FeedStatisticsDialog(vm.feed?.title?: "No title", vm.feed?.id?:0, 0, Long.MAX_VALUE) { showFeedStats = false }
 
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
             val textColor = MaterialTheme.colorScheme.onSurface
@@ -768,7 +768,7 @@ fun FeedDetailsScreen() {
                 if (!vm.feed?.paymentLinkList.isNullOrEmpty()) {
                     Text(stringResource(R.string.support_funding_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     fun fundingText(): String {
-                        val fundingList: ArrayList<FeedFunding> = vm.feed!!.paymentLinkList
+                        val fundingList: MutableList<FeedFunding> = vm.feed!!.paymentLinkList
                         // Filter for duplicates, but keep items in the order that they have in the feed.
                         val i: MutableIterator<FeedFunding> = fundingList.iterator()
                         while (i.hasNext()) {

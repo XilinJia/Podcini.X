@@ -12,9 +12,9 @@ class SynchronizationQueueStorage(context: Context) {
     private val TAG = "SynchronizationQueueStorage"
     private val sharedPreferences: SharedPreferences = context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
-    val queuedEpisodeActions: ArrayList<EpisodeAction>
+    val queuedEpisodeActions: MutableList<EpisodeAction>
         get() {
-            val actions = ArrayList<EpisodeAction>()
+            val actions = mutableListOf<EpisodeAction>()
             try {
                 val json = sharedPreferences.getString(QUEUED_EPISODE_ACTIONS, "[]")
                 val queue = JSONArray(json)
@@ -26,9 +26,9 @@ class SynchronizationQueueStorage(context: Context) {
             return actions
         }
 
-    val queuedRemovedFeeds: ArrayList<String>
+    val queuedRemovedFeeds: MutableList<String>
         get() {
-            val removedFeedUrls = ArrayList<String>()
+            val removedFeedUrls = mutableListOf<String>()
             try {
                 val json = sharedPreferences.getString(QUEUED_FEEDS_REMOVED, "[]")
                 val queue = JSONArray(json)
@@ -37,9 +37,9 @@ class SynchronizationQueueStorage(context: Context) {
             return removedFeedUrls
         }
 
-    val queuedAddedFeeds: ArrayList<String>
+    val queuedAddedFeeds: MutableList<String>
         get() {
-            val addedFeedUrls = ArrayList<String>()
+            val addedFeedUrls = mutableListOf<String>()
             try {
                 val json = sharedPreferences.getString(QUEUED_FEEDS_ADDED, "[]")
                 val queue = JSONArray(json)

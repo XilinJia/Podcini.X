@@ -6,7 +6,7 @@ import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
 class VorbisCommentChapterReader(input: InputStream) : VorbisCommentReader(input) {
-    private val chapters: MutableList<Chapter> = ArrayList()
+    private val chapters: MutableList<Chapter> = mutableListOf()
 
     public override fun handles(key: String?): Boolean {
         return key!!.matches(CHAPTER_KEY.toRegex())

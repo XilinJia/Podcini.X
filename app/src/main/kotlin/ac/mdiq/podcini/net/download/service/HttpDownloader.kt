@@ -391,7 +391,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
     private fun checkIfRedirect(response0: Response) {
         // detect 301 Moved permanently and 308 Permanent Redirect
         var response: Response? = response0
-        val responses = ArrayList<Response?>()
+        val responses = mutableListOf<Response?>()
         while (response != null) {
             responses.add(response)
             response = response.priorResponse

@@ -34,8 +34,8 @@ class NextcloudLoginFlow(
     private var endpoint: String? = null
     private var isWaitingForBrowser:Boolean = false
 
-    fun saveInstanceState(): ArrayList<String?> {
-        val state = ArrayList<String?>()
+    fun saveInstanceState(): MutableList<String?> {
+        val state = mutableListOf<String?>()
         state.add(rawHostUrl)
         state.add(token)
         state.add(endpoint)
@@ -138,7 +138,7 @@ class NextcloudLoginFlow(
     companion object {
         private val TAG: String = NextcloudLoginFlow::class.simpleName ?: "Anonymous"
 
-        fun fromInstanceState(httpClient: OkHttpClient, context: Context, callback: AuthenticationCallback, instanceState: ArrayList<String>): NextcloudLoginFlow {
+        fun fromInstanceState(httpClient: OkHttpClient, context: Context, callback: AuthenticationCallback, instanceState: MutableList<String>): NextcloudLoginFlow {
             val flow = NextcloudLoginFlow(httpClient, instanceState[0], context, callback)
             flow.token = instanceState[1]
             flow.endpoint = instanceState[2]

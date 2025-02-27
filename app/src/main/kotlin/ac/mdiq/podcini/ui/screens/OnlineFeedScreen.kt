@@ -325,8 +325,8 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 //        if (alternateFeedUrls.isEmpty()) binding.alternateUrlsSpinner.visibility = View.GONE
 //        else {
 //            binding.alternateUrlsSpinner.visibility = View.VISIBLE
-//            val alternateUrlsList: MutableList<String> = ArrayList()
-//            val alternateUrlsTitleList: MutableList<String?> = ArrayList()
+//            val alternateUrlsList: MutableList<String> = mutableListOf()
+//            val alternateUrlsTitleList: MutableList<String?> = mutableListOf()
 //            if (feed.downloadUrl != null) alternateUrlsList.add(feed.downloadUrl!!)
 //            alternateUrlsTitleList.add(feed.title)
 //            alternateUrlsList.addAll(alternateFeedUrls.keys)

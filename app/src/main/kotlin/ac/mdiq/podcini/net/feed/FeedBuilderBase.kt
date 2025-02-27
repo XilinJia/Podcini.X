@@ -174,7 +174,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
 //        }
 //
 //        if (isRemoving || isPaused) return false
-//        val titles: MutableList<String?> = ArrayList()
+//        val titles: MutableList<String?> = mutableListOf()
 //        val urls: List<String> = ArrayList(urlsMap.keys)
 //        for (url in urls) {
 //            titles.add(urlsMap[url])

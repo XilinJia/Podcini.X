@@ -165,7 +165,7 @@ class FeedHandler {
         @JvmField
         var redirectUrl: String? = null
         @JvmField
-        val items: ArrayList<Episode> = ArrayList()
+        val items: MutableList<Episode> = mutableListOf()
         @JvmField
         var currentItem: Episode? = null
         @JvmField

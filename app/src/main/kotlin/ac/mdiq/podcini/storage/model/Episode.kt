@@ -21,6 +21,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -98,7 +99,14 @@ class Episode : RealmObject {
     var playState: Int
         private set
 
-    var playStateSetTime: Long
+    @Ignore
+    var playStateSetDate: Date? = null
+        get() = field ?: Date(playStateSetTime)
+        set(value) {
+            field = value?.clone() as? Date
+            this.playStateSetTime = value?.time ?: 0
+        }
+    var playStateSetTime: Long = 0
 
     var paymentLink: String? = null
 
@@ -184,6 +192,13 @@ class Episode : RealmObject {
     @set:JvmName("setPositionProperty")
     var position: Int = 0 // Current position in file, in milliseconds
 
+    @Ignore
+    var lastPlayedDate: Date? = null
+        get() = field ?: Date(lastPlayedTime)
+        set(value) {
+            field = value?.clone() as? Date
+            this.lastPlayedTime = value?.time ?: 0
+        }
     var lastPlayedTime: Long = 0 // Last time this media was played (in ms)
 
     var startPosition: Int = -1
@@ -205,7 +220,7 @@ class Episode : RealmObject {
 
     @Ignore
     var playbackCompletionDate: Date? = null
-        get() = field?.clone() as? Date
+        get() = field ?: Date(playbackCompletionTime)
         set(value) {
             field = value?.clone() as? Date
             this.playbackCompletionTime = value?.time ?: 0
@@ -763,7 +778,8 @@ class Episode : RealmObject {
             val fileuri = Uri.parse(fileUrl) ?: throw IOException("Not valid uri")
             when (fileuri.scheme) {
                 "file" -> {
-                    val source = File(fileuri.path)
+                    if (fileuri.path.isNullOrBlank()) throw IOException("Local file does not exist")
+                    val source = File(fileuri.path!!)
                     if (!source.exists()) throw IOException("Local file does not exist")
                     return CountingInputStream(BufferedInputStream(FileInputStream(source)))
                 }

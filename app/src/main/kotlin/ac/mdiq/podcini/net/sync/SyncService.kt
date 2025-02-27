@@ -275,7 +275,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
 
         val playActionsToUpdate = getRemoteActionsOverridingLocalActions(remoteActions, synchronizationQueueStorage.queuedEpisodeActions)
 //        val queueToBeRemoved = mutableListOf<FeedItem>()
-        val updatedItems: MutableList<Episode> = ArrayList()
+        val updatedItems: MutableList<Episode> = mutableListOf()
         for (action in playActionsToUpdate.values) {
             val result = processEpisodeAction(action) ?: continue
 //            if (result.first != null) queueToBeRemoved.add(result.second)

@@ -477,7 +477,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
     }
 
     override fun getAudioTracks(): List<String> {
-        val trackNames: MutableList<String> = ArrayList()
+        val trackNames: MutableList<String> = mutableListOf()
         val trackNameProvider: TrackNameProvider = DefaultTrackNameProvider(context.resources)
         for (format in formats) trackNames.add(trackNameProvider.getTrackName(format))
         return trackNames
@@ -623,7 +623,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
             val defaultRenderersFactory = DefaultRenderersFactory(context)
 //            defaultRenderersFactory.setMediaCodecSelector { mimeType: String?, requiresSecureDecoder: Boolean, requiresTunnelingDecoder: Boolean ->
 //                val decoderInfos: List<MediaCodecInfo> = MediaCodecUtil.getDecoderInfos(mimeType!!, requiresSecureDecoder, requiresTunnelingDecoder)
-//                val result: MutableList<MediaCodecInfo> = ArrayList()
+//                val result: MutableList<MediaCodecInfo> = mutableListOf()
 //                for (decoderInfo in decoderInfos) {
 //                    Logd(TAG, "decoderInfo.name: ${decoderInfo.name}")
 //                    if (decoderInfo.name == "c2.android.mp3.decoder") {

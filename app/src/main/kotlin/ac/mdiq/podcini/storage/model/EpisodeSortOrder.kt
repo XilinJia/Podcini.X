@@ -194,7 +194,7 @@ enum class EpisodeSortOrder(val code: Int, val res: Int) {
                 if (item == null) continue
                 val id = item.feedId
                 if (id != null) {
-                    if (!map.containsKey(id)) map[id] = ArrayList()
+                    if (!map.containsKey(id)) map[id] = mutableListOf()
                     map[id]!!.add(item)
                 }
             }
@@ -204,13 +204,13 @@ enum class EpisodeSortOrder(val code: Int, val res: Int) {
                 if (ascending) Comparator { f1: Episode, f2: Episode -> f1.pubDate.compareTo(f2.pubDate) }
                 else Comparator { f1: Episode, f2: Episode -> f2.pubDate.compareTo(f1.pubDate) }
 
-            val feeds: MutableList<List<Episode>> = ArrayList()
+            val feeds: MutableList<List<Episode>> = mutableListOf()
             for ((_, value) in map) {
                 value.sortWith(itemComparator)
                 feeds.add(value)
             }
 
-            val emptySlots = ArrayList<Int>()
+            val emptySlots = mutableListOf<Int>()
             for (i in queue.indices) {
                 queue[i] = null
                 emptySlots.add(i)

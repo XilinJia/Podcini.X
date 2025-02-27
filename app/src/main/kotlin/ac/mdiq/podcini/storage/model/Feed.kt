@@ -119,7 +119,7 @@ class Feed : RealmObject {
         }
 
     @Ignore
-    var paymentLinkList: ArrayList<FeedFunding> = ArrayList()
+    var paymentLinkList: MutableList<FeedFunding> = mutableListOf()
         private set
     var payment_link: String? = null
 

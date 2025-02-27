@@ -1,7 +1,5 @@
 package ac.mdiq.podcini.storage.model
 
-import java.util.ArrayList
-
 class StatisticsItem(val feed: Feed,
                      val time: Long,    // total time, in seconds
                      val timePlayed: Long,  // in seconds, Respects speed, listening twice, ...
@@ -21,6 +19,7 @@ class MonthlyStatisticsItem {
 }
 
 class StatisticsResult {
-    var statsItems: MutableList<StatisticsItem> = ArrayList()
+    var statsItems: MutableList<StatisticsItem> = mutableListOf()
+    var episodes: List<Episode> = listOf()
     var oldestDate: Long = System.currentTimeMillis()
 }

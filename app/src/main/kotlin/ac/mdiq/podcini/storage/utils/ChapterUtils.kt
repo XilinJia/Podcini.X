@@ -86,7 +86,7 @@ object ChapterUtils {
 
     fun parse(jsonStr: String): List<Chapter> {
         try {
-            val chapters: MutableList<Chapter> = ArrayList()
+            val chapters: MutableList<Chapter> = mutableListOf()
             val obj = JSONObject(jsonStr)
             val objChapters = obj.getJSONArray("chapters")
             for (i in 0 until objChapters.length()) {

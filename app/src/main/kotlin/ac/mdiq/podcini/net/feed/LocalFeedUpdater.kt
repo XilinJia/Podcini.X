@@ -61,7 +61,7 @@ object LocalFeedUpdater {
 
         // list files in feed folder
         val allFiles = FastDocumentFile.list(context, folderUri)
-        val mediaFiles: MutableList<FastDocumentFile> = ArrayList()
+        val mediaFiles: MutableList<FastDocumentFile> = mutableListOf()
         val mediaFileNames: MutableSet<String> = HashSet()
         for (file in allFiles) {
             val mimeType = MimeTypeUtils.getMimeType(file.type, file.uri.toString()) ?: continue
@@ -233,7 +233,7 @@ object LocalFeedUpdater {
                     DocumentsContract.Document.COLUMN_SIZE,
                     DocumentsContract.Document.COLUMN_LAST_MODIFIED,
                     DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)
-                val list = ArrayList<FastDocumentFile>()
+                val list = mutableListOf<FastDocumentFile>()
                 while (cursor!!.moveToNext()) {
                     val id = cursor.getString(0)
                     val uri = DocumentsContract.buildDocumentUriUsingTree(folderUri, id)

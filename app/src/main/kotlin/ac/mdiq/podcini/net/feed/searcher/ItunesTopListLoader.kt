@@ -76,8 +76,8 @@ class ItunesTopListLoader(private val context: Context) {
         try {
             feed = result.getJSONObject("feed")
             entries = feed.getJSONArray("entry")
-        } catch (_: JSONException) { return ArrayList() }
-        val results: MutableList<PodcastSearchResult> = ArrayList()
+        } catch (_: JSONException) { return mutableListOf() }
+        val results: MutableList<PodcastSearchResult> = mutableListOf()
         for (i in 0 until entries.length()) {
             val json = entries.getJSONObject(i)
             results.add(fromItunesToplist(json))
@@ -100,7 +100,7 @@ class ItunesTopListLoader(private val context: Context) {
                 if (subscribedFeed.title != null && subscribedFeed.author != null)
                     subscribedPodcastsSet.add(subscribedFeed.title!!.trim { it <= ' ' } + " - " + subscribedFeed.author!!.trim { it <= ' ' })
             }
-            val suggestedNotSubscribed: MutableList<PodcastSearchResult> = ArrayList()
+            val suggestedNotSubscribed: MutableList<PodcastSearchResult> = mutableListOf()
             for (suggested in suggestedPodcasts) {
                 if (!subscribedPodcastsSet.contains(suggested.title.trim { it <= ' ' })) suggestedNotSubscribed.add(suggested)
                 if (suggestedNotSubscribed.size == limit) return suggestedNotSubscribed

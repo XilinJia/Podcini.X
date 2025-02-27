@@ -202,7 +202,7 @@ object Feeds {
         Logd(TAG, "updateFeed called")
         showStackTrace()
         var resultFeed: Feed?
-//        val unlistedItems: MutableList<Episode> = ArrayList()
+//        val unlistedItems: MutableList<Episode> = mutableListOf()
 
         // Look up feed in the feedslist
         val savedFeed = searchFeedByIdentifyingValueOrID(newFeed, true)
@@ -298,7 +298,7 @@ object Feeds {
         }
         savedFeedAssistant.clear()
 
-        val unlistedItems: MutableList<Episode> = ArrayList()
+        val unlistedItems: MutableList<Episode> = mutableListOf()
         // identify episodes to be removed
         if (removeUnlistedItems) {
             Logd(TAG, "updateFeed building newFeedAssistant")

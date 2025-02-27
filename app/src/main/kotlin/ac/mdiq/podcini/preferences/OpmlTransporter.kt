@@ -111,7 +111,7 @@ class OpmlTransporter {
     class OpmlReader {
         // ATTRIBUTES
         private var isInOpml = false
-        private var elementList: ArrayList<OpmlElement>? = null
+        private var elementList: MutableList<OpmlElement>? = null
 
         /**
          * Reads an Opml document and returns a list of all OPML elements it can find
@@ -119,8 +119,8 @@ class OpmlTransporter {
          * @throws XmlPullParserException
          */
         @Throws(XmlPullParserException::class, IOException::class)
-        fun readDocument(reader: Reader?): ArrayList<OpmlElement> {
-            elementList = ArrayList()
+        fun readDocument(reader: Reader?): MutableList<OpmlElement> {
+            elementList = mutableListOf()
             val factory = XmlPullParserFactory.newInstance()
             factory.isNamespaceAware = true
             val xpp = factory.newPullParser()

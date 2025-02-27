@@ -637,7 +637,7 @@ fun FacetsScreen() {
         if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
         else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true  })
-            EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
+            EpisodeLazyColumn(context, vms = vm.vms,
                 buildMoreItems = { vm.buildMoreItems() },
                 leftSwipeCB = {
                     if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true

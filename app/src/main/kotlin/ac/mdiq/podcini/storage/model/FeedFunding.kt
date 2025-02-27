@@ -29,11 +29,11 @@ class FeedFunding(@JvmField var url: String?, @JvmField var content: String?) {
         const val FUNDING_TITLE_SEPARATOR: String = "\u001f"
 
         @JvmStatic
-        fun extractPaymentLinks(payLinks: String?): ArrayList<FeedFunding> {
+        fun extractPaymentLinks(payLinks: String?): MutableList<FeedFunding> {
             if (payLinks.isNullOrBlank()) return arrayListOf()
 
             // old format before we started with PodcastIndex funding tag
-            val funding = ArrayList<FeedFunding>()
+            val funding = mutableListOf<FeedFunding>()
             if (!payLinks.contains(FUNDING_ENTRIES_SEPARATOR) && !payLinks.contains(FUNDING_TITLE_SEPARATOR)) {
                 funding.add(FeedFunding(payLinks, ""))
                 return funding
@@ -53,7 +53,7 @@ class FeedFunding(@JvmField var url: String?, @JvmField var content: String?) {
             return funding
         }
 
-        fun getPaymentLinksAsString(fundingList: ArrayList<FeedFunding>?): String? {
+        fun getPaymentLinksAsString(fundingList: MutableList<FeedFunding>?): String? {
             val result = StringBuilder()
             if (fundingList == null) return null
 

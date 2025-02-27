@@ -15,7 +15,7 @@ import java.net.URLDecoder
  * See https://id3.org/id3v2-chapters-1.0
  */
 class ChapterReader(input: CountingInputStream) : ID3Reader(input) {
-    private val chapters: MutableList<Chapter> = ArrayList()
+    private val chapters: MutableList<Chapter> = mutableListOf()
 
     @Throws(IOException::class, ID3ReaderException::class)
     override fun readFrame(frameHeader: FrameHeader) {

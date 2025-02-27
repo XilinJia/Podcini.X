@@ -59,10 +59,11 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
         if (propertySet.contains(States.soon.name)) stateQuerys.add(" playState == ${PlayState.SOON.code} ")
         if (propertySet.contains(States.inQueue.name)) stateQuerys.add(" playState == ${PlayState.QUEUE.code} ")
         if (propertySet.contains(States.inProgress.name)) stateQuerys.add(" playState == ${PlayState.PROGRESS.code} ")
-        if (propertySet.contains(States.skipped.name)) stateQuerys.add(" playState == ${PlayState.SKIPPED.code} ")
-        if (propertySet.contains(States.played.name)) stateQuerys.add(" playState == ${PlayState.PLAYED.code} ")
         if (propertySet.contains(States.again.name)) stateQuerys.add(" playState == ${PlayState.AGAIN.code} ")
         if (propertySet.contains(States.forever.name)) stateQuerys.add(" playState == ${PlayState.FOREVER.code} ")
+        if (propertySet.contains(States.skipped.name)) stateQuerys.add(" playState == ${PlayState.SKIPPED.code} ")
+        if (propertySet.contains(States.played.name)) stateQuerys.add(" playState == ${PlayState.PLAYED.code} ")
+        if (propertySet.contains(States.passed.name)) stateQuerys.add(" playState == ${PlayState.PASSED.code} ")
         if (propertySet.contains(States.ignored.name)) stateQuerys.add(" playState == ${PlayState.IGNORED.code} ")
         if (stateQuerys.isNotEmpty()) {
             val query = StringBuilder(" (" + stateQuerys[0])

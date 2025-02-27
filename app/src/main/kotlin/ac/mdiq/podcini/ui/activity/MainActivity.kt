@@ -174,15 +174,6 @@ class MainActivity : BaseActivity() {
                 onCancel = { checkAndRequestUnrestrictedBackgroundActivity(this@MainActivity) })
         } else checkAndRequestUnrestrictedBackgroundActivity(this)
 
-//        runOnIOScope {
-//            if (prefs.getBoolean(Extras.prefMainActivityIsFirstLaunch.name, true)) {
-//                restartUpdateAlarm(applicationContext, true)
-//                val edit = prefs.edit()
-//                edit.putBoolean(Extras.prefMainActivityIsFirstLaunch.name, false)
-//                edit.apply()
-//            }
-//        }
-
         val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
         val lastScheduledVersion = prefs.getString(Extras.lastVersion.name, "0")
         if (currentVersion != lastScheduledVersion) {

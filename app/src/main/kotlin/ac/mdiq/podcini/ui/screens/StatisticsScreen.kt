@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.ui.screens
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.RealmDB.realm
@@ -14,6 +15,8 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
+import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
+import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
@@ -24,9 +27,12 @@ import android.text.format.Formatter
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,7 +41,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -44,8 +49,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -55,6 +59,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -72,9 +77,11 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -82,7 +89,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -92,7 +98,9 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneId
+import java.time.ZoneOffset
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -102,15 +110,19 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 
+private val prefs: SharedPreferences by lazy { getAppContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE) }
+
 class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
-    val prefs: SharedPreferences by lazy { context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE) }
 
     internal var includeMarkedAsPlayed by mutableStateOf(false)
     internal var statisticsState by mutableIntStateOf(0)
     internal val selectedTabIndex = mutableIntStateOf(0)
     internal var showFilter by mutableStateOf(false)
 
+    var statsToday by mutableStateOf(StatisticsResult())
     var statsResult by mutableStateOf(StatisticsResult())
+
+    internal var showTodayStats by mutableStateOf(false)
 
     var chartData by mutableStateOf<LineChartData?>(null)
     var timeSpentSum by mutableLongStateOf(0L)
@@ -121,6 +133,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
 
     var monthlyStats = mutableStateListOf<MonthlyStatisticsItem>()
     var monthlyMaxDataValue by mutableFloatStateOf(1f)
+    var monthVMS = mutableStateListOf<EpisodeVM>()
 
     internal var downloadstatsData by mutableStateOf<StatisticsResult?>(null)
     internal var downloadChartData by mutableStateOf<LineChartData?>(null)
@@ -135,7 +148,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal fun loadStatistics() {
         includeMarkedAsPlayed = prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false)
-        val statsToday = getStatistics(includeMarkedAsPlayed, LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), Long.MAX_VALUE)
+        statsToday = getStatistics(includeMarkedAsPlayed, LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), Long.MAX_VALUE)
         timePlayedToday = 0
         timeSpentToday = 0
         for (item in statsToday.statsItems) {
@@ -163,6 +176,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StatisticsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -183,6 +197,7 @@ fun StatisticsScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             vm.chartData = null
+            vm.statsToday = StatisticsResult()
             vm.statsResult = StatisticsResult()
             vm.monthlyStats.clear()
             vm.downloadstatsData = null
@@ -201,7 +216,7 @@ fun StatisticsScreen() {
                 if (vm.selectedTabIndex.value <= 1) {
                     IconButton(onClick = {
                         vm.includeMarkedAsPlayed = !vm.includeMarkedAsPlayed
-                        vm.prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, vm.includeMarkedAsPlayed)?.apply()
+                        prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, vm.includeMarkedAsPlayed)?.apply()
                         vm.chartData = null
                         vm.statisticsState++
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_mark_played), tint = if (vm.includeMarkedAsPlayed) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
@@ -240,7 +255,7 @@ fun StatisticsScreen() {
         var showFeedStats by remember { mutableStateOf(false) }
         var feedId by remember { mutableLongStateOf(0L) }
         var feedTitle by remember { mutableStateOf("") }
-        if (showFeedStats) FeedStatisticsDialog(feedTitle, feedId, showOpenFeed = true) { showFeedStats = false }
+        if (showFeedStats) FeedStatisticsDialog(feedTitle, feedId, prefs.getLong(PREF_FILTER_FROM, 0), prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE), showOpenFeed = true) { showFeedStats = false }
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(statisticsData.statsItems, key = { _, item -> item.feed.id }) { index, item ->
@@ -269,11 +284,24 @@ fun StatisticsScreen() {
     }
 
     @Composable
+    fun TodayStatsDialog(onDismissRequest: () -> Unit) {
+        val vms = remember { mutableStateListOf<EpisodeVM>() }
+        LaunchedEffect(vm.statsToday) {
+            vms.clear()
+            for (e in vm.statsToday.episodes) vms.add(EpisodeVM(e, TAG))
+        }
+        AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
+            text = { EpisodeLazyColumn(LocalContext.current, vms = vms, showCoverImage = false, showActionButtons = false) },
+            dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } } )
+    }
+    if (vm.showTodayStats) TodayStatsDialog { vm.showTodayStats = false }
+
+    @Composable
     fun Overview() {
         LaunchedEffect(vm.statisticsState) { if (vm.chartData == null) vm.loadStatistics() }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.statistics_today), color = MaterialTheme.colorScheme.onSurface)
+            TextButton(onClick = { vm.showTodayStats = true }) { Text(stringResource(R.string.statistics_today)) }
             Row {
                 Text(stringResource(R.string.duration) + ": " + getDurationStringShort(vm.timePlayedToday.toInt()*1000, true), color = MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.width(20.dp))
@@ -314,8 +342,8 @@ fun StatisticsScreen() {
     fun MonthlyStats() {
         fun loadMonthlyStatistics() {
             try {
-                vm.includeMarkedAsPlayed = vm.prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false)
-                val months: MutableList<MonthlyStatisticsItem> = ArrayList()
+                vm.includeMarkedAsPlayed = prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false)
+                val months: MutableList<MonthlyStatisticsItem> = mutableListOf()
                 val medias = realm.query(Episode::class).query("lastPlayedTime > 0").find()
                 val groupdMedias = medias.groupBy {
                     val calendar = Calendar.getInstance()
@@ -355,19 +383,44 @@ fun StatisticsScreen() {
             } catch (error: Throwable) { Logs(TAG, error) }
         }
         @Composable
-        fun BarChart() {
-            val barWidth = 40f
-            val spaceBetweenBars = 16f
-            Canvas(modifier = Modifier.width((vm.monthlyStats.size * (barWidth + spaceBetweenBars)).dp).height(150.dp)) {
-                val canvasHeight = size.height
-                for (index in vm.monthlyStats.indices) {
-                    val barHeight = (vm.monthlyStats[index].timePlayed / vm.monthlyMaxDataValue) * canvasHeight // Normalize height
-                    Logd(TAG, "index: $index barHeight: $barHeight")
-                    val xOffset = spaceBetweenBars + index * (barWidth + spaceBetweenBars) // Calculate x position
-                    drawRect(color = Color.Cyan, topLeft = Offset(xOffset, canvasHeight - barHeight), size = Size(barWidth, barHeight))
+        fun ClickableBarChart(bars: List<MonthlyStatisticsItem>, onBarClick: (Int) -> Unit) {
+            val barRects = remember { mutableStateListOf<Rect>() }
+            val barWidth = 50f
+            val spaceBetweenBars = 20f
+            Canvas(modifier = Modifier.width((bars.size * (barWidth + spaceBetweenBars)).dp).height(200.dp).pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    barRects.forEachIndexed { index, rect ->
+                        if (rect.contains(offset)) {
+                            onBarClick(index)
+                            return@detectTapGestures
+                        }
+                    }
+                }
+            }) {
+                val maxHeight = size.height
+                barRects.clear()
+                bars.forEachIndexed { index, value ->
+                    val left = spaceBetweenBars + index * (barWidth + spaceBetweenBars)
+                    val top = maxHeight * (1 - value.timePlayed / vm.monthlyMaxDataValue)
+                    val right = left + barWidth
+                    val bottom = maxHeight
+                    val barRect = Rect(left, top, right, bottom)
+                    barRects.add(barRect)
+                    drawRect(color = Color.Blue, topLeft = barRect.topLeft, size = barRect.size)
                 }
             }
         }
+        fun onMonthClicked(index: Int) {
+            val year = vm.monthlyStats[index].year
+            val month = vm.monthlyStats[index].month
+            val yearMonth = YearMonth.of(year, month)
+            val start = yearMonth.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
+            val end = yearMonth.atEndOfMonth().atTime(23, 59, 59).toInstant(ZoneOffset.UTC).toEpochMilli()
+            val data = getStatistics(vm.includeMarkedAsPlayed, start, end)
+            vm.monthVMS.clear()
+            for (e in data.episodes) vm.monthVMS.add(EpisodeVM(e, TAG))
+        }
+
         @Composable
         fun MonthList() {
             val lazyListState = rememberLazyListState()
@@ -375,7 +428,7 @@ fun StatisticsScreen() {
             LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 itemsIndexed(vm.monthlyStats) { index, _ ->
-                    Row(Modifier.background(MaterialTheme.colorScheme.surface)) {
+                    Row(Modifier.background(MaterialTheme.colorScheme.surface).clickable(onClick = { onMonthClicked(index) })) {
                         Column {
                             val monthString = String.format(Locale.getDefault(), "%d-%d", vm.monthlyStats[index].year, vm.monthlyStats[index].month)
                             Text(monthString, color = textColor, style = MaterialTheme.typography.bodyLarge.merge())
@@ -387,9 +440,14 @@ fun StatisticsScreen() {
                 }
             }
         }
+
+        if (vm.monthVMS.isNotEmpty()) AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.monthVMS.clear() },  confirmButton = {},
+            text = { EpisodeLazyColumn(LocalContext.current, vms = vm.monthVMS, showCoverImage = false, showActionButtons = false) },
+            dismissButton = { TextButton(onClick = { vm.monthVMS.clear() }) { Text(stringResource(R.string.cancel_label)) } } )
+
         if (vm.statisticsState >= 0 && vm.monthlyStats.isEmpty()) loadMonthlyStatistics()
         Column {
-            Row(modifier = Modifier.horizontalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp)) { BarChart() }
+            Row(modifier = Modifier.horizontalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp)) { ClickableBarChart(vm.monthlyStats) { index -> onMonthClicked(index) } }
             Spacer(Modifier.height(20.dp))
             MonthList()
         }
@@ -421,7 +479,7 @@ fun StatisticsScreen() {
     }
 
     ComfirmDialog(titleRes = R.string.statistics_reset_data, message = stringResource(R.string.statistics_reset_data_msg), showDialog = vm.showResetDialog) {
-        vm.prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, false)?.putLong(PREF_FILTER_FROM, 0)?.putLong(PREF_FILTER_TO, Long.MAX_VALUE)?.apply()
+        prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, false)?.putLong(PREF_FILTER_FROM, 0)?.putLong(PREF_FILTER_TO, Long.MAX_VALUE)?.apply()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 while (realm.query(Episode::class).query("playedDuration != 0 || timeSpent != 0").count().find() > 0) {
@@ -444,9 +502,9 @@ fun StatisticsScreen() {
             } catch (error: Throwable) { Logs(TAG, error) }
         }
     }
-    if (vm.showFilter) DatesFilterDialog(inclPlayed = vm.includeMarkedAsPlayed, from = vm.prefs.getLong(PREF_FILTER_FROM, 0), to = vm.prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE),
+    if (vm.showFilter) DatesFilterDialog(inclPlayed = vm.includeMarkedAsPlayed, from = prefs.getLong(PREF_FILTER_FROM, 0), to = prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE),
         oldestDate = vm.statsResult.oldestDate, onDismissRequest = {vm.showFilter = false} ) { timeFilterFrom, timeFilterTo, includeMarkedAsPlayed_ ->
-        vm.prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, includeMarkedAsPlayed_)?.putLong(PREF_FILTER_FROM, timeFilterFrom)?.putLong(PREF_FILTER_TO, timeFilterTo)?.apply()
+        prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, includeMarkedAsPlayed_)?.putLong(PREF_FILTER_FROM, timeFilterFrom)?.putLong(PREF_FILTER_TO, timeFilterTo)?.apply()
         vm.includeMarkedAsPlayed = includeMarkedAsPlayed_
         vm.chartData = null
         vm.statisticsState++
@@ -506,25 +564,27 @@ const val PREF_INCLUDE_MARKED_PLAYED: String = "countAll"
 const val PREF_FILTER_FROM: String = "filterFrom"
 const val PREF_FILTER_TO: String = "filterTo"
 
-fun getStatistics(includeMarkedAsPlayed: Boolean, timeFilterFrom: Long, timeFilterTo: Long, feedId: Long = 0L, forDL: Boolean = false): StatisticsResult {
+private fun getStatistics(includeMarkedAsPlayed: Boolean, timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL: Boolean = false): StatisticsResult {
     Logd(TAG, "getStatistics called")
     val queryString = when {
+        forDL -> "downloaded == true"
         feedId != 0L -> {
             val qs = "feedId == $feedId"
-            var qs1 = "(lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo)"
-            if (includeMarkedAsPlayed) qs1 = "(lastPlayedTime >= $timeFilterFrom AND lastPlayedTime < $timeFilterTo) OR (playStateSetTime >= $timeFilterFrom AND playStateSetTime < $timeFilterTo AND playState >= ${PlayState.SKIPPED.code})"
+            var qs1 = "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo)"
+            if (includeMarkedAsPlayed) qs1 = "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo) OR (playStateSetTime > $timeFrom AND playStateSetTime < $timeTo AND playState >= ${PlayState.PLAYED.code})"
             "$qs AND ($qs1)"
         }
-        forDL -> "downloaded == true"
         else -> {
-            if (includeMarkedAsPlayed) "(lastPlayedTime >= $timeFilterFrom AND lastPlayedTime < $timeFilterTo) OR (playStateSetTime >= $timeFilterFrom AND playStateSetTime < $timeFilterTo AND playState >= ${PlayState.SKIPPED.code})"
-            else "lastPlayedTime > $timeFilterFrom AND lastPlayedTime < $timeFilterTo"
+            if (includeMarkedAsPlayed) "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo) OR (playStateSetTime > $timeFrom AND playStateSetTime < $timeTo AND playState >= ${PlayState.PLAYED.code})"
+            else "lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo"
         }
     }
     val medias = realm.query(Episode::class).query(queryString).find()
 
-    val groupdMedias = medias.groupBy { it.feedId ?: 0L }
     val result = StatisticsResult()
+    result.episodes = medias
+
+    val groupdMedias = medias.groupBy { it.feedId ?: 0L }
     result.oldestDate = Long.MAX_VALUE
     for ((fid, feedMedias) in groupdMedias) {
         val feed = getFeed(fid, false) ?: continue
@@ -571,22 +631,25 @@ fun getStatistics(includeMarkedAsPlayed: Boolean, timeFilterFrom: Long, timeFilt
 }
 
 @Composable
-fun FeedStatisticsDialog(title: String, feedId: Long, showOpenFeed: Boolean = false, onDismissRequest: () -> Unit) {
+fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Long, showOpenFeed: Boolean = false, onDismissRequest: () -> Unit) {
     var statisticsData by remember { mutableStateOf<StatisticsItem?>(null) }
+    val vms = remember { mutableStateListOf<EpisodeVM>() }
     fun loadStatistics() {
         try {
-            val data = getStatistics(false, 0, Long.MAX_VALUE, feedId)
+            val data = getStatistics(prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false), timeFrom, timeTo, feedId)
             data.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.timePlayed.compareTo(item1.timePlayed) }
             if (data.statsItems.isNotEmpty()) statisticsData = data.statsItems[0]
+            vms.clear()
+            for (e in data.episodes) vms.add(EpisodeVM(e, TAG))
         } catch (error: Throwable) { Logs(TAG, error) }
     }
     LaunchedEffect(Unit) { loadStatistics() }
-    Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
-        Card(modifier = Modifier.fillMaxWidth().wrapContentHeight(align = Alignment.CenterVertically).padding(10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            val context = LocalContext.current
+    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+        text = {
             val textColor = MaterialTheme.colorScheme.onSurface
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                Text(title, color = textColor, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 2.dp))
+            val context = LocalContext.current
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) { Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 Row {
                     Text(stringResource(R.string.statistics_episodes_started_total), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Text(String.format(Locale.getDefault(), "%d / %d", statisticsData?.episodesStarted ?: 0, statisticsData?.numEpisodes ?: 0), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
@@ -615,21 +678,19 @@ fun FeedStatisticsDialog(title: String, feedId: Long, showOpenFeed: Boolean = fa
                     Text(stringResource(R.string.statistics_space_used), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Text(Formatter.formatShortFileSize(context, statisticsData?.totalDownloadSize ?: 0), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
-                Row {
-                    Button(onClick = { onDismissRequest() }) {Text(stringResource(android.R.string.ok)) }
-                    Spacer(Modifier.weight(1f))
-                    if (showOpenFeed) Button(onClick = {
-                        val feed = getFeed(feedId)
-                        if (feed != null) {
-                            feedOnDisplay = feed
-                            mainNavController.navigate(MainActivity.Screens.FeedDetails.name)
-                        }
-                        onDismissRequest()
-                    }) { Text(stringResource(R.string.open_podcast)) }
-                }
+                Box(modifier = Modifier.weight(1f)) { EpisodeLazyColumn(context, vms = vms, showCoverImage = false, showActionButtons = false) }
             }
-        }
-    }
+        },
+        confirmButton = { if (showOpenFeed) TextButton(onClick = {
+            val feed = getFeed(feedId)
+            if (feed != null) {
+                feedOnDisplay = feed
+                mainNavController.navigate(MainActivity.Screens.FeedDetails.name)
+            }
+            onDismissRequest()
+        }) { Text(stringResource(R.string.open_podcast))} },
+        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+    )
 }
 
 

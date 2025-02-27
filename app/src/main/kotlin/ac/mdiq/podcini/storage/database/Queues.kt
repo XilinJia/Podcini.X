@@ -104,8 +104,8 @@ object Queues {
 
             var queueModified = false
             val setInQueue = mutableListOf<Episode>()
-            val events: MutableList<FlowEvent.QueueEvent> = ArrayList()
-            val updatedItems: MutableList<Episode> = ArrayList()
+            val events: MutableList<FlowEvent.QueueEvent> = mutableListOf()
+            val updatedItems: MutableList<Episode> = mutableListOf()
             val positionCalculator = EnqueuePositionPolicy(enqueueLocation)
             val currentlyPlaying = curEpisode
             var insertPosition = positionCalculator.calcPosition(curQueue.episodes, currentlyPlaying)

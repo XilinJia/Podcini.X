@@ -333,7 +333,7 @@ object PodciniHttpClient {
             keystore.setCertificateEntry("SECTIGO_USER_TRUST_CA", cf.generateCertificate(ByteArrayInputStream(SECTIGO_USER_TRUST.toByteArray(Charset.forName("UTF-8")))))
             keystore.setCertificateEntry("LETSENCRYPT_ISRG_CA", cf.generateCertificate(ByteArrayInputStream(LETSENCRYPT_ISRG.toByteArray(Charset.forName("UTF-8")))))
 
-            val managers: MutableList<X509TrustManager> = ArrayList()
+            val managers: MutableList<X509TrustManager> = mutableListOf()
             managers.add(getSystemTrustManager(keystore))
             managers.add(getSystemTrustManager(null))
             return CompositeX509TrustManager(managers)
@@ -384,7 +384,7 @@ object PodciniHttpClient {
         }
 
         override fun getAcceptedIssuers(): Array<X509Certificate> {
-            val certificates: MutableList<X509Certificate> = java.util.ArrayList()
+            val certificates: MutableList<X509Certificate> = mutableListOf()
 //            TODO: appears time consuming
             for (trustManager in trustManagers) certificates.addAll(listOf(*trustManager.acceptedIssuers))
             return certificates.toTypedArray<X509Certificate>()
