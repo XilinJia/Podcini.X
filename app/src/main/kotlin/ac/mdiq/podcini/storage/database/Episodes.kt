@@ -161,7 +161,7 @@ object Episodes {
         try {
             when {
                 url != null && url.startsWith("content://") -> {
-                    // Local feed
+                    // Local feed or custom media folder
                     val documentFile = DocumentFile.fromSingleUri(context, Uri.parse(url))
                     if (documentFile == null || !documentFile.exists() || !documentFile.delete()) {
                         Loge(TAG, "deleteMediaSync delete media file failed: file not exists? ${episode.title} $url")

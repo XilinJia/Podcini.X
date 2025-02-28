@@ -34,10 +34,10 @@ fun Loge(t: String, m: String) {
 
 fun Logs(t: String, e: Throwable, m: String = "") {
     if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) Log.e(t, m + "\n" + Log.getStackTraceString(e))
-    val me = e.message ?: "Error"
+    val me = e.message
     LogScope.launch {
-        if (getPref(AppPreferences.AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: $m $me"
-        toastMessages.add("${localDateTimeString()} $t: $m $me")
+        if (getPref(AppPreferences.AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: $m Error: $me"
+        toastMessages.add("${localDateTimeString()} $t: $m Error: $me")
     }
 }
 

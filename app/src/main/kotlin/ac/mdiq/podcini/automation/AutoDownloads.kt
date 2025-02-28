@@ -128,7 +128,6 @@ object AutoDownloads {
             // from http://developer.android.com/training/monitoring-device-state/battery-monitoring.html
             val iFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
             val batteryStatus = context.registerReceiver(null, iFilter)
-
             val status = batteryStatus!!.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
             return (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL)
         }
@@ -193,9 +192,11 @@ object AutoDownloads {
                                     if (es.isNotEmpty()) {
                                         val numToDelete = es.size + downloadedCount - allowedDLCount
                                         Logd(TAG, "assembleFeedsCandidates numToDelete: $numToDelete")
-                                        val toDelete_ = getEpisodes(dlFilter, f.id, numToDelete)
-                                        if (toDelete_.isNotEmpty()) toReplace.addAll(toDelete_)
-                                        Logd(TAG, "assembleFeedsCandidates toDelete_: ${toDelete_.size}")
+                                        if (numToDelete > 0) {
+                                            val toDelete_ = getEpisodes(dlFilter, f.id, numToDelete)
+                                            if (toDelete_.isNotEmpty()) toReplace.addAll(toDelete_)
+                                            Logd(TAG, "assembleFeedsCandidates toDelete_: ${toDelete_.size}")
+                                        }
                                         episodes.addAll(es)
                                         Logd(TAG, "assembleFeedsCandidates episodes: ${episodes.size}")
                                     }

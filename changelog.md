@@ -1,3 +1,8 @@
+# 8.10.1
+
+* likely fixed itunes duration could not parse error
+* fixed crash trying to delete negative number of episodes with policy Replace in auto-download
+
 # 8.10.0
 
 * fixed filter on Passed in episodes lists

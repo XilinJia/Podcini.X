@@ -384,9 +384,7 @@ object Feeds {
         for (e in savedFeed.episodes) savedFeed.totleDuration += e.duration
 
         val resultFeed = savedFeed
-        try { upsertBlk(savedFeed) {}
-        } catch (e: InterruptedException) { Logs(TAG, e)
-        } catch (e: ExecutionException) { Logs(TAG, e) }
+        try { upsertBlk(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
         return resultFeed
     }
 
@@ -451,7 +449,7 @@ object Feeds {
                     if (episodes.isNotEmpty()) episodes.forEach { episode ->
                         val url = episode.fileUrl
                         when {
-                            // Local feed
+                            // Local feed or custom media folder
                             url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, Uri.parse(url))?.delete()
                             url != null -> {
                                 val path = Uri.parse(url).path

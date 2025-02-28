@@ -2,7 +2,6 @@ package ac.mdiq.podcini.net.feed.parser
 
 import ac.mdiq.podcini.net.feed.parser.utils.DateUtils.parseOrNullIfFuture
 import ac.mdiq.podcini.net.feed.parser.utils.DateUtils.parseTimeString
-import ac.mdiq.podcini.net.feed.parser.utils.DurationParser.inMillis
 import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.getMimeType
 import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.isImageFile
 import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.isMediaFile
@@ -11,6 +10,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.FeedFunding
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import androidx.core.text.HtmlCompat
 import org.apache.commons.io.input.XmlStreamReader
@@ -619,6 +619,7 @@ class FeedHandler {
                 DURATION == localName -> {
                     try {
                         val durationMs = inMillis(content)
+                        if (durationMs == 0L) Loge(NSTAG, String.format("Duration parse error $content"))
                         state.tempObjects[DURATION] = durationMs.toInt()
                     } catch (e: NumberFormatException) { Logs(NSTAG, e, String.format("Duration '%s' could not be parsed", content)) }
                 }
@@ -636,6 +637,54 @@ class FeedHandler {
                 }
                 NEW_FEED_URL == localName && content.trim { it <= ' ' }.startsWith("http") -> state.redirectUrl = content.trim { it <= ' ' }
             }
+        }
+
+        @Throws(NumberFormatException::class)
+        fun inMillis(durationStr: String): Long {
+            if (durationStr.contains("minute") || durationStr.contains("second")) {
+                val parts = durationStr.split(",").map { it.trim() }
+                var hours = 0L
+                var minutes = 0L
+                var seconds = 0L
+                val pattern = Regex("""(\d+)\s*(hours?|minutes?|seconds?)""")
+                parts.forEach { part ->
+                    val match = pattern.find(part)
+                    if (match != null) {
+                        val (value, unit) = match.destructured
+                        val num = value.toLong()
+                        when {
+                            unit.startsWith("hour") -> hours = num
+                            unit.startsWith("minute") -> minutes = num
+                            unit.startsWith("second") -> seconds = num
+                        }
+                    }
+                }
+                return toMillis(hours, minutes, seconds)
+            } else {
+                val parts = durationStr.trim { it <= ' ' }.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+                return when (parts.size) {
+                    1 -> toMillis(parts[0])
+                    2 -> toMillis("0", parts[0], parts[1])
+                    3 -> toMillis(parts[0], parts[1], parts[2])
+                    else -> throw NumberFormatException()
+                }
+            }
+        }
+
+        private fun toMillis(hours: Long, minutes: Long, seconds: Long): Long {
+            return (TimeUnit.HOURS.toMillis(hours) + TimeUnit.MINUTES.toMillis(minutes) + TimeUnit.SECONDS.toMillis(seconds))
+        }
+
+        private fun toMillis(hours: String, minutes: String, seconds: String): Long {
+            return (TimeUnit.HOURS.toMillis(hours.toLong()) + TimeUnit.MINUTES.toMillis(minutes.toLong()) + toMillis(seconds))
+        }
+
+        private fun toMillis(seconds: String): Long {
+            if (seconds.contains(".")) {
+                val value = seconds.toFloat()
+                val millis = value % 1
+                return TimeUnit.SECONDS.toMillis(value.toLong()) + (millis * 1000).toLong()
+            } else return TimeUnit.SECONDS.toMillis(seconds.toLong())
         }
 
         companion object {
@@ -702,7 +751,7 @@ class FeedHandler {
                                 try {
                                     val duration = durationStr.toLong()
                                     durationMs = TimeUnit.MILLISECONDS.convert(duration, TimeUnit.SECONDS).toInt()
-                                } catch (e: NumberFormatException) { Logs(TAG, e, "Duration \"$durationStr\" could not be parsed") }
+                                } catch (e: NumberFormatException) { Logs(TAG, e, "Duration string $durationStr could not be parsed") }
                             }
                             Logd(TAG, "handleElementStart creating media: ${state.currentItem?.title} $url $size $mimeType")
                             state.currentItem?.fillMedia(url, size, mimeType)
