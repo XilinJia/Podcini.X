@@ -525,7 +525,7 @@ fun FacetsScreen() {
         if (vm.showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, onDismissRequest = { vm.showSortDialog = false }) { order, _ -> vm.onSort(order) }
         vm.swipeActions.ActionOptionsDialog()
         ComfirmDialog(titleRes = R.string.clear_history_label, message = stringResource(R.string.clear_playback_history_msg), showDialog = vm.showClearHistoryDialog) { vm.clearHistory() }
-        if (vm.showDatesFilter) DatesFilterDialog(inclPlayed = false, oldestDate = 0L, onDismissRequest = { vm.showDatesFilter = false} ) { timeFilterFrom, timeFilterTo, _ ->
+        if (vm.showDatesFilter) DatesFilterDialog(oldestDate = 0L, onDismissRequest = { vm.showDatesFilter = false} ) { timeFilterFrom, timeFilterTo ->
             EventFlow.postEvent(FlowEvent.HistoryEvent(vm.sortOrder, timeFilterFrom, timeFilterTo))
         }
     }

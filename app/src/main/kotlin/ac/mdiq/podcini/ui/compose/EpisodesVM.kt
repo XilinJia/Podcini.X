@@ -1235,7 +1235,7 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder, showKeepSorted: Boolean = fal
 }
 
 @Composable
-fun DatesFilterDialog(inclPlayed: Boolean = false, from: Long? = null, to: Long? = null, oldestDate: Long, onDismissRequest: ()->Unit, callback: (Long, Long, Boolean) -> Unit) {
+fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, onDismissRequest: ()->Unit, callback: (Long, Long) -> Unit) {
     @Composable
     fun MonthYearInput(default: String, onMonthYearChange: (String) -> Unit) {
         fun formatMonthYear(input: String): String {
@@ -1275,7 +1275,6 @@ fun DatesFilterDialog(inclPlayed: Boolean = false, from: Long? = null, to: Long?
     fun convertUnixTimeToMonthYear(unixTime: Long): String {
         return Instant.ofEpochMilli(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofPattern("MM/yyyy"))
     }
-    var includeMarkedAsPlayed by remember { mutableStateOf(inclPlayed) }
     var timeFilterFrom by remember { mutableLongStateOf(from ?: oldestDate) }
     var timeFilterTo by remember { mutableLongStateOf(to ?: Date().time) }
     var useAllTime by remember { mutableStateOf(false) }
@@ -1283,16 +1282,6 @@ fun DatesFilterDialog(inclPlayed: Boolean = false, from: Long? = null, to: Long?
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
         text = {
             Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = includeMarkedAsPlayed, onCheckedChange = {
-                        includeMarkedAsPlayed = it
-//                        if (includeMarkedAsPlayed) {
-//                            timeFilterFrom = 0
-//                            timeFilterTo = Long.MAX_VALUE
-//                        }
-                    })
-                    Text(stringResource(R.string.statistics_include_marked))
-                }
                 if (!useAllTime) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.statistics_start_month))
@@ -1316,7 +1305,7 @@ fun DatesFilterDialog(inclPlayed: Boolean = false, from: Long? = null, to: Long?
                     timeFilterFrom = oldestDate
                     timeFilterTo = Date().time
                 }
-                callback(timeFilterFrom, timeFilterTo, includeMarkedAsPlayed)
+                callback(timeFilterFrom, timeFilterTo)
                 onDismissRequest()
             }) { Text(text = "OK") }
         },

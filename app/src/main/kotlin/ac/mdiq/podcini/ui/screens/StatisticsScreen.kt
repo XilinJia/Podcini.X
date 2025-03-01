@@ -64,6 +64,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -114,12 +115,12 @@ private val prefs: SharedPreferences by lazy { getAppContext().getSharedPreferen
 
 class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
 
-    internal var includeMarkedAsPlayed by mutableStateOf(false)
     internal var statisticsState by mutableIntStateOf(0)
     internal val selectedTabIndex = mutableIntStateOf(0)
     internal var showFilter by mutableStateOf(false)
 
-    var statsToday by mutableStateOf(StatisticsResult())
+    var date: LocalDate by mutableStateOf(LocalDate.now())
+    var statsOfDay by mutableStateOf(StatisticsResult())
     var statsResult by mutableStateOf(StatisticsResult())
 
     internal var showTodayStats by mutableStateOf(false)
@@ -140,25 +141,27 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal val showResetDialog = mutableStateOf(false)
 
-    internal fun setTimeFilter(includeMarkedAsPlayed_: Boolean, timeFilterFrom_: Long, timeFilterTo_: Long) {
-        includeMarkedAsPlayed = includeMarkedAsPlayed_
+    internal fun setTimeFilter(timeFilterFrom_: Long, timeFilterTo_: Long) {
         timeFilterFrom = timeFilterFrom_
         timeFilterTo = timeFilterTo_
     }
 
-    internal fun loadStatistics() {
-        includeMarkedAsPlayed = prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false)
-        statsToday = getStatistics(includeMarkedAsPlayed, LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), Long.MAX_VALUE)
+    fun loadDailyStats() {
+        statsOfDay = getStatistics(date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
         timePlayedToday = 0
         timeSpentToday = 0
-        for (item in statsToday.statsItems) {
+        for (item in statsOfDay.statsItems) {
             timePlayedToday += item.timePlayed
             timeSpentToday += item.timeSpent
         }
-        timeFilterFrom = prefs.getLong(PREF_FILTER_FROM, 0)
-        timeFilterTo = prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE)
+    }
+
+    internal fun loadStatistics() {
+        loadDailyStats()
+        timeFilterFrom = prefs.getLong(Prefs.FilterFrom.name, 0)
+        timeFilterTo = prefs.getLong(Prefs.FilterTo.name, Long.MAX_VALUE)
         try {
-            statsResult = getStatistics(includeMarkedAsPlayed, timeFilterFrom, timeFilterTo)
+            statsResult = getStatistics(timeFilterFrom, timeFilterTo)
             statsResult.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.timePlayed.compareTo(item1.timePlayed) }
             val dataValues = MutableList(statsResult.statsItems.size){0f}
             timeSpentSum = 0
@@ -169,8 +172,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
             }
             chartData = LineChartData(dataValues)
             // When "from" is "today", set it to today
-            setTimeFilter(includeMarkedAsPlayed,
-                max(min(timeFilterFrom.toDouble(), System.currentTimeMillis().toDouble()), statsResult.oldestDate.toDouble()).toLong(),
+            setTimeFilter(max(min(timeFilterFrom.toDouble(), System.currentTimeMillis().toDouble()), statsResult.oldestDate.toDouble()).toLong(),
                 min(timeFilterTo.toDouble(), System.currentTimeMillis().toDouble()).toLong())
         } catch (error: Throwable) { Logs(TAG, error) }
     }
@@ -197,7 +199,7 @@ fun StatisticsScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             vm.chartData = null
-            vm.statsToday = StatisticsResult()
+            vm.statsOfDay = StatisticsResult()
             vm.statsResult = StatisticsResult()
             vm.monthlyStats.clear()
             vm.downloadstatsData = null
@@ -210,16 +212,30 @@ fun StatisticsScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text(stringResource(R.string.statistics_label)) }, 
+        TopAppBar(title = { Text("") },
             navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } },
             actions = {
-                if (vm.selectedTabIndex.value <= 1) {
+                if (vm.selectedTabIndex.value <= 2) {
                     IconButton(onClick = {
-                        vm.includeMarkedAsPlayed = !vm.includeMarkedAsPlayed
-                        prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, vm.includeMarkedAsPlayed)?.apply()
+                        countSkipped = !countSkipped
                         vm.chartData = null
                         vm.statisticsState++
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_mark_played), tint = if (vm.includeMarkedAsPlayed) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_24dp), tint = if (countSkipped) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "skipped") }
+                    IconButton(onClick = {
+                        countPlayed = !countPlayed
+                        vm.chartData = null
+                        vm.statisticsState++
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_check), tint = if (countPlayed) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "played") }
+                    IconButton(onClick = {
+                        countPassed = !countPassed
+                        vm.chartData = null
+                        vm.statisticsState++
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_low_priority_24), tint = if (countPassed) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "passed") }
+                    IconButton(onClick = {
+                        countIgnored = !countIgnored
+                        vm.chartData = null
+                        vm.statisticsState++
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_visibility_off_24), tint = if (countIgnored) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "ignored") }
                     IconButton(onClick = { vm.showFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
                 }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
@@ -255,7 +271,8 @@ fun StatisticsScreen() {
         var showFeedStats by remember { mutableStateOf(false) }
         var feedId by remember { mutableLongStateOf(0L) }
         var feedTitle by remember { mutableStateOf("") }
-        if (showFeedStats) FeedStatisticsDialog(feedTitle, feedId, prefs.getLong(PREF_FILTER_FROM, 0), prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE), showOpenFeed = true) { showFeedStats = false }
+        if (showFeedStats) FeedStatisticsDialog(feedTitle, feedId, prefs.getLong(Prefs.FilterFrom.name, 0), prefs.getLong(Prefs.FilterTo.name, Long.MAX_VALUE), showOpenFeed = true) { showFeedStats = false }
+        val textColor = MaterialTheme.colorScheme.onSurface
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(statisticsData.statsItems, key = { _, item -> item.feed.id }) { index, item ->
@@ -269,7 +286,6 @@ fun StatisticsScreen() {
                         contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
                         modifier = Modifier.width(40.dp).height(40.dp).padding(end = 5.dp)
                     )
-                    val textColor = MaterialTheme.colorScheme.onSurface
                     Column {
                         Text(item.feed.title?:"No title", color = textColor, style = MaterialTheme.typography.bodyLarge.merge())
                         Row {
@@ -286,9 +302,9 @@ fun StatisticsScreen() {
     @Composable
     fun TodayStatsDialog(onDismissRequest: () -> Unit) {
         val vms = remember { mutableStateListOf<EpisodeVM>() }
-        LaunchedEffect(vm.statsToday) {
+        LaunchedEffect(vm.statsOfDay) {
             vms.clear()
-            for (e in vm.statsToday.episodes) vms.add(EpisodeVM(e, TAG))
+            for (e in vm.statsOfDay.episodes) vms.add(EpisodeVM(e, TAG))
         }
         AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
             text = { EpisodeLazyColumn(LocalContext.current, vms = vms, showCoverImage = false, showActionButtons = false) },
@@ -299,13 +315,41 @@ fun StatisticsScreen() {
     @Composable
     fun Overview() {
         LaunchedEffect(vm.statisticsState) { if (vm.chartData == null) vm.loadStatistics() }
-
+        val textColor = MaterialTheme.colorScheme.onSurface
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-            TextButton(onClick = { vm.showTodayStats = true }) { Text(stringResource(R.string.statistics_today)) }
             Row {
-                Text(stringResource(R.string.duration) + ": " + getDurationStringShort(vm.timePlayedToday.toInt()*1000, true), color = MaterialTheme.colorScheme.onSurface)
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = {
+                    vm.date = vm.date.minusDays(1)
+                    vm.loadDailyStats()
+                }) { Text("-", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.weight(0.5f))
+                TextButton(onClick = { vm.showTodayStats = true }) {
+                    val dateText by derivedStateOf {
+                        if (vm.date == LocalDate.now()) context.getString(R.string.statistics_today) else {
+                            val locale = Locale.getDefault()
+                            val dateFormat = SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "MMM d yyyy"), locale)
+                            dateFormat.format(Date.from(vm.date.atStartOfDay(ZoneId.systemDefault()).toInstant()))
+                        }
+                    }
+                    Text(dateText)
+                }
+                Spacer(Modifier.weight(0.5f))
+                IconButton(onClick = {
+                    if (vm.date.isBefore(LocalDate.now())) {
+                        vm.date = vm.date.plusDays(1)
+                        vm.loadDailyStats()
+                    }
+                }) {
+                    val plusText by derivedStateOf { if (vm.date == LocalDate.now()) "" else "+" }
+                    Text(plusText, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.weight(1f))
+            }
+            Row {
+                Text(stringResource(R.string.duration) + ": " + getDurationStringShort(vm.timePlayedToday.toInt()*1000, true), color = textColor)
                 Spacer(Modifier.width(20.dp))
-                Text( stringResource(R.string.spent) + ": " + getDurationStringShort(vm.timeSpentToday.toInt()*1000, true), color = MaterialTheme.colorScheme.onSurface)
+                Text( stringResource(R.string.spent) + ": " + getDurationStringShort(vm.timeSpentToday.toInt()*1000, true), color = textColor)
             }
             val headerCaption = if (vm.timeFilterFrom != 0L || vm.timeFilterTo != Long.MAX_VALUE) {
                     val skeleton = DateFormat.getBestDateTimePattern(Locale.getDefault(), "MMM yyyy")
@@ -316,11 +360,11 @@ fun StatisticsScreen() {
                     stringResource(R.string.statistics_counting_range, dateFrom, dateTo)
                 } else stringResource(R.string.statistics_counting_total)
 
-            Text(headerCaption, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 20.dp))
+            Text(headerCaption, color = textColor, modifier = Modifier.padding(top = 20.dp))
             Row {
-                Text(stringResource(R.string.duration) + ": " + durationInHours((vm.chartData?.sum ?: 0).toLong()), color = MaterialTheme.colorScheme.onSurface)
+                Text(stringResource(R.string.duration) + ": " + durationInHours((vm.chartData?.sum ?: 0).toLong()), color = textColor)
                 Spacer(Modifier.width(20.dp))
-                Text( stringResource(R.string.spent) + ": " + durationInHours(vm.timeSpentSum), color = MaterialTheme.colorScheme.onSurface)
+                Text( stringResource(R.string.spent) + ": " + durationInHours(vm.timeSpentSum), color = textColor)
             }
         }
     }
@@ -342,7 +386,6 @@ fun StatisticsScreen() {
     fun MonthlyStats() {
         fun loadMonthlyStatistics() {
             try {
-                vm.includeMarkedAsPlayed = prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false)
                 val months: MutableList<MonthlyStatisticsItem> = mutableListOf()
                 val medias = realm.query(Episode::class).query("lastPlayedTime > 0").find()
                 val groupdMedias = medias.groupBy {
@@ -357,21 +400,20 @@ fun StatisticsScreen() {
                     year * 12 + month
                 }.toMap()
                 for (key in orderedGroupedItems.keys) {
-                    val medias_ = orderedGroupedItems[key] ?: continue
+                    val episodes = orderedGroupedItems[key] ?: continue
                     val mItem = MonthlyStatisticsItem()
                     mItem.year = key.substringBefore("-").toInt()
                     mItem.month = key.substringAfter("-").toInt()
                     var dur = 0L
                     var spent = 0L
-                    for (m in medias_) {
-                        dur += if (m.playedDuration > 0) m.playedDuration
-                        else {
-                            if (vm.includeMarkedAsPlayed) {
-                                if (m.playbackCompletionTime > 0 || m.isPlayed()) m.duration
-                                else if (m.position > 0) m.position else 0
-                            } else m.position
+                    for (e in episodes) {
+                        dur += when {
+                            e.playState == PlayState.PLAYED.code || e.playState == PlayState.SKIPPED.code
+                                    || e.playState == PlayState.PASSED.code || e.playState == PlayState.IGNORED.code -> e.duration
+                            e.playedDuration > 0 -> e.playedDuration
+                            else -> e.position
                         }
-                        spent += m.timeSpent
+                        spent += e.timeSpent
                     }
                     mItem.timePlayed = dur
                     mItem.timeSpent = spent
@@ -416,7 +458,7 @@ fun StatisticsScreen() {
             val yearMonth = YearMonth.of(year, month)
             val start = yearMonth.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
             val end = yearMonth.atEndOfMonth().atTime(23, 59, 59).toInstant(ZoneOffset.UTC).toEpochMilli()
-            val data = getStatistics(vm.includeMarkedAsPlayed, start, end)
+            val data = getStatistics(start, end)
             vm.monthVMS.clear()
             for (e in data.episodes) vm.monthVMS.add(EpisodeVM(e, TAG))
         }
@@ -456,7 +498,7 @@ fun StatisticsScreen() {
     @Composable
     fun DownloadStats() {
         fun loadDownloadStatistics() {
-            vm.downloadstatsData = getStatistics(false, 0, Long.MAX_VALUE, forDL = true)
+            vm.downloadstatsData = getStatistics(0, Long.MAX_VALUE, forDL = true)
             vm.downloadstatsData!!.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.totalDownloadSize.compareTo(item1.totalDownloadSize) }
             val dataValues = MutableList(vm.downloadstatsData!!.statsItems.size) { 0f }
             for (i in vm.downloadstatsData!!.statsItems.indices) {
@@ -466,9 +508,10 @@ fun StatisticsScreen() {
             vm.downloadChartData = LineChartData(dataValues)
         }
         if (vm.downloadstatsData == null) loadDownloadStatistics()
+        val textColor = MaterialTheme.colorScheme.onSurface
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(stringResource(R.string.total_size_downloaded_podcasts), color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 20.dp, bottom = 10.dp))
-            Text(Formatter.formatShortFileSize(context, vm.downloadChartData!!.sum.toLong()), color = MaterialTheme.colorScheme.onSurface)
+            Text(stringResource(R.string.total_size_downloaded_podcasts), color = textColor, modifier = Modifier.padding(top = 20.dp, bottom = 10.dp))
+            Text(Formatter.formatShortFileSize(context, vm.downloadChartData!!.sum.toLong()), color = textColor)
             Spacer(Modifier.height(5.dp))
             if (vm.downloadChartData != null) HorizontalLineChart(vm.downloadChartData!!)
             Spacer(Modifier.height(5.dp))
@@ -479,7 +522,7 @@ fun StatisticsScreen() {
     }
 
     ComfirmDialog(titleRes = R.string.statistics_reset_data, message = stringResource(R.string.statistics_reset_data_msg), showDialog = vm.showResetDialog) {
-        prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, false)?.putLong(PREF_FILTER_FROM, 0)?.putLong(PREF_FILTER_TO, Long.MAX_VALUE)?.apply()
+        prefs.edit()?.putLong(Prefs.FilterFrom.name, 0)?.putLong(Prefs.FilterTo.name, Long.MAX_VALUE)?.apply()
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 while (realm.query(Episode::class).query("playedDuration != 0 || timeSpent != 0").count().find() > 0) {
@@ -502,10 +545,9 @@ fun StatisticsScreen() {
             } catch (error: Throwable) { Logs(TAG, error) }
         }
     }
-    if (vm.showFilter) DatesFilterDialog(inclPlayed = vm.includeMarkedAsPlayed, from = prefs.getLong(PREF_FILTER_FROM, 0), to = prefs.getLong(PREF_FILTER_TO, Long.MAX_VALUE),
-        oldestDate = vm.statsResult.oldestDate, onDismissRequest = {vm.showFilter = false} ) { timeFilterFrom, timeFilterTo, includeMarkedAsPlayed_ ->
-        prefs.edit()?.putBoolean(PREF_INCLUDE_MARKED_PLAYED, includeMarkedAsPlayed_)?.putLong(PREF_FILTER_FROM, timeFilterFrom)?.putLong(PREF_FILTER_TO, timeFilterTo)?.apply()
-        vm.includeMarkedAsPlayed = includeMarkedAsPlayed_
+    if (vm.showFilter) DatesFilterDialog(from = prefs.getLong(Prefs.FilterFrom.name, 0), to = prefs.getLong(Prefs.FilterTo.name, Long.MAX_VALUE),
+        oldestDate = vm.statsResult.oldestDate, onDismissRequest = {vm.showFilter = false} ) { timeFilterFrom, timeFilterTo ->
+        prefs.edit()?.putLong(Prefs.FilterFrom.name, timeFilterFrom)?.putLong(Prefs.FilterTo.name, timeFilterTo)?.apply()
         vm.chartData = null
         vm.statisticsState++
     }
@@ -560,24 +602,68 @@ class LineChartData(val values: MutableList<Float>) {
 private const val TAG = "StatisticsScreen"
 
 private const val PREF_NAME: String = "StatisticsActivityPrefs"
-const val PREF_INCLUDE_MARKED_PLAYED: String = "countAll"
-const val PREF_FILTER_FROM: String = "filterFrom"
-const val PREF_FILTER_TO: String = "filterTo"
 
-private fun getStatistics(includeMarkedAsPlayed: Boolean, timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL: Boolean = false): StatisticsResult {
+enum class Prefs {
+    CountPlayed,
+    CountSkipped,
+    CountPassed,
+    CountIgnored,
+    FilterFrom,
+    FilterTo
+}
+
+private var _countPlayed = mutableStateOf(prefs.getBoolean(Prefs.CountPlayed.name, false))
+var countPlayed: Boolean
+    get() = _countPlayed.value
+    set(value) {
+        _countPlayed.value = value
+        prefs.edit()?.putBoolean(Prefs.CountPlayed.name, value)?.apply()
+    }
+
+private var _countSkipped = mutableStateOf(prefs.getBoolean(Prefs.CountSkipped.name, false))
+var countSkipped: Boolean
+    get() = _countSkipped.value
+    set(value) {
+        _countSkipped.value = value
+        prefs.edit()?.putBoolean(Prefs.CountSkipped.name, value)?.apply()
+    }
+
+private var _countPassed = mutableStateOf(prefs.getBoolean(Prefs.CountPassed.name, false))
+var countPassed: Boolean
+    get() = _countPassed.value
+    set(value) {
+        _countPassed.value = value
+        prefs.edit()?.putBoolean(Prefs.CountPassed.name, value)?.apply()
+    }
+
+private var _countIgnored = mutableStateOf(prefs.getBoolean(Prefs.CountIgnored.name, false))
+var countIgnored: Boolean
+    get() = _countIgnored.value
+    set(value) {
+        _countIgnored.value = value
+        prefs.edit()?.putBoolean(Prefs.CountIgnored.name, value)?.apply()
+    }
+
+private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL: Boolean = false): StatisticsResult {
     Logd(TAG, "getStatistics called")
+    val qs2 = when {
+        forDL -> ""
+        else -> {
+            var qs1 = "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo)"
+            if (countPlayed) qs1 += " OR (playStateSetTime > $timeFrom AND playStateSetTime < $timeTo AND playState == ${PlayState.PLAYED.code})"
+            if (countSkipped) qs1 += " OR (playStateSetTime > $timeFrom AND playStateSetTime < $timeTo AND playState == ${PlayState.SKIPPED.code})"
+            if (countPassed) qs1 += " OR (playStateSetTime > $timeFrom AND playStateSetTime < $timeTo AND playState == ${PlayState.PASSED.code})"
+            if (countIgnored) qs1 += " OR (playStateSetTime > $timeFrom AND playStateSetTime < $timeTo AND playState == ${PlayState.IGNORED.code})"
+            qs1
+        }
+    }
     val queryString = when {
         forDL -> "downloaded == true"
         feedId != 0L -> {
-            val qs = "feedId == $feedId"
-            var qs1 = "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo)"
-            if (includeMarkedAsPlayed) qs1 = "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo) OR (playStateSetTime > $timeFrom AND playStateSetTime < $timeTo AND playState >= ${PlayState.PLAYED.code})"
-            "$qs AND ($qs1)"
+            val qs0 = "feedId == $feedId"
+            "$qs0 AND ($qs2)"
         }
-        else -> {
-            if (includeMarkedAsPlayed) "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo) OR (playStateSetTime > $timeFrom AND playStateSetTime < $timeTo AND playState >= ${PlayState.PLAYED.code})"
-            else "lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo"
-        }
+        else -> "($qs2)"
     }
     val medias = realm.query(Episode::class).query(queryString).find()
 
@@ -586,46 +672,45 @@ private fun getStatistics(includeMarkedAsPlayed: Boolean, timeFrom: Long, timeTo
 
     val groupdMedias = medias.groupBy { it.feedId ?: 0L }
     result.oldestDate = Long.MAX_VALUE
-    for ((fid, feedMedias) in groupdMedias) {
+    for ((fid, episodes) in groupdMedias) {
         val feed = getFeed(fid, false) ?: continue
         val numEpisodes = feed.episodes.size.toLong()
-        var feedPlayedTime = 0L
+        var playedTime = 0L
         var timeSpent = 0L
         var durationWithSkip = 0L
-        var feedTotalTime = 0L
+        var totalTime = 0L
         var episodesStarted = 0L
         var totalDownloadSize = 0L
         var episodesDownloadCount = 0L
-        for (m in feedMedias) {
+        for (e in episodes) {
             if (feedId != 0L || !forDL) {
-                if (m.lastPlayedTime > 0 && m.lastPlayedTime < result.oldestDate) result.oldestDate = m.lastPlayedTime
-                feedTotalTime += m.duration
-                if (includeMarkedAsPlayed) {
-                    if ((m.playbackCompletionTime > 0 && m.playedDuration > 0) || m.isPlayed() || m.position > 0) {
-                        episodesStarted += 1
-                        feedPlayedTime += m.duration
-                        timeSpent += m.timeSpent
-                    }
-                } else {
-                    feedPlayedTime += m.playedDuration
-                    timeSpent += m.timeSpent
-                    Logd(TAG, "m.playedDuration: ${m.playedDuration} m.timeSpent: ${m.timeSpent} ${m.title}")
-                    if (m.playbackCompletionTime > 0 && m.playedDuration > 0) episodesStarted += 1
+                if (e.lastPlayedTime > 0 && e.lastPlayedTime < result.oldestDate) result.oldestDate = e.lastPlayedTime
+                totalTime += e.duration
+                Logd(TAG, "getStatistics countPlayed: $countPlayed e.playState: ${e.playState} e.timeSpent: ${e.timeSpent} ${e.title}")
+                if (e.playState == PlayState.PLAYED.code || e.playState == PlayState.SKIPPED.code
+                        || e.playState == PlayState.PASSED.code || e.playState == PlayState.IGNORED.code) {
+                    episodesStarted += 1
+                    playedTime += e.duration
+                    timeSpent += e.timeSpent
+                } else if (e.playedDuration > 0) {
+                    playedTime += e.playedDuration
+                    timeSpent += e.timeSpent
+                    episodesStarted += 1
                 }
-                durationWithSkip += m.duration
+                durationWithSkip += e.duration
             }
             if (feedId != 0L || forDL) {
-                if (m.downloaded) {
+                if (e.downloaded) {
                     episodesDownloadCount += 1
-                    totalDownloadSize += m.size
+                    totalDownloadSize += e.size
                 }
             }
         }
-        feedPlayedTime /= 1000
+        playedTime /= 1000
         durationWithSkip /= 1000
         timeSpent /= 1000
-        feedTotalTime /= 1000
-        result.statsItems.add(StatisticsItem(feed, feedTotalTime, feedPlayedTime, timeSpent, durationWithSkip, numEpisodes, episodesStarted, totalDownloadSize, episodesDownloadCount))
+        totalTime /= 1000
+        result.statsItems.add(StatisticsItem(feed, totalTime, playedTime, timeSpent, durationWithSkip, numEpisodes, episodesStarted, totalDownloadSize, episodesDownloadCount))
     }
     return result
 }
@@ -636,7 +721,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
     val vms = remember { mutableStateListOf<EpisodeVM>() }
     fun loadStatistics() {
         try {
-            val data = getStatistics(prefs.getBoolean(PREF_INCLUDE_MARKED_PLAYED, false), timeFrom, timeTo, feedId)
+            val data = getStatistics(timeFrom, timeTo, feedId)
             data.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.timePlayed.compareTo(item1.timePlayed) }
             if (data.statsItems.isNotEmpty()) statisticsData = data.statsItems[0]
             vms.clear()

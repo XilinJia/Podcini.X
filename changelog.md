@@ -1,3 +1,13 @@
+# 8.10.2
+
+* further amended Statistics screen
+	* marked Played, Skipped, Passed and Ignored now are set separately, only on the topbar in tabs Overview, Subscriptions and Months
+	* "include marked played" is no longer on the dates filter dialog
+	* the played time of an episode marked as any of the four is the full duration, otherwise the played duration
+	* "Include marked (any of the four)" only adds those episodes never started but marked as such, episodes started playing are always included
+	* in Overview tab, "Today" can be changed to any previous day
+* useless Viewbinding is turned off in build
+
 # 8.10.1
 
 * likely fixed itunes duration could not parse error
