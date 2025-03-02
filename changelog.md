@@ -1,3 +1,8 @@
+# 8.10.3
+
+* removed the itunes duration being 0.0 error
+* in Overview tab of Statistics, "-7" and "+7" on both sides of Today
+
 # 8.10.2
 
 * some overhaul of Statistics screen

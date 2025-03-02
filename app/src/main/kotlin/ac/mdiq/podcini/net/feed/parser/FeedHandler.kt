@@ -612,17 +612,8 @@ class FeedHandler {
             if (content.isEmpty()) return
 
             when {
-                AUTHOR == localName && state.tagstack.size <= 3 -> {
-                    val contentFromHtml = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                    state.feed.author = contentFromHtml
-                }
-                DURATION == localName -> {
-                    try {
-                        val durationMs = inMillis(content)
-                        if (durationMs == 0L) Loge(NSTAG, String.format("Duration parse error $content"))
-                        state.tempObjects[DURATION] = durationMs.toInt()
-                    } catch (e: NumberFormatException) { Logs(NSTAG, e, String.format("Duration '%s' could not be parsed", content)) }
-                }
+                AUTHOR == localName && state.tagstack.size <= 3 -> state.feed.author = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                DURATION == localName -> try { state.tempObjects[DURATION] = inMillis(content).toInt() } catch (e: NumberFormatException) { Logs(NSTAG, e, String.format("Duration '%s' could not be parsed", content)) }
                 SUBTITLE == localName -> {
                     when {
                         state.currentItem != null && state.currentItem?.description.isNullOrEmpty() -> state.currentItem!!.setDescriptionIfLonger(content)
@@ -646,12 +637,11 @@ class FeedHandler {
                 var hours = 0L
                 var minutes = 0L
                 var seconds = 0L
-                val pattern = Regex("""(\d+)\s*(hours?|minutes?|seconds?)""")
                 parts.forEach { part ->
-                    val match = pattern.find(part)
-                    if (match != null) {
-                        val (value, unit) = match.destructured
-                        val num = value.toLong()
+                    val tokens = part.split(" ").filter { it.isNotEmpty() }
+                    if (tokens.size >= 2) {
+                        val num = tokens[0].toLongOrNull() ?: return@forEach
+                        val unit = tokens[1]
                         when {
                             unit.startsWith("hour") -> hours = num
                             unit.startsWith("minute") -> minutes = num
@@ -659,6 +649,7 @@ class FeedHandler {
                         }
                     }
                 }
+                if (hours == 0L && minutes == 0L && seconds == 0L) throw NumberFormatException()
                 return toMillis(hours, minutes, seconds)
             } else {
                 val parts = durationStr.trim { it <= ' ' }.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()

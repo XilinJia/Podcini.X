@@ -320,10 +320,15 @@ fun StatisticsScreen() {
             Row {
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = {
+                    vm.date = vm.date.minusDays(7)
+                    vm.loadDailyStats()
+                }) { Text("-7", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.weight(0.2f))
+                IconButton(onClick = {
                     vm.date = vm.date.minusDays(1)
                     vm.loadDailyStats()
-                }) { Text("-", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold) }
-                Spacer(Modifier.weight(0.5f))
+                }) { Text("-", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
+                Spacer(Modifier.weight(0.2f))
                 TextButton(onClick = { vm.showTodayStats = true }) {
                     val dateText by derivedStateOf {
                         if (vm.date == LocalDate.now()) context.getString(R.string.statistics_today) else {
@@ -332,17 +337,27 @@ fun StatisticsScreen() {
                             dateFormat.format(Date.from(vm.date.atStartOfDay(ZoneId.systemDefault()).toInstant()))
                         }
                     }
-                    Text(dateText)
+                    Text(dateText, style = MaterialTheme.typography.headlineSmall)
                 }
-                Spacer(Modifier.weight(0.5f))
+                Spacer(Modifier.weight(0.2f))
                 IconButton(onClick = {
                     if (vm.date.isBefore(LocalDate.now())) {
                         vm.date = vm.date.plusDays(1)
                         vm.loadDailyStats()
                     }
                 }) {
-                    val plusText by derivedStateOf { if (vm.date == LocalDate.now()) "" else "+" }
-                    Text(plusText, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    val plusText by derivedStateOf { if (vm.date >= LocalDate.now()) "" else "+" }
+                    Text(plusText, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.weight(0.2f))
+                IconButton(onClick = {
+                    if (vm.date.plusDays(6).isBefore(LocalDate.now())) {
+                        vm.date = vm.date.plusDays(7)
+                        vm.loadDailyStats()
+                    }
+                }) {
+                    val plusText by derivedStateOf { if (vm.date.plusDays(6) >= LocalDate.now()) "" else "+7" }
+                    Text(plusText, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.weight(1f))
             }
