@@ -140,6 +140,7 @@ object Queues {
     suspend fun addToQueueSync(episode: Episode, queue_: PlayQueue? = null) {
         Logd(TAG, "addToQueueSync( ... ) called")
         var queue = queue_ ?: episode.feed?.queue ?: curQueue
+        queue = realm.query(PlayQueue::class).query("id == ${queue.id}").first().find() ?: return
         if (queue.episodeIds.contains(episode.id)) return
 
         val currentlyPlaying = curEpisode

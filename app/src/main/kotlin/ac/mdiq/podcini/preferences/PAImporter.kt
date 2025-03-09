@@ -12,9 +12,9 @@ import android.app.Activity
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import androidx.core.database.getStringOrNull
-import io.realm.kotlin.ext.realmSetOf
-import io.realm.kotlin.ext.toRealmList
-import io.realm.kotlin.ext.toRealmSet
+import io.github.xilinjia.krdb.ext.realmSetOf
+import io.github.xilinjia.krdb.ext.toRealmList
+import io.github.xilinjia.krdb.ext.toRealmSet
 import java.io.File
 import java.io.FileInputStream
 import java.util.zip.ZipEntry

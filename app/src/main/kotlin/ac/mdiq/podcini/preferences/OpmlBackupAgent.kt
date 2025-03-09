@@ -91,6 +91,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 val bytes = byteStream.toByteArray()
                 data.writeEntityHeader(OPML_ENTITY_KEY, bytes.size)
                 data.writeEntityData(bytes, bytes.size)
+                Logt(TAG, "OPML file backed up")
             } catch (e: IOException) { Logs(TAG, e, "Error during backup.")
             } finally { IOUtils.closeQuietly(writer) }
         }

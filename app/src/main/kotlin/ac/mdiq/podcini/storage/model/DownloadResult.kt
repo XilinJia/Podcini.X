@@ -2,9 +2,9 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.DownloadError.Companion.fromCode
-import io.realm.kotlin.types.RealmObject
-import io.realm.kotlin.types.annotations.Ignore
-import io.realm.kotlin.types.annotations.PrimaryKey
+import io.github.xilinjia.krdb.types.RealmObject
+import io.github.xilinjia.krdb.types.annotations.Ignore
+import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import java.util.Date
 
 /**
@@ -46,7 +46,8 @@ class DownloadResult : RealmObject {
      */
     var reasonDetailed: String
 
-    @PrimaryKey var id: Long = 0L
+    @PrimaryKey
+    var id: Long = 0L
         private set
 
     constructor(title: String, feedfileId: Long, feedfileType: Int, isSuccessful: Boolean, reason: DownloadError?, completionDate: Date, reasonDetailed: String) {

@@ -1,0 +1,12 @@
+# 8.11.0
+
+* start using self-maintained Kotlin SDK KRDB for Realm DB
+* fixed crash when search selected gets a negative string index
+* fixed overwritten issue of adding to queue (which could cause some episode as InQueue but not actually added to a queue)
+* export OPML will not include synthetic feeds
+* OnlineSearch screen shows progress dialog when restore from backup is performed
+* in OnlineSearch screen, open to search by RSS address is removed (RSS address can be added to the top search bar)
+* fixed Play button on PlayerUI not playing after app start
+* fixed open web button on topbar of EpisodeInfo screen
+* fixed mis-alignments of download and circular progress buttons
+* Kotlin is upped to 2.1.10

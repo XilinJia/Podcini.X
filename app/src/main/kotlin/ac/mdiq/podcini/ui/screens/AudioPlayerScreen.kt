@@ -630,7 +630,7 @@ fun AudioPlayerScreen() {
             Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play",
                 modifier = Modifier.width(64.dp).height(64.dp).combinedClickable(
                     onClick = {
-                        if (vm.controller == null) return@combinedClickable
+//                        if (vm.controller == null) return@combinedClickable
                         if (curEpisode != null) {
                             val media = curEpisode!!
                             vm.setIsShowPlay(!vm.isShowPlay)

@@ -52,12 +52,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -109,6 +111,7 @@ class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
     internal var showRetry by mutableStateOf(false)
     internal var retryTextRes by mutableIntStateOf(0)
     internal var showGrid by mutableStateOf(false)
+    internal var showProgress by mutableStateOf(false)
 
     internal val showOPMLRestoreDialog = mutableStateOf(false)
     internal val numberOPMLFeedsToRestore = mutableIntStateOf(0)
@@ -184,24 +187,6 @@ class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
     }
-    internal fun showAddViaUrlDialog() {
-//            val builder = MaterialAlertDialogBuilder(context)
-//            builder.setTitle(R.string.add_podcast_by_url)
-//            val dialogBinding = EditTextDialogBinding.inflate(layoutInflater)
-//            dialogBinding.editText.setHint(R.string.add_podcast_by_url_hint)
-//
-//            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-//            val clipData: ClipData? = clipboard.primaryClip
-//            if (clipData != null && clipData.itemCount > 0 && clipData.getItemAt(0).text != null) {
-//                val clipboardContent: String = clipData.getItemAt(0).text.toString()
-//                if (clipboardContent.trim { it <= ' ' }.startsWith("http")) dialogBinding.editText.setText(clipboardContent.trim { it <= ' ' })
-//            }
-//            builder.setView(dialogBinding.root)
-//            builder.setPositiveButton(R.string.confirm_label) { _: DialogInterface?, _: Int -> addUrl(dialogBinding.editText.text.toString()) }
-//            builder.setNegativeButton(R.string.cancel_label, null)
-//            builder.show()
-    }
-
     internal fun addUrl(url: String) {
         setOnlineFeedUrl(url)
         mainNavController.navigate(Screens.OnlineFeed.name)
@@ -258,7 +243,9 @@ fun OnlineSearchScreen() {
     val actionColor = MaterialTheme.colorScheme.tertiary
     val scrollState = rememberScrollState()
     ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, vm.numberOPMLFeedsToRestore.value), vm.showOPMLRestoreDialog) {
+        vm.showProgress = true
         performRestore(context)
+        vm.showProgress = false
     }
     val chooseOpmlImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -354,10 +341,12 @@ fun OnlineSearchScreen() {
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 10.dp).background(MaterialTheme.colorScheme.surface).verticalScroll(scrollState)) {
+        if (vm.showProgress) Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.Center))
+        } else Column(Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 10.dp).background(MaterialTheme.colorScheme.surface).verticalScroll(scrollState)) {
             QuickDiscoveryView()
             Text(stringResource(R.string.advanced), color = textColor, fontWeight = FontWeight.Bold)
-            Text(stringResource(R.string.add_podcast_by_url), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = { vm.showAddViaUrlDialog() }))
+//            Text(stringResource(R.string.add_podcast_by_url), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = { vm.showAddViaUrlDialog() }))
             Text(stringResource(R.string.add_local_folder), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
             }))

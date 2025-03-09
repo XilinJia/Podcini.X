@@ -39,7 +39,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.app.NotificationManagerCompat
 import androidx.documentfile.provider.DocumentFile
-import io.realm.kotlin.ext.isManaged
+import io.github.xilinjia.krdb.ext.isManaged
 import java.io.File
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers

@@ -82,6 +82,7 @@ class OpmlTransporter {
 
             xs.startTag(null, OpmlSymbols.BODY)
             for (feed in feeds) {
+                if (feed.isSynthetic()) continue
                 Logd(TAG, "writeDocument ${feed.title}")
                 xs.startTag(null, OpmlSymbols.OUTLINE)
                 xs.attribute(null, OpmlSymbols.TEXT, feed.title)

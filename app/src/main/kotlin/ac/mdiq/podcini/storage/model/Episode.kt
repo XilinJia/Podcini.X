@@ -31,14 +31,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.documentfile.provider.DocumentFile
-import io.realm.kotlin.ext.realmListOf
-import io.realm.kotlin.ext.realmSetOf
-import io.realm.kotlin.types.RealmList
-import io.realm.kotlin.types.RealmObject
-import io.realm.kotlin.types.RealmSet
-import io.realm.kotlin.types.annotations.Ignore
-import io.realm.kotlin.types.annotations.Index
-import io.realm.kotlin.types.annotations.PrimaryKey
+import io.github.xilinjia.krdb.ext.realmListOf
+import io.github.xilinjia.krdb.ext.realmSetOf
+import io.github.xilinjia.krdb.types.RealmList
+import io.github.xilinjia.krdb.types.RealmObject
+import io.github.xilinjia.krdb.types.RealmSet
+import io.github.xilinjia.krdb.types.annotations.Ignore
+import io.github.xilinjia.krdb.types.annotations.Index
+import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -358,7 +358,7 @@ class Episode : RealmObject {
      */
     fun getLinkWithFallback(): String? {
         return when {
-            link.isNullOrBlank() -> link
+            !link.isNullOrBlank() -> link
             !feed?.link.isNullOrEmpty() -> feed!!.link
             else -> null
         }

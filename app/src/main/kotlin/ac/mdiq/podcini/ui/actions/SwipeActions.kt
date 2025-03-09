@@ -85,6 +85,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import java.util.Date
 import kotlinx.coroutines.runBlocking
+import kotlin.math.max
 
 abstract class SwipeAction {
     abstract fun getId(): String
@@ -433,7 +434,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 var textFieldValue by remember { mutableStateOf(TextFieldValue(onEpisode!!.title!!)) }
                 val selectedText by remember(textFieldValue.selection) { mutableStateOf(
                     if (textFieldValue.selection.collapsed) ""
-                    else textFieldValue.text.substring(startIndex = textFieldValue.selection.start, endIndex = textFieldValue.selection.end)) }
+                    else textFieldValue.text.substring(startIndex = max(textFieldValue.selection.start, 0), endIndex = textFieldValue.selection.end)) }
                 AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showSearchDialog = false },
                     title = { Text(stringResource(R.string.select_text_to_search), style = CustomTextStyles.titleCustom) },
                     text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },

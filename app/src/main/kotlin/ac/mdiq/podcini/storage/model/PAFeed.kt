@@ -1,9 +1,9 @@
 package ac.mdiq.podcini.storage.model
 
-import io.realm.kotlin.ext.realmSetOf
-import io.realm.kotlin.types.RealmObject
-import io.realm.kotlin.types.RealmSet
-import io.realm.kotlin.types.annotations.PrimaryKey
+import io.github.xilinjia.krdb.ext.realmSetOf
+import io.github.xilinjia.krdb.types.RealmObject
+import io.github.xilinjia.krdb.types.RealmSet
+import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 
 class PAFeed : RealmObject {
     @PrimaryKey

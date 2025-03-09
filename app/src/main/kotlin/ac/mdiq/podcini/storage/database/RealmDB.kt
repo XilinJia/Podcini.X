@@ -6,17 +6,17 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.showStackTrace
 import android.net.Uri
-import io.realm.kotlin.MutableRealm
-import io.realm.kotlin.Realm
-import io.realm.kotlin.RealmConfiguration
-import io.realm.kotlin.UpdatePolicy
-import io.realm.kotlin.dynamic.DynamicMutableRealmObject
-import io.realm.kotlin.dynamic.DynamicRealmObject
-import io.realm.kotlin.dynamic.getValue
-import io.realm.kotlin.dynamic.getValueSet
-import io.realm.kotlin.ext.isManaged
-import io.realm.kotlin.types.RealmObject
-import io.realm.kotlin.types.TypedRealmObject
+import io.github.xilinjia.krdb.MutableRealm
+import io.github.xilinjia.krdb.Realm
+import io.github.xilinjia.krdb.RealmConfiguration
+import io.github.xilinjia.krdb.UpdatePolicy
+import io.github.xilinjia.krdb.dynamic.DynamicMutableRealmObject
+import io.github.xilinjia.krdb.dynamic.DynamicRealmObject
+import io.github.xilinjia.krdb.dynamic.getValue
+import io.github.xilinjia.krdb.dynamic.getValueSet
+import io.github.xilinjia.krdb.ext.isManaged
+import io.github.xilinjia.krdb.types.RealmObject
+import io.github.xilinjia.krdb.types.TypedRealmObject
 import java.io.File
 import kotlinx.coroutines.*
 import kotlin.coroutines.ContinuationInterceptor
@@ -29,6 +29,7 @@ object RealmDB {
     val realm: Realm
 
     init {
+        Logd(TAG, "RealmDB init")
         val config = RealmConfiguration.Builder(
             schema = setOf(
                 Feed::class,

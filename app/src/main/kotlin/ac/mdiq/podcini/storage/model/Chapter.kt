@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.storage.model
 
-import io.realm.kotlin.types.EmbeddedRealmObject
-import io.realm.kotlin.types.annotations.Index
+import io.github.xilinjia.krdb.types.EmbeddedRealmObject
+import io.github.xilinjia.krdb.types.annotations.Index
 
 class Chapter : EmbeddedRealmObject {
     @Index

@@ -12,14 +12,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.C
-import io.realm.kotlin.ext.realmListOf
-import io.realm.kotlin.ext.realmSetOf
-import io.realm.kotlin.types.RealmList
-import io.realm.kotlin.types.RealmObject
-import io.realm.kotlin.types.RealmSet
-import io.realm.kotlin.types.annotations.Ignore
-import io.realm.kotlin.types.annotations.Index
-import io.realm.kotlin.types.annotations.PrimaryKey
+import io.github.xilinjia.krdb.ext.realmListOf
+import io.github.xilinjia.krdb.ext.realmSetOf
+import io.github.xilinjia.krdb.types.RealmList
+import io.github.xilinjia.krdb.types.RealmObject
+import io.github.xilinjia.krdb.types.RealmSet
+import io.github.xilinjia.krdb.types.annotations.Ignore
+import io.github.xilinjia.krdb.types.annotations.Index
+import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import java.util.Date
 
 class Feed : RealmObject {

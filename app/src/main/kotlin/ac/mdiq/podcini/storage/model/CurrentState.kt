@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.storage.model
 
-import io.realm.kotlin.types.RealmObject
-import io.realm.kotlin.types.annotations.PrimaryKey
+import io.github.xilinjia.krdb.types.RealmObject
+import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 
 class CurrentState : RealmObject {
     @PrimaryKey

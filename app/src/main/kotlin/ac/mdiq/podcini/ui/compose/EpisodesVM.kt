@@ -171,8 +171,8 @@ import androidx.documentfile.provider.DocumentFile
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import io.realm.kotlin.notifications.SingleQueryChange
-import io.realm.kotlin.notifications.UpdatedObject
+import io.github.xilinjia.krdb.notifications.SingleQueryChange
+import io.github.xilinjia.krdb.notifications.UpdatedObject
 import java.io.File
 import java.net.URL
 import java.time.Instant
@@ -842,11 +842,11 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                             Logd(TAG, "LaunchedEffect vm.actionButton: ${vm.actionButton.TAG}")
                         }
                     } else LaunchedEffect(Unit) { vm.actionButton = actionButton_(vm.episode) }
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.width(40.dp).height(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd)
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd)
                         .pointerInput(Unit) { detectTapGestures(onLongPress = { vms[index].showAltActionsDialog = true }, onTap = { vm.actionButton.onClick(activity) }) }) {
-                        Icon(imageVector = ImageVector.vectorResource(vm.actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp))
-                        if (isDownloading() && vm.dlPercent >= 0) CircularProgressIndicator(progress = { 0.01f * vm.dlPercent }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.width(33.dp).height(37.dp))
-                        if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.width(33.dp).height(37.dp))
+                        Icon(imageVector = ImageVector.vectorResource(vm.actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
+                        if (isDownloading() && vm.dlPercent >= 0) CircularProgressIndicator(progress = { 0.01f * vm.dlPercent }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
+                        if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                     }
                     if (vm.showAltActionsDialog) vm.actionButton.AltActionsDialog(activity, onDismiss = { vm.showAltActionsDialog = false })
                 }

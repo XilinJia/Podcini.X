@@ -3,7 +3,7 @@ plugins {
     id 'kotlin-android'
     id 'org.jetbrains.kotlin.android'
     alias(libs.plugins.compose.compiler)
-    id 'io.realm.kotlin'
+    id 'io.github.xilinjia.krdb'
 }
 
 composeCompiler {
@@ -25,8 +25,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 134
-        versionName "8.10.3"
+        versionCode 135
+        versionName "8.11.0"
 
         ndkVersion "27.0.12077973"
 
@@ -78,7 +78,6 @@ android {
     }
 
     buildFeatures {
-//        viewBinding true
         buildConfig true
         compose true
     }
@@ -196,13 +195,14 @@ dependencies {
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1"
 
+    implementation "io.github.xilinjia.krdb:library-base:3.2.5"
+
     implementation "io.coil-kt:coil:2.7.0"
     implementation "io.coil-kt:coil-compose:2.7.0"
     implementation "commons-io:commons-io:2.16.1"
     implementation "org.apache.commons:commons-lang3:3.15.0"
 
     implementation "org.jsoup:jsoup:1.18.1"
-    implementation "io.realm.kotlin:library-base:2.1.0"
     implementation "com.squareup.okhttp3:okhttp:4.12.0"
     implementation "com.squareup.okio:okio:3.10.2"
     implementation "com.squareup.okhttp3:okhttp-urlconnection:4.12.0"
@@ -221,7 +221,7 @@ dependencies {
     playApi "com.google.android.gms:play-services-cast-framework:22.0.0"
 }
 
-apply plugin: "io.realm.kotlin"
+apply plugin: "io.github.xilinjia.krdb"
 
 tasks.register('copyLicense', Copy) {
     from "../LICENSE"

@@ -32,7 +32,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
-import io.realm.kotlin.UpdatePolicy
+import io.github.xilinjia.krdb.UpdatePolicy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -146,8 +146,9 @@ object AutoDownloads {
                 Logd(TAG, "Enqueueing ${candidates.size} items")
                 for (e in candidates) {
                     Logd(TAG, "adding to queue ${e.title} ${e.playState} ${e.downloadUrl}")
-                    val q = e.feed?.queue ?: continue
-                    addToQueueSync(e, q)
+                    val q = e.feed?.queue
+                    if (q != null) addToQueueSync(e, q)
+                    else Loge(TAG, "auto-enqueue not performed: feed associated queue is null: ${e.title}")
                 }
                 Logt(TAG, "Auto enqueued episodes: ${candidates.size}")
                 candidates.clear()
