@@ -21,5 +21,5 @@ class MonthlyStatisticsItem {
 class StatisticsResult {
     var statsItems: MutableList<StatisticsItem> = mutableListOf()
     var episodes: List<Episode> = listOf()
-    var oldestDate: Long = System.currentTimeMillis()
+    var oldestDate: Long = 0L
 }

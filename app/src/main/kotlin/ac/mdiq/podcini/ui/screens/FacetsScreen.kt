@@ -54,10 +54,12 @@ import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -65,6 +67,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
@@ -77,6 +80,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
@@ -549,32 +553,36 @@ fun FacetsScreen() {
                 { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }
             },
             actions = {
-                val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
-                IconButton(onClick = {
-                    vm.showFeeds = !vm.showFeeds
-                    if (vm.showFeeds) vm.loadAssociatedFeeds()
-                }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
-                if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.All.name) IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
-                if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name) IconButton(onClick = { vm.showDatesFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
-                IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name)
-                        DropdownMenuItem(text = { Text(stringResource(R.string.clear_history_label)) }, onClick = {
-                            vm.showClearHistoryDialog.value = true
-                            expanded = false
-                        })
-                    if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name)
-                        DropdownMenuItem(text = { Text(stringResource(R.string.reconcile_label)) }, onClick = {
-                            vm.reconcile()
-                            expanded = false
-                        })
-                    if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.New.name)
-                        DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
-                            vm.clearNew()
-                            expanded = false
-                        })
+                Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                    val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
+                    IconButton(onClick = {
+                        vm.showFeeds = !vm.showFeeds
+                        if (vm.showFeeds) vm.loadAssociatedFeeds()
+                    }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
+                    IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                    IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
+                    if (vm.spinnerTexts[vm.curIndex] == QuickAccess.All.name) IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
+                    if (vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name) IconButton(onClick = { vm.showDatesFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
+                    if (vm.spinnerTexts[vm.curIndex] in listOf(QuickAccess.History.name, QuickAccess.Downloaded.name, QuickAccess.New.name)) {
+                        IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name)
+                                DropdownMenuItem(text = { Text(stringResource(R.string.clear_history_label)) }, onClick = {
+                                    vm.showClearHistoryDialog.value = true
+                                    expanded = false
+                                })
+                            if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name)
+                                DropdownMenuItem(text = { Text(stringResource(R.string.reconcile_label)) }, onClick = {
+                                    vm.reconcile()
+                                    expanded = false
+                                })
+                            if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.New.name)
+                                DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
+                                    vm.clearNew()
+                                    expanded = false
+                                })
+                        }
+                    }
                 }
             }
         )

@@ -15,7 +15,6 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
@@ -156,8 +155,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 
 //    internal var screenMode by mutableStateOf<ScreenMode>(ScreenMode.List)
 
+    internal var isFiltered by mutableStateOf(false)
     internal var infoBarText = mutableStateOf("")
-    private var infoTextFiltered = ""
     private var infoTextUpdate = ""
     //        internal var displayUpArrow by mutableStateOf(false)
     private var headerCreated = false
@@ -257,7 +256,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 
     private fun onFeedUpdateRunningEvent(event: FlowEvent.FeedUpdatingEvent) {
         infoTextUpdate = if (event.isRunning) context.getString(R.string.refreshing_label) else ""
-        infoBarText.value = "$infoTextFiltered $infoTextUpdate"
+        infoBarText.value = infoTextUpdate
         if (!event.isRunning) loadFeed(true)
     }
 
@@ -271,13 +270,10 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             Loge(TAG, "Unable to refresh header view")
             return
         }
+        isFiltered = !feed?.filterString.isNullOrEmpty() && feed!!.episodeFilter.propertySet.isNotEmpty()
+        filterButtonColor.value = if (enableFilter) if (isFiltered) Color.Green else Color.White else Color.Red
         if (!headerCreated) headerCreated = true
-        infoTextFiltered = ""
-        if (!feed?.filterString.isNullOrEmpty()) {
-            val filter: EpisodeFilter = feed!!.episodeFilter
-            if (filter.propertySet.isNotEmpty()) infoTextFiltered = context.getString(R.string.filtered_label)
-        }
-        infoBarText.value = "$infoTextFiltered $infoTextUpdate"
+        infoBarText.value = infoTextUpdate
     }
 
     private fun isFilteredOut(episode: Episode): Boolean {
@@ -360,7 +356,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
             } catch (e: Throwable) {
                 feed = null
-                refreshHeaderView()
                 Logs(TAG, e)
             } catch (e: Exception) { Logs(TAG, e) }
         }.apply { invokeOnCompletion { loadJob = null } }
@@ -397,7 +392,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             val eListTmp = mutableListOf<Episode>()
             withContext(Dispatchers.IO) {
                 if (enableFilter) {
-                    filterButtonColor.value = Color.White
+                    filterButtonColor.value = if (isFiltered) Color.Green else Color.White
                     val episodes_ = realm.query(Episode::class).query("feedId == ${feed!!.id}").query(feed!!.episodeFilter.queryString()).find()
                     eListTmp.addAll(episodes_)
                 } else {

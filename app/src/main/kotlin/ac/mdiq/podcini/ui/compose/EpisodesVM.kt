@@ -135,6 +135,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -1275,9 +1276,11 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
     fun convertUnixTimeToMonthYear(unixTime: Long): String {
         return Instant.ofEpochMilli(unixTime).atZone(ZoneId.systemDefault()).toLocalDate().format(DateTimeFormatter.ofPattern("MM/yyyy"))
     }
-    var timeFilterFrom by remember { mutableLongStateOf(from ?: oldestDate) }
-    var timeFilterTo by remember { mutableLongStateOf(to ?: Date().time) }
-    var useAllTime by remember { mutableStateOf(false) }
+    var timeFilterFrom by remember { mutableLongStateOf(from ?: 0L) }
+    var timeFilterTo by remember { mutableLongStateOf(to ?: Long.MAX_VALUE) }
+    var useAllTime by remember { mutableStateOf((from == null || from == 0L) && (to == null || to == Long.MAX_VALUE)) }
+    val timeFrom by derivedStateOf { if (timeFilterFrom == 0L) oldestDate else timeFilterFrom  }
+    val timeTo by derivedStateOf { if (timeFilterTo == Long.MAX_VALUE) System.currentTimeMillis() else timeFilterTo }
     AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
         text = {
@@ -1285,15 +1288,21 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
                 if (!useAllTime) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.statistics_start_month))
-                        MonthYearInput(convertUnixTimeToMonthYear(oldestDate)) { timeFilterFrom = convertMonthYearToUnixTime(it) ?: oldestDate }
+                        MonthYearInput(convertUnixTimeToMonthYear(timeFrom)) { timeFilterFrom = convertMonthYearToUnixTime(it) ?: timeFrom }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(stringResource(R.string.statistics_end_month))
-                        MonthYearInput(convertUnixTimeToMonthYear(System.currentTimeMillis())) { timeFilterTo = convertMonthYearToUnixTime(it, false) ?: Date().time }
+                        MonthYearInput(convertUnixTimeToMonthYear(timeTo)) { timeFilterTo = convertMonthYearToUnixTime(it, false) ?: timeTo }
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = useAllTime, onCheckedChange = { useAllTime = it })
+                    Checkbox(checked = useAllTime, onCheckedChange = {
+                        useAllTime = it
+                        if (!useAllTime) {
+                            timeFilterFrom = convertMonthYearToUnixTime(convertUnixTimeToMonthYear(timeFrom)) ?: timeFrom
+                            timeFilterTo = convertMonthYearToUnixTime(convertUnixTimeToMonthYear(timeTo), false) ?: timeTo
+                        }
+                    })
                     Text(stringResource(R.string.statistics_filter_all_time))
                 }
                 Text(stringResource(R.string.statistics_speed_not_counted))
@@ -1302,8 +1311,8 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
         confirmButton = {
             TextButton(onClick = {
                 if (useAllTime) {
-                    timeFilterFrom = oldestDate
-                    timeFilterTo = Date().time
+                    timeFilterFrom = 0L
+                    timeFilterTo = Long.MAX_VALUE
                 }
                 callback(timeFilterFrom, timeFilterTo)
                 onDismissRequest()

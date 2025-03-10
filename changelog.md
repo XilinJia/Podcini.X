@@ -1,3 +1,13 @@
+# 8.11.1
+
+* straightened the behavior of filter in Statistics
+* in FeedDetails screen, filtered is not shown in status bar
+	* filter button on topbar is set green if filter is set otherwise text color
+	* long-pressed, the filter button turns red indicating temporarily disabled, long-press again re-enabled
+* in Subscriptions screen filtered is not shown in status bar
+	* filter button on topbar is set green if filter is set otherwise text color
+* enhanced display behavior of topbar in Facets screen
+
 # 8.11.0
 
 * start using self-maintained Kotlin SDK KRDB for Realm DB

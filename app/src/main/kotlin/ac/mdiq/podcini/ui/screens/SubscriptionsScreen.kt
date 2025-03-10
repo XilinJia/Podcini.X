@@ -212,7 +212,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     internal val queueIds: MutableList<Long> = mutableListOf()
     internal val spinnerTexts: MutableList<String> = mutableListOf("Any queue", "No queue")
 
-    private var infoTextFiltered = ""
+    internal var isFiltered by mutableStateOf(false)
     private var infoTextUpdate = ""
 
     //    TODO: currently not used
@@ -305,7 +305,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     is FlowEvent.FeedUpdatingEvent -> {
                         Logd(TAG, "FeedUpdateRunningEvent: ${event.isRunning} ${event.id}")
                         infoTextUpdate = if (event.isRunning) " " + context.getString(R.string.refreshing_label) else ""
-                        txtvInformation = (infoTextFiltered + infoTextUpdate)
+                        txtvInformation = infoTextUpdate
                         if (!event.isRunning && event.id != prevFeedUpdatingEvent?.id) loadSubscriptions(true)
                         prevFeedUpdatingEvent = event
                     }
@@ -335,9 +335,8 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     feedListFiltered.clear()
                     feedListFiltered.addAll(feedList)
                     feedCountState = feedListFiltered.size.toString() + " / " + feedCount.toString()
-                    infoTextFiltered = " "
-                    if (feedsFilter.isNotEmpty()) infoTextFiltered = context.getString(R.string.filtered_label)
-                    txtvInformation = (infoTextFiltered + infoTextUpdate)
+                    isFiltered = feedsFilter.isNotEmpty()
+                    txtvInformation = infoTextUpdate
                 }
             } catch (e: Throwable) { Logs(TAG, e) }
         }.apply { invokeOnCompletion { loadingJob = null } }
@@ -645,7 +644,7 @@ fun SubscriptionsScreen() {
             },
             actions = {
                 IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
+                IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.isFiltered) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
                 IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
