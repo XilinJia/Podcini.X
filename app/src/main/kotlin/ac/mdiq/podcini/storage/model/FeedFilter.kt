@@ -81,6 +81,10 @@ class FeedFilter(vararg properties_: String) : Serializable {
             properties.contains(States.autoDownload.name) -> statements.add(" autoDownload == true ")
             properties.contains(States.not_autoDownload.name) -> statements.add(" autoDownload == false ")
         }
+        when {
+            properties.contains(States.autoEnqueue.name) -> statements.add(" autoEnqueue == true ")
+            properties.contains(States.not_autoEnqueue.name) -> statements.add(" autoEnqueue == false ")
+        }
         if (statements.isEmpty()) return "id > 0"
 
         val query = StringBuilder(" (" + statements[0])
@@ -116,6 +120,8 @@ class FeedFilter(vararg properties_: String) : Serializable {
         never_auto_delete,
         autoDownload,
         not_autoDownload,
+        autoEnqueue,
+        not_autoEnqueue,
         unrated,
         trash,
         bad,
@@ -143,6 +149,7 @@ class FeedFilter(vararg properties_: String) : Serializable {
             ItemProperties(R.string.never, States.never_auto_delete.name),
             ItemProperties(R.string.global, States.global_auto_delete.name), ),
         PREF_STREAMING(R.string.pref_stream_over_download_title, ItemProperties(R.string.yes, States.pref_streaming.name), ItemProperties(R.string.no, States.not_pref_streaming.name)),
+        AUTO_ENQUEUE(R.string.auto_download, ItemProperties(R.string.yes, States.autoEnqueue.name), ItemProperties(R.string.no, States.not_autoEnqueue.name)),
         AUTO_DOWNLOAD(R.string.auto_download, ItemProperties(R.string.yes, States.autoDownload.name), ItemProperties(R.string.no, States.not_autoDownload.name));
 
         val values: Array<ItemProperties> = arrayOf(*values_)

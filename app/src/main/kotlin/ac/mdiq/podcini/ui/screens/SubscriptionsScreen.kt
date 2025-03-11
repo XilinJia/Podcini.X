@@ -671,9 +671,7 @@ fun SubscriptionsScreen() {
             val textColor = MaterialTheme.colorScheme.onSurface
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_info), contentDescription = "info", tint = textColor)
             Spacer(Modifier.weight(1f))
-            Text(vm.txtvInformation, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable {
-                if (vm.feedsFilter.isNotEmpty()) vm.showFilterDialog = true
-            } )
+            Text(vm.txtvInformation, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable {} )
             Spacer(Modifier.weight(1f))
             Text(vm.feedCountState, color = textColor)
         }
@@ -1245,7 +1243,7 @@ fun SubscriptionsScreen() {
                                         } else vm.downlaodedSortIndex = -1
                                         fetchAndSortRoutine()
                                     },
-                                ) { Text(text = stringResource(item.values[0].displayName), color = textColor) }
+                                ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                 Spacer(Modifier.weight(0.1f))
                                 OutlinedButton(
                                     modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.downlaodedSortIndex != 1) textColor else Color.Green),
@@ -1256,7 +1254,7 @@ fun SubscriptionsScreen() {
                                         } else vm.downlaodedSortIndex = -1
                                         fetchAndSortRoutine()
                                     },
-                                ) { Text(text = stringResource(item.values[1].displayName), color = textColor) }
+                                ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
                                 Spacer(Modifier.weight(0.5f))
                             }
                             Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -1274,7 +1272,7 @@ fun SubscriptionsScreen() {
                                         } else vm.commentedSortIndex = -1
                                         fetchAndSortRoutine()
                                     },
-                                ) { Text(text = stringResource(item.values[0].displayName), color = textColor) }
+                                ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                 Spacer(Modifier.weight(0.1f))
                                 OutlinedButton(
                                     modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.commentedSortIndex != 1) textColor else Color.Green),
@@ -1285,7 +1283,7 @@ fun SubscriptionsScreen() {
                                         } else vm.commentedSortIndex = -1
                                         fetchAndSortRoutine()
                                     },
-                                ) { Text(text = stringResource(item.values[1].displayName), color = textColor) }
+                                ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
                                 Spacer(Modifier.weight(0.5f))
                             }
                         }
@@ -1317,7 +1315,7 @@ fun SubscriptionsScreen() {
                                     modifier = Modifier.clickable {
                                         lowerSelected = false
                                         higherSelected = false
-                                        for (i in item.values.indices) vm.playStateSort[i].value = false
+                                        for (i in item.properties.indices) vm.playStateSort[i].value = false
                                         fetchAndSortRoutine()
                                     })
                                 Spacer(Modifier.weight(1f))
@@ -1326,9 +1324,9 @@ fun SubscriptionsScreen() {
                                         val lIndex = vm.playStateSort.indexOfFirst { it.value }
                                         if (lIndex < 0) return@clickable
                                         if (!higherSelected) {
-                                            for (i in lIndex..<item.values.size) vm.playStateSort[i].value = true
+                                            for (i in lIndex..<item.properties.size) vm.playStateSort[i].value = true
                                         } else {
-                                            for (i in lIndex..<item.values.size) vm.playStateSort[i].value = false
+                                            for (i in lIndex..<item.properties.size) vm.playStateSort[i].value = false
                                             vm.playStateSort[lIndex].value = true
                                         }
                                         higherSelected = !higherSelected
@@ -1336,7 +1334,7 @@ fun SubscriptionsScreen() {
                                     })
                                 Spacer(Modifier.weight(1f))
                             }
-                            if (expandRow) NonlazyGrid(columns = 3, itemCount = item.values.size) { index ->
+                            if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size) { index ->
                                 if (selectNone) vm.playStateSort[index].value = false
                                 LaunchedEffect(Unit) {
 //                                if (filter != null && item.values[index].filterId in filter.properties) selectedList[index].value = true
@@ -1349,7 +1347,7 @@ fun SubscriptionsScreen() {
                                         vm.playStateSort[index].value = !vm.playStateSort[index].value
                                         fetchAndSortRoutine()
                                     },
-                                ) { Text(text = stringResource(item.values[index].displayName), maxLines = 1, color = textColor) }
+                                ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
                             }
                         }
                         if (vm.sortIndex == FeedSortIndex.Count.ordinal) {
@@ -1380,7 +1378,7 @@ fun SubscriptionsScreen() {
                                     modifier = Modifier.clickable {
                                         lowerSelected = false
                                         higherSelected = false
-                                        for (i in item.values.indices) vm.ratingSort[i].value = false
+                                        for (i in item.properties.indices) vm.ratingSort[i].value = false
                                         fetchAndSortRoutine()
                                     })
                                 Spacer(Modifier.weight(1f))
@@ -1389,9 +1387,9 @@ fun SubscriptionsScreen() {
                                         val lIndex = vm.ratingSort.indexOfFirst { it.value }
                                         if (lIndex < 0) return@clickable
                                         if (!higherSelected) {
-                                            for (i in lIndex..<item.values.size) vm.ratingSort[i].value = true
+                                            for (i in lIndex..<item.properties.size) vm.ratingSort[i].value = true
                                         } else {
-                                            for (i in lIndex..<item.values.size) vm.ratingSort[i].value = false
+                                            for (i in lIndex..<item.properties.size) vm.ratingSort[i].value = false
                                             vm.ratingSort[lIndex].value = true
                                         }
                                         higherSelected = !higherSelected
@@ -1399,7 +1397,7 @@ fun SubscriptionsScreen() {
                                     })
                                 Spacer(Modifier.weight(1f))
                             }
-                            if (expandRow) NonlazyGrid(columns = 3, itemCount = item.values.size) { index ->
+                            if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size) { index ->
                                 if (selectNone) vm.ratingSort[index].value = false
                                 OutlinedButton(
                                     modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
@@ -1409,7 +1407,7 @@ fun SubscriptionsScreen() {
                                         vm.ratingSort[index].value = !vm.ratingSort[index].value
                                         fetchAndSortRoutine()
                                     },
-                                ) { Text(text = stringResource(item.values[index].displayName), maxLines = 1, color = textColor) }
+                                ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
                             }
                         }
                     }

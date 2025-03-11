@@ -942,6 +942,10 @@
     <string name="middle">Middle</string>
     <string name="higher">Higher</string>
 
+    <string name="include">Include</string>
+    <string name="exclude">Exclude</string>
+    <string name="off">Off</string>
+
     <string name="play_speed">Play speed</string>
     <string name="global_speed">Global</string>
     <string name="custom_speed">Custom</string>
@@ -962,6 +966,7 @@
     <string name="always">Always</string>
     <string name="never">Never</string>
     <string name="auto_download">Auto download</string>
+    <string name="auto_enqueue">Auto enqueue</string>
 
     <!-- Share episode dialog -->
     <string name="share_playback_position_dialog_label">Include playback position</string>

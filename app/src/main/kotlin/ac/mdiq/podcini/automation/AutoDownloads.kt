@@ -159,7 +159,7 @@ object AutoDownloads {
     private fun assembleFeedsCandidates(feeds: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, onlyExisting: Boolean = false) {
         val feeds = feeds ?: getFeedList()
         feeds.forEach { f ->
-            Logd(TAG, "assembleFeedsCandidates: ${f.autoDownload} ${f.isLocalFeed} ${f.title}")
+            Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocalFeed} ${f.title}")
             if (((dl && f.autoDownload) || (!dl && f.autoEnqueue)) && !f.isLocalFeed) {
                 val dlFilter = if (dl) {
                     if (f.countingPlayed) EpisodeFilter(EpisodeFilter.States.downloaded.name)
@@ -176,6 +176,7 @@ object AutoDownloads {
                 if (allowedDLCount > 0 && f.autoDLSoon) {
                     val queryStringSoon = queryString + " AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
                     val es = realm.query(Episode::class).query(queryStringSoon).find()
+                    Logd(TAG, "assembleFeedsCandidates queryStringSoon: [${es.size}] $queryStringSoon")
                     if (es.isNotEmpty()) {
                         episodes.addAll(es)
                         allowedDLCount -= es.size
@@ -188,8 +189,8 @@ object AutoDownloads {
                                 if (f.autoDLPolicy.replace) {
                                     allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes
                                     queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(${allowedDLCount})"
-                                    Logd(TAG, "assembleFeedsCandidates queryString: $queryString")
                                     val es = realm.query(Episode::class).query(queryString).find()
+                                    Logd(TAG, "assembleFeedsCandidates Replace queryString: [${es.size}] $queryString")
                                     if (es.isNotEmpty()) {
                                         val numToDelete = es.size + downloadedCount - allowedDLCount
                                         Logd(TAG, "assembleFeedsCandidates numToDelete: $numToDelete")
@@ -204,6 +205,7 @@ object AutoDownloads {
                                 } else {
                                     queryString += " AND playState == ${PlayState.NEW.code} SORT(pubDate DESC) LIMIT(${3 * allowedDLCount})"
                                     val es = realm.query(Episode::class).query(queryString).find()
+                                    Logd(TAG, "assembleFeedsCandidates Non-Replace queryString: [${es.size}] $queryString")
                                     if (es.isNotEmpty()) episodes.addAll(es)
                                 }
                             }
@@ -211,11 +213,13 @@ object AutoDownloads {
                         Feed.AutoDownloadPolicy.NEWER -> {
                             queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT(${3*allowedDLCount})"
                             val es = realm.query(Episode::class).query(queryString).find()
+                            Logd(TAG, "assembleFeedsCandidates Newer queryString: [${es.size}] $queryString")
                             if (es.isNotEmpty()) episodes.addAll(es)
                         }
                         Feed.AutoDownloadPolicy.OLDER -> {
                             queryString += " AND playState <= ${PlayState.SOON.code} SORT(pubDate ASC) LIMIT(${3*allowedDLCount})"
                             val es = realm.query(Episode::class).query(queryString).find()
+                            Logd(TAG, "assembleFeedsCandidates Older queryString: [${es.size}] $queryString")
                             if (es.isNotEmpty()) episodes.addAll(es)
                         }
                         Feed.AutoDownloadPolicy.FILTER_SORT -> {
@@ -224,41 +228,41 @@ object AutoDownloads {
                             val filterADL = f.episodeFilterADL.queryString()
                             Logd(TAG, "FILTER_SORT filterADL: $filterADL")
                             if (filterADL.isNotBlank()) q.query(filterADL)
-                            val eList = q.find().toMutableList()
-                            Logd(TAG, "FILTER_SORT eList: ${eList.size}")
-                            if (eList.isNotEmpty()) {
+                            val es = q.find().toMutableList()
+                            Logd(TAG, "assembleFeedsCandidates Filter-sort queryString: [${es.size}] $queryString")
+                            if (es.isNotEmpty()) {
                                 val sortOrder = f.sortOrderADL ?: EpisodeSortOrder.DATE_NEW_OLD
                                 Logd(TAG, "FILTER_SORT sortOrder: $sortOrder")
-                                getPermutor(sortOrder).reorder(eList)
-                                episodes.addAll(if (eList.size > allowedDLCount) eList.subList(0, allowedDLCount) else eList)
+                                getPermutor(sortOrder).reorder(es)
+                                episodes.addAll(if (es.size > allowedDLCount) es.subList(0, allowedDLCount) else es)
                                 Logd(TAG, "FILTER_SORT episodes: ${episodes.size}")
                             }
                         }
                     }
-                    if (episodes.isNotEmpty()) {
-                        var count = 0
-                        for (e in episodes) {
-                            if (isCurMedia(e)) continue
-                            if (e.downloadUrl.isNullOrBlank()) {
-                                Loge(TAG, "episode downloadUrl is null or blank, skipped from auto-download: ${e.title}")
-                                upsertBlk(e) { it.disableAutoDownload() }
-                                continue
-                            }
-                            if (f.autoDownloadFilter?.meetsAutoDLCriteria(e) == true) {
-                                Logd(TAG, "assembleFeedsCandidates add to candidates: ${e.title} ${e.downloaded}")
-                                candidates.add(e)
-                                if (++count >= allowedDLCount) break
-                            } else {
-                                Logt(TAG, "episode not meed criteria for auto-download: ${e.title}")
-                                upsertBlk(e) {
-                                    if (f.autoDownloadFilter?.markExcludedPlayed == true) it.setPlayed(true)
-                                    else it.disableAutoDownload()
-                                }
+                }
+                if (episodes.isNotEmpty()) {
+                    var count = 0
+                    for (e in episodes) {
+                        if (isCurMedia(e)) continue
+                        if (e.downloadUrl.isNullOrBlank()) {
+                            Loge(TAG, "episode downloadUrl is null or blank, skipped from auto-download: ${e.title}")
+                            upsertBlk(e) { it.disableAutoDownload() }
+                            continue
+                        }
+                        if (f.autoDownloadFilter?.meetsAutoDLCriteria(e) == true) {
+                            Logd(TAG, "assembleFeedsCandidates add to candidates: ${e.title} ${e.downloaded}")
+                            candidates.add(e)
+                            if (++count >= allowedDLCount) break
+                        } else {
+                            Logt(TAG, "episode not meed criteria for auto-download: ${e.title}")
+                            upsertBlk(e) {
+                                if (f.autoDownloadFilter?.markExcludedPlayed == true) it.setPlayed(true)
+                                else it.disableAutoDownload()
                             }
                         }
                     }
-                    episodes.clear()
                 }
+                episodes.clear()
                 Logd(TAG, "assembleFeedsCandidates ${f.title} candidate size: ${candidates.size}")
                 if (!onlyExisting) {
                     runOnIOScope {

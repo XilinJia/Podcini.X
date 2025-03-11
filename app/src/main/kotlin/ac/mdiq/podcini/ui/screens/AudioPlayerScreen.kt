@@ -967,7 +967,6 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
                     Logd(TAG, "statusUpdate onReceive doing updates")
                     status = info.playerStatus
                     prevStatus = status
-//                    curMedia = info.playable
                     handleStatus()
                 }
             } else {

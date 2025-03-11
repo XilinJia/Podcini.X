@@ -10,6 +10,8 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
     var durationFloor: Int = 0
     var durationCeiling: Int = Int.MAX_VALUE
 
+    var titleText: String = ""
+
     constructor(properties: String) : this(*(properties.split(",").toTypedArray()))
 
     fun add(vararg properties_: String) {
@@ -96,6 +98,15 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
             propertySet.contains(States.no_chapters.name) -> statements.add("chapters.@count == 0 ")
         }
 
+        Logd("EpisodeFilter", "titleText: $titleText")
+        if (titleText.isNotBlank()) {
+            when {
+                propertySet.contains(States.title_off.name) -> {}
+                propertySet.contains(States.title_include.name) -> statements.add("title CONTAINS[c] '$titleText' ")
+                propertySet.contains(States.title_exclude.name) -> statements.add("NOT (title CONTAINS[c] '$titleText') ")
+            }
+        }
+
         val durationQuerys = mutableListOf<String>()
         if (propertySet.contains(States.lower.name)) durationQuerys.add("duration < $durationFloor ")
         if (propertySet.contains(States.middle.name)) durationQuerys.add("duration >= $durationFloor AND duration <= $durationCeiling ")
@@ -177,13 +188,18 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
         good,
         superb,
 
+        title,
+        title_include,
+        title_exclude,
+        title_off,
+
         duration,
         lower,
         middle,
         higher
     }
 
-    enum class EpisodesFilterGroup(val nameRes: Int, vararg values_: FilterProperties) {
+    enum class EpisodesFilterGroup(val nameRes: Int, vararg values_: FilterProperties, val exclusive: Boolean = false) {
         RATING(R.string.rating_label,
             FilterProperties(R.string.unrated, States.unrated.name),
             FilterProperties(R.string.trash, States.trash.name),
@@ -208,25 +224,30 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
             FilterProperties(R.string.passed, States.passed.name),
             FilterProperties(R.string.ignored, States.ignored.name),
         ),
-        OPINION(R.string.has_comments, FilterProperties(R.string.yes, States.has_comments.name), FilterProperties(R.string.no, States.no_comments.name)),
+        OPINION(R.string.has_comments, FilterProperties(R.string.yes, States.has_comments.name), FilterProperties(R.string.no, States.no_comments.name),exclusive = true),
 //        MEDIA(R.string.has_media, ItemProperties(R.string.yes, States.has_media.name), ItemProperties(R.string.no, States.no_media.name)),
-        DOWNLOADED(R.string.downloaded_label, FilterProperties(R.string.yes, States.downloaded.name), FilterProperties(R.string.no, States.not_downloaded.name)),
+        DOWNLOADED(R.string.downloaded_label, FilterProperties(R.string.yes, States.downloaded.name), FilterProperties(R.string.no, States.not_downloaded.name), exclusive = true),
 
         DURATION(R.string.duration,
             FilterProperties(R.string.lower, States.lower.name),
             FilterProperties(R.string.middle, States.middle.name),
             FilterProperties(R.string.higher, States.higher.name)),
 
-        CHAPTERS(R.string.has_chapters, FilterProperties(R.string.yes, States.has_chapters.name), FilterProperties(R.string.no, States.no_chapters.name)),
+        TITLE_TEXT(R.string.title,
+            FilterProperties(R.string.include, States.title_include.name),
+            FilterProperties(R.string.off, States.title_off.name),
+            FilterProperties(R.string.exclude, States.title_exclude.name), exclusive = true),
+
+        CHAPTERS(R.string.has_chapters, FilterProperties(R.string.yes, States.has_chapters.name), FilterProperties(R.string.no, States.no_chapters.name), exclusive = true),
         MEDIA_TYPE(R.string.media_type,
             FilterProperties(R.string.unknown, States.unknown.name),
             FilterProperties(R.string.audio, States.audio.name),
             FilterProperties(R.string.video, States.video.name),
             FilterProperties(R.string.audio_app, States.audio_app.name)
         ),
-        AUTO_DOWNLOADABLE(R.string.auto_downloadable_label, FilterProperties(R.string.yes, States.auto_downloadable.name), FilterProperties(R.string.no, States.not_auto_downloadable.name));
+        AUTO_DOWNLOADABLE(R.string.auto_downloadable_label, FilterProperties(R.string.yes, States.auto_downloadable.name), FilterProperties(R.string.no, States.not_auto_downloadable.name), exclusive = true);
 
-        val values: Array<FilterProperties> = arrayOf(*values_)
+        val properties: Array<FilterProperties> = arrayOf(*values_)
 
         class FilterProperties(val displayName: Int, val filterId: String)
     }

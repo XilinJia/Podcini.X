@@ -148,6 +148,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     fun loadDailyStats() {
+        Logd(TAG, "loadDailyStats")
         statsOfDay = getStatistics(date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
         timePlayedToday = 0
         timeSpentToday = 0
@@ -160,6 +161,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun loadStatistics() {
         loadDailyStats()
         try {
+            Logd(TAG, "loadStatistics")
             statsResult = getStatistics(timeFilterFrom, timeFilterTo)
             statsResult.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.timePlayed.compareTo(item1.timePlayed) }
             val chartValues = MutableList(statsResult.statsItems.size){0f}
@@ -681,6 +683,7 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
         else -> "($qs2)"
     }
     val medias = realm.query(Episode::class).query(queryString).find()
+    Logd(TAG, "getStatistics queryString: [${medias.size}] $queryString")
 
     val result = StatisticsResult()
     result.episodes = medias
