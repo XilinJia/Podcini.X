@@ -446,12 +446,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun loadMediaInfo() {
         Logd(TAG, "loadMediaInfo() curMedia: ${curEpisode?.id}")
         if (actMain == null) return
-//        val actMain = (context as? MainActivity) ?: return
-        if (curEpisode == null) {
-//            if (actMain.isPlayerVisible()) actMain.setPlayerVisible(false)
-            return
-        }
-//        if (!actMain.isPlayerVisible()) actMain.setPlayerVisible(true)
+        if (curEpisode == null) return
         if (!loadItemsRunning) {
             loadItemsRunning = true
             val curMediaChanged = curItem == null || curEpisode?.id != curItem?.id
@@ -466,7 +461,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     withContext(Dispatchers.IO) { curEpisode?.apply { this.loadChapters(context, false) } }
                     curItem = curEpisode
                     val item = curItem
-//                    val item = currentItem?.episodeOrFetch()
                     if (item != null) setItem(item)
                     val chapters: List<Chapter> = curItem?.chapters ?: listOf()
                     if (chapters.isNotEmpty()) {
@@ -990,7 +984,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
             }
             when (type) {
                 PlaybackService.NOTIFICATION_TYPE_RELOAD -> {
-                    if (playbackService == null && isRunning) return
+                    if (playbackService == null || !isRunning) return
                     mediaInfoLoaded = false
                     updateStatus()
                 }
@@ -1019,9 +1013,12 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.PlaybackServiceEvent -> {
-                        if (event.action == FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED) {
-                            init()
-                            updateStatus()
+                        when (event.action) {
+                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED -> {
+                                init()
+                                updateStatus()
+                            }
+                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN -> release()
                         }
                     }
                     else -> {}

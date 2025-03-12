@@ -457,9 +457,9 @@ fun FeedDetailsScreen() {
                 Lifecycle.Event.ON_CREATE -> {
                     vm.feed = feedOnDisplay
                     vm.feedID = vm.feed?.id ?: 0
-                    val testNum = 1
-                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
-                    Logd(TAG, "test eList: ${eList.size}")
+//                    val testNum = 1
+//                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
+//                    Logd(TAG, "test eList: ${eList.size}")
                     vm.txtvAuthor = vm.feed?.author ?: ""
                     vm.txtvUrl = vm.feed?.downloadUrl
                     if (!vm.feed?.link.isNullOrEmpty()) vm.isCallable = IntentUtils.isCallable(context, Intent(Intent.ACTION_VIEW, Uri.parse(vm.feed!!.link)))

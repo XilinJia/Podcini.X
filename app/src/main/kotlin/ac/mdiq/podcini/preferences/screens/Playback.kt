@@ -4,6 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.streamingBackBufferSecs
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -36,7 +37,6 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -47,6 +47,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -64,18 +65,32 @@ enum class PrefHardwareForwardButton(val res: Int, val res1: Int) {
 fun PlaybackPreferencesScreen() {
     val textColor = MaterialTheme.colorScheme.onSurface
     val scrollState = rememberScrollState()
+    val context = LocalContext.current
+    @Composable
+    fun IntervalEditor(initVal: Int, modifier: Modifier, cb: (Int)->Unit) {
+        var interval by remember { mutableStateOf(initVal.toString()) }
+        var showIcon by remember { mutableStateOf(false) }
+        TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("seconds") }, singleLine = true, modifier = modifier,
+            onValueChange = {
+                if (it.isEmpty() || it.toIntOrNull() != null) interval = it
+                if (it.toIntOrNull() != null) showIcon = true
+            },
+            trailingIcon = {
+                if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
+                    modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                        if (interval.isNotBlank()) {
+                            cb(interval.toInt())
+                            showIcon = false
+                        }
+                    }))
+            })
+    }
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
         Text(stringResource(R.string.interruptions), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         var prefUnpauseOnHeadsetReconnect by remember { mutableStateOf(getPref(AppPrefs.prefPauseOnHeadsetDisconnect, true)) }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.pref_pauseOnHeadsetDisconnect_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.pref_pauseOnDisconnect_sum), color = textColor)
-            }
-            Switch(checked = prefUnpauseOnHeadsetReconnect, onCheckedChange = {
-                prefUnpauseOnHeadsetReconnect = it
-                putPref(AppPrefs.prefPauseOnHeadsetDisconnect, it)
-            })
+        TitleSummarySwitchPrefRow(R.string.pref_pauseOnHeadsetDisconnect_title, R.string.pref_pauseOnDisconnect_sum, AppPrefs.prefPauseOnHeadsetDisconnect) {
+            prefUnpauseOnHeadsetReconnect = it
+            putPref(AppPrefs.prefPauseOnHeadsetDisconnect, it)
         }
         if (prefUnpauseOnHeadsetReconnect) {
             TitleSummarySwitchPrefRow(R.string.pref_unpauseOnHeadsetReconnect_title, R.string.pref_unpauseOnHeadsetReconnect_sum, AppPrefs.prefUnpauseOnHeadsetReconnect)
@@ -86,46 +101,14 @@ fun PlaybackPreferencesScreen() {
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.pref_fast_forward), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                var interval by remember { mutableStateOf(fastForwardSecs.toString()) }
-                var showIcon by remember { mutableStateOf(false) }
-                TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("seconds") },
-                    singleLine = true, modifier = Modifier.weight(0.6f),
-                    onValueChange = {
-                        if (it.isEmpty() || it.toIntOrNull() != null) interval = it
-                        if (it.toIntOrNull() != null) showIcon = true
-                    },
-                    trailingIcon = {
-                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                if (interval.isNotBlank()) {
-                                    fastForwardSecs = interval.toInt()
-                                    showIcon = false
-                                }
-                            }))
-                    })
+                IntervalEditor(fastForwardSecs, modifier = Modifier.weight(0.6f)) { fastForwardSecs = it }
             }
             Text(stringResource(R.string.pref_fast_forward_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.pref_rewind), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                var interval by remember { mutableStateOf(rewindSecs.toString()) }
-                var showIcon by remember { mutableStateOf(false) }
-                TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("seconds") },
-                    singleLine = true, modifier = Modifier.weight(0.6f),
-                    onValueChange = {
-                        if (it.isEmpty() || it.toIntOrNull() != null) interval = it
-                        if (it.toIntOrNull() != null) showIcon = true
-                    },
-                    trailingIcon = {
-                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                if (interval.isNotBlank()) {
-                                    rewindSecs = interval.toInt()
-                                    showIcon = false
-                                }
-                            }))
-                    })
+                IntervalEditor(rewindSecs, modifier = Modifier.weight(0.6f)) { rewindSecs = it }
             }
             Text(stringResource(R.string.pref_rewind_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
@@ -158,7 +141,19 @@ fun PlaybackPreferencesScreen() {
         }
         TitleSummaryActionColumn(R.string.pref_speed_forward, R.string.pref_speed_forward_sum) { showFFSpeedDialog = true }
         TitleSummarySwitchPrefRow(R.string.pref_skip_silence_title, R.string.pref_skip_silence_sum, AppPrefs.prefSkipSilence)
-        TitleSummarySwitchPrefRow(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, AppPrefs.prefStreamOverDownload)
+        var prefStreaming by remember { mutableStateOf(getPref(AppPrefs.prefStreamOverDownload, false)) }
+        TitleSummarySwitchPrefRow(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, AppPrefs.prefStreamOverDownload) {
+            prefStreaming = it
+            putPref(AppPrefs.prefStreamOverDownload, it)
+        }
+        if (prefStreaming) Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.pref_back_butter), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                IntervalEditor(streamingBackBufferSecs, modifier = Modifier.weight(0.6f)) { streamingBackBufferSecs = it }
+            }
+            Text(stringResource(R.string.pref_back_butter_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+        }
+
         TitleSummarySwitchPrefRow(R.string.pref_low_quality_on_mobile_title, R.string.pref_low_quality_on_mobile_sum, AppPrefs.prefLowQualityOnMobile)
         TitleSummarySwitchPrefRow(R.string.pref_use_adaptive_progress_title, R.string.pref_use_adaptive_progress_sum, AppPrefs.prefUseAdaptiveProgressUpdate)
         var showVideoModeDialog by remember { mutableStateOf(false) }

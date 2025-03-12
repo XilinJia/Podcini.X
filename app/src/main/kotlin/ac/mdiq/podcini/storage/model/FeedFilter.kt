@@ -149,7 +149,7 @@ class FeedFilter(vararg properties_: String) : Serializable {
             ItemProperties(R.string.never, States.never_auto_delete.name),
             ItemProperties(R.string.global, States.global_auto_delete.name), ),
         PREF_STREAMING(R.string.pref_stream_over_download_title, ItemProperties(R.string.yes, States.pref_streaming.name), ItemProperties(R.string.no, States.not_pref_streaming.name)),
-        AUTO_ENQUEUE(R.string.auto_download, ItemProperties(R.string.yes, States.autoEnqueue.name), ItemProperties(R.string.no, States.not_autoEnqueue.name)),
+        AUTO_ENQUEUE(R.string.auto_enqueue, ItemProperties(R.string.yes, States.autoEnqueue.name), ItemProperties(R.string.no, States.not_autoEnqueue.name)),
         AUTO_DOWNLOAD(R.string.auto_download, ItemProperties(R.string.yes, States.autoDownload.name), ItemProperties(R.string.no, States.not_autoDownload.name));
 
         val values: Array<ItemProperties> = arrayOf(*values_)

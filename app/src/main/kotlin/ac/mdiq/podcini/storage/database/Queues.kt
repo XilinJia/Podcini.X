@@ -200,7 +200,7 @@ object Queues {
     }
 
     private fun trimBin(queue: PlayQueue) {
-        if (queue.binLimit == 0) return
+        if (queue.binLimit <= 0) return
         if (queue.idsBinList.size > queue.binLimit * 1.2) {
             val newSize = (0.2 * queue.binLimit).toInt()
             val subList = queue.idsBinList.subList(0, newSize)

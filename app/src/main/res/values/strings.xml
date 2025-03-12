@@ -387,6 +387,7 @@
     <string name="checkbox_do_not_show_again">Do not show again</string>
     <string name="clear_queue_label">Clear queue</string>
     <string name="clear_bin_label">Clear bin</string>
+    <string name="bin_limit">Bin limit</string>
     <string name="undo">Undo</string>
 
     <string name="sort">Sort</string>
@@ -584,6 +585,8 @@
     <string name="pref_fast_forward_sum">Customize the number of seconds to jump forward when the fast forward button is clicked</string>
     <string name="pref_rewind">Rewind skip time</string>
     <string name="pref_rewind_sum">Customize the number of seconds to jump backwards when the rewind button is clicked</string>
+    <string name="pref_back_butter">Streaming back buffer</string>
+    <string name="pref_back_butter_sum">Customize the played buffer size to keep (in memory) for better local rewind.</string>
 
     <string name="pref_playback_video_mode">Video play mode</string>
     <string name="pref_playback_video_mode_sum">Choose how video episode is played by default</string>

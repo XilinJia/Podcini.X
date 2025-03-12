@@ -6,6 +6,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.preferences.AppPreferences.streamingBackBufferSecs
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
@@ -30,6 +31,7 @@ import android.content.res.Configuration
 import android.media.audiofx.LoudnessEnhancer
 import android.util.Pair
 import android.view.SurfaceHolder
+import android.webkit.URLUtil
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -607,11 +609,14 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         private var bufferingUpdateListener: ((Int) -> Unit)? = null
         private var loudnessEnhancer: LoudnessEnhancer? = null
 
-        fun createStaticPlayer(context: Context) {
+        fun isStreaming(media: Episode): Boolean = !media.localFileAvailable() || URLUtil.isContentUrl(media.downloadUrl)
+
+        fun createStaticPlayer(context: Context, streaming: Boolean = false) {
             val loadControl = DefaultLoadControl.Builder()
-            loadControl.setBufferDurationsMs(30000, 120000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
-                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
-            loadControl.setBackBuffer(rewindSecs * 1000 + 500, true)
+            loadControl.setBufferDurationsMs(30000, 120000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
+            if (streaming) loadControl.setBackBuffer(streamingBackBufferSecs * 1000, true) else loadControl.setBackBuffer(rewindSecs * 1000 + 500, true)
+            Logd(TAG, "createStaticPlayer reset back buffer for streaming == $streaming")
+
             trackSelector = DefaultTrackSelector(context)
             val audioOffloadPreferences = AudioOffloadPreferences.Builder()
                 .setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED) // Add additional options as needed

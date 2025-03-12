@@ -1,3 +1,10 @@
+# 8.11.3
+
+* corrected auto-enqueue filter name in Subscriptions
+* enabled setting of bin limit in Queues
+* added streaming back buffer setting (defaulted to 5 minutes) for better local rewind
+* streamlined Preferences screens
+
 # 8.11.2
 
 * added auto-enqueue filter in Subscriptions

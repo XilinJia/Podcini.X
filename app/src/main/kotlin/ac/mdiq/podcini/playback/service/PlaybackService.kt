@@ -2,8 +2,8 @@ package ac.mdiq.podcini.playback.service
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowStreaming
 import ac.mdiq.podcini.net.utils.NetworkUtils.isStreamingAllowed
+import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowStreaming
 import ac.mdiq.podcini.playback.PlaybackServiceStarter
 import ac.mdiq.podcini.playback.base.*
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -12,6 +12,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.loadPlayableFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
+import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.createStaticPlayer
+import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.isStreaming
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.buildMediaItem
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.MediaPlayerInfo
@@ -114,6 +116,8 @@ class PlaybackService : MediaLibraryService() {
 
     private val status: PlayerStatus
         get() = MediaPlayerBase.status
+
+    private var streaming: Boolean = false
 
     val curSpeed: Float
         get() = mPlayer?.getPlaybackSpeed() ?: 1.0f
@@ -647,7 +651,7 @@ class PlaybackService : MediaLibraryService() {
         setMediaNotificationProvider(customMediaNotificationProvider)
 
         recreateMediaPlayer()
-        if (LocalMediaPlayer.exoPlayer == null) LocalMediaPlayer.createStaticPlayer(applicationContext)
+        if (LocalMediaPlayer.exoPlayer == null) createStaticPlayer(applicationContext)
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, FLAG_IMMUTABLE)
         mediaSession = MediaLibrarySession.Builder(applicationContext, LocalMediaPlayer.exoPlayer!!, mediaLibrarySessionCK)
@@ -683,8 +687,6 @@ class PlaybackService : MediaLibraryService() {
 
     override fun onDestroy() {
         Logd(TAG, "Service is about to be destroyed")
-        playbackService = null
-        isRunning = false
         currentMediaType = MediaType.UNKNOWN
         castStateListener.destroy()
 
@@ -705,6 +707,8 @@ class PlaybackService : MediaLibraryService() {
         unregisterReceiver(audioBecomingNoisy)
         taskManager.shutdown()
 
+        playbackService = null
+        isRunning = false
         super.onDestroy()
     }
 
@@ -715,6 +719,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Logd(TAG, "onStartCommand intent?.action ${intent?.action} $isRunning")
         val keycode = intent?.getIntExtra(MediaButtonReceiver.EXTRA_KEYCODE, -1) ?: -1
         val customAction = intent?.getStringExtra(MediaButtonReceiver.EXTRA_CUSTOM_ACTION)
         val hardwareButton = intent?.getBooleanExtra(MediaButtonReceiver.EXTRA_HARDWAREBUTTON, false) == true
@@ -920,7 +925,10 @@ class PlaybackService : MediaLibraryService() {
         val media = curEpisode ?: return
 
         val localFeed = URLUtil.isContentUrl(media.downloadUrl)
-        val streaming = !media.localFileAvailable() || localFeed
+        val prevStreaming = streaming
+        streaming = isStreaming(media)
+        if (prevStreaming != streaming) createStaticPlayer(this, streaming)
+
         if (streaming && !localFeed && !isStreamingAllowed && !allowStreamThisTime) {
             displayStreamingNotAllowedNotification(PlaybackServiceStarter(this, media).intent)
             writeNoMediaPlaying()

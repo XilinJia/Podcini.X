@@ -77,6 +77,12 @@ object AppPreferences {
             putPref(AppPrefs.prefRewindSecs, secs)
         }
 
+    var streamingBackBufferSecs: Int
+        get() = getPref(AppPrefs.prefStreamingBackBufferSecs, 10)
+        set(secs) {
+            putPref(AppPrefs.prefStreamingBackBufferSecs, secs)
+        }
+
     var proxyConfig: ProxyConfig
         get() {
             val type = Proxy.Type.valueOf(getPref(AppPrefs.prefProxyType, Proxy.Type.DIRECT.name))
@@ -279,6 +285,7 @@ object AppPreferences {
         prefSkipSilence(false),
         prefFastForwardSecs(30),
         prefRewindSecs(10),
+        prefStreamingBackBufferSecs(300),
         prefQueueLocked(true),
         prefVideoPlaybackMode("1"),
     }

@@ -27,6 +27,7 @@ import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
+import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.MiscFormatter.dateStampFilename
@@ -425,15 +426,9 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
     val scrollState = rememberScrollState()
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
         var isAutoBackup by remember { mutableStateOf(getPref(AppPrefs.prefAutoBackup, false)) }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.pref_auto_backup_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.pref_auto_backup_sum), color = textColor)
-            }
-            Switch(checked = isAutoBackup, onCheckedChange = {
-                isAutoBackup = it
-                putPref(AppPrefs.prefAutoBackup, it)
-            })
+        TitleSummarySwitchPrefRow(R.string.pref_auto_backup_title, R.string.pref_auto_backup_sum, AppPrefs.prefAutoBackup) {
+            isAutoBackup = it
+            putPref(AppPrefs.prefAutoBackup, it)
         }
         if (isAutoBackup) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {

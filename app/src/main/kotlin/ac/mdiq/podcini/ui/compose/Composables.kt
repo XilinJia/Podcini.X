@@ -262,7 +262,7 @@ fun TitleSummaryActionColumn(titleRes: Int, summaryRes: Int, callback: ()-> Unit
 }
 
 @Composable
-fun TitleSummarySwitchPrefRow(titleRes: Int, summaryRes: Int, pref: AppPrefs) {
+fun TitleSummarySwitchPrefRow(titleRes: Int, summaryRes: Int, pref: AppPrefs, cb: ((Boolean)->Unit)? = null) {
     val textColor = MaterialTheme.colorScheme.onSurface
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
         Column(modifier = Modifier.weight(1f)) {
@@ -272,7 +272,9 @@ fun TitleSummarySwitchPrefRow(titleRes: Int, summaryRes: Int, pref: AppPrefs) {
         var isChecked by remember { mutableStateOf(getPref(pref, false)) }
         Switch(checked = isChecked, onCheckedChange = {
             isChecked = it
-            putPref(pref, it) })
+            if (cb != null) cb.invoke(it)
+            else putPref(pref, it)
+        })
     }
 }
 

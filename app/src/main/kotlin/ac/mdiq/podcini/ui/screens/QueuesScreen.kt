@@ -54,6 +54,7 @@ import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,6 +63,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
@@ -69,9 +71,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -83,6 +87,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -104,6 +109,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -437,6 +443,21 @@ fun QueuesScreen() {
         }
     }
 
+    var showBinLimitDialog by remember { mutableStateOf(false) }
+    if (showBinLimitDialog) {
+        var limitString by remember { mutableStateOf((curQueue.binLimit).toString()) }
+        AlertDialog(modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showBinLimitDialog = false },
+            text = { TextField(value = limitString, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("bin limit") }, singleLine = true,
+                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) limitString = it }) },
+            confirmButton = {
+                TextButton(onClick = {
+                    curQueue = upsertBlk(curQueue) { it.binLimit = limitString.toInt() }
+                    showBinLimitDialog = false
+                }) { Text(stringResource(R.string.confirm_label)) }
+            },
+            dismissButton = { TextButton(onClick = { showBinLimitDialog = false }) { Text(stringResource(R.string.cancel_label)) } } )
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
@@ -469,12 +490,14 @@ fun QueuesScreen() {
                     vm.refreshSwipeTelltale()
                     vm.loadCurQueue(false)
                 }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
-                IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) {
-                    Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                if (!vm.showBin) IconButton(onClick = { mainNavController.navigate(Screens.Search.name)
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
+                if (!vm.showBin) IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.bin_limit) + ": ${curQueue.binLimit}") }, onClick = {
+                        showBinLimitDialog
+                        expanded = false
+                    })
                     DropdownMenuItem(text = { Text(stringResource(R.string.clear_bin_label)) }, onClick = {
                         curQueue = upsertBlk(curQueue) {
                             it.idsBinList.clear()

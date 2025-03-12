@@ -221,19 +221,11 @@ class PreferenceActivity : ComponentActivity() {
             IconTitleSummaryScreenRow(R.drawable.ic_cloud, R.string.synchronization_pref, R.string.synchronization_sum, Screens.SynchronizationScreen.name)
             IconTitleSummaryScreenRow(R.drawable.ic_storage, R.string.import_export_pref, R.string.import_export_summary, Screens.ImportExportScreen.name)
             IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { navController.navigate(Screens.NotificationScreen.name) }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.pref_backup_on_google_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.pref_backup_on_google_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
-                }
-                var isChecked by remember { mutableStateOf(getPref(AppPrefs.prefOPMLBackup, true)) }
-                Switch(checked = isChecked, onCheckedChange = {
-                    isChecked = it
-                    putPref(AppPrefs.prefOPMLBackup, it)
-                    val intent = packageManager?.getLaunchIntentForPackage(packageName)
-                    intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                    startActivity(intent)
-                })
+            TitleSummarySwitchPrefRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, AppPrefs.prefOPMLBackup) {
+                putPref(AppPrefs.prefOPMLBackup, it)
+                val intent = packageManager?.getLaunchIntentForPackage(packageName)
+                intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                startActivity(intent)
             }
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
             Text(stringResource(R.string.project_pref), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
@@ -385,18 +377,22 @@ class PreferenceActivity : ComponentActivity() {
                 Text(stringResource(R.string.pref_theme_title_dark), color = textColor, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.pref_black_theme_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                    Text(stringResource(R.string.pref_black_theme_message), color = textColor)
-                }
-                var isChecked by remember { mutableStateOf(getPref(AppPrefs.prefThemeBlack, false)) }
-                Switch(checked = isChecked, onCheckedChange = {
-                    isChecked = it
-                    putPref(AppPrefs.prefThemeBlack, it)
-                    recreate()
-                })
+            TitleSummarySwitchPrefRow(R.string.pref_black_theme_title, R.string.pref_black_theme_message, AppPrefs.prefThemeBlack) {
+                putPref(AppPrefs.prefThemeBlack, it)
+                recreate()
             }
+//            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+//                Column(modifier = Modifier.weight(1f)) {
+//                    Text(stringResource(R.string.pref_black_theme_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+//                    Text(stringResource(R.string.pref_black_theme_message), color = textColor)
+//                }
+//                var isChecked by remember { mutableStateOf(getPref(AppPrefs.prefThemeBlack, false)) }
+//                Switch(checked = isChecked, onCheckedChange = {
+//                    isChecked = it
+//                    putPref(AppPrefs.prefThemeBlack, it)
+//                    recreate()
+//                })
+//            }
 //            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
 //                Column(modifier = Modifier.weight(1f)) {
 //                    Text(stringResource(R.string.pref_tinted_theme_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)

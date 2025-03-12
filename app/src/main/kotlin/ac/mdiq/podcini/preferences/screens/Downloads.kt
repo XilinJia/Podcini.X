@@ -402,27 +402,19 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
         }
         TitleSummaryActionColumn(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum) { navController.navigate(Screens.AutoDownloadScreen.name) }
         TitleSummarySwitchPrefRow(R.string.auto_delete, R.string.pref_auto_delete_sum, AppPrefs.prefAutoDelete)
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.pref_auto_local_delete_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.pref_auto_local_delete_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+        TitleSummarySwitchPrefRow(R.string.pref_auto_local_delete_title, R.string.pref_auto_local_delete_sum, AppPrefs.prefAutoDeleteLocal) {
+            if (blockAutoDeleteLocal && it) {
+                commonConfirm = CommonConfirmAttrib(
+                    title = "",
+                    message = activity.getString(R.string.pref_auto_local_delete_dialog_body),
+                    confirmRes = R.string.yes,
+                    cancelRes = R.string.cancel_label,
+                    onConfirm = {
+                        blockAutoDeleteLocal = false
+                        putPref(AppPrefs.prefAutoDeleteLocal, it)
+                        blockAutoDeleteLocal = true
+                    })
             }
-            var isChecked by remember { mutableStateOf(getPref(AppPrefs.prefAutoDeleteLocal, false)) }
-            Switch(checked = isChecked, onCheckedChange = {
-                isChecked = it
-                if (blockAutoDeleteLocal && it) {
-                    commonConfirm = CommonConfirmAttrib(
-                        title = "",
-                        message = activity.getString(R.string.pref_auto_local_delete_dialog_body),
-                        confirmRes = R.string.yes,
-                        cancelRes = R.string.cancel_label,
-                        onConfirm = {
-                            blockAutoDeleteLocal = false
-                            putPref(AppPrefs.prefAutoDeleteLocal, it)
-                            blockAutoDeleteLocal = true
-                        })
-                }
-            })
         }
         TitleSummarySwitchPrefRow(R.string.pref_keeps_important_episodes_title, R.string.pref_keeps_important_episodes_sum, AppPrefs.prefFavoriteKeepsEpisode)
         TitleSummarySwitchPrefRow(R.string.pref_delete_removes_from_queue_title, R.string.pref_delete_removes_from_queue_sum, AppPrefs.prefDeleteRemovesFromQueue)
@@ -537,15 +529,9 @@ fun AutoDownloadPreferencesScreen() {
     val scrollState = rememberScrollState()
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
         var isEnabled by remember { mutableStateOf(getPref(AppPrefs.prefEnableAutoDl, false)) }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.pref_automatic_download_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.pref_automatic_download_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
-            }
-            Switch(checked = isEnabled, onCheckedChange = {
-                isEnabled = it
-                putPref(AppPrefs.prefEnableAutoDl, it)
-            })
+        TitleSummarySwitchPrefRow(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum, AppPrefs.prefEnableAutoDl) {
+            isEnabled = it
+            putPref(AppPrefs.prefEnableAutoDl, it)
         }
         if (isEnabled) {
             Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
