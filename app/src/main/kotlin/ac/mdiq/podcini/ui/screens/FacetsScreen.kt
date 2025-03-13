@@ -40,6 +40,7 @@ import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
+import ac.mdiq.podcini.ui.compose.buildListInfo
 import ac.mdiq.podcini.ui.compose.stopMonitor
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -80,7 +81,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.derivedStateOf
@@ -129,7 +129,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
 
     var swipeActions: SwipeActions = SwipeActions(context, TAG)
 
-    var filter: EpisodeFilter = EpisodeFilter()
     internal var showFeeds by mutableStateOf(false)
 
     val episodes = mutableListOf<Episode>()
@@ -138,8 +137,10 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
 
     var showFilterDialog by mutableStateOf(false)
     var showSortDialog by mutableStateOf(false)
-    var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
     internal var showDatesFilter by mutableStateOf(false)
+
+    internal var isFiltered by mutableStateOf(false)
+    internal var filterButtonColor = mutableStateOf(Color.White)
 
     var actionButtonToPass by mutableStateOf<((Episode) -> EpisodeActionButton)?>(null)
 
@@ -283,7 +284,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     private fun getHistory(offset: Int, limit: Int, start: Long = 0L, end: Long = Date().time,
                    sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_NEW_OLD): List<Episode> {
         Logd(TAG, "getHistory() called")
-        val medias = realm.query(Episode::class).query("(playbackCompletionTime > 0) OR (lastPlayedTime > \$0 AND lastPlayedTime <= \$1)", start, end).find()
+        val medias = realm.query(Episode::class).query("(playbackCompletionTime > 0) OR (lastPlayedTime > $0 AND lastPlayedTime <= $1)", start, end).find()
         var episodes: MutableList<Episode> = mutableListOf()
         for (m in medias) episodes.add(m)
         getPermutor(sortOrder).reorder(episodes)
@@ -293,9 +294,10 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
 
     var progressing by mutableStateOf(false)
     fun updateToolbar() {
-        var info = "${episodes.size} episodes"
-        if (spinnerTexts[curIndex] == QuickAccess.All.name && filter.propertySet.isNotEmpty()) info += " - ${context.getString(R.string.filtered_label)}"
-        else if (spinnerTexts[curIndex] == QuickAccess.Downloaded.name && episodes.isNotEmpty()) {
+        var info = buildListInfo(context, episodes)
+        isFiltered = filter.propertySet.isNotEmpty()
+        filterButtonColor.value = if (isFiltered) Color.Green else Color.White
+        if (spinnerTexts[curIndex] == QuickAccess.Downloaded.name && episodes.isNotEmpty()) {
             var sizeMB: Long = 0
             for (item in episodes) sizeMB += item.size
             info += " • " + (sizeMB / 1000000) + " MB"
@@ -305,8 +307,8 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun clearNew() {
+        progressing = true
         runOnIOScope {
-            progressing = true
             for (e in episodes) if (e.isNew) upsert(e) { it.setPlayed(false) }
             withContext(Dispatchers.Main) {
                 progressing = false
@@ -496,7 +498,7 @@ fun FacetsScreen() {
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     vm.refreshSwipeTelltale()
                     vm.curIndex = getPref(AppPrefs.prefFacetsCurIndex, 0)
-                    vm.sortOrder = vm.episodesSortOrder
+                    sortOrder = vm.episodesSortOrder
                     vm.updateToolbar()
                 }
                 Lifecycle.Event.ON_START -> {
@@ -524,13 +526,13 @@ fun FacetsScreen() {
             vm.swipeActions.actions = actions
             vm.refreshSwipeTelltale()
         }
-        if (vm.showFilterDialog) EpisodesFilterDialog(filter = vm.filter, filtersDisabled = vm.filtersDisabled(),
+        if (vm.showFilterDialog) EpisodesFilterDialog(filter = filter, filtersDisabled = vm.filtersDisabled(),
             onDismissRequest = { vm.showFilterDialog = false }) { filter -> vm.onFilterChanged(filter) }
-        if (vm.showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, onDismissRequest = { vm.showSortDialog = false }) { order, _ -> vm.onSort(order) }
+        if (vm.showSortDialog) EpisodeSortDialog(initOrder = sortOrder, onDismissRequest = { vm.showSortDialog = false }) { order, _ -> vm.onSort(order) }
         vm.swipeActions.ActionOptionsDialog()
         ComfirmDialog(titleRes = R.string.clear_history_label, message = stringResource(R.string.clear_playback_history_msg), showDialog = vm.showClearHistoryDialog) { vm.clearHistory() }
         if (vm.showDatesFilter) DatesFilterDialog(oldestDate = 0L, onDismissRequest = { vm.showDatesFilter = false} ) { timeFilterFrom, timeFilterTo ->
-            EventFlow.postEvent(FlowEvent.HistoryEvent(vm.sortOrder, timeFilterFrom, timeFilterTo))
+            EventFlow.postEvent(FlowEvent.HistoryEvent(sortOrder, timeFilterFrom, timeFilterTo))
         }
     }
 
@@ -538,6 +540,7 @@ fun FacetsScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
+        val textColor = MaterialTheme.colorScheme.onSurface
         TopAppBar(title = {
             SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
                 Logd(TAG, "Item selected: $index")
@@ -561,7 +564,7 @@ fun FacetsScreen() {
                     }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
                     IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
-                    if (vm.spinnerTexts[vm.curIndex] == QuickAccess.All.name) IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
+                    if (vm.spinnerTexts[vm.curIndex] == QuickAccess.All.name) IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "filter") }
                     if (vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name) IconButton(onClick = { vm.showDatesFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
                     if (vm.spinnerTexts[vm.curIndex] in listOf(QuickAccess.History.name, QuickAccess.Downloaded.name, QuickAccess.New.name)) {
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
@@ -679,3 +682,5 @@ enum class QuickAccess {
 private val TAG = Screens.Facets.name
 private const val KEY_UP_ARROW = "up_arrow"
 
+private var filter: EpisodeFilter = EpisodeFilter()
+private var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)

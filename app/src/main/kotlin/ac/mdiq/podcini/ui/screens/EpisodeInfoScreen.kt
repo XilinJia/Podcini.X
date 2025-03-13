@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
-import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
@@ -16,7 +15,6 @@ import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -113,7 +111,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
-import java.io.File
 import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -122,7 +119,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.Request.Builder
 
 class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal val actMain: MainActivity? = generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull()
@@ -205,7 +201,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
             isImageDownloadAllowed && !media.checkedOnSizeButUnknown() -> {
                 txtvSize = "{faw_spinner}"
                 lcScope.launch {
-                    val sizeValue = getMediaSize(episode)
+                    val sizeValue = episode?.fetchMediaSize() ?: 0L
                     txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
                 }
             }
@@ -513,46 +509,3 @@ fun EpisodeInfoScreen() {
 }
 
 private const val TAG: String = "EpisodeInfoScreen"
-
-private suspend fun getMediaSize(episode: Episode?) : Long {
-    return withContext(Dispatchers.IO) {
-        if (!isImageDownloadAllowed) return@withContext -1
-        val media = episode ?: return@withContext -1
-
-        var size = Int.MIN_VALUE.toLong()
-        when {
-            media.downloaded -> {
-                val url = media.fileUrl
-                if (!url.isNullOrEmpty()) {
-                    val mediaFile = File(url)
-                    if (mediaFile.exists()) size = mediaFile.length()
-                }
-            }
-            !media.checkedOnSizeButUnknown() -> {
-                // only query the network if we haven't already checked
-
-                val url = media.downloadUrl
-                if (url.isNullOrEmpty()) return@withContext -1
-
-                val client = getHttpClient()
-                val httpReq: Builder = Builder().url(url).header("Accept-Encoding", "identity").head()
-                try {
-                    val response = client.newCall(httpReq.build()).execute()
-                    if (response.isSuccessful) {
-                        val contentLength = response.header("Content-Length")?:"0"
-                        try { size = contentLength.toInt().toLong() } catch (e: NumberFormatException) { Logs(TAG, e) }
-                    }
-                } catch (e: Exception) {
-                    Logs(TAG, e)
-                    return@withContext -1  // better luck next time
-                }
-            }
-        }
-        // they didn't tell us the size, but we don't want to keep querying on it
-        upsert(episode) {
-            if (size <= 0) it.setCheckedOnSizeButUnknown()
-            else it.size = size
-        }
-        size
-    }
-}

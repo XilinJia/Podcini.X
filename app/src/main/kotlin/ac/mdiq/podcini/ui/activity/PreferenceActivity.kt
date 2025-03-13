@@ -233,9 +233,7 @@ class PreferenceActivity : ComponentActivity() {
             IconTitleActionRow(R.drawable.ic_chat, R.string.visit_user_forum) { openInBrowser(this@PreferenceActivity, "${githubAddress}/discussions") }
             IconTitleActionRow(R.drawable.ic_contribute, R.string.pref_contribute) { openInBrowser(this@PreferenceActivity, githubAddress) }
             IconTitleActionRow(R.drawable.ic_bug, R.string.bug_report_title) { startActivity(Intent(this@PreferenceActivity, BugReportActivity::class.java)) }
-            IconTitleActionRow(R.drawable.ic_info, R.string.about_pref) {
-                navController.navigate(Screens.AboutScreen.name)
-            }
+            IconTitleActionRow(R.drawable.ic_info, R.string.about_pref) { navController.navigate(Screens.AboutScreen.name) }
         }
     }
 

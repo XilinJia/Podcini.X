@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.preferences
 
-import ac.mdiq.podcini.storage.database.Feeds.updateFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.Episode
@@ -211,7 +211,7 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                     item.feedId = null
                     item.feed = feed
                 }
-                updateFeed(activity, feed, false, true)
+                updateFeedFull(activity, feed, false, true)
             }
         }
     }

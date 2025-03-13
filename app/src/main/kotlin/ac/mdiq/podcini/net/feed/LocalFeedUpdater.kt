@@ -57,7 +57,7 @@ object LocalFeedUpdater {
     fun tryUpdateFeed(feed: Feed, context: Context, folderUri: Uri?, updaterProgressListener: UpdaterProgressListener?) {
         var feed = feed
         //make sure it is the latest 'version' of this feed from the db (all items etc)
-        feed = Feeds.updateFeed(context, feed, false)?: feed
+        feed = Feeds.updateFeedFull(context, feed, false)?: feed
 
         // list files in feed folder
         val allFiles = FastDocumentFile.list(context, folderUri)
@@ -90,7 +90,7 @@ object LocalFeedUpdater {
         feed.autoDownload = false
         feed.description = context.getString(R.string.local_feed_description)
         feed.author = context.getString(R.string.local_folder)
-        Feeds.updateFeed(context, feed, true)
+        Feeds.updateFeedFull(context, feed, true)
     }
 
     /**

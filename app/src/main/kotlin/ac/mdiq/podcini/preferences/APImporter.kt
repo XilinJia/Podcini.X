@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.preferences
 
-import ac.mdiq.podcini.storage.database.Feeds.updateFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
@@ -82,7 +82,7 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
         }
     }
 
-    fun buildFeeds(db: SQLiteDatabase) {
+    suspend fun buildFeeds(db: SQLiteDatabase) {
         val cursor = db.rawQuery("SELECT * FROM Feeds", null)
         cursor.use {
             val columnCount = cursor.columnCount
@@ -123,13 +123,12 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
                     item.feedId = null
                     item.feed = feed
                 }
-                updateFeed(activity, feed, false, true)
+                updateFeedFull(activity, feed, false, true)
             }
         }
     }
 
     Logd(TAG, "chooseAPImportPathLauncher: uri: $uri")
-
     CoroutineScope(Dispatchers.IO).launch {
         val dbFile = File(activity.filesDir, "temp.db")
         activity.contentResolver.openInputStream(uri)?.use { inputStream -> dbFile.outputStream().use { outputStream -> inputStream.copyTo(outputStream) } }

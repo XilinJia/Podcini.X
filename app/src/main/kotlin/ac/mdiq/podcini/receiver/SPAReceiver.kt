@@ -2,7 +2,7 @@ package ac.mdiq.podcini.receiver
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
-import ac.mdiq.podcini.storage.database.Feeds.updateFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
@@ -36,7 +36,7 @@ class SPAReceiver : BroadcastReceiver() {
         for (url in feedUrls) {
             val feed = Feed(url, null, "Unknown podcast")
             feed.episodes.clear()
-            updateFeed(context, feed, false)
+            updateFeedFull(context, feed, false)
         }
          Logt(TAG, context.getString(R.string.sp_apps_importing_feeds_msg))
         runOnce(context)

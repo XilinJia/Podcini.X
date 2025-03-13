@@ -259,8 +259,7 @@ class MainActivity : BaseActivity() {
                 var isRefreshingFeeds = false
                 for (workInfo in workInfos) {
                     when (workInfo.state) {
-                        WorkInfo.State.RUNNING -> isRefreshingFeeds = true
-                        WorkInfo.State.ENQUEUED -> isRefreshingFeeds = true
+                        WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED -> isRefreshingFeeds = true
                         else -> {}
                     }
                 }

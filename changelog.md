@@ -1,3 +1,15 @@
+# 8.11.4
+
+* fixed bin limit setting dialog not showing in Queues
+* when setting back buffer size, ensure player be recreated on next play
+* filter and sort in Facets are persisted for the session
+* filter on Facets is also indicated by the color of the filter button on topbar
+* info bar in FeedDetails screen shows about episodes list
+* media sizes of new episodes are fetched during feeds refresh
+* added menu item "Fetch size" in FeedDetails to refresh media sizes
+* added more measures in Overview of Statistics screen
+* "Prefer low audio quality" setting in Playback Settings is disabled (not used)
+
 # 8.11.3
 
 * corrected auto-enqueue filter name in Subscriptions

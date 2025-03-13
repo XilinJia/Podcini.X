@@ -129,19 +129,19 @@ class Feed : RealmObject {
 
     @Ignore
     var episodeFilter: EpisodeFilter = EpisodeFilter("")
-        set(value) {
-            field = value
-            filterString = value.propertySet.joinToString()
-            titleFilterText = value.titleText
-            durationFloor = value.durationFloor
-            durationCeiling = value.durationCeiling
-        }
         get() {
             val f = EpisodeFilter(filterString)
             f.titleText = titleFilterText
             f.durationFloor = durationFloor
             f.durationCeiling = durationCeiling
             return f
+        }
+        set(value) {
+            field = value
+            filterString = value.propertySet.joinToString()
+            titleFilterText = value.titleText
+            durationFloor = value.durationFloor
+            durationCeiling = value.durationCeiling
         }
     var filterString: String = ""
     var titleFilterText: String = ""

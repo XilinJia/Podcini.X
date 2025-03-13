@@ -6,9 +6,11 @@ import ac.mdiq.podcini.net.feed.parser.media.id3.ChapterReader
 import ac.mdiq.podcini.net.feed.parser.media.id3.ID3ReaderException
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentChapterReader
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
+import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
+import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting.Companion.fromInteger
 import ac.mdiq.podcini.storage.utils.ChapterUtils.ChapterStartTimeComparator
 import ac.mdiq.podcini.storage.utils.ChapterUtils.loadChaptersFromUrl
@@ -46,6 +48,8 @@ import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.InputStream
 import java.util.Date
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.Request
 import okhttp3.Request.Builder
 import org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR
@@ -104,9 +108,9 @@ class Episode : RealmObject {
         get() = field ?: Date(playStateSetTime)
         set(value) {
             field = value?.clone() as? Date
-            this.playStateSetTime = value?.time ?: 0
+            this.playStateSetTime = value?.time ?: 0L
         }
-    var playStateSetTime: Long = 0
+    var playStateSetTime: Long = 0L
 
     var paymentLink: String? = null
 
@@ -614,6 +618,50 @@ class Episode : RealmObject {
         val title = feed?.title?:return ""
         val mediaPath = (MEDIA_DOWNLOADPATH + generateFileName(title))
         return getDataFolder(mediaPath).toString() + "/"
+    }
+
+    suspend fun fetchMediaSize(persist: Boolean = true) : Long {
+        return withContext(Dispatchers.IO) {
+            if (!isImageDownloadAllowed) {
+                Logt(TAG, "need unrestricted network or allow image on mobile for fetchMediaSize")
+                return@withContext -1
+            }
+
+            var size_ = CHECKED_ON_SIZE_BUT_UNKNOWN.toLong()
+            when {
+                downloaded -> {
+                    val url = fileUrl
+                    if (!url.isNullOrEmpty()) {
+                        val mediaFile = File(url)
+                        if (mediaFile.exists()) size_ = mediaFile.length()
+                    }
+                }
+                !checkedOnSizeButUnknown() -> {
+                    // only query the network if we haven't already checked
+                    val url = downloadUrl
+                    if (url.isNullOrEmpty()) return@withContext -1
+
+                    val client = getHttpClient()
+                    val httpReq: Builder = Builder().url(url).header("Accept-Encoding", "identity").head()
+                    try {
+                        val response = client.newCall(httpReq.build()).execute()
+                        if (response.isSuccessful) {
+                            val contentLength = response.header("Content-Length")?:"0"
+                            try { size_ = contentLength.toInt().toLong() } catch (e: NumberFormatException) { Logs(TAG, e) }
+                        }
+                    } catch (e: Exception) {
+                        Logs(TAG, e)
+                        return@withContext -1  // better luck next time
+                    }
+                }
+            }
+            // they didn't tell us the size, but we don't want to keep querying on it
+            if (persist) upsert(this@Episode) {
+                if (size_ <= 0) it.setCheckedOnSizeButUnknown()
+                else it.size = size_
+            }
+            size_
+        }
     }
 
     /**

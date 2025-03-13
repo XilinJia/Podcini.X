@@ -117,7 +117,7 @@ class PlaybackService : MediaLibraryService() {
     private val status: PlayerStatus
         get() = MediaPlayerBase.status
 
-    private var streaming: Boolean = false
+    var streaming: Boolean? = null
 
     val curSpeed: Float
         get() = mPlayer?.getPlaybackSpeed() ?: 1.0f
@@ -927,9 +927,9 @@ class PlaybackService : MediaLibraryService() {
         val localFeed = URLUtil.isContentUrl(media.downloadUrl)
         val prevStreaming = streaming
         streaming = isStreaming(media)
-        if (prevStreaming != streaming) createStaticPlayer(this, streaming)
+        if (prevStreaming != streaming) createStaticPlayer(this, streaming!!)
 
-        if (streaming && !localFeed && !isStreamingAllowed && !allowStreamThisTime) {
+        if (streaming!! && !localFeed && !isStreamingAllowed && !allowStreamThisTime) {
             displayStreamingNotAllowedNotification(PlaybackServiceStarter(this, media).intent)
             writeNoMediaPlaying()
             return
@@ -938,7 +938,7 @@ class PlaybackService : MediaLibraryService() {
 //        TODO: this is redundant
 //        if (media.id != curState.curMediaId) clearCurTempSpeed()
 
-        mPlayer?.playMediaObject(media, streaming, startWhenPrepared = true, true)
+        mPlayer?.playMediaObject(media, streaming!!, startWhenPrepared = true, true)
 //        recreateMediaSessionIfNeeded()
 //        val episode = (media as? EpisodeMedia)?.episode
 //        if (curMedia is EpisodeMedia && episode != null) addToQueue(true, episode)

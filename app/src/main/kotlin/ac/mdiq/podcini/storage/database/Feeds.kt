@@ -52,6 +52,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlin.math.abs
 
 object Feeds {
@@ -198,7 +199,7 @@ object Feeds {
      * @return The updated Feed from the database if it already existed, or the new Feed from the parameters otherwise.
      */
     @Synchronized
-    fun updateFeed(context: Context, newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteOld: Boolean = false): Feed? {
+    fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteOld: Boolean = false): Feed? {
         Logd(TAG, "updateFeed called")
         showStackTrace()
         var resultFeed: Feed?
@@ -279,6 +280,8 @@ object Feeds {
                 episode.feed = savedFeed
                 episode.id = idLong++
                 episode.feedId = savedFeed.id
+                runBlocking { episode.fetchMediaSize(false) }
+
                 if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
                 if (idx >= savedFeed.episodes.size) savedFeed.episodes.add(episode)
                 else savedFeed.episodes.add(idx, episode)
@@ -330,8 +333,7 @@ object Feeds {
         return resultFeed
     }
 
-    @Synchronized
-    fun updateFeedSimple(newFeed: Feed): Feed? {
+    suspend fun updateFeedSimple(newFeed: Feed): Feed? {
         Logd(TAG, "updateFeedSimple called")
         val savedFeed = searchFeedByIdentifyingValueOrID(newFeed, true) ?: return newFeed
 
@@ -361,6 +363,7 @@ object Feeds {
             episode.feed = savedFeed
             episode.id = idLong++
             episode.feedId = savedFeed.id
+            episode.fetchMediaSize(false)
             if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
             if (idx >= savedFeed.episodes.size) savedFeed.episodes.add(episode)
             else savedFeed.episodes.add(idx, episode)
@@ -384,7 +387,7 @@ object Feeds {
         for (e in savedFeed.episodes) savedFeed.totleDuration += e.duration
 
         val resultFeed = savedFeed
-        try { upsertBlk(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
+        try { upsert(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
         return resultFeed
     }
 

@@ -26,7 +26,7 @@ import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Feeds.deleteFeedSync
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.Feeds.getFeedListDownloadUrls
-import ac.mdiq.podcini.storage.database.Feeds.updateFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -132,7 +132,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
                 if (!containsUrl(localSubscriptions, downloadUrl) && !queuedRemovedFeeds.contains(downloadUrl)) {
                     val feed = Feed(downloadUrl, null, "Unknown podcast")
                     feed.episodes.clear()
-                    val newFeed = updateFeed(applicationContext, feed, false)
+                    val newFeed = updateFeedFull(applicationContext, feed, false)
                     runOnce(applicationContext, newFeed)
                 }
             }

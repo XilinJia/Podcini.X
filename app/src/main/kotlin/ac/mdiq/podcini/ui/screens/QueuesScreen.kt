@@ -4,7 +4,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.mediaBrowser
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
@@ -27,7 +26,6 @@ import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.Rating
-import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
@@ -41,6 +39,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
+import ac.mdiq.podcini.ui.compose.buildListInfo
 import ac.mdiq.podcini.ui.compose.stopMonitor
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
@@ -124,7 +123,6 @@ import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import java.text.NumberFormat
-import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -143,7 +141,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     internal var rightActionStateBin = mutableStateOf<SwipeAction>(NoAction())
 
     internal var infoTextUpdate = ""
-    internal var infoText = ""
+    internal var listInfoText = ""
     internal var infoBarText = mutableStateOf("")
 
     internal var showSwipeActionsDialog by mutableStateOf(false)
@@ -213,7 +211,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                     is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)
                     is FlowEvent.FeedUpdatingEvent -> {
                         infoTextUpdate = if (event.isRunning) "U" else ""
-                        infoBarText.value = "$infoText $infoTextUpdate"
+                        infoBarText.value = "$listInfoText $infoTextUpdate"
                     }
                     else -> {}
                 }
@@ -278,7 +276,8 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         curIndex = queues.indexOfFirst { it.id == curQueue.id }
         spinnerTexts.clear()
         spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
-        refreshInfoBar()
+        listInfoText = buildListInfo(context, queueItems)
+        infoBarText.value = "$listInfoText $infoTextUpdate"
     }
 
     private fun onPlayEvent(event: FlowEvent.PlayEvent) {
@@ -318,22 +317,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    private fun refreshInfoBar() {
-        infoText = String.format(Locale.getDefault(), "%d%s", queueItems.size, context.getString(R.string.episodes_suffix))
-        if (queueItems.isNotEmpty()) {
-            var timeLeft: Long = 0
-            for (item in queueItems) {
-                var playbackSpeed = 1f
-                if (getPref(AppPrefs.prefPlaybackTimeRespectsSpeed, false)) playbackSpeed = getCurrentPlaybackSpeed(item)
-                val itemTimeLeft: Long = (item.duration - item.position).toLong()
-                timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
-            }
-            infoText += " • "
-            infoText += DurationConverter.getDurationStringLocalized(timeLeft)
-        }
-        infoBarText.value = "$infoText $infoTextUpdate"
-    }
-
     private var loadItemsRunning = false
     internal fun loadCurQueue(restoreScrollPosition: Boolean) {
         if (!loadItemsRunning) {
@@ -356,7 +339,8 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             curIndex = queues.indexOfFirst { it.id == curQueue.id }
             spinnerTexts.clear()
             spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
-            refreshInfoBar()
+            listInfoText = buildListInfo(context, queueItems)
+            infoBarText.value = "$listInfoText $infoTextUpdate"
             loadItemsRunning = false
         }
     }
@@ -495,7 +479,7 @@ fun QueuesScreen() {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.bin_limit) + ": ${curQueue.binLimit}") }, onClick = {
-                        showBinLimitDialog
+                        showBinLimitDialog = true
                         expanded = false
                     })
                     DropdownMenuItem(text = { Text(stringResource(R.string.clear_bin_label)) }, onClick = {
@@ -686,7 +670,6 @@ fun QueuesScreen() {
                         queueKeepSortedOrder = sortOrder
                         vm.reorderQueue(sortOrder, true)
                     }
-
                     InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
                     val leftCB = { episode: Episode ->
                         if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true

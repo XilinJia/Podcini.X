@@ -28,6 +28,8 @@ open class GearBoxBase {
 
     open fun init() {}
 
+    open fun supportAudioQualities(): Boolean = false
+
     @Composable
     open fun ConfirmAddEpisode(sharedUrls: List<String>, showDialog: Boolean, onDismissRequest: () -> Unit) {}
 

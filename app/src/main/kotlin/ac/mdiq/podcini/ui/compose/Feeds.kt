@@ -22,7 +22,7 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getPreserveSyndicate
 import ac.mdiq.podcini.storage.database.Feeds.getTags
 import ac.mdiq.podcini.storage.database.Feeds.shelveToFeed
-import ac.mdiq.podcini.storage.database.Feeds.updateFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
@@ -680,7 +680,7 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
                                     val element = readElements[i]
                                     val feed = Feed(element.xmlUrl, null, if (element.text != null) element.text else "Unknown podcast")
                                     feed.episodes.clear()
-                                    updateFeed(context, feed, false)
+                                    updateFeedFull(context, feed, false)
                                 }
                                 runOnce(context)
                             }

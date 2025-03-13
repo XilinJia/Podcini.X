@@ -1,8 +1,10 @@
 package ac.mdiq.podcini.preferences.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
 import ac.mdiq.podcini.playback.base.VideoMode
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.streamingBackBufferSecs
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
@@ -149,12 +151,15 @@ fun PlaybackPreferencesScreen() {
         if (prefStreaming) Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.pref_back_butter), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                IntervalEditor(streamingBackBufferSecs, modifier = Modifier.weight(0.6f)) { streamingBackBufferSecs = it }
+                IntervalEditor(streamingBackBufferSecs, modifier = Modifier.weight(0.6f)) {
+                    streamingBackBufferSecs = it
+                    playbackService?.streaming = null
+                }
             }
             Text(stringResource(R.string.pref_back_butter_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
 
-        TitleSummarySwitchPrefRow(R.string.pref_low_quality_on_mobile_title, R.string.pref_low_quality_on_mobile_sum, AppPrefs.prefLowQualityOnMobile)
+        if (gearbox.supportAudioQualities()) TitleSummarySwitchPrefRow(R.string.pref_low_quality_on_mobile_title, R.string.pref_low_quality_on_mobile_sum, AppPrefs.prefLowQualityOnMobile)
         TitleSummarySwitchPrefRow(R.string.pref_use_adaptive_progress_title, R.string.pref_use_adaptive_progress_sum, AppPrefs.prefUseAdaptiveProgressUpdate)
         var showVideoModeDialog by remember { mutableStateOf(false) }
         if (showVideoModeDialog) VideoModeDialog(initMode =  VideoMode.fromCode(videoPlayMode), onDismissRequest = { showVideoModeDialog = false }) { mode -> putPref(AppPrefs.prefVideoPlaybackMode, mode.code.toString()) }

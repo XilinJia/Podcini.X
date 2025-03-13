@@ -102,6 +102,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -122,13 +123,18 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     var statsOfDay by mutableStateOf(StatisticsResult())
     var statsResult by mutableStateOf(StatisticsResult())
 
-    internal var showTodayStats by mutableStateOf(false)
-
     var chartData by mutableStateOf<LineChartData?>(null)
+    var numPlayedSum by mutableIntStateOf(0)    // TODO: not right
+    var numStartedSum by mutableIntStateOf(0)
     var timeSpentSum by mutableLongStateOf(0L)
     var timeFilterFrom by mutableLongStateOf(prefs.getLong(Prefs.FilterFrom.name, 0L))
     var timeFilterTo by mutableLongStateOf(prefs.getLong(Prefs.FilterTo.name, Long.MAX_VALUE))
+    var numDays by mutableIntStateOf(1)
+    var periodText by mutableStateOf("")
 
+    internal var showTodayStats by mutableStateOf(false)
+    var numPlayedToday by mutableIntStateOf(0)      // TODO: not right
+    var numStartedToday by mutableIntStateOf(0)
     var timePlayedToday by mutableLongStateOf(0L)
     var timeSpentToday by mutableLongStateOf(0L)
 
@@ -147,12 +153,22 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
         prefs.edit()?.putLong(Prefs.FilterFrom.name, timeFilterFrom_)?.putLong(Prefs.FilterTo.name, timeFilterTo_)?.apply()
     }
 
+    fun numOfDays(): Int {
+        val dateFrom = Date(if (timeFilterFrom != 0L) timeFilterFrom else statsResult.oldestDate).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+        val dateTo = (if (timeFilterTo != Long.MAX_VALUE) Date(timeFilterTo) else Date()).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+        return ChronoUnit.DAYS.between(dateFrom, dateTo).toInt()
+    }
+
     fun loadDailyStats() {
         Logd(TAG, "loadDailyStats")
         statsOfDay = getStatistics(date.atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli(), date.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli())
+        numPlayedToday = 0
+        numStartedToday = 0
         timePlayedToday = 0
         timeSpentToday = 0
         for (item in statsOfDay.statsItems) {
+            numPlayedToday += item.numEpisodes.toInt()
+            numStartedToday += item.episodesStarted.toInt()
             timePlayedToday += item.timePlayed
             timeSpentToday += item.timeSpent
         }
@@ -166,12 +182,23 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
             statsResult.statsItems.sortWith { item1: StatisticsItem, item2: StatisticsItem -> item2.timePlayed.compareTo(item1.timePlayed) }
             val chartValues = MutableList(statsResult.statsItems.size){0f}
             timeSpentSum = 0
+            numPlayedSum = 0
+            numStartedSum = 0
             for (i in statsResult.statsItems.indices) {
                 val item = statsResult.statsItems[i]
                 chartValues[i] = item.timePlayed.toFloat()
                 timeSpentSum += item.timeSpent
+                numPlayedSum += item.numEpisodes.toInt()
+                numStartedSum += item.episodesStarted.toInt()
             }
             chartData = LineChartData(chartValues)
+            numDays = numOfDays()
+            periodText = run {
+                    val dateFormat = SimpleDateFormat("MM/dd/yy", Locale.getDefault())
+                    val dateFrom = dateFormat.format(Date(if (timeFilterFrom != 0L) timeFilterFrom else statsResult.oldestDate))
+                    val dateTo = dateFormat.format(if (timeFilterTo != Long.MAX_VALUE) Date(timeFilterTo) else Date())
+                    "$dateFrom to $dateTo"
+                }
             // When "from" is "today", set it to today
 //            setTimeFilter(max(min(timeFilterFrom.toDouble(), System.currentTimeMillis().toDouble()), statsResult.oldestDate.toDouble()).toLong(),
 //                min(timeFilterTo.toDouble(), System.currentTimeMillis().toDouble()).toLong())
@@ -366,24 +393,36 @@ fun StatisticsScreen() {
                 Spacer(Modifier.weight(1f))
             }
             Row {
+//                Text(stringResource(R.string.played) + ": " + vm.numPlayedToday, color = textColor)
+//                Spacer(Modifier.width(20.dp))
+                Text( stringResource(R.string.started) + ": " + vm.numStartedToday, color = textColor)
+            }
+            Row {
                 Text(stringResource(R.string.duration) + ": " + getDurationStringShort(vm.timePlayedToday.toInt()*1000, true), color = textColor)
                 Spacer(Modifier.width(20.dp))
                 Text( stringResource(R.string.spent) + ": " + getDurationStringShort(vm.timeSpentToday.toInt()*1000, true), color = textColor)
             }
-            val headerCaption = if (vm.timeFilterFrom != 0L || vm.timeFilterTo != Long.MAX_VALUE) {
-                    val skeleton = DateFormat.getBestDateTimePattern(Locale.getDefault(), "MMM yyyy")
-                    val dateFormat = SimpleDateFormat(skeleton, Locale.getDefault())
-                    val dateFrom = dateFormat.format(Date(vm.timeFilterFrom))
-                    // FilterTo is first day of next month => Subtract one day
-                    val dateTo = dateFormat.format(Date(vm.timeFilterTo - 24L * 3600000L))
-                    stringResource(R.string.statistics_counting_range, dateFrom, dateTo)
-                } else stringResource(R.string.statistics_counting_total)
-
-            Text(headerCaption, color = textColor, modifier = Modifier.padding(top = 20.dp))
+            Text(vm.periodText, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(top = 20.dp))
             Row {
-                Text(stringResource(R.string.duration) + ": " + durationInHours((vm.chartData?.sum ?: 0).toLong()), color = textColor)
+//                Text(stringResource(R.string.played) + ": " + vm.numPlayedSum, color = textColor)
+//                Spacer(Modifier.width(20.dp))
+                Text( stringResource(R.string.started) + ": " + vm.numStartedSum, color = textColor)
+            }
+            Row {
+                Text(stringResource(R.string.duration) + ": " + getDurationStringShort(((vm.chartData?.sum?:0f)*1000).toInt(), true), color = textColor)
                 Spacer(Modifier.width(20.dp))
-                Text( stringResource(R.string.spent) + ": " + durationInHours(vm.timeSpentSum), color = textColor)
+                Text( stringResource(R.string.spent) + ": " + getDurationStringShort((vm.timeSpentSum*1000).toInt(), true), color = textColor)
+            }
+            Text(stringResource(R.string.daily_average), style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(top = 20.dp))
+            Row {
+//                Text(stringResource(R.string.played) + ": " + 1f*vm.numPlayedSum/vm.numDays, color = textColor)
+//                Spacer(Modifier.width(20.dp))
+                Text( stringResource(R.string.started) + ": " + 1f*vm.numStartedSum/vm.numDays, color = textColor)
+            }
+            Row {
+                Text(stringResource(R.string.duration) + ": " + getDurationStringShort(((vm.chartData?.sum?:0f)*1000/vm.numDays).toInt(), true), color = textColor)
+                Spacer(Modifier.width(20.dp))
+                Text( stringResource(R.string.spent) + ": " + getDurationStringShort((vm.timeSpentSum*1000/vm.numDays).toInt(), true), color = textColor)
             }
         }
     }
@@ -692,7 +731,7 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
     result.oldestDate = Long.MAX_VALUE
     for ((fid, episodes) in groupdMedias) {
         val feed = getFeed(fid, false) ?: continue
-        val numEpisodes = feed.episodes.size.toLong()
+        val numEpisodes = episodes.size.toLong()
         var playedTime = 0L
         var timeSpent = 0L
         var durationWithSkip = 0L
@@ -702,7 +741,8 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
         var episodesDownloadCount = 0L
         for (e in episodes) {
             if (feedId != 0L || !forDL) {
-                if (e.lastPlayedTime > 0 && e.lastPlayedTime < result.oldestDate) result.oldestDate = e.lastPlayedTime
+                if (e.lastPlayedTime > 0L && e.lastPlayedTime < result.oldestDate) result.oldestDate = e.lastPlayedTime
+                if (e.playStateSetTime > 0L && e.playStateSetTime < result.oldestDate) result.oldestDate = e.playStateSetTime
                 totalTime += e.duration
                 Logd(TAG, "getStatistics countPlayed: $countPlayed e.playState: ${e.playState} e.timeSpent: ${e.timeSpent} ${e.title}")
                 if (e.playState in listOf(PlayState.PLAYED.code, PlayState.SKIPPED.code, PlayState.PASSED.code, PlayState.IGNORED.code)) {

@@ -37,11 +37,11 @@ object DurationConverter {
      * Converts milliseconds to a string containing hours and minutes or minutes and seconds.
      */
     @JvmStatic
-    fun getDurationStringShort(duration: Int, durationIsInHours: Boolean): String {
-        val firstPartBase = if (durationIsInHours) HOURS_MIL else MINUTES_MIL
+    fun getDurationStringShort(duration: Int, inHours: Boolean): String {
+        val firstPartBase = if (inHours) HOURS_MIL else MINUTES_MIL
         val firstPart = duration / firstPartBase
         val leftoverFromFirstPart = duration - firstPart * firstPartBase
-        val secondPart = leftoverFromFirstPart / (if (durationIsInHours) MINUTES_MIL else SECONDS_MIL)
+        val secondPart = leftoverFromFirstPart / (if (inHours) MINUTES_MIL else SECONDS_MIL)
         return String.format(Locale.getDefault(), "%02d:%02d", firstPart, secondPart)
     }
 
@@ -61,10 +61,10 @@ object DurationConverter {
      * format is HH:MM, otherwise it's MM:SS.
      */
     @JvmStatic
-    fun durationStringShortToMs(input: String, durationIsInHours: Boolean): Int {
+    fun durationStringShortToMs(input: String, inHours: Boolean): Int {
         val parts = input.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
         if (parts.size != 2) return 0
-        val modifier = if (durationIsInHours) 60 else 1
+        val modifier = if (inHours) 60 else 1
         return (parts[0].toInt() * 60 * 1000 * modifier + parts[1].toInt() * 1000 * modifier)
     }
 

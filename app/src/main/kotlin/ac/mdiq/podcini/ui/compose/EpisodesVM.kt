@@ -13,6 +13,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.service.PlaybackService
@@ -181,6 +182,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -192,6 +194,22 @@ import kotlin.math.roundToInt
 
 const val VMS_CHUNK_SIZE = 50
 const val loadThreshold = (VMS_CHUNK_SIZE * 0.8).toInt()
+
+fun buildListInfo(context:Context, episodes: List<Episode>): String {
+    var infoText = String.format(Locale.getDefault(), "%d%s", episodes.size, context.getString(R.string.episodes_suffix))
+    if (episodes.isNotEmpty()) {
+        var timeLeft: Long = 0
+        for (item in episodes) {
+            var playbackSpeed = 1f
+            if (getPref(AppPrefs.prefPlaybackTimeRespectsSpeed, false)) playbackSpeed = getCurrentPlaybackSpeed(item)
+            val itemTimeLeft: Long = (item.duration - item.position).toLong()
+            timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
+        }
+        infoText += " • "
+        infoText += DurationConverter.getDurationStringLocalized(timeLeft)
+    }
+    return infoText
+}
 
 @Composable
 fun InforBar(text: MutableState<String>, leftAction: MutableState<SwipeAction>, rightAction: MutableState<SwipeAction>, actionConfig: () -> Unit) {

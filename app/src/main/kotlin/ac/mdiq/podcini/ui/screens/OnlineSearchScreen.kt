@@ -15,7 +15,7 @@ import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.storage.database.Feeds.updateFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
@@ -268,7 +268,7 @@ fun OnlineSearchScreen() {
                     val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
                     dirFeed.episodes.clear()
                     dirFeed.sortOrder = EpisodeSortOrder.EPISODE_TITLE_A_Z
-                    val fromDatabase: Feed? = updateFeed(context, dirFeed, false)
+                    val fromDatabase: Feed? = updateFeedFull(context, dirFeed, false)
                     FeedUpdateManager.runOnce(context, fromDatabase)
                     fromDatabase
                 }

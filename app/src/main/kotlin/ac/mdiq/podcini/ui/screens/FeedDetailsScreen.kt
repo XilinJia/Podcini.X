@@ -8,7 +8,7 @@ import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.updateFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.Feeds.updateFeedDownloadURL
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -20,7 +20,6 @@ import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.FeedFunding
-import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
@@ -42,6 +41,7 @@ import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
+import ac.mdiq.podcini.ui.compose.buildListInfo
 import ac.mdiq.podcini.ui.compose.stopMonitor
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
@@ -157,8 +157,10 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 //    internal var screenMode by mutableStateOf<ScreenMode>(ScreenMode.List)
 
     internal var isFiltered by mutableStateOf(false)
+
+    internal var listInfoText = ""
+    private var updateInfoText = ""
     internal var infoBarText = mutableStateOf("")
-    private var infoTextUpdate = ""
     //        internal var displayUpArrow by mutableStateOf(false)
     private var headerCreated = false
     internal var rating by mutableStateOf(Rating.UNRATED.code)
@@ -256,8 +258,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     private fun onFeedUpdateRunningEvent(event: FlowEvent.FeedUpdatingEvent) {
-        infoTextUpdate = if (event.isRunning) context.getString(R.string.refreshing_label) else ""
-        infoBarText.value = infoTextUpdate
+        updateInfoText = if (event.isRunning) context.getString(R.string.refreshing_label) else ""
+        infoBarText.value = "$listInfoText $updateInfoText"
         if (!event.isRunning) loadFeed(true)
     }
 
@@ -274,7 +276,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         isFiltered = !feed?.filterString.isNullOrEmpty() && feed!!.episodeFilter.propertySet.isNotEmpty()
         filterButtonColor.value = if (enableFilter) if (isFiltered) Color.Green else Color.White else Color.Red
         if (!headerCreated) headerCreated = true
-        infoBarText.value = infoTextUpdate
+        listInfoText = buildListInfo(context, episodes)
+        infoBarText.value = "$listInfoText $updateInfoText"
     }
 
     private fun isFilteredOut(episode: Episode): Boolean {
@@ -421,7 +424,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                     val documentFile = DocumentFile.fromTreeUri(context, uri)
                     requireNotNull(documentFile) { "Unable to retrieve document tree" }
                     feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
-                    if (feed != null) updateFeed(context, feed!!, true)
+                    if (feed != null) updateFeedFull(context, feed!!, true)
                 }
                 withContext(Dispatchers.Main) { Logt(TAG, context.getString(R.string.OK)) }
             } catch (e: Throwable) { withContext(Dispatchers.Main) { Loge(TAG, e.localizedMessage?:"No message") } }
@@ -645,6 +648,13 @@ fun FeedDetailsScreen() {
                             expanded = false
                         }) else DropdownMenuItem(text = { Text(stringResource(R.string.edit_url_menu)) }, onClick = {
                             showEditUrlSettingsDialog = true
+                            expanded = false
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
+                            scope.launch {
+                                for (e in vm.episodes) e.fetchMediaSize()
+                                vm.loadFeed(true)
+                            }
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {

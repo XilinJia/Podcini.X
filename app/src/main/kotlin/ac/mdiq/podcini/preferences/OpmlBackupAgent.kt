@@ -6,7 +6,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlReader
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.storage.database.Feeds.updateFeed
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
@@ -178,7 +178,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 for (opmlElem in opmlElements) {
                     val feed = Feed(opmlElem.xmlUrl, null, opmlElem.text)
                     feed.episodes.clear()
-                    updateFeed(context, feed, false)
+                    updateFeedFull(context, feed, false)
                 }
                 Logt(TAG, "${opmlElements.size} feeds were restored")
                 runOnce(context)

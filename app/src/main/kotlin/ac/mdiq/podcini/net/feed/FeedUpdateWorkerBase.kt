@@ -124,7 +124,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         return withContext(Dispatchers.Main) { ForegroundInfo(R.id.notification_updating_feeds, createNotification(null)) }
     }
 
-    private fun refreshFeeds(feedsToUpdate: MutableList<Feed>, force: Boolean, fullUpdate: Boolean) {
+    private suspend fun refreshFeeds(feedsToUpdate: MutableList<Feed>, force: Boolean, fullUpdate: Boolean) {
         if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(this.applicationContext,
                     Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
@@ -161,7 +161,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
     }
 
     @Throws(Exception::class)
-    open fun refreshFeed(feed: Feed, force: Boolean, fullUpdate: Boolean) {
+    open suspend fun refreshFeed(feed: Feed, force: Boolean, fullUpdate: Boolean) {
         val nextPage = (inputData.getBoolean(EXTRA_NEXT_PAGE, false) && feed.nextPageLink != null)
         if (nextPage) feed.pageNr += 1
         val builder = create(feed)
@@ -304,11 +304,11 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         fun run(): Boolean {
             feedHandlerResult = task.call()
             if (!task.isSuccessful) return false
-            Feeds.updateFeed(context, feedHandlerResult!!.feed, false)
+            Feeds.updateFeedFull(context, feedHandlerResult!!.feed, false)
             return true
         }
 
-        fun runSimple(): Boolean {
+        suspend fun runSimple(): Boolean {
             feedHandlerResult = task.call()
             if (!task.isSuccessful) return false
             Feeds.updateFeedSimple(feedHandlerResult!!.feed)
