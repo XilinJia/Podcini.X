@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.feed.parser.media.vorbis
 
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import org.apache.commons.io.EndianUtils
 import org.apache.commons.io.IOUtils
@@ -20,7 +21,8 @@ abstract class VorbisCommentReader internal constructor(private val input: Input
             val commentHeader = readCommentHeader()
             Logd(TAG, commentHeader.toString())
             for (i in 0 until commentHeader.userCommentLength) readUserComment()
-        } catch (e: IOException) { Logs(TAG, e, "Vorbis parser: ") }
+        } catch (e: IOException) { Logd(TAG, "Vorbis parser: ${e.message}")
+        } catch (e: Throwable) { Loge(TAG, "${e.message}")}
     }
 
     @Throws(IOException::class)

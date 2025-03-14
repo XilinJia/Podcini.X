@@ -297,8 +297,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
     }
 
     fun gpodnetNotificationsEnabled(): Boolean {
-        if (Build.VERSION.SDK_INT >= 26) return true // System handles notification preferences
-        return getPref(AppPrefs.pref_gpodnet_notifications, false)
+        return true // for Android SDK 26 and above
     }
 
     protected fun updateErrorNotification(exception: Exception) {

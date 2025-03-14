@@ -250,6 +250,19 @@ class MainActivity : BaseActivity() {
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
 
         WorkManager.getInstance(this)
+            .getWorkInfosForUniqueWorkLiveData(feedUpdateWorkId)
+            .observe(this) { workInfos ->
+                workInfos?.firstOrNull()?.let { workInfo ->
+                    var isRefreshingFeeds = false
+                    when (workInfo.state) {
+                        WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED -> isRefreshingFeeds = true
+                        else -> Logd(TAG, "Periodic Work state: ${workInfo.state}")
+                    }
+                    EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(isRefreshingFeeds))
+                }
+            }
+
+        WorkManager.getInstance(this)
             .getWorkInfosByTagLiveData(FeedUpdateManager.WORK_TAG_FEED_UPDATE)
             .observe(this) { workInfos: List<WorkInfo> ->
                 if (!hasFeedUpdateObserverStarted) {

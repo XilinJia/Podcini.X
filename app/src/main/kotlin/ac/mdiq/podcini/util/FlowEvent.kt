@@ -28,9 +28,7 @@ sealed class FlowEvent {
 
     data class PlayEvent(val episode: Episode, val action: Action = Action.START) : FlowEvent() {
         enum class Action { START, END, }
-        fun isPlaying(): Boolean {
-            return action == Action.START
-        }
+        fun isPlaying(): Boolean = action == Action.START
     }
 
     data class PlayerErrorEvent(val message: String) : FlowEvent()
@@ -38,26 +36,15 @@ sealed class FlowEvent {
 //    data class PlayerSettingsEvent(val dummy: Unit = Unit) : FlowEvent()
 
     data class BufferUpdateEvent(val progress: Float) : FlowEvent() {
-        fun hasStarted(): Boolean {
-            return progress == PROGRESS_STARTED
-        }
-
-        fun hasEnded(): Boolean {
-            return progress == PROGRESS_ENDED
-        }
+        fun hasStarted(): Boolean = progress == PROGRESS_STARTED
+        fun hasEnded(): Boolean = progress == PROGRESS_ENDED
 
         companion object {
             private const val PROGRESS_STARTED = -1f
             private const val PROGRESS_ENDED = -2f
-            fun started(): BufferUpdateEvent {
-                return BufferUpdateEvent(PROGRESS_STARTED)
-            }
-            fun ended(): BufferUpdateEvent {
-                return BufferUpdateEvent(PROGRESS_ENDED)
-            }
-            fun progressUpdate(progress: Float): BufferUpdateEvent {
-                return BufferUpdateEvent(progress)
-            }
+            fun started(): BufferUpdateEvent = BufferUpdateEvent(PROGRESS_STARTED)
+            fun ended(): BufferUpdateEvent = BufferUpdateEvent(PROGRESS_ENDED)
+            fun progressUpdate(progress: Float): BufferUpdateEvent = BufferUpdateEvent(progress)
         }
     }
 
@@ -73,33 +60,15 @@ sealed class FlowEvent {
 
         }
         companion object {
-            fun added(episode: Episode, position: Int): QueueEvent {
-                return QueueEvent(Action.ADDED, listOf(episode), position)
-            }
-            fun setQueue(queue: List<Episode>): QueueEvent {
-                return QueueEvent(Action.SET_QUEUE, queue, -1)
-            }
-            fun removed(episode: Episode): QueueEvent {
-                return QueueEvent(Action.REMOVED, listOf(episode), -1)
-            }
-            fun removed(episodes: List<Episode>): QueueEvent {
-                return QueueEvent(Action.REMOVED, episodes, -1)
-            }
-            fun irreversibleRemoved(episode: Episode): QueueEvent {
-                return QueueEvent(Action.IRREVERSIBLE_REMOVED, listOf(episode), -1)
-            }
-            fun cleared(): QueueEvent {
-                return QueueEvent(Action.CLEARED, listOf(), -1)
-            }
-            fun sorted(sortedQueue: List<Episode>): QueueEvent {
-                return QueueEvent(Action.SORTED, sortedQueue, -1)
-            }
-            fun moved(episode: Episode, newPosition: Int): QueueEvent {
-                return QueueEvent(Action.MOVED, listOf(episode), newPosition)
-            }
-            fun switchQueue(qItems: List<Episode>): QueueEvent {
-                return QueueEvent(Action.SWITCH_QUEUE, qItems, -1)
-            }
+            fun added(episode: Episode, position: Int): QueueEvent = QueueEvent(Action.ADDED, listOf(episode), position)
+            fun setQueue(queue: List<Episode>): QueueEvent = QueueEvent(Action.SET_QUEUE, queue, -1)
+            fun removed(episode: Episode): QueueEvent = QueueEvent(Action.REMOVED, listOf(episode), -1)
+            fun removed(episodes: List<Episode>): QueueEvent = QueueEvent(Action.REMOVED, episodes, -1)
+            fun irreversibleRemoved(episode: Episode): QueueEvent = QueueEvent(Action.IRREVERSIBLE_REMOVED, listOf(episode), -1)
+            fun cleared(): QueueEvent = QueueEvent(Action.CLEARED, listOf(), -1)
+            fun sorted(sortedQueue: List<Episode>): QueueEvent = QueueEvent(Action.SORTED, sortedQueue, -1)
+            fun moved(episode: Episode, newPosition: Int): QueueEvent = QueueEvent(Action.MOVED, listOf(episode), newPosition)
+            fun switchQueue(qItems: List<Episode>): QueueEvent = QueueEvent(Action.SWITCH_QUEUE, qItems, -1)
         }
     }
 
@@ -111,23 +80,13 @@ sealed class FlowEvent {
         val isCancelled: Boolean
             get() = timeLeft == CANCELLED
 
-        fun getTimeLeft(): Long {
-            return abs(timeLeft.toDouble()).toLong()
-        }
-        fun wasJustEnabled(): Boolean {
-            return timeLeft < 0
-        }
+        fun getTimeLeft(): Long = abs(timeLeft.toDouble()).toLong()
+        fun wasJustEnabled(): Boolean = timeLeft < 0
         companion object {
             private const val CANCELLED = Long.MAX_VALUE
-            fun justEnabled(timeLeft: Long): SleepTimerUpdatedEvent {
-                return SleepTimerUpdatedEvent(-timeLeft)
-            }
-            fun updated(timeLeft: Long): SleepTimerUpdatedEvent {
-                return SleepTimerUpdatedEvent(max(0.0, timeLeft.toDouble()).toLong())
-            }
-            fun cancelled(): SleepTimerUpdatedEvent {
-                return SleepTimerUpdatedEvent(CANCELLED)
-            }
+            fun justEnabled(timeLeft: Long): SleepTimerUpdatedEvent = SleepTimerUpdatedEvent(-timeLeft)
+            fun updated(timeLeft: Long): SleepTimerUpdatedEvent = SleepTimerUpdatedEvent(max(0.0, timeLeft.toDouble()).toLong())
+            fun cancelled(): SleepTimerUpdatedEvent = SleepTimerUpdatedEvent(CANCELLED)
         }
     }
 
@@ -136,9 +95,7 @@ sealed class FlowEvent {
 
         constructor(action: Action, feedId: Long) : this(action, listOf(feedId))
 
-        fun contains(feed: Feed): Boolean {
-            return feedIds.contains(feed.id)
-        }
+        fun contains(feed: Feed): Boolean = feedIds.contains(feed.id)
     }
 
     data class FeedChangeEvent(val feed: Feed, val changedFields: Array<String>) : FlowEvent()
@@ -150,10 +107,7 @@ sealed class FlowEvent {
     data class EpisodeDownloadEvent(val map: Map<String, DownloadStatus>) : FlowEvent() {
         val urls: Set<String>
             get() = map.keys
-        fun isCompleted(url: String): Boolean {
-            val stat = map[url]
-            return stat?.state == DownloadStatus.State.COMPLETED.ordinal
-        }
+        fun isCompleted(url: String): Boolean = map[url]?.state == DownloadStatus.State.COMPLETED.ordinal
     }
 
     //    TODO: need better handling at receving end
@@ -163,27 +117,17 @@ sealed class FlowEvent {
 
     data class EpisodeEvent(val episodes: List<Episode>) : FlowEvent() {
         companion object {
-            fun updated(vararg episodes: Episode): EpisodeEvent {
-                return EpisodeEvent(listOf(*episodes))
-            }
+            fun updated(vararg episodes: Episode): EpisodeEvent = EpisodeEvent(listOf(*episodes))
         }
     }
 
     data class EpisodeMediaEvent(val action: Action, val episodes: List<Episode>) : FlowEvent() {
         enum class Action { ADDED, REMOVED, UPDATED, ERROR, UNKNOWN }
         companion object {
-            fun added(vararg episodes: Episode): EpisodeMediaEvent {
-                return EpisodeMediaEvent(Action.ADDED, listOf(*episodes))
-            }
-            fun updated(episodes: List<Episode>): EpisodeMediaEvent {
-                return EpisodeMediaEvent(Action.UPDATED, episodes)
-            }
-            fun updated(vararg episodes: Episode): EpisodeMediaEvent {
-                return EpisodeMediaEvent(Action.UPDATED, listOf(*episodes))
-            }
-            fun removed(vararg episodes: Episode): EpisodeMediaEvent {
-                return EpisodeMediaEvent(Action.REMOVED, listOf(*episodes))
-            }
+            fun added(vararg episodes: Episode): EpisodeMediaEvent = EpisodeMediaEvent(Action.ADDED, listOf(*episodes))
+            fun updated(episodes: List<Episode>): EpisodeMediaEvent = EpisodeMediaEvent(Action.UPDATED, episodes)
+            fun updated(vararg episodes: Episode): EpisodeMediaEvent = EpisodeMediaEvent(Action.UPDATED, listOf(*episodes))
+            fun removed(vararg episodes: Episode): EpisodeMediaEvent = EpisodeMediaEvent(Action.REMOVED, listOf(*episodes))
         }
     }
 

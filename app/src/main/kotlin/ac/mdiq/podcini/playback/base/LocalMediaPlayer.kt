@@ -6,10 +6,12 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
-import ac.mdiq.podcini.preferences.AppPreferences.streamingBackBufferSecs
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
+import ac.mdiq.podcini.preferences.AppPreferences.streamingBackBufferSecs
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -44,6 +46,7 @@ import androidx.media3.common.Player.PositionInfo
 import androidx.media3.common.Player.STATE_BUFFERING
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_IDLE
+import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Player.State
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.datasource.HttpDataSource.HttpDataSourceException
@@ -118,6 +121,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 override fun onPlaybackStateChanged(playbackState: @State Int) {
                     Logd(TAG, "onPlaybackStateChanged $playbackState")
                     when (playbackState) {
+                        STATE_READY -> {}
                         STATE_ENDED -> {
                             exoPlayer?.seekTo(C.TIME_UNSET)
                             audioCompletionListener?.invoke()
@@ -600,6 +604,8 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
         private var trackSelector: DefaultTrackSelector? = null
 
+        var streaming: Boolean? = getPref(AppPrefs.prefStreamOverDownload, false)
+
         var exoPlayer: ExoPlayer? = null
 
         private var exoplayerListener: Listener? = null
@@ -611,10 +617,10 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
         fun isStreaming(media: Episode): Boolean = !media.localFileAvailable() || URLUtil.isContentUrl(media.downloadUrl)
 
-        fun createStaticPlayer(context: Context, streaming: Boolean = false) {
+        fun createStaticPlayer(context: Context) {
             val loadControl = DefaultLoadControl.Builder()
             loadControl.setBufferDurationsMs(30000, 120000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
-            if (streaming) loadControl.setBackBuffer(streamingBackBufferSecs * 1000, true) else loadControl.setBackBuffer(rewindSecs * 1000 + 500, true)
+            if (streaming == true) loadControl.setBackBuffer(streamingBackBufferSecs * 1000, true) else loadControl.setBackBuffer(rewindSecs * 1000 + 500, true)
             Logd(TAG, "createStaticPlayer reset back buffer for streaming == $streaming")
 
             trackSelector = DefaultTrackSelector(context)
@@ -653,6 +659,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
 //            if (BuildConfig.DEBUG) exoPlayer!!.addAnalyticsListener(EventLogger())
 
+            Logd(TAG, "createStaticPlayer exoplayerListener == null: ${exoplayerListener == null}")
             if (exoplayerListener != null) {
                 exoPlayer?.removeListener(exoplayerListener!!)
                 exoPlayer?.addListener(exoplayerListener!!)

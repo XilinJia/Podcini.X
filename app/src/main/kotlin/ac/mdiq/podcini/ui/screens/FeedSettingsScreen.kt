@@ -6,6 +6,8 @@ import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
@@ -357,11 +359,13 @@ fun FeedSettingsScreen() {
                     TextField(value = newPW, onValueChange = { newPW = it }, label = { Text("Password") })
                     Button(onClick = {
                         if (newName.isNotEmpty() && oldName != newName) {
-                            vm.feed = upsertBlk(vm.feed!!) {
-                                it.username = newName
-                                it.password = newPW
+                            runOnIOScope {
+                                vm.feed = upsert(vm.feed!!) {
+                                    it.username = newName
+                                    it.password = newPW
+                                }
+                                runOnce(context, vm.feed)
                             }
-                            Thread({ runOnce(context, vm.feed) }, "RefreshAfterCredentialChange").start()
                             onDismiss()
                         }
                     }) { Text(stringResource(R.string.confirm_label)) }

@@ -51,15 +51,17 @@ import androidx.work.WorkerParameters
 import java.io.File
 import java.net.URI
 import java.util.Locale
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.apache.commons.io.FileUtils
+import kotlin.coroutines.cancellation.CancellationException
 
 class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
     override fun downloadNow(context: Context, item: Episode, ignoreConstraints: Boolean) {
@@ -127,23 +129,21 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 return Result.failure()
             }
             val request = create(media).build()
-            val progressUpdaterThread: Thread = object : Thread() {
-                override fun run() {
-                    while (true) {
-                        try {
-                            synchronized(notificationProgress) {
-                                if (isInterrupted) return
-                                notificationProgress.put(media.getEpisodeTitle(), request.progressPercent)
-                            }
-                            setProgressAsync(Data.Builder().putInt(WORK_DATA_PROGRESS, request.progressPercent).build()).get()
-                            val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                            nm.notify(R.id.notification_downloading, generateProgressNotification())
-                            sleep(1000)
-                        } catch (e: InterruptedException) { return } catch (e: ExecutionException) { return }
+            val progressUpdaterJob = CoroutineScope(Dispatchers.Default).launch {
+                while (isActive) {
+                    try {
+                        synchronized(notificationProgress) { notificationProgress.put(media.getEpisodeTitle(), request.progressPercent) }
+                        setProgressAsync(Data.Builder().putInt(WORK_DATA_PROGRESS, request.progressPercent).build()).get()
+                        val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        nm.notify(R.id.notification_downloading, generateProgressNotification())
+                        delay(1000)
+                    } catch (e: CancellationException) { return@launch
+                    } catch (e: Exception) {
+                        Loge(TAG, "Episode download progressUpdaterJob exception: ${e.message}")
+                        return@launch
                     }
                 }
             }
-            progressUpdaterThread.start()
             var result: Result = Result.failure()
             try { result = performDownload(request)
             } catch (e: Exception) {
@@ -154,8 +154,9 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                     FileUtils.deleteQuietly(File(downloader!!.downloadRequest.destination!!))
                 downloader?.cancel()
             }
-            progressUpdaterThread.interrupt()
-            try { progressUpdaterThread.join() } catch (e: InterruptedException) { Logs(TAG, e) }
+            progressUpdaterJob.cancel()
+            runBlocking { progressUpdaterJob.join() }
+
             synchronized(notificationProgress) {
                 notificationProgress.remove(media.getEpisodeTitle())
                 if (notificationProgress.isEmpty()) {
@@ -179,12 +180,12 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             }
 
             ensureMediaFileExists(Uri.parse(request.destination))
-
             downloader = DefaultDownloaderFactory().create(request)
             if (downloader == null) {
                 Loge(TAG, "performDownload Unable to create downloader")
                 return Result.failure()
             }
+
             try { downloader!!.call()
             } catch (e: Exception) {
                 Logs(TAG, e, "failed performDownload exception on downloader!!.call()")

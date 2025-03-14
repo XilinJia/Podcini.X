@@ -662,18 +662,17 @@ fun FeedDetailsScreen() {
                             expanded = false
                         })
                         if (vm.feed?.isPaged == true) DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                            Thread {
+                            runOnIOScope {
                                 try {
                                     if (vm.feed != null) {
-                                        val feed_ = upsertBlk(vm.feed!!) {
+                                        val feed_ = upsert(vm.feed!!) {
                                             it.nextPageLink = it.downloadUrl
                                             it.pageNr = 0
                                         }
                                         runOnce(context, feed_)
                                     }
-                                } catch (e: ExecutionException) { throw RuntimeException(e)
-                                } catch (e: InterruptedException) { throw RuntimeException(e) }
-                            }.start()
+                                } catch (e: ExecutionException) { throw RuntimeException(e) } catch (e: InterruptedException) { throw RuntimeException(e) }
+                            }
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {

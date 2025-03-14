@@ -263,8 +263,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     private fun bufferUpdate(event: BufferUpdateEvent) {
         Logd(TAG, "bufferUpdate ${playbackService?.mPlayer?.isStreaming} ${event.progress}")
         when {
-            event.hasStarted() -> {}
-            event.hasEnded() -> {}
+            event.hasStarted() || event.hasEnded() -> {}
             playbackService?.mPlayer?.isStreaming == true -> bufferValue = event.progress
             else -> bufferValue = 0f
         }
@@ -317,8 +316,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             return
         }
         showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
-        txtvLengtTexth = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + DurationConverter.getDurationStringLong(remainingTime)
-        else DurationConverter.getDurationStringLong(duration)
+        txtvLengtTexth = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + DurationConverter.getDurationStringLong(remainingTime) else DurationConverter.getDurationStringLong(duration)
         sliderValue = event.position.toFloat()
     }
     fun setIsShowPlay(showPlay: Boolean) {
@@ -514,7 +512,7 @@ fun AudioPlayerScreen() {
                                 vm.setIsShowPlay(true)
                             }
                         }
-                        vm.controller!!.init()
+//                        vm.controller!!.init()    TODO: this appears not necessary
                     }
                     isBSExpanded = false
                     if (vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
@@ -624,20 +622,13 @@ fun AudioPlayerScreen() {
             Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play",
                 modifier = Modifier.width(64.dp).height(64.dp).combinedClickable(
                     onClick = {
-//                        if (vm.controller == null) return@combinedClickable
                         if (curEpisode != null) {
                             val media = curEpisode!!
                             vm.setIsShowPlay(!vm.isShowPlay)
                             if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                                 playPause()
                                 context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
-                            } else {
-//                                if (resetPlayer) {
-//                                    playbackService?.mPlayer?.reinit()
-//                                    resetPlayer = false
-//                                } else playPause()
-                                playPause()
-                            }
+                            } else playPause()
                         } },
                     onLongClick = {
                         if (status == PlayerStatus.PLAYING) {
@@ -759,7 +750,6 @@ fun AudioPlayerScreen() {
     fun Toolbar() {
         val context = LocalContext.current
         val feedItem: Episode = curEpisode ?: return
-//        val feedItem = media.episodeOrFetch()
         val textColor = MaterialTheme.colorScheme.onSurface
         val mediaType = curEpisode?.getMediaType()
         val notAudioOnly = curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY
@@ -935,12 +925,6 @@ fun AudioPlayerScreen() {
     }
 }
 
-
-//    fun scrollToTop() {
-////        binding.itemDescriptionFragment.scrollTo(0, 0)
-//        savePreference()
-//    }
-
 /**
  * Communicates with the playback service. GUI classes should use this class to
  * control playback instead of communicating with the PlaybackService directly.
@@ -979,12 +963,13 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
             val type = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_TYPE, -1)
             val code = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_CODE, -1)
             if (code == -1 || type == -1) {
-                Loge(TAG, "Bad arguments. Won't handle intent. code: $code type: $type")
+                Loge(TAG, "notificationReceiver Bad arguments. Won't handle intent. code: $code type: $type")
                 return
             }
             when (type) {
                 PlaybackService.NOTIFICATION_TYPE_RELOAD -> {
-                    if (playbackService == null || !isRunning) return
+                    if (playbackService == null && isRunning) return
+                    Logd(TAG, "notificationReceiver handle NOTIFICATION_TYPE_RELOAD")
                     mediaInfoLoaded = false
                     updateStatus()
                 }
@@ -997,11 +982,22 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
     fun init() {
         Logd(TAG, "controller init")
         procFlowEvents()
-        if (isRunning) initServiceRunning()
-        else updatePlayButton(true)
+        if (isRunning) {
+            if (!initialized) {
+                initialized = true
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    activity.registerReceiver(statusUpdate, IntentFilter(PlaybackService.ACTION_PLAYER_STATUS_CHANGED), Context.RECEIVER_NOT_EXPORTED)
+                    activity.registerReceiver(notificationReceiver, IntentFilter(PlaybackService.ACTION_PLAYER_NOTIFICATION), Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    activity.registerReceiver(statusUpdate, IntentFilter(PlaybackService.ACTION_PLAYER_STATUS_CHANGED))
+                    activity.registerReceiver(notificationReceiver, IntentFilter(PlaybackService.ACTION_PLAYER_NOTIFICATION))
+                }
+                checkMediaInfoLoaded()
+            }
+        } else updatePlayButton(true)
     }
 
-    private var eventSink: Job?     = null
+    private var eventSink: Job? = null
     private fun cancelFlowEvents() {
         eventSink?.cancel()
         eventSink = null
@@ -1013,6 +1009,7 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.PlaybackServiceEvent -> {
+                        Logd(TAG, "Received event action ${event.action}")
                         when (event.action) {
                             FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED -> {
                                 init()
@@ -1025,21 +1022,6 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
                 }
             }
         }
-    }
-
-    @Synchronized
-    private fun initServiceRunning() {
-        if (initialized) return
-        initialized = true
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            activity.registerReceiver(statusUpdate, IntentFilter(PlaybackService.ACTION_PLAYER_STATUS_CHANGED), Context.RECEIVER_NOT_EXPORTED)
-            activity.registerReceiver(notificationReceiver, IntentFilter(PlaybackService.ACTION_PLAYER_NOTIFICATION), Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            activity.registerReceiver(statusUpdate, IntentFilter(PlaybackService.ACTION_PLAYER_STATUS_CHANGED))
-            activity.registerReceiver(notificationReceiver, IntentFilter(PlaybackService.ACTION_PLAYER_NOTIFICATION))
-        }
-        checkMediaInfoLoaded()
     }
 
     /**
@@ -1094,7 +1076,6 @@ abstract class ServiceStatusHandler(private val activity: MainActivity) {
         Logd(TAG, "Querying service info")
         if (playbackService != null && mPlayerInfo != null) {
             status = mPlayerInfo!!.playerStatus
-//            curMedia = PlaybackService.mPlayerInfo!!.playable
             // make sure that new media is loaded if it's available
             mediaInfoLoaded = false
             handleStatus()

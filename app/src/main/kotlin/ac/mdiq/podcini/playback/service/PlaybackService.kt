@@ -13,7 +13,9 @@ import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.loadPlayableFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.createStaticPlayer
+import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.isStreaming
+import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.streaming
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.buildMediaItem
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.MediaPlayerInfo
@@ -105,7 +107,6 @@ class PlaybackService : MediaLibraryService() {
 
     private val notificationCustomButtons = NotificationCustomButton.entries.map { command -> command.commandButton }
 
-    private lateinit var customMediaNotificationProvider: CustomMediaNotificationProvider
     private lateinit var castStateListener: CastStateListener
 
     private var autoSkippedFeedMediaId: String? = null
@@ -116,8 +117,6 @@ class PlaybackService : MediaLibraryService() {
 
     private val status: PlayerStatus
         get() = MediaPlayerBase.status
-
-    var streaming: Boolean? = null
 
     val curSpeed: Float
         get() = mPlayer?.getPlaybackSpeed() ?: 1.0f
@@ -223,7 +222,6 @@ class PlaybackService : MediaLibraryService() {
                     autoSkippedFeedMediaId = item.identifyingValue
                     mPlayer?.skip()
                 }
-
                 persistCurrentPosition(true, null, Episode.INVALID_TIME)
                 prevPosition = curPosition
             }
@@ -305,12 +303,10 @@ class PlaybackService : MediaLibraryService() {
             bluetoothNotifyChange(newInfo, AVRCP_ACTION_PLAYER_STATUS_CHANGED)
             bluetoothNotifyChange(newInfo, AVRCP_ACTION_META_CHANGED)
         }
-
         override fun onMediaChanged(reloadUI: Boolean) {
             Logd(TAG, "onMediaChanged reloadUI callback reached")
             if (reloadUI) sendNotificationBroadcast(NOTIFICATION_TYPE_RELOAD, 0)
         }
-
         override fun onPostPlayback(playable: Episode, ended: Boolean, skipped: Boolean, playingNext: Boolean) {
             Logd(TAG, "onPostPlayback(): ended=$ended skipped=$skipped playingNext=$playingNext media=${playable.getEpisodeTitle()} ")
             var item = playable
@@ -356,7 +352,6 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
         }
-
         override fun onPlaybackStart(playable: Episode, position: Int) {
             val delayInterval = positionUpdateInterval(playable.duration)
             Logd(TAG, "onPlaybackStart ${playable.title}")
@@ -381,7 +376,6 @@ class PlaybackService : MediaLibraryService() {
             playable.onPlaybackStart()
             taskManager.startPositionSaver(delayInterval)
         }
-
         override fun onPlaybackPause(playable: Episode?, position: Int) {
             Logd(TAG, "onPlaybackPause $position ${playable?.title}")
             taskManager.cancelPositionSaver()
@@ -392,7 +386,6 @@ class PlaybackService : MediaLibraryService() {
                 playable.onPlaybackPause()
             }
         }
-
         override fun getNextInQueue(currentMedia: Episode?): Episode? {
             Logd(TAG, "call getNextInQueue currentMedia: ${currentMedia?.getEpisodeTitle()}")
             if (currentMedia == null) {
@@ -422,7 +415,6 @@ class PlaybackService : MediaLibraryService() {
                     eList[j]
                 }
             } else eList[0]
-
             Logd(TAG, "getNextInQueue nextItem ${nextItem.title}")
             if (!getPref(AppPrefs.prefFollowQueue, true)) {
                 Logd(TAG, "getNextInQueue(), but follow queue is not enabled.")
@@ -487,7 +479,7 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
-    private val mediaLibrarySessionCK = object: MediaLibrarySession.Callback {
+    inner class MediaLibrarySessionCK : MediaLibrarySession.Callback {
         override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
             Logd(TAG, "in MyMediaSessionCallback onConnect")
             when {
@@ -647,14 +639,13 @@ class PlaybackService : MediaLibraryService() {
     fun recreateMediaSessionIfNeeded() {
         if (mediaSession != null) return
         Logd(TAG, "recreateMediaSessionIfNeeded")
-        customMediaNotificationProvider = CustomMediaNotificationProvider(applicationContext)
-        setMediaNotificationProvider(customMediaNotificationProvider)
+        setMediaNotificationProvider(CustomMediaNotificationProvider(applicationContext))
 
         recreateMediaPlayer()
-        if (LocalMediaPlayer.exoPlayer == null) createStaticPlayer(applicationContext)
+        if (exoPlayer == null) createStaticPlayer(applicationContext)
         val intent = packageManager.getLaunchIntentForPackage(packageName)
-        val pendingIntent = PendingIntent.getActivity(this, 0, intent, FLAG_IMMUTABLE)
-        mediaSession = MediaLibrarySession.Builder(applicationContext, LocalMediaPlayer.exoPlayer!!, mediaLibrarySessionCK)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
+        mediaSession = MediaLibrarySession.Builder(applicationContext, exoPlayer!!, MediaLibrarySessionCK())
             .setId(packageName)
             .setSessionActivity(pendingIntent)
             .setCustomLayout(notificationCustomButtons)
@@ -696,7 +687,7 @@ class PlaybackService : MediaLibraryService() {
             release()
             mediaSession = null
         }
-        LocalMediaPlayer.exoPlayer =  null
+        exoPlayer =  null
         mPlayer?.shutdown()
 
         cancelFlowEvents()
@@ -752,19 +743,18 @@ class PlaybackService : MediaLibraryService() {
                 return super.onStartCommand(intent, flags, startId)
             }
             curEpisode != null -> {
-                if (Build.VERSION.SDK_INT >= 26) {
-                    val CHANNEL_ID = "podcini playback service"
-                    val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-                    if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
-                        val channel = NotificationChannel(CHANNEL_ID, "Title", NotificationManager.IMPORTANCE_LOW).apply {
-                            setSound(null, null)
-                            enableVibration(false)
-                        }
-                        notificationManager.createNotificationChannel(channel)
+                val CHANNEL_ID = "podcini playback service"
+                val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+                if (notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
+                    val channel = NotificationChannel(CHANNEL_ID, "Title", NotificationManager.IMPORTANCE_LOW).apply {
+                        setSound(null, null)
+                        enableVibration(false)
                     }
-                    val notification = NotificationCompat.Builder(this, CHANNEL_ID).setContentTitle("").setContentText("").build()
-                    startForeground(1, notification)
+                    notificationManager.createNotificationChannel(channel)
                 }
+                val notification = NotificationCompat.Builder(this, CHANNEL_ID).setContentTitle("").setContentText("").build()
+                startForeground(1, notification)
+
                 recreateMediaSessionIfNeeded()
                 Logd(TAG, "onStartCommand status: $status")
                 val allowStreamThisTime = intent?.getBooleanExtra(EXTRA_ALLOW_STREAM_THIS_TIME, false) == true
@@ -772,13 +762,10 @@ class PlaybackService : MediaLibraryService() {
                 sendNotificationBroadcast(NOTIFICATION_TYPE_RELOAD, 0)
                 if (allowStreamAlways) mobileAllowStreaming = true
                 startPlaying(allowStreamThisTime)
-//                    return super.onStartCommand(intent, flags, startId)
-//                return START_NOT_STICKY
                 return START_STICKY
             }
             else -> Logd(TAG, "onStartCommand case when not (keycode != -1 and playable != null)")
         }
-//        return super.onStartCommand(intent, flags, startId)
         return START_NOT_STICKY
     }
 
@@ -794,18 +781,13 @@ class PlaybackService : MediaLibraryService() {
         intentAllowThisTime.setAction(EXTRA_ALLOW_STREAM_THIS_TIME)
         intentAllowThisTime.putExtra(EXTRA_ALLOW_STREAM_THIS_TIME, true)
         val pendingIntentAllowThisTime =
-            if (Build.VERSION.SDK_INT >= VERSION_CODES.O) PendingIntent.getForegroundService(this, R.id.pending_intent_allow_stream_this_time,
-                intentAllowThisTime, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
-            else PendingIntent.getService(this, R.id.pending_intent_allow_stream_this_time, intentAllowThisTime,
-                FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
+            PendingIntent.getForegroundService(this, R.id.pending_intent_allow_stream_this_time, intentAllowThisTime, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
 
         val intentAlwaysAllow = Intent(intentAllowThisTime)
         intentAlwaysAllow.setAction(EXTRA_ALLOW_STREAM_ALWAYS)
         intentAlwaysAllow.putExtra(EXTRA_ALLOW_STREAM_ALWAYS, true)
         val pendingIntentAlwaysAllow =
-            if (Build.VERSION.SDK_INT >= VERSION_CODES.O) PendingIntent.getForegroundService(this, R.id.pending_intent_allow_stream_always,
-                intentAlwaysAllow, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
-            else PendingIntent.getService(this, R.id.pending_intent_allow_stream_always, intentAlwaysAllow, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
+            PendingIntent.getForegroundService(this, R.id.pending_intent_allow_stream_always, intentAlwaysAllow, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
 
         val builder = NotificationCompat.Builder(this, NotificationUtils.CHANNEL_ID.user_action.name)
             .setSmallIcon(R.drawable.ic_notification_stream)
@@ -927,21 +909,19 @@ class PlaybackService : MediaLibraryService() {
         val localFeed = URLUtil.isContentUrl(media.downloadUrl)
         val prevStreaming = streaming
         streaming = isStreaming(media)
-        if (prevStreaming != streaming) createStaticPlayer(this, streaming!!)
+        if (prevStreaming != streaming) {
+            exoPlayer?.release()
+            exoPlayer =  null
+            createStaticPlayer(applicationContext)
+            mediaSession?.player = exoPlayer!!
+        }
 
         if (streaming!! && !localFeed && !isStreamingAllowed && !allowStreamThisTime) {
             displayStreamingNotAllowedNotification(PlaybackServiceStarter(this, media).intent)
             writeNoMediaPlaying()
             return
         }
-
-//        TODO: this is redundant
-//        if (media.id != curState.curMediaId) clearCurTempSpeed()
-
         mPlayer?.playMediaObject(media, streaming!!, startWhenPrepared = true, true)
-//        recreateMediaSessionIfNeeded()
-//        val episode = (media as? EpisodeMedia)?.episode
-//        if (curMedia is EpisodeMedia && episode != null) addToQueue(true, episode)
     }
 
     private var eventSink: Job?     = null
@@ -1017,7 +997,7 @@ class PlaybackService : MediaLibraryService() {
 
     private fun onBufferUpdate(event: FlowEvent.BufferUpdateEvent) {
         if (event.hasEnded() && curEpisode != null && curEpisode!!.duration <= 0 && (mPlayer?.getDuration()?:0) > 0)
-                curEpisode!!.duration = (mPlayer!!.getDuration())
+                curEpisode!!.duration = mPlayer!!.getDuration()
     }
 
     private fun onSleepTimerUpdate(event: FlowEvent.SleepTimerUpdatedEvent) {

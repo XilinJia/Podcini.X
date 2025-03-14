@@ -1,0 +1,9 @@
+# 8.11.5
+
+* fixed media notification not shown after recreating the player
+* media player is initialized to streaming/local based on the global setting of StreamOverDownload
+* replaced a couple Thread with Coroutine
+* no longer toasting "No vorbis identification header found"
+* class ServiceStatusHandler (former MediaController) in AudioPlayer screen appears redundant, disabled now.
+* added observation of periodic feed updates
+* check for SDK_INT >= 26 is removed (min SDK is 26)

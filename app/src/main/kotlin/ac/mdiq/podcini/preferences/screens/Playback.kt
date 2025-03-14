@@ -2,17 +2,17 @@ package ac.mdiq.podcini.preferences.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.streaming
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.streamingBackBufferSecs
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
+import ac.mdiq.podcini.preferences.AppPreferences.streamingBackBufferSecs
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.storage.database.Queues.EnqueueLocation
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -153,7 +153,7 @@ fun PlaybackPreferencesScreen() {
                 Text(stringResource(R.string.pref_back_butter), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 IntervalEditor(streamingBackBufferSecs, modifier = Modifier.weight(0.6f)) {
                     streamingBackBufferSecs = it
-                    playbackService?.streaming = null
+                    streaming = null
                 }
             }
             Text(stringResource(R.string.pref_back_butter_sum), color = textColor, style = MaterialTheme.typography.bodySmall)

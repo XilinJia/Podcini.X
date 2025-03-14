@@ -444,22 +444,10 @@ class PreferenceActivity : ComponentActivity() {
 
     @Composable
     fun NotificationPreferencesScreen() {
-        if (Build.VERSION.SDK_INT >= 26) {
-            val intent = Intent()
-            intent.setAction(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-            intent.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-            startActivity(intent)
-        } else {
-//            supportActionBar!!.setTitle(R.string.notification_pref_fragment)
-            val textColor = MaterialTheme.colorScheme.onSurface
-            val scrollState = rememberScrollState()
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
-                Text(stringResource(R.string.notification_group_errors), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                TitleSummarySwitchPrefRow(R.string.notification_channel_download_error, R.string.notification_channel_download_error_description, AppPrefs.prefShowDownloadReport)
-                if (isProviderConnected)
-                    TitleSummarySwitchPrefRow(R.string.notification_channel_sync_error, R.string.notification_channel_sync_error_description, AppPrefs.pref_gpodnet_notifications)
-            }
-        }
+        val intent = Intent()
+        intent.setAction(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        intent.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        startActivity(intent)
     }
 
     enum class Screens(val titleRes: Int) {
@@ -472,11 +460,6 @@ class PreferenceActivity : ComponentActivity() {
         NotificationScreen(R.string.notification_pref_fragment),
         AutoDownloadScreen(R.string.pref_automatic_download_title),
         AboutScreen(R.string.about_pref),
-        LicensesScreen(R.string.licenses),
-        SwipeScreen(R.string.swipeactions_label);
+        LicensesScreen(R.string.licenses);
     }
-
-//    companion object {
-//        var toastMassege by mutableStateOf("")
-//    }
 }
