@@ -1,3 +1,12 @@
+# 8.11.6
+
+* removed more references of ServiceStatusHandler in AudioPlayer
+* set refreshing off when periodic feed updates terminate
+* "Add comment" is on multi-select menu of episodes
+* in episodes lists, added icon to indicate commented
+* in Commented view in Facets, episodes are shown with brief comments
+* in FeedDetails screen ensure TTS engine is initialized when some episodes don't have media
+
 # 8.11.5
 
 * fixed media notification not shown after recreating the player

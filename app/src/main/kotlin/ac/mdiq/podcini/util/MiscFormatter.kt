@@ -33,6 +33,11 @@ object MiscFormatter {
         return localDateTime.format(formatter)
     }
 
+    fun stripDateTimeLines(input: String): String {
+        val regex = Regex("""^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}:$""")  // "yyyy-MM-dd HH:mm:ss"
+        return input.lines().filterNot { regex.matches(it) }.joinToString("\n")
+    }
+
     @JvmStatic
     fun formatAbbrev(context: Context?, date: Date?): String {
         if (date == null) return ""

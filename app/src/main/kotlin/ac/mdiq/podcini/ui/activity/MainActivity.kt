@@ -256,7 +256,10 @@ class MainActivity : BaseActivity() {
                     var isRefreshingFeeds = false
                     when (workInfo.state) {
                         WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED -> isRefreshingFeeds = true
-                        else -> Logd(TAG, "Periodic Work state: ${workInfo.state}")
+                        else -> {
+                            isRefreshingFeeds = false
+                            Logd(TAG, "Periodic Work state: ${workInfo.state}")
+                        }
                     }
                     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(isRefreshingFeeds))
                 }

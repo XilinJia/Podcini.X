@@ -25,14 +25,15 @@ import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.deleteMediaSync
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.Feeds.shelveToFeed
 import ac.mdiq.podcini.storage.database.Feeds.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.Feeds.allowForAutoDelete
+import ac.mdiq.podcini.storage.database.Feeds.shelveToFeed
 import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesQuiet
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
+import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -61,11 +62,12 @@ import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
+import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
+import ac.mdiq.podcini.util.MiscFormatter.stripDateTimeLines
 import ac.mdiq.podcini.util.ShareUtils
 import android.app.Activity
 import android.content.Context
@@ -173,8 +175,6 @@ import androidx.documentfile.provider.DocumentFile
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import io.github.xilinjia.krdb.notifications.SingleQueryChange
-import io.github.xilinjia.krdb.notifications.UpdatedObject
 import java.io.File
 import java.net.URL
 import java.time.Instant
@@ -241,6 +241,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     var durationState by mutableStateOf(episode.duration)
     var playedState by mutableIntStateOf(episode.playState)
     var isPlayingState by mutableStateOf(false)
+    var hasComment by mutableStateOf(episode.comment.isNotBlank())
     var ratingState by mutableIntStateOf(episode.rating)
     var inProgressState by mutableStateOf(episode.isInProgress)
     var downloadState by mutableIntStateOf(if (episode.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal)
@@ -263,29 +264,15 @@ class EpisodeVM(var episode: Episode, val tag: String) {
 
     fun startMonitoring() {
         if (episodeMonitor == null) {
-            episodeMonitor = CoroutineScope(Dispatchers.Default).launch {
-                val item_ = realm.query(Episode::class).query("id == ${episode.id}").first()
-                Logd("EpisodeVM", "start monitoring episode: ${episode.id} ${episode.title}")
-                val episodeFlow = item_.asFlow()
-                episodeFlow.collect { changes: SingleQueryChange<Episode> ->
-                    when (changes) {
-                        is UpdatedObject -> {
-                            Logd("EpisodeVM", "episodeMonitor UpdatedObject $tag ${changes.obj.title} ${changes.changedFields.joinToString()}")
-                            if (episode.id == changes.obj.id) {
-                                withContext(Dispatchers.Main) {
-                                    playedState = changes.obj.playState
-                                    ratingState = changes.obj.rating
-                                    positionState = changes.obj.position
-                                    durationState = changes.obj.duration
-                                    inProgressState = changes.obj.isInProgress
-                                    downloadState = if (changes.obj.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
-                                    episode = changes.obj     // direct assignment doesn't update member like media??
-                                }
-//                                Logd("EpisodeVM", "episodeMonitor $playedState $playedState ")
-                            } else Loge("EpisodeVM", "episodeMonitor index out bound")
-                        }
-                        else -> {}
-                    }
+            episodeMonitor = episodeMonitor(episode) {
+                withContext(Dispatchers.Main) {
+                    playedState = it.playState
+                    ratingState = it.rating
+                    positionState = it.position
+                    durationState = it.duration
+                    inProgressState = it.isInProgress
+                    downloadState = if (it.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
+                    episode = it
                 }
             }
         }
@@ -311,6 +298,25 @@ fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
             }
         }
     }
+}
+
+@Composable
+fun AddCommentDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
+    var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
+    LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { onDismissRequest() },
+        onSave = {
+            runOnIOScope {
+                val localTime = System.currentTimeMillis()
+                for (episode in selected) {
+                    upsert(episode) {
+                        Logd("AddCommentDialog", "onSave editCommentText [${editCommentText.text}]")
+                        val comment = fullDateTimeString(localTime) + ":\n" + editCommentText.text
+                        it.comment += if (it.comment.isBlank()) comment else "\n" + comment
+                        it.commentTime = localTime
+                    }
+                }
+            }
+        })
 }
 
 @Composable
@@ -545,7 +551,7 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed? = null, layoutMode: Int = 0,
-                      showCoverImage: Boolean = true, showActionButtons: Boolean = true,
+                      showCoverImage: Boolean = true, showActionButtons: Boolean = true, showComment: Boolean = false,
                       buildMoreItems: (()-> Unit) = {},
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       refreshCB: (()->Unit)? = null, leftSwipeCB: ((Episode) -> Unit)? = null, rightSwipeCB: ((Episode) -> Unit)? = null,
@@ -567,6 +573,9 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
 
     var showChooseRatingDialog by remember { mutableStateOf(false) }
     if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
+
+    var showAddCommentDialog by remember { mutableStateOf(false) }
+    if (showAddCommentDialog) AddCommentDialog(selected) { showAddCommentDialog = false }
 
     var showIgnoreDialog by remember { mutableStateOf(false) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
@@ -603,6 +612,12 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), "Set rating")
                 Text(stringResource(id = R.string.set_rating_label)) } },
+            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                onSelected()
+                showAddCommentDialog = true
+            }, verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_comment_24), "Add comment")
+                Text(stringResource(id = R.string.add_opinion_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 fun download(now: Boolean) {
@@ -726,7 +741,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
         else selected.remove(vm.episode)
     }
 
-    val titleMaxLines = if (layoutMode == 0) 2 else 3
+    val titleMaxLines = if (layoutMode == 0) if (showComment) 1 else 2 else 3
     @Composable
     fun TitleColumn(vm: EpisodeVM, index: Int, modifier: Modifier) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -754,22 +769,32 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
             })) {
             Text(vm.episode.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = titleMaxLines, overflow = TextOverflow.Ellipsis)
             if (layoutMode == 0) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    val playStateRes = PlayState.fromCode(vm.playedState).res
-                    Icon(imageVector = ImageVector.vectorResource(playStateRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "playState",
-                        modifier = Modifier.background(if (vm.playedState >= PlayState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
-                    val ratingIconRes = Rating.fromCode(vm.ratingState).res
-                    if (vm.ratingState != Rating.UNRATED.code)
-                        Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
-                            modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
-                    if (vm.episode.getMediaType() == MediaType.VIDEO)
-                        Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
-                    val curContext = LocalContext.current
-                    val dateSizeText = remember { " · " + formatDateTimeFlex(vm.episode.getPubDate()) +
-                            " · " + getDurationStringLong(vm.durationState) +
-                            (if (vm.episode.size > 0) " · " + Formatter.formatShortFileSize(curContext, vm.episode.size) else "") +
-                            (if (vm.viewCount > 0) " · " + formatLargeInteger(vm.viewCount) else "") }
-                    Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (showComment) {
+                    val comment = remember { stripDateTimeLines(vm.episode.comment) }
+                    Text(comment, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        val playStateRes = PlayState.fromCode(vm.playedState).res
+                        Icon(imageVector = ImageVector.vectorResource(playStateRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "playState",
+                            modifier = Modifier.background(if (vm.playedState >= PlayState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
+                        val ratingIconRes = Rating.fromCode(vm.ratingState).res
+                        if (vm.ratingState != Rating.UNRATED.code)
+                            Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
+                                modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
+                        if (vm.hasComment)
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_comment_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "comment",
+                                modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
+                        if (vm.episode.getMediaType() == MediaType.VIDEO)
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
+                        val curContext = LocalContext.current
+                        val dateSizeText = remember {
+                            " · " + formatDateTimeFlex(vm.episode.getPubDate()) +
+                                    " · " + getDurationStringLong(vm.durationState) +
+                                    (if (vm.episode.size > 0) " · " + Formatter.formatShortFileSize(curContext, vm.episode.size) else "") +
+                                    (if (vm.viewCount > 0) " · " + formatLargeInteger(vm.viewCount) else "")
+                        }
+                        Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             } else {
                 val curContext = LocalContext.current

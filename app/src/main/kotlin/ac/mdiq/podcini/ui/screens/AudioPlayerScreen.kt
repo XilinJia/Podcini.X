@@ -537,7 +537,7 @@ fun AudioPlayerScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            vm.controller?.release()
+//            vm.controller?.release()
             vm.controller = null
             if (vm.controllerFuture != null) MediaController.releaseFuture(vm.controllerFuture!!)
             vm.controllerFuture =  null
@@ -692,7 +692,7 @@ fun AudioPlayerScreen() {
             Spacer(Modifier.weight(1f))
             vm.showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
             Text(vm.txtvLengtTexth, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
-                if (vm.controller == null) return@clickable
+//                if (vm.controller == null) return@clickable
                 vm.showTimeLeft = !vm.showTimeLeft
                 putPref(AppPrefs.showTimeLeft, vm.showTimeLeft)
                 vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode, curPositionFB, curDurationFB))
@@ -793,10 +793,10 @@ fun AudioPlayerScreen() {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
                 if (vm.curItem != null) showVolumeDialog = true
             })
-            if (vm.controller != null) {
+//            if (vm.controller != null) {
                 val sleepRes = if (vm.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep
                 Icon(imageVector = ImageVector.vectorResource(sleepRes), tint = textColor, contentDescription = "Sleep timer", modifier = Modifier.clickable { showSleepTimeDialog = true })
-            }
+//            }
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), tint = textColor, contentDescription = "Share", modifier = Modifier.clickable {
                 if (vm.curItem != null) showShareDialog = true
             })

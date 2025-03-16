@@ -1,8 +1,11 @@
 package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.storage.model.*
+import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.showStackTrace
 import android.net.Uri
@@ -15,6 +18,8 @@ import io.github.xilinjia.krdb.dynamic.DynamicRealmObject
 import io.github.xilinjia.krdb.dynamic.getValue
 import io.github.xilinjia.krdb.dynamic.getValueSet
 import io.github.xilinjia.krdb.ext.isManaged
+import io.github.xilinjia.krdb.notifications.SingleQueryChange
+import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.TypedRealmObject
 import java.io.File
@@ -310,6 +315,25 @@ object RealmDB {
         return ioScope.launch {
             if (Dispatchers.IO == coroutineContext[ContinuationInterceptor]) block()
             else withContext(Dispatchers.IO) { block() }
+        }
+    }
+
+    fun episodeMonitor(episode: Episode, onChanges: suspend (Episode)->Unit): Job {
+        return CoroutineScope(Dispatchers.Default).launch {
+            val item_ = realm.query(Episode::class).query("id == ${episode.id}").first()
+            Logd(TAG, "start monitoring episode: ${episode.id} ${episode.title}")
+            val episodeFlow = item_.asFlow()
+            episodeFlow.collect { changes: SingleQueryChange<Episode> ->
+                when (changes) {
+                    is UpdatedObject -> {
+                        Logd(TAG, "episodeMonitor UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
+                        if (episode.id == changes.obj.id) {
+                            onChanges(changes.obj)
+                        } else Loge(TAG, "episodeMonitor index out bound")
+                    }
+                    else -> {}
+                }
+            }
         }
     }
 }

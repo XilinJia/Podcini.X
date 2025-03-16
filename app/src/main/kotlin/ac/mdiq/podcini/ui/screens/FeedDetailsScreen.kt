@@ -332,12 +332,12 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                         if (onInit) {
                             var hasNonMediaItems = false
                             // TODO: ensure
-//                            for (item in episodes) {
-//                                if (item.media == null) {
-//                                    hasNonMediaItems = true
-//                                    break
-//                                }
-//                            }
+                            for (item in episodes) {
+                                if (item.downloadUrl == null) {
+                                    hasNonMediaItems = true
+                                    break
+                                }
+                            }
                             if (hasNonMediaItems) {
                                 lcScope.launch {
                                     withContext(Dispatchers.IO) {
