@@ -494,7 +494,7 @@ fun FeedDetailsScreen() {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
-    BackHandler { mainNavController.popBackStack() }
+//    BackHandler { mainNavController.popBackStack() }
 
     ComfirmDialog(0, stringResource(R.string.reconnect_local_folder_warning), vm.showConnectLocalFolderConfirm) {
         try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Loge(TAG, "No activity found. Should never happen...") }

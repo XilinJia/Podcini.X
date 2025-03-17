@@ -128,7 +128,7 @@ object FeedUpdateManager {
             builder.putBoolean(EXTRA_NEXT_PAGE, nextPage)
         }
         workRequest.setInputData(builder.build())
-        WorkManager.getInstance(context).enqueueUniqueWork(WORK_ID_FEED_UPDATE_MANUAL, ExistingWorkPolicy.REPLACE, workRequest.build())
+        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(WORK_ID_FEED_UPDATE_MANUAL, ExistingWorkPolicy.REPLACE, workRequest.build())
     }
 
     @JvmStatic

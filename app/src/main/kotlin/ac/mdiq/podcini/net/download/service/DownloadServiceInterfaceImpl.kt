@@ -74,7 +74,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         workRequest.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
         if (ignoreConstraints) workRequest.setConstraints(Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
         else workRequest.setConstraints(constraints)
-        WorkManager.getInstance(context).enqueueUniqueWork(item.downloadUrl!!, ExistingWorkPolicy.KEEP, workRequest.build())
+        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(item.downloadUrl!!, ExistingWorkPolicy.KEEP, workRequest.build())
     }
 
     override fun download(context: Context, item: Episode) {
@@ -85,7 +85,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         Logd(TAG, "starting download")
         val workRequest: OneTimeWorkRequest.Builder = getRequest(item)
         workRequest.setConstraints(constraints)
-        WorkManager.getInstance(context).enqueueUniqueWork(item.downloadUrl!!, ExistingWorkPolicy.KEEP, workRequest.build())
+        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(item.downloadUrl!!, ExistingWorkPolicy.KEEP, workRequest.build())
     }
 
     override fun cancel(context: Context, media: Episode) {

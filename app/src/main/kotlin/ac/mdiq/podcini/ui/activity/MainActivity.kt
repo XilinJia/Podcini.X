@@ -78,7 +78,7 @@ import android.provider.Settings
 import android.view.KeyEvent
 import android.view.View
 import android.widget.EditText
-import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -203,27 +203,6 @@ class MainActivity : BaseActivity() {
 //        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
 
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                Logd(TAG, "handleOnBackPressed called")
-                when {
-                    drawerState.isOpen -> closeDrawer()
-                    isBSExpanded -> isBSExpanded = false
-                    mainNavController.previousBackStackEntry != null -> mainNavController.popBackStack()
-                    else -> {
-                        val toPage = getPref(AppPrefs.prefDefaultPage, "")
-                        if (getLastNavScreen() == toPage || AppPreferences.DefaultPages.Remember.name == toPage) {
-                            if (getPref(AppPrefs.prefBackButtonOpensDrawer, false)) openDrawer()
-                            else {
-                                isEnabled = false
-                                onBackPressedDispatcher.onBackPressed()
-                            }
-                        } else loadScreen(toPage, null)
-                    }
-                }
-            }
-        })
-
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData(feedUpdateWorkId)
             .observe(this) { workInfos -> workInfos?.forEach { workInfo -> Logd(TAG, "FeedUpdateWork status: ${workInfo.state}") } }
 
@@ -249,21 +228,21 @@ class MainActivity : BaseActivity() {
 
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
 
-        WorkManager.getInstance(this)
-            .getWorkInfosForUniqueWorkLiveData(feedUpdateWorkId)
-            .observe(this) { workInfos ->
-                workInfos?.firstOrNull()?.let { workInfo ->
-                    var isRefreshingFeeds = false
-                    when (workInfo.state) {
-                        WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED -> isRefreshingFeeds = true
-                        else -> {
-                            isRefreshingFeeds = false
-                            Logd(TAG, "Periodic Work state: ${workInfo.state}")
-                        }
-                    }
-                    EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(isRefreshingFeeds))
-                }
-            }
+//        WorkManager.getInstance(this)
+//            .getWorkInfosForUniqueWorkLiveData(feedUpdateWorkId)
+//            .observe(this) { workInfos ->
+//                workInfos?.firstOrNull()?.let { workInfo ->
+//                    var isRefreshingFeeds = false
+//                    when (workInfo.state) {
+//                        WorkInfo.State.RUNNING, WorkInfo.State.ENQUEUED -> isRefreshingFeeds = true
+//                        else -> {
+//                            isRefreshingFeeds = false
+//                            Logd(TAG, "Periodic Work state: ${workInfo.state}")
+//                        }
+//                    }
+//                    EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(isRefreshingFeeds))
+//                }
+//            }
 
         WorkManager.getInstance(this)
             .getWorkInfosByTagLiveData(FeedUpdateManager.WORK_TAG_FEED_UPDATE)
@@ -293,6 +272,24 @@ class MainActivity : BaseActivity() {
         val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Hidden, skipHiddenState = false))
 
         if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
+
+        val toPage = getPref(AppPrefs.prefDefaultPage, "")
+        BackHandler {
+            Logd(TAG, "handleOnBackPressed called")
+            when {
+                drawerState.isOpen -> closeDrawer()
+                isBSExpanded -> isBSExpanded = false
+                toPage.isNotBlank() -> {
+                    if (getLastNavScreen() != toPage && AppPreferences.DefaultPages.Remember.name != toPage) loadScreen(toPage, null)
+                    else {
+                        if (getPref(AppPrefs.prefBackButtonOpensDrawer, false)) openDrawer()
+                        else onBackPressedDispatcher.onBackPressed()
+                    }
+                }
+                mainNavController.previousBackStackEntry != null -> mainNavController.popBackStack()
+                else -> onBackPressedDispatcher.onBackPressed()
+            }
+        }
 
         LaunchedEffect(key1 = isBSExpanded, key2 = curMediaId) {
             if (curMediaId > 0) {
@@ -373,17 +370,10 @@ class MainActivity : BaseActivity() {
     }
 
     fun checkAndRequestUnrestrictedBackgroundActivity(context: Context) {
-//        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
         val powerManager = context.getSystemService(POWER_SERVICE) as PowerManager
         val isIgnoringBatteryOptimizations = powerManager.isIgnoringBatteryOptimizations(context.packageName)
         val dontAskAgain = prefs.getBoolean("dont_ask_again_unrestricted_background", false)
-        if (!isIgnoringBatteryOptimizations && !dontAskAgain) {
-            showUnrestrictedBackgroundPermissionDialog = true
-//            val composeView = ComposeView(this).apply {
-//                setContent { UnrestrictedBackgroundPermissionDialog(onDismiss = { (parent as? ViewGroup)?.removeView(this) }) }
-//            }
-//            (window.decorView as? ViewGroup)?.addView(composeView)
-        }
+        if (!isIgnoringBatteryOptimizations && !dontAskAgain) showUnrestrictedBackgroundPermissionDialog = true
     }
 
     private fun observeDownloads() {
@@ -442,7 +432,8 @@ class MainActivity : BaseActivity() {
 
     override fun onDestroy() {
         Logd(TAG, "onDestroy")
-//        WorkManager.getInstance(this).pruneWork()
+        WorkManager.getInstance(this).pruneWork()
+        WorkManager.getInstance(applicationContext).pruneWork()
 //        realm.close()
 //        bottomSheet.removeBottomSheetCallback(bottomSheetCallback)
 //        if (drawerToggle != null) drawerLayout?.removeDrawerListener(drawerToggle!!)

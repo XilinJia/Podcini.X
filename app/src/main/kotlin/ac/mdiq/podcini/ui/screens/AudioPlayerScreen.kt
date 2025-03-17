@@ -2,7 +2,6 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.playback.PlaybackServiceStarter
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -33,8 +32,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.model.Episode
@@ -165,7 +162,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import net.dankito.readability4j.Readability4J
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
@@ -180,8 +176,17 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal var curItem by mutableStateOf<Episode?>(null)
 
     private var playButInit = false
-    internal var isShowPlay: Boolean = true
-
+    internal var showPlayButton: Boolean = true
+        set(value) {
+            if (field != value) {
+                field = value
+                playButRes = when {
+                    isVideoScreen -> if (value) R.drawable.ic_play_video_white else R.drawable.ic_pause_video_white
+                    value -> R.drawable.ic_play_48dp
+                    else -> R.drawable.ic_pause
+                }
+            }
+        }
     internal var showTimeLeft = false
     internal var titleText by mutableStateOf("")
     internal var imgLoc by mutableStateOf<String?>(null)
@@ -281,7 +286,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             updateUi(curItem!!)
             setItem(curEpisode!!)
         }
-//        if (isShowPlay) setIsShowPlay(false)
+        if (showPlayButton) showPlayButton = false
         onPositionUpdate(event)
         if (isBSExpanded) {
             if (curItem?.id != event.episode.id) return
@@ -297,13 +302,13 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             updateUi(curItem!!)
             setItem(currentitem)
         }
-//        actMain?.setPlayerVisible(true)
-        setIsShowPlay(event.action == FlowEvent.PlayEvent.Action.END)
+        showPlayButton = (event.action == FlowEvent.PlayEvent.Action.END)
     }
     internal fun onPositionUpdate(event: FlowEvent.PlaybackPositionEvent) {
 //        Logd(TAG, "onPositionUpdate")
         if (!playButInit && playButRes == R.drawable.ic_play_48dp && curEpisode != null) {
-            if (isCurrentlyPlaying(curEpisode)) playButRes = R.drawable.ic_pause
+            showPlayButton = !isCurrentlyPlaying(curEpisode)
+//            if (isCurrentlyPlaying(curEpisode)) playButRes = R.drawable.ic_pause
             playButInit = true
         }
         if (curEpisode?.id != event.episode?.id || controller == null || curPositionFB == Episode.INVALID_TIME || curDurationFB == Episode.INVALID_TIME) return
@@ -319,18 +324,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         txtvLengtTexth = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + DurationConverter.getDurationStringLong(remainingTime) else DurationConverter.getDurationStringLong(duration)
         sliderValue = event.position.toFloat()
     }
-    fun setIsShowPlay(showPlay: Boolean) {
-        Logd(TAG, "setIsShowPlay: $isShowPlay $showPlay")
-        if (isShowPlay != showPlay) {
-            isShowPlay = showPlay
-            playButRes = when {
-                isVideoScreen -> if (showPlay) R.drawable.ic_play_video_white else R.drawable.ic_pause_video_white
-                showPlay -> R.drawable.ic_play_48dp
-                else -> R.drawable.ic_pause
-            }
-        }
-    }
-
     internal fun updateUi(media: Episode) {
         Logd(TAG, "updateUi called $media")
         titleText = media.getEpisodeTitle()
@@ -340,7 +333,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         if (isPlayingVideoLocally && curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY) isBSExpanded = false
         prevItem = media
     }
-
     internal fun updateDetails() {
         lcScope.launch {
             Logd(TAG, "in updateDetails")
@@ -378,31 +370,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
     }
 
-    internal fun buildHomeReaderText() {
-        showHomeText = !showHomeText
-        runOnIOScope {
-            if (showHomeText) {
-                homeText = curItem!!.transcript
-                if (homeText == null && curItem?.link != null) {
-                    val url = curItem!!.link!!
-                    val htmlSource = fetchHtmlSource(url)
-                    val readability4J = Readability4J(curItem!!.link!!, htmlSource)
-                    val article = readability4J.parse()
-                    readerhtml = article.contentWithDocumentsCharsetOrUtf8
-                    if (!readerhtml.isNullOrEmpty()) {
-                        curItem = upsertBlk(curItem!!) { it.setTranscriptIfLonger(readerhtml) }
-                        homeText = curItem!!.transcript
-                    }
-                }
-                if (!homeText.isNullOrEmpty()) cleanedNotes = shownotesCleaner?.processShownotes(homeText!!, 0)
-                else Logt(TAG, context.getString(R.string.web_content_not_available))
-            } else {
-                cleanedNotes = shownotesCleaner?.processShownotes(curItem?.description ?: "", curItem?.duration ?: 0)
-                if (cleanedNotes.isNullOrEmpty()) Logt(TAG, context.getString(R.string.web_content_not_available))
-            }
-        }
-    }
-
     private fun refreshChapterData(chapterIndex: Int) {
         Logd(TAG, "in refreshChapterData $chapterIndex")
         if (curItem != null && chapterIndex > -1) {
@@ -433,13 +400,11 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             else -> seekTo(curr.start.toInt())
         }
     }
-
     internal fun seekToNextChapter() {
         if (curItem?.chapters.isNullOrEmpty() || displayedChapterIndex == -1 || displayedChapterIndex + 1 >= curItem!!.chapters.size) return
         refreshChapterData(displayedChapterIndex + 1)
         seekTo(curItem!!.chapters[displayedChapterIndex].start.toInt())
     }
-
     private var loadItemsRunning = false
     internal fun loadMediaInfo() {
         Logd(TAG, "loadMediaInfo() curMedia: ${curEpisode?.id}")
@@ -475,7 +440,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
     }
-
     private fun setItem(item_: Episode) {
         Logd(TAG, "setItem ${item_.title}")
         if (curItem?.identifyingValue != item_.identifyingValue) {
@@ -502,14 +466,14 @@ fun AudioPlayerScreen() {
                     if (vm.actMain != null) {
                         vm.controller = object : ServiceStatusHandler(vm.actMain) {
                             override fun updatePlayButton(showPlay: Boolean) {
-                                vm.setIsShowPlay(showPlay)
+                                vm.showPlayButton = showPlay
                             }
                             override fun loadMediaInfo() {
                                 Logd(TAG, "createHandler loadMediaInfo")
                                 vm.loadMediaInfo()
                             }
                             override fun onPlaybackEnd() {
-                                vm.setIsShowPlay(true)
+                                vm.showPlayButton = true
                             }
                         }
 //                        vm.controller!!.init()    TODO: this appears not necessary
@@ -528,7 +492,10 @@ fun AudioPlayerScreen() {
                 }
                 Lifecycle.Event.ON_RESUME -> {
                     vm.loadMediaInfo()
-                    if (curEpisode != null) vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode!!, curEpisode!!.position, curEpisode!!.duration))
+                    if (curEpisode != null) {
+                        !isCurrentlyPlaying(curEpisode)
+                        vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode!!, curEpisode!!.position, curEpisode!!.duration))
+                    }
                 }
                 Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
                 Lifecycle.Event.ON_DESTROY -> {}
@@ -548,8 +515,9 @@ fun AudioPlayerScreen() {
     LaunchedEffect(isBSExpanded) {
         if (isBSExpanded) {
             if (vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
-            vm.setIsShowPlay(vm.isShowPlay)
-        } else vm.setIsShowPlay(vm.isShowPlay)
+//            vm.isShowPlay = vm.isShowPlay
+        }
+//        else vm.isShowPlay = vm.isShowPlay
         Logd(TAG, "isExpanded: $isBSExpanded")
     }
 
@@ -624,7 +592,7 @@ fun AudioPlayerScreen() {
                     onClick = {
                         if (curEpisode != null) {
                             val media = curEpisode!!
-                            vm.setIsShowPlay(!vm.isShowPlay)
+                            vm.showPlayButton = !vm.showPlayButton
                             if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                                 playPause()
                                 context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
@@ -772,8 +740,6 @@ fun AudioPlayerScreen() {
                 })
             var homeIcon by remember { mutableIntStateOf(R.drawable.outline_home_24)}
             Icon(imageVector = ImageVector.vectorResource(homeIcon), tint = textColor, contentDescription = "Home", modifier = Modifier.clickable {
-//                homeIcon = if (vm.showHomeText) R.drawable.ic_home else R.drawable.outline_home_24
-//                vm.buildHomeReaderText()
                 if (vm.curItem != null) {
                     episodeOnDisplay = vm.curItem!!
                     mainNavController.navigate(Screens.EpisodeInfo.name)
@@ -919,7 +885,7 @@ fun AudioPlayerScreen() {
             if (vm.cleanedNotes == null) vm.updateDetails()
             Column(Modifier.padding(bottom = 120.dp)) {
                 Toolbar()
-                DetailUI(modifier = Modifier)
+                DetailUI(modifier = Modifier.fillMaxSize())
             }
         }
     }

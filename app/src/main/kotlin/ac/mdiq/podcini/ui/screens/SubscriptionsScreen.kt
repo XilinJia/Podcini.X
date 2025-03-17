@@ -629,7 +629,7 @@ fun SubscriptionsScreen() {
         }
     }
 
-    BackHandler { mainNavController.popBackStack() }
+//    BackHandler { mainNavController.popBackStack() }
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable

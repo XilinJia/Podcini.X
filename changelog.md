@@ -1,3 +1,12 @@
+# 8.11.7
+
+* newline character is changed to spaces in brief comments in Commented view in Facets
+* fixed PlayerDetailed not opening to full screen
+* Play button on PlayerUI is refreshed on resume
+* straightened backpress behaviors
+* disabled for now monitoring periodic feed updates: not effective
+* ensured download or refresh works are dispatched with application context
+
 # 8.11.6
 
 * removed more references of ServiceStatusHandler in AudioPlayer

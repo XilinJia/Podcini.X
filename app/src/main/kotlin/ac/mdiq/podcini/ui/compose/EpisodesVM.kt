@@ -770,7 +770,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
             Text(vm.episode.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = titleMaxLines, overflow = TextOverflow.Ellipsis)
             if (layoutMode == 0) {
                 if (showComment) {
-                    val comment = remember { stripDateTimeLines(vm.episode.comment) }
+                    val comment = remember { stripDateTimeLines(vm.episode.comment).replace("\n", "  ") }
                     Text(comment, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 3, overflow = TextOverflow.Ellipsis)
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
