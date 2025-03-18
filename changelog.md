@@ -1,3 +1,11 @@
+# 8.12.0
+
+* further tuned backpress behaviors
+* Session logs is the default view in Logs screen
+* more details in Statistics, step 1
+* some code restructuring
+* updated some dependencies
+
 # 8.11.7
 
 * newline character is changed to spaces in brief comments in Commented view in Facets

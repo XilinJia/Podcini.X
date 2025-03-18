@@ -22,7 +22,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Screens
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog

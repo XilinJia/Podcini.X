@@ -32,7 +32,7 @@ import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Screens
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode

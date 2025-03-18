@@ -17,7 +17,6 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.ui.actions.DownloadActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
@@ -99,7 +98,7 @@ class LogsVM(val context: Context, val lcScope: CoroutineScope) {
     internal val shareLogs = mutableStateListOf<ShareLog>()
     internal val subscriptionLogs = mutableStateListOf<SubscriptionLog>()
     internal val downloadLogs = mutableStateListOf<DownloadResult>()
-    internal var title by mutableStateOf("")
+    internal var title by mutableStateOf("Session")
     internal var displayUpArrow = false
     internal var showDeleteConfirmDialog = mutableStateOf(false)
 
@@ -167,7 +166,7 @@ fun LogsScreen() {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> vm.loadDownloadLog()
+                Lifecycle.Event.ON_CREATE -> {}
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_STOP -> {}
                 Lifecycle.Event.ON_DESTROY -> {}
@@ -496,6 +495,10 @@ fun LogsScreen() {
                 { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer") } }
             },
             actions = {
+                if (vm.title != "Session") IconButton(onClick = {
+                    vm.clearAllLogs()
+                    vm.title = "Session"
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_running_with_errors_24), contentDescription = "session") }
                 if (vm.title != "Downloads") IconButton(onClick = {
                     vm.clearAllLogs()
                     vm.loadDownloadLog()
@@ -508,10 +511,6 @@ fun LogsScreen() {
                     vm.clearAllLogs()
                     vm.loadSubscriptionLog()
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "subscriptions") }
-                if (vm.title != "Session") IconButton(onClick = {
-                    vm.clearAllLogs()
-                    vm.title = "Session"
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_running_with_errors_24), contentDescription = "session") }
                 IconButton(onClick = { vm.showDeleteConfirmDialog.value = true
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "clear history") }
             }

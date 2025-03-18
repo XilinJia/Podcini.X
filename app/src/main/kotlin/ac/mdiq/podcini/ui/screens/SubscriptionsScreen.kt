@@ -28,7 +28,6 @@ import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
@@ -55,7 +54,6 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
 import android.view.Gravity
-import androidx.activity.compose.BackHandler
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -160,18 +158,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
-import kotlin.Boolean
-import kotlin.Comparator
-import kotlin.Exception
-import kotlin.Int
-import kotlin.Long
-import kotlin.OptIn
-import kotlin.String
-import kotlin.Throwable
-import kotlin.Unit
-import kotlin.apply
-import kotlin.getValue
-import kotlin.lazy
 
 class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     val prefs: SharedPreferences by lazy { context.getSharedPreferences("SubscriptionsFragmentPrefs", Context.MODE_PRIVATE) }

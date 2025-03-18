@@ -23,6 +23,7 @@ import ac.mdiq.podcini.storage.utils.ChapterUtils
 import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -235,8 +236,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             EventFlow.postEvent(FlowEvent.MessageEvent(
                 applicationContext.getString(if (retrying) R.string.download_error_retrying else R.string.download_error_not_retrying, episodeTitle),
                 { ctx: Context -> {
-                    mainNavController.navigate(MainActivity.Screens.Logs.name)
-//                    MainActivityStarter(ctx).withDownloadLogsOpen().start()
+                    mainNavController.navigate(Screens.Logs.name)
                 } },
                 applicationContext.getString(R.string.download_error_details)))
         }

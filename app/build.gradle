@@ -25,8 +25,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 142
-        versionName "8.11.7"
+        versionCode 143
+        versionName "8.12.0"
 
         ndkVersion "27.0.12077973"
 
@@ -162,11 +162,11 @@ android {
 }
 
 dependencies {
-    implementation platform("androidx.compose:compose-bom:2025.02.00")
+    implementation platform("androidx.compose:compose-bom:2025.03.00")
     implementation "androidx.compose.material3:material3:1.3.1"
     implementation "androidx.activity:activity-compose:1.10.1"
     implementation "androidx.constraintlayout:constraintlayout-compose:1.1.1"
-    implementation "androidx.navigation:navigation-compose:2.8.8"
+    implementation "androidx.navigation:navigation-compose:2.8.9"
 
     implementation "androidx.annotation:annotation:1.9.1"
     implementation "androidx.core:core-ktx:1.15.0"
@@ -174,7 +174,7 @@ dependencies {
     implementation "androidx.core:core-splashscreen:1.0.1"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.8.7"
     implementation "androidx.preference:preference-ktx:1.2.1"
-    implementation "androidx.webkit:webkit:1.12.1"
+    implementation "androidx.webkit:webkit:1.13.0"
     implementation "androidx.window:window:1.3.0"
     implementation "androidx.work:work-runtime:2.10.0"
 
@@ -187,6 +187,7 @@ dependencies {
     implementation "com.google.android.material:material:1.12.0"
 
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1"
+    implementation "org.jetbrains.kotlin:kotlin-reflect:${libs.versions.kotlin}"
 
     implementation "io.github.xilinjia.krdb:library-base:3.2.5"
 
@@ -209,7 +210,7 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-tooling-preview:1.7.8"
 
     playImplementation "com.google.android.play:core-ktx:1.8.1"
-    playImplementation "com.google.android.gms:play-services-base:18.5.0"
+    playImplementation "com.google.android.gms:play-services-base:18.6.0"
     playApi "androidx.mediarouter:mediarouter:1.7.0"
     playApi "com.google.android.gms:play-services-cast-framework:22.0.0"
 }

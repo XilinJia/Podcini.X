@@ -8,8 +8,8 @@ import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.Feeds.updateFeedDownloadURL
+import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -28,7 +28,6 @@ import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -63,7 +62,6 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.speech.tts.TextToSpeech
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.BorderStroke

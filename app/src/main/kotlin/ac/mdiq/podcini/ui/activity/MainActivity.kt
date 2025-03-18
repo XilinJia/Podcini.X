@@ -12,9 +12,6 @@ import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.cast.BaseActivity
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.receiver.MediaButtonReceiver.Companion.createIntent
@@ -31,25 +28,10 @@ import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
-import ac.mdiq.podcini.ui.screens.DiscoveryScreen
-import ac.mdiq.podcini.ui.screens.EpisodeInfoScreen
-import ac.mdiq.podcini.ui.screens.EpisodeTextScreen
-import ac.mdiq.podcini.ui.screens.FacetsScreen
-import ac.mdiq.podcini.ui.screens.FeedDetailsScreen
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
-import ac.mdiq.podcini.ui.screens.FeedSettingsScreen
-import ac.mdiq.podcini.ui.screens.LogsScreen
 import ac.mdiq.podcini.ui.screens.NavDrawerScreen
-import ac.mdiq.podcini.ui.screens.OnlineFeedScreen
-import ac.mdiq.podcini.ui.screens.OnlineSearchScreen
-import ac.mdiq.podcini.ui.screens.QueuesScreen
-import ac.mdiq.podcini.ui.screens.SearchResultsScreen
-import ac.mdiq.podcini.ui.screens.SearchScreen
-import ac.mdiq.podcini.ui.screens.StatisticsScreen
-import ac.mdiq.podcini.ui.screens.SubscriptionsScreen
-import ac.mdiq.podcini.ui.screens.getLastNavScreen
-import ac.mdiq.podcini.ui.screens.getLastNavScreenArg
-import ac.mdiq.podcini.ui.screens.saveLastNavScreen
+import ac.mdiq.podcini.ui.screens.Navigate
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
@@ -78,7 +60,6 @@ import android.provider.Settings
 import android.view.KeyEvent
 import android.view.View
 import android.widget.EditText
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -128,8 +109,6 @@ import androidx.core.graphics.Insets
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -165,24 +144,6 @@ class MainActivity : BaseActivity() {
 
     private var hasFeedUpdateObserverStarted = false
     private var hasDownloadObserverStarted = false
-
-    enum class Screens {
-        Subscriptions,
-        FeedDetails,
-        FeedSettings,
-        Facets,
-        EpisodeInfo,
-        EpisodeText,
-        Queues,
-        Search,
-        OnlineSearch,
-        OnlineFeed,
-        OnlineEpisodes,
-        Discovery,
-        SearchResults,
-        Logs,
-        Statistics
-    }
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         lastTheme = getNoTitleTheme(this)
@@ -273,24 +234,6 @@ class MainActivity : BaseActivity() {
 
         if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
 
-        val toPage = getPref(AppPrefs.prefDefaultPage, "")
-        BackHandler {
-            Logd(TAG, "handleOnBackPressed called")
-            when {
-                drawerState.isOpen -> closeDrawer()
-                isBSExpanded -> isBSExpanded = false
-                toPage.isNotBlank() -> {
-                    if (getLastNavScreen() != toPage && AppPreferences.DefaultPages.Remember.name != toPage) loadScreen(toPage, null)
-                    else {
-                        if (getPref(AppPrefs.prefBackButtonOpensDrawer, false)) openDrawer()
-                        else onBackPressedDispatcher.onBackPressed()
-                    }
-                }
-                mainNavController.previousBackStackEntry != null -> mainNavController.popBackStack()
-                else -> onBackPressedDispatcher.onBackPressed()
-            }
-        }
-
         LaunchedEffect(key1 = isBSExpanded, key2 = curMediaId) {
             if (curMediaId > 0) {
                 if (isBSExpanded) lcScope?.launch { sheetState.bottomSheetState.expand() }
@@ -319,25 +262,7 @@ class MainActivity : BaseActivity() {
                 )) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-                    CompositionLocalProvider(LocalNavController provides navController) {
-                        NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {
-                            composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
-                            composable(Screens.FeedDetails.name) { FeedDetailsScreen() }
-                            composable(Screens.FeedSettings.name) { FeedSettingsScreen() }
-                            composable(Screens.EpisodeInfo.name) { EpisodeInfoScreen() }
-                            composable(Screens.EpisodeText.name) { EpisodeTextScreen() }
-                            composable(Screens.Facets.name) { FacetsScreen() }
-                            composable(Screens.Queues.name) { QueuesScreen() }
-                            composable(Screens.Search.name) { SearchScreen() }
-                            composable(Screens.OnlineSearch.name) { OnlineSearchScreen() }
-                            composable(Screens.Discovery.name) { DiscoveryScreen() }
-                            composable(Screens.OnlineFeed.name) { OnlineFeedScreen() }
-                            composable(Screens.SearchResults.name) { SearchResultsScreen() }
-                            composable(Screens.Logs.name) { LogsScreen() }
-                            composable(Screens.Statistics.name) { StatisticsScreen() }
-                            composable("DefaultPage") { SubscriptionsScreen() }
-                        }
-                    }
+                    CompositionLocalProvider(LocalNavController provides navController) { Navigate(navController) }
                 }
             }
         }
@@ -439,33 +364,6 @@ class MainActivity : BaseActivity() {
 //        if (drawerToggle != null) drawerLayout?.removeDrawerListener(drawerToggle!!)
 //        MediaController.releaseFuture(controllerFuture)
         super.onDestroy()
-    }
-
-    private fun loadScreen(tag: String?, args: Bundle?) {
-        var tag = tag
-        var args = args
-        Logd(TAG, "loadFragment(tag: $tag, args: $args)")
-        when (tag) {
-            Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Facets.name, Screens.Statistics.name ->
-                mainNavController.navigate(tag)
-            Screens.FeedDetails.name -> {
-                if (args == null) {
-                    val feedId = getLastNavScreenArg().toLongOrNull()
-                    if (feedId != null) {
-                        val feed = getFeed(feedId)
-                        if (feed != null) {
-                            feedOnDisplay = feed
-                            mainNavController.navigate(tag)
-                        }
-                    } else mainNavController.navigate(Screens.Subscriptions.name)
-                } else mainNavController.navigate(Screens.Subscriptions.name)
-            }
-            else -> {
-                tag = Screens.Subscriptions.name
-                mainNavController.navigate(tag)
-            }
-        }
-        runOnIOScope { saveLastNavScreen(tag) }
     }
 
 //    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
@@ -688,7 +586,7 @@ class MainActivity : BaseActivity() {
         lateinit var mainNavController: NavHostController
         val LocalNavController = staticCompositionLocalOf<NavController> { error("NavController not provided") }
 
-        private val drawerState = DrawerState(initialValue = DrawerValue.Closed)
+        val drawerState = DrawerState(initialValue = DrawerValue.Closed)
         var lcScope: CoroutineScope? = null
 
         fun openDrawer() {

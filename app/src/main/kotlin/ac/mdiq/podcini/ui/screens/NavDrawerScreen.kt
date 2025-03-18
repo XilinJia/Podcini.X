@@ -1,9 +1,14 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodesCount
+import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedCount
 import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.EpisodeFilter.Companion.unfiltered
 import ac.mdiq.podcini.storage.model.Feed
@@ -11,9 +16,10 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.closeDrawer
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.drawerState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Screens
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.openDrawer
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -23,6 +29,8 @@ import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.os.Bundle
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,6 +70,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import coil.compose.AsyncImage
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
@@ -121,6 +132,47 @@ fun NavDrawerScreen() {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+
+    fun loadScreen(tag: String?, args: Bundle?) {
+        var tag = tag
+        var args = args
+        Logd(TAG, "loadFragment(tag: $tag, args: $args)")
+        when (tag) {
+            Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Facets.name, Screens.Statistics.name ->
+                mainNavController.navigate(tag)
+            Screens.FeedDetails.name -> {
+                if (args == null) {
+                    val feedId = getLastNavScreenArg().toLongOrNull()
+                    if (feedId != null) {
+                        val feed = getFeed(feedId)
+                        if (feed != null) {
+                            feedOnDisplay = feed
+                            mainNavController.navigate(tag)
+                        }
+                    } else mainNavController.navigate(Screens.Subscriptions.name)
+                } else mainNavController.navigate(Screens.Subscriptions.name)
+            }
+            else -> {
+                tag = Screens.Subscriptions.name
+                mainNavController.navigate(tag)
+            }
+        }
+        runOnIOScope { saveLastNavScreen(tag) }
+    }
+
+    BackHandler(enabled = true) {
+        Logd(TAG, "BackHandler: $isBSExpanded")
+        val toPage = getPref(AppPrefs.prefDefaultPage, "")
+        val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
+        when {
+            drawerState.isOpen -> closeDrawer()
+            isBSExpanded -> isBSExpanded = false
+            mainNavController.previousBackStackEntry != null -> mainNavController.popBackStack()
+            toPage.isNotBlank() && getLastNavScreen() != toPage && AppPreferences.DefaultPages.Remember.name != toPage -> loadScreen(toPage, null)
+            openDrawer -> openDrawer()
+        }
+    }
+
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val drawerWidth = screenWidth * 0.7f
@@ -188,6 +240,24 @@ class NavItem(val iconRes: Int, val nameRes: Int) {
     var show by mutableStateOf(true)
 }
 
+enum class Screens {
+    Subscriptions,
+    FeedDetails,
+    FeedSettings,
+    Facets,
+    EpisodeInfo,
+    EpisodeText,
+    Queues,
+    Search,
+    OnlineSearch,
+    OnlineFeed,
+    OnlineEpisodes,
+    Discovery,
+    SearchResults,
+    Logs,
+    Statistics
+}
+
 val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.Subscriptions.name to NavItem(R.drawable.ic_subscriptions, R.string.subscriptions_label),
     Screens.Queues.name to NavItem(R.drawable.ic_playlist_play, R.string.queue_label),
@@ -196,6 +266,27 @@ val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.Statistics.name to NavItem(R.drawable.ic_chart_box, R.string.statistics_label),
     Screens.OnlineSearch.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
 )
+
+@Composable
+fun Navigate(navController: NavHostController) {
+    NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {
+        composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
+        composable(Screens.FeedDetails.name) { FeedDetailsScreen() }
+        composable(Screens.FeedSettings.name) { FeedSettingsScreen() }
+        composable(Screens.EpisodeInfo.name) { EpisodeInfoScreen() }
+        composable(Screens.EpisodeText.name) { EpisodeTextScreen() }
+        composable(Screens.Facets.name) { FacetsScreen() }
+        composable(Screens.Queues.name) { QueuesScreen() }
+        composable(Screens.Search.name) { SearchScreen() }
+        composable(Screens.OnlineSearch.name) { OnlineSearchScreen() }
+        composable(Screens.Discovery.name) { DiscoveryScreen() }
+        composable(Screens.OnlineFeed.name) { OnlineFeedScreen() }
+        composable(Screens.SearchResults.name) { SearchResultsScreen() }
+        composable(Screens.Logs.name) { LogsScreen() }
+        composable(Screens.Statistics.name) { StatisticsScreen() }
+        composable("DefaultPage") { SubscriptionsScreen() }
+    }
+}
 
 fun saveLastNavScreen(tag: String?, arg: String? = null) {
     Logd(TAG, "saveLastNavScreen(tag: $tag)")

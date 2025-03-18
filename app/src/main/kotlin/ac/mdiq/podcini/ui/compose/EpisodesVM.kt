@@ -54,7 +54,7 @@ import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.NullActionButton
 import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Screens
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay

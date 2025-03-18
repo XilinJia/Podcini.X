@@ -26,6 +26,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.toggleFallbackSpeed
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
@@ -43,7 +44,6 @@ import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Screens
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
@@ -513,11 +513,7 @@ fun AudioPlayerScreen() {
     }
 
     LaunchedEffect(isBSExpanded) {
-        if (isBSExpanded) {
-            if (vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
-//            vm.isShowPlay = vm.isShowPlay
-        }
-//        else vm.isShowPlay = vm.isShowPlay
+        if (isBSExpanded && vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
         Logd(TAG, "isExpanded: $isBSExpanded")
     }
 
@@ -600,7 +596,7 @@ fun AudioPlayerScreen() {
                         } },
                     onLongClick = {
                         if (status == PlayerStatus.PLAYING) {
-                            val speedFB = AppPreferences.fallbackSpeed
+                            val speedFB = fallbackSpeed
                             if (speedFB > 0.1f) toggleFallbackSpeed(speedFB)
                         } }))
             Spacer(Modifier.weight(0.1f))
