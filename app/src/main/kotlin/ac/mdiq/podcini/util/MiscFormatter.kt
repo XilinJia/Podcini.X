@@ -34,7 +34,7 @@ object MiscFormatter {
     }
 
     fun stripDateTimeLines(input: String): String {
-        val regex = Regex("""^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}:$""")  // "yyyy-MM-dd HH:mm:ss"
+        val regex = Regex("""^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}:?$""")  // "yyyy-MM-dd HH:mm:ss"
         return input.lines().filterNot { regex.matches(it) }.joinToString("\n")
     }
 

@@ -1,0 +1,10 @@
+# 8.12.1
+
+* fixed a null pointer crash issue in EpisodeInfo when removing feed
+* in Queues, topbar icons of showBin and showFeeds are mutually exclusive
+* in Queues, when showing bin or feeds, backpress returns to the queue
+* amended Overview of Statistics screen
+* fixed total duration Int overflow issue in Statistics
+* topbar including icons are removed, all are included
+* tap on the period text in Overview of Statistics opens the dates filter dialog
+* further stripped datetime from brief comments in Commented view in Facets

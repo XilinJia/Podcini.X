@@ -213,7 +213,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun getButton():  EpisodeActionButton {
         return when {
             InTheatre.isCurrentlyPlaying(episode) -> PauseActionButton(episode!!)
-            episode!!.feed != null && episode!!.feed!!.isLocalFeed -> PlayLocalActionButton(episode!!)
+            episode?.feed != null && episode!!.feed!!.isLocalFeed -> PlayLocalActionButton(episode!!)
             episode!!.downloaded -> PlayActionButton(episode!!)
             else -> StreamActionButton(episode!!)
         }
@@ -487,12 +487,11 @@ fun EpisodeInfoScreen() {
                     factory = { context ->
                         ShownotesWebView(context).apply {
                             setTimecodeSelectedListener { time: Int -> seekTo(time) }
-                            // Restoring the scroll position might not always work
-                            setPageFinishedListener { postDelayed({ }, 50) }
+                            setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
                         }
                     }, update = {
-                        Logd(TAG, "AndroidView update: [${vm.episode!!.webviewData}]")
-                        it.loadDataWithBaseURL("https://127.0.0.1", vm.episode!!.webviewData?:"", "text/html", "utf-8", "about:blank") })
+                        Logd(TAG, "AndroidView update: [${vm.episode?.webviewData}]")
+                        it.loadDataWithBaseURL("https://127.0.0.1", vm.episode?.webviewData?:"", "text/html", "utf-8", "about:blank") })
                 if (!vm.episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
                 Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isBlank()) " (Add)" else "",

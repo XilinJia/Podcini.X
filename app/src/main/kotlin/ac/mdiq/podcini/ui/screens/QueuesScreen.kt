@@ -32,7 +32,6 @@ import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDial
 import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
@@ -50,6 +49,7 @@ import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import android.content.ComponentName
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -442,16 +442,23 @@ fun QueuesScreen() {
             dismissButton = { TextButton(onClick = { showBinLimitDialog = false }) { Text(stringResource(R.string.cancel_label)) } } )
     }
 
+    var showTopSpinner by remember { mutableStateOf(!vm.showBin) }
+    var title by remember { mutableStateOf(if (vm.showBin) curQueue.name + " Bin" else "") }
+
+    fun refreshQueueOrBin() {
+        showTopSpinner = !vm.showBin
+        title = if (vm.showBin) curQueue.name + " Bin" else ""
+        vm.refreshSwipeTelltale()
+        vm.loadCurQueue(false)
+    }
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
         val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
-        var showSpinner by remember { mutableStateOf(!vm.showBin) }
-        var title by remember { mutableStateOf(if (vm.showBin) curQueue.name + " Bin" else "") }
         var showRename by remember { mutableStateOf(curQueue.name != "Default") }
         TopAppBar(title = {
-            if (showSpinner) SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
+            if (showTopSpinner) SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
                 Logd(TAG, "Queue selected: ${vm.queues[index].name}")
                 val prevQueueSize = curQueue.size()
                 curQueue = upsertBlk(vm.queues[index]) { it.update() }
@@ -467,15 +474,14 @@ fun QueuesScreen() {
             actions = {
                 val binIconRes by remember(vm.showBin) { derivedStateOf { if (vm.showBin) R.drawable.playlist_play else R.drawable.ic_history } }
                 val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
-                IconButton(onClick = {
+                if (!vm.showFeeds) IconButton(onClick = {
                     vm.showBin = !vm.showBin
-                    showSpinner = !vm.showBin
-                    title = if (vm.showBin) curQueue.name + " Bin" else ""
-                    vm.refreshSwipeTelltale()
-                    vm.loadCurQueue(false)
+                    refreshQueueOrBin()
                 }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
-                IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                if (!vm.showBin) IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                if (!vm.showBin) {
+                    IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
+                    IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.bin_limit) + ": ${curQueue.binLimit}") }, onClick = {
@@ -645,6 +651,14 @@ fun QueuesScreen() {
             1 -> if (index < vm.queueItems.size) vm.queueItems.subList(index, vm.queueItems.size) else vm.queueItems
             else -> listOf()
         }
+    }
+
+    BackHandler(enabled = vm.showBin || vm.showFeeds) {
+        if (vm.showBin) {
+            vm.showBin = false
+            refreshQueueOrBin()
+        }
+        else if (vm.showFeeds) vm.showFeeds = false
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->

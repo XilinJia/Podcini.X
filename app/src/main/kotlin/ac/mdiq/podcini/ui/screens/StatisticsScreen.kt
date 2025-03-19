@@ -17,6 +17,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import android.annotation.SuppressLint
 import android.content.Context
@@ -178,9 +179,6 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
                     val dateTo = dateFormat.format(if (timeFilterTo != Long.MAX_VALUE) Date(timeFilterTo) else Date())
                     "$dateFrom to $dateTo"
                 }
-            // When "from" is "today", set it to today
-//            setTimeFilter(max(min(timeFilterFrom.toDouble(), System.currentTimeMillis().toDouble()), statsResult.oldestDate.toDouble()).toLong(),
-//                min(timeFilterTo.toDouble(), System.currentTimeMillis().toDouble()).toLong())
         } catch (error: Throwable) { Logs(TAG, error) }
     }
 }
@@ -223,26 +221,6 @@ fun StatisticsScreen() {
             navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } },
             actions = {
                 if (vm.selectedTabIndex.value <= 2) {
-                    IconButton(onClick = {
-                        countSkipped = !countSkipped
-                        vm.chartData = null
-                        vm.statisticsState++
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_24dp), tint = if (countSkipped) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "skipped") }
-                    IconButton(onClick = {
-                        countPlayed = !countPlayed
-                        vm.chartData = null
-                        vm.statisticsState++
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_check), tint = if (countPlayed) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "played") }
-                    IconButton(onClick = {
-                        countPassed = !countPassed
-                        vm.chartData = null
-                        vm.statisticsState++
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_low_priority_24), tint = if (countPassed) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "passed") }
-                    IconButton(onClick = {
-                        countIgnored = !countIgnored
-                        vm.chartData = null
-                        vm.statisticsState++
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_visibility_off_24), tint = if (countIgnored) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "ignored") }
                     IconButton(onClick = { vm.showFilter = true }) {
                         val filterColor = if (vm.timeFilterFrom > 0L || vm.timeFilterTo < Long.MAX_VALUE) Color.Green else MaterialTheme.colorScheme.onSurface
                         Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = filterColor, contentDescription = "filter")
@@ -331,30 +309,43 @@ fun StatisticsScreen() {
         }
         val textColor = MaterialTheme.colorScheme.onSurface
         Row {
+            Spacer(Modifier.weight(0.3f))
             Text(stringResource(R.string.total) + ": " + formatEpisodes(stats.episodesTotal), color = textColor)
-            Spacer(Modifier.width(20.dp))
-            if (stats.episodesStarted > 0) Text( stringResource(R.string.started) + ": " + formatEpisodes(stats.episodesStarted), color = textColor)
-            Spacer(Modifier.width(20.dp))
-            if (stats.episodesPlayed > 0) Text(stringResource(R.string.played) + ": " + formatEpisodes(stats.episodesPlayed), color = textColor)
+            Spacer(Modifier.weight(0.1f))
+            Text(getDurationStringShort(stats.durationTotal*1000/nd, true), color = textColor)
+            Spacer(Modifier.weight(0.2f))
+            Text( stringResource(R.string.spent) + ": " + getDurationStringShort(stats.timeSpent*1000/nd, true), color = textColor)
+            Spacer(Modifier.weight(0.3f))
+        }
+        if (stats.episodesStarted > 0 || stats.episodesPlayed > 0) Row {
+            Spacer(Modifier.weight(0.3f))
+            if (stats.episodesStarted > 0) {
+                Text(stringResource(R.string.started) + ": " + formatEpisodes(stats.episodesStarted), color = textColor)
+                Spacer(Modifier.weight(0.1f))
+                Text(getDurationStringShort(stats.timePlayed*1000/nd, true), color = textColor)
+                Spacer(Modifier.weight(0.1f))
+                Text(getDurationStringShort(stats.durationStarted*1000/nd, true), color = textColor)
+            }
+            Spacer(Modifier.weight(0.2f))
+            if (stats.episodesPlayed > 0) {
+                Text(stringResource(R.string.played) + ": " + formatEpisodes(stats.episodesPlayed), color = textColor)
+                Spacer(Modifier.weight(0.1f))
+                Text(getDurationStringShort(stats.durationPlayed*1000/nd, true), color = textColor)
+            }
+            Spacer(Modifier.weight(0.3f))
         }
         Row {
-            if (stats.episodesSkipped > 0) Text( stringResource(R.string.skipped) + ": " + formatEpisodes(stats.episodesSkipped), color = textColor)
-            Spacer(Modifier.width(20.dp))
+            Spacer(Modifier.weight(0.3f))
+            if (stats.episodesSkipped > 0) {
+                Text( stringResource(R.string.skipped) + ": " + formatEpisodes(stats.episodesSkipped), color = textColor)
+                Spacer(Modifier.weight(0.1f))
+                Text(getDurationStringShort(stats.durationSkipped*1000/nd, true), color = textColor)
+            }
+            Spacer(Modifier.weight(0.2f))
             if (stats.episodesPassed > 0) Text(stringResource(R.string.passed) + ": " + formatEpisodes(stats.episodesPassed), color = textColor)
-            Spacer(Modifier.width(20.dp))
+            Spacer(Modifier.weight(0.2f))
             if (stats.episodesIgnored > 0) Text( stringResource(R.string.ignored) + ": " + formatEpisodes(stats.episodesIgnored), color = textColor)
-        }
-        Row {
-            Text(stringResource(R.string.total) + ": " + getDurationStringShort(stats.durationTotal.toInt()*1000/nd, true), color = textColor)
-            Spacer(Modifier.width(20.dp))
-            if (stats.durationStarted > 0) Text(stringResource(R.string.started) + ": " + getDurationStringShort(stats.durationStarted.toInt()*1000/nd, true), color = textColor)
-            Spacer(Modifier.width(20.dp))
-            Text( stringResource(R.string.spent) + ": " + getDurationStringShort(stats.timeSpent.toInt()*1000/nd, true), color = textColor)
-        }
-        Row {
-            if (stats.durationPlayed > 0) Text(stringResource(R.string.played) + ": " + getDurationStringShort(stats.durationPlayed.toInt()*1000/nd, true), color = textColor)
-            Spacer(Modifier.width(20.dp))
-            if (stats.durationSkipped > 0) Text(stringResource(R.string.skipped) + ": " + getDurationStringShort(stats.durationSkipped.toInt()*1000/nd, true), color = textColor)
+            Spacer(Modifier.weight(0.3f))
         }
     }
 
@@ -408,7 +399,7 @@ fun StatisticsScreen() {
                 Spacer(Modifier.weight(1f))
             }
             OverviewNumbers(vm.statsOfDay.statTotal)
-            Text(vm.periodText, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(top = 20.dp))
+            TextButton(onClick = { vm.showFilter = true }, modifier = Modifier.padding(top = 20.dp)) { Text(vm.periodText, style = MaterialTheme.typography.headlineSmall) }
             OverviewNumbers(vm.statsResult.statTotal)
             Text(stringResource(R.string.daily_average), style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(top = 20.dp))
             OverviewNumbers(vm.statsResult.statTotal, vm.numDays)
@@ -691,45 +682,9 @@ private const val TAG = "StatisticsScreen"
 private const val PREF_NAME: String = "StatisticsActivityPrefs"
 
 enum class Prefs {
-    CountPlayed,
-    CountSkipped,
-    CountPassed,
-    CountIgnored,
     FilterFrom,
     FilterTo
 }
-
-private var _countPlayed = mutableStateOf(prefs.getBoolean(Prefs.CountPlayed.name, false))
-var countPlayed: Boolean
-    get() = _countPlayed.value
-    set(value) {
-        _countPlayed.value = value
-        prefs.edit()?.putBoolean(Prefs.CountPlayed.name, value)?.apply()
-    }
-
-private var _countSkipped = mutableStateOf(prefs.getBoolean(Prefs.CountSkipped.name, false))
-var countSkipped: Boolean
-    get() = _countSkipped.value
-    set(value) {
-        _countSkipped.value = value
-        prefs.edit()?.putBoolean(Prefs.CountSkipped.name, value)?.apply()
-    }
-
-private var _countPassed = mutableStateOf(prefs.getBoolean(Prefs.CountPassed.name, false))
-var countPassed: Boolean
-    get() = _countPassed.value
-    set(value) {
-        _countPassed.value = value
-        prefs.edit()?.putBoolean(Prefs.CountPassed.name, value)?.apply()
-    }
-
-private var _countIgnored = mutableStateOf(prefs.getBoolean(Prefs.CountIgnored.name, false))
-var countIgnored: Boolean
-    get() = _countIgnored.value
-    set(value) {
-        _countIgnored.value = value
-        prefs.edit()?.putBoolean(Prefs.CountIgnored.name, value)?.apply()
-    }
 
 private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL: Boolean = false): StatisticsResult {
     Logd(TAG, "getStatistics called")
@@ -738,10 +693,10 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
         else -> {
             var qs1 = "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo)"
             var qs3 = "playStateSetTime > $timeFrom AND playStateSetTime < $timeTo"
-            if (countPlayed) qs1 += " OR ($qs3 AND playState == ${PlayState.PLAYED.code})"
-            if (countSkipped) qs1 += " OR ($qs3 AND playState == ${PlayState.SKIPPED.code})"
-            if (countPassed) qs1 += " OR ($qs3 AND playState == ${PlayState.PASSED.code})"
-            if (countIgnored) qs1 += " OR ($qs3 AND playState == ${PlayState.IGNORED.code})"
+            qs1 += " OR ($qs3 AND playState == ${PlayState.PLAYED.code})"
+            qs1 += " OR ($qs3 AND playState == ${PlayState.SKIPPED.code})"
+            qs1 += " OR ($qs3 AND playState == ${PlayState.PASSED.code})"
+            qs1 += " OR ($qs3 AND playState == ${PlayState.IGNORED.code})"
             qs1
         }
     }
@@ -767,8 +722,9 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
             if (feedId != 0L || !forDL) {
                 if (e.lastPlayedTime > 0L && e.lastPlayedTime < result.oldestDate) result.oldestDate = e.lastPlayedTime
                 if (e.playStateSetTime > 0L && e.playStateSetTime < result.oldestDate) result.oldestDate = e.playStateSetTime
-                fStat.item.durationTotal += e.duration
-                Logd(TAG, "getStatistics countPlayed: $countPlayed e.playState: ${e.playState} e.timeSpent: ${e.timeSpent} ${e.title}")
+                if (e.duration > 0) fStat.item.durationTotal += e.duration
+                else Loge(TAG, "episode has negative duration: ${e.duration} state: ${e.playState} ${e.title}")
+                Logd(TAG, "getStatistics e.playState: ${e.playState} e.timeSpent: ${e.timeSpent} ${e.title}")
                 if (e.playState == PlayState.PLAYED.code) {
                     fStat.item.episodesPlayed++
                     fStat.item.durationPlayed += e.duration
@@ -810,31 +766,31 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
         result.statsItems.add(fStat)
     }
     if (result.statsItems.isNotEmpty()) {
-        result.statTotal = result.statsItems.fold(StatisticsItem()) { acc, stats ->
+        val item = StatisticsItem()
+        result.statTotal = result.statsItems.fold(item) { acc, stats ->
             val properties = StatisticsItem::class.memberProperties
-            val result = StatisticsItem() // Create new instance with empty constructor
             properties.forEach { prop ->
                 val setter = prop as? KMutableProperty1<StatisticsItem, *> ?: throw IllegalStateException("Property ${prop.name} is not mutable")
                 val propertyType = prop.returnType.jvmErasure
-                when {
-                    propertyType == Int::class -> {
+                when (propertyType) {
+                    Int::class -> {
                         @Suppress("UNCHECKED_CAST")
                         val typedSetter = setter as KMutableProperty1<StatisticsItem, Int>
                         val accValue = typedSetter.get(acc)
                         val statsValue = typedSetter.get(stats.item)
-                        typedSetter.set(result, accValue + statsValue)
+                        typedSetter.set(item, accValue + statsValue)
                     }
-                    propertyType == Long::class -> {
+                    Long::class -> {
                         @Suppress("UNCHECKED_CAST")
                         val typedSetter = setter as KMutableProperty1<StatisticsItem, Long>
                         val accValue = typedSetter.get(acc)
                         val statsValue = typedSetter.get(stats.item)
-                        typedSetter.set(result, accValue + statsValue)
+                        typedSetter.set(item, accValue + statsValue)
                     }
                     else -> throw IllegalStateException("Unsupported property type: ${prop.name}")
                 }
             }
-            result
+            item
         }
     }
     return result
@@ -866,19 +822,19 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
                 }
                 Row {
                     Text(stringResource(R.string.statistics_length_played), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort(fStat?.item?.durationStarted?.toInt() ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(getDurationStringShort(fStat?.item?.durationStarted ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_time_played), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort(fStat?.item?.timePlayed?.toInt() ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(getDurationStringShort(fStat?.item?.timePlayed ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_time_spent), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort(fStat?.item?.timeSpent?.toInt() ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(getDurationStringShort(fStat?.item?.timeSpent ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_total_duration), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort(fStat?.item?.durationTotal?.toInt() ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(getDurationStringShort(fStat?.item?.durationTotal ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_episodes_on_device), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -902,3 +858,5 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
         dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
     )
 }
+
+

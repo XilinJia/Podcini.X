@@ -37,7 +37,7 @@ object DurationConverter {
      * Converts milliseconds to a string containing hours and minutes or minutes and seconds.
      */
     @JvmStatic
-    fun getDurationStringShort(duration: Int, inHours: Boolean): String {
+    fun getDurationStringShort(duration: Long, inHours: Boolean): String {
         val firstPartBase = if (inHours) HOURS_MIL else MINUTES_MIL
         val firstPart = duration / firstPartBase
         val leftoverFromFirstPart = duration - firstPart * firstPartBase
