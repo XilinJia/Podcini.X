@@ -1,3 +1,10 @@
+# 8.12.2
+
+* amended statistics in Subscriptions tab of Statistics screen
+* straightened the Monthly tab of Statistics screen
+* fixed improper handling getting file size in fetchSize
+* when removing a feed, episodes marked Ignored are not preserved
+
 # 8.12.1
 
 * fixed a null pointer crash issue in EpisodeInfo when removing feed
@@ -5,7 +12,7 @@
 * in Queues, when showing bin or feeds, backpress returns to the queue
 * amended Overview of Statistics screen
 * fixed total duration Int overflow issue in Statistics
-* topbar including icons are removed, all are included
+* topbar including icons in Statistics are removed, all are included
 * tap on the period text in Overview of Statistics opens the dates filter dialog
 * further stripped datetime from brief comments in Commented view in Facets
 

@@ -363,7 +363,7 @@ object Feeds {
             episode.feed = savedFeed
             episode.id = idLong++
             episode.feedId = savedFeed.id
-            episode.fetchMediaSize(false)
+            episode.fetchMediaSize(persist = false)
             if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
             if (idx >= savedFeed.episodes.size) savedFeed.episodes.add(episode)
             else savedFeed.episodes.add(idx, episode)

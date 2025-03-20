@@ -650,7 +650,7 @@ fun FeedDetailsScreen() {
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
                             scope.launch {
-                                for (e in vm.episodes) e.fetchMediaSize()
+                                for (e in vm.episodes) e.fetchMediaSize(force = true)
                                 vm.loadFeed(true)
                             }
                             expanded = false

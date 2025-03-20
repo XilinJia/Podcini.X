@@ -183,7 +183,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                             val preserveFeed = if (saveImportant) getPreserveSyndicate() else null
                             for (f in feeds) {
                                 if (saveImportant) {
-                                    val eList = realm.query(Episode::class).query("feedId == ${f.id} AND (rating >= ${Rating.GOOD.code} OR comment != '' OR playState == ${PlayState.AGAIN.code} OR playState == ${PlayState.FOREVER.code})").find()
+                                    val eList = realm.query(Episode::class).query("feedId == ${f.id} AND playState != ${PlayState.IGNORED.code} AND (rating >= ${Rating.GOOD.code} OR comment != '' OR playState == ${PlayState.AGAIN.code} OR playState == ${PlayState.FOREVER.code})").find()
                                     if (eList.isNotEmpty()) shelveToFeed(eList, preserveFeed!!)
                                 }
                                 if (!f.isSynthetic()) {

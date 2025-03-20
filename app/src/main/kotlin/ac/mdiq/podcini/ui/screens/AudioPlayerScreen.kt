@@ -8,6 +8,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
+import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.MediaPlayerInfo
 import ac.mdiq.podcini.playback.base.PlayerStatus
@@ -147,6 +148,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import coil.compose.AsyncImage
@@ -154,6 +157,8 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import java.io.File
+import java.io.FileOutputStream
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import kotlinx.coroutines.CoroutineScope
@@ -220,6 +225,10 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal var resetPlayer by mutableStateOf(false)
     internal val showErrorDialog = mutableStateOf(false)
     internal var errorMessage by mutableStateOf("")
+
+    internal var recordingStartTime by mutableStateOf<Long?>(null)
+    internal lateinit var cache: SimpleCache
+    internal lateinit var mediaFilesDir: File
 
     internal var displayedChapterIndex by mutableIntStateOf(-1)
     internal val curChapter: Chapter?
@@ -449,6 +458,37 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             homeText = null
         }
     }
+    internal fun saveAudioSegment(startTimeMs: Long, endTimeMs: Long) {
+        val durationMs = endTimeMs - startTimeMs
+        if (durationMs <= 0) return
+
+        val mediaId = exoPlayer?.currentMediaItem?.mediaId
+        if (mediaId == null){
+            Loge(TAG, "saveAudioSegment: mediaId is null")
+            return
+        }
+        val cacheSpan = cache.getCachedSpans(mediaId).firstOrNull { it.position <= startTimeMs && it.position + it.length >= endTimeMs }
+        if (cacheSpan?.file?.exists() == true) {
+            val outputFile = File(mediaFilesDir, "recorded_segment_${System.currentTimeMillis()}.mp3")
+            FileOutputStream(outputFile).use { fos ->
+                cacheSpan.file!!.inputStream().use { input ->
+                    val buffer = ByteArray(1024)
+                    var bytesRead: Int
+                    val bytesToSkip = startTimeMs - cacheSpan.position
+                    val bytesToRead = durationMs.coerceAtMost(cacheSpan.length - bytesToSkip)
+                    input.skip(bytesToSkip)
+                    var totalRead = 0
+                    while (input.read(buffer).also { bytesRead = it } != -1 && totalRead < bytesToRead) {
+                        fos.write(buffer, 0, bytesRead)
+                        totalRead += bytesRead
+                    }
+                }
+            }
+            println("Saved segment to: ${outputFile.absolutePath}")
+        } else {
+            println("Cache span not available or insufficient")
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -476,6 +516,9 @@ fun AudioPlayerScreen() {
                                 vm.showPlayButton = true
                             }
                         }
+                        vm.cache = SimpleCache(vm.actMain.cacheDir, LeastRecentlyUsedCacheEvictor(100 * 1024 * 1024)) // 100MB cache
+                        vm.mediaFilesDir = File(vm.actMain.filesDir, "media")
+                        vm.mediaFilesDir.mkdirs() // Ensure the directory exists
 //                        vm.controller!!.init()    TODO: this appears not necessary
                     }
                     isBSExpanded = false
@@ -545,7 +588,7 @@ fun AudioPlayerScreen() {
             }
             AsyncImage(contentDescription = "imgvCover", model = ImageRequest.Builder(context).data(vm.imgLoc)
                 .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                modifier = Modifier.width(65.dp).height(65.dp).padding(start = 5.dp)
+                modifier = Modifier.width(60.dp).height(60.dp).padding(start = 5.dp)
                     .clickable(onClick = {
                         Logd(TAG, "playerUi icon was clicked")
                         if (!isBSExpanded) {
@@ -568,7 +611,7 @@ fun AudioPlayerScreen() {
             Spacer(Modifier.weight(0.1f))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 SpeedometerWithArc(speed = vm.curPlaybackSpeed*100, maxSpeed = 300f, trackColor = textColor,
-                    modifier = Modifier.width(43.dp).height(43.dp).clickable(onClick = { vm.showSpeedDialog = true }))
+                    modifier = Modifier.width(40.dp).height(40.dp).clickable(onClick = { vm.showSpeedDialog = true }))
                 Text(vm.txtvPlaybackSpeed, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.weight(0.1f))
@@ -582,9 +625,22 @@ fun AudioPlayerScreen() {
                         onLongClick = { showSkipDialog = true }))
                 Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
+//            Spacer(Modifier.weight(0.1f))
+//            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fiber_manual_record_24), tint = if (vm.recordingStartTime == null) textColor else Color.Red, contentDescription = "record",
+//                modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
+//                    onClick = {
+//                        if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) {
+//                            if (vm.recordingStartTime == null)  vm.recordingStartTime = exoPlayer!!.currentPosition
+//                            else {
+//                                vm.saveAudioSegment(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
+//                                vm.recordingStartTime = null
+//                            }
+//                        } },
+//                    onLongClick = {
+//                    }))
             Spacer(Modifier.weight(0.1f))
             Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play",
-                modifier = Modifier.width(64.dp).height(64.dp).combinedClickable(
+                modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
                     onClick = {
                         if (curEpisode != null) {
                             val media = curEpisode!!

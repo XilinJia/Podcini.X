@@ -28,6 +28,7 @@ import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.webkit.URLUtil.guessFileName
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -532,6 +533,36 @@ class Episode : RealmObject {
         if (newPosition > 0 && isNew == true) setPlayed(false)
     }
 
+    fun fileSize(): Long? {
+        if (fileUrl == null) return null
+        val fileUri = Uri.parse(fileUrl)
+        return try {
+            when (fileUri.scheme) {
+                "file" -> {
+                    val file = File(fileUri.path ?: return null)
+                    if (file.exists()) file.length() else null
+                }
+                "content" -> {
+                    getAppContext().contentResolver.query(fileUri, null, null, null, null)?.use { cursor ->
+                        if (cursor.moveToFirst()) {
+                            val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+                            if (sizeIndex != -1) cursor.getLong(sizeIndex) else null
+                        } else {
+                            null
+                        }
+                    }
+                }
+                else -> {
+                    Loge(TAG, "getFileSize: unsupported uri scheme: $fileUrl")
+                    null
+                }
+            }
+        } catch (e: Exception) {
+            Logs(TAG, e, "getFileSize failed")
+            null
+        }
+    }
+
     fun fileExists(): Boolean {
         if (fileUrl == null) return false
         val fileuri = Uri.parse(fileUrl)
@@ -620,7 +651,7 @@ class Episode : RealmObject {
         return getDataFolder(mediaPath).toString() + "/"
     }
 
-    suspend fun fetchMediaSize(persist: Boolean = true) : Long {
+    suspend fun fetchMediaSize(persist: Boolean = true, force: Boolean = false) : Long {
         return withContext(Dispatchers.IO) {
             if (!isImageDownloadAllowed) {
                 Logt(TAG, "need unrestricted network or allow image on mobile for fetchMediaSize")
@@ -631,12 +662,9 @@ class Episode : RealmObject {
             when {
                 downloaded -> {
                     val url = fileUrl
-                    if (!url.isNullOrEmpty()) {
-                        val mediaFile = File(url)
-                        if (mediaFile.exists()) size_ = mediaFile.length()
-                    }
+                    if (!url.isNullOrEmpty()) size_ = fileSize() ?: 0
                 }
-                !checkedOnSizeButUnknown() -> {
+                force || !checkedOnSizeButUnknown() -> {
                     // only query the network if we haven't already checked
                     val url = downloadUrl
                     if (url.isNullOrEmpty()) return@withContext -1
