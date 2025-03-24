@@ -6,6 +6,7 @@ import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
+import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
@@ -89,9 +90,9 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         status = PlayerStatus.STOPPED
     }
 
-//    protected open fun setPlayable(playable: Episode?) {
-//        if (playable != null && playable !== curEpisode) setCurEpisode(playable)
-//    }
+    protected open fun setPlayable(playable: Episode?) {
+        if (playable != null && playable !== curEpisode) setCurEpisode(playable)
+    }
 
     open fun getVideoSize(): Pair<Int, Int>? = null
 

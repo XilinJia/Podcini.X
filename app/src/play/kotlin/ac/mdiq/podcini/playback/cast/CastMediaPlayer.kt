@@ -2,6 +2,7 @@ package ac.mdiq.podcini.playback.cast
 
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.MediaPlayerCallback
 import ac.mdiq.podcini.playback.base.PlayerStatus
@@ -77,7 +78,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
         if (castContext == null) castContext = CastContext.getSharedInstance(context.applicationContext)
         remoteMediaClient = castContext!!.sessionManager.currentCastSession?.remoteMediaClient
         remoteMediaClient?.registerCallback(remoteMediaClientCallback)
-        curEpisode = null
+        setCurEpisode(null)
         isStreaming = true
         isBuffering = AtomicBoolean(false)
         remoteState = MediaStatus.PLAYER_STATE_UNKNOWN
@@ -180,7 +181,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
                     MediaStatus.IDLE_REASON_NONE -> setPlayerStatus(PlayerStatus.INITIALIZED, currentMedia)
                     MediaStatus.IDLE_REASON_FINISHED -> {
                         // This is our onCompletionListener...
-                        if (mediaChanged && currentMedia != null) curEpisode = currentMedia
+                        if (mediaChanged && currentMedia != null) setCurEpisode(currentMedia)
                         endPlayback(true, wasSkipped = false, shouldContinue = true, toStoppedState = true)
                         return
                     }
@@ -234,7 +235,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             }
         }
 
-        curEpisode = playable
+        setCurEpisode(playable)
         this.mediaType = curEpisode!!.getMediaType()
         this.startWhenPrepared.set(startWhenPrepared)
         setPlayerStatus(PlayerStatus.INITIALIZING, curEpisode)
@@ -254,7 +255,8 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
                             mediaItem = null
                             mediaSource = null
                             try { setDataSource(metadata, media) } catch (e: Throwable) { EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: "")) }
-                        } else setDataSource(metadata, streamurl, null, null)
+                        }
+//                        else setDataSource(media, metadata, streamurl, null, null)
                     }
                 }
                 else -> {}
@@ -356,7 +358,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
 
     override fun setPlayable(playable: Episode?) {
         if (playable != null && playable !== curEpisode) {
-            curEpisode = playable
+            setCurEpisode(playable)
             mediaInfo = toMediaInfo(playable)
         }
     }
@@ -384,7 +386,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             if (nextMedia != null) {
                 callback.onPlaybackEnded(nextMedia.getMediaType(), !playNextEpisode)
                 // setting media to null signals to playMediaObject() that we're taking care of post-playback processing
-                curEpisode = null
+                setCurEpisode(null)
                 playMediaObject(nextMedia, streaming = true, startWhenPrepared = playNextEpisode, prepareImmediately = playNextEpisode, forceReset = false)
             }
         }
