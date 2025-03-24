@@ -294,7 +294,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
 
     var progressing by mutableStateOf(false)
     fun updateToolbar() {
-        var info = buildListInfo(context, episodes)
+        var info = buildListInfo(episodes)
         isFiltered = filter.propertySet.isNotEmpty()
         filterButtonColor.value = if (isFiltered) Color.Green else Color.White
         if (spinnerTexts[curIndex] == QuickAccess.Downloaded.name && episodes.isNotEmpty()) {

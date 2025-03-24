@@ -48,7 +48,7 @@ object RealmDB {
                 PAFeed::class,
             ))
             .name("Podcini.realm")
-            .schemaVersion(49)
+            .schemaVersion(50)
             .migration({ mContext ->
                 val oldRealm = mContext.oldRealm // old realm using the previous schema
                 val newRealm = mContext.newRealm // new realm using the new schema
@@ -318,7 +318,7 @@ object RealmDB {
         }
     }
 
-    fun episodeMonitor(episode: Episode, onChanges: suspend (Episode)->Unit): Job {
+    fun episodeMonitor(episode: Episode, onChanges: suspend (Episode, fields: Array<String>)->Unit): Job {
         return CoroutineScope(Dispatchers.Default).launch {
             val item_ = realm.query(Episode::class).query("id == ${episode.id}").first()
             Logd(TAG, "start monitoring episode: ${episode.id} ${episode.title}")
@@ -328,7 +328,7 @@ object RealmDB {
                     is UpdatedObject -> {
                         Logd(TAG, "episodeMonitor UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
                         if (episode.id == changes.obj.id) {
-                            onChanges(changes.obj)
+                            onChanges(changes.obj, changes.changedFields)
                         } else Loge(TAG, "episodeMonitor index out bound")
                     }
                     else -> {}

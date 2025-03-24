@@ -12,6 +12,7 @@ import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.UsageStatistics
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
+import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
@@ -28,7 +29,6 @@ import ac.mdiq.podcini.ui.actions.PlayLocalActionButton
 import ac.mdiq.podcini.ui.actions.StreamActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -45,12 +45,14 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.Context
 import android.content.ContextWrapper
+import android.net.Uri
 import android.text.format.Formatter.formatShortFileSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -61,6 +63,8 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -110,7 +114,10 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
 import coil.compose.AsyncImage
+import java.io.File
 import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -125,8 +132,11 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal lateinit var shownotesCleaner: ShownotesCleaner
 
+    internal var player: ExoPlayer? = null
+
     internal var itemLoaded = false
     internal var episode by mutableStateOf<Episode?>(null)    // managed
+    internal var episodeMonitor: Job? = null
 
     internal var txtvPodcast by mutableStateOf("")
     internal var txtvTitle by mutableStateOf("")
@@ -164,8 +174,8 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
-                    is FlowEvent.RatingEvent -> onRatingEvent(event)
-                    is FlowEvent.EpisodeEvent -> onEpisodeEvent(event)
+//                    is FlowEvent.RatingEvent -> onRatingEvent(event)
+//                    is FlowEvent.EpisodeEvent -> onEpisodeEvent(event)
 //                    is FlowEvent.PlayerSettingsEvent -> updateButtons()
                     is FlowEvent.EpisodePlayedEvent -> load()
                     else -> {}
@@ -178,6 +188,24 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                 when (event) {
                     is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)
                     else -> {}
+                }
+            }
+        }
+    }
+
+    internal fun monitor() {
+        episodeMonitor = episodeMonitor(episode!!) { e, fields ->
+            withContext(Dispatchers.Main) {
+                Logd(TAG, "monitor: ${fields.joinToString()}")
+                var isChanged = false
+                for (f in fields) {
+                    if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime")) continue
+                    isChanged = true
+                }
+                if (isChanged) {
+                    episode = e
+                    rating = e.rating
+                    isPlayed = e.playState
                 }
             }
         }
@@ -238,14 +266,13 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         mainNavController.navigate(Screens.FeedDetails.name)
     }
 
-
-    private fun onRatingEvent(event: FlowEvent.RatingEvent) {
-        if (episode?.id == event.episode.id) {
-            episode = unmanaged(episode!!)
-            episode!!.rating = event.rating
-            rating = episode!!.rating
-        }
-    }
+//    private fun onRatingEvent(event: FlowEvent.RatingEvent) {
+//        if (episode?.id == event.episode.id) {
+//            episode = unmanaged(episode!!)
+//            episode!!.rating = event.rating
+//            rating = episode!!.rating
+//        }
+//    }
 
     private fun onQueueEvent(event: FlowEvent.QueueEvent) {
         if (episode == null) return
@@ -261,16 +288,16 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    private fun onEpisodeEvent(event: FlowEvent.EpisodeEvent) {
-//        Logd(TAG, "onEventMainThread() called with ${event.TAG}")
-        if (this.episode == null) return
-        for (item in event.episodes) {
-            if (this.episode!!.id == item.id) {
-                load()
-                return
-            }
-        }
-    }
+//    private fun onEpisodeEvent(event: FlowEvent.EpisodeEvent) {
+////        Logd(TAG, "onEventMainThread() called with ${event.TAG}")
+//        if (this.episode == null) return
+//        for (item in event.episodes) {
+//            if (this.episode!!.id == item.id) {
+//                load()
+//                return
+//            }
+//        }
+//    }
 
     private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
         if (episode == null) return
@@ -301,7 +328,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                     withContext(Dispatchers.Main) {
                         Logd(TAG, "chapters: ${episode?.chapters?.size}")
                         Logd(TAG, "files: [${episode?.feed?.fileUrl}] [${episode?.fileUrl}]")
-                        Logd(TAG, "webviewData: [${episode!!.webviewData}]")
+//                        Logd(TAG, "webviewData: [${episode!!.webviewData}]")
                         if (episode != null) {
                             rating = episode!!.rating
                             inQueue = (episode!!.feed?.queue ?: curQueue).contains(episode!!)
@@ -317,7 +344,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun EpisodeInfoScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -339,7 +366,10 @@ fun EpisodeInfoScreen() {
                     vm.updateAppearance()
                     vm.load()
                 }
-                Lifecycle.Event.ON_START -> vm.procFlowEvents()
+                Lifecycle.Event.ON_START -> {
+                    vm.procFlowEvents()
+                    vm.monitor()
+                }
                 Lifecycle.Event.ON_RESUME -> if (vm.itemLoaded) vm.updateAppearance()
                 Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
                 Lifecycle.Event.ON_DESTROY -> {}
@@ -348,7 +378,11 @@ fun EpisodeInfoScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            vm.episodeMonitor?.cancel()
+            vm.episodeMonitor = null
             vm.episode = null
+            vm.player?.release()
+            vm.player = null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -467,7 +501,7 @@ fun EpisodeInfoScreen() {
                 Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { vm.openPodcast() })
             }
             Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                val imgLoc = vm.episode?.getEpisodeListImageLocation()
+                val imgLoc = vm.episode?.imageLocation
                 AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { vm.openPodcast() }))
                 Box(Modifier.weight(1f).padding(start = 10.dp).height(80.dp)) {
                     Column {
@@ -490,13 +524,30 @@ fun EpisodeInfoScreen() {
                             setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
                         }
                     }, update = {
-                        Logd(TAG, "AndroidView update: [${vm.episode?.webviewData}]")
+//                        Logd(TAG, "AndroidView update: [${vm.episode?.webviewData}]")
                         it.loadDataWithBaseURL("https://127.0.0.1", vm.episode?.webviewData?:"", "text/html", "utf-8", "about:blank") })
                 if (!vm.episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
+                if (!vm.episode?.clips.isNullOrEmpty()) {
+                    Text("Clips: ", style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp))
+                    FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
+                        vm.episode?.clips?.forEach { clip ->
+                            Text(clip.substringBefore("."), color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable {
+                                val filename = "recorded_${vm.episode!!.id}_$clip"
+                                val file = File(context.getExternalFilesDir("media"), filename)
+                                if (file.exists()) {
+                                    if (vm.player == null) vm.player = ExoPlayer.Builder(context).build()
+                                    vm.player?.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
+                                    vm.player?.prepare()
+                                    vm.player?.play()
+                                } else Loge(TAG, "clip file doesn't exist: $filename")
+                            })
+                        }
+                    }
+                }
                 Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isBlank()) " (Add)" else "",
                     color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
-                    modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable {
+                    modifier = Modifier.padding(start = 15.dp, top = 20.dp, bottom = 5.dp).clickable {
                         editCommentText = TextFieldValue((if (vm.episode?.comment.isNullOrBlank()) "" else vm.episode!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
                         showEditComment = true
                     })

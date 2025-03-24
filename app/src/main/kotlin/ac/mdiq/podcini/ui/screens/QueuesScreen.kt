@@ -276,7 +276,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         curIndex = queues.indexOfFirst { it.id == curQueue.id }
         spinnerTexts.clear()
         spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
-        listInfoText = buildListInfo(context, queueItems)
+        listInfoText = buildListInfo(queueItems)
         infoBarText.value = "$listInfoText $infoTextUpdate"
     }
 
@@ -339,7 +339,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             curIndex = queues.indexOfFirst { it.id == curQueue.id }
             spinnerTexts.clear()
             spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
-            listInfoText = buildListInfo(context, queueItems)
+            listInfoText = buildListInfo(queueItems)
             infoBarText.value = "$listInfoText $infoTextUpdate"
             loadItemsRunning = false
         }

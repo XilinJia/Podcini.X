@@ -126,6 +126,9 @@ class Episode : RealmObject {
 
     var tags: RealmSet<String> = realmSetOf()
 
+    var clips: RealmSet<String> = realmSetOf()
+
+
     /**
      * The list of chapters of this item. This might be null even if there are chapters of this item
      * in the database. The 'hasChapters' attribute should be used to check if this item has any chapters.
@@ -170,14 +173,16 @@ class Episode : RealmObject {
 
     @Ignore
     val imageLocation: String?
-        get() = when {
-            imageUrl != null -> imageUrl
+        get() = if (getPref(AppPrefs.prefEpisodeCover, false)) {
+            when {
+                imageUrl != null -> imageUrl
 //            TODO: this can be very expensive for list
 //            media != null && media?.hasEmbeddedPicture() == true -> EpisodeMedia.FILENAME_PREFIX_EMBEDDED_COVER + media!!.fileUrl
-            feed != null -> feed!!.imageUrl
-            hasEmbeddedPicture() -> FILENAME_PREFIX_EMBEDDED_COVER + fileUrl
-            else -> null
-        }
+                feed != null -> feed!!.imageUrl
+                hasEmbeddedPicture() -> FILENAME_PREFIX_EMBEDDED_COVER+fileUrl
+                else -> null
+            }
+        } else feed?.imageUrl
 
     @Ignore
     val isRemote = mutableStateOf(false)
@@ -634,14 +639,6 @@ class Episode : RealmObject {
         val filenameMaxLength = 220
         if (baseFilename.length > filenameMaxLength) baseFilename = baseFilename.substring(0, filenameMaxLength)
         return (baseFilename + EXTENSION_SEPARATOR + id + EXTENSION_SEPARATOR + getExtension(urlBaseFilename))
-
-//        var titleBaseFilename = ""
-//        if (title != null) titleBaseFilename = generateFileName(title!!)
-//        var baseFilename: String
-//        baseFilename = if (titleBaseFilename.isNotBlank()) titleBaseFilename else "NoTitle"
-//        val filenameMaxLength = 220
-//        if (baseFilename.length > filenameMaxLength) baseFilename = baseFilename.substring(0, filenameMaxLength)
-//        return (baseFilename + EXTENSION_SEPARATOR + "noid" + EXTENSION_SEPARATOR + "wav")
     }
 
     // TODO: for TTS temp file
@@ -786,24 +783,6 @@ class Episode : RealmObject {
         chapters.addAll(chapters_)
     }
 
-    /**
-     * Returns the location of the image or null if no image is available.
-     * This can be the feed item image URL, the local embedded media image path, the feed image URL,
-     * or the remote media image URL, depending on what's available.
-     */
-//    @JvmName("getImageLocationFunction")
-//    fun getImageLocation(): String? {
-//        return when {
-//            imageUrl != null -> imageUrl
-////            TODO: this can be very expensive for list
-////            media != null && media?.hasEmbeddedPicture() == true -> EpisodeMedia.FILENAME_PREFIX_EMBEDDED_COVER + media!!.fileUrl
-//            feed != null -> feed!!.imageUrl
-////            episode != null -> episode!!.imageLocation
-//            hasEmbeddedPicture() -> FILENAME_PREFIX_EMBEDDED_COVER + fileUrl
-//            else -> null
-//        }
-//    }
-
     fun getCurrentChapterIndex(position: Int): Int {
 //        val chapters = chapters
         if (chapters.isEmpty()) return -1
@@ -932,12 +911,6 @@ class Episode : RealmObject {
         }
         // TODO
 //        if (persist && episode != null) upsertBlk(episode!!) {}
-    }
-
-    fun getEpisodeListImageLocation(): String? {
-        Logd("ImageResourceUtils", "getEpisodeListImageLocation called")
-        return if (getPref(AppPrefs.prefEpisodeCover, false)) imageLocation
-        else feed?.imageUrl
     }
 
     /**

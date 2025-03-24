@@ -11,6 +11,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.loadPlayableFromPreferences
+import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.createStaticPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
@@ -885,8 +886,7 @@ class PlaybackService : MediaLibraryService() {
             else -> {
                 Logd(TAG, "Unhandled key code: $keycode")
                 // only notify the user about an unknown key event if it is actually doing something
-                if (info?.playable != null && info.playerStatus == PlayerStatus.PLAYING)
-                    Loge(TAG, String.format(resources.getString(R.string.unknown_media_key), keycode))
+                if (info?.playable != null && info.playerStatus == PlayerStatus.PLAYING) Loge(TAG, String.format(resources.getString(R.string.unknown_media_key), keycode))
             }
         }
         return false
@@ -909,12 +909,13 @@ class PlaybackService : MediaLibraryService() {
         val localFeed = URLUtil.isContentUrl(media.downloadUrl)
         val prevStreaming = streaming
         streaming = isStreaming(media)
-        if (prevStreaming != streaming) {
-            exoPlayer?.release()
-            exoPlayer =  null
-            createStaticPlayer(applicationContext)
-            mediaSession?.player = exoPlayer!!
-        }
+        // TODO:
+//        if (prevStreaming != streaming) {
+//            exoPlayer?.release()
+//            exoPlayer =  null
+//            createStaticPlayer(applicationContext)
+//            mediaSession?.player = exoPlayer!!
+//        }
 
         if (streaming!! && !localFeed && !isStreamingAllowed && !allowStreamThisTime) {
             displayStreamingNotAllowedNotification(PlaybackServiceStarter(this, media).intent)
@@ -939,7 +940,7 @@ class PlaybackService : MediaLibraryService() {
                     is FlowEvent.SleepTimerUpdatedEvent -> onSleepTimerUpdate(event)
                     is FlowEvent.FeedChangeEvent -> onFeedPrefsChanged(event)
                     is FlowEvent.PlayerErrorEvent -> onPlayerError(event)
-                    is FlowEvent.PlayEvent -> if (event.action != Action.END) curEpisode = unmanaged(event.episode)
+                    is FlowEvent.PlayEvent -> if (event.action != Action.END) setCurEpisode(event.episode)
                     is FlowEvent.EpisodeMediaEvent -> onEpisodeMediaEvent(event)
                     else -> {}
                 }
@@ -951,7 +952,7 @@ class PlaybackService : MediaLibraryService() {
         if (event.action == FlowEvent.EpisodeMediaEvent.Action.REMOVED) {
             for (e in event.episodes) {
                 if (e.id == curEpisode?.id) {
-                    curEpisode = unmanaged(e)
+                    setCurEpisode(e)
                     mPlayer?.endPlayback(hasEnded = false, wasSkipped = true, shouldContinue = true, toStoppedState = true)
                     break
                 }

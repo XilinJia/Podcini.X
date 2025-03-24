@@ -34,15 +34,9 @@ class Feed : RealmObject {
     var downloadUrl: String? = null
 //    var downloaded: Boolean = false
 
-    /**
-     * title as defined by the feed.
-     */
-    var eigenTitle: String? = null
+    var eigenTitle: String? = null  // title as defined by the feed.
 
-    /**
-     * custom title set by the user.
-     */
-    var customTitle: String? = null
+    var customTitle: String? = null     // custom title set by the user.
 
     var link: String? = null
 
@@ -56,16 +50,13 @@ class Feed : RealmObject {
 
     var episodes: RealmList<Episode> = realmListOf()
 
-    /**
-     * String that identifies the last update (adopted from Last-Modified or ETag header).
-     */
+    // String that identifies the last update (adopted from Last-Modified or ETag header).
     var lastUpdate: String? = null
 
     // recorded when an episode starts playing when FeedDetails is open
     var lastPlayed: Long = 0
-    /**
-     * Feed type, options are defined in [FeedType].
-     */
+
+    //Feed type, options are defined in [FeedType].
     var type: String? = null
 
     /**

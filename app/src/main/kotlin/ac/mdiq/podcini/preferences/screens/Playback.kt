@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.preferences.screens
 
+import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.streaming
@@ -12,7 +13,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
-import ac.mdiq.podcini.preferences.AppPreferences.streamingBackBufferSecs
+import ac.mdiq.podcini.preferences.AppPreferences.streamingCacheSizeMB
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.storage.database.Queues.EnqueueLocation
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -69,10 +70,10 @@ fun PlaybackPreferencesScreen() {
     val scrollState = rememberScrollState()
     val context = LocalContext.current
     @Composable
-    fun IntervalEditor(initVal: Int, modifier: Modifier, cb: (Int)->Unit) {
+    fun NumberEditor(initVal: Int, unit: String = "seconds", modifier: Modifier, cb: (Int)->Unit) {
         var interval by remember { mutableStateOf(initVal.toString()) }
         var showIcon by remember { mutableStateOf(false) }
-        TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("seconds") }, singleLine = true, modifier = modifier,
+        TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(unit) }, singleLine = true, modifier = modifier,
             onValueChange = {
                 if (it.isEmpty() || it.toIntOrNull() != null) interval = it
                 if (it.toIntOrNull() != null) showIcon = true
@@ -103,14 +104,14 @@ fun PlaybackPreferencesScreen() {
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.pref_fast_forward), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                IntervalEditor(fastForwardSecs, modifier = Modifier.weight(0.6f)) { fastForwardSecs = it }
+                NumberEditor(fastForwardSecs, modifier = Modifier.weight(0.6f)) { fastForwardSecs = it }
             }
             Text(stringResource(R.string.pref_fast_forward_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.pref_rewind), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                IntervalEditor(rewindSecs, modifier = Modifier.weight(0.6f)) { rewindSecs = it }
+                NumberEditor(rewindSecs, modifier = Modifier.weight(0.6f)) { rewindSecs = it }
             }
             Text(stringResource(R.string.pref_rewind_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
@@ -150,13 +151,13 @@ fun PlaybackPreferencesScreen() {
         }
         if (prefStreaming) Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.pref_back_butter), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                IntervalEditor(streamingBackBufferSecs, modifier = Modifier.weight(0.6f)) {
-                    streamingBackBufferSecs = it
-                    streaming = null
+                Text(stringResource(R.string.pref_stream_cache), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                NumberEditor(streamingCacheSizeMB, unit = "MD", modifier = Modifier.weight(0.6f)) {
+                    streamingCacheSizeMB = it
+                    forceRestart()
                 }
             }
-            Text(stringResource(R.string.pref_back_butter_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(R.string.pref_stream_cache_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
         }
 
         if (gearbox.supportAudioQualities()) TitleSummarySwitchPrefRow(R.string.pref_low_quality_on_mobile_title, R.string.pref_low_quality_on_mobile_sum, AppPrefs.prefLowQualityOnMobile)

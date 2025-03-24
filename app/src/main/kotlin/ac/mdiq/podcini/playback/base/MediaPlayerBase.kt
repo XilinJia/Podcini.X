@@ -3,17 +3,19 @@ package ac.mdiq.podcini.playback.base
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
+import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.preferences.AppPreferences.streamingCacheSizeMB
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.content.Context
 import android.media.AudioManager
@@ -27,13 +29,25 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.FileDataSource
+import androidx.media3.datasource.TransferListener
+import androidx.media3.datasource.cache.Cache
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.CacheSpan
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
@@ -75,9 +89,9 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         status = PlayerStatus.STOPPED
     }
 
-    protected open fun setPlayable(playable: Episode?) {
-        if (playable != null && playable !== curEpisode) curEpisode = playable
-    }
+//    protected open fun setPlayable(playable: Episode?) {
+//        if (playable != null && playable !== curEpisode) setCurEpisode(playable)
+//    }
 
     open fun getVideoSize(): Pair<Int, Int>? = null
 
@@ -93,10 +107,14 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     open fun createMediaPlayer() {}
 
-    protected fun setDataSource(metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
+    protected fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
         Logd(TAG, "setDataSource: $mediaUrl")
-        mediaItem = MediaItem.Builder().setUri(Uri.parse(mediaUrl)).setMediaMetadata(metadata).build()
-        mediaSource = null
+        val uri = Uri.parse(mediaUrl)
+        mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
+//        mediaSource = null
+        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+        val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
+        mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem!!)
         setSourceCredentials(user, password)
     }
 
@@ -112,6 +130,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         val feed = media.feed
         val user = feed?.username
         val password = feed?.password
+        bitrate = 0
         mediaSource = gearbox.formMediaSource(metadata, media, context)
         if (mediaSource != null) {
             Logd(TAG, "setDataSource1 setting for Podcast source")
@@ -119,7 +138,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             setSourceCredentials(user, password)
         } else {
             Logd(TAG, "setDataSource1 setting for Podcast source")
-            setDataSource(metadata, url,user, password)
+            setDataSource(media, metadata, url,user, password)
         }
     }
 
@@ -331,6 +350,131 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             @JvmField var playerStatus: PlayerStatus,
             @JvmField var playable: Episode?)
 
+    /**
+     * Custom DataSource that saves clip data during read when recording is active.
+     * Adapted to use an existing CacheDataSource instance.
+     */
+    class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : DataSource {
+        private val TAG = "SegmentSavingDataSource"
+
+        private var cacheListener: Cache.Listener? = null
+        private var isRecording = false
+        private var clipTempFile: File? = null
+        private var clipTempFos: FileOutputStream? = null
+        private var clipStartByte: Long = 0L
+        private var clipBytesWritten: Long = 0L
+        private lateinit var tempDir: File // Must be set externally, e.g., via constructor or setter
+
+        override fun open(dataSpec: DataSpec): Long {
+            val keys = simpleCache?.getKeys()
+            keys?.forEach { Logd(TAG, "key: $it") }
+            val mediaId = dataSpec.key ?: dataSpec.uri.toString()
+            val existingSpans = simpleCache?.getCachedSpans(mediaId)
+            Logd(TAG, "Before listener: mediaId=[$mediaId] spans=${existingSpans?.size}, totalBytes=${existingSpans?.sumOf { it.length }}")
+
+            cacheListener = object : Cache.Listener {
+                override fun onSpanAdded(cache: Cache, span: CacheSpan) {
+                    Logd(TAG, "Span added: key=$mediaId, position=${span.position}, length=${span.length}, file=${span.file?.absolutePath}")
+                }
+                override fun onSpanRemoved(cache: Cache, span: CacheSpan) {
+                    Logd(TAG, "Span removed: key=$mediaId, position=${span.position}, length=${span.length}")
+                }
+                override fun onSpanTouched(cache: Cache, oldSpan: CacheSpan, newSpan: CacheSpan) {
+                    Logd(TAG, "Span touched: key=$mediaId, oldPos=${oldSpan.position}, newPos=${newSpan.position}")
+                }
+            }
+            simpleCache?.addListener(mediaId, cacheListener!!)
+            return cacheDataSource.open(dataSpec).also { Logd(TAG, "Open: position=${dataSpec.position}, length=$it") }
+        }
+
+        override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+            val bytesRead = cacheDataSource.read(buffer, offset, length)
+//            Logd(TAG, "read offset=$offset length=$length bytesRead=$bytesRead")
+            if (bytesRead > 0 && isRecording) {
+                clipTempFos?.write(buffer, offset, bytesRead)
+                clipBytesWritten += bytesRead
+            }
+            return bytesRead
+        }
+
+        override fun getUri(): Uri? = cacheDataSource.uri
+
+        override fun close() {
+            Logd(TAG, "closing")
+            if (isRecording) stopRecording(0) // Fallback if not explicitly stopped
+            clipTempFos?.close()
+            clipTempFos = null
+            clipTempFile = null
+            clipBytesWritten = 0L
+            cacheDataSource.uri?.toString()?.let { mediaId -> cacheListener?.let { simpleCache?.removeListener(mediaId, it) } }
+            cacheDataSource.close()
+        }
+
+        // Start recording at a given position (in ms, converted to bytes)
+        fun startRecording(startPositionMs: Long, bitrate: Int, tmpDir: File) {
+            tempDir = tmpDir
+            if (!isRecording) {
+                isRecording = true
+                clipTempFile = File(tempDir, "clip_temp_${System.currentTimeMillis()}.tmp")
+                clipTempFos = FileOutputStream(clipTempFile!!)
+                clipStartByte = (startPositionMs * bitrate / 8 / 1000).toLong()
+                clipBytesWritten = 0L
+                Logd(TAG, "Started recording at byte offset $clipStartByte")
+            } else Loge(TAG, "Cannot start recording: tempDir not set or already recording")
+        }
+
+        // Stop recording and return the temp file for processing
+        fun stopRecording(endPositionMs: Long): File? {
+            if (isRecording) {
+                isRecording = false
+                clipTempFos?.close()
+                clipTempFos = null
+                val endByte = (endPositionMs * bitrate / 8 / 1000).toLong()
+                Logd(TAG, "Stopped recording at byte offset $endByte, written: $clipBytesWritten")
+                return clipTempFile?.takeIf { it.exists() && clipBytesWritten > 0 }
+            }
+            return null
+        }
+        override fun addTransferListener(transferListener: TransferListener) {
+            cacheDataSource.addTransferListener(transferListener)
+        }
+    }
+
+    class CustomDataSourceFactory(
+            private val context: Context,
+            private val upstreamFactory: DataSource.Factory) : DataSource.Factory {
+
+        override fun createDataSource(): DataSource {
+            return object : DataSource {
+                private var dataSource: DataSource? = null
+                private var segmentSaver: SegmentSavingDataSource? = null
+
+                override fun open(dataSpec: DataSpec): Long {
+                    Logd("CustomDataSourceFactory", "dataSpec.uri.scheme: ${dataSpec.uri.scheme}")
+                    dataSource = if (dataSpec.uri.scheme == "file" || dataSpec.uri.scheme == "content") {
+                        curDataSource = null
+                        FileDataSource.Factory().createDataSource()
+                    }
+                    else {
+                        val cacheDs = CacheDataSource(getCache(context), upstreamFactory.createDataSource(), CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                        curDataSource = SegmentSavingDataSource(cacheDs).also { segmentSaver = it }
+                        curDataSource
+                    }
+                    return dataSource!!.open(dataSpec)
+                }
+                override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+                    return dataSource?.read(buffer, offset, length) ?: -1
+                }
+                override fun close() = dataSource?.close() ?: Unit
+                override fun addTransferListener(transferListener: TransferListener) {
+                    dataSource?.addTransferListener(transferListener)
+                }
+                override fun getUri(): Uri? = dataSource?.uri
+                override fun getResponseHeaders(): Map<String, List<String>> = dataSource?.responseHeaders ?: emptyMap()
+            }
+        }
+    }
+
     companion object {
         private val TAG: String = MediaPlayerBase::class.simpleName ?: "Anonymous"
 
@@ -352,6 +496,9 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         @JvmField
         val LONG_REWIND: Long = TimeUnit.SECONDS.toMillis(20)
 
+        var simpleCache: SimpleCache? = null
+        var curDataSource: SegmentSavingDataSource? = null
+
         @JvmStatic
         var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
 
@@ -365,22 +512,38 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 }
             }
 
-        fun buildMetadata(p: Episode): MediaMetadata {
+        fun getCache(context: Context): SimpleCache {
+            return simpleCache ?: synchronized(this) {
+                if (simpleCache != null) simpleCache!!
+                else {
+                    val cacheDir = File(context.filesDir, "media_cache")
+                    if (!cacheDir.exists()) cacheDir.mkdirs()
+                    SimpleCache(cacheDir, LeastRecentlyUsedCacheEvictor(streamingCacheSizeMB * 1024L * 1024), StandaloneDatabaseProvider(context)).also { simpleCache = it }
+                }
+            }
+        }
+
+        fun releaseCache() {
+            simpleCache?.release()
+            simpleCache = null
+        }
+
+        fun buildMetadata(e: Episode): MediaMetadata {
             val builder = MediaMetadata.Builder()
                 .setIsBrowsable(true)
                 .setIsPlayable(true)
-                .setArtist(p.feed?.title?:"")
-                .setTitle(p.getEpisodeTitle())
-                .setAlbumArtist(p.feed?.title?:"")
-                .setDisplayTitle(p.getEpisodeTitle())
-                .setSubtitle(p.feed?.title?:"")
-                .setArtworkUri(null)
+                .setArtist(e.feed?.title?:"")
+                .setTitle(e.getEpisodeTitle())
+                .setAlbumArtist(e.feed?.title?:"")
+                .setDisplayTitle(e.getEpisodeTitle())
+                .setSubtitle(e.feed?.title?:"")
+                .setArtworkUri(Uri.parse(e.imageLocation?:""))
             return builder.build()
         }
 
-        fun buildMediaItem(p: Episode): MediaItem? {
-            val url = p.downloadUrl ?: return null
-            val metadata = buildMetadata(p)
+        fun buildMediaItem(e: Episode): MediaItem? {
+            val url = e.downloadUrl ?: return null
+            val metadata = buildMetadata(e)
             return MediaItem.Builder()
                 .setMediaId(url)
                 .setUri(Uri.parse(url))

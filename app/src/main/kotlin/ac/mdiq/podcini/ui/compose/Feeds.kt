@@ -173,9 +173,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                     Text(text = stringResource(R.string.shelve_important), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
                 }
                 Text(stringResource(R.string.reason_to_delete_msg))
-                BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor),
-                    modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
-                )
+                BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
                 Button(onClick = {
                     callback()
                     CoroutineScope(Dispatchers.IO).launch {
@@ -220,9 +218,6 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
-//    var showYTChannelDialog by remember { mutableStateOf(false) }
-//    if (showYTChannelDialog) feedBuilder.ConfirmYTChannelTabsDialog(onDismissRequest = {showYTChannelDialog = false}) {feed, map ->  handleFeed(feed, map)}
-
     val context = LocalContext.current
     val showSubscribeDialog = remember { mutableStateOf(false) }
     @Composable
@@ -263,15 +258,12 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
         Row {
             Box(modifier = Modifier.width(56.dp).height(56.dp)) {
                 val imgLoc = remember(feed) { feed.imageUrl }
-                AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
-                    .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover",
-                    modifier = Modifier.fillMaxSize())
+                AsyncImage(model = ImageRequest.Builder(context).data(imgLoc).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                 if (feed.feedId > 0 || log != null) {
                     Logd("OnlineFeedItem", "${feed.feedId} $log")
                     val alpha = 1.0f
                     val iRes = if (feed.feedId > 0) R.drawable.ic_check else R.drawable.baseline_clear_24
-                    Icon(imageVector = ImageVector.vectorResource(iRes), tint = textColor, contentDescription = "played_mark",
-                        modifier = Modifier.background(Color.Green).alpha(alpha).align(Alignment.BottomEnd))
+                    Icon(imageVector = ImageVector.vectorResource(iRes), tint = textColor, contentDescription = "played_mark", modifier = Modifier.background(Color.Green).alpha(alpha).align(Alignment.BottomEnd))
                 }
             }
             Column(Modifier.padding(start = 10.dp)) {
@@ -356,19 +348,18 @@ fun TagSettingDialog(feeds_: List<Feed>, onDismiss: () -> Unit) {
                 var tags = remember { commonTags.toMutableStateList() }
                 if (feeds.size > 1 && commonTags.isNotEmpty()) Text(stringResource(R.string.multi_feed_common_tags_info))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    tags.forEach {
-                        FilterChip(onClick = {  }, label = { Text(it) }, selected = false,
-                            trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
-                                modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { tags.remove(it) })) })
-                    }
+                    tags.forEach { FilterChip(onClick = {  }, label = { Text(it) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
+                        modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { tags.remove(it) })) }) }
                 }
                 ExposedDropdownMenuBox(expanded = showSuggestions, onExpandedChange = { }) {
-                    TextField(value = text, onValueChange = {
-                        text = it
-                        filteredSuggestions = suggestions.filter { item -> item.contains(text, ignoreCase = true) && item !in tags }
-                        showSuggestions = text.isNotEmpty() && filteredSuggestions.isNotEmpty()
-                    },
-                        placeholder = { Text("Type something...") }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                    TextField(value = text, placeholder = { Text("Type something...") }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, true), // Material3 requirement
+                        onValueChange = {
+                            text = it
+                            filteredSuggestions = suggestions.filter { item -> item.contains(text, ignoreCase = true) && item !in tags }
+                            showSuggestions = text.isNotEmpty() && filteredSuggestions.isNotEmpty()
+                        },
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 if (text.isNotBlank()) {
@@ -383,9 +374,7 @@ fun TagSettingDialog(feeds_: List<Feed>, onDismiss: () -> Unit) {
                                     if (text !in tags) tags.add(text)
                                     text = ""
                                 }
-                            })) },
-                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
-                        modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, true) // Material3 requirement
+                            })) }
                     )
                     ExposedDropdownMenu(expanded = showSuggestions, onDismissRequest = { showSuggestions = false }) {
                         for (i in filteredSuggestions.indices) {
@@ -419,23 +408,22 @@ fun TagSettingDialog(feeds_: List<Feed>, onDismiss: () -> Unit) {
     }
 }
 
+private fun speed2Slider(speed: Float, maxSpeed: Float): Float {
+    return if (speed < 1) (speed - 0.1f) / 1.8f else (speed - 2f + maxSpeed) / 2 / (maxSpeed - 1f)
+}
+private fun slider2Speed(slider: Float, maxSpeed: Float): Float {
+    return if (slider < 0.5) 1.8f * slider + 0.1f else 2 * (maxSpeed - 1f) * slider + 2f - maxSpeed
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, isGlobal: Boolean = false, onDismiss: () -> Unit, speedCB: (Float) -> Unit) {
     // min speed set to 0.1 and max speed at 10
-    fun speed2Slider(speed: Float): Float {
-        return if (speed < 1) (speed - 0.1f) / 1.8f else (speed - 2f + maxSpeed) / 2 / (maxSpeed - 1f)
-    }
-    fun slider2Speed(slider: Float): Float {
-        return if (slider < 0.5) 1.8f * slider + 0.1f else 2 * (maxSpeed - 1f) * slider + 2f - maxSpeed
-    }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
         Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column {
                 Text(stringResource(R.string.playback_speed), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
-//                var speed by remember { mutableStateOf(if (isGlobal) prefPlaybackSpeed else if (feeds.size == 1) feeds[0].playSpeed else 1f) }
                 var speed by remember { mutableStateOf(initSpeed) }
-                var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed)) }
+                var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
                 var useGlobal by remember { mutableStateOf(!isGlobal && speed == Feed.SPEED_USE_GLOBAL) }
                 if (!isGlobal) Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = useGlobal, onCheckedChange = { isChecked ->
@@ -445,7 +433,7 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
                             if (feeds[0].playSpeed == Feed.SPEED_USE_GLOBAL) prefPlaybackSpeed
                             else feeds[0].playSpeed
                         } else 1f
-                        if (!useGlobal) sliderPosition = speed2Slider(speed)
+                        if (!useGlobal) sliderPosition = speed2Slider(speed, maxSpeed)
                     })
                     Text(stringResource(R.string.global_default))
                 }
@@ -460,13 +448,13 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
                                 val speed_ = round(speed / stepSize) * stepSize - stepSize
                                 if (speed_ >= 0.1f) {
                                     speed = speed_
-                                    sliderPosition = speed2Slider(speed)
+                                    sliderPosition = speed2Slider(speed, maxSpeed)
                                 }
                             }))
                         Slider(value = sliderPosition, modifier = Modifier.weight(1f).height(5.dp).padding(start = 20.dp, end = 20.dp),
                             onValueChange = {
                                 sliderPosition = it
-                                speed = slider2Speed(sliderPosition)
+                                speed = slider2Speed(sliderPosition, maxSpeed)
                                 Logd("PlaybackSpeedDialog", "slider value: $it $speed}")
                             })
                         Text("+", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
@@ -474,7 +462,7 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
                                 val speed_ = round(speed / stepSize) * stepSize + stepSize
                                 if (speed_ <= maxSpeed) {
                                     speed = speed_
-                                    sliderPosition = speed2Slider(speed)
+                                    sliderPosition = speed2Slider(speed, maxSpeed)
                                 }
                             }))
                     }
@@ -497,13 +485,6 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
 @Composable
 fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpeed: Float, onDismiss: () -> Unit) {
     val TAG = "PlaybackSpeedFullDialog"
-    // min speed set to 0.1 and max speed at 10
-    fun speed2Slider(speed: Float): Float {
-        return if (speed < 1) (speed - 0.1f) / 1.8f else (speed - 2f + maxSpeed) / 2 / (maxSpeed - 1f)
-    }
-    fun slider2Speed(slider: Float): Float {
-        return if (slider < 0.5) 1.8f * slider + 0.1f else 2 * (maxSpeed - 1f) * slider + 2f - maxSpeed
-    }
     fun readPlaybackSpeedArray(valueFromPrefs: String?): List<Float> {
         if (valueFromPrefs != null) {
             try {
@@ -515,7 +496,6 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
         }
         return mutableListOf(1.0f, 1.25f, 1.5f)
     }
-//    fun getPlaybackSpeedArray() = readPlaybackSpeedArray(getPref(UserPreferences.Prefs.prefPlaybackSpeedArray.name, null))
     fun setPlaybackSpeedArray(speeds: List<Float>) {
         val format = DecimalFormatSymbols(Locale.US)
         format.decimalSeparator = '.'
@@ -529,10 +509,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
     }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
-        dialogWindowProvider?.window?.let { window ->
-            window.setGravity(Gravity.BOTTOM)
-//            window.setDimAmount(0f)
-        }
+        dialogWindowProvider?.window?.let { window -> window.setGravity(Gravity.BOTTOM) }
         Card(modifier = Modifier.fillMaxWidth().wrapContentHeight().padding(top = 10.dp, bottom = 10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column {
                 var speed by remember { mutableStateOf(curSpeedFB) }
@@ -548,7 +525,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                     } }, label = { Text(String.format(Locale.getDefault(), "%.2f", speed)) }, selected = false,
                         trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon", modifier = Modifier.size(FilterChipDefaults.IconSize)) })
                 }
-                var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed)) }
+                var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
                 val stepSize = 0.05f
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text("-", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
@@ -556,13 +533,13 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                             val speed_ = round(speed / stepSize) * stepSize - stepSize
                             if (speed_ >= 0.1f) {
                                 speed = speed_
-                                sliderPosition = speed2Slider(speed)
+                                sliderPosition = speed2Slider(speed, maxSpeed)
                             }
                         }))
                     Slider(value = sliderPosition, modifier = Modifier.weight(1f).height(10.dp).padding(start = 20.dp, end = 20.dp),
                         onValueChange = {
                             sliderPosition = it
-                            speed = slider2Speed(sliderPosition)
+                            speed = slider2Speed(sliderPosition, maxSpeed)
                             Logd("PlaybackSpeedDialog", "slider value: $it $speed}")
                         })
                     Text("+", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
@@ -570,7 +547,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                             val speed_ = round(speed / stepSize) * stepSize + stepSize
                             if (speed_ <= maxSpeed) {
                                 speed = speed_
-                                sliderPosition = speed2Slider(speed)
+                                sliderPosition = speed2Slider(speed, maxSpeed)
                             }
                         }))
                 }

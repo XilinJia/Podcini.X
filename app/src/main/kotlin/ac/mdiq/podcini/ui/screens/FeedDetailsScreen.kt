@@ -274,7 +274,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         isFiltered = !feed?.filterString.isNullOrEmpty() && feed!!.episodeFilter.propertySet.isNotEmpty()
         filterButtonColor.value = if (enableFilter) if (isFiltered) Color.Green else Color.White else Color.Red
         if (!headerCreated) headerCreated = true
-        listInfoText = buildListInfo(context, episodes)
+        listInfoText = buildListInfo(episodes)
         infoBarText.value = "$listInfoText $updateInfoText"
     }
 

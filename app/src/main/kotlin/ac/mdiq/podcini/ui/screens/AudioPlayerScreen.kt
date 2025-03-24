@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.PlaybackServiceStarter
+import ac.mdiq.podcini.playback.Recorder.saveClipInOriginalFormat
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
@@ -158,7 +159,6 @@ import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import java.io.File
-import java.io.FileOutputStream
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import kotlinx.coroutines.CoroutineScope
@@ -391,8 +391,9 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
         if (curItem != null) {
-            imgLocLarge = if (displayedChapterIndex == -1 || curItem?.chapters.isNullOrEmpty() || curItem!!.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty())
-                curItem!!.imageLocation else EmbeddedChapterImage.getModelFor(curItem!!, displayedChapterIndex)?.toString()
+            imgLocLarge =
+                if (displayedChapterIndex == -1 || curItem?.chapters.isNullOrEmpty() || curItem!!.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) curItem!!.imageLocation
+                else EmbeddedChapterImage.getModelFor(curItem!!, displayedChapterIndex)?.toString()
             Logd(TAG, "displayCoverImage: imgLoc: $imgLoc")
         }
     }
@@ -456,37 +457,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             rating = curItem!!.rating
             showHomeText = false
             homeText = null
-        }
-    }
-    internal fun saveAudioSegment(startTimeMs: Long, endTimeMs: Long) {
-        val durationMs = endTimeMs - startTimeMs
-        if (durationMs <= 0) return
-
-        val mediaId = exoPlayer?.currentMediaItem?.mediaId
-        if (mediaId == null){
-            Loge(TAG, "saveAudioSegment: mediaId is null")
-            return
-        }
-        val cacheSpan = cache.getCachedSpans(mediaId).firstOrNull { it.position <= startTimeMs && it.position + it.length >= endTimeMs }
-        if (cacheSpan?.file?.exists() == true) {
-            val outputFile = File(mediaFilesDir, "recorded_segment_${System.currentTimeMillis()}.mp3")
-            FileOutputStream(outputFile).use { fos ->
-                cacheSpan.file!!.inputStream().use { input ->
-                    val buffer = ByteArray(1024)
-                    var bytesRead: Int
-                    val bytesToSkip = startTimeMs - cacheSpan.position
-                    val bytesToRead = durationMs.coerceAtMost(cacheSpan.length - bytesToSkip)
-                    input.skip(bytesToSkip)
-                    var totalRead = 0
-                    while (input.read(buffer).also { bytesRead = it } != -1 && totalRead < bytesToRead) {
-                        fos.write(buffer, 0, bytesRead)
-                        totalRead += bytesRead
-                    }
-                }
-            }
-            println("Saved segment to: ${outputFile.absolutePath}")
-        } else {
-            println("Cache span not available or insufficient")
         }
     }
 }
@@ -621,23 +591,27 @@ fun AudioPlayerScreen() {
                 if (showSkipDialog) SkipDialog(SkipDirection.SKIP_REWIND, onDismissRequest = { showSkipDialog = false }) { rewindSecs = it.toString() }
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_rewind), tint = textColor, contentDescription = "rewind",
                     modifier = Modifier.width(43.dp).height(43.dp).combinedClickable(
-                        onClick = { playbackService?.mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) },
-                        onLongClick = { showSkipDialog = true }))
+                        onClick = { playbackService?.mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) }, onLongClick = { showSkipDialog = true }))
                 Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
-//            Spacer(Modifier.weight(0.1f))
-//            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fiber_manual_record_24), tint = if (vm.recordingStartTime == null) textColor else Color.Red, contentDescription = "record",
-//                modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
-//                    onClick = {
-//                        if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) {
-//                            if (vm.recordingStartTime == null)  vm.recordingStartTime = exoPlayer!!.currentPosition
-//                            else {
-//                                vm.saveAudioSegment(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
-//                                vm.recordingStartTime = null
-//                            }
-//                        } },
-//                    onLongClick = {
-//                    }))
+            Spacer(Modifier.weight(0.1f))
+            val recordColot = if (vm.recordingStartTime == null) { if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) textColor else Color.Gray } else Color.Red
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fiber_manual_record_24), tint = recordColot, contentDescription = "record",
+                modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
+                    onClick = {
+                        if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) {
+                            if (vm.recordingStartTime == null) {
+                                vm.recordingStartTime = exoPlayer!!.currentPosition
+                                saveClipInOriginalFormat(vm.recordingStartTime!!)
+                            }
+                            else {
+//                                saveAudioSegment(vm.recordingStartTime)
+                                saveClipInOriginalFormat(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
+                                vm.recordingStartTime = null
+                            }
+                        } },
+                    onLongClick = {
+                    }))
             Spacer(Modifier.weight(0.1f))
             Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play",
                 modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
@@ -645,6 +619,10 @@ fun AudioPlayerScreen() {
                         if (curEpisode != null) {
                             val media = curEpisode!!
                             vm.showPlayButton = !vm.showPlayButton
+                            if (vm.showPlayButton && vm.recordingStartTime != null) {
+                                saveClipInOriginalFormat(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
+                                vm.recordingStartTime = null
+                            }
                             if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                                 playPause()
                                 context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
@@ -747,7 +725,7 @@ fun AudioPlayerScreen() {
                                         onOptionSelected(item)
                                         if (vm.curItem != null) {
                                             vm.curItem?.volumeAdaptionSetting = item
-                                            curEpisode = vm.curItem
+//                                            setCurEpisode(vm.curItem)
                                             playbackService?.mPlayer?.pause(reinit = true)
                                             playbackService?.mPlayer?.resume()
                                         }
@@ -926,7 +904,7 @@ fun AudioPlayerScreen() {
         vm.cleanedNotes = null
         if (curEpisode != null) {
             vm.updateUi(curEpisode!!)
-            vm.imgLoc = curEpisode!!.getEpisodeListImageLocation()
+            vm.imgLoc = curEpisode!!.imageLocation
             vm.curItem = curEpisode
         }
     }

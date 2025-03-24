@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.EXTRA_ALLOW_STREAM_THIS_TIME
 import ac.mdiq.podcini.storage.model.Episode
 
@@ -43,7 +44,7 @@ class PlaybackServiceStarter(private val context: Context, private val media: Ep
     fun start() {
         Logd("PlaybackServiceStarter", "starting PlaybackService")
         if (curEpisode != null && curEpisode?.id != media.id) EventFlow.postEvent(FlowEvent.PlayEvent(curEpisode!!, FlowEvent.PlayEvent.Action.END))
-        curEpisode = media
+        setCurEpisode(media)
         if (PlaybackService.isRunning && !callEvenIfRunning) return
         ContextCompat.startForegroundService(context, intent)
     }

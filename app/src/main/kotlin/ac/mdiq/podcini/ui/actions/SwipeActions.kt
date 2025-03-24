@@ -13,13 +13,11 @@ import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
@@ -28,6 +26,7 @@ import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.ShelveDialog
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -402,7 +401,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                 it.comment = editCommentText.text
                                 it.commentTime = localTime
                             }
-                            if (isCurMedia(onEpisode)) curEpisode = unmanaged(onEpisode!!)
+//                            if (isCurMedia(onEpisode)) setCurEpisode(onEpisode!!)
 //                            onEpisode = null    // this is needed, otherwise the realm.query clause does not update onEpisode for some reason
                         }
                     })

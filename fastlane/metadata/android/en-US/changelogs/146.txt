@@ -1,0 +1,16 @@
+# 8.13.0
+
+* infobar text changes
+* re-enabled bitrate in PlayerUI for non-Youtube podcasts
+* enabled episode monitoring on curEpisode, likely fixed setting properties possibly getting reset
+* enabled episode monitoring in EpisodeInfo screen, reduced relying on events
+* episode arkwork is added to player meta data
+* support of streaming back buffer is removed
+* enabled disk caching for all streaming for better local rewind and replay
+	* size defaulted to 100MD but can be customized in Settings->Playback with minimum 10MD
+	* all recently streamed episodes are stored in the cache, first in first out
+* enabled recording of audio clips, EXPERIMENTAL
+	* record button on PlayerUI is functional only during playback
+	* press the button to start recording and press again (or press pause) to stop recording
+	* recorded clips are shown in EpisodeInfo screen, and can be played on tap
+	* supposedly mp3, acc and ogg formats should work

@@ -1,7 +1,9 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.SegmentSavingDataSource
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeMedia
+import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -20,7 +22,9 @@ import androidx.compose.runtime.setValue
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object InTheatre {
     val TAG: String = InTheatre::class.simpleName ?: "Anonymous"
@@ -29,19 +33,9 @@ object InTheatre {
 
     var curQueue: PlayQueue     // managed
 
+    var curEpisodeMonitor: Job? = null
     var curEpisode: Episode? = null     // unmanged
-        set(value) {
-            when {
-                value != null -> {
-                    field = unmanaged(value)
-                    curMediaId = value.id
-                }
-                else -> {
-                    field = null
-                    curMediaId = -1L
-                }
-            }
-        }
+        private set
 
     var curMediaId by mutableLongStateOf(-1L)
 
@@ -85,6 +79,23 @@ object InTheatre {
         }
     }
 
+    fun setCurEpisode(episode: Episode?) {
+        if (episode != null && episode.id == curEpisode?.id) return
+        curEpisodeMonitor?.cancel()
+        curEpisodeMonitor = null
+        when {
+            episode != null -> {
+                curEpisode = unmanaged(episode)
+                curEpisodeMonitor = episodeMonitor(curEpisode!!) {e, f ->  withContext(Dispatchers.Main) { curEpisode = unmanaged(e) } }
+                curMediaId = episode.id
+            }
+            else -> {
+                curEpisode = null
+                curMediaId = -1L
+            }
+        }
+    }
+
     fun writeNoMediaPlaying() {
         curState = upsertBlk(curState) {
             it.curMediaType = NO_MEDIA_PLAYING
@@ -106,10 +117,7 @@ object InTheatre {
             if (type == Episode.PLAYABLE_TYPE_FEEDMEDIA) {
                 val mediaId = curState.curMediaId
                 Logd(TAG, "loadPlayableFromPreferences getting mediaId: $mediaId")
-                if (mediaId != 0L) {
-                    curEpisode = getEpisodeMedia(mediaId)
-                    if (curEpisode != null) curEpisode = curEpisode
-                }
+                if (mediaId != 0L) setCurEpisode(getEpisodeMedia(mediaId))
                 Logd(TAG, "loadPlayableFromPreferences: curMedia: ${curEpisode?.id}")
             } else Loge(TAG, "Could not restore EpisodeMedia object from preferences")
         }

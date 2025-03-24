@@ -195,8 +195,8 @@ import kotlin.math.roundToInt
 const val VMS_CHUNK_SIZE = 50
 const val loadThreshold = (VMS_CHUNK_SIZE * 0.8).toInt()
 
-fun buildListInfo(context:Context, episodes: List<Episode>): String {
-    var infoText = String.format(Locale.getDefault(), "%d%s", episodes.size, context.getString(R.string.episodes_suffix))
+fun buildListInfo(episodes: List<Episode>): String {
+    var infoText = String.format(Locale.getDefault(), "%d", episodes.size)
     if (episodes.isNotEmpty()) {
         var timeLeft: Long = 0
         for (item in episodes) {
@@ -206,7 +206,7 @@ fun buildListInfo(context:Context, episodes: List<Episode>): String {
             timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
         }
         infoText += " • "
-        infoText += DurationConverter.getDurationStringLocalized(timeLeft)
+        infoText += DurationConverter.getDurationStringShort(timeLeft, true)
     }
     return infoText
 }
@@ -219,13 +219,11 @@ fun InforBar(text: MutableState<String>, leftAction: MutableState<SwipeAction>, 
     Row {
         Icon(imageVector = ImageVector.vectorResource(leftAction.value.getActionIcon()), tint = buttonColor, contentDescription = "left_action_icon",
             modifier = Modifier.width(24.dp).height(24.dp).clickable(onClick = actionConfig))
-        Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "left_arrow",
-            modifier = Modifier.width(24.dp).height(24.dp))
+        Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "left_arrow", modifier = Modifier.width(24.dp).height(24.dp))
         Spacer(modifier = Modifier.weight(1f))
         Text(text.value, color = textColor, style = MaterialTheme.typography.bodyMedium)
         Spacer(modifier = Modifier.weight(1f))
-        Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow",
-            modifier = Modifier.width(24.dp).height(24.dp))
+        Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(24.dp).height(24.dp))
         Icon(imageVector = ImageVector.vectorResource(rightAction.value.getActionIcon()), tint = buttonColor, contentDescription = "right_action_icon",
             modifier = Modifier.width(24.dp).height(24.dp).clickable(onClick = actionConfig))
     }
@@ -247,7 +245,6 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     var downloadState by mutableIntStateOf(if (episode.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal)
     var viewCount by mutableIntStateOf(episode.viewCount)
     var actionButton by mutableStateOf<EpisodeActionButton>(NullActionButton(episode).forItem(episode))
-    var actionRes by mutableIntStateOf(actionButton.drawable)
     var showAltActionsDialog by mutableStateOf(false)
     var dlPercent by mutableIntStateOf(0)
     var isSelected by mutableStateOf(false)
@@ -258,21 +255,20 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     fun stopMonitoring() {
         episodeMonitor?.cancel()
         episodeMonitor = null
-//        showStackTrace()
         Logd("EpisodeVM", "cancel monitoring")
     }
 
     fun startMonitoring() {
         if (episodeMonitor == null) {
-            episodeMonitor = episodeMonitor(episode) {
+            episodeMonitor = episodeMonitor(episode) { e, fields ->
                 withContext(Dispatchers.Main) {
-                    playedState = it.playState
-                    ratingState = it.rating
-                    positionState = it.position
-                    durationState = it.duration
-                    inProgressState = it.isInProgress
-                    downloadState = if (it.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
-                    episode = it
+                    playedState = e.playState
+                    ratingState = e.rating
+                    positionState = e.position
+                    durationState = e.duration
+                    inProgressState = e.isInProgress
+                    downloadState = if (e.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
+                    episode = e
                 }
             }
         }
@@ -849,7 +845,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         ))
             }
             if (showCoverImage) {
-                val imgLoc = remember(vm.episode) { vm.episode.getEpisodeListImageLocation() }
+                val imgLoc = remember(vm.episode) { vm.episode.imageLocation }
                 AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
                     .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
                     contentDescription = "imgvCover",

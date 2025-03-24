@@ -3,15 +3,16 @@ package ac.mdiq.podcini.playback.base
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
+import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
-import ac.mdiq.podcini.preferences.AppPreferences.streamingBackBufferSecs
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -49,9 +50,9 @@ import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Player.State
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
+import androidx.media3.common.Tracks
 import androidx.media3.datasource.HttpDataSource.HttpDataSourceException
 import androidx.media3.datasource.okhttp.OkHttpDataSource
-import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
@@ -131,7 +132,6 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                     }
                 }
                 override fun onIsPlayingChanged(isPlaying: Boolean) {
-//                    val stat = if (isPlaying) PlayerStatus.PLAYING else PlayerStatus.PAUSED
 //                    TODO: test: changing PAUSED to STOPPED or INDETERMINATE makes resume not possible if interrupted
                     val stat = if (isPlaying) PlayerStatus.PLAYING else PlayerStatus.PAUSED
                     setPlayerStatus(stat, curEpisode)
@@ -154,6 +154,21 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 override fun onAudioSessionIdChanged(audioSessionId: Int) {
                     Logd(TAG, "onAudioSessionIdChanged $audioSessionId")
                     initLoudnessEnhancer(audioSessionId)
+                }
+                override fun onTracksChanged(tracks: Tracks) {
+                    Logd(TAG, "onTracksChanged tracks: ${tracks.groups.size}")
+//                    bitrate = 0
+                    tracks.groups.forEach { group ->
+                        for (i in 0 until group.length) {
+                            val format = group.getTrackFormat(i)
+                            Logd(TAG, "onTracksChanged $i ${format.averageBitrate} ${format.bitrate}")
+                            if (format.averageBitrate != Format.NO_VALUE) {
+                                bitrate = format.averageBitrate
+                                Logd(TAG, "onTracksChanged Bitrate detected: $bitrate bps")
+                                return@forEach
+                            }
+                        }
+                    }
                 }
             }
             createStaticPlayer(context)
@@ -230,7 +245,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         if (item.playState < PlayState.PROGRESS.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
         val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
         curIndexInQueue = eList.indexOfItemWithId(item.id)
-        curEpisode = item
+        setCurEpisode(item)
 
         this.isStreaming = streaming
         mediaType = curEpisode!!.getMediaType()
@@ -249,17 +264,17 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                     streaming -> {
                         val streamurl = curEpisode!!.downloadUrl
                         Logd(TAG, "streamurl: $streamurl")
-                        if (streamurl != null) {
+                        if (!streamurl.isNullOrBlank()) {
                             mediaItem = null
                             mediaSource = null
                             try { setDataSource(metadata, curEpisode!!) } catch (e: Throwable) {
                                 Logs(TAG, e, "setDataSource error: [${e.localizedMessage}]")
                                 EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: e.message ?: "")) }
-                        }
+                        } else Loge(TAG, "episode downloadUrl is empty ${curEpisode?.title}")
                     }
                     else -> {
                         val localMediaurl = curEpisode!!.fileUrl
-                        if (!localMediaurl.isNullOrEmpty()) setDataSource(metadata, localMediaurl, null, null)
+                        if (!localMediaurl.isNullOrBlank()) setDataSource(curEpisode!!, metadata, localMediaurl, null, null)
                         else throw IOException("Unable to read local file $localMediaurl")
                     }
                 }
@@ -571,7 +586,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 if (wasSkipped) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                 callback.onPlaybackEnded(nextMedia.getMediaType(), false)
                 // setting media to null signals to playMediaObject that we're taking care of post-playback processing
-                curEpisode = null
+                setCurEpisode(null)
                 playMediaObject(nextMedia, !nextMedia.localFileAvailable(), isPlaying, isPlaying)
             }
         }
@@ -580,7 +595,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 if (nextMedia == null) {
                     Logd(TAG, "nextMedia is null. call callback.onPlaybackEnded true")
                     callback.onPlaybackEnded(null, true)
-                    curEpisode = null
+                    setCurEpisode(null)
                     exoPlayer?.stop()
                     releaseWifiLockIfNecessary()
                     if (status == PlayerStatus.INDETERMINATE) setPlayerStatus(PlayerStatus.STOPPED, null)
@@ -617,10 +632,15 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
         fun isStreaming(media: Episode): Boolean = !media.localFileAvailable() || URLUtil.isContentUrl(media.downloadUrl)
 
+//        fun resetMemoryBuffer() {
+//            val memoryBufferSize = (128 * 1024 / 8) * BufferDurationSeconds
+//            memoryBuffer = CircularByteBuffer(memoryBufferSize)
+//        }
+
         fun createStaticPlayer(context: Context) {
-            val loadControl = DefaultLoadControl.Builder()
-            loadControl.setBufferDurationsMs(30000, 120000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
-            if (streaming == true) loadControl.setBackBuffer(streamingBackBufferSecs * 1000, true) else loadControl.setBackBuffer(rewindSecs * 1000 + 500, true)
+//            val loadControl = DefaultLoadControl.Builder()
+//            loadControl.setBufferDurationsMs(30000, 120000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
+//            if (streaming == true) loadControl.setBackBuffer(streamingBackBufferSecs * 1000, true) else loadControl.setBackBuffer(rewindSecs * 1000 + 500, true)
             Logd(TAG, "createStaticPlayer reset back buffer for streaming == $streaming")
 
             trackSelector = DefaultTrackSelector(context)
@@ -631,7 +651,18 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 .build()
             Logd(TAG, "createStaticPlayer creating exoPlayer_")
 
+            simpleCache = getCache(context)
+
+            // Initialize ExoPlayer
+            val trackSelector = DefaultTrackSelector(context)
             val defaultRenderersFactory = DefaultRenderersFactory(context)
+            exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
+                .setTrackSelector(trackSelector)
+                .setSeekBackIncrementMs(rewindSecs * 1000L)
+                .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
+                .build()
+
+//            val defaultRenderersFactory = DefaultRenderersFactory(context)
 //            defaultRenderersFactory.setMediaCodecSelector { mimeType: String?, requiresSecureDecoder: Boolean, requiresTunnelingDecoder: Boolean ->
 //                val decoderInfos: List<MediaCodecInfo> = MediaCodecUtil.getDecoderInfos(mimeType!!, requiresSecureDecoder, requiresTunnelingDecoder)
 //                val result: MutableList<MediaCodecInfo> = mutableListOf()
@@ -644,12 +675,12 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 //                }
 //                result
 //            }
-            exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
-                .setTrackSelector(trackSelector!!)
-                .setSeekBackIncrementMs(rewindSecs * 1000L)
-                .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
-                .setLoadControl(loadControl.build())
-                .build()
+//            exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
+//                .setTrackSelector(trackSelector!!)
+//                .setSeekBackIncrementMs(rewindSecs * 1000L)
+//                .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
+//                .setLoadControl(loadControl.build())
+//                .build()
 
             exoPlayer?.setSeekParameters(SeekParameters.EXACT)
             exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters

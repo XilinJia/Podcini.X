@@ -77,10 +77,11 @@ object AppPreferences {
             putPref(AppPrefs.prefRewindSecs, secs)
         }
 
-    var streamingBackBufferSecs: Int
-        get() = getPref(AppPrefs.prefStreamingBackBufferSecs, 10)
-        set(secs) {
-            putPref(AppPrefs.prefStreamingBackBufferSecs, secs)
+    var streamingCacheSizeMB: Int
+        get() = getPref(AppPrefs.prefStreamingCacheSizeMB, 100)
+        set(size) {
+            val size_ = if (size < 10) 10 else size
+            putPref(AppPrefs.prefStreamingCacheSizeMB, size_)
         }
 
     var proxyConfig: ProxyConfig
@@ -285,7 +286,7 @@ object AppPreferences {
         prefSkipSilence(false),
         prefFastForwardSecs(30),
         prefRewindSecs(10),
-        prefStreamingBackBufferSecs(300),
+        prefStreamingCacheSizeMB(100),
         prefQueueLocked(true),
         prefVideoPlaybackMode("1"),
     }
