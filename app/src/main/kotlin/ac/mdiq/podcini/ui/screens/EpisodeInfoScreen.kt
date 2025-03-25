@@ -15,7 +15,6 @@ import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -32,6 +31,8 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.EpisodeClips
+import ac.mdiq.podcini.ui.compose.EpisodeMarks
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
@@ -45,14 +46,12 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.Context
 import android.content.ContextWrapper
-import android.net.Uri
 import android.text.format.Formatter.formatShortFileSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -64,7 +63,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -72,6 +70,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -114,10 +113,8 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import coil.compose.AsyncImage
-import java.io.File
 import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -132,7 +129,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal lateinit var shownotesCleaner: ShownotesCleaner
 
-    internal var player: ExoPlayer? = null
+    internal var playerLocal: ExoPlayer? = null
 
     internal var itemLoaded = false
     internal var episode by mutableStateOf<Episode?>(null)    // managed
@@ -143,7 +140,6 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal var txtvPublished by mutableStateOf("")
     internal var txtvSize by mutableStateOf("")
     internal var txtvDuration by mutableStateOf("")
-    internal var itemLink by mutableStateOf("")
     internal var hasMedia by mutableStateOf(true)
     var rating by mutableStateOf(episode?.rating ?: Rating.UNRATED.code)
     internal var inQueue by mutableStateOf(false)
@@ -194,6 +190,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun monitor() {
+        if (episodeMonitor != null) return
         episodeMonitor = episodeMonitor(episode!!) { e, fields ->
             withContext(Dispatchers.Main) {
                 Logd(TAG, "monitor: ${fields.joinToString()}")
@@ -218,7 +215,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
             txtvPodcast = if (episode!!.feed!!.isSynthetic() && episode!!.origFeedTitle != null) episode!!.origFeedTitle!! else episode!!.feed!!.title ?: ""
         
         txtvTitle = episode!!.title ?:""
-        itemLink = episode!!.link?: ""
+//        itemLink = episode!!.link?: ""
 
         if (episode?.pubDate != null) txtvPublished = formatDateTimeFlex(Date(episode!!.pubDate))
 
@@ -249,7 +246,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 
     private fun updateButtons() {
         val dls = DownloadServiceInterface.impl
-        if (episode == null) {
+        if (episode?.downloadUrl.isNullOrBlank()) {
             hasMedia = false
             return
         }
@@ -365,6 +362,7 @@ fun EpisodeInfoScreen() {
                     vm.shownotesCleaner = ShownotesCleaner(context)
                     vm.updateAppearance()
                     vm.load()
+                    vm.playerLocal = ExoPlayer.Builder(context).build()
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.procFlowEvents()
@@ -381,8 +379,8 @@ fun EpisodeInfoScreen() {
             vm.episodeMonitor?.cancel()
             vm.episodeMonitor = null
             vm.episode = null
-            vm.player?.release()
-            vm.player = null
+            vm.playerLocal?.release()
+            vm.playerLocal = null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -422,7 +420,7 @@ fun EpisodeInfoScreen() {
     if (showEditComment) LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false},
         onSave = {
             commentTextState = editCommentText
-            if (vm.episode != null) vm.episode = upsertBlk(vm.episode!!) {
+            if (vm.episode != null) upsertBlk(vm.episode!!) {
                 Logd(TAG, "onSave editCommentText [${editCommentText.text}]")
                 it.comment = editCommentText.text
                 it.commentTime = localTime
@@ -498,14 +496,14 @@ fun EpisodeInfoScreen() {
         LaunchedEffect(key1 = status) { vm.actionButton1 = vm.getButton() }
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { vm.openPodcast() })
+                SelectionContainer { Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { vm.openPodcast() }) }
             }
             Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 val imgLoc = vm.episode?.imageLocation
                 AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { vm.openPodcast() }))
                 Box(Modifier.weight(1f).padding(start = 10.dp).height(80.dp)) {
                     Column {
-                        Text(vm.txtvTitle, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        SelectionContainer { Text(vm.txtvTitle, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis) }
                         Text("${vm.txtvPublished} · ${vm.txtvDuration} · ${vm.txtvSize}", color = textColor, style = MaterialTheme.typography.bodyMedium)
                     }
                     if (vm.actionButton1 != null) Icon(imageVector = ImageVector.vectorResource(vm.actionButton1!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).align(Alignment.BottomEnd).combinedClickable(
@@ -528,23 +526,8 @@ fun EpisodeInfoScreen() {
                         it.loadDataWithBaseURL("https://127.0.0.1", vm.episode?.webviewData?:"", "text/html", "utf-8", "about:blank") })
                 if (!vm.episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
-                if (!vm.episode?.clips.isNullOrEmpty()) {
-                    Text("Clips: ", style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp))
-                    FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
-                        vm.episode?.clips?.forEach { clip ->
-                            Text(clip.substringBefore("."), color = MaterialTheme.colorScheme.primary, modifier = Modifier.clickable {
-                                val filename = "recorded_${vm.episode!!.id}_$clip"
-                                val file = File(context.getExternalFilesDir("media"), filename)
-                                if (file.exists()) {
-                                    if (vm.player == null) vm.player = ExoPlayer.Builder(context).build()
-                                    vm.player?.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
-                                    vm.player?.prepare()
-                                    vm.player?.play()
-                                } else Loge(TAG, "clip file doesn't exist: $filename")
-                            })
-                        }
-                    }
-                }
+                EpisodeMarks(vm.episode)
+                EpisodeClips(vm.episode, vm.playerLocal)
                 Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isBlank()) " (Add)" else "",
                     color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
                     modifier = Modifier.padding(start = 15.dp, top = 20.dp, bottom = 5.dp).clickable {
@@ -552,7 +535,9 @@ fun EpisodeInfoScreen() {
                         showEditComment = true
                     })
                 Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                Text(vm.itemLink, color = textColor, style = MaterialTheme.typography.bodySmall)
+                Text(vm.episode?.link?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable(onClick = {
+                    if (!vm.episode?.link.isNullOrBlank()) IntentUtils.openInBrowser(context, vm.episode!!.link!!)
+                }))
             }
         }
     }

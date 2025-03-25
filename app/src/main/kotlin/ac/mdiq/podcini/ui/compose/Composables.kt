@@ -10,11 +10,9 @@ import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,16 +48,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
@@ -165,8 +160,9 @@ fun CustomToast(message: String, durationMillis: Long = 2000L, onDismiss: () -> 
         onDismiss()
     }
     Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
+        val color = if (message.contains("Error", ignoreCase = true)) Color.Red else MaterialTheme.colorScheme.onSecondary
         Box(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(8.dp)) {
-            Text(text = message, color = MaterialTheme.colorScheme.onSecondary, style = MaterialTheme.typography.bodyMedium)
+            Text(text = message, color = color, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

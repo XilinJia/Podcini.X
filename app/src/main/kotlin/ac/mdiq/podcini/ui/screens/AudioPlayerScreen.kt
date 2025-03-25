@@ -35,6 +35,9 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
+import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
+import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.model.Episode
@@ -50,6 +53,8 @@ import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.EpisodeClips
+import ac.mdiq.podcini.ui.compose.EpisodeMarks
 import ac.mdiq.podcini.ui.compose.MediaPlayerErrorDialog
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
@@ -90,6 +95,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -102,6 +108,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -151,6 +158,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import coil.compose.AsyncImage
@@ -176,6 +184,9 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var controllerFuture: ListenableFuture<MediaController>? = null
     internal var controller: ServiceStatusHandler? = null
+
+    internal var playerLocal: ExoPlayer? = null
+    internal var episodeMonitor: Job? = null
 
     private var prevItem: Episode? = null
     internal var curItem by mutableStateOf<Episode?>(null)
@@ -260,7 +271,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                     is BufferUpdateEvent -> bufferUpdate(event)
                     is FlowEvent.PlayEvent -> onPlayEvent(event)
-                    is FlowEvent.RatingEvent -> if (curEpisode?.id == event.episode.id) rating = event.rating
+//                    is FlowEvent.RatingEvent -> if (curEpisode?.id == event.episode.id) rating = event.rating
 //                    is FlowEvent.SleepTimerUpdatedEvent ->  if (event.isCancelled || event.wasJustEnabled()) loadMediaInfo(false)
                     is FlowEvent.PlayerErrorEvent -> {
                         showErrorDialog.value = true
@@ -270,6 +281,26 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     is FlowEvent.PlaybackPositionEvent -> onPlaybackPositionEvent(event)
                     is FlowEvent.SpeedChangedEvent -> updatePlaybackSpeedButton(event)
                     else -> {}
+                }
+            }
+        }
+    }
+    internal fun monitor() {
+        if (episodeMonitor != null || curItem == null) return
+        episodeMonitor = episodeMonitor(curItem!!) { e, fields ->
+            withContext(Dispatchers.Main) {
+                Logd(TAG, "monitor: ${fields.joinToString()}")
+                var isChanged = false
+                var isDetailChanged = false
+                for (f in fields) {
+                    if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime")) continue
+                    isChanged = true
+                    if (f == "clips" || f == "marks") isDetailChanged = true
+                }
+                if (isChanged) {
+                    curItem = e
+                    rating = e.rating
+                    if (isDetailChanged) updateDetails()
                 }
             }
         }
@@ -291,9 +322,9 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 //        Logd(TAG, "onPlaybackPositionEvent ${event.episode.title}")
         val media = event.episode ?: return
         if (curItem?.id == null || media.id != curItem?.id) {
-            curItem = media
+            setItem(media)
             updateUi(curItem!!)
-            setItem(curEpisode!!)
+//            setItem(curEpisode!!)
         }
         if (showPlayButton) showPlayButton = false
         onPositionUpdate(event)
@@ -307,9 +338,9 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         Logd(TAG, "onPlayEvent ${event.episode.title}")
         val currentitem = event.episode
         if (curItem?.id == null || currentitem.id != curItem?.id) {
-            curItem = currentitem
-            updateUi(curItem!!)
             setItem(currentitem)
+            updateUi(curItem!!)
+//            setItem(currentitem)
         }
         showPlayButton = (event.action == FlowEvent.PlayEvent.Action.END)
     }
@@ -346,17 +377,15 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         lcScope.launch {
             Logd(TAG, "in updateDetails")
             withContext(Dispatchers.IO) {
-                curItem = curEpisode
+                if (curEpisode != null && curEpisode?.id != curItem?.id) setItem(curEpisode!!)
                 if (curItem != null) {
                     showHomeText = false
                     homeText = null
-                }
-                if (curItem != null) {
                     rating = curItem!!.rating
                     Logd(TAG, "updateDetails rating: $rating curItem!!.rating: ${curItem!!.rating}")
                     Logd(TAG, "updateDetails updateInfo ${cleanedNotes == null} ${prevItem?.identifyingValue} ${curItem!!.identifyingValue}")
                     val result = gearbox.buildCleanedNotes(curItem!!, shownotesCleaner)
-                    curItem = result.first
+                    setItem(result.first)
                     cleanedNotes = result.second
                     prevItem = curItem
                 }
@@ -425,14 +454,13 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             val curMediaChanged = curItem == null || curEpisode?.id != curItem?.id
             if (curEpisode != null && curEpisode?.id != curItem?.id) {
                 updateUi(curEpisode!!)
-//                imgLoc = ImageResourceUtils.getEpisodeListImageLocation(curMedia!!)
-                curItem = curEpisode
+                setItem(curEpisode!!)
             }
             if (isBSExpanded && curMediaChanged) {
                 Logd(TAG, "loadMediaInfo loading details ${curEpisode?.id}")
                 lcScope.launch {
                     withContext(Dispatchers.IO) { curEpisode?.apply { this.loadChapters(context, false) } }
-                    curItem = curEpisode
+                    if (curEpisode != null && curItem?.id != curEpisode?.id) setItem(curEpisode!!)
                     val item = curItem
                     if (item != null) setItem(item)
                     val chapters: List<Chapter> = curItem?.chapters ?: listOf()
@@ -450,10 +478,13 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
     }
-    private fun setItem(item_: Episode) {
+    internal fun setItem(item_: Episode) {
         Logd(TAG, "setItem ${item_.title}")
         if (curItem?.identifyingValue != item_.identifyingValue) {
+            episodeMonitor?.cancel()
+            episodeMonitor = null
             curItem = item_
+            monitor()
             rating = curItem!!.rating
             showHomeText = false
             homeText = null
@@ -461,7 +492,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun AudioPlayerScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -497,6 +528,7 @@ fun AudioPlayerScreen() {
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.procFlowEvents()
+                    vm.monitor()
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     if (vm.controllerFuture == null) {
                         vm.controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
@@ -518,7 +550,11 @@ fun AudioPlayerScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
 //            vm.controller?.release()
+            vm.playerLocal?.release()
+            vm.playerLocal = null
             vm.controller = null
+            vm.episodeMonitor?.cancel()
+            vm.episodeMonitor = null
             if (vm.controllerFuture != null) MediaController.releaseFuture(vm.controllerFuture!!)
             vm.controllerFuture =  null
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -526,7 +562,10 @@ fun AudioPlayerScreen() {
     }
 
     LaunchedEffect(isBSExpanded) {
-        if (isBSExpanded && vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
+        if (isBSExpanded) {
+            if (vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
+            if (vm.playerLocal == null) vm.playerLocal = ExoPlayer.Builder(context).build()
+        }
         Logd(TAG, "isExpanded: $isBSExpanded")
     }
 
@@ -585,6 +624,28 @@ fun AudioPlayerScreen() {
                 Text(vm.txtvPlaybackSpeed, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.weight(0.1f))
+            val recordColor = if (vm.recordingStartTime == null) { if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) textColor else Color.Gray } else Color.Red
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fiber_manual_record_24), tint = recordColor, contentDescription = "record",
+                modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
+                    onClick = {
+                        if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) {
+                            if (vm.recordingStartTime == null) {
+                                vm.recordingStartTime = exoPlayer!!.currentPosition
+                                saveClipInOriginalFormat(vm.recordingStartTime!!)
+                            }
+                            else {
+                                saveClipInOriginalFormat(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
+                                vm.recordingStartTime = null
+                            }
+                        } else Loge(TAG, "Recording only works during playback.") },
+                    onLongClick = {
+                        if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) {
+                            val pos = exoPlayer!!.currentPosition
+                            runOnIOScope { upsert(curEpisode!!) { it.marks.add(pos) } }
+                            Logt(TAG, "position $pos marked for ${curEpisode?.title}")
+                        } else Loge(TAG, "Marking position only works during playback.")
+                    }))
+            Spacer(Modifier.weight(0.1f))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 var showSkipDialog by remember { mutableStateOf(false) }
                 var rewindSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.rewindSecs.toLong())) }
@@ -594,24 +655,6 @@ fun AudioPlayerScreen() {
                         onClick = { playbackService?.mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) }, onLongClick = { showSkipDialog = true }))
                 Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
-            Spacer(Modifier.weight(0.1f))
-            val recordColot = if (vm.recordingStartTime == null) { if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) textColor else Color.Gray } else Color.Red
-            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fiber_manual_record_24), tint = recordColot, contentDescription = "record",
-                modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
-                    onClick = {
-                        if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) {
-                            if (vm.recordingStartTime == null) {
-                                vm.recordingStartTime = exoPlayer!!.currentPosition
-                                saveClipInOriginalFormat(vm.recordingStartTime!!)
-                            }
-                            else {
-//                                saveAudioSegment(vm.recordingStartTime)
-                                saveClipInOriginalFormat(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
-                                vm.recordingStartTime = null
-                            }
-                        } },
-                    onLongClick = {
-                    }))
             Spacer(Modifier.weight(0.1f))
             Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play",
                 modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
@@ -829,15 +872,7 @@ fun AudioPlayerScreen() {
                 return true
             }
             gearbox.PlayerDetailedGearPanel(vm)
-            Text(vm.txtvPodcastTitle, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp).combinedClickable(onClick = {
-                    if (vm.curItem != null) {
-                        if (vm.curItem?.feedId != null) {
-                            val openFeed: Intent = MainActivity.getIntentToOpenFeed(context, vm.curItem!!.feedId!!)
-                            context.startActivity(openFeed)
-                        }
-                    }
-                }, onLongClick = { copyText(vm.curItem?.feed?.title?:"") }))
+            SelectionContainer { Text(vm.txtvPodcastTitle, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
                 Spacer(modifier = Modifier.weight(0.2f))
                 val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
@@ -849,8 +884,7 @@ fun AudioPlayerScreen() {
                 Text(vm.episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.weight(0.6f))
             }
-            Text(vm.titleText, textAlign = TextAlign.Center, color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)
-                .combinedClickable(onClick = {}, onLongClick = { copyText(vm.curItem?.title?:"") }))
+            SelectionContainer { Text(vm.titleText, textAlign = TextAlign.Center, color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
 
 //            fun restoreFromPreference(): Boolean {
 //                if ((context as MainActivity).bottomSheet.state != BottomSheetBehavior.STATE_EXPANDED) return false
@@ -882,6 +916,9 @@ fun AudioPlayerScreen() {
                     }
                 }
             }, update = { webView -> webView.loadDataWithBaseURL("https://127.0.0.1", if (vm.cleanedNotes.isNullOrBlank()) "No notes" else vm.cleanedNotes!!, "text/html", "utf-8", "about:blank") })
+            EpisodeMarks(vm.curItem)
+            EpisodeClips(vm.curItem, vm.playerLocal)
+
             if (vm.displayedChapterIndex >= 0) {
                 Row(modifier = Modifier.padding(start = 20.dp, end = 20.dp),
                     horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -905,7 +942,7 @@ fun AudioPlayerScreen() {
         if (curEpisode != null) {
             vm.updateUi(curEpisode!!)
             vm.imgLoc = curEpisode!!.imageLocation
-            vm.curItem = curEpisode
+            if (vm.curItem?.id != curEpisode?.id) vm.setItem(curEpisode!!)
         }
     }
     MediaPlayerErrorDialog(context, vm.errorMessage, vm.showErrorDialog)

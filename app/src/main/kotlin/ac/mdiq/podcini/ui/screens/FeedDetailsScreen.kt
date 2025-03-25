@@ -80,6 +80,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -504,9 +505,7 @@ fun FeedDetailsScreen() {
     fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
         var url by remember { mutableStateOf(vm.feed?.downloadUrl ?: "") }
         AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
-            text = {
-                TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth())
-            },
+            text = { TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth()) },
             confirmButton = {
                 TextButton(onClick = {
                     editedUrl = url
@@ -738,17 +737,21 @@ fun FeedDetailsScreen() {
 
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
             val textColor = MaterialTheme.colorScheme.onSurface
-            Text(vm.feed?.title ?:"", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
-            Text(vm.feed?.author ?:"", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
-            Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
-            Text(HtmlToPlainText.getPlainText(vm.feed?.description?:""), color = textColor, style = MaterialTheme.typography.bodyMedium)
+            SelectionContainer {
+                Column {
+                    Text(vm.feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
+                    Text(vm.feed?.author ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                    Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
             Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isBlank()) " (Add)" else "",
                 color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
                 modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable {
                     editCommentText = TextFieldValue((if (vm.feed?.comment.isNullOrBlank()) "" else vm.feed!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
                     showEditComment = true
                 })
-            if (commentTextState.text.isNotBlank()) Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+            if (commentTextState.text.isNotBlank()) SelectionContainer { Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp)) }
 
             Text(stringResource(R.string.statistics_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
             Row {
@@ -762,15 +765,18 @@ fun FeedDetailsScreen() {
                     mainNavController.navigate(Screens.SearchResults.name)
                 }) { Text(stringResource(R.string.feeds_related_to_author)) }
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
-                Text(text = vm.txtvUrl ?: "", color = textColor, modifier = Modifier.clickable {
-                    if (!vm.feed?.downloadUrl.isNullOrBlank()) {
-                        val url: String = vm.feed!!.downloadUrl!!
-                        val clipData: ClipData = ClipData.newPlainText(url, url)
-                        val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        cm.setPrimaryClip(clipData)
-                        Logt(TAG, context.getString(R.string.copied_to_clipboard))
+                Text(text = vm.txtvUrl ?: "", color = textColor, modifier = Modifier.combinedClickable(
+                    onClick = { if (!vm.feed?.downloadUrl.isNullOrBlank()) IntentUtils.openInBrowser(context, vm.feed!!.downloadUrl!!) },
+                    onLongClick = {
+                        if (!vm.feed?.downloadUrl.isNullOrBlank()) {
+                            val url: String = vm.feed!!.downloadUrl!!
+                            val clipData: ClipData = ClipData.newPlainText(url, url)
+                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            cm.setPrimaryClip(clipData)
+                            Logt(TAG, context.getString(R.string.copied_to_clipboard))
+                        }
                     }
-                })
+                ))
                 if (!vm.feed?.paymentLinkList.isNullOrEmpty()) {
                     Text(stringResource(R.string.support_funding_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     fun fundingText(): String {

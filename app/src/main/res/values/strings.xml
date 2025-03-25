@@ -131,6 +131,11 @@
     <string name="clear_new_label">Clear new</string>
     <string name="reconcile_label">Reconcile</string>
     <string name="chapters_label">Chapters</string>
+    <string name="clips">Clips</string>
+    <string name="ask_remove_clip">Do you want to remove clip: %1$s ?</string>
+    <string name="marks">Marks</string>
+    <string name="ask_remove_mark">Do you want to remove mark: %1$s ?</string>
+    <string name="play_mark_msg">The mark can be sought to when the episode is being played.</string>
 
     <string name="chapter_duration0">Duration: </string>
 

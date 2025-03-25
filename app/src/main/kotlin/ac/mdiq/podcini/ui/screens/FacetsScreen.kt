@@ -202,7 +202,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                     is FlowEvent.EpisodeEvent -> onEpisodeEvent(event)
                     is FlowEvent.EpisodeMediaEvent -> onEpisodeMediaEvent(event)
                     is FlowEvent.HistoryEvent -> onHistoryEvent(event)
-                    is FlowEvent.FeedListEvent, is FlowEvent.EpisodePlayedEvent, is FlowEvent.RatingEvent -> loadItems()
+                    is FlowEvent.FeedListEvent, is FlowEvent.EpisodePlayedEvent -> loadItems()
                     else -> {}
                 }
             }

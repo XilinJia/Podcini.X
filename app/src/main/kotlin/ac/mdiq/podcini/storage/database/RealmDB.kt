@@ -1,9 +1,16 @@
 package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.storage.model.*
+import ac.mdiq.podcini.storage.model.Chapter
+import ac.mdiq.podcini.storage.model.CurrentState
+import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.PAFeed
+import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.model.ShareLog
+import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -23,7 +30,11 @@ import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.TypedRealmObject
 import java.io.File
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.ContinuationInterceptor
 
 object RealmDB {
@@ -48,7 +59,7 @@ object RealmDB {
                 PAFeed::class,
             ))
             .name("Podcini.realm")
-            .schemaVersion(50)
+            .schemaVersion(51)
             .migration({ mContext ->
                 val oldRealm = mContext.oldRealm // old realm using the previous schema
                 val newRealm = mContext.newRealm // new realm using the new schema
@@ -327,13 +338,32 @@ object RealmDB {
                 when (changes) {
                     is UpdatedObject -> {
                         Logd(TAG, "episodeMonitor UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
-                        if (episode.id == changes.obj.id) {
-                            onChanges(changes.obj, changes.changedFields)
-                        } else Loge(TAG, "episodeMonitor index out bound")
+                        if (episode.id == changes.obj.id) onChanges(changes.obj, changes.changedFields)
+                        else Loge(TAG, "episodeMonitor index out bound")
                     }
                     else -> {}
                 }
             }
         }
     }
+
+    fun feedMonitor(feed: Feed, onChanges: suspend (Feed, fields: Array<String>)->Unit): Job {
+        return CoroutineScope(Dispatchers.Default).launch {
+            val item_ = realm.query(Feed::class).query("id == ${feed.id}").first()
+            Logd(TAG, "start monitoring feed: ${feed.id} ${feed.title}")
+            val episodeFlow = item_.asFlow()
+            episodeFlow.collect { changes: SingleQueryChange<Feed> ->
+                when (changes) {
+                    is UpdatedObject -> {
+                        Logd(TAG, "feedMonitor UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
+                        if (feed.id == changes.obj.id) {
+                            onChanges(changes.obj, changes.changedFields)
+                        } else Loge(TAG, "feedMonitor index out bound")
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
 }

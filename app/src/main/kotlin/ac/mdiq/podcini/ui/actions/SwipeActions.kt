@@ -433,7 +433,11 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 var textFieldValue by remember { mutableStateOf(TextFieldValue(onEpisode!!.title!!)) }
                 val selectedText by remember(textFieldValue.selection) { mutableStateOf(
                     if (textFieldValue.selection.collapsed) ""
-                    else textFieldValue.text.substring(startIndex = max(textFieldValue.selection.start, 0), endIndex = textFieldValue.selection.end)) }
+                    else {
+                        val start = textFieldValue.selection.start.coerceIn(0, textFieldValue.text.length)
+                        val end = textFieldValue.selection.end.coerceIn(start, textFieldValue.text.length)
+                        textFieldValue.text.substring(startIndex = start, endIndex = end)
+                    }) }
                 AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showSearchDialog = false },
                     title = { Text(stringResource(R.string.select_text_to_search), style = CustomTextStyles.titleCustom) },
                     text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },

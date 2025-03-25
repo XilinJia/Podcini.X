@@ -128,6 +128,7 @@ class Episode : RealmObject {
 
     var clips: RealmSet<String> = realmSetOf()
 
+    var marks: RealmSet<Long> = realmSetOf()
 
     /**
      * The list of chapters of this item. This might be null even if there are chapters of this item
@@ -552,9 +553,7 @@ class Episode : RealmObject {
                         if (cursor.moveToFirst()) {
                             val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
                             if (sizeIndex != -1) cursor.getLong(sizeIndex) else null
-                        } else {
-                            null
-                        }
+                        } else null
                     }
                 }
                 else -> {

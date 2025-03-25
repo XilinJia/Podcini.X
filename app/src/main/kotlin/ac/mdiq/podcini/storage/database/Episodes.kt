@@ -250,7 +250,7 @@ object Episodes {
     suspend fun setRating(episode: Episode, rating: Int) {
         Logd(TAG, "setRating called $rating")
         val result = upsert(episode) { it.rating = rating }
-        EventFlow.postEvent(FlowEvent.RatingEvent(result, result.rating))
+//        EventFlow.postEvent(FlowEvent.RatingEvent(result, result.rating))
     }
 
     suspend fun setPlayStateSync(played: Int, episode: Episode, resetMediaPosition: Boolean, removeFromQueue: Boolean = true) : Episode {
