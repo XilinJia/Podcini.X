@@ -321,10 +321,10 @@ class PlaybackService : MediaLibraryService() {
             }
             if (ended || smartMarkAsPlayed) {
                 SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(applicationContext, playable, true)
-                playable.onPlaybackCompleted()
+                playable.savePlayTime(true)
             } else {
                 SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(applicationContext, playable, false)
-                playable.onPlaybackPause()
+                playable.savePlayTime()
             }
             runOnIOScope {
                 if (ended || smartMarkAsPlayed || autoSkipped || (skipped && !getPref(AppPrefs.prefSkipKeepsEpisode, true))) {
@@ -384,7 +384,7 @@ class PlaybackService : MediaLibraryService() {
             Logd(TAG, "onPlaybackPause start ${playable?.timeSpent}")
             if (playable != null) {
                 SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(applicationContext, playable, false)
-                playable.onPlaybackPause()
+                playable.savePlayTime()
             }
         }
         override fun getNextInQueue(currentMedia: Episode?): Episode? {
@@ -1053,13 +1053,24 @@ class PlaybackService : MediaLibraryService() {
         Logd(TAG, "upsertDB start: ${playable.startTime} timeSpentOnStart: ${playable.timeSpentOnStart} ")
         it.startTime = playable.startTime
         it.timeSpentOnStart = playable.timeSpentOnStart
-        if (playable.startTime > 0) it.timeSpent = it.timeSpentOnStart + (System.currentTimeMillis() - it.startTime)
         it.playedDurationWhenStarted = playable.playedDurationWhenStarted
         it.setPosition(position)
-        it.lastPlayedTime = (System.currentTimeMillis())
-        if (it.isNew) it.setPlayState(PlayState.UNPLAYED)
+
         if (it.startPosition >= 0 && it.position > it.startPosition)
             it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
+        if (it.startTime > 0) {
+            var delta = (System.currentTimeMillis() - it.startTime)
+            if (delta > 3*it.duration) {
+                Loge(TAG, "likely invalid delta: $delta reset ${it.title}")
+                it.startTime = System.currentTimeMillis()
+                delta = 0
+            }
+            it.timeSpent = it.timeSpentOnStart + delta
+            it.timeSpent = 2 * it.playedDuration.toLong()
+        }
+
+        it.lastPlayedTime = (System.currentTimeMillis())
+        if (it.isNew) it.setPlayState(PlayState.UNPLAYED)
         Logd(TAG, "upsertDB ${it.startTime} timeSpent: ${it.timeSpent} playedDuration: ${it.playedDuration}")
     }
 

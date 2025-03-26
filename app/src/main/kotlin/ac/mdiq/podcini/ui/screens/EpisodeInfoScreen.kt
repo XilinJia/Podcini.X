@@ -147,7 +147,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 
     var showShareDialog by mutableStateOf(false)
 
-//    internal var webviewData by mutableStateOf("")
+    internal var webviewData by mutableStateOf("")
     internal var showHomeScreen by mutableStateOf(false)
     internal var actionButton1 by mutableStateOf<EpisodeActionButton?>(null)
 
@@ -311,15 +311,13 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                 try {
                     withContext(Dispatchers.IO) {
                         if (episode != null && !episode!!.isRemote.value) episode = realm.query(Episode::class).query("id == $0", episode!!.id).first().find()
-                        Logd(TAG, "load episode?.webviewData: [${episode?.webviewData}]")
-                        if (episode != null && episode?.webviewData == null) {
+                        if (episode != null && webviewData.isNullOrBlank()) {
                             val duration = episode!!.duration
                             Logd(TAG, "description: ${episode?.description}")
                             val result = gearbox.buildWebviewData(episode!!, shownotesCleaner)
                             if (result != null) {
-                                episode = result.first
-                                episode!!.webviewData = result.second
-                            } else episode!!.webviewData = shownotesCleaner.processShownotes(episode!!.description ?: "", duration)
+                                webviewData = result.second
+                            } else webviewData = shownotesCleaner.processShownotes(episode!!.description ?: "", duration)
                         }
                     }
                     withContext(Dispatchers.Main) {
@@ -521,9 +519,7 @@ fun EpisodeInfoScreen() {
                             setTimecodeSelectedListener { time: Int -> seekTo(time) }
                             setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
                         }
-                    }, update = {
-//                        Logd(TAG, "AndroidView update: [${vm.episode?.webviewData}]")
-                        it.loadDataWithBaseURL("https://127.0.0.1", vm.episode?.webviewData?:"", "text/html", "utf-8", "about:blank") })
+                    }, update = { it.loadDataWithBaseURL("https://127.0.0.1", vm.webviewData, "text/html", "utf-8", "about:blank") })
                 if (!vm.episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
                 EpisodeMarks(vm.episode)

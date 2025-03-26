@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.feed.parser.media.id3.ID3ReaderException
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentChapterReader
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
+import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
@@ -755,24 +756,20 @@ class Episode : RealmObject {
      * necessary, as long as a call to [.onPlaybackCompleted] is made.
      * Position held by this EpisodeMedia should be set accurately before a call to this method is made.
      */
-    fun onPlaybackPause() {
-        Logd(TAG, "onPlaybackPause $position $duration")
+    fun savePlayTime(completed: Boolean = false) {
+        Logd(TAG, "savePlayTime $position $duration")
         if (position > startPosition) playedDuration = playedDurationWhenStarted + position - startPosition
-        if (startTime > 0) timeSpent = timeSpentOnStart + (System.currentTimeMillis() - startTime)
-        Logd(TAG, "onPlaybackPause startTime: $startTime timeSpent: $timeSpent")
-        startPosition = position
-        startTime = 0
-    }
-
-    /**
-     * This method should be called when playback completes for this object.
-     */
-    fun onPlaybackCompleted() {
-        Logd(TAG, "onPlaybackCompleted $position $duration")
-        if (position > startPosition) playedDuration = playedDurationWhenStarted + position - startPosition
-        if (startTime > 0) timeSpent = timeSpentOnStart + (System.currentTimeMillis() - startTime)
-        Logd(TAG, "onPlaybackCompleted startTime: $startTime timeSpent: $timeSpent")
-        startPosition = -1
+        if (startTime > 0) {
+            var delta = (System.currentTimeMillis() - startTime)
+            if (delta > 3*duration) {
+                Loge(TAG, "savePlayTime likely invalid delta: $delta reset ${title}")
+                startTime = System.currentTimeMillis()
+                delta = 0
+            }
+            timeSpent = timeSpentOnStart + delta
+        }
+        Logd(TAG, "savePlayTime startTime: $startTime timeSpent: $timeSpent")
+        startPosition = if (completed) -1 else position
         startTime = 0
     }
 

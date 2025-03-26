@@ -505,7 +505,7 @@ fun QueuesScreen() {
                             vm.showRenameQueueDialog.value = true
                             expanded = false
                         })
-                        if (vm.queueNames.size < 9) DropdownMenuItem(text = { Text(stringResource(R.string.add_queue)) }, onClick = {
+                        if (vm.queueNames.size < 12) DropdownMenuItem(text = { Text(stringResource(R.string.add_queue)) }, onClick = {
                             vm.showAddQueueDialog.value = true
                             expanded = false
                         })

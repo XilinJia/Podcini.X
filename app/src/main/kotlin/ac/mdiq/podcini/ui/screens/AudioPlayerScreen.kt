@@ -7,11 +7,9 @@ import ac.mdiq.podcini.playback.Recorder.saveClipInOriginalFormat
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
-import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.MediaPlayerInfo
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.cast.BaseActivity
@@ -20,7 +18,6 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curDurationFB
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curSpeedFB
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideoLocally
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isRunning
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playPause
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
@@ -75,15 +72,9 @@ import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter
 import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
-import android.content.BroadcastReceiver
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.Build
 import android.view.KeyEvent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -103,6 +94,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
@@ -150,14 +142,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.core.app.ShareCompat
-import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.lifecycleScope
-import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
-import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -166,7 +154,6 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
-import java.io.File
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import kotlinx.coroutines.CoroutineScope
@@ -183,7 +170,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal val actMain: MainActivity? = generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull()
 
     internal var controllerFuture: ListenableFuture<MediaController>? = null
-    internal var controller: ServiceStatusHandler? = null
 
     internal var playerLocal: ExoPlayer? = null
     internal var episodeMonitor: Job? = null
@@ -238,8 +224,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal var errorMessage by mutableStateOf("")
 
     internal var recordingStartTime by mutableStateOf<Long?>(null)
-    internal lateinit var cache: SimpleCache
-    internal lateinit var mediaFilesDir: File
 
     internal var displayedChapterIndex by mutableIntStateOf(-1)
     internal val curChapter: Chapter?
@@ -324,7 +308,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         if (curItem?.id == null || media.id != curItem?.id) {
             setItem(media)
             updateUi(curItem!!)
-//            setItem(curEpisode!!)
         }
         if (showPlayButton) showPlayButton = false
         onPositionUpdate(event)
@@ -340,7 +323,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         if (curItem?.id == null || currentitem.id != curItem?.id) {
             setItem(currentitem)
             updateUi(curItem!!)
-//            setItem(currentitem)
         }
         showPlayButton = (event.action == FlowEvent.PlayEvent.Action.END)
     }
@@ -351,7 +333,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 //            if (isCurrentlyPlaying(curEpisode)) playButRes = R.drawable.ic_pause
             playButInit = true
         }
-        if (curEpisode?.id != event.episode?.id || controller == null || curPositionFB == Episode.INVALID_TIME || curDurationFB == Episode.INVALID_TIME) return
+        if (curEpisode?.id != event.episode?.id || curPositionFB == Episode.INVALID_TIME || curDurationFB == Episode.INVALID_TIME) return
 //        val converter = TimeSpeedConverter(curSpeedFB)
         curPosition = convertOnSpeed(event.position, curSpeedFB)
         duration = convertOnSpeed(event.duration, curSpeedFB)
@@ -377,16 +359,18 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         lcScope.launch {
             Logd(TAG, "in updateDetails")
             withContext(Dispatchers.IO) {
-                if (curEpisode != null && curEpisode?.id != curItem?.id) setItem(curEpisode!!)
+//                if (curEpisode != null && curEpisode?.id != curItem?.id) setItem(curEpisode!!)
                 if (curItem != null) {
                     showHomeText = false
                     homeText = null
                     rating = curItem!!.rating
                     Logd(TAG, "updateDetails rating: $rating curItem!!.rating: ${curItem!!.rating}")
                     Logd(TAG, "updateDetails updateInfo ${cleanedNotes == null} ${prevItem?.identifyingValue} ${curItem!!.identifyingValue}")
-                    val result = gearbox.buildCleanedNotes(curItem!!, shownotesCleaner)
-                    setItem(result.first)
-                    cleanedNotes = result.second
+                    if (cleanedNotes == null) {
+                        val result = gearbox.buildCleanedNotes(curItem!!, shownotesCleaner)
+//                        setItem(result.first)
+                        cleanedNotes = result.second
+                    }
                     prevItem = curItem
                 }
                 Logd(TAG, "updateDetails cleanedNotes: ${cleanedNotes?.length}")
@@ -460,9 +444,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "loadMediaInfo loading details ${curEpisode?.id}")
                 lcScope.launch {
                     withContext(Dispatchers.IO) { curEpisode?.apply { this.loadChapters(context, false) } }
-                    if (curEpisode != null && curItem?.id != curEpisode?.id) setItem(curEpisode!!)
-                    val item = curItem
-                    if (item != null) setItem(item)
                     val chapters: List<Chapter> = curItem?.chapters ?: listOf()
                     if (chapters.isNotEmpty()) {
                         val dividerPos = FloatArray(chapters.size)
@@ -488,6 +469,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             rating = curItem!!.rating
             showHomeText = false
             homeText = null
+            cleanedNotes = null
         }
     }
 }
@@ -504,24 +486,6 @@ fun AudioPlayerScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    if (vm.actMain != null) {
-                        vm.controller = object : ServiceStatusHandler(vm.actMain) {
-                            override fun updatePlayButton(showPlay: Boolean) {
-                                vm.showPlayButton = showPlay
-                            }
-                            override fun loadMediaInfo() {
-                                Logd(TAG, "createHandler loadMediaInfo")
-                                vm.loadMediaInfo()
-                            }
-                            override fun onPlaybackEnd() {
-                                vm.showPlayButton = true
-                            }
-                        }
-                        vm.cache = SimpleCache(vm.actMain.cacheDir, LeastRecentlyUsedCacheEvictor(100 * 1024 * 1024)) // 100MB cache
-                        vm.mediaFilesDir = File(vm.actMain.filesDir, "media")
-                        vm.mediaFilesDir.mkdirs() // Ensure the directory exists
-//                        vm.controller!!.init()    TODO: this appears not necessary
-                    }
                     isBSExpanded = false
                     if (vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
                     if (curEpisode != null) vm.updateUi(curEpisode!!)
@@ -549,10 +513,8 @@ fun AudioPlayerScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-//            vm.controller?.release()
             vm.playerLocal?.release()
             vm.playerLocal = null
-            vm.controller = null
             vm.episodeMonitor?.cancel()
             vm.episodeMonitor = null
             if (vm.controllerFuture != null) MediaController.releaseFuture(vm.controllerFuture!!)
@@ -597,7 +559,7 @@ fun AudioPlayerScreen() {
             }
             AsyncImage(contentDescription = "imgvCover", model = ImageRequest.Builder(context).data(vm.imgLoc)
                 .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                modifier = Modifier.width(60.dp).height(60.dp).padding(start = 5.dp)
+                modifier = Modifier.width(50.dp).height(50.dp).padding(start = 5.dp)
                     .clickable(onClick = {
                         Logd(TAG, "playerUi icon was clicked")
                         if (!isBSExpanded) {
@@ -617,16 +579,17 @@ fun AudioPlayerScreen() {
                             }
                         } else isBSExpanded = false
                     }))
+            val buttonSize = 46.dp
             Spacer(Modifier.weight(0.1f))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
                 SpeedometerWithArc(speed = vm.curPlaybackSpeed*100, maxSpeed = 300f, trackColor = textColor,
-                    modifier = Modifier.width(40.dp).height(40.dp).clickable(onClick = { vm.showSpeedDialog = true }))
-                Text(vm.txtvPlaybackSpeed, color = textColor, style = MaterialTheme.typography.bodySmall)
+                    modifier = Modifier.width(40.dp).height(40.dp).align(Alignment.TopCenter).clickable(onClick = { vm.showSpeedDialog = true }))
+                Text(vm.txtvPlaybackSpeed, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
             val recordColor = if (vm.recordingStartTime == null) { if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) textColor else Color.Gray } else Color.Red
             Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fiber_manual_record_24), tint = recordColor, contentDescription = "record",
-                modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
+                modifier = Modifier.size(buttonSize).combinedClickable(
                     onClick = {
                         if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) {
                             if (vm.recordingStartTime == null) {
@@ -646,49 +609,54 @@ fun AudioPlayerScreen() {
                         } else Loge(TAG, "Marking position only works during playback.")
                     }))
             Spacer(Modifier.weight(0.1f))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
                 var showSkipDialog by remember { mutableStateOf(false) }
                 var rewindSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.rewindSecs.toLong())) }
                 if (showSkipDialog) SkipDialog(SkipDirection.SKIP_REWIND, onDismissRequest = { showSkipDialog = false }) { rewindSecs = it.toString() }
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_rewind), tint = textColor, contentDescription = "rewind",
-                    modifier = Modifier.width(43.dp).height(43.dp).combinedClickable(
+                    modifier = Modifier.size(buttonSize).align(Alignment.TopCenter).combinedClickable(
                         onClick = { playbackService?.mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) }, onLongClick = { showSkipDialog = true }))
-                Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall)
+                Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
-            Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play",
-                modifier = Modifier.width(50.dp).height(50.dp).combinedClickable(
-                    onClick = {
-                        if (curEpisode != null) {
-                            val media = curEpisode!!
-                            vm.showPlayButton = !vm.showPlayButton
-                            if (vm.showPlayButton && vm.recordingStartTime != null) {
-                                saveClipInOriginalFormat(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
-                                vm.recordingStartTime = null
+            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
+                Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play",
+                    modifier = Modifier.size(buttonSize).align(Alignment.TopCenter).combinedClickable(
+                        onClick = {
+                            if (curEpisode != null) {
+                                val media = curEpisode!!
+                                vm.showPlayButton = !vm.showPlayButton
+                                if (vm.showPlayButton && vm.recordingStartTime != null) {
+                                    saveClipInOriginalFormat(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
+                                    vm.recordingStartTime = null
+                                }
+                                if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
+                                    playPause()
+                                    context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
+                                } else playPause()
                             }
-                            if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
-                                playPause()
-                                context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
-                            } else playPause()
-                        } },
-                    onLongClick = {
-                        if (status == PlayerStatus.PLAYING) {
-                            val speedFB = fallbackSpeed
-                            if (speedFB > 0.1f) toggleFallbackSpeed(speedFB)
-                        } }))
+                        },
+                        onLongClick = {
+                            if (status == PlayerStatus.PLAYING) {
+                                val speedFB = fallbackSpeed
+                                if (speedFB > 0.1f) toggleFallbackSpeed(speedFB)
+                            }
+                        }))
+                if (fallbackSpeed > 0.1f) Text(fallbackSpeed.toString(), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
+            }
             Spacer(Modifier.weight(0.1f))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
                 var showSkipDialog by remember { mutableStateOf(false) }
                 var fastForwardSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.fastForwardSecs.toLong())) }
                 if (showSkipDialog) SkipDialog(SkipDirection.SKIP_FORWARD, onDismissRequest = {showSkipDialog = false }) { fastForwardSecs = it.toString()}
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_forward), tint = textColor, contentDescription = "forward",
-                    modifier = Modifier.width(43.dp).height(43.dp).combinedClickable(
+                    modifier = Modifier.size(buttonSize).align(Alignment.TopCenter).combinedClickable(
                         onClick = { playbackService?.mPlayer?.seekDelta(AppPreferences.fastForwardSecs * 1000) },
                         onLongClick = { showSkipDialog = true }))
-                Text(fastForwardSecs, color = textColor, style = MaterialTheme.typography.bodySmall)
+                Text(fastForwardSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
                 fun speedForward(speed: Float) {
                     if (playbackService?.mPlayer == null || playbackService?.isFallbackSpeed == true) return
                     if (playbackService?.isSpeedForward == false) {
@@ -698,14 +666,14 @@ fun AudioPlayerScreen() {
                     playbackService!!.isSpeedForward = !playbackService!!.isSpeedForward
                 }
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = textColor, contentDescription = "rewind",
-                    modifier = Modifier.width(43.dp).height(43.dp).combinedClickable(
+                    modifier = Modifier.size(buttonSize).align(Alignment.TopCenter).combinedClickable(
                         onClick = {
                             if (status == PlayerStatus.PLAYING) {
                                 val speedForward = AppPreferences.speedforwardSpeed
                                 if (speedForward > 0.1f) speedForward(speedForward)
                             } },
                         onLongClick = { context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT)) }))
-                if (AppPreferences.speedforwardSpeed > 0.1f) Text(NumberFormat.getInstance().format(AppPreferences.speedforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall)
+                if (AppPreferences.speedforwardSpeed > 0.1f) Text(NumberFormat.getInstance().format(AppPreferences.speedforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
         }
@@ -719,7 +687,6 @@ fun AudioPlayerScreen() {
                 colors = SliderDefaults.colors(activeTrackColor = MaterialTheme.colorScheme.tertiary),
                 modifier = Modifier.height(12.dp).padding(top = 2.dp, bottom = 2.dp),
                 onValueChange = { vm.sliderValue = it }, onValueChangeFinished = {
-                    Logd(TAG, "Slider onValueChangeFinished: ${vm.sliderValue}")
                     vm.curPosition = vm.sliderValue.toInt()
                     seekTo(vm.curPosition)
                 })
@@ -733,7 +700,6 @@ fun AudioPlayerScreen() {
             Spacer(Modifier.weight(1f))
             vm.showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
             Text(vm.txtvLengtTexth, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
-//                if (vm.controller == null) return@clickable
                 vm.showTimeLeft = !vm.showTimeLeft
                 putPref(AppPrefs.showTimeLeft, vm.showTimeLeft)
                 vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode, curPositionFB, curDurationFB))
@@ -744,7 +710,7 @@ fun AudioPlayerScreen() {
     @Composable
     fun PlayerUI(modifier: Modifier) {
         val textColor = MaterialTheme.colorScheme.onSurface
-        Box(modifier = modifier.fillMaxWidth().height(120.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)).background(MaterialTheme.colorScheme.surface)) {
+        Box(modifier = modifier.fillMaxWidth().height(100.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)).background(MaterialTheme.colorScheme.surface)) {
             Column {
                 Text(vm.titleText, maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 ProgressBar()
@@ -864,13 +830,6 @@ fun AudioPlayerScreen() {
         val scrollState = rememberScrollState()
         Column(modifier = modifier.fillMaxWidth().verticalScroll(scrollState)) {
             val textColor = MaterialTheme.colorScheme.onSurface
-            fun copyText(text: String): Boolean {
-                val clipboardManager: ClipboardManager? = ContextCompat.getSystemService(context, ClipboardManager::class.java)
-                clipboardManager?.setPrimaryClip(ClipData.newPlainText("Podcini", text))
-                // TODO: if (Build.VERSION.SDK_INT <= 32) necessary?
-                Logt(TAG, context.getString(R.string.copied_to_clipboard))
-                return true
-            }
             gearbox.PlayerDetailedGearPanel(vm)
             SelectionContainer { Text(vm.txtvPodcastTitle, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
@@ -958,173 +917,11 @@ fun AudioPlayerScreen() {
     }
 }
 
-/**
- * Communicates with the playback service. GUI classes should use this class to
- * control playback instead of communicating with the PlaybackService directly.
- */
-abstract class ServiceStatusHandler(private val activity: MainActivity) {
-    private var mediaInfoLoaded = false
-    private var loadedFeedMediaId: Long = -1
-    private var initialized = false
-
-    private var prevStatus = PlayerStatus.STOPPED
-    private val statusUpdate: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            Logd(TAG, "statusUpdate onReceive called with action: ${intent.action}")
-            if (playbackService != null && mPlayerInfo != null) {
-                val info = mPlayerInfo!!
-//                Logd(TAG, "statusUpdate onReceive $prevStatus ${MediaPlayerBase.status} ${info.playerStatus} ${curMedia?.id} ${info.playable?.id}.")
-                if (prevStatus != info.playerStatus || curEpisode == null || curEpisode!!.id != info.playable?.id) {
-                    Logd(TAG, "statusUpdate onReceive doing updates")
-                    status = info.playerStatus
-                    prevStatus = status
-                    handleStatus()
-                }
-            } else {
-                Logt(TAG, "statusUpdate onReceive: Couldn't receive status update: playbackService was null")
-                if (!isRunning) {
-                    status = PlayerStatus.STOPPED
-                    handleStatus()
-                }
-            }
-        }
-    }
-
-    private val notificationReceiver: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            Logd(TAG, "notificationReceiver onReceive called with action: ${intent.action}")
-            val type = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_TYPE, -1)
-            val code = intent.getIntExtra(PlaybackService.EXTRA_NOTIFICATION_CODE, -1)
-            if (code == -1 || type == -1) {
-                Loge(TAG, "notificationReceiver Bad arguments. Won't handle intent. code: $code type: $type")
-                return
-            }
-            when (type) {
-                PlaybackService.NOTIFICATION_TYPE_RELOAD -> {
-                    if (playbackService == null && isRunning) return
-                    Logd(TAG, "notificationReceiver handle NOTIFICATION_TYPE_RELOAD")
-                    mediaInfoLoaded = false
-                    updateStatus()
-                }
-                PlaybackService.NOTIFICATION_TYPE_PLAYBACK_END -> onPlaybackEnd()
-            }
-        }
-    }
-
-    @Synchronized
-    fun init() {
-        Logd(TAG, "controller init")
-        procFlowEvents()
-        if (isRunning) {
-            if (!initialized) {
-                initialized = true
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    activity.registerReceiver(statusUpdate, IntentFilter(PlaybackService.ACTION_PLAYER_STATUS_CHANGED), Context.RECEIVER_NOT_EXPORTED)
-                    activity.registerReceiver(notificationReceiver, IntentFilter(PlaybackService.ACTION_PLAYER_NOTIFICATION), Context.RECEIVER_NOT_EXPORTED)
-                } else {
-                    activity.registerReceiver(statusUpdate, IntentFilter(PlaybackService.ACTION_PLAYER_STATUS_CHANGED))
-                    activity.registerReceiver(notificationReceiver, IntentFilter(PlaybackService.ACTION_PLAYER_NOTIFICATION))
-                }
-                checkMediaInfoLoaded()
-            }
-        } else updatePlayButton(true)
-    }
-
-    private var eventSink: Job? = null
-    private fun cancelFlowEvents() {
-        eventSink?.cancel()
-        eventSink = null
-    }
-    private fun procFlowEvents() {
-        if (eventSink != null) return
-        eventSink = activity.lifecycleScope.launch {
-            EventFlow.events.collectLatest { event ->
-                Logd(TAG, "Received event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.PlaybackServiceEvent -> {
-                        Logd(TAG, "Received event action ${event.action}")
-                        when (event.action) {
-                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED -> {
-                                init()
-                                updateStatus()
-                            }
-                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN -> release()
-                        }
-                    }
-                    else -> {}
-                }
-            }
-        }
-    }
-
-    /**
-     * Should be called if the PlaybackController is no longer needed, for
-     * example in the activity's onStop() method.
-     */
-    fun release() {
-        Logd(TAG, "Releasing PlaybackController")
-        try {
-            activity.unregisterReceiver(statusUpdate)
-            activity.unregisterReceiver(notificationReceiver)
-        } catch (e: IllegalArgumentException) { Logs(TAG, e) }
-        initialized = false
-        cancelFlowEvents()
-    }
-
-    open fun onPlaybackEnd() {}
-
-    /**
-     * Is called whenever the PlaybackService changes its status. This method
-     * should be used to update the GUI or start/cancel background threads.
-     */
-    private fun handleStatus() {
-        Logd(TAG, "handleStatus() called status: $status")
-        checkMediaInfoLoaded()
-        when (status) {
-            PlayerStatus.PLAYING -> updatePlayButton(false)
-            PlayerStatus.PREPARING -> updatePlayButton(!PlaybackService.isStartWhenPrepared)
-            PlayerStatus.FALLBACK, PlayerStatus.PAUSED, PlayerStatus.PREPARED, PlayerStatus.STOPPED, PlayerStatus.INITIALIZED -> updatePlayButton(true)
-            else -> {}
-        }
-    }
-
-    private fun checkMediaInfoLoaded() {
-        if (!mediaInfoLoaded || loadedFeedMediaId != curState.curMediaId) {
-            loadedFeedMediaId = curState.curMediaId
-            Logd(TAG, "checkMediaInfoLoaded: $loadedFeedMediaId")
-            loadMediaInfo()
-        }
-        mediaInfoLoaded = true
-    }
-
-    protected open fun updatePlayButton(showPlay: Boolean) {}
-
-    abstract fun loadMediaInfo()
-
-    /**
-     * Called when connection to playback service has been established or
-     * information has to be refreshed
-     */
-    private fun updateStatus() {
-        Logd(TAG, "Querying service info")
-        if (playbackService != null && mPlayerInfo != null) {
-            status = mPlayerInfo!!.playerStatus
-            // make sure that new media is loaded if it's available
-            mediaInfoLoaded = false
-            handleStatus()
-        } else Loge(TAG, "queryService() was called without an existing connection to playbackservice")
-    }
-
-    companion object {
-        private val TAG: String = ServiceStatusHandler::class.simpleName ?: "Anonymous"
-    }
-}
-
 private const val TAG = "AudioPlayerScreen"
 var media3Controller: MediaController? = null
 
-private val mPlayerInfo: MediaPlayerInfo?
-    get() = playbackService?.mPlayer?.playerInfo
+//private val mPlayerInfo: MediaPlayerInfo?
+//    get() = playbackService?.mPlayer?.playerInfo
 
 private val curPositionFB: Int
     get() = playbackService?.curPosition ?: curEpisode?.position ?: Episode.INVALID_TIME

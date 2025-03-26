@@ -1,3 +1,12 @@
+# 8.13.2
+
+* allow to add queues up to 12
+* likely fixed 2 instances using the cache folder
+* cleaned up unused code blocks in AudioPlayer screen
+* tidied up PlayerUI layout
+* rearranged statistics measures layout
+* fixed content in PlayerDetail and EpisodeInfo getting reset for currently played episode
+
 # 8.13.1
 
 * likely fixed string index out of bound crash when doing swipe select text

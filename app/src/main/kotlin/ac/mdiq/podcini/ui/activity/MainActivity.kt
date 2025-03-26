@@ -243,7 +243,7 @@ class MainActivity : BaseActivity() {
         val dynamicBottomPadding by derivedStateOf {
             when (sheetState.bottomSheetState.currentValue) {
                 SheetValue.Expanded -> 300.dp
-                SheetValue.PartiallyExpanded -> 110.dp
+                SheetValue.PartiallyExpanded -> 100.dp
                 else -> 0.dp
             }
         }
@@ -251,7 +251,7 @@ class MainActivity : BaseActivity() {
             val insets = WindowInsets.systemBars.asPaddingValues()
             val dynamicSheetHeight = insets.calculateBottomPadding()
             Logd(TAG, "effectiveBottomPadding: $dynamicSheetHeight")
-            BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicSheetHeight + 110.dp, sheetDragHandle = {}, topBar = {},
+            BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicSheetHeight + 100.dp, sheetDragHandle = {}, topBar = {},
                 sheetSwipeEnabled = false, sheetShape = RectangleShape, sheetContent = { AudioPlayerScreen() }
             ) { paddingValues ->
                 Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(

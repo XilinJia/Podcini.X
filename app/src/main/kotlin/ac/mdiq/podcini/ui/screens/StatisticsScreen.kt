@@ -279,7 +279,7 @@ fun StatisticsScreen() {
                     )
                     Column {
                         val chipColor = lineChartData.getComposeColorOfItem(index)
-                        Text("⬤" + (feedStats.feed.title?:"No title"), color = chipColor, style = MaterialTheme.typography.bodyMedium.merge())
+                        Text("⬤" + (feedStats.feed.title?:"No title"), maxLines = 1, color = chipColor, style = MaterialTheme.typography.bodyMedium.merge())
                         infoCB(feedStats)
                     }
                 }
@@ -310,14 +310,23 @@ fun StatisticsScreen() {
         val textColor = MaterialTheme.colorScheme.onSurface
         Row {
             if (center) Spacer(Modifier.weight(0.3f))
+            Text( stringResource(R.string.spent) + ": " + getDurationStringShort(stats.timeSpent*1000/nd, true), color = textColor)
+            Spacer(Modifier.weight(0.3f))
+        }
+        Row {
+            if (center) Spacer(Modifier.weight(0.3f))
             Text(stringResource(R.string.total) + ": " + formatEpisodes(stats.episodesTotal), color = textColor)
             Spacer(Modifier.weight(0.1f))
             Text(getDurationStringShort(stats.durationTotal*1000/nd, true), color = textColor)
             Spacer(Modifier.weight(0.2f))
-            Text( stringResource(R.string.spent) + ": " + getDurationStringShort(stats.timeSpent*1000/nd, true), color = textColor)
+            if (stats.episodesPlayed > 0) {
+                Text(stringResource(R.string.played) + ": " + formatEpisodes(stats.episodesPlayed), color = textColor)
+                Spacer(Modifier.weight(0.1f))
+                Text(getDurationStringShort(stats.durationPlayed*1000/nd, true), color = textColor)
+            }
             Spacer(Modifier.weight(0.3f))
         }
-        if (stats.episodesStarted > 0 || stats.episodesPlayed > 0) Row {
+        if (stats.episodesStarted > 0 || stats.episodesSkipped > 0) Row {
             if (center) Spacer(Modifier.weight(0.3f))
             if (stats.episodesStarted > 0) {
                 Text(stringResource(R.string.started) + ": " + formatEpisodes(stats.episodesStarted), color = textColor)
@@ -327,24 +336,26 @@ fun StatisticsScreen() {
                 Text(getDurationStringShort(stats.durationStarted*1000/nd, true), color = textColor)
             }
             Spacer(Modifier.weight(0.2f))
-            if (stats.episodesPlayed > 0) {
-                Text(stringResource(R.string.played) + ": " + formatEpisodes(stats.episodesPlayed), color = textColor)
-                Spacer(Modifier.weight(0.1f))
-                Text(getDurationStringShort(stats.durationPlayed*1000/nd, true), color = textColor)
-            }
-            Spacer(Modifier.weight(0.3f))
-        }
-        Row {
-            if (center) Spacer(Modifier.weight(0.3f))
             if (stats.episodesSkipped > 0) {
                 Text( stringResource(R.string.skipped) + ": " + formatEpisodes(stats.episodesSkipped), color = textColor)
                 Spacer(Modifier.weight(0.1f))
                 Text(getDurationStringShort(stats.durationSkipped*1000/nd, true), color = textColor)
             }
+            Spacer(Modifier.weight(0.3f))
+        }
+        if (stats.episodesPassed > 0 || stats.episodesIgnored > 0) Row {
+            if (center) Spacer(Modifier.weight(0.3f))
+            if (stats.episodesPassed > 0) {
+                Text(stringResource(R.string.passed) + ": " + formatEpisodes(stats.episodesPassed), color = textColor)
+                Spacer(Modifier.weight(0.1f))
+                Text(getDurationStringShort(stats.durationPassed*1000/nd, true), color = textColor)
+            }
             Spacer(Modifier.weight(0.2f))
-            if (stats.episodesPassed > 0) Text(stringResource(R.string.passed) + ": " + formatEpisodes(stats.episodesPassed), color = textColor)
-            Spacer(Modifier.weight(0.2f))
-            if (stats.episodesIgnored > 0) Text( stringResource(R.string.ignored) + ": " + formatEpisodes(stats.episodesIgnored), color = textColor)
+            if (stats.episodesIgnored > 0) {
+                Text( stringResource(R.string.ignored) + ": " + formatEpisodes(stats.episodesIgnored), color = textColor)
+                Spacer(Modifier.weight(0.1f))
+                Text(getDurationStringShort(stats.durationIgnored*1000/nd, true), color = textColor)
+            }
             Spacer(Modifier.weight(0.3f))
         }
     }
@@ -609,13 +620,9 @@ class LineChartData(val values: MutableList<Float>) {
         for (datum in values) valueSum += datum
         this.sum = valueSum
     }
-    private fun getPercentageOfItem(index: Int): Float {
-        if (sum == 0f) return 0f
-        return values[index] / sum
-    }
-    private fun isLargeEnoughToDisplay(index: Int): Boolean = getPercentageOfItem(index) > 0.01
     fun getComposeColorOfItem(index: Int): Color {
-        if (!isLargeEnoughToDisplay(index)) return Color.Gray
+        val pc = if (sum == 0f) 0f else values[index] / sum
+        if (pc <= 0.01) return Color.Gray
         return Color(COLOR_VALUES[index % COLOR_VALUES.size])
     }
     companion object {
@@ -722,7 +729,12 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                     fStat.item.episodesStarted++
                     fStat.item.timePlayed += e.playedDuration
                     fStat.item.durationStarted += e.duration
-                    fStat.item.timeSpent += e.timeSpent
+                    var tSpent = e.timeSpent
+                    if (tSpent > 2 * e.playedDuration) {
+                        Logd(TAG, "timeSpent: ${e.timeSpent} > playedDuration: ${e.playedDuration} reset ${e.title}")
+                        tSpent = 2 * e.playedDuration.toLong()
+                    }
+                    fStat.item.timeSpent += tSpent
                 }
             }
             if (feedId != 0L || forDL) {
