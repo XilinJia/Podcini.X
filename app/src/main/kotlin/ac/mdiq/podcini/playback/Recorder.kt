@@ -6,6 +6,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curDataSource
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCache
+import ac.mdiq.podcini.storage.database.Episodes.getClipFile
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
@@ -131,11 +132,8 @@ object Recorder {
         val startBytePlayer = exoPlayer?.contentPositionToByte(startPositionMs)
         val endBytePlayer = exoPlayer?.contentPositionToByte(endPositionMs)
 
-//        var clipname = "${startPositionMs/1000}-${endPositionMs/1000}.$ext"
         var clipname = "${getDurationStringShort(startPositionMs, false)}-${getDurationStringShort(endPositionMs, false)}.$ext"
-        val filename = "recorded_${curEpisode!!.id}_$clipname"
-        val mediaFilesDir = context.getExternalFilesDir("media")?.apply { mkdirs() } ?: File(context.filesDir, "media").apply { mkdirs() }
-        var outputFile = File(mediaFilesDir, filename)
+        var outputFile = getClipFile(curEpisode!!, clipname)
         runOnIOScope {
             when {
                 uri.scheme == "file" || uri.scheme == "content" -> {

@@ -15,7 +15,7 @@ import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.receiver.MediaButtonReceiver.Companion.createIntent
-import ac.mdiq.podcini.storage.database.Feeds.buildTags
+import ac.mdiq.podcini.storage.database.Feeds.compileTags
 import ac.mdiq.podcini.storage.database.Feeds.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.monitorFeeds
@@ -157,7 +157,7 @@ class MainActivity : BaseActivity() {
             StrictMode.setThreadPolicy(builder.build())
         }
 
-        lifecycleScope.launch((Dispatchers.IO)) { buildTags() }
+        lifecycleScope.launch((Dispatchers.IO)) { compileTags() }
 
 //        if (savedInstanceState != null) ensureGeneratedViewIdGreaterThan(savedInstanceState.getInt(Extras.generated_view_id.name, 0))
 

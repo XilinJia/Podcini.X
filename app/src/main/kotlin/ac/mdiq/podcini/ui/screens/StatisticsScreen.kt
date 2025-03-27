@@ -14,7 +14,9 @@ import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeVM
+import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -155,7 +157,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     fun numOfDays(): Int {
         val dateFrom = Date(if (timeFilterFrom != 0L) timeFilterFrom else statsResult.oldestDate).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
         val dateTo = (if (timeFilterTo != Long.MAX_VALUE) Date(timeFilterTo) else Date()).toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
-        return ChronoUnit.DAYS.between(dateFrom, dateTo).toInt()
+        return ChronoUnit.DAYS.between(dateFrom, dateTo).toInt() + 1
     }
 
     fun loadDailyStats() {
@@ -267,17 +269,21 @@ fun StatisticsScreen() {
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(statisticsData.feedStats, key = { _, item -> item.feed.id }) { index, feedStats ->
-                Row(Modifier.background(MaterialTheme.colorScheme.surface).fillMaxWidth().clickable(onClick = {
-                    feedId = feedStats.feed.id
-                    feedTitle = feedStats.feed.title ?: "No title"
-                    showFeedStats = true
-                })) {
+                Row(Modifier.background(MaterialTheme.colorScheme.surface).fillMaxWidth()) {
                     val imgLoc = remember(feedStats) { feedStats.feed.imageUrl }
                     AsyncImage(model = ImageRequest.Builder(context).data(imgLoc).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
                         contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
-                        contentScale = ContentScale.FillBounds, modifier = Modifier.width(40.dp).height(80.dp).padding(end = 5.dp)
+                        contentScale = ContentScale.FillBounds, modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable(onClick = {
+                            feedOnDisplay = feedStats.feed
+                            feedScreenMode = FeedScreenMode.Info
+                            mainNavController.navigate(Screens.FeedDetails.name)
+                        })
                     )
-                    Column {
+                    Column(modifier = Modifier.clickable(onClick = {
+                        feedId = feedStats.feed.id
+                        feedTitle = feedStats.feed.title ?: "No title"
+                        showFeedStats = true
+                    })) {
                         val chipColor = lineChartData.getComposeColorOfItem(index)
                         Text("⬤" + (feedStats.feed.title?:"No title"), maxLines = 1, color = chipColor, style = MaterialTheme.typography.bodyMedium.merge())
                         infoCB(feedStats)
@@ -708,7 +714,7 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                 if (e.playStateSetTime > 0L && e.playStateSetTime < result.oldestDate) result.oldestDate = e.playStateSetTime
                 if (e.duration > 0) fStat.item.durationTotal += e.duration
                 else Loge(TAG, "episode duration abnormal: ${e.duration} state: ${e.playState} ${e.title}")
-                Logd(TAG, "getStatistics e.playState: ${e.playState} e.timeSpent: ${e.timeSpent} ${e.title}")
+                Logd(TAG, "getStatistics e.playState: ${e.playState} e.timeSpent: ${e.timeSpent} ${e.playedDuration} ${e.title}")
                 if (e.playState == PlayState.PLAYED.code) {
                     fStat.item.episodesPlayed++
                     fStat.item.durationPlayed += e.duration
@@ -730,9 +736,9 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                     fStat.item.timePlayed += e.playedDuration
                     fStat.item.durationStarted += e.duration
                     var tSpent = e.timeSpent
-                    if (tSpent > 2 * e.playedDuration) {
-                        Logd(TAG, "timeSpent: ${e.timeSpent} > playedDuration: ${e.playedDuration} reset ${e.title}")
-                        tSpent = 2 * e.playedDuration.toLong()
+                    if (tSpent > 3 * e.playedDuration) {
+                        Loge(TAG, "timeSpent: ${e.timeSpent} > playedDuration: ${e.playedDuration} reset ${e.title}")
+                        tSpent = e.playedDuration.toLong()
                     }
                     fStat.item.timeSpent += tSpent
                 }

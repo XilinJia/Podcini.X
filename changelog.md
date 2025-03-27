@@ -1,3 +1,15 @@
+# 8.13.3
+
+* added language spinner Subscriptions screen if subscriptions are of more than one language
+* in Subsciptions tab of Statistics, tap on the image opens FeedInfo
+* ensured to call onPlayStart when playing a first episode 
+* added toasting in Statistics when timeSpent is likely wrong
+* in Statistics, ensured num of days count starting from 1 (rather than 0)
+* fixed timeSpent being added extra value, introduced in 8.13.2
+* fixed clip file not properly removed
+* buttons on PlayerUI receive tap on expanded areas
+* removed libs.versions.toml
+
 # 8.13.2
 
 * allow to add queues up to 12

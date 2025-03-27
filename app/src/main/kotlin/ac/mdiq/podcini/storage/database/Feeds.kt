@@ -37,6 +37,7 @@ import ac.mdiq.podcini.util.showStackTrace
 import android.app.backup.BackupManager
 import android.content.Context
 import android.net.Uri
+import androidx.compose.runtime.mutableStateListOf
 import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.ext.asFlow
 import io.github.xilinjia.krdb.notifications.ResultsChange
@@ -57,7 +58,8 @@ import kotlin.math.abs
 
 object Feeds {
     private val TAG: String = Feeds::class.simpleName ?: "Anonymous"
-    private val tags: MutableList<String> = mutableListOf()
+    private val tags = mutableStateListOf<String>()
+    val languages = mutableStateListOf<String>()
 
     @Synchronized
     fun getFeedList(queryString: String = ""): List<Feed> {
@@ -67,12 +69,25 @@ object Feeds {
 
     fun getFeedCount(): Int = realm.query(Feed::class).count().find().toInt()
 
+    fun compileLanguages() {
+        val langsSet = mutableSetOf<String>()
+        val feeds = getFeedList()
+        for (feed in feeds) langsSet.add(if (!feed.language.isNullOrBlank()) feed.language!! else "")
+        val newLanguages = langsSet - languages.toSet()
+        if (newLanguages.isNotEmpty()) {
+            languages.clear()
+            languages.addAll(langsSet)
+            languages.sort()
+//            EventFlow.postEvent(FlowEvent.FeedTagsChangedEvent())
+        }
+    }
+
     fun getTags(): List<String> = tags
 
-    fun buildTags() {
+    fun compileTags() {
         val tagsSet = mutableSetOf<String>()
-        val feedsCopy = getFeedList()
-        for (feed in feedsCopy) tagsSet.addAll(feed.tags.filter { it != TAG_ROOT })
+        val feeds = getFeedList()
+        for (feed in feeds) tagsSet.addAll(feed.tags.filter { it != TAG_ROOT })
         val newTags = tagsSet - tags.toSet()
         if (newTags.isNotEmpty()) {
             tags.clear()
@@ -118,7 +133,7 @@ object Feeds {
 //                            }
                             changes.deletions.isNotEmpty() -> {
                                 Logd(TAG, "monitorFeeds feed deleted: ${changes.deletions.size}")
-                                buildTags()
+                                compileTags()
                             }
                         }
                     }

@@ -15,7 +15,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPrefOrNull
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.OpmlTransporter
-import ac.mdiq.podcini.storage.database.Feeds.buildTags
+import ac.mdiq.podcini.storage.database.Feeds.compileTags
 import ac.mdiq.podcini.storage.database.Feeds.createSynthetic
 import ac.mdiq.podcini.storage.database.Feeds.deleteFeedSync
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
@@ -398,7 +398,7 @@ fun TagSettingDialog(feeds_: List<Feed>, onDismiss: () -> Unit) {
                                 if (tags.isNotEmpty()) it.tags.addAll(tags)
                                 if (text.isNotBlank()) it.tags.add(text)
                             }
-                            buildTags()
+                            compileTags()
                         }
                         onDismiss()
                     }) { Text(stringResource(R.string.confirm_label)) }

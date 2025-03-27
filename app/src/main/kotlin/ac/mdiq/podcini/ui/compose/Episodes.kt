@@ -8,6 +8,9 @@ import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playPause
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
 import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.storage.database.Episodes.getClipFile
+import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.DurationConverter
@@ -70,6 +73,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val TAG = "ComposeEpisodes"
 
@@ -242,15 +247,18 @@ fun EpisodeMarks(episode: Episode?) {
 @Composable
 fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
     if (!episode?.clips.isNullOrEmpty()) {
-        val context = LocalContext.current
         var cliptToRemove by remember { mutableStateOf("") }
         if (cliptToRemove.isNotBlank()) {
             AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { cliptToRemove = "" },
                 text = { Text(stringResource(R.string.ask_remove_clip, cliptToRemove.substringBefore("."))) },
                 confirmButton = {
                     TextButton(onClick = {
-                        upsertBlk(episode) { it.clips.remove(cliptToRemove) }
-                        cliptToRemove = ""
+                        runOnIOScope {
+                            val file = getClipFile(episode, cliptToRemove)
+                            file.delete()
+                            upsert(episode) { it.clips.remove(cliptToRemove) }
+                            withContext(Dispatchers.Main) { cliptToRemove = "" }
+                        }
                     }) { Text(stringResource(R.string.confirm_label)) }
                 },
                 dismissButton = { TextButton(onClick = { cliptToRemove = "" }) { Text(stringResource(R.string.cancel_label)) } }
@@ -260,13 +268,12 @@ fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
         FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
             episode.clips.forEach { clip ->
                 FilterChip(onClick = {
-                    val filename = "recorded_${episode.id}_$clip"
-                    val file = File(context.getExternalFilesDir("media"), filename)
+                    val file = getClipFile(episode, clip)
                     if (player != null && file.exists()) {
                         player.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
                         player.prepare()
                         player.play()
-                    } else Loge(TAG, "clip file doesn't exist: $filename")
+                    } else Loge(TAG, "clip file doesn't exist: ${file.path}")
                 }, label = { Text(clip.substringBefore(".")) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete",
                     modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { cliptToRemove = clip })) })
             }

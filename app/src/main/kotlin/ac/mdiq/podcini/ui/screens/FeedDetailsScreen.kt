@@ -765,7 +765,7 @@ fun FeedDetailsScreen() {
                     mainNavController.navigate(Screens.SearchResults.name)
                 }) { Text(stringResource(R.string.feeds_related_to_author)) }
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
-                Text(text = vm.txtvUrl ?: "", color = textColor, modifier = Modifier.combinedClickable(
+                Text(text = vm.txtvUrl ?: "", color = textColor, modifier = Modifier.padding(bottom = 15.dp).combinedClickable(
                     onClick = { if (!vm.feed?.downloadUrl.isNullOrBlank()) IntentUtils.openInBrowser(context, vm.feed!!.downloadUrl!!) },
                     onLongClick = {
                         if (!vm.feed?.downloadUrl.isNullOrBlank()) {

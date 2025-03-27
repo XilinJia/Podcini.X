@@ -557,8 +557,7 @@ fun AudioPlayerScreen() {
                 if (curEpisode == null) return
                 if (playbackService == null) PlaybackServiceStarter(context, curEpisode!!).start()
             }
-            AsyncImage(contentDescription = "imgvCover", model = ImageRequest.Builder(context).data(vm.imgLoc)
-                .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
+            AsyncImage(contentDescription = "imgvCover", model = ImageRequest.Builder(context).data(vm.imgLoc).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
                 modifier = Modifier.width(50.dp).height(50.dp).padding(start = 5.dp)
                     .clickable(onClick = {
                         Logd(TAG, "playerUi icon was clicked")
@@ -566,8 +565,7 @@ fun AudioPlayerScreen() {
                             val media = curEpisode
                             if (media != null) {
                                 val mediaType = media.getMediaType()
-                                if (mediaType == MediaType.AUDIO || videoPlayMode == VideoMode.AUDIO_ONLY.code || videoMode == VideoMode.AUDIO_ONLY
-                                        || (media.feed?.videoModePolicy == VideoMode.AUDIO_ONLY)) {
+                                if (mediaType == MediaType.AUDIO || videoPlayMode == VideoMode.AUDIO_ONLY.code || videoMode == VideoMode.AUDIO_ONLY || (media.feed?.videoModePolicy == VideoMode.AUDIO_ONLY)) {
                                     Logd(TAG, "popping as audio episode")
                                     ensureService()
                                     isBSExpanded = true
@@ -581,9 +579,8 @@ fun AudioPlayerScreen() {
                     }))
             val buttonSize = 46.dp
             Spacer(Modifier.weight(0.1f))
-            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
-                SpeedometerWithArc(speed = vm.curPlaybackSpeed*100, maxSpeed = 300f, trackColor = textColor,
-                    modifier = Modifier.width(40.dp).height(40.dp).align(Alignment.TopCenter).clickable(onClick = { vm.showSpeedDialog = true }))
+            Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).clickable(onClick = { vm.showSpeedDialog = true })) {
+                SpeedometerWithArc(speed = vm.curPlaybackSpeed*100, maxSpeed = 300f, trackColor = textColor, modifier = Modifier.width(40.dp).height(40.dp).align(Alignment.TopCenter))
                 Text(vm.txtvPlaybackSpeed, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
@@ -609,70 +606,66 @@ fun AudioPlayerScreen() {
                         } else Loge(TAG, "Marking position only works during playback.")
                     }))
             Spacer(Modifier.weight(0.1f))
-            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
-                var showSkipDialog by remember { mutableStateOf(false) }
+            var showSkipDialog by remember { mutableStateOf(false) }
+            Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
+                onClick = { playbackService?.mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) },
+                onLongClick = { showSkipDialog = true })) {
                 var rewindSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.rewindSecs.toLong())) }
                 if (showSkipDialog) SkipDialog(SkipDirection.SKIP_REWIND, onDismissRequest = { showSkipDialog = false }) { rewindSecs = it.toString() }
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_rewind), tint = textColor, contentDescription = "rewind",
-                    modifier = Modifier.size(buttonSize).align(Alignment.TopCenter).combinedClickable(
-                        onClick = { playbackService?.mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) }, onLongClick = { showSkipDialog = true }))
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_rewind), tint = textColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
                 Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
-            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
-                Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play",
-                    modifier = Modifier.size(buttonSize).align(Alignment.TopCenter).combinedClickable(
-                        onClick = {
-                            if (curEpisode != null) {
-                                val media = curEpisode!!
-                                vm.showPlayButton = !vm.showPlayButton
-                                if (vm.showPlayButton && vm.recordingStartTime != null) {
-                                    saveClipInOriginalFormat(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
-                                    vm.recordingStartTime = null
-                                }
-                                if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
-                                    playPause()
-                                    context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
-                                } else playPause()
-                            }
-                        },
-                        onLongClick = {
-                            if (status == PlayerStatus.PLAYING) {
-                                val speedFB = fallbackSpeed
-                                if (speedFB > 0.1f) toggleFallbackSpeed(speedFB)
-                            }
-                        }))
+            Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
+                onClick = {
+                    if (curEpisode != null) {
+                        val media = curEpisode!!
+                        vm.showPlayButton = !vm.showPlayButton
+                        if (vm.showPlayButton && vm.recordingStartTime != null) {
+                            saveClipInOriginalFormat(vm.recordingStartTime!!, exoPlayer!!.currentPosition)
+                            vm.recordingStartTime = null
+                        }
+                        if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
+                            playPause()
+                            context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
+                        } else playPause()
+                    }
+                },
+                onLongClick = {
+                    if (status == PlayerStatus.PLAYING) {
+                        val speedFB = fallbackSpeed
+                        if (speedFB > 0.1f) toggleFallbackSpeed(speedFB)
+                    } })) {
+                Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
                 if (fallbackSpeed > 0.1f) Text(fallbackSpeed.toString(), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
-            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
+            Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
+                onClick = { playbackService?.mPlayer?.seekDelta(AppPreferences.fastForwardSecs * 1000) },
+                onLongClick = { showSkipDialog = true })) {
                 var showSkipDialog by remember { mutableStateOf(false) }
                 var fastForwardSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.fastForwardSecs.toLong())) }
                 if (showSkipDialog) SkipDialog(SkipDirection.SKIP_FORWARD, onDismissRequest = {showSkipDialog = false }) { fastForwardSecs = it.toString()}
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_forward), tint = textColor, contentDescription = "forward",
-                    modifier = Modifier.size(buttonSize).align(Alignment.TopCenter).combinedClickable(
-                        onClick = { playbackService?.mPlayer?.seekDelta(AppPreferences.fastForwardSecs * 1000) },
-                        onLongClick = { showSkipDialog = true }))
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_forward), tint = textColor, contentDescription = "forward", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
                 Text(fastForwardSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
-            Box(modifier = Modifier.size(50.dp), contentAlignment = Alignment.BottomCenter) {
-                fun speedForward(speed: Float) {
-                    if (playbackService?.mPlayer == null || playbackService?.isFallbackSpeed == true) return
-                    if (playbackService?.isSpeedForward == false) {
-                        playbackService?.normalSpeed = playbackService?.mPlayer!!.getPlaybackSpeed()
-                        playbackService?.mPlayer!!.setPlaybackParams(speed, isSkipSilence)
-                    } else playbackService?.mPlayer?.setPlaybackParams(playbackService!!.normalSpeed, isSkipSilence)
-                    playbackService!!.isSpeedForward = !playbackService!!.isSpeedForward
-                }
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = textColor, contentDescription = "rewind",
-                    modifier = Modifier.size(buttonSize).align(Alignment.TopCenter).combinedClickable(
-                        onClick = {
-                            if (status == PlayerStatus.PLAYING) {
-                                val speedForward = AppPreferences.speedforwardSpeed
-                                if (speedForward > 0.1f) speedForward(speedForward)
-                            } },
-                        onLongClick = { context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT)) }))
+            fun speedForward(speed: Float) {
+                if (playbackService?.mPlayer == null || playbackService?.isFallbackSpeed == true) return
+                if (playbackService?.isSpeedForward == false) {
+                    playbackService?.normalSpeed = playbackService?.mPlayer!!.getPlaybackSpeed()
+                    playbackService?.mPlayer!!.setPlaybackParams(speed, isSkipSilence)
+                } else playbackService?.mPlayer?.setPlaybackParams(playbackService!!.normalSpeed, isSkipSilence)
+                playbackService!!.isSpeedForward = !playbackService!!.isSpeedForward
+            }
+            Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
+                onClick = {
+                    if (status == PlayerStatus.PLAYING) {
+                        val speedForward = AppPreferences.speedforwardSpeed
+                        if (speedForward > 0.1f) speedForward(speedForward)
+                    } },
+                onLongClick = { context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT)) })) {
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = textColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
                 if (AppPreferences.speedforwardSpeed > 0.1f) Text(NumberFormat.getInstance().format(AppPreferences.speedforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
@@ -798,10 +791,8 @@ fun AudioPlayerScreen() {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
                 if (vm.curItem != null) showVolumeDialog = true
             })
-//            if (vm.controller != null) {
-                val sleepRes = if (vm.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep
-                Icon(imageVector = ImageVector.vectorResource(sleepRes), tint = textColor, contentDescription = "Sleep timer", modifier = Modifier.clickable { showSleepTimeDialog = true })
-//            }
+            val sleepRes = if (vm.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep
+            Icon(imageVector = ImageVector.vectorResource(sleepRes), tint = textColor, contentDescription = "Sleep timer", modifier = Modifier.clickable { showSleepTimeDialog = true })
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), tint = textColor, contentDescription = "Share", modifier = Modifier.clickable {
                 if (vm.curItem != null) showShareDialog = true
             })

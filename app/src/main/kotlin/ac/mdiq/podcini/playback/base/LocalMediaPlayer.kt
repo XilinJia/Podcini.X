@@ -325,6 +325,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         releaseWifiLockIfNecessary()
         if (status == PlayerStatus.PLAYING) {
             Logd(TAG, "Pausing playback $reinit")
+//             pauseAllPlayersAndStopSelf()
             exoPlayer?.pause()
             setPlayerStatus(PlayerStatus.PAUSED, curEpisode, getPosition())
             if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlayEvent(curEpisode!!, Action.END))
@@ -700,14 +701,16 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
         private fun initLoudnessEnhancer(audioStreamId: Int) {
             runOnIOScope {
-                val newEnhancer = LoudnessEnhancer(audioStreamId)
-                val oldEnhancer = loudnessEnhancer
-                if (oldEnhancer != null) {
-                    newEnhancer.setEnabled(oldEnhancer.enabled)
-                    if (oldEnhancer.enabled) newEnhancer.setTargetGain(oldEnhancer.targetGain.toInt())
-                    oldEnhancer.release()
-                }
-                loudnessEnhancer = newEnhancer
+                try {
+                    val newEnhancer = LoudnessEnhancer(audioStreamId)
+                    val oldEnhancer = loudnessEnhancer
+                    if (oldEnhancer != null) {
+                        newEnhancer.setEnabled(oldEnhancer.enabled)
+                        if (oldEnhancer.enabled) newEnhancer.setTargetGain(oldEnhancer.targetGain.toInt())
+                        oldEnhancer.release()
+                    }
+                    loudnessEnhancer = newEnhancer
+                } catch (e: Throwable) { Logs(TAG, e, "Failed to init LoudnessEnhancer") }
             }
         }
 

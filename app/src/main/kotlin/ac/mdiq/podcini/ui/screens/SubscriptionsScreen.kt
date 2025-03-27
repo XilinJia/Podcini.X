@@ -9,8 +9,10 @@ import ac.mdiq.podcini.preferences.DocumentFileExportWorker
 import ac.mdiq.podcini.preferences.ExportTypes
 import ac.mdiq.podcini.preferences.ExportWorker
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
+import ac.mdiq.podcini.storage.database.Feeds.compileLanguages
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.Feeds.getTags
+import ac.mdiq.podcini.storage.database.Feeds.languages
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -173,6 +175,16 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
             prefs.edit().putString("feedsFilter", filter).apply()
         }
 
+    private var _langFilterIndex: Int = -1
+    internal var langFilterIndex: Int
+        get() {
+            if (_langFilterIndex < 0) _langFilterIndex = prefs.getInt("tagFilterIndex", 0)
+            return _langFilterIndex
+        }
+        set(index) {
+            _langFilterIndex = index
+            prefs.edit().putInt("tagFilterIndex", index).apply()
+        }
     private var _tagFilterIndex: Int = -1
     internal var tagFilterIndex: Int
         get() {
@@ -194,9 +206,10 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
             prefs.edit().putInt("queueFilterIndex", index).apply()
         }
 
+    internal val languages: MutableList<String> = mutableListOf()
     internal val tags: MutableList<String> = mutableListOf()
     internal val queueIds: MutableList<Long> = mutableListOf()
-    internal val spinnerTexts: MutableList<String> = mutableListOf("Any queue", "No queue")
+    internal val queueSpinnerTexts: MutableList<String> = mutableListOf("Any queue", "No queue")
 
     internal var isFiltered by mutableStateOf(false)
     private var infoTextUpdate = ""
@@ -232,29 +245,6 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     internal val useGridLayout by mutableStateOf(getPref(AppPrefs.prefFeedGridLayout, false))
 
     internal var selectMode by mutableStateOf(false)
-
-    private fun queryStringOfTags() : String {
-        return when (tagFilterIndex) {
-            0 ->  ""    // All feeds
-//            TODO: #root appears not used in RealmDB, is it a SQLite specialty
-            1 ->  " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
-            else -> {   // feeds with the chosen tag
-                val tag = tags[tagFilterIndex]
-                " ANY tags == '$tag' "
-            }
-        }
-    }
-
-    private fun queryStringOfQueues() : String {
-        return when (queueFilterIndex) {
-            0 ->  ""    // All feeds
-            1 -> " queueId == -2 "
-            else -> {   // feeds associated with the chosen queue
-                val qid = queueIds[queueFilterIndex-2]
-                " queueId == '$qid' "
-            }
-        }
-    }
 
     internal fun resetTags() {
         tags.clear()
@@ -400,11 +390,44 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun fetchAndSort(build: Boolean = true): List<Feed> {
+        fun tagsQS() : String {
+            return when (tagFilterIndex) {
+                0 ->  ""    // All feeds
+//            TODO: #root appears not used in RealmDB, is it a SQLite specialty
+                1 ->  " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
+                else -> {   // feeds with the chosen tag
+                    val tag = tags[tagFilterIndex]
+                    " ANY tags == '$tag' "
+                }
+            }
+        }
+        fun queuesQS() : String {
+            return when (queueFilterIndex) {
+                0 ->  ""    // All feeds
+                1 -> " queueId == -2 "
+                else -> {   // feeds associated with the chosen queue
+                    val qid = queueIds[queueFilterIndex-2]
+                    " queueId == '$qid' "
+                }
+            }
+        }
+        fun languagesQS() : String {
+            return when (langFilterIndex) {
+                0 ->  ""    // All languages
+                1 -> " language == '' OR language == nil "
+                else -> {   // feeds associated with the chosen queue
+                    val lang = languages[langFilterIndex]
+                    " language == '$lang' "
+                }
+            }
+        }
         fun getFeedList(): MutableList<Feed> {
             var fQueryStr = FeedFilter(feedsFilter).queryString()
-            val tagsQueryStr = queryStringOfTags()
+            val langsQueryStr = languagesQS()
+            if (langsQueryStr.isNotEmpty())  fQueryStr += " AND $langsQueryStr"
+            val tagsQueryStr = tagsQS()
             if (tagsQueryStr.isNotEmpty())  fQueryStr += " AND $tagsQueryStr"
-            val queuesQueryStr = queryStringOfQueues()
+            val queuesQueryStr = queuesQS()
             if (queuesQueryStr.isNotEmpty())  fQueryStr += " AND $queuesQueryStr"
             Logd(TAG, "sortFeeds() called [$feedsFilter] [$fQueryStr]")
             return getFeedList(fQueryStr).toMutableList()
@@ -588,13 +611,17 @@ fun SubscriptionsScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
+                    compileLanguages()
+                    vm.languages.add("All langs")
+                    vm.languages.add("Unspecified")
+                    vm.languages.addAll(languages.filter { it.isNotBlank() })
+
                     vm.getSortingPrefs()
 //                    if (arguments != null) vm.displayedFolder = requireArguments().getString(ARGUMENT_FOLDER, null)
                     vm.resetTags()
-
                     val queues = realm.query(PlayQueue::class).find()
                     vm.queueIds.addAll(queues.map { it.id })
-                    vm.spinnerTexts.addAll(queues.map { it.name })
+                    vm.queueSpinnerTexts.addAll(queues.map { it.name })
                     vm.feedCountState = vm.feedListFiltered.size.toString() + " / " + feedCount.toString()
                     vm.loadSubscriptions()
                 }
@@ -621,10 +648,14 @@ fun SubscriptionsScreen() {
     @Composable
     fun MyTopAppBar(displayUpArrow: Boolean) {
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text( if (vm.displayedFolder.isNotEmpty()) vm.displayedFolder else "") }, 
+        TopAppBar(title = {
+            if (vm.displayedFolder.isNotEmpty()) Text( vm.displayedFolder)
+            else if (languages.size > 1) Spinner(items = vm.languages, selectedIndex = vm.langFilterIndex) { index: Int ->
+                vm.langFilterIndex = index
+                vm.loadSubscriptions(true)
+            } },
             navigationIcon = if (displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-                }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
+                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
             } else {
                 { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } }
             },
@@ -1561,7 +1592,7 @@ fun SubscriptionsScreen() {
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             InforBar()
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 20.dp, end = 20.dp)) {
-                Spinner(items = vm.spinnerTexts, selectedIndex = vm.queueFilterIndex) { index: Int ->
+                Spinner(items = vm.queueSpinnerTexts, selectedIndex = vm.queueFilterIndex) { index: Int ->
                     vm.queueFilterIndex = index
                     vm.loadSubscriptions(true)
                 }

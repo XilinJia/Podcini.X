@@ -7,6 +7,8 @@ import ac.mdiq.podcini.net.feed.LocalFeedUpdater.updateFeed
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
+import ac.mdiq.podcini.playback.Recorder.context
+import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
@@ -283,5 +285,10 @@ object Episodes {
     @JvmStatic
     fun hasAlmostEnded(media: Episode): Boolean {
         return media.duration > 0 && media.position >= media.duration * smartMarkAsPlayedPercent * 0.01
+    }
+
+    fun getClipFile(episode: Episode, clipname: String): File {
+        val mediaFilesDir = context.getExternalFilesDir("media")?.apply { mkdirs() } ?: File(context.filesDir, "media").apply { mkdirs() }
+        return File(mediaFilesDir, "recorded_${episode.id}_$clipname")
     }
 }

@@ -768,7 +768,7 @@ class Episode : RealmObject {
             }
             timeSpent = timeSpentOnStart + delta
         }
-        Logd(TAG, "savePlayTime startTime: $startTime timeSpent: $timeSpent")
+        Logd(TAG, "savePlayTime startTime: $startTime timeSpent: $timeSpent playedDuration: $playedDuration playedDurationWhenStarted: $playedDurationWhenStarted")
         startPosition = if (completed) -1 else position
         startTime = 0
     }

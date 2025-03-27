@@ -1066,7 +1066,6 @@ class PlaybackService : MediaLibraryService() {
                 delta = 0
             }
             it.timeSpent = it.timeSpentOnStart + delta
-            it.timeSpent = 2 * it.playedDuration.toLong()
         }
 
         it.lastPlayedTime = (System.currentTimeMillis())
@@ -1488,6 +1487,7 @@ class PlaybackService : MediaLibraryService() {
         }
 
         fun playPause() {
+            Logd(TAG, "playPause status: ${MediaPlayerBase.status}")
             when (MediaPlayerBase.status) {
                 PlayerStatus.FALLBACK -> toggleFallbackSpeed(1.0f)
                 PlayerStatus.PLAYING -> {

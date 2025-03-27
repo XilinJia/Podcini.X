@@ -260,7 +260,7 @@ class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.str
             var item = media
             if (item.playState < PlayState.PROGRESS.code || item.playState == PlayState.SKIPPED.code || item.playState == PlayState.AGAIN.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, media, false) }
             EventFlow.postEvent(FlowEvent.PlayEvent(item))
-            playVideoIfNeeded(context, media)
+            playVideoIfNeeded(context, item)
         }
     }
 }

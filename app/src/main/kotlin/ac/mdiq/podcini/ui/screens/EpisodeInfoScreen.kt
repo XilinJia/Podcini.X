@@ -531,7 +531,7 @@ fun EpisodeInfoScreen() {
                         showEditComment = true
                     })
                 Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                Text(vm.episode?.link?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable(onClick = {
+                Text(vm.episode?.link?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable(onClick = {
                     if (!vm.episode?.link.isNullOrBlank()) IntentUtils.openInBrowser(context, vm.episode!!.link!!)
                 }))
             }
