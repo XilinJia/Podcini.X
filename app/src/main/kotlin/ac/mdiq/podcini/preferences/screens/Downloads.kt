@@ -23,10 +23,12 @@ import ac.mdiq.podcini.ui.activity.PreferenceActivity.Screens
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import android.app.Activity.RESULT_OK
 import android.content.Intent
@@ -55,7 +57,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -315,7 +316,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                     showProgress = false
                     showImporSuccessDialog.value = true
                 }
-            }
+            } else Loge("selectCustomMediaDirLauncher", "uri is null")
         }
     }
 
@@ -335,24 +336,29 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.feed_refresh_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                var showIcon by remember { mutableStateOf(false) }
-                TextField(value = refreshInterval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hours)") },
-                    singleLine = true, modifier = Modifier.weight(0.5f),
-                    onValueChange = {
-                        if (it.isEmpty() || it.toIntOrNull() != null) {
-                            refreshInterval = it
-                            showIcon = true
-                        }
-                    },
-                    trailingIcon = {
-                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                if (refreshInterval.isEmpty()) refreshInterval = "0"
-                                putPref(AppPrefs.prefAutoUpdateInterval, refreshInterval)
-                                showIcon = false
-                                restartUpdateAlarm(activity.applicationContext, true)
-                            }))
-                    })
+                NumberEditor(refreshInterval.toInt(), "hours", nz = false, modifier = Modifier.weight(0.6f)) {
+                    refreshInterval = it.toString()
+                    putPref(AppPrefs.prefAutoUpdateInterval, refreshInterval)
+                    restartUpdateAlarm(activity.applicationContext, true)
+                }
+//                var showIcon by remember { mutableStateOf(false) }
+//                TextField(value = refreshInterval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hours)") },
+//                    singleLine = true, modifier = Modifier.weight(0.5f),
+//                    onValueChange = {
+//                        if (it.isEmpty() || it.toIntOrNull() != null) {
+//                            refreshInterval = it
+//                            showIcon = true
+//                        }
+//                    },
+//                    trailingIcon = {
+//                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
+//                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+//                                if (refreshInterval.isEmpty()) refreshInterval = "0"
+//                                putPref(AppPrefs.prefAutoUpdateInterval, refreshInterval)
+//                                showIcon = false
+//                                restartUpdateAlarm(activity.applicationContext, true)
+//                            }))
+//                    })
             }
             Text(stringResource(R.string.feed_refresh_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
             if (refreshInterval != "0") {
@@ -538,23 +544,27 @@ fun AutoDownloadPreferencesScreen() {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.pref_episode_cache_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                     var interval by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCacheSize, "25")) }
-                    var showIcon by remember { mutableStateOf(false) }
-                    TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("integer") },
-                        singleLine = true, modifier = Modifier.weight(0.5f),
-                        onValueChange = {
-                            if (it.isEmpty() || it.toIntOrNull() != null) {
-                                interval = it
-                                showIcon = true
-                            }
-                        },
-                        trailingIcon = {
-                            if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                                modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                    if (interval.isEmpty()) interval = "0"
-                                    putPref(AppPrefs.prefEpisodeCacheSize, interval)
-                                    showIcon = false
-                                }))
-                        })
+                    NumberEditor(interval.toInt(), unit = "integer", nz = false, modifier = Modifier.weight(0.5f)) {
+                        interval = it.toString()
+                        putPref(AppPrefs.prefEpisodeCacheSize, interval)
+                    }
+//                    var showIcon by remember { mutableStateOf(false) }
+//                    TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("integer") },
+//                        singleLine = true, modifier = Modifier.weight(0.5f),
+//                        onValueChange = {
+//                            if (it.isEmpty() || it.toIntOrNull() != null) {
+//                                interval = it
+//                                showIcon = true
+//                            }
+//                        },
+//                        trailingIcon = {
+//                            if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
+//                                modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+//                                    if (interval.isEmpty()) interval = "0"
+//                                    putPref(AppPrefs.prefEpisodeCacheSize, interval)
+//                                    showIcon = false
+//                                }))
+//                        })
                 }
                 Text(stringResource(R.string.pref_episode_cache_summary), color = textColor, style = MaterialTheme.typography.bodySmall)
             }
@@ -576,8 +586,9 @@ fun AutoDownloadPreferencesScreen() {
                                 }
                             }
                             if (tempCleanupOption == EpisodeCleanupOptions.LimitBy.num.toString()) {
-                                TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("integer") }, singleLine = true,
-                                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) interval = it })
+                                NumberEditor(interval.toInt(), unit = "integer", modifier = Modifier.weight(0.6f)) { interval = it.toString() }
+//                                TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("integer") }, singleLine = true,
+//                                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) interval = it })
                             }
                         }
                     },

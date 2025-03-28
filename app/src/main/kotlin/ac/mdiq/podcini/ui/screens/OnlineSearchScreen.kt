@@ -258,18 +258,18 @@ fun OnlineSearchScreen() {
         scope.launch {
             try {
                 val feed = withContext(Dispatchers.IO) {
-//                    addLocalFolder(uri)
                     context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                     val documentFile = DocumentFile.fromTreeUri(context, uri)
                     requireNotNull(documentFile) { "Unable to retrieve document tree" }
-                    var title = documentFile.name
-                    if (title == null) title = context.getString(R.string.local_folder)
+                    var title = documentFile.name ?: context.getString(R.string.local_folder)
 
                     val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
-                    dirFeed.episodes.clear()
+                    Logd(TAG, "addLocalFolderLauncher dirFeed episodes: ${dirFeed.episodes.size}")
+//                    dirFeed.episodes.clear()
                     dirFeed.sortOrder = EpisodeSortOrder.EPISODE_TITLE_A_Z
                     val fromDatabase: Feed? = updateFeedFull(context, dirFeed, false)
                     FeedUpdateManager.runOnce(context, fromDatabase)
+                    Logd(TAG, "addLocalFolderLauncher fromDatabase episodes: ${fromDatabase?.episodes?.size}")
                     fromDatabase
                 }
                 withContext(Dispatchers.Main) {

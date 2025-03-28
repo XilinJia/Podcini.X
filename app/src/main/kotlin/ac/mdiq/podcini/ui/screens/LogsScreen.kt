@@ -362,7 +362,10 @@ fun LogsScreen() {
         val lazyListState = rememberLazyListState()
         val textColor = MaterialTheme.colorScheme.onSurface
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            itemsIndexed(toastMessages) { position, log -> Text(log, color = textColor) }
+            itemsIndexed(toastMessages) { position, log ->
+                val color = remember { if (log.contains("Error", ignoreCase = true)) Color.Red else textColor }
+                Text(log, color = color)
+            }
         }
     }
 

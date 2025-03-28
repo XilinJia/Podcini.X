@@ -37,7 +37,7 @@ open class ID3Reader(private val inputStream: CountingInputStream) {
 
     @Throws(IOException::class, ID3ReaderException::class)
     protected open fun readFrame(frameHeader: FrameHeader) {
-        Logd(TAG, "Skipping frame: " + frameHeader.id + ", size: " + frameHeader.size)
+//        Logd(TAG, "Skipping frame: " + frameHeader.id + ", size: " + frameHeader.size)
         skipBytes(frameHeader.size)
     }
 

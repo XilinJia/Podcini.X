@@ -25,6 +25,8 @@ import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import androidx.compose.foundation.BorderStroke
@@ -97,6 +99,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 class FeedSettingsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var feed by mutableStateOf<Feed?>(feedOnDisplay)
@@ -111,6 +116,26 @@ class FeedSettingsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var queues: List<PlayQueue>? = null
 
     internal var notificationPermissionDenied: Boolean = false
+
+    private var eventSink: Job? = null
+    internal fun cancelFlowEvents() {
+        eventSink?.cancel()
+        eventSink = null
+    }
+    internal fun procFlowEvents() {
+        if (eventSink == null) eventSink = lcScope.launch {
+            EventFlow.events.collectLatest { event ->
+                Logd(TAG, "Received event: ${event.TAG}")
+                when (event) {
+                    is FlowEvent.FeedChangeEvent -> if (feed?.id == event.feed.id) {
+                        feed = event.feed
+                        feedOnDisplay = event.feed
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
 
 //    init {
 //        feed = feedOnDisplay
@@ -183,8 +208,8 @@ fun FeedSettingsScreen() {
                     getVideoModePolicy()
                     getAutoDeletePolicy()
                 }
-                Lifecycle.Event.ON_START -> {}
-                Lifecycle.Event.ON_STOP -> {}
+                Lifecycle.Event.ON_START -> vm.procFlowEvents()
+                Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
@@ -232,7 +257,7 @@ fun FeedSettingsScreen() {
                                             AutoDeleteAction.NEVER.tag -> AutoDeleteAction.NEVER
                                             else -> AutoDeleteAction.GLOBAL
                                         }
-                                        vm.feed = upsertBlk(vm.feed!!) { it.autoDeleteAction = action_ }
+                                        upsertBlk(vm.feed!!) { it.autoDeleteAction = action_ }
                                         getAutoDeletePolicy()
                                         onDismissRequest()
                                     }
@@ -259,7 +284,7 @@ fun FeedSettingsScreen() {
                                     Logd(TAG, "row clicked: $item $selectedOption")
                                     if (item != selectedOption) {
                                         onOptionSelected(item)
-                                        vm.feed = upsertBlk(vm.feed!!) { it.volumeAdaptionSetting = item }
+                                        upsertBlk(vm.feed!!) { it.volumeAdaptionSetting = item }
                                         onDismissRequest()
                                     }
                                 }
@@ -285,7 +310,7 @@ fun FeedSettingsScreen() {
                                     selected = option.tag
                                     if (isChecked) Logd(TAG, "$option is checked")
                                     val type = Feed.AudioType.fromTag(selected)
-                                    vm.feed = upsertBlk(vm.feed!!) { it.audioType = type.code }
+                                    upsertBlk(vm.feed!!) { it.audioType = type.code }
                                     onDismissRequest()
                                 }
                             )
@@ -310,7 +335,7 @@ fun FeedSettingsScreen() {
                                     selected = option.tag
                                     if (isChecked) Logd(TAG, "$option is checked")
                                     val type = Feed.AVQuality.fromTag(selected)
-                                    vm.feed = upsertBlk(vm.feed!!) { it.audioQuality = type.code }
+                                    upsertBlk(vm.feed!!) { it.audioQuality = type.code }
                                     onDismissRequest()
                                 })
                             Text(option.tag)
@@ -334,7 +359,7 @@ fun FeedSettingsScreen() {
                                     selected = option.tag
                                     if (isChecked) Logd(TAG, "$option is checked")
                                     val type = Feed.AVQuality.fromTag(selected)
-                                    vm.feed = upsertBlk(vm.feed!!) { it.videoQuality = type.code }
+                                    upsertBlk(vm.feed!!) { it.videoQuality = type.code }
                                     onDismissRequest()
                                 })
                             Text(option.tag)
@@ -360,7 +385,7 @@ fun FeedSettingsScreen() {
                     Button(onClick = {
                         if (newName.isNotEmpty() && oldName != newName) {
                             runOnIOScope {
-                                vm.feed = upsert(vm.feed!!) {
+                                upsert(vm.feed!!) {
                                     it.username = newName
                                     it.password = newPW
                                 }
@@ -387,7 +412,7 @@ fun FeedSettingsScreen() {
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("Skip last (seconds)") })
                     Button(onClick = {
                         if (intro.isNotEmpty() || ending.isNotEmpty()) {
-                            vm.feed = upsertBlk(vm.feed!!) {
+                            upsertBlk(vm.feed!!) {
                                 it.introSkip = intro.toIntOrNull() ?: 0
                                 it.endingSkip = ending.toIntOrNull() ?: 0
                             }
@@ -413,7 +438,7 @@ fun FeedSettingsScreen() {
                     Switch(checked = checked, modifier = Modifier.height(24.dp),
                         onCheckedChange = {
                             checked = it
-                            vm.feed = upsertBlk(vm.feed!!) { f -> f.useWideLayout = checked }
+                            upsertBlk(vm.feed!!) { f -> f.useWideLayout = checked }
                         }
                     )
                 }
@@ -430,8 +455,9 @@ fun FeedSettingsScreen() {
                         modifier = Modifier.clickable(onClick = {
                             selectedOption = vm.feed!!.audioTypeSetting.tag
                             showDialog = true
-                        })
-                    )
+                        }))
+                    Spacer(modifier = Modifier.width(30.dp))
+                    Text(selectedOption, style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
                 Text(text = stringResource(R.string.pref_feed_audio_type_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
@@ -441,14 +467,15 @@ fun FeedSettingsScreen() {
                     Row(Modifier.fillMaxWidth()) {
                         var showDialog by remember { mutableStateOf(false) }
                         if (showDialog) VideoModeDialog(initMode = vm.feed?.videoModePolicy, onDismissRequest = { showDialog = false }) { mode ->
-                            vm.feed = upsertBlk(vm.feed!!) { it.videoModePolicy = mode }
+                            upsertBlk(vm.feed!!) { it.videoModePolicy = mode }
                             getVideoModePolicy()
                         }
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
                         Text(text = stringResource(R.string.feed_video_mode_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog = true }))
+                        Spacer(modifier = Modifier.width(30.dp))
+                        Text(text = stringResource(vm.videoModeSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
-                    Text(text = stringResource(vm.videoModeSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }
             if (vm.feed?.type == Feed.FeedType.YOUTUBE.name) {
@@ -464,8 +491,9 @@ fun FeedSettingsScreen() {
                             modifier = Modifier.clickable(onClick = {
                                 selectedOption = vm.feed!!.audioQualitySetting.tag
                                 showDialog = true
-                            })
-                        )
+                            }))
+                        Spacer(modifier = Modifier.width(30.dp))
+                        Text(selectedOption, style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
                     Text(text = stringResource(R.string.pref_feed_audio_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
@@ -482,8 +510,9 @@ fun FeedSettingsScreen() {
                                 modifier = Modifier.clickable(onClick = {
                                     selectedOption = vm.feed!!.videoQualitySetting.tag
                                     showDialog = true
-                                })
-                            )
+                                }))
+                            Spacer(modifier = Modifier.width(30.dp))
+                            Text(selectedOption, style = MaterialTheme.typography.bodyMedium, color = textColor)
                         }
                         Text(text = stringResource(R.string.pref_feed_video_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
@@ -503,17 +532,17 @@ fun FeedSettingsScreen() {
                                             if (isChecked) Logd(TAG, "$option is checked")
                                             when (selected) {
                                                 "Default" -> {
-                                                    vm.feed = upsertBlk(vm.feed!!) { it.queueId = 0L }
+                                                    upsertBlk(vm.feed!!) { it.queueId = 0L }
                                                     vm.curPrefQueue = selected
                                                     onDismissRequest()
                                                 }
                                                 "Active" -> {
-                                                    vm.feed = upsertBlk(vm.feed!!) { it.queueId = -1L }
+                                                    upsertBlk(vm.feed!!) { it.queueId = -1L }
                                                     vm.curPrefQueue = selected
                                                     onDismissRequest()
                                                 }
                                                 "None" -> {
-                                                    vm.feed = upsertBlk(vm.feed!!) {
+                                                    upsertBlk(vm.feed!!) {
                                                         it.queueId = -2L
                                                         it.autoEnqueue = false
                                                     }
@@ -533,7 +562,7 @@ fun FeedSettingsScreen() {
                                 Spinner(items = vm.queues!!.map { it.name }, selectedItem = vm.feed?.queue?.name ?: "Default") { index ->
                                     Logd(TAG, "Queue selected: ${vm.queues!![index].name}")
                                     val q = vm.queues!![index]
-                                    vm.feed = upsertBlk(vm.feed!!) { it.queue = q }
+                                    upsertBlk(vm.feed!!) { it.queue = q }
                                     vm.curPrefQueue = q.name
                                     onDismissRequest()
                                 }
@@ -578,7 +607,7 @@ fun FeedSettingsScreen() {
                     val showDialog = remember { mutableStateOf(false) }
                     if (showDialog.value) PlaybackSpeedDialog(listOf(vm.feed!!), initSpeed = vm.feed!!.playSpeed, maxSpeed = 3f,
                         onDismiss = { showDialog.value = false }) { newSpeed ->
-                        vm.feed = upsertBlk(vm.feed!!) { it.playSpeed = newSpeed }
+                        upsertBlk(vm.feed!!) { it.playSpeed = newSpeed }
                     }
                     Icon(ImageVector.vectorResource(id = R.drawable.ic_playback_speed), "", tint = textColor)
                     Spacer(modifier = Modifier.width(20.dp))
@@ -594,8 +623,7 @@ fun FeedSettingsScreen() {
                     if (showDialog.value) VolumeAdaptionDialog(onDismissRequest = { showDialog.value = false })
                     Icon(ImageVector.vectorResource(id = R.drawable.ic_volume_adaption), "", tint = textColor)
                     Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = stringResource(R.string.feed_volume_adapdation), style = CustomTextStyles.titleCustom, color = textColor,
-                        modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                    Text(text = stringResource(R.string.feed_volume_adapdation), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                 }
                 Text(text = stringResource(R.string.feed_volume_adaptation_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
@@ -607,8 +635,7 @@ fun FeedSettingsScreen() {
                         if (showDialog.value) AuthenticationDialog(onDismiss = { showDialog.value = false })
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_key), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.authentication_label), style = CustomTextStyles.titleCustom, color = textColor,
-                            modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                        Text(text = stringResource(R.string.authentication_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                     }
                     Text(text = stringResource(R.string.authentication_descr), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
@@ -630,7 +657,7 @@ fun FeedSettingsScreen() {
                                     prefStreamOverDownload = true
                                     autoDownloadChecked = false
                                 }
-                                vm.feed = upsertBlk(vm.feed!!) { f ->
+                                upsertBlk(vm.feed!!) { f ->
                                     f.prefStreamOverDownload = preferStreaming
                                     if (preferStreaming) f.autoDownload = false
                                 }
@@ -647,8 +674,7 @@ fun FeedSettingsScreen() {
                     if (showDialog.value) AutoSkipDialog(onDismiss = { showDialog.value = false })
                     Icon(ImageVector.vectorResource(id = R.drawable.ic_skip_24dp), "", tint = textColor)
                     Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = stringResource(R.string.pref_feed_skip), style = CustomTextStyles.titleCustom, color = textColor,
-                        modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                    Text(text = stringResource(R.string.pref_feed_skip), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                 }
                 Text(text = stringResource(R.string.pref_feed_skip_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
@@ -660,8 +686,7 @@ fun FeedSettingsScreen() {
                         if (showDialog.value) AutoDeleteDialog(onDismissRequest = { showDialog.value = false })
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.auto_delete_episode), style = CustomTextStyles.titleCustom, color = textColor,
-                            modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                        Text(text = stringResource(R.string.auto_delete_episode), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                     }
                     Text(text = stringResource(R.string.auto_delete_sum) + ": " + stringResource(vm.autoDeleteSummaryResId), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
@@ -677,7 +702,7 @@ fun FeedSettingsScreen() {
                         Switch(checked = vm.autoUpdate, modifier = Modifier.height(24.dp),
                             onCheckedChange = {
                                 vm.autoUpdate = it
-                                vm.feed = upsertBlk(vm.feed!!) { f -> f.keepUpdated = vm.autoUpdate }
+                                upsertBlk(vm.feed!!) { f -> f.keepUpdated = vm.autoUpdate }
                             }
                         )
                     }
@@ -696,7 +721,7 @@ fun FeedSettingsScreen() {
                         Switch(checked = checked, modifier = Modifier.height(24.dp),
                             onCheckedChange = {
                                 checked = it
-                                vm.feed = upsertBlk(vm.feed!!) { f -> f.autoAddNewToQueue = checked }
+                                upsertBlk(vm.feed!!) { f -> f.autoAddNewToQueue = checked }
                             }
                         )
                     }
@@ -714,7 +739,7 @@ fun FeedSettingsScreen() {
                         onCheckedChange = {
                             autoEnqueueChecked = it
                             if (autoEnqueueChecked) autoDownloadChecked = false
-                            vm.feed = upsertBlk(vm.feed!!) { f ->
+                            upsertBlk(vm.feed!!) { f ->
                                 f.autoEnqueue = autoEnqueueChecked
                                 f.autoDownload = autoDownloadChecked
                             }
@@ -730,7 +755,7 @@ fun FeedSettingsScreen() {
                             onCheckedChange = {
                                 autoDownloadChecked = it
                                 if (autoDownloadChecked) autoEnqueueChecked = false
-                                vm.feed = upsertBlk(vm.feed!!) { f ->
+                                upsertBlk(vm.feed!!) { f ->
                                     f.autoDownload = autoDownloadChecked
                                     f.autoEnqueue = autoEnqueueChecked
                                 }
@@ -745,12 +770,12 @@ fun FeedSettingsScreen() {
                 if (!isAutodownloadEnabled) Text(text = stringResource(R.string.auto_download_disabled_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
             if (autoDownloadChecked || autoEnqueueChecked) {
+                var newCache by remember { mutableStateOf((vm.feed?.autoDLMaxEpisodes ?: 3).toString()) }
                 @Composable
                 fun SetAutoDLEQCacheDialog(onDismiss: () -> Unit) {
                     Dialog(onDismissRequest = onDismiss) {
                         Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                var newCache by remember { mutableStateOf((vm.feed?.autoDLMaxEpisodes ?: 3).toString()) }
                                 TextField(value = newCache, onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) newCache = it },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.max_episodes_cache)) })
                                 //                    counting played
@@ -767,7 +792,7 @@ fun FeedSettingsScreen() {
                                 }
                                 Button(onClick = {
                                     if (newCache.isNotEmpty()) {
-                                        vm.feed = upsertBlk(vm.feed!!) {
+                                        upsertBlk(vm.feed!!) {
                                             it.autoDLMaxEpisodes = newCache.toIntOrNull() ?: 3
                                             if (autoDownloadChecked) it.countingPlayed = countingPlayed
                                         }
@@ -783,8 +808,9 @@ fun FeedSettingsScreen() {
                     Row(Modifier.fillMaxWidth()) {
                         val showDialog = remember { mutableStateOf(false) }
                         if (showDialog.value) SetAutoDLEQCacheDialog(onDismiss = { showDialog.value = false })
-                        Text(text = stringResource(R.string.pref_episode_cache_title), style = CustomTextStyles.titleCustom, color = textColor,
-                            modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                        Text(text = stringResource(R.string.pref_episode_cache_title), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                        Spacer(modifier = Modifier.width(30.dp))
+                        Text(newCache, style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
                     Text(text = stringResource(R.string.pref_episode_cache_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
@@ -797,7 +823,7 @@ fun FeedSettingsScreen() {
                         Switch(checked = checked, modifier = Modifier.height(24.dp),
                             onCheckedChange = {
                                 checked = it
-                                vm.feed = upsertBlk(vm.feed!!) { f -> f.autoDLSoon = checked }
+                                upsertBlk(vm.feed!!) { f -> f.autoDLSoon = checked }
                             }
                         )
                     }
@@ -831,7 +857,7 @@ fun FeedSettingsScreen() {
                         confirmButton = {
                             TextButton(onClick = {
                                 Logd(TAG, "autoDLPolicy: ${selectedPolicy.name} ${selectedPolicy.replace}")
-                                vm.feed = upsertBlk(vm.feed!!) {
+                                upsertBlk(vm.feed!!) {
                                     it.autoDLPolicy = selectedPolicy
                                     if (selectedPolicy == AutoDownloadPolicy.FILTER_SORT) {
                                         it.episodeFilterADL = vm.feed!!.episodeFilter
@@ -871,12 +897,13 @@ fun FeedSettingsScreen() {
                                     var filterMinDuration by remember { mutableStateOf(filter.hasMinDurationFilter()) }
                                     var filterMaxDuration by remember { mutableStateOf(filter.hasMaxDurationFilter()) }
                                     var markPlayedChecked by remember { mutableStateOf(filter.markExcludedPlayed) }
-                                    var checked by remember { mutableStateOf(termList.isNotEmpty()) }
+                                    fun isFilterEnabled(): Boolean = termList.isNotEmpty() || filterMinDuration || filterMaxDuration || markPlayedChecked
+                                    var filtermodifier by remember { mutableStateOf(isFilterEnabled()) }
                                     val textRes = remember { if (inexcl == ADLIncExc.EXCLUDE) R.string.exclude_terms else R.string.include_terms }
                                     Row {
-                                        Checkbox(checked = checked, onCheckedChange = { isChecked ->
-                                            checked = isChecked
-                                            if (!checked) {
+                                        Checkbox(checked = filtermodifier, onCheckedChange = { isChecked ->
+                                            filtermodifier = isChecked
+                                            if (!filtermodifier) {
                                                 termList.clear()
                                                 filterMinDuration = false
                                                 filterMaxDuration = false
@@ -887,9 +914,8 @@ fun FeedSettingsScreen() {
                                     }
                                     FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                         termList.forEach {
-                                            FilterChip(onClick = {  }, label = { Text(it) }, selected = false,
-                                                trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
-                                                    modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { termList.remove(it) })) })
+                                            FilterChip(onClick = {  }, label = { Text(it) }, selected = false, trailingIcon = {
+                                                Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon", modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { termList.remove(it) })) })
                                         }
                                     }
                                     var text by remember { mutableStateOf("") }
@@ -903,7 +929,7 @@ fun FeedSettingsScreen() {
                                                         termList.add(newWord)
                                                         text = ""
                                                     }
-                                                    checked = termList.isNotEmpty()
+                                                    filtermodifier = isFilterEnabled()
                                                 }
                                             }
                                         ),
@@ -915,43 +941,50 @@ fun FeedSettingsScreen() {
                                     var filterMaxDurationMinutes by remember { mutableStateOf((filter.maxDurationFilter / 60).toString()) }
                                     if (inexcl == ADLIncExc.EXCLUDE) {
                                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                            Checkbox(checked = filterMinDuration, onCheckedChange = { isChecked -> filterMinDuration = isChecked })
+                                            Checkbox(checked = filterMinDuration, onCheckedChange = { isChecked ->
+                                                filterMinDuration = isChecked
+                                                filtermodifier = isFilterEnabled()
+                                            })
                                             Text(text = stringResource(R.string.exclude_shorter_than), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                             if (filterMinDuration) {
-                                                BasicTextField(value = filterMinDurationMinutes, onValueChange = { if (it.all { it.isDigit() }) filterMinDurationMinutes = it },
-                                                    textStyle = TextStyle(fontSize = 16.sp, color = textColor),
-                                                    modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
-                                                )
+                                                BasicTextField(value = filterMinDurationMinutes, textStyle = TextStyle(fontSize = 16.sp, color = textColor),
+                                                    modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small),
+                                                    onValueChange = { if (it.all { it.isDigit() }) filterMinDurationMinutes = it }, )
                                                 Text(stringResource(R.string.time_minutes), color = textColor)
                                             }
                                         }
                                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                            Checkbox(checked = filterMaxDuration, onCheckedChange = { isChecked -> filterMaxDuration = isChecked })
+                                            Checkbox(checked = filterMaxDuration, onCheckedChange = { isChecked ->
+                                                filtermodifier = isFilterEnabled()
+                                                filterMaxDuration = isChecked
+                                            })
                                             Text(text = stringResource(R.string.exclude_longer_than), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                             if (filterMaxDuration) {
                                                 BasicTextField(value = filterMaxDurationMinutes, onValueChange = { if (it.all { it.isDigit() }) filterMaxDurationMinutes = it },
                                                     textStyle = TextStyle(fontSize = 16.sp, color = textColor),
-                                                    modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
-                                                )
+                                                    modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
                                                 Text(stringResource(R.string.time_minutes), color = textColor)
                                             }
                                         }
                                     }
                                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = markPlayedChecked, onCheckedChange = { isChecked -> markPlayedChecked = isChecked })
+                                        Checkbox(checked = markPlayedChecked, onCheckedChange = { isChecked ->
+                                            filtermodifier = isFilterEnabled()
+                                            markPlayedChecked = isChecked
+                                        })
                                         Text(text = stringResource(R.string.mark_excluded_episodes_played), style = MaterialTheme.typography.bodyMedium.merge())
                                     }
                                     Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
                                         Button(onClick = {
                                             if (inexcl == ADLIncExc.EXCLUDE) {
-                                                if (checked) {
+                                                if (filtermodifier) {
                                                     var minDuration = if (filterMinDuration) filterMinDurationMinutes.toInt() * 60 else -1
                                                     var maxDuration = if (filterMaxDuration) filterMaxDurationMinutes.toInt() * 60 else -1
                                                     val excludeFilter = toFilterString(termList)
                                                     onConfirmed(FeedAutoDownloadFilter(filter.includeFilterRaw, excludeFilter, minDuration, maxDuration, markPlayedChecked))
                                                 } else onConfirmed(FeedAutoDownloadFilter())
                                             } else {
-                                                if (checked) {
+                                                if (filtermodifier) {
                                                     val includeFilter = toFilterString(termList)
                                                     onConfirmed(FeedAutoDownloadFilter(includeFilter, filter.excludeFilterRaw, filter.minDurationFilter, filter.maxDurationFilter, filter.markExcludedPlayed))
                                                 } else onConfirmed(FeedAutoDownloadFilter())
@@ -969,11 +1002,8 @@ fun FeedSettingsScreen() {
                     Column(modifier = Modifier.padding(start = 20.dp)) {
                         Row(Modifier.fillMaxWidth()) {
                             val showDialog = remember { mutableStateOf(false) }
-                            if (showDialog.value) AutoDownloadFilterDialog(vm.feed?.autoDownloadFilter!!, ADLIncExc.INCLUDE, onDismiss = { showDialog.value = false }) { filter ->
-                                vm.feed = upsertBlk(vm.feed!!) { it.autoDownloadFilter = filter }
-                            }
-                            Text(text = stringResource(R.string.episode_inclusive_filters_label), style = CustomTextStyles.titleCustom, color = textColor,
-                                modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                            if (showDialog.value) AutoDownloadFilterDialog(vm.feed?.autoDownloadFilter!!, ADLIncExc.INCLUDE, onDismiss = { showDialog.value = false }) { filter -> upsertBlk(vm.feed!!) { it.autoDownloadFilter = filter } }
+                            Text(text = stringResource(R.string.episode_inclusive_filters_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                         }
                         Text(text = stringResource(R.string.episode_filters_description), style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
@@ -981,11 +1011,8 @@ fun FeedSettingsScreen() {
                     Column(modifier = Modifier.padding(start = 20.dp)) {
                         Row(Modifier.fillMaxWidth()) {
                             val showDialog = remember { mutableStateOf(false) }
-                            if (showDialog.value) AutoDownloadFilterDialog(vm.feed?.autoDownloadFilter!!, ADLIncExc.EXCLUDE, onDismiss = { showDialog.value = false }) { filter ->
-                                vm.feed = upsertBlk(vm.feed!!) { it.autoDownloadFilter = filter }
-                            }
-                            Text(text = stringResource(R.string.episode_exclusive_filters_label), style = CustomTextStyles.titleCustom, color = textColor,
-                                modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                            if (showDialog.value) AutoDownloadFilterDialog(vm.feed?.autoDownloadFilter!!, ADLIncExc.EXCLUDE, onDismiss = { showDialog.value = false }) { filter -> upsertBlk(vm.feed!!) { it.autoDownloadFilter = filter } }
+                            Text(text = stringResource(R.string.episode_exclusive_filters_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                         }
                         Text(text = stringResource(R.string.episode_filters_description), style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }

@@ -215,11 +215,12 @@ object Feeds {
      */
     @Synchronized
     fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteOld: Boolean = false): Feed? {
-        Logd(TAG, "updateFeed called")
-        showStackTrace()
+        Logd(TAG, "updateFeedFull called")
+//        showStackTrace()
         var resultFeed: Feed?
 //        val unlistedItems: MutableList<Episode> = mutableListOf()
 
+        Logd(TAG, "newFeed id: ${newFeed.id} episodes: ${newFeed.episodes.size}")
         // Look up feed in the feedslist
         val savedFeed = searchFeedByIdentifyingValueOrID(newFeed, true)
         if (savedFeed == null) {
@@ -295,7 +296,7 @@ object Feeds {
                 episode.feed = savedFeed
                 episode.id = idLong++
                 episode.feedId = savedFeed.id
-                runBlocking { episode.fetchMediaSize(false) }
+                if (!newFeed.isLocalFeed) runBlocking { episode.fetchMediaSize(false) }
 
                 if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
                 if (idx >= savedFeed.episodes.size) savedFeed.episodes.add(episode)
@@ -372,7 +373,7 @@ object Feeds {
         for (idx in newFeed.episodes.indices) {
             val episode = newFeed.episodes[idx]
             if (episode.duration < 1000) continue
-            if (episode.getPubDate() <= priorMostRecentDate || episode.downloadUrl == priorMostRecent?.downloadUrl) continue
+            if (episode.getPubDate() <= priorMostRecentDate || episode.downloadUrl == priorMostRecent?.downloadUrl || episode.title == priorMostRecent?.title) continue
 
             Logd(TAG, "Found new episode: ${episode.title}")
             episode.feed = savedFeed

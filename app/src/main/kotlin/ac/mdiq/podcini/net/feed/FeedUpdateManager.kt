@@ -68,7 +68,7 @@ object FeedUpdateManager {
             var policy = ExistingPeriodicWorkPolicy.KEEP
             if (replace) {
                 putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
-                policy = ExistingPeriodicWorkPolicy.UPDATE
+                policy = ExistingPeriodicWorkPolicy.REPLACE
             } else {
                 val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(feedUpdateWorkId).get()
                 if (workInfos.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }) return

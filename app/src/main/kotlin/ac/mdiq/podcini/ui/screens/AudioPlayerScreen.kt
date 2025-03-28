@@ -15,7 +15,7 @@ import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curDurationFB
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curSpeedFB
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideoLocally
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isSleepTimerActive
@@ -335,9 +335,9 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }
         if (curEpisode?.id != event.episode?.id || curPositionFB == Episode.INVALID_TIME || curDurationFB == Episode.INVALID_TIME) return
 //        val converter = TimeSpeedConverter(curSpeedFB)
-        curPosition = convertOnSpeed(event.position, curSpeedFB)
-        duration = convertOnSpeed(event.duration, curSpeedFB)
-        val remainingTime: Int = convertOnSpeed(max((event.duration - event.position).toDouble(), 0.0).toInt(), curSpeedFB)
+        curPosition = convertOnSpeed(event.position, curPBSpeed)
+        duration = convertOnSpeed(event.duration, curPBSpeed)
+        val remainingTime: Int = convertOnSpeed(max((event.duration - event.position).toDouble(), 0.0).toInt(), curPBSpeed)
         if (curPosition == Episode.INVALID_TIME || duration == Episode.INVALID_TIME) {
             Loge(TAG, "Could not react to position observer update because of invalid time")
             return
@@ -349,8 +349,8 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun updateUi(media: Episode) {
         Logd(TAG, "updateUi called $media")
         titleText = media.getEpisodeTitle()
-        txtvPlaybackSpeed = DecimalFormat("0.00").format(curSpeedFB.toDouble())
-        curPlaybackSpeed = curSpeedFB
+        txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
+        curPlaybackSpeed = curPBSpeed
         onPositionUpdate(FlowEvent.PlaybackPositionEvent(media, media.position, media.duration))
         if (isPlayingVideoLocally && curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY) isBSExpanded = false
         prevItem = media
@@ -416,7 +416,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         if (curr == null || displayedChapterIndex == -1) return
         when {
             displayedChapterIndex < 1 -> seekTo(0)
-            (curPositionFB - 10000 * curSpeedFB) < curr.start -> {
+            (curPositionFB - 10000 * curPBSpeed) < curr.start -> {
                 refreshChapterData(displayedChapterIndex - 1)
                 if (!curItem?.chapters.isNullOrEmpty()) seekTo(curItem!!.chapters[displayedChapterIndex].start.toInt())
             }
@@ -758,9 +758,7 @@ fun AudioPlayerScreen() {
         var showShareDialog by remember { mutableStateOf(false) }
         if (showShareDialog && vm.curItem != null && vm.actMain != null) ShareDialog(vm.curItem!!, vm.actMain) {showShareDialog = false }
         Row(modifier = Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable {
-                isBSExpanded = false
-            })
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { isBSExpanded = false })
             if (vm.curItem != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = textColor, contentDescription = "Open podcast",
                 modifier = Modifier.clickable {
                     if (feedItem.feed != null) {
@@ -788,14 +786,10 @@ fun AudioPlayerScreen() {
                     }
                     VideoPlayerActivityStarter(context).start()
                 })
-            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable {
-                if (vm.curItem != null) showVolumeDialog = true
-            })
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = textColor, contentDescription = "Volume adaptation", modifier = Modifier.clickable { if (vm.curItem != null) showVolumeDialog = true })
             val sleepRes = if (vm.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep
             Icon(imageVector = ImageVector.vectorResource(sleepRes), tint = textColor, contentDescription = "Sleep timer", modifier = Modifier.clickable { showSleepTimeDialog = true })
-            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), tint = textColor, contentDescription = "Share", modifier = Modifier.clickable {
-                if (vm.curItem != null) showShareDialog = true
-            })
+            Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), tint = textColor, contentDescription = "Share", modifier = Modifier.clickable { if (vm.curItem != null) showShareDialog = true })
             Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_offline_share_24), tint = textColor, contentDescription = "Share Note", modifier = Modifier.clickable {
                 val notes = if (vm.showHomeText) vm.readerhtml else feedItem.description
                 if (!notes.isNullOrEmpty()) {
@@ -827,9 +821,7 @@ fun AudioPlayerScreen() {
                 Spacer(modifier = Modifier.weight(0.2f))
                 val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
-                    modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = {
-                        showChooseRatingDialog = true
-                    }))
+                    modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { showChooseRatingDialog = true }))
                 Spacer(modifier = Modifier.weight(0.4f))
                 Text(vm.episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.weight(0.6f))
@@ -874,8 +866,7 @@ fun AudioPlayerScreen() {
                     horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_prev), tint = textColor, contentDescription = "prev_chapter",
                         modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { vm.seekToPrevChapter() }))
-                    Text("Ch " + vm.displayedChapterIndex.toString() + ": " + vm.curChapter?.title,
-                        color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    Text("Ch " + vm.displayedChapterIndex.toString() + ": " + vm.curChapter?.title, color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp).clickable(onClick = { showChaptersDialog = true }))
                     if (vm.hasNextChapter) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_next), tint = textColor, contentDescription = "next_chapter",
                         modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { vm.seekToNextChapter() }))

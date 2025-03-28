@@ -736,7 +736,7 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                     fStat.item.timePlayed += e.playedDuration
                     fStat.item.durationStarted += e.duration
                     var tSpent = e.timeSpent
-                    if (tSpent > 3 * e.playedDuration) {
+                    if (tSpent > 3 * max(e.playedDuration, 60000)) {
                         Loge(TAG, "timeSpent: ${e.timeSpent} > playedDuration: ${e.playedDuration} reset ${e.title}")
                         tSpent = e.playedDuration.toLong()
                     }

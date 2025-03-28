@@ -319,6 +319,7 @@ class PlaybackService : MediaLibraryService() {
                 autoSkippedFeedMediaId = null
                 autoSkipped = true
             }
+            // TODO: savePlayTime here need to handle situation where playable has been paused for long and a new media is started
             if (ended || smartMarkAsPlayed) {
                 SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(applicationContext, playable, true)
                 playable.savePlayTime(true)
@@ -380,12 +381,11 @@ class PlaybackService : MediaLibraryService() {
         override fun onPlaybackPause(playable: Episode?, position: Int) {
             Logd(TAG, "onPlaybackPause $position ${playable?.title}")
             taskManager.cancelPositionSaver()
+            if (playable != null) playable.savePlayTime()
+            else curEpisode?.savePlayTime()
             persistCurrentPosition(position == Episode.INVALID_TIME || playable == null, playable, position)
             Logd(TAG, "onPlaybackPause start ${playable?.timeSpent}")
-            if (playable != null) {
-                SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(applicationContext, playable, false)
-                playable.savePlayTime()
-            }
+            if (playable != null) SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(applicationContext, playable, false)
         }
         override fun getNextInQueue(currentMedia: Episode?): Episode? {
             Logd(TAG, "call getNextInQueue currentMedia: ${currentMedia?.getEpisodeTitle()}")
@@ -1060,12 +1060,11 @@ class PlaybackService : MediaLibraryService() {
             it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
         if (it.startTime > 0) {
             var delta = (System.currentTimeMillis() - it.startTime)
-            if (delta > 3*it.duration) {
+            if (delta > 3 * max(it.playedDuration, 60000)) {
                 Loge(TAG, "likely invalid delta: $delta reset ${it.title}")
                 it.startTime = System.currentTimeMillis()
                 delta = 0
-            }
-            it.timeSpent = it.timeSpentOnStart + delta
+            } else it.timeSpent = it.timeSpentOnStart + delta
         }
 
         it.lastPlayedTime = (System.currentTimeMillis())
@@ -1435,7 +1434,7 @@ class PlaybackService : MediaLibraryService() {
         val curDurationFB: Int
             get() = playbackService?.curDuration ?: curEpisode?.duration ?: Episode.INVALID_TIME
 
-        val curSpeedFB: Float
+        val curPBSpeed: Float
             get() = playbackService?.curSpeed ?: getCurrentPlaybackSpeed(curEpisode)
 
         val isPlayingVideoLocally: Boolean

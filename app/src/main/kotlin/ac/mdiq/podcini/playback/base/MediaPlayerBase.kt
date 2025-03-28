@@ -28,6 +28,7 @@ import android.view.SurfaceHolder
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.provider.DocumentsContractCompat.isTreeUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.database.StandaloneDatabaseProvider
@@ -111,12 +112,29 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     protected fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
         Logd(TAG, "setDataSource: $mediaUrl")
         val uri = Uri.parse(mediaUrl)
-        mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
+        fun copyToCache(context: Context, sourceUri: Uri): File {
+            val cacheFile = File(context.cacheDir, "temp_audio.mp3")
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(cacheFile).use { output -> input.copyTo(output) }
+            }
+            return cacheFile
+        }
+        if (uri.scheme == "content") {
+            when {
+                isTreeUri(uri) -> {
+                    val localFile = copyToCache(context, uri)
+                    mediaItem = MediaItem.Builder().setUri(Uri.fromFile(localFile)).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
+                }
+                else -> mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
+            }
+        } else mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
+        if (mediaItem != null) {
 //        mediaSource = null
-        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-        val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
-        mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem!!)
-        setSourceCredentials(user, password)
+            val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+            val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
+            mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem!!)
+            setSourceCredentials(user, password)
+        } else Loge(TAG, "episode mediaUrl not valid $mediaUrl")
     }
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
@@ -367,7 +385,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         private lateinit var tempDir: File // Must be set externally, e.g., via constructor or setter
 
         override fun open(dataSpec: DataSpec): Long {
-            val keys = simpleCache?.getKeys()
+            val keys = simpleCache?.keys
             keys?.forEach { Logd(TAG, "key: $it") }
             val mediaId = dataSpec.key ?: dataSpec.uri.toString()
             val existingSpans = simpleCache?.getCachedSpans(mediaId)

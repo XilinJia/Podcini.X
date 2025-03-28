@@ -8,12 +8,16 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curSpeedFB
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
+import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPrefOrNull
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
+import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.storage.database.Feeds.compileTags
 import ac.mdiq.podcini.storage.database.Feeds.createSynthetic
@@ -67,10 +71,12 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -83,6 +89,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -90,6 +97,7 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -414,6 +422,44 @@ private fun speed2Slider(speed: Float, maxSpeed: Float): Float {
 private fun slider2Speed(slider: Float, maxSpeed: Float): Float {
     return if (slider < 0.5) 1.8f * slider + 0.1f else 2 * (maxSpeed - 1f) * slider + 2f - maxSpeed
 }
+@Composable
+fun SpeedSetter(initSpeed: Float, maxSpeed: Float, speedCB: (Float) -> Unit) {
+//    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+//        Text(text = String.format(Locale.getDefault(), "%.2fx", speed))
+//    }
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        var speed by remember { mutableStateOf(initSpeed) }
+        var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
+        val stepSize = 0.05f
+        Text("-", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clickable(onClick = {
+                val speed_ = round(speed / stepSize) * stepSize - stepSize
+                if (speed_ >= 0.1f) {
+                    speed = speed_
+                    sliderPosition = speed2Slider(speed, maxSpeed)
+                    speedCB(speed)
+                }
+            }))
+        Slider(value = sliderPosition, modifier = Modifier.weight(1f).height(5.dp).padding(start = 20.dp, end = 20.dp),
+            onValueChange = {
+                sliderPosition = it
+                speed = slider2Speed(sliderPosition, maxSpeed)
+                speedCB(speed)
+            })
+        Text("+", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clickable(onClick = {
+                val speed_ = round(speed / stepSize) * stepSize + stepSize
+                if (speed_ <= maxSpeed) {
+                    speed = speed_
+                    sliderPosition = speed2Slider(speed, maxSpeed)
+                    speedCB(speed)
+                }
+            }))
+        Spacer(Modifier.width(40.dp))
+        Text(text = String.format(Locale.getDefault(), "%.2fx", speed))
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, isGlobal: Boolean = false, onDismiss: () -> Unit, speedCB: (Float) -> Unit) {
@@ -437,36 +483,7 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
                     })
                     Text(stringResource(R.string.global_default))
                 }
-                if (!useGlobal) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                        Text(text = String.format(Locale.getDefault(), "%.2fx", speed))
-                    }
-                    val stepSize = 0.05f
-                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text("-", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable(onClick = {
-                                val speed_ = round(speed / stepSize) * stepSize - stepSize
-                                if (speed_ >= 0.1f) {
-                                    speed = speed_
-                                    sliderPosition = speed2Slider(speed, maxSpeed)
-                                }
-                            }))
-                        Slider(value = sliderPosition, modifier = Modifier.weight(1f).height(5.dp).padding(start = 20.dp, end = 20.dp),
-                            onValueChange = {
-                                sliderPosition = it
-                                speed = slider2Speed(sliderPosition, maxSpeed)
-                                Logd("PlaybackSpeedDialog", "slider value: $it $speed}")
-                            })
-                        Text("+", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable(onClick = {
-                                val speed_ = round(speed / stepSize) * stepSize + stepSize
-                                if (speed_ <= maxSpeed) {
-                                    speed = speed_
-                                    sliderPosition = speed2Slider(speed, maxSpeed)
-                                }
-                            }))
-                    }
-                }
+                if (!useGlobal) SpeedSetter(initSpeed, maxSpeed) { speed = it }
                 Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
                     Button(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
                     Spacer(Modifier.weight(1f))
@@ -511,8 +528,9 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.let { window -> window.setGravity(Gravity.BOTTOM) }
         Card(modifier = Modifier.fillMaxWidth().wrapContentHeight().padding(top = 10.dp, bottom = 10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            Column {
-                var speed by remember { mutableStateOf(curSpeedFB) }
+            val scrollState = rememberScrollState()
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
+                var speed by remember { mutableStateOf(curPBSpeed) }
                 var speeds = remember { readPlaybackSpeedArray(getPrefOrNull<String>(AppPrefs.prefPlaybackSpeedArray, null)).toMutableStateList() }
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.playback_speed), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
@@ -606,13 +624,47 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                 })) })
                     }
                 }
-                var isSkipSilence by remember { mutableStateOf(false) }
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = isSkipSilence, onCheckedChange = { isChecked ->
-                        isSkipSilence = isChecked
-                        playbackService?.mPlayer?.setPlaybackParams(playbackService!!.curSpeed, isChecked)
-                    })
-                    Text(stringResource(R.string.pref_skip_silence_title))
+                var showMore by remember { mutableStateOf(false) }
+                TextButton(onClick = { showMore = !showMore }) { Text("More>>", style = MaterialTheme.typography.headlineSmall) }
+                if (showMore) {
+                    var isSkipSilence by remember { mutableStateOf(false) }
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = isSkipSilence, onCheckedChange = { isChecked ->
+                            isSkipSilence = isChecked
+                            playbackService?.mPlayer?.setPlaybackParams(playbackService!!.curSpeed, isChecked)
+                        })
+                        Text(stringResource(R.string.pref_skip_silence_title))
+                    }
+                    HorizontalDivider(thickness = 5.dp, modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.pref_rewind), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                        NumberEditor(rewindSecs, modifier = Modifier.weight(0.6f)) { rewindSecs = it }
+                    }
+                    HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.pref_fast_forward), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                        NumberEditor(fastForwardSecs, modifier = Modifier.weight(0.6f)) { fastForwardSecs = it }
+                    }
+                    HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
+                    Text(stringResource(R.string.pref_fallback_speed), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold,)
+                    SpeedSetter(fallbackSpeed, maxSpeed = 3f) {
+                        val speed_ = when {
+                            it < 0.0f -> 0.0f
+                            it > 3.0f -> 3.0f
+                            else -> it
+                        }
+                        fallbackSpeed = round(100 * speed_) / 100f
+                    }
+                    HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
+                    Text(stringResource(R.string.pref_speed_forward), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold,)
+                    SpeedSetter(speedforwardSpeed, maxSpeed = 10f) {
+                        val speed_ = when {
+                            it < 0.0f -> 0.0f
+                            it > 10.0f -> 10.0f
+                            else -> it
+                        }
+                        speedforwardSpeed = round(10 * speed_) / 10
+                    }
                 }
             }
         }

@@ -25,6 +25,7 @@ import ac.mdiq.podcini.preferences.importPA
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
@@ -433,24 +434,28 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                 Text(stringResource(R.string.pref_auto_backup_interval), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 var interval by remember { mutableStateOf(getPref(AppPrefs.prefAutoBackupIntervall, 24).toString()) }
-                var showIcon by remember { mutableStateOf(false) }
-                TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hours)") },
-                    singleLine = true, modifier = Modifier.weight(0.5f),
-                    onValueChange = {
-                        val intVal = it.toIntOrNull()
-                        if (it.isEmpty() || (intVal != null && intVal>0)) {
-                            interval = it
-                            showIcon = true
-                        }
-                    },
-                    trailingIcon = {
-                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                            modifier = Modifier.size(30.dp).padding(start = 5.dp).clickable(onClick = {
-                                if (interval.isEmpty()) interval = "0"
-                                putPref(AppPrefs.prefAutoBackupIntervall, interval.toIntOrNull()?:0)
-                                showIcon = false
-                            }))
-                    })
+                NumberEditor(interval.toInt(), unit = "hours", nz = false, modifier = Modifier.weight(0.5f)) {
+                    interval = it.toString()
+                    putPref(AppPrefs.prefAutoBackupIntervall, interval.toIntOrNull()?:0)
+                }
+//                var showIcon by remember { mutableStateOf(false) }
+//                TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hours)") },
+//                    singleLine = true, modifier = Modifier.weight(0.5f),
+//                    onValueChange = {
+//                        val intVal = it.toIntOrNull()
+//                        if (it.isEmpty() || (intVal != null && intVal>0)) {
+//                            interval = it
+//                            showIcon = true
+//                        }
+//                    },
+//                    trailingIcon = {
+//                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
+//                            modifier = Modifier.size(30.dp).padding(start = 5.dp).clickable(onClick = {
+//                                if (interval.isEmpty()) interval = "0"
+//                                putPref(AppPrefs.prefAutoBackupIntervall, interval.toIntOrNull()?:0)
+//                                showIcon = false
+//                            }))
+//                    })
             }
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
                 Text(stringResource(R.string.pref_auto_backup_limit), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))

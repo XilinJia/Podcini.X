@@ -16,6 +16,7 @@ import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -57,7 +58,7 @@ object LocalFeedUpdater {
     fun tryUpdateFeed(feed: Feed, context: Context, folderUri: Uri?, updaterProgressListener: UpdaterProgressListener?) {
         var feed = feed
         //make sure it is the latest 'version' of this feed from the db (all items etc)
-        feed = Feeds.updateFeedFull(context, feed, false)?: feed
+//        feed = Feeds.updateFeedFull(context, feed, false)?: feed
 
         // list files in feed folder
         val allFiles = FastDocumentFile.list(context, folderUri)
@@ -69,14 +70,18 @@ object LocalFeedUpdater {
             if (mediaType == MediaType.AUDIO || mediaType == MediaType.VIDEO) {
                 mediaFiles.add(file)
                 mediaFileNames.add(file.name)
+                Logd(TAG, "tryUpdateFeed add to mediaFileNames ${file.name}")
             }
         }
 
         // add new files to feed and update item data
         val newItems = feed.episodes
         for (i in mediaFiles.indices) {
+            Logd(TAG, "tryUpdateFeed mediaFiles ${mediaFiles[i].name}")
             val oldItem = feedContainsFile(feed, mediaFiles[i].name)
-            val newItem = createFeedItem(feed, mediaFiles[i], context)
+            val newItem = createEpisode(feed, mediaFiles[i], context)
+            Logd(TAG, "tryUpdateFeed oldItem: ${oldItem?.title} oldItem: ${oldItem?.downloadUrl}")
+            Logd(TAG, "tryUpdateFeed newItem: ${newItem.title} newItem: ${newItem.downloadUrl}")
             oldItem?.updateFromOther(newItem) ?: newItems.add(newItem)
             updaterProgressListener?.onLocalFileScanned(i, mediaFiles.size)
         }
@@ -84,7 +89,10 @@ object LocalFeedUpdater {
         val it = newItems.iterator()
         while (it.hasNext()) {
             val feedItem = it.next()
-            if (!mediaFileNames.contains(feedItem.link)) it.remove()
+            if (!mediaFileNames.contains(feedItem.link)) {
+                Logd(TAG, "tryUpdateFeed removing file ${feedItem.link} ${feedItem.title} ")
+                it.remove()
+            }
         }
         if (folderUri != null) feed.imageUrl = getImageUrl(allFiles, folderUri)
         feed.autoDownload = false
@@ -116,11 +124,12 @@ object LocalFeedUpdater {
         return null
     }
 
-    private fun createFeedItem(feed: Feed, file: FastDocumentFile, context: Context): Episode {
+    private fun createEpisode(feed: Feed, file: FastDocumentFile, context: Context): Episode {
         val item = Episode(0L, file.name, UUID.randomUUID().toString(), file.name, Date(file.lastModified), PlayState.UNPLAYED.code, feed)
         item.disableAutoDownload()
         val size = file.length
-        val media = item.fillMedia(0, 0, size, file.type, file.uri.toString(), file.uri.toString(), false, null, 0, 0)
+        Logd(TAG, "createEpisode file.uri: ${file.uri}")
+        item.fillMedia(0, 0, size, file.type, file.uri.toString(), file.uri.toString(), false, null, 0, 0)
         for (existingItem in feed.episodes) {
             if (existingItem.downloadUrl == file.uri.toString() && file.length == existingItem.size) {
                 // We found an old file that we already scanned. Re-use metadata.

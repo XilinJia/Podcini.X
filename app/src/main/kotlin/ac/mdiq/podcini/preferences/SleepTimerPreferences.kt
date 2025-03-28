@@ -3,7 +3,7 @@ package ac.mdiq.podcini.preferences
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curSpeedFB
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
@@ -13,7 +13,6 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.toastMassege
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.foundation.BorderStroke
@@ -229,7 +228,7 @@ object SleepTimerPreferences {
                                 val time = if (toEnd) {
                                     val curPosition = curEpisode?.position ?: 0
                                     val duration = curEpisode?.duration ?: 0
-                                    TimeUnit.MILLISECONDS.toMinutes(convertOnSpeed(max((duration - curPosition).toDouble(), 0.0).toInt(), curSpeedFB).toLong()) // ms to minutes
+                                    TimeUnit.MILLISECONDS.toMinutes(convertOnSpeed(max((duration - curPosition).toDouble(), 0.0).toInt(), curPBSpeed).toLong()) // ms to minutes
                                 } else etxtTime.toLong()
                                 Logd("SleepTimerDialog", "Sleep timer set: $time")
                                 if (time == 0L) throw NumberFormatException("Timer must not be zero")

@@ -13,6 +13,7 @@ import android.os.StatFs
 import android.os.storage.StorageManager
 import android.provider.DocumentsContract
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
 import java.io.File
@@ -59,7 +60,7 @@ object StorageUtils {
                 return if (dataFolder != null) getFreeSpaceAvailable(dataFolder.absolutePath) else 0
             } else {
                 val uri = Uri.parse(customMediaUriString)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     val pickedDir = DocumentFile.fromTreeUri(getAppContext(), uri)
                     if (pickedDir == null || !pickedDir.isDirectory) {
                         Loge("SpaceCheck", "Invalid directory URI: $customMediaUriString")
@@ -69,32 +70,33 @@ object StorageUtils {
                     val appSpecificDir = getAppContext().getExternalFilesDir(null) ?: return 0L
                     val uuid = storageManager.getUuidForPath(appSpecificDir)
                     return storageManager.getAllocatableBytes(uuid)
-                } else {
-                    fun getFilePathFromUri(uri: Uri): String? {
-                        if ("file" == uri.scheme) return uri.path
-                        else if ("content" == uri.scheme) {
-                            val projection = arrayOf(MediaStore.MediaColumns.DATA)
-                            getAppContext().contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
-                                if (cursor.moveToFirst()) {
-                                    val columnIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
-                                    return cursor.getString(columnIndex)
-                                }
-                            }
-                        }
-                        return null
-                    }
-                    if (DocumentsContract.isDocumentUri(getAppContext(), uri)) {
-                        val documentFile = DocumentFile.fromTreeUri(getAppContext(), uri)
-                        if (documentFile != null && documentFile.isDirectory) {
-                            val filePath = getFilePathFromUri(uri)
-                            if (filePath != null) {
-                                val statFs = StatFs(filePath)
-                                return statFs.availableBytes
-                            }
-                        }
-                    }
-                    return 0L
-                }
+//                }
+//                else {
+//                    fun getFilePathFromUri(uri: Uri): String? {
+//                        if ("file" == uri.scheme) return uri.path
+//                        else if ("content" == uri.scheme) {
+//                            val projection = arrayOf(MediaStore.MediaColumns.DATA)
+//                            getAppContext().contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+//                                if (cursor.moveToFirst()) {
+//                                    val columnIndex = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
+//                                    return cursor.getString(columnIndex)
+//                                }
+//                            }
+//                        }
+//                        return null
+//                    }
+//                    if (DocumentsContract.isDocumentUri(getAppContext(), uri)) {
+//                        val documentFile = DocumentFile.fromTreeUri(getAppContext(), uri)
+//                        if (documentFile != null && documentFile.isDirectory) {
+//                            val filePath = getFilePathFromUri(uri)
+//                            if (filePath != null) {
+//                                val statFs = StatFs(filePath)
+//                                return statFs.availableBytes
+//                            }
+//                        }
+//                    }
+//                    return 0L
+//                }
             }
         }
 

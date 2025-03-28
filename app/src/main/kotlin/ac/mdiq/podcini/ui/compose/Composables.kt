@@ -29,6 +29,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,6 +62,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -370,4 +373,30 @@ fun SearchBarRow(hintTextRes: Int, defaultText: String, performSearch: (String) 
         Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), tint = textColor, contentDescription = "right_action_icon",
             modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable(onClick = { performSearch(queryText) }))
     }
+}
+
+@Composable
+fun NumberEditor(initVal: Int, unit: String = "seconds", nz: Boolean = true, modifier: Modifier, cb: (Int)->Unit) {
+    var interval by remember { mutableStateOf(initVal.toString()) }
+    var showIcon by remember { mutableStateOf(false) }
+    TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(unit) }, singleLine = true, modifier = modifier,
+        onValueChange = {
+            if (it.isEmpty() || it.toIntOrNull() != null) interval = it
+            if (it.toIntOrNull() != null) showIcon = true
+        },
+        trailingIcon = {
+            if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
+                modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                    if (nz) {
+                        if (interval.isNotBlank()) {
+                            cb(interval.toInt())
+                            showIcon = false
+                        }
+                    } else {
+                        val v = if (interval.isNotBlank()) interval.toInt() else 0
+                        cb(v)
+                        showIcon = false
+                    }
+                }))
+        })
 }

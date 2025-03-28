@@ -376,7 +376,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 if (status == TextToSpeech.SUCCESS) {
                     FEObj.ttsReady = true
                     semaphore.release()
-                    Loge(TAG, "TTS init success")
+                    Logt(TAG, "TTS init success")
                 } else Loge(TAG, context.getString(R.string.tts_init_failed))
             }
         }
@@ -386,7 +386,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         if (feed == null) return
         enableFilter = !enableFilter
         if (filterJob != null) {
-            Logd(TAG, "filterLongClick")
+            Logd(TAG, "filterLongClick cancelling job")
             filterJob?.cancel()
             stopMonitor(vms)
             vms.clear()

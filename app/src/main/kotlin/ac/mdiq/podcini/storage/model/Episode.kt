@@ -761,12 +761,11 @@ class Episode : RealmObject {
         if (position > startPosition) playedDuration = playedDurationWhenStarted + position - startPosition
         if (startTime > 0) {
             var delta = (System.currentTimeMillis() - startTime)
-            if (delta > 3*duration) {
+            if (delta > 3* max(playedDuration, 60000)) {
                 Loge(TAG, "savePlayTime likely invalid delta: $delta reset ${title}")
                 startTime = System.currentTimeMillis()
                 delta = 0
-            }
-            timeSpent = timeSpentOnStart + delta
+            } else timeSpent = timeSpentOnStart + delta
         }
         Logd(TAG, "savePlayTime startTime: $startTime timeSpent: $timeSpent playedDuration: $playedDuration playedDurationWhenStarted: $playedDurationWhenStarted")
         startPosition = if (completed) -1 else position
