@@ -183,6 +183,7 @@ class MainActivity : BaseActivity() {
         val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
         val lastScheduledVersion = prefs.getString(Extras.lastVersion.name, "0")
         if (currentVersion != lastScheduledVersion) {
+            WorkManager.getInstance(applicationContext).cancelUniqueWork(feedUpdateWorkId)
             restartUpdateAlarm(applicationContext, true)
             prefs.edit().putString(Extras.lastVersion.name, currentVersion).apply()
         } else restartUpdateAlarm(applicationContext, false)

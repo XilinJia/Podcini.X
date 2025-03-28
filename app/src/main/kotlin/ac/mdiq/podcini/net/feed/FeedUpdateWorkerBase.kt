@@ -11,14 +11,12 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_EVEN_ON_MOBILE
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_FEED_ID
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_FULL_UPDATE
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.EXTRA_NEXT_PAGE
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.restartUpdateAlarm
 import ac.mdiq.podcini.net.feed.parser.FeedHandler
 import ac.mdiq.podcini.net.feed.parser.FeedHandler.FeedHandlerResult
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.database.Feeds
 import ac.mdiq.podcini.storage.database.LogsAndStats
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
@@ -43,14 +41,14 @@ import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.xml.sax.SAXException
 import java.io.File
 import java.io.IOException
 import java.util.Date
 import java.util.concurrent.Callable
 import javax.xml.parsers.ParserConfigurationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.xml.sax.SAXException
 
 open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     protected val TAG = "FeedUpdateWorkerBase"
@@ -91,10 +89,10 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         autodownload(applicationContext, feedsToUpdate.toList())
         feedsToUpdate.clear()
         Logd(TAG, "feedId: $feedId prefAutoUpdateStartTime: [${getPref(AppPrefs.prefAutoUpdateStartTime, ":")}]")
-        if (feedId == -1L && getPref(AppPrefs.prefAutoUpdateStartTime, ":") == ":") {
-            putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
-            restartUpdateAlarm(applicationContext, true)
-        }
+//        if (feedId == -1L && getPref(AppPrefs.prefAutoUpdateStartTime, ":") == ":") {
+//            putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
+//            restartUpdateAlarm(applicationContext, true)
+//        }
         return Result.success()
     }
 

@@ -1,4 +1,4 @@
-# 8.13.4
+# 8.13.5
 
 * speed setting dialog from PlayerUI can also set fallback and fast-forward speeds as well as skip times for rewind and forward
 * show some set values in FeedSettings screen

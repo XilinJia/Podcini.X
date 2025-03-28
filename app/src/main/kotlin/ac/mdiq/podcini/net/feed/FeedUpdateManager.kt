@@ -3,10 +3,10 @@ package ac.mdiq.podcini.net.feed
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.isVpnOverWifi
+import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -68,7 +68,7 @@ object FeedUpdateManager {
             var policy = ExistingPeriodicWorkPolicy.KEEP
             if (replace) {
                 putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
-                policy = ExistingPeriodicWorkPolicy.REPLACE
+                policy = ExistingPeriodicWorkPolicy.UPDATE
             } else {
                 val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(feedUpdateWorkId).get()
                 if (workInfos.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.RUNNING }) return
