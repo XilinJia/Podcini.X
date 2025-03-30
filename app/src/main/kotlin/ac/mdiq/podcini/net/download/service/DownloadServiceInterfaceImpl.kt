@@ -151,8 +151,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 Logs(TAG, e)
                 result = Result.failure()
             } finally {
-                if (result == Result.failure() && downloader?.downloadRequest?.destination != null)
-                    FileUtils.deleteQuietly(File(downloader!!.downloadRequest.destination!!))
+                if (result == Result.failure() && downloader?.downloadRequest?.destination != null) FileUtils.deleteQuietly(File(downloader!!.downloadRequest.destination!!))
                 downloader?.cancel()
             }
             progressUpdaterJob.cancel()
@@ -175,8 +174,8 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
 
         private fun performDownload(request: DownloadRequest): Result {
             Logd(TAG, "starting performDownload: ${request.destination}")
-            if (request.destination == null) {
-                Loge(TAG, "performDownload request.destination is null")
+            if (request.destination.isNullOrBlank()) {
+                Loge(TAG, "performDownload request.destination is null or blank")
                 return Result.failure()
             }
 
@@ -211,8 +210,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             }
             Loge(TAG, "Download failed ${request.title} ${status.reason}")
             LogsAndStats.addDownloadStatus(status)
-            if (status.reason == DownloadError.ERROR_FORBIDDEN || status.reason == DownloadError.ERROR_NOT_FOUND
-                    || status.reason == DownloadError.ERROR_UNAUTHORIZED || status.reason == DownloadError.ERROR_IO_BLOCKED) {
+            if (status.reason in listOf(DownloadError.ERROR_FORBIDDEN, DownloadError.ERROR_NOT_FOUND, DownloadError.ERROR_UNAUTHORIZED, DownloadError.ERROR_IO_BLOCKED)) {
                 Loge(TAG, "performDownload failure on various reasons ${status.reason?.name}")
                 // Fail fast, these are probably unrecoverable
                 sendErrorNotification(request.title?:"")
@@ -309,14 +307,8 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                         Logd(TAG, "run() set size: ${it.size}")
                     }
                     it.checkEmbeddedPicture(false) // enforce check
-                    if (it.chapters.isEmpty()) {
-                        it.setChapters(it.loadChaptersFromMediaFile(context))
-                        Logd(TAG, "run() set setChapters: ${it.chapters.size}")
-                    }
-                    if (!it.podcastIndexChapterUrl.isNullOrBlank()) {
-                        ChapterUtils.loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
-                        Logd(TAG, "run() loaded chapters: ${it.chapters.size}")
-                    }
+                    if (it.chapters.isEmpty()) it.setChapters(it.loadChaptersFromMediaFile(context))
+                    if (!it.podcastIndexChapterUrl.isNullOrBlank()) ChapterUtils.loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
                     var durationStr: String? = null
                     try {
                         MediaMetadataRetrieverCompat().use { mmr ->

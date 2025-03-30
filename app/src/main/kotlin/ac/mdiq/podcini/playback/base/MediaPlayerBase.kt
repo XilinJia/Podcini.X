@@ -28,7 +28,6 @@ import android.view.SurfaceHolder
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.provider.DocumentsContractCompat.isTreeUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.database.StandaloneDatabaseProvider
@@ -36,7 +35,6 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
-import androidx.media3.datasource.FileDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.CacheDataSource
@@ -112,22 +110,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     protected fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
         Logd(TAG, "setDataSource: $mediaUrl")
         val uri = Uri.parse(mediaUrl)
-        fun copyToCache(context: Context, sourceUri: Uri): File {
-            val cacheFile = File(context.cacheDir, "temp_audio.mp3")
-            context.contentResolver.openInputStream(sourceUri)?.use { input ->
-                FileOutputStream(cacheFile).use { output -> input.copyTo(output) }
-            }
-            return cacheFile
-        }
-        if (uri.scheme == "content") {
-            when {
-                isTreeUri(uri) -> {
-                    val localFile = copyToCache(context, uri)
-                    mediaItem = MediaItem.Builder().setUri(Uri.fromFile(localFile)).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
-                }
-                else -> mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
-            }
-        } else mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
+        mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
         if (mediaItem != null) {
 //        mediaSource = null
             val httpDataSourceFactory = DefaultHttpDataSource.Factory()
@@ -472,9 +455,8 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     Logd("CustomDataSourceFactory", "dataSpec.uri.scheme: ${dataSpec.uri.scheme}")
                     dataSource = if (dataSpec.uri.scheme == "file" || dataSpec.uri.scheme == "content") {
                         curDataSource = null
-                        FileDataSource.Factory().createDataSource()
-                    }
-                    else {
+                        DefaultDataSource.Factory(context).createDataSource()
+                    } else {
                         val cacheDs = CacheDataSource(getCache(context), upstreamFactory.createDataSource(), CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
                         curDataSource = SegmentSavingDataSource(cacheDs).also { segmentSaver = it }
                         curDataSource

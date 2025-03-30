@@ -6,6 +6,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.StorageUtils.feedfilePath
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import java.io.File
 
 /**
@@ -27,8 +28,11 @@ object DownloadRequestCreator {
     @JvmStatic
     fun create(media: Episode): DownloadRequest.Builder {
         Logd(TAG, "create: ${media.fileUrl} ${media.title}")
-        val destUriString = media.getMediaFileUriString() ?: ""
-        Logd(TAG, "destUriString: $destUriString")
+        val destUriString = try { media.getMediaFileUriString() ?: "" } catch (e: Throwable ) {
+            Logs(TAG, e)
+            ""
+        }
+        Logd(TAG, "create destUriString: $destUriString")
         if (destUriString.isBlank()) Loge(TAG, "destUriString is empty")
         val feed = media.feed
         val username = feed?.username

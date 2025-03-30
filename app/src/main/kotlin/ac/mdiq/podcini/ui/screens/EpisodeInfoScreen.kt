@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.ui.screens
 
+import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
@@ -9,6 +10,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
 import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.UsageStatistics
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
@@ -21,6 +24,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.utils.DurationConverter
+import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.PauseActionButton
 import ac.mdiq.podcini.ui.actions.PlayActionButton
@@ -64,6 +68,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -223,7 +228,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         when {
             media == null -> txtvSize = ""
             media.size > 0 -> txtvSize = formatShortFileSize(context, media.size)
-            isImageDownloadAllowed && !media.checkedOnSizeButUnknown() -> {
+            isImageDownloadAllowed && !media.isSizeSetUnknown() -> {
                 txtvSize = "{faw_spinner}"
                 lcScope.launch {
                     val sizeValue = episode?.fetchMediaSize() ?: 0L
@@ -534,6 +539,11 @@ fun EpisodeInfoScreen() {
                 Text(vm.episode?.link?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable(onClick = {
                     if (!vm.episode?.link.isNullOrBlank()) IntentUtils.openInBrowser(context, vm.episode!!.link!!)
                 }))
+                if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Row {
+                    Text("Time spent: " + getDurationStringShort(vm.episode?.timeSpent?:0L, true))
+                    Spacer(Modifier.width(50.dp))
+                    Text("Played duration: " + getDurationStringShort(vm.episode?.playedDuration?.toLong()?:0L, true))
+                }
             }
         }
     }

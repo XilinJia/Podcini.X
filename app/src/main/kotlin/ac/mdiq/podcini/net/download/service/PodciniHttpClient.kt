@@ -53,7 +53,7 @@ import okhttp3.Route
  */
 object PodciniHttpClient {
     private val TAG: String = PodciniHttpClient::class.simpleName ?: "Anonymous"
-    private const val CONNECTION_TIMEOUT = 10000
+    private const val CONNECTION_TIMEOUT = 20000
     private const val READ_TIMEOUT = 30000
     private const val MAX_CONNECTIONS = 8
     private var cacheDirectory: File? = null

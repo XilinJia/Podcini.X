@@ -45,7 +45,7 @@ class PlaybackServiceStarter(private val context: Context, private val media: Ep
         Logd("PlaybackServiceStarter", "starting PlaybackService")
         if (curEpisode != null && curEpisode?.id != media.id) EventFlow.postEvent(FlowEvent.PlayEvent(curEpisode!!, FlowEvent.PlayEvent.Action.END))
         setCurEpisode(media)
-        curEpisode?.onPlaybackStart()
+//        curEpisode?.onPlaybackStart()
         if (PlaybackService.isRunning && !callEvenIfRunning) return
         ContextCompat.startForegroundService(context, intent)
     }

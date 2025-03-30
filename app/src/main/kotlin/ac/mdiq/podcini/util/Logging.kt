@@ -3,7 +3,7 @@
 package ac.mdiq.podcini.util
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
 import android.util.Log
@@ -21,28 +21,28 @@ var toastMessages = mutableStateListOf<String>()
 var toastMassege by mutableStateOf("")
 
 fun Logd(t: String, m: String) {
-    if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
+    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
 }
 
 fun Loge(t: String, m: String) {
-    if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) Log.e(t, m)
+    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.e(t, m)
     LogScope.launch {
-        if (getPref(AppPreferences.AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: Error: $m"
+        if (getPref(AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: Error: $m"
         toastMessages.add("${localDateTimeString()} $t: Error: $m")
     }
 }
 
 fun Logs(t: String, e: Throwable, m: String = "") {
-    if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) Log.e(t, m + "\n" + Log.getStackTraceString(e))
+    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.e(t, m + "\n" + Log.getStackTraceString(e))
     val me = e.message
     LogScope.launch {
-        if (getPref(AppPreferences.AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: $m Error: $me"
+        if (getPref(AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: $m Error: $me"
         toastMessages.add("${localDateTimeString()} $t: $m Error: $me")
     }
 }
 
 fun Logt(t: String, m: String) {
-    if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
+    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
     LogScope.launch {
         toastMassege = "$t: $m"
         toastMessages.add("${localDateTimeString()} $t: $m")
@@ -50,7 +50,7 @@ fun Logt(t: String, m: String) {
 }
 
 fun showStackTrace() {
-    if (BuildConfig.DEBUG || getPref(AppPreferences.AppPrefs.prefPrintDebugLogs, false)) {
+    if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) {
         val stackTraceElements = Thread.currentThread().stackTrace
         stackTraceElements.forEach { element -> Log.d("showStackTrace", element.toString()) }
     }

@@ -8,6 +8,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerCallback
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
+import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.MediaType
@@ -96,7 +97,8 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
         if (matches(info, curEpisode)) return curEpisode
         val streamUrl = info.metadata!!.getString(KEY_STREAM_URL)
 //        return if (streamUrl == null) makeRemoteMedia(info) else callback.findMedia(streamUrl)
-        return if (streamUrl == null) null else callback.findMedia(streamUrl)
+//        return if (streamUrl == null) null else callback.findMedia(streamUrl)
+        return if (streamUrl == null) null else getEpisodeByGuidOrUrl(null, streamUrl)
     }
 
     private fun toMediaInfo(playable: Episode?): MediaInfo? {
@@ -124,7 +126,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             return
         }
         val currentMedia = if (mediaChanged) toPlayable(mediaInfo) else curEpisode
-        val oldMedia = curEpisode
+//        val oldMedia = curEpisode
         val position = mediaStatus.streamPosition.toInt()
         // check for incompatible states
         if ((state == MediaStatus.PLAYER_STATE_PLAYING || state == MediaStatus.PLAYER_STATE_PAUSED) && currentMedia == null) {
@@ -161,9 +163,9 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
                         // Essentially means stopped at the request of a user
                         callback.onPlaybackEnded(null, true)
                         setPlayerStatus(PlayerStatus.STOPPED, currentMedia)
-                        if (oldMedia != null) {
-                            if (position >= 0) oldMedia.setPosition(position)
-                            callback.onPostPlayback(oldMedia, ended = false, skipped = false, playingNext = false)
+                        if (curEpisode != null) {
+                            if (position >= 0) curEpisode?.setPosition(position)
+                            callback.onPostPlayback(curEpisode!!, ended = false, skipped = false, playingNext = false)
                         }
                         // onPlaybackEnded pretty much takes care of updating the UI
                         return
@@ -198,8 +200,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
             else -> Loge(TAG, "Remote media state undetermined!")
         }
         if (mediaChanged) {
-            callback.onMediaChanged(true)
-            if (oldMedia != null) callback.onPostPlayback(oldMedia, ended = false, skipped = false, playingNext = currentMedia != null)
+            if (curEpisode != null) callback.onPostPlayback(curEpisode!!, ended = false, skipped = false, playingNext = currentMedia != null)
         }
     }
 
@@ -227,10 +228,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
                 Logd(TAG, "Method call to playMediaObject was ignored: media file already playing.")
                 return
             } else {
-                if (prevMedia != null && curEpisode?.id != prevMedia?.id) {
-//                    prevMedia = curEpisode
-                    callback.onPostPlayback(prevMedia!!, false, false, true)
-                }
+                if (curEpisode?.id != playable.id) callback.onPostPlayback(curEpisode!!, false, false, true)
                 setPlayerStatus(PlayerStatus.INDETERMINATE, null)
             }
         }
@@ -242,9 +240,6 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
 
         val metadata = buildMetadata(curEpisode!!)
         try {
-            callback.ensureMediaInfoLoaded(curEpisode!!)
-            // TODO: test
-            callback.onMediaChanged(true)
             setPlaybackParams(getCurrentPlaybackSpeed(curEpisode), isSkipSilence)
             when {
                 streaming -> {

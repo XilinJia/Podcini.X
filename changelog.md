@@ -1,3 +1,10 @@
+# 8.13.6
+
+* improved playing process of custom folder or local feed
+* likely fixed mis-calculations of time spent and played duration
+* tried to prevent autoplay when Playback service is restarted
+* some code cleanups
+
 # 8.13.5
 
 * speed setting dialog from PlayerUI can also set fallback and fast-forward speeds as well as skip times for rewind and forward

@@ -14,7 +14,6 @@ import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeVM
-import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
@@ -736,10 +735,10 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                     fStat.item.timePlayed += e.playedDuration
                     fStat.item.durationStarted += e.duration
                     var tSpent = e.timeSpent
-                    if (tSpent > 3 * max(e.playedDuration, 60000)) {
-                        Loge(TAG, "timeSpent: ${e.timeSpent} > playedDuration: ${e.playedDuration} reset ${e.title}")
-                        tSpent = e.playedDuration.toLong()
-                    }
+//                    if (tSpent > 3 * max(e.playedDuration, 60000)) {
+//                        Logt(TAG, "timeSpent: ${e.timeSpent} > playedDuration: ${e.playedDuration} ${e.title}")
+////                        tSpent = e.playedDuration.toLong()
+//                    }
                     fStat.item.timeSpent += tSpent
                 }
             }

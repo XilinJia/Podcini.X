@@ -8,8 +8,6 @@ import ac.mdiq.podcini.storage.model.MediaType
 interface MediaPlayerCallback {
     fun statusChanged(newInfo: MediaPlayerInfo?)
 
-    fun onMediaChanged(reloadUI: Boolean)
-
     fun onPostPlayback(playable: Episode, ended: Boolean, skipped: Boolean, playingNext: Boolean)
 
     fun onPlaybackStart(playable: Episode, position: Int)
@@ -18,9 +16,5 @@ interface MediaPlayerCallback {
 
     fun getNextInQueue(currentMedia: Episode?): Episode?
 
-    fun findMedia(url: String): Episode?
-
     fun onPlaybackEnded(mediaType: MediaType?, stopPlaying: Boolean)
-
-    fun ensureMediaInfoLoaded(media: Episode)
 }

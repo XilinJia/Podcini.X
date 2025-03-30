@@ -99,9 +99,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
     private val audioRendererIndex: Int
         get() {
-            for (i in 0 until exoPlayer!!.rendererCount) {
-                if (exoPlayer?.getRendererType(i) == C.TRACK_TYPE_AUDIO) return i
-            }
+            for (i in 0 until exoPlayer!!.rendererCount) if (exoPlayer?.getRendererType(i) == C.TRACK_TYPE_AUDIO) return i
             return -1
         }
 
@@ -113,9 +111,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
     init {
         if (httpDataSourceFactory == null) {
-            runOnIOScope {
-                httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent(ClientConfig.USER_AGENT)
-            }
+            runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent(ClientConfig.USER_AGENT) }
         }
         if (exoPlayer == null) {
             exoplayerListener = object : Listener {
@@ -157,7 +153,6 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 }
                 override fun onTracksChanged(tracks: Tracks) {
                     Logd(TAG, "onTracksChanged tracks: ${tracks.groups.size}")
-//                    bitrate = 0
                     tracks.groups.forEach { group ->
                         for (i in 0 until group.length) {
                             val format = group.getTrackFormat(i)
@@ -221,22 +216,23 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         Logd(TAG, "playMediaObject status=$status stream=$streaming startWhenPrepared=$startWhenPrepared prepareImmediately=$prepareImmediately forceReset=$forceReset ${playable.getEpisodeTitle()} ")
 //       showStackTrace()
         if (curEpisode != null) {
-            Logd(TAG, "playMediaObject: curMedia exist status=$status")
+            Logd(TAG, "playMediaObject: curEpisode exist status=$status")
             if (!forceReset && curEpisode!!.id == prevMedia?.id && status == PlayerStatus.PLAYING) {
                 Logd(TAG, "Method call to playMediaObject was ignored: media file already playing.")
                 return
             }
-            Logd(TAG, "playMediaObject starts new playable:${playable.id} curMedia:${curEpisode!!.id} prevMedia:${prevMedia?.id}")
+            Logd(TAG, "playMediaObject starts new playable:${playable.id} curEpisode:${curEpisode!!.id} prevMedia:${prevMedia?.id}")
             // set temporarily to pause in order to update list with current position
             if (status == PlayerStatus.PLAYING) {
                 val pos = curEpisode?.position ?: -1
                 seekTo(pos)
                 callback.onPlaybackPause(curEpisode, pos)
-//                callback.onPostPlayback(curMedia, false, true, true)
             }
             // stop playback of this episode
-            if (status == PlayerStatus.PAUSED || status == PlayerStatus.PLAYING || status == PlayerStatus.PREPARED) exoPlayer?.stop()
-            if (prevMedia != null && curEpisode?.id != prevMedia?.id) callback.onPostPlayback(prevMedia!!, ended = false, skipped = true, true)
+            if (status in listOf(PlayerStatus.PAUSED, PlayerStatus.PLAYING, PlayerStatus.PREPARED)) exoPlayer?.stop()
+            // TODO: testing, this appears not right and not needed
+//            if (prevMedia != null && curEpisode?.id != prevMedia?.id) callback.onPostPlayback(prevMedia!!, ended = false, skipped = true, true)
+            if (curEpisode?.id != playable.id) callback.onPostPlayback(curEpisode!!, ended = false, skipped = true, true)
             setPlayerStatus(PlayerStatus.INDETERMINATE, null)
         }
 
@@ -255,9 +251,6 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         setPlayerStatus(PlayerStatus.INITIALIZING, curEpisode)
         val metadata = buildMetadata(curEpisode!!)
         try {
-            callback.ensureMediaInfoLoaded(curEpisode!!)
-            // TODO: test
-            callback.onMediaChanged(true)
             setPlaybackParams(getCurrentPlaybackSpeed(curEpisode), isSkipSilence)
             CoroutineScope(Dispatchers.IO).launch {
                 when {
@@ -378,15 +371,12 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
             audioSeekCompleteListener?.invoke()
             endPlayback(true, wasSkipped = true, true, toStoppedState = true)
             t = getPosition()
-//            return
         }
 
         when (status) {
             PlayerStatus.PLAYING, PlayerStatus.PAUSED, PlayerStatus.PREPARED -> {
                 Logd(TAG, "seekTo t: $t")
-                if (seekLatch != null && seekLatch!!.count > 0) {
-                    try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
-                }
+                if (seekLatch != null && seekLatch!!.count > 0) try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
                 seekLatch = CountDownLatch(1)
                 statusBeforeSeeking = status
                 setPlayerStatus(PlayerStatus.SEEKING, curEpisode, t)
@@ -426,8 +416,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
     override fun getPlaybackSpeed(): Float {
         var retVal = 1f
-        if (status == PlayerStatus.PLAYING || status == PlayerStatus.PAUSED || status == PlayerStatus.INITIALIZED || status == PlayerStatus.PREPARED)
-            retVal = playbackParameters.speed
+        if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED, PlayerStatus.INITIALIZED, PlayerStatus.PREPARED)) retVal = playbackParameters.speed
         return retVal
     }
 
@@ -552,6 +541,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 if (status == PlayerStatus.SEEKING && statusBeforeSeeking != null) setPlayerStatus(statusBeforeSeeking!!, curEpisode, getPosition())
             }
             bufferingUpdateListener = { percent: Int ->
+                Logd(TAG, "bufferingUpdateListener $percent")
                 when (percent) {
                     BUFFERING_STARTED -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.started())
                     BUFFERING_ENDED -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.ended())
@@ -559,7 +549,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 }
             }
             audioErrorListener = { message: String ->
-                Loge(TAG, "PlayerErrorEvent: $message")
+                Loge(TAG, "audioErrorListener: $message")
                 EventFlow.postEvent(FlowEvent.PlayerErrorEvent(message))
             }
         }
@@ -574,7 +564,6 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         val position = getPosition()
         if (position >= 0) curEpisode?.setPosition(position)
         Logd(TAG, "endPlayback hasEnded=$hasEnded wasSkipped=$wasSkipped shouldContinue=$shouldContinue toStoppedState=$toStoppedState")
-//            showStackTrace()
 
         val currentMedia = curEpisode
         var nextMedia: Episode? = null
@@ -604,7 +593,6 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 }
                 val hasNext = nextMedia != null
                 if (currentMedia != null) callback.onPostPlayback(currentMedia, hasEnded, wasSkipped, hasNext)
-//                curMedia = nextMedia
             }
             isPlaying -> callback.onPlaybackPause(currentMedia, currentMedia!!.position)
         }

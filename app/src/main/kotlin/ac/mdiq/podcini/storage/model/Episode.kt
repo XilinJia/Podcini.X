@@ -7,7 +7,6 @@ import ac.mdiq.podcini.net.feed.parser.media.id3.ID3ReaderException
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentChapterReader
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
-import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
@@ -612,20 +611,15 @@ class Episode : RealmObject {
             var subDirectory = baseDir.findFile(subDirectoryName)
             Logd(TAG, "getMediaFileUriString subDirectoryName: [$subDirectoryName] ${subDirectory.toString()}")
             if (subDirectory == null) subDirectory = baseDir.createDirectory(subDirectoryName)
-
             var fileUri: Uri? = null
             if (subDirectory != null) fileUri = subDirectory.findFile(fileName)?.uri ?: subDirectory.createFile(getMimeType(fileName), fileName)?.uri
             fileUri.toString()
         } else {
             val baseDir = getAppContext().getExternalFilesDir("media")
             val subDirectory = File(baseDir, subDirectoryName)
-            if (!subDirectory.exists()) {
-                if (!subDirectory.mkdir()) throw IllegalStateException("Failed to create sub-directory: ${subDirectory.absolutePath}")
-            }
+            if (!subDirectory.exists() && !subDirectory.mkdir()) throw IllegalStateException("Failed to create sub-directory: ${subDirectory.absolutePath}")
             val file = File(subDirectory, fileName)
-            if (!file.exists()) {
-                if (!file.createNewFile()) throw IllegalStateException("Failed to create file: ${file.absolutePath}")
-            }
+            if (!file.exists() && !file.createNewFile()) throw IllegalStateException("Failed to create file: ${file.absolutePath}")
             Uri.fromFile(file).toString()
         }
     }
@@ -661,7 +655,7 @@ class Episode : RealmObject {
                     val url = fileUrl
                     if (!url.isNullOrEmpty()) size_ = fileSize() ?: 0
                 }
-                force || !checkedOnSizeButUnknown() -> {
+                force || !isSizeSetUnknown() -> {
                     // only query the network if we haven't already checked
                     val url = downloadUrl
                     if (url.isNullOrEmpty()) return@withContext -1
@@ -681,29 +675,12 @@ class Episode : RealmObject {
                 }
             }
             // they didn't tell us the size, but we don't want to keep querying on it
-            if (persist) upsert(this@Episode) {
-                if (size_ <= 0) it.setCheckedOnSizeButUnknown()
-                else it.size = size_
-            }
+            if (persist) upsert(this@Episode) { it.size = if (size_ <= 0) CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() else size_ }
             size_
         }
     }
 
-    /**
-     * Indicates we asked the service what the size was, but didn't
-     * get a valid answer and we shoudln't check using the network again.
-     */
-    fun setCheckedOnSizeButUnknown() {
-        this.size = CHECKED_ON_SIZE_BUT_UNKNOWN.toLong()
-    }
-
-    fun checkedOnSizeButUnknown(): Boolean {
-        return (CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() == this.size)
-    }
-
-//    override fun describeContents(): Int {
-//        return 0
-//    }
+    fun isSizeSetUnknown(): Boolean = (CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() == this.size)
 
     fun hasEmbeddedPicture(): Boolean {
 //        TODO: checkEmbeddedPicture needs to update current copy
@@ -726,16 +703,12 @@ class Episode : RealmObject {
 //        dest.writeLong(lastPlayedTime)
 //    }
 
-    fun getEpisodeTitle(): String {
-        return title ?: identifyingValue ?: "No title"
-    }
+    fun getEpisodeTitle(): String = title ?: identifyingValue ?: "No title"
 
     /**
      * Returns true if a local file that can be played is available. getFileUrl MUST return a non-null string if this method returns true.
      */
-    fun localFileAvailable(): Boolean {
-        return downloaded && !fileUrl.isNullOrBlank()
-    }
+    fun localFileAvailable(): Boolean = downloaded && !fileUrl.isNullOrBlank()
 
     /**
      * This method should be called every time playback starts on this object.
@@ -756,21 +729,22 @@ class Episode : RealmObject {
      * necessary, as long as a call to [.onPlaybackCompleted] is made.
      * Position held by this EpisodeMedia should be set accurately before a call to this method is made.
      */
-    fun savePlayTime(completed: Boolean = false) {
-        Logd(TAG, "savePlayTime $position $duration")
-        if (position > startPosition) playedDuration = playedDurationWhenStarted + position - startPosition
-        if (startTime > 0) {
-            var delta = (System.currentTimeMillis() - startTime)
-            if (delta > 3* max(playedDuration, 60000)) {
-                Loge(TAG, "savePlayTime likely invalid delta: $delta reset ${title}")
-                startTime = System.currentTimeMillis()
-                delta = 0
-            } else timeSpent = timeSpentOnStart + delta
-        }
-        Logd(TAG, "savePlayTime startTime: $startTime timeSpent: $timeSpent playedDuration: $playedDuration playedDurationWhenStarted: $playedDurationWhenStarted")
-        startPosition = if (completed) -1 else position
-        startTime = 0
-    }
+//    fun savePlayTime(completed: Boolean = false) {
+//        Logd(TAG, "savePlayTime $position $duration")
+//        if (position > startPosition) playedDuration = playedDurationWhenStarted + position - startPosition
+//        if (playedDuration < position) Logt(TAG, "savePlayTime likely wrong playedDuration: ${playedDuration} < ${position} ${title}")
+//        if (startTime > 0) {
+//            var delta = System.currentTimeMillis() - startTime
+//            if (delta > 3* max(playedDuration, 60000)) {
+//                Logt(TAG, "savePlayTime likely invalid delta: $delta ${title}")
+////                startTime = System.currentTimeMillis()
+////                delta = 0
+//            } else timeSpent = timeSpentOnStart + delta
+//        }
+//        Logd(TAG, "savePlayTime startTime: $startTime timeSpent: $timeSpent playedDuration: $playedDuration playedDurationWhenStarted: $playedDurationWhenStarted")
+//        startPosition = if (completed) -1 else position
+//        startTime = 0
+//    }
 
     fun setChapters(chapters_: List<Chapter>) {
         chapters.clear()
@@ -838,16 +812,14 @@ class Episode : RealmObject {
             throw IOException("Local file is not valid")
         } else {
             val streamurl = downloadUrl
-            if (streamurl != null && streamurl.startsWith(ContentResolver.SCHEME_CONTENT)) {
-                val uri = Uri.parse(streamurl)
-                return CountingInputStream(BufferedInputStream(context.contentResolver.openInputStream(uri)))
-            } else {
-                if (streamurl.isNullOrEmpty()) throw IOException("stream url is null of empty")
-                val request: Request = Builder().url(streamurl).build()
-                val response = getHttpClient().newCall(request).execute()
-                if (response.body == null) throw IOException("Body is null")
-                return CountingInputStream(BufferedInputStream(response.body!!.byteStream()))
-            }
+            if (streamurl != null && streamurl.startsWith(ContentResolver.SCHEME_CONTENT))
+                return CountingInputStream(BufferedInputStream(context.contentResolver.openInputStream(Uri.parse(streamurl))))
+
+            if (streamurl.isNullOrEmpty()) throw IOException("stream url is null of empty")
+            val request: Request = Builder().url(streamurl).build()
+            val response = getHttpClient().newCall(request).execute()
+            if (response.body == null) throw IOException("Body is null")
+            return CountingInputStream(BufferedInputStream(response.body!!.byteStream()))
         }
     }
 
@@ -858,10 +830,7 @@ class Episode : RealmObject {
         var chapters = reader.getChapters()
         chapters = chapters.sortedWith(ChapterStartTimeComparator())
         enumerateEmptyChapterTitles(chapters)
-        if (!chaptersValid(chapters)) {
-            Logd(TAG, "Chapter data was invalid")
-            return emptyList()
-        }
+        if (!chaptersValid(chapters)) return emptyList()
         return chapters
     }
 

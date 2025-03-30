@@ -332,8 +332,9 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                             var hasNonMediaItems = false
                             // TODO: ensure
                             for (item in episodes) {
-                                if (item.downloadUrl == null) {
+                                if (item.downloadUrl.isNullOrBlank()) {
                                     hasNonMediaItems = true
+                                    Logt(TAG, "item downloadUrl is null or blank: ${item.title}")
                                     break
                                 }
                             }
@@ -364,7 +365,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         }.apply { invokeOnCompletion { loadJob = null } }
     }
     fun buildMoreItems() {
-//        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         if (nextItems.isNotEmpty()) vms.addAll(nextItems)
     }
@@ -429,7 +429,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             } catch (e: Throwable) { withContext(Dispatchers.Main) { Loge(TAG, e.localizedMessage?:"No message") } }
         }
     }
-
 }
 
 enum class FeedScreenMode {

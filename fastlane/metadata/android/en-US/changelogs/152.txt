@@ -1,0 +1,6 @@
+# 8.13.6
+
+* improved playing process of custom folder or local feed
+* likely fixed mis-calculations of time spent and played duration
+* tried to prevent autoplay when Playback service is restarted
+* some code cleanups
