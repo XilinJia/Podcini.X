@@ -539,7 +539,7 @@ fun EpisodeInfoScreen() {
                 Text(vm.episode?.link?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable(onClick = {
                     if (!vm.episode?.link.isNullOrBlank()) IntentUtils.openInBrowser(context, vm.episode!!.link!!)
                 }))
-                if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Row {
+                Row {
                     Text("Time spent: " + getDurationStringShort(vm.episode?.timeSpent?:0L, true))
                     Spacer(Modifier.width(50.dp))
                     Text("Played duration: " + getDurationStringShort(vm.episode?.playedDuration?.toLong()?:0L, true))

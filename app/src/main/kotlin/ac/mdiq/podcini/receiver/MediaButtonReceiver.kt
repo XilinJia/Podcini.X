@@ -12,6 +12,7 @@ import android.view.KeyEvent
 import androidx.core.content.ContextCompat
 
 
+// TODO: likely not used
 /**
  * Receives media button events.
  */
@@ -23,9 +24,7 @@ class MediaButtonReceiver : BroadcastReceiver() {
         Logd(TAG, "onReceive Extras: $extras")
         if (extras == null) return
         Logd(TAG, "onReceive Extras: ${extras.keySet()}")
-        for (key in extras.keySet()) {
-            Logd(TAG, "onReceive Extra[$key] = ${extras[key]}")
-        }
+        for (key in extras.keySet()) Logd(TAG, "onReceive Extra[$key] = ${extras[key]}")
 
 //        val event = extras.getParcelable(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
         val keyEvent: KeyEvent? = if (Build.VERSION.SDK_INT >= 33) extras.getParcelable(Intent.EXTRA_KEY_EVENT, KeyEvent::class.java)
@@ -59,11 +58,6 @@ class MediaButtonReceiver : BroadcastReceiver() {
             startingIntent.setAction(NOTIFY_BUTTON_RECEIVER)
             startingIntent.putExtra(Intent.EXTRA_KEY_EVENT, event)
             return startingIntent
-        }
-
-        @JvmStatic
-        fun createPendingIntent(context: Context, eventCode: Int): PendingIntent {
-            return PendingIntent.getBroadcast(context, eventCode, createIntent(context, eventCode), PendingIntent.FLAG_IMMUTABLE)
         }
     }
 }

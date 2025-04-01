@@ -236,7 +236,7 @@ class CastMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaPl
         setCurEpisode(playable)
         this.mediaType = curEpisode!!.getMediaType()
         this.startWhenPrepared.set(startWhenPrepared)
-        setPlayerStatus(PlayerStatus.INITIALIZING, curEpisode)
+//        setPlayerStatus(PlayerStatus.INITIALIZING, curEpisode)
 
         val metadata = buildMetadata(curEpisode!!)
         try {

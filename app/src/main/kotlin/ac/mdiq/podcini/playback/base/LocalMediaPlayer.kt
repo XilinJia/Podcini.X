@@ -248,7 +248,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         videoSize = null
         createMediaPlayer()
         this.startWhenPrepared.set(startWhenPrepared)
-        setPlayerStatus(PlayerStatus.INITIALIZING, curEpisode)
+//        setPlayerStatus(PlayerStatus.INITIALIZING, curEpisode)
         val metadata = buildMetadata(curEpisode!!)
         try {
             setPlaybackParams(getCurrentPlaybackSpeed(curEpisode), isSkipSilence)
@@ -268,7 +268,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                     else -> {
                         val localMediaurl = curEpisode!!.fileUrl
                         if (!localMediaurl.isNullOrBlank()) setDataSource(curEpisode!!, metadata, localMediaurl, null, null)
-                        else throw IOException("Unable to read local file $localMediaurl")
+                        else Loge(TAG, "Unable to read local file $localMediaurl")
                     }
                 }
                 withContext(Dispatchers.Main) {
@@ -289,8 +289,8 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
     }
 
     override fun resume() {
-        Logd(TAG, "resume(): exoPlayer?.playbackState: ${exoPlayer?.playbackState}")
-        if (status == PlayerStatus.PAUSED || status == PlayerStatus.PREPARED) {
+        Logd(TAG, "resume(): status: $status exoPlayer?.playbackState: ${exoPlayer?.playbackState}")
+        if (status in listOf(PlayerStatus.PAUSED, PlayerStatus.PREPARED)) {
             Logd(TAG, "Resuming/Starting playback")
             acquireWifiLockIfNecessary()
             setPlaybackParams(getCurrentPlaybackSpeed(curEpisode), isSkipSilence)
@@ -299,7 +299,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 val newPosition = calculatePositionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime)
                 seekTo(newPosition)
             }
-            if (exoPlayer?.playbackState == STATE_IDLE || exoPlayer?.playbackState == STATE_ENDED ) {
+            if (exoPlayer?.playbackState in listOf(STATE_IDLE, STATE_ENDED)) {
                 if (mediaSource != null || mediaItem != null) {
                     if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, false)
                     else exoPlayer?.setMediaItem(mediaItem!!)
@@ -311,7 +311,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
             exoPlayer?.playbackParameters = playbackParameters
             setPlayerStatus(PlayerStatus.PLAYING, curEpisode)
             if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlayEvent(curEpisode!!))
-        } else Logd(TAG, "Call to resume() was ignored because current state of PSMP object is $status")
+        } else Logt(TAG, "Call to resume() was ignored because current state of PSMP object is $status")
     }
 
     override fun pause(reinit: Boolean) {
@@ -401,8 +401,11 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
     override fun getPosition(): Int {
         var retVal = Episode.INVALID_TIME
-        if (exoPlayer != null && status.isAtLeast(PlayerStatus.PREPARED)) retVal = exoPlayer!!.currentPosition.toInt()
+//        if (exoPlayer != null && status.isAtLeast(PlayerStatus.PREPARED)) retVal = exoPlayer!!.currentPosition.toInt()
+        if (exoPlayer != null) retVal = exoPlayer!!.currentPosition.toInt()
+        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
+        Logd(TAG, "getPosition final position: $retVal")
         return retVal
     }
 
@@ -410,8 +413,8 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
         EventFlow.postEvent(FlowEvent.SpeedChangedEvent(speed))
         Logd(TAG, "setPlaybackParams speed=$speed pitch=${playbackParameters.pitch} skipSilence=$skipSilence")
         playbackParameters = PlaybackParameters(speed, playbackParameters.pitch)
-        exoPlayer!!.skipSilenceEnabled = skipSilence
-        exoPlayer!!.playbackParameters = playbackParameters
+        exoPlayer?.skipSilenceEnabled = skipSilence
+        exoPlayer?.playbackParameters = playbackParameters
     }
 
     override fun getPlaybackSpeed(): Float {
@@ -557,7 +560,10 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
 
     override fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean, toStoppedState: Boolean) {
         releaseWifiLockIfNecessary()
-        if (curEpisode == null) return
+        if (curEpisode == null) {
+            Logd(TAG, "endPlayback curEpisode is null, return")
+            return
+        }
 
         val isPlaying = status == PlayerStatus.PLAYING
         // we're relying on the position stored in the EpisodeMedia object for post-playback processing

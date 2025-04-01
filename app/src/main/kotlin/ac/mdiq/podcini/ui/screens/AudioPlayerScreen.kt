@@ -22,16 +22,15 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isSleepTimerAc
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playPause
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.toggleFallbackSpeed
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
+import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
-import ac.mdiq.podcini.receiver.MediaButtonReceiver
 import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -75,7 +74,6 @@ import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
 import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
-import android.view.KeyEvent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -298,9 +296,8 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
     private fun updatePlaybackSpeedButton(event: FlowEvent.SpeedChangedEvent) {
-        val speedStr: String = DecimalFormat("0.00").format(event.newSpeed.toDouble())
         curPlaybackSpeed = event.newSpeed
-        txtvPlaybackSpeed = speedStr
+        txtvPlaybackSpeed = DecimalFormat("0.00").format(event.newSpeed.toDouble())
     }
     private fun onPlaybackPositionEvent(event: FlowEvent.PlaybackPositionEvent) {
 //        Logd(TAG, "onPlaybackPositionEvent ${event.episode.title}")
@@ -347,7 +344,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         sliderValue = event.position.toFloat()
     }
     internal fun updateUi(media: Episode) {
-        Logd(TAG, "updateUi called $media")
+//        Logd(TAG, "updateUi called $media")
         titleText = media.getEpisodeTitle()
         txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
         curPlaybackSpeed = curPBSpeed
@@ -450,8 +447,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                         for (i in chapters.indices) dividerPos[i] = chapters[i].start / curDurationFB.toFloat()
                     }
                     sleepTimerActive = isSleepTimerActive()
-//                TODO: disable for now
-//                if (!includingChapters) loadMediaInfo(true)
                 }.invokeOnCompletion { throwable ->
                     if (throwable != null) Logs(TAG, throwable)
                     loadItemsRunning = false
@@ -502,7 +497,7 @@ fun AudioPlayerScreen() {
                 Lifecycle.Event.ON_RESUME -> {
                     vm.loadMediaInfo()
                     if (curEpisode != null) {
-                        !isCurrentlyPlaying(curEpisode)
+                        !isCurrentlyPlaying(curEpisode)     // TODO: what is this? introduced since 8.11.7
                         vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode!!, curEpisode!!.position, curEpisode!!.duration))
                     }
                 }
@@ -616,6 +611,17 @@ fun AudioPlayerScreen() {
                 Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
+            fun toggleFallbackSpeed(speed: Float) {
+                if (playbackService?.mPlayer == null || playbackService!!.isSpeedForward) return
+                if (status == PlayerStatus.PLAYING) {
+                    val pbs = playbackService!!
+                    if (!pbs.isFallbackSpeed) {
+                        pbs.normalSpeed = pbs.mPlayer!!.getPlaybackSpeed()
+                        pbs.mPlayer!!.setPlaybackParams(speed, isSkipSilence)
+                    } else pbs.mPlayer!!.setPlaybackParams(pbs.normalSpeed, isSkipSilence)
+                    pbs.isFallbackSpeed = !pbs.isFallbackSpeed
+                }
+            }
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
                 onClick = {
                     if (curEpisode != null) {
@@ -628,7 +634,15 @@ fun AudioPlayerScreen() {
                         if (media.getMediaType() == MediaType.VIDEO && status != PlayerStatus.PLAYING && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                             playPause()
                             context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
-                        } else playPause()
+                        } else {
+                            Logd(TAG, "Play button clicked: status: $status is ready: ${playbackService?.isServiceReady()}")
+//                            if (status == PlayerStatus.STOPPED) playbackService?.recreateMediaPlayer()
+                            if (status <= PlayerStatus.STOPPED || playbackService?.isServiceReady() != true) {
+                                val playOverStream = !(prefStreamOverDownload && media.feed?.prefStreamOverDownload == true) || media.downloaded || media.feed?.isLocalFeed == true
+                                PlaybackServiceStarter(context, media).shouldStreamThisTime(!playOverStream).callEvenIfRunning(false).start()
+                                EventFlow.postEvent(FlowEvent.PlayEvent(media))
+                            } else playPause()
+                        }
                     }
                 },
                 onLongClick = {
@@ -664,7 +678,10 @@ fun AudioPlayerScreen() {
                         val speedForward = AppPreferences.speedforwardSpeed
                         if (speedForward > 0.1f) speedForward(speedForward)
                     } },
-                onLongClick = { context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT)) })) {
+                onLongClick = {
+//                    context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT))
+                    if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) playbackService?.mPlayer?.skip()
+                })) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = textColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
                 if (AppPreferences.speedforwardSpeed > 0.1f) Text(NumberFormat.getInstance().format(AppPreferences.speedforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }

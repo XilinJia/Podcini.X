@@ -312,7 +312,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     @Synchronized
     protected fun releaseWifiLockIfNecessary() {
-        if (wifiLock != null && wifiLock!!.isHeld) wifiLock!!.release()
+        if (wifiLock?.isHeld == true) wifiLock!!.release()
     }
 
     /**
@@ -369,7 +369,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
         override fun open(dataSpec: DataSpec): Long {
             val keys = simpleCache?.keys
-            keys?.forEach { Logd(TAG, "key: $it") }
+//            keys?.forEach { Logd(TAG, "key: $it") }
             val mediaId = dataSpec.key ?: dataSpec.uri.toString()
             val existingSpans = simpleCache?.getCachedSpans(mediaId)
             Logd(TAG, "Before listener: mediaId=[$mediaId] spans=${existingSpans?.size}, totalBytes=${existingSpans?.sumOf { it.length }}")

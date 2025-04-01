@@ -332,7 +332,7 @@ object RealmDB {
     fun episodeMonitor(episode: Episode, onChanges: suspend (Episode, fields: Array<String>)->Unit): Job {
         return CoroutineScope(Dispatchers.Default).launch {
             val item_ = realm.query(Episode::class).query("id == ${episode.id}").first()
-            Logd(TAG, "start monitoring episode: ${episode.id} ${episode.title}")
+//            Logd(TAG, "start monitoring episode: ${episode.id} ${episode.title}")
             val episodeFlow = item_.asFlow()
             episodeFlow.collect { changes: SingleQueryChange<Episode> ->
                 when (changes) {

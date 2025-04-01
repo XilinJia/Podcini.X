@@ -1,3 +1,14 @@
+# 8.14.0
+
+* improved behavior when toggling between fallback and normal play on long-press the Play/Pause button
+* auto trim toast messages list to 100
+* amended multi-select menu colors
+* amended routines in PlaybackService to accommodate media3 1.6.0
+* minor amendments in getNextInQueue
+* Play/Stream buttons on episodes list are more responsive
+* On startup, Play button on PlayerUI plays the episode 
+* upped Kotlin to 2.1.20, krdb to 3.2.6 and media3 to 1.6.0
+
 # 8.13.6
 
 * improved playing process of custom folder or local feed

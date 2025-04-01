@@ -922,10 +922,10 @@ fun SubscriptionsScreen() {
             val scrollState = rememberScrollState()
             Column(modifier = modifier.verticalScroll(scrollState), verticalArrangement = Arrangement.Bottom) {
                 if (isExpanded) options.forEachIndexed { _, button ->
-                    FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.tertiary,
+                    FloatingActionButton(containerColor = MaterialTheme.colorScheme.onTertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiary,
                         modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp), onClick = {}) { button() }
                 }
-                FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.tertiary,
+                FloatingActionButton(containerColor = MaterialTheme.colorScheme.onTertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiary,
                     onClick = { isExpanded = !isExpanded }) { Icon(Icons.Filled.Edit, "Edit") }
             }
         }
@@ -1072,16 +1072,12 @@ fun SubscriptionsScreen() {
                                 Logd(TAG, "long clicked: ${feed.title}")
                             })) {
                                 Row {
-                                    if (feed.rating != Rating.UNRATED.code)
-                                        Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
-                                            modifier = Modifier.width(20.dp).height(20.dp).background(MaterialTheme.colorScheme.tertiaryContainer))
-                                    Text(feed.title ?: "No title", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                                    if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.width(20.dp).height(20.dp).background(MaterialTheme.colorScheme.tertiaryContainer))
+                                    Text(feed.title ?: "No title", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                                 }
                                 Text(feed.author ?: "No author", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                                 Row(Modifier.padding(top = 5.dp)) {
-                                    val measureString = remember { NumberFormat.getInstance().format(feed.episodes.size.toLong()) + " : " +
-                                            DurationConverter.durationInHours(feed.totleDuration/1000) }
+                                    val measureString = remember { NumberFormat.getInstance().format(feed.episodes.size.toLong()) + " : " + DurationConverter.durationInHours(feed.totleDuration/1000) }
                                     Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(modifier = Modifier.weight(1f))
                                     var feedSortInfo by remember { mutableStateOf(feed.sortInfo) }
@@ -1096,8 +1092,8 @@ fun SubscriptionsScreen() {
                 }
             }
             if (vm.selectMode) {
-                val buttonColor = MaterialTheme.colorScheme.tertiary
-                Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.tertiaryContainer),
+                val buttonColor = MaterialTheme.colorScheme.onTertiary
+                Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.onTertiaryContainer),
                     horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null,
                         modifier = Modifier.width(35.dp).height(35.dp).padding(end = 10.dp).clickable(onClick = {

@@ -20,6 +20,14 @@ val LogScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 var toastMessages = mutableStateListOf<String>()
 var toastMassege by mutableStateOf("")
 
+private fun trimToasts() {
+    if (toastMessages.size > 120) {
+        val newList = toastMessages.subList(20, toastMessages.size)
+        toastMessages.clear()
+        toastMessages.addAll(newList)
+    }
+}
+
 fun Logd(t: String, m: String) {
     if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
 }
@@ -28,6 +36,7 @@ fun Loge(t: String, m: String) {
     if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.e(t, m)
     LogScope.launch {
         if (getPref(AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: Error: $m"
+        trimToasts()
         toastMessages.add("${localDateTimeString()} $t: Error: $m")
     }
 }
@@ -37,6 +46,7 @@ fun Logs(t: String, e: Throwable, m: String = "") {
     val me = e.message
     LogScope.launch {
         if (getPref(AppPrefs.prefShowErrorToasts, true)) toastMassege = "$t: $m Error: $me"
+        trimToasts()
         toastMessages.add("${localDateTimeString()} $t: $m Error: $me")
     }
 }
@@ -45,6 +55,7 @@ fun Logt(t: String, m: String) {
     if (BuildConfig.DEBUG || getPref(AppPrefs.prefPrintDebugLogs, false)) Log.d(t, m)
     LogScope.launch {
         toastMassege = "$t: $m"
+        trimToasts()
         toastMessages.add("${localDateTimeString()} $t: $m")
     }
 }

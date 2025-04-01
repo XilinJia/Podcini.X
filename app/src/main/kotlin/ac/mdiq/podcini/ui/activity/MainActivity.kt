@@ -14,9 +14,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
-import ac.mdiq.podcini.receiver.MediaButtonReceiver.Companion.createIntent
-import ac.mdiq.podcini.storage.database.Feeds.compileTags
 import ac.mdiq.podcini.storage.database.Feeds.cancelMonitorFeeds
+import ac.mdiq.podcini.storage.database.Feeds.compileTags
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.monitorFeeds
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -50,16 +49,13 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.StrictMode
 import android.provider.Settings
-import android.view.KeyEvent
 import android.view.View
-import android.widget.EditText
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -535,37 +531,37 @@ class MainActivity : BaseActivity() {
     }
 
     //Hardware keyboard support
-    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        val currentFocus = currentFocus
-        if (currentFocus is EditText) return super.onKeyUp(keyCode, event)
-
-        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        var customKeyCode: Int? = null
-        EventFlow.postEvent(event)
-
-        when (keyCode) {
-            KeyEvent.KEYCODE_P -> customKeyCode = KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-            KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_COMMA -> customKeyCode = KeyEvent.KEYCODE_MEDIA_REWIND
-            KeyEvent.KEYCODE_K, KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_PERIOD -> customKeyCode = KeyEvent.KEYCODE_MEDIA_FAST_FORWARD
-            KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_W -> {
-                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
-                return true
-            }
-            KeyEvent.KEYCODE_MINUS, KeyEvent.KEYCODE_S -> {
-                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
-                return true
-            }
-            KeyEvent.KEYCODE_M -> {
-                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, AudioManager.FLAG_SHOW_UI)
-                return true
-            }
-        }
-        if (customKeyCode != null) {
-            sendBroadcast(createIntent(this, customKeyCode))
-            return true
-        }
-        return super.onKeyUp(keyCode, event)
-    }
+//    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+//        val currentFocus = currentFocus
+//        if (currentFocus is EditText) return super.onKeyUp(keyCode, event)
+//
+//        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+//        var customKeyCode: Int? = null
+//        EventFlow.postEvent(event)
+//
+//        when (keyCode) {
+//            KeyEvent.KEYCODE_P -> customKeyCode = KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+//            KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_COMMA -> customKeyCode = KeyEvent.KEYCODE_MEDIA_REWIND
+//            KeyEvent.KEYCODE_K, KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_PERIOD -> customKeyCode = KeyEvent.KEYCODE_MEDIA_FAST_FORWARD
+//            KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_W -> {
+//                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
+//                return true
+//            }
+//            KeyEvent.KEYCODE_MINUS, KeyEvent.KEYCODE_S -> {
+//                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
+//                return true
+//            }
+//            KeyEvent.KEYCODE_M -> {
+//                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, AudioManager.FLAG_SHOW_UI)
+//                return true
+//            }
+//        }
+//        if (customKeyCode != null) {
+//            sendBroadcast(createIntent(this, customKeyCode))
+//            return true
+//        }
+//        return super.onKeyUp(keyCode, event)
+//    }
 
     @Suppress("EnumEntryName")
     enum class Extras {

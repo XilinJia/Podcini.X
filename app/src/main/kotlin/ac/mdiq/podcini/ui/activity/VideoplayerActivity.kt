@@ -43,9 +43,7 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
 import ac.mdiq.podcini.util.toastMassege
-import ac.mdiq.podcini.util.toastMessages
 import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.content.res.Configuration
@@ -484,52 +482,52 @@ class VideoplayerActivity : BaseActivity() {
     }
 
     //Hardware keyboard support
-    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        val currentFocus = currentFocus
-        if (currentFocus is EditText) return super.onKeyUp(keyCode, event)
-        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-        when (keyCode) {
-            KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_SPACE -> {
-                playPause()
-                return true
-            }
-            KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_COMMA -> {
-                playbackService?.mPlayer?.seekDelta(-rewindSecs * 1000)
-                return true
-            }
-            KeyEvent.KEYCODE_K, KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_PERIOD -> {
-                playbackService?.mPlayer?.seekDelta(fastForwardSecs * 1000)
-                return true
-            }
-            KeyEvent.KEYCODE_F, KeyEvent.KEYCODE_ESCAPE -> {
-                //Exit fullscreen mode
-                onBackPressed()
-                return true
-            }
-            KeyEvent.KEYCODE_I -> {
-                compatEnterPictureInPicture()
-                return true
-            }
-            KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_W -> {
-                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
-                return true
-            }
-            KeyEvent.KEYCODE_MINUS, KeyEvent.KEYCODE_S -> {
-                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
-                return true
-            }
-            KeyEvent.KEYCODE_M -> {
-                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, AudioManager.FLAG_SHOW_UI)
-                return true
-            }
-        }
-        //Go to x% of video:
-        if (keyCode >= KeyEvent.KEYCODE_0 && keyCode <= KeyEvent.KEYCODE_9) {
-            seekTo((0.1f * (keyCode - KeyEvent.KEYCODE_0) * curDurationFB).toInt())
-            return true
-        }
-        return super.onKeyUp(keyCode, event)
-    }
+//    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+//        val currentFocus = currentFocus
+//        if (currentFocus is EditText) return super.onKeyUp(keyCode, event)
+//        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+//        when (keyCode) {
+//            KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_SPACE -> {
+//                playPause()
+//                return true
+//            }
+//            KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_COMMA -> {
+//                playbackService?.mPlayer?.seekDelta(-rewindSecs * 1000)
+//                return true
+//            }
+//            KeyEvent.KEYCODE_K, KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_PERIOD -> {
+//                playbackService?.mPlayer?.seekDelta(fastForwardSecs * 1000)
+//                return true
+//            }
+//            KeyEvent.KEYCODE_F, KeyEvent.KEYCODE_ESCAPE -> {
+//                //Exit fullscreen mode
+//                onBackPressed()
+//                return true
+//            }
+//            KeyEvent.KEYCODE_I -> {
+//                compatEnterPictureInPicture()
+//                return true
+//            }
+//            KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_W -> {
+//                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
+//                return true
+//            }
+//            KeyEvent.KEYCODE_MINUS, KeyEvent.KEYCODE_S -> {
+//                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
+//                return true
+//            }
+//            KeyEvent.KEYCODE_M -> {
+//                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, AudioManager.FLAG_SHOW_UI)
+//                return true
+//            }
+//        }
+//        //Go to x% of video:
+//        if (keyCode >= KeyEvent.KEYCODE_0 && keyCode <= KeyEvent.KEYCODE_9) {
+//            seekTo((0.1f * (keyCode - KeyEvent.KEYCODE_0) * curDurationFB).toInt())
+//            return true
+//        }
+//        return super.onKeyUp(keyCode, event)
+//    }
 
     override fun isInPictureInPictureMode(): Boolean {
         return if (packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)) super.isInPictureInPictureMode

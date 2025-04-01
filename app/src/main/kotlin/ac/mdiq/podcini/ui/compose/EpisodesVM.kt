@@ -249,7 +249,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     fun stopMonitoring() {
         episodeMonitor?.cancel()
         episodeMonitor = null
-        Logd("EpisodeVM", "cancel monitoring")
+//        Logd("EpisodeVM", "cancel monitoring")
     }
 
     fun startMonitoring() {
@@ -717,10 +717,10 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
         val scrollState = rememberScrollState()
         Column(modifier = modifier.verticalScroll(scrollState), verticalArrangement = Arrangement.Bottom) {
             if (isExpanded) options.forEachIndexed { _, button ->
-                FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.tertiary,
+                FloatingActionButton(containerColor = MaterialTheme.colorScheme.onTertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiary,
                     modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp),onClick = {}) { button() }
             }
-            FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = MaterialTheme.colorScheme.tertiary,
+            FloatingActionButton(containerColor = MaterialTheme.colorScheme.onTertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiary,
                 onClick = { isExpanded = !isExpanded }) { Icon(Icons.Filled.Edit, "Edit") }
         }
     }
@@ -870,8 +870,8 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         LaunchedEffect(key1 = status, key2 = vm.downloadState) {
                             if (index >= vms.size) return@LaunchedEffect
                             if (isDownloading()) vm.dlPercent = dls?.getProgress(vms[index].episode.downloadUrl ?: "") ?: 0
-                            Logd(TAG, "LaunchedEffect $index isPlayingState: ${vms[index].isPlayingState} ${vm.episode.playState} ${vms[index].episode.title}")
-                            Logd(TAG, "LaunchedEffect $index downloadState: ${vms[index].downloadState} ${vm.episode.downloaded} ${vm.dlPercent}")
+//                            Logd(TAG, "LaunchedEffect $index isPlayingState: ${vms[index].isPlayingState} ${vm.episode.playState} ${vms[index].episode.title}")
+//                            Logd(TAG, "LaunchedEffect $index downloadState: ${vms[index].downloadState} ${vm.episode.downloaded} ${vm.dlPercent}")
                             vm.actionButton = vm.actionButton.forItem(vm.episode)
                             Logd(TAG, "LaunchedEffect vm.actionButton: ${vm.actionButton.TAG}")
                         }
@@ -939,7 +939,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 vm.startMonitoring()
                 DisposableEffect(Unit) {
                     onDispose {
-                        Logd(TAG, "cancelling monitoring $index")
+//                        Logd(TAG, "cancelling monitoring $index")
                         vm.stopMonitoring()
                     }
                 }
@@ -998,8 +998,8 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
             }
         }
         if (selectMode) {
-            val buttonColor = MaterialTheme.colorScheme.tertiary
-            Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.tertiaryContainer),
+            val buttonColor = MaterialTheme.colorScheme.onTertiary
+            Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.onTertiaryContainer),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null,
                     modifier = Modifier.width(35.dp).height(35.dp).padding(end = 10.dp)
