@@ -1,3 +1,8 @@
+# 8.14.1
+
+* fixed and enhance volume adaptation in PlayerDetails
+* fixed play not working when current episode is null
+
 # 8.14.0
 
 * improved behavior when toggling between fallback and normal play on long-press the Play/Pause button

@@ -766,14 +766,12 @@ class PlaybackService : MediaLibraryService() {
         val intentAllowThisTime = Intent(originalIntent)
         intentAllowThisTime.setAction(EXTRA_ALLOW_STREAM_THIS_TIME)
         intentAllowThisTime.putExtra(EXTRA_ALLOW_STREAM_THIS_TIME, true)
-        val pendingIntentAllowThisTime =
-            PendingIntent.getForegroundService(this, R.id.pending_intent_allow_stream_this_time, intentAllowThisTime, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
+        val pendingIntentAllowThisTime = PendingIntent.getForegroundService(this, R.id.pending_intent_allow_stream_this_time, intentAllowThisTime, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
 
         val intentAlwaysAllow = Intent(intentAllowThisTime)
         intentAlwaysAllow.setAction(EXTRA_ALLOW_STREAM_ALWAYS)
         intentAlwaysAllow.putExtra(EXTRA_ALLOW_STREAM_ALWAYS, true)
-        val pendingIntentAlwaysAllow =
-            PendingIntent.getForegroundService(this, R.id.pending_intent_allow_stream_always, intentAlwaysAllow, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
+        val pendingIntentAlwaysAllow = PendingIntent.getForegroundService(this, R.id.pending_intent_allow_stream_always, intentAlwaysAllow, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
 
         val builder = NotificationCompat.Builder(this, NotificationUtils.CHANNEL_ID.user_action.name)
             .setSmallIcon(R.drawable.ic_notification_stream)

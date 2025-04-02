@@ -690,7 +690,7 @@ class LocalMediaPlayer(context: Context, callback: MediaPlayerCallback) : MediaP
                 exoPlayer?.removeListener(exoplayerListener!!)
                 exoPlayer?.addListener(exoplayerListener!!)
             }
-            initLoudnessEnhancer(exoPlayer!!.audioSessionId)
+//            initLoudnessEnhancer(exoPlayer!!.audioSessionId)
         }
 
         private fun initLoudnessEnhancer(audioStreamId: Int) {

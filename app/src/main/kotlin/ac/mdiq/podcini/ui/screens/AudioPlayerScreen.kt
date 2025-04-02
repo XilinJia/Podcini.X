@@ -8,6 +8,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
+import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
@@ -34,6 +35,7 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
+import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.model.Episode
@@ -173,7 +175,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal var episodeMonitor: Job? = null
 
     private var prevItem: Episode? = null
-    internal var curItem by mutableStateOf<Episode?>(null)
+    internal var curItem by mutableStateOf<Episode?>(null)  // TODO: this appears unmanaged?
 
     private var playButInit = false
     internal var showPlayButton: Boolean = true
@@ -275,11 +277,13 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                 var isChanged = false
                 var isDetailChanged = false
                 for (f in fields) {
-                    if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime")) continue
+                    if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime", "playedDuration")) continue
                     isChanged = true
+                    Logd(TAG, "monitor: field changed: $f")
                     if (f == "clips" || f == "marks") isDetailChanged = true
                 }
                 if (isChanged) {
+                    Logd(TAG, "monitor: curItem changed")
                     curItem = e
                     rating = e.rating
                     if (isDetailChanged) updateDetails()
@@ -743,10 +747,9 @@ fun AudioPlayerScreen() {
                                     if (item != selectedOption) {
                                         onOptionSelected(item)
                                         if (vm.curItem != null) {
-                                            vm.curItem?.volumeAdaptionSetting = item
-//                                            setCurEpisode(vm.curItem)
-                                            playbackService?.mPlayer?.pause(reinit = true)
-                                            playbackService?.mPlayer?.resume()
+                                            vm.curItem!!.volumeAdaptionSetting = item
+                                            curEpisode!!.volumeAdaptionSetting = item
+                                            playbackService?.mPlayer?.setVolume(1.0f, 1.0f)
                                         }
                                         onDismissRequest()
                                     }
