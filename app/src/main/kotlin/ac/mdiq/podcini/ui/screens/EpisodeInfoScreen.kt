@@ -7,8 +7,8 @@ import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -521,7 +521,7 @@ fun EpisodeInfoScreen() {
                 AndroidView(modifier = Modifier.fillMaxSize(),
                     factory = { context ->
                         ShownotesWebView(context).apply {
-                            setTimecodeSelectedListener { time: Int -> seekTo(time) }
+                            setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
                             setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
                         }
                     }, update = { it.loadDataWithBaseURL("https://127.0.0.1", vm.webviewData, "text/html", "utf-8", "about:blank") })

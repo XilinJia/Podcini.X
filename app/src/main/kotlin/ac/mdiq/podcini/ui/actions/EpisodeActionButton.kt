@@ -5,13 +5,16 @@ import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
-import ac.mdiq.podcini.playback.PlaybackServiceStarter
+import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
+import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
+import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playPause
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
@@ -198,18 +201,7 @@ class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_
             notifyMissingEpisodeMediaFile(context, item)
             return
         }
-        PlaybackServiceStarter(context, item).callEvenIfRunning(false).start()
-//        if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
-//            Logd(TAG, "PlayActionButton playbackService ready, resume")
-//            PlaybackService.playbackService?.mPlayer?.resume()
-//            PlaybackService.playbackService?.taskManager?.restartSleepTimer()
-//        } else {
-//            Logd(TAG, "PlayActionButton playbackService not ready, starting")
-//            PlaybackService.clearCurTempSpeed()
-//            PlaybackServiceStarter(context, item).callEvenIfRunning(false).start()
-//            if (item.playState < PlayState.PROGRESS.code || item.playState in listOf(PlayState.SKIPPED.code, PlayState.AGAIN.code)) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
-//            EventFlow.postEvent(FlowEvent.PlayEvent(item))
-//        }
+        PlaybackStarter(context, item).start()
         playVideoIfNeeded(context, item)
         actionState.value = label
     }
@@ -258,18 +250,7 @@ class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.str
     companion object {
         fun stream(context: Context, media: Episode) {
             var item = media
-            PlaybackServiceStarter(context, media).shouldStreamThisTime(true).callEvenIfRunning(false).start()
-//            if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(media)) {
-//                Logd("StreamActionButton", "stream playbackService ready, resume")
-//                PlaybackService.playbackService?.mPlayer?.resume()
-//                PlaybackService.playbackService?.taskManager?.restartSleepTimer()
-//            } else {
-//                Logd("StreamActionButton", "stream playbackService not ready, starting")
-//                PlaybackService.clearCurTempSpeed()
-//                PlaybackServiceStarter(context, media).shouldStreamThisTime(true).callEvenIfRunning(false).start()
-//                if (item.playState < PlayState.PROGRESS.code || item.playState in listOf(PlayState.SKIPPED.code, PlayState.AGAIN.code)) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, media, false) }
-//                EventFlow.postEvent(FlowEvent.PlayEvent(item))
-//            }
+            PlaybackStarter(context, media).shouldStreamThisTime(true).start()
             playVideoIfNeeded(context, item)
         }
     }
@@ -463,11 +444,11 @@ class PlayLocalActionButton(item: Episode) : EpisodeActionButton(item, R.string.
     override fun onClick(context: Context) {
         Logd("PlayLocalActionButton", "onClick called")
         if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
-            PlaybackService.playbackService?.mPlayer?.resume()
-            PlaybackService.playbackService?.taskManager?.restartSleepTimer()
+            mPlayer?.resume()
+            taskManager?.restartSleepTimer()
         } else {
-            PlaybackService.clearCurTempSpeed()
-            PlaybackServiceStarter(context, item).callEvenIfRunning(false).start()
+            clearCurTempSpeed()
+            PlaybackStarter(context, item).start()
             if (item.playState < PlayState.PROGRESS.code || item.playState == PlayState.SKIPPED.code || item.playState == PlayState.AGAIN.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
             EventFlow.postEvent(FlowEvent.PlayEvent(item))
         }

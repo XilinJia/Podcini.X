@@ -1,28 +1,64 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
+import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
+import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
-import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.writeMediaPlaying
+import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
+import ac.mdiq.podcini.playback.base.InTheatre.writePlayerStatus
+import ac.mdiq.podcini.playback.base.TaskManager.Companion.positionUpdateInterval
+import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
+import ac.mdiq.podcini.playback.service.QuickSettingsTileService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.streamingCacheSizeMB
+import ac.mdiq.podcini.preferences.SleepTimerPreferences.autoEnable
+import ac.mdiq.podcini.preferences.SleepTimerPreferences.autoEnableFrom
+import ac.mdiq.podcini.preferences.SleepTimerPreferences.autoEnableTo
+import ac.mdiq.podcini.preferences.SleepTimerPreferences.isInTimeRange
+import ac.mdiq.podcini.preferences.SleepTimerPreferences.timerMillis
+import ac.mdiq.podcini.storage.database.Episodes.deleteMediaSync
+import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
+import ac.mdiq.podcini.storage.database.Feeds.allowForAutoDelete
+import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
+import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.RealmDB.upsert
+import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.MediaType
+import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.IntentUtils.sendLocalBroadcast
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.config.ClientConfig
+import android.annotation.SuppressLint
+import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.media.AudioManager
 import android.net.Uri
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiManager.WifiLock
+import android.service.quicksettings.TileService
 import android.util.Pair
 import android.view.SurfaceHolder
 import androidx.compose.runtime.getValue
@@ -48,11 +84,14 @@ import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Calendar
+import java.util.Date
+import java.util.GregorianCalendar
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 
-abstract class MediaPlayerBase protected constructor(protected val context: Context, protected val callback: MediaPlayerCallback) {
+abstract class MediaPlayerBase protected constructor(protected val context: Context) {
 
     @Volatile
     private var oldStatus: PlayerStatus? = null
@@ -61,8 +100,12 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     protected var mediaSource: MediaSource? = null
     protected var mediaItem: MediaItem? = null
 
+    internal var autoSkippedFeedMediaId: String? = null
+
     internal var mediaType: MediaType = MediaType.UNKNOWN
     internal val startWhenPrepared = AtomicBoolean(false)
+
+    var prevPosition: Int = -1
 
     var isStreaming = false
 
@@ -87,10 +130,6 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     
     init {
         status = PlayerStatus.STOPPED
-    }
-
-    protected open fun setPlayable(playable: Episode?) {
-        if (playable != null && playable !== curEpisode) setCurEpisode(playable)
     }
 
     open fun getVideoSize(): Pair<Int, Int>? = null
@@ -191,6 +230,31 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      */
     abstract fun playMediaObject(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean = false)
 
+    fun onPlaybackStart(playable: Episode, position: Int) {
+        val delayInterval = positionUpdateInterval(playable.duration)
+        Logd(TAG, "onPlaybackStart ${playable.title}")
+        Logd(TAG, "onPlaybackStart position: $position delayInterval: $delayInterval")
+//            if (position != EpisodeMedia.INVALID_TIME) playable.setPosition(position + (delayInterval/2).toInt())
+        if (position != Episode.INVALID_TIME) playable.setPosition(position)
+        else {
+            // skip intro
+            val item = playable
+            val feed = item.feed
+            val skipIntro = feed?.introSkip ?: 0
+            val skipIntroMS = skipIntro * 1000
+            if (skipIntro > 0 && playable.position < skipIntroMS) {
+                val duration = getDuration()
+                if (skipIntroMS < duration || duration <= 0) {
+                    Logd(TAG, "skipIntro " + playable.getEpisodeTitle())
+                    mPlayer?.seekTo(skipIntroMS)
+                    Logt(TAG, context.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
+                }
+            }
+        }
+        playable.onPlaybackStart()
+        taskManager?.startPositionSaver(delayInterval)
+    }
+
     /**
      * Resumes playback if the PSMP object is in PREPARED or PAUSED state. If the PSMP object is in an invalid state.
      * nothing will happen.
@@ -204,6 +268,14 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      * @param reinit is true if service should reinit after pausing if the media file is being streamed
      */
     abstract fun pause(reinit: Boolean)
+
+    fun onPlaybackPause(playable: Episode?, position: Int) {
+        Logd(TAG, "onPlaybackPause $position ${playable?.title}")
+        taskManager?.cancelPositionSaver()
+        persistCurrentPosition(position == Episode.INVALID_TIME || playable == null, playable, position)
+        Logd(TAG, "onPlaybackPause start ${playable?.timeSpent}")
+        if (playable != null) SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(context, playable, false)
+    }
 
     /**
      * Prepared media player for playback if the service is in the INITALIZED state.
@@ -266,7 +338,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     fun skip() {
 //        in first second of playback, ignoring skip
         if (getPosition() < 1000) return
-        endPlayback(hasEnded = false, wasSkipped = true, shouldContinue = true, toStoppedState = true)
+        endPlayback(hasEnded = false, wasSkipped = true)
     }
 
     /**
@@ -290,7 +362,57 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      *
      * @return a Future, just for the purpose of tracking its execution.
      */
-    internal abstract fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean, toStoppedState: Boolean)
+    internal abstract fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean = true, toStoppedState: Boolean= true)
+
+    internal fun onPlaybackEnded(mediaType: MediaType?, stopPlaying: Boolean) {
+        Logd(TAG, "onPlaybackEnded mediaType: $mediaType stopPlaying: $stopPlaying")
+        clearCurTempSpeed()
+        if (stopPlaying) taskManager?.cancelPositionSaver()
+    }
+
+    // TODO: playable can be removed
+    fun onPostPlayback(playable: Episode, ended: Boolean, skipped: Boolean, playingNext: Boolean) {
+        Logd(TAG, "onPostPlayback(): ended=$ended skipped=$skipped playingNext=$playingNext media=${playable.getEpisodeTitle()} ")
+        var item = playable
+        val smartMarkAsPlayed = hasAlmostEnded(playable)
+        if (!ended && smartMarkAsPlayed) Logd(TAG, "smart mark as played")
+
+        var autoSkipped = false
+        if (autoSkippedFeedMediaId != null && autoSkippedFeedMediaId == item.identifyingValue) {
+            autoSkippedFeedMediaId = null
+            autoSkipped = true
+        }
+        val completed = ended || smartMarkAsPlayed
+        SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(context, playable, completed)
+
+        runOnIOScope {
+            if (ended || smartMarkAsPlayed || autoSkipped || (skipped && !getPref(AppPrefs.prefSkipKeepsEpisode, true))) {
+                Logd(TAG, "onPostPlayback ended: $ended smartMarkAsPlayed: $smartMarkAsPlayed autoSkipped: $autoSkipped skipped: $skipped")
+                // only mark the item as played if we're not keeping it anyways
+                val item_ = realm.query(Episode::class).query("id == $0", item.id).first().find()
+                if (item_ != null) {
+                    item = upsert(item_) {
+                        if (it.playState < PlayState.AGAIN.code || it.playState in listOf(PlayState.SKIPPED.code, PlayState.PASSED.code, PlayState.IGNORED.code)) it.setPlayState(PlayState.PLAYED)
+                        upsertDB(it, item, item.position)
+                        it.startTime = 0
+                        it.startPosition = if (completed) -1 else it.position
+                        if (ended || (skipped && smartMarkAsPlayed)) it.setPosition(0)
+                        if (ended || skipped || playingNext) it.playbackCompletionDate = Date()
+                    }
+                }
+                EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(item))
+                EventFlow.postEvent(FlowEvent.HistoryEvent())
+
+                val action = item.feed?.autoDeleteAction
+                val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))
+                val isItemdeletable = (!getPref(AppPrefs.prefFavoriteKeepsEpisode, true) || (item.isSUPER != true && item.playState != PlayState.AGAIN.code && item.playState != PlayState.FOREVER.code))
+                if (shouldAutoDelete && isItemdeletable) {
+                    if (item.localFileAvailable()) item = deleteMediaSync(context, item)
+                    if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(item)
+                } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(item)
+            }
+        }
+    }
 
     /**
      * @return `true` if the WifiLock feature should be used, `false` otherwise.
@@ -315,12 +437,58 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         if (wifiLock?.isHeld == true) wifiLock!!.release()
     }
 
+    fun persistCurrentPosition(fromMediaPlayer: Boolean, playable_: Episode?, position_: Int) {
+        var playable = playable_
+        var position = position_
+        val duration_: Int
+        if (fromMediaPlayer) {
+//            position = (media3Controller?.currentPosition ?: 0).toInt() // testing the controller
+            position = getPosition()
+            duration_ = getDuration()
+            playable = curEpisode
+        } else duration_ = playable?.duration ?: Episode.INVALID_TIME
+
+        if (position != Episode.INVALID_TIME && duration_ != Episode.INVALID_TIME && playable != null) {
+            Logd(TAG, "persistCurrentPosition to position: $position duration: $duration_ ${playable.getEpisodeTitle()}")
+            playable.setPosition(position)
+            playable.lastPlayedTime = (System.currentTimeMillis())
+            var item = realm.query(Episode::class, "id == ${playable.id}").first().find()
+            if (item != null) item = upsertBlk(item) { upsertDB(it, playable, position) }
+            prevPosition = position
+        }
+    }
+
+    private fun upsertDB(it: Episode, playable: Episode, position: Int) {
+        it.startPosition = playable.startPosition
+        Logd(TAG, "upsertDB start: ${playable.startTime} timeSpentOnStart: ${playable.timeSpentOnStart} ${playable.title}")
+        Logd(TAG, "upsertDB start: ${playable.startPosition} playedDurationWhenStarted: ${playable.playedDurationWhenStarted}")
+        it.startTime = playable.startTime
+        it.timeSpentOnStart = playable.timeSpentOnStart
+        it.playedDurationWhenStarted = playable.playedDurationWhenStarted
+        it.setPosition(position)
+
+        if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
+//        if (it.playedDuration < it.position) Logt(TAG, "upsertDB likely wrong playedDuration: ${it.playedDuration} < ${it.position} ${it.title}")
+        if (it.startTime > 0) {
+            var delta = (System.currentTimeMillis() - it.startTime)
+            if (delta > 3 * max(it.playedDuration, 60000)) {
+                Logt(TAG, "upsertDB likely invalid delta: $delta ${it.title}")
+//                it.startTime = System.currentTimeMillis()
+//                delta = 0
+            } else it.timeSpent = it.timeSpentOnStart + delta
+        }
+
+        it.lastPlayedTime = (System.currentTimeMillis())
+        if (it.isNew) it.setPlayState(PlayState.UNPLAYED)
+        Logd(TAG, "upsertDB ${it.startTime} timeSpent: ${it.timeSpent} playedDuration: ${it.playedDuration}")
+    }
+
     /**
      * Sets the player status of the PSMP object. PlayerStatus and media attributes have to be set at the same time
      * so that getPSMPInfo can't return an invalid state (e.g. status is PLAYING, but media is null).
      * This method will notify the callback about the change of the player status (even if the new status is the same
      * as the old one).
-     * It will also call [MediaPlayerCallback.onPlaybackPause] or [MediaPlayerCallback.onPlaybackStart]
+     * It will also call [onPlaybackPause] or [onPlaybackStart]
      * depending on the status change.
      * @param newStatus The new PlayerStatus. This must not be null.
      * @param media  The new playable object of the PSMP object. This can be null.
@@ -334,17 +502,76 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         this.oldStatus = status
         status = newStatus
         if (media != null) {
-            // TODO: test, this appears not necessary
-//            setPlayable(newMedia)
-            if (newStatus != PlayerStatus.INDETERMINATE && newStatus != PlayerStatus.SEEKING) {
+            if (newStatus != PlayerStatus.INDETERMINATE) {
                 when {
-                    oldStatus == PlayerStatus.PLAYING && newStatus != PlayerStatus.PLAYING && media.id == prevMedia?.id -> callback.onPlaybackPause(media, position)
-                    oldStatus != PlayerStatus.PLAYING && newStatus == PlayerStatus.PLAYING -> callback.onPlaybackStart(media, position)
+                    oldStatus == PlayerStatus.PLAYING && newStatus != PlayerStatus.PLAYING && media.id == prevMedia?.id -> onPlaybackPause(media, position)
+                    oldStatus != PlayerStatus.PLAYING && newStatus == PlayerStatus.PLAYING -> onPlaybackStart(media, position)
                 }
             }
         }
-        if (media != null && status == PlayerStatus.PLAYING) prevMedia = media
-        callback.statusChanged(MediaPlayerInfo(oldStatus, status, curEpisode))
+        statusChanged(MediaPlayerInfo(oldStatus, status, media))
+    }
+
+    fun statusChanged(newInfo: MediaPlayerInfo?) {
+        currentMediaType = mPlayer?.mediaType ?: MediaType.UNKNOWN
+        Logd(TAG, "statusChanged called ${newInfo?.playerStatus}")
+        if (newInfo != null) {
+            when (newInfo.playerStatus) {
+                PlayerStatus.INITIALIZED -> if (mPlayer != null) writeMediaPlaying(mPlayer!!.playerInfo.playable, mPlayer!!.playerInfo.playerStatus)
+                PlayerStatus.PREPARED -> {
+                    if (mPlayer != null) writeMediaPlaying(mPlayer!!.playerInfo.playable, mPlayer!!.playerInfo.playerStatus)
+                    if (newInfo.playable != null) taskManager?.startChapterLoader(newInfo.playable!!)
+                }
+                PlayerStatus.PAUSED -> writePlayerStatus(status)
+                PlayerStatus.STOPPED -> {}
+                PlayerStatus.PLAYING -> {
+                    writePlayerStatus(status)
+                    persistCurrentPosition(true, null, Episode.INVALID_TIME)
+                    // TODO: what to do?
+//                    recreateMediaSessionIfNeeded()
+                    // set sleep timer if auto-enabled
+                    var autoEnableByTime = true
+                    val fromSetting = autoEnableFrom()
+                    val toSetting = autoEnableTo()
+                    if (fromSetting != toSetting) {
+                        val now: Calendar = GregorianCalendar()
+                        now.timeInMillis = System.currentTimeMillis()
+                        val currentHour = now[Calendar.HOUR_OF_DAY]
+                        autoEnableByTime = isInTimeRange(fromSetting, toSetting, currentHour)
+                    }
+                    if (newInfo.oldPlayerStatus != null && autoEnable() && autoEnableByTime && taskManager?.isSleepTimerActive != true) {
+                        taskManager?.setSleepTimer(timerMillis())
+                        EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { taskManager?.disableSleepTimer() }, context.getString(R.string.undo)))
+                    }
+                }
+                PlayerStatus.ERROR -> {
+                    writeNoMediaPlaying()
+                    endPlayback(false, true)
+                }
+                else -> {}
+            }
+        }
+        TileService.requestListeningState(context, ComponentName(context, QuickSettingsTileService::class.java))
+        sendLocalBroadcast(context, ACTION_PLAYER_STATUS_CHANGED)
+        bluetoothNotifyChange(newInfo, AVRCP_ACTION_PLAYER_STATUS_CHANGED)
+        bluetoothNotifyChange(newInfo, AVRCP_ACTION_META_CHANGED)
+    }
+
+    private fun bluetoothNotifyChange(info: MediaPlayerInfo?, whatChanged: String) {
+        Logd(TAG, "bluetoothNotifyChange $whatChanged")
+        var isPlaying = false
+        if (info?.playerStatus == PlayerStatus.PLAYING) isPlaying = true
+        if (info?.playable != null) {
+            val i = Intent(whatChanged)
+            i.putExtra("id", 1L)
+            i.putExtra("artist", "")
+            i.putExtra("album", info.playable!!.feed?.title?:"")
+            i.putExtra("track", info.playable!!.getEpisodeTitle())
+            i.putExtra("playing", isPlaying)
+            i.putExtra("duration", info.playable!!.duration.toLong())
+            i.putExtra("position", info.playable!!.position.toLong())
+            context.sendBroadcast(i)
+        }
     }
 
     class MediaPlayerInfo(
@@ -368,7 +595,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         private lateinit var tempDir: File // Must be set externally, e.g., via constructor or setter
 
         override fun open(dataSpec: DataSpec): Long {
-            val keys = simpleCache?.keys
+//            val keys = simpleCache?.keys
 //            keys?.forEach { Logd(TAG, "key: $it") }
             val mediaId = dataSpec.key ?: dataSpec.uri.toString()
             val existingSpans = simpleCache?.getCachedSpans(mediaId)
@@ -442,9 +669,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
     }
 
-    class CustomDataSourceFactory(
-            private val context: Context,
-            private val upstreamFactory: DataSource.Factory) : DataSource.Factory {
+    class CustomDataSourceFactory(private val context: Context, private val upstreamFactory: DataSource.Factory) : DataSource.Factory {
 
         override fun createDataSource(): DataSource {
             return object : DataSource {
@@ -479,9 +704,22 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     companion object {
         private val TAG: String = MediaPlayerBase::class.simpleName ?: "Anonymous"
 
+        @SuppressLint("StaticFieldLeak")
+        internal var mPlayer: MediaPlayerBase? = null
+
+        @Volatile
+        var currentMediaType: MediaType? = MediaType.UNKNOWN
+
         @get:Synchronized
         @JvmStatic
         var status by mutableStateOf(PlayerStatus.STOPPED)
+
+        private const val AVRCP_ACTION_PLAYER_STATUS_CHANGED = "com.android.music.playstatechanged"
+        private const val AVRCP_ACTION_META_CHANGED = "com.android.music.metachanged"
+
+        const val EXTRA_ALLOW_STREAM_THIS_TIME: String = "extra.ac.mdiq.podcini.service.allowStream"
+        const val EXTRA_ALLOW_STREAM_ALWAYS: String = "extra.ac.mdiq.podcini.service.allowStreamAlways"
+        const val ACTION_PLAYER_STATUS_CHANGED: String = "action.ac.mdiq.podcini.service.playerStatusChanged"
 
         @JvmField
         val ELAPSED_TIME_FOR_SHORT_REWIND: Long = TimeUnit.MINUTES.toMillis(1)
@@ -511,6 +749,22 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     putPref(AppPrefs.prefPlaybackSpeed, "1.0")
                     return 1.0f
                 }
+            }
+
+        internal var normalSpeed = 1.0f
+        internal var isSpeedForward = false
+        internal var isFallbackSpeed = false
+
+        val curDurationFB: Int
+            get() = mPlayer?.getDuration() ?: curEpisode?.duration ?: Episode.INVALID_TIME
+
+        val curPBSpeed: Float
+            get() = mPlayer?.getPlaybackSpeed() ?: getCurrentPlaybackSpeed(curEpisode)
+
+        var isStartWhenPrepared: Boolean
+            get() = mPlayer?.startWhenPrepared?.get() == true
+            set(s) {
+                mPlayer?.startWhenPrepared?.set(s)
             }
 
         fun getCache(context: Context): SimpleCache {
@@ -588,5 +842,45 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             if (playbackSpeed == Feed.SPEED_USE_GLOBAL) playbackSpeed = prefPlaybackSpeed
             return playbackSpeed
         }
+
+        fun showStreamingNotAllowedDialog(context: Context, originalIntent: Intent) {
+            val intentAllowThisTime = Intent(originalIntent).setAction(EXTRA_ALLOW_STREAM_THIS_TIME).putExtra(EXTRA_ALLOW_STREAM_THIS_TIME, true)
+            val pendingIntentAllowThisTime = PendingIntent.getForegroundService(context, R.id.pending_intent_allow_stream_this_time, intentAllowThisTime, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
+
+            val intentAlwaysAllow = Intent(intentAllowThisTime).setAction(EXTRA_ALLOW_STREAM_ALWAYS).putExtra(EXTRA_ALLOW_STREAM_ALWAYS, true)
+            val pendingIntentAlwaysAllow = PendingIntent.getForegroundService(context, R.id.pending_intent_allow_stream_always, intentAlwaysAllow, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
+
+            commonConfirm = CommonConfirmAttrib(title = context.getString(R.string.confirm_mobile_streaming_notification_title),
+                message = context.getString(R.string.confirm_mobile_streaming_notification_message),
+                confirmRes = R.string.confirm_mobile_streaming_button_always,
+                cancelRes = R.string.cancel_label,
+                neutralRes = R.string.confirm_mobile_streaming_button_once,
+                onConfirm = { try { pendingIntentAlwaysAllow.send() } catch (e: PendingIntent.CanceledException) { Loge(TAG, "Can't start service intent: ${e.message}") } },
+                onNeutral = { try { pendingIntentAllowThisTime.send() } catch (e: PendingIntent.CanceledException) { Loge(TAG, "Can't start service intent: ${e.message}") } })
+        }
+
+        fun playPause() {
+            Logd(TAG, "playPause status: $status")
+            when (status) {
+                PlayerStatus.PLAYING -> {
+                    mPlayer?.pause(reinit = false)
+                    isSpeedForward =  false
+                    isFallbackSpeed = false
+                    curEpisode?.forceVideo = false
+                }
+                PlayerStatus.PAUSED, PlayerStatus.PREPARED -> {
+                    mPlayer?.resume()
+                    taskManager?.restartSleepTimer()
+                }
+                PlayerStatus.PREPARING -> isStartWhenPrepared = !isStartWhenPrepared
+                PlayerStatus.INITIALIZED -> {
+                    isStartWhenPrepared = true
+                    mPlayer?.prepare()
+                    taskManager?.restartSleepTimer()
+                }
+                else -> Loge(TAG, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
+            }
+        }
+
     }
 }

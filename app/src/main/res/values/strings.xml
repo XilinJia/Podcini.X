@@ -177,6 +177,8 @@
     <string name="replace">Replace</string>
     <string name="feed_auto_dleq_newer">Newest unplayed</string>
     <string name="feed_auto_dleq_older">Oldest unplayed</string>
+    <string name="feed_auto_dleq_discretion">Discretionary</string>
+
     <string name="feed_auto_dleq_soon">Marked as Soon</string>
     <string name="feed_auto_dleq_filter_sort">Current filter and sort</string>
 

@@ -6,9 +6,12 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
@@ -593,8 +596,8 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                             settingCode[2] = forGlobal
                             Logd("VariableSpeedDialog", "holder.chip settingCode: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
                             if (playbackService != null) {
-                                playbackService!!.isSpeedForward = false
-                                playbackService!!.isFallbackSpeed = false
+                                isSpeedForward = false
+                                isFallbackSpeed = false
                                 if (settingCode.size == 3) {
                                     Logd(TAG, "setSpeed codeArray: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
                                     if (settingCode[2]) putPref(AppPrefs.prefPlaybackSpeed, chipSpeed.toString())
@@ -604,11 +607,11 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                     }
                                     if (settingCode[0]) {
                                         setCurTempSpeed(chipSpeed)
-                                        playbackService!!.mPlayer?.setPlaybackParams(chipSpeed, isSkipSilence)
+                                        mPlayer?.setPlaybackParams(chipSpeed, isSkipSilence)
                                     }
                                 } else {
                                     setCurTempSpeed(chipSpeed)
-                                    playbackService!!.mPlayer?.setPlaybackParams(chipSpeed, isSkipSilence)
+                                    mPlayer?.setPlaybackParams(chipSpeed, isSkipSilence)
                                 }
                             }
                             else {
@@ -631,7 +634,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = isSkipSilence, onCheckedChange = { isChecked ->
                             isSkipSilence = isChecked
-                            playbackService?.mPlayer?.setPlaybackParams(playbackService!!.curSpeed, isChecked)
+                            mPlayer?.setPlaybackParams(mPlayer!!.getPlaybackSpeed(), isChecked)
                         })
                         Text(stringResource(R.string.pref_skip_silence_title))
                     }

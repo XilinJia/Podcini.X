@@ -5,8 +5,13 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.automation.AutoDownloads.autodownloadForQueue
 import ac.mdiq.podcini.automation.AutoDownloads.autoenqueueForQueue
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.net.utils.NetworkUtils.isStreamingAllowed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.InTheatre.writeMediaPlaying
+import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
+import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
@@ -14,6 +19,7 @@ import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -23,6 +29,7 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -355,6 +362,55 @@ object Queues {
             for (e in episodes) it.episodeIds.add(e.id)
             it.update()
         }
+    }
+
+    fun getNextInQueue(currentMedia: Episode?, streamNotifyCB: (Episode)->Unit): Episode? {
+        Logd(TAG, "getNextInQueue called currentMedia: ${currentMedia?.getEpisodeTitle()}")
+        if (currentMedia == null) {
+            Logd(TAG, "getNextInQueue(), but playable not an instance of EpisodeMedia, so not proceeding")
+            writeNoMediaPlaying()
+            return null
+        }
+        Logd(TAG, "getNextInQueue curIndexInQueue: $curIndexInQueue")
+        // TODO: ensure check no media
+        EventFlow.postEvent(FlowEvent.PlayEvent(currentMedia, Action.END))
+        if (curIndexInQueue < 0 && currentMedia.feed?.queue != null) {
+            Logd(TAG, "getNextInQueue(), curMedia is not in curQueue")
+            writeNoMediaPlaying()
+            return null
+        }
+        val eList = if (currentMedia.feed?.queue == null) currentMedia.feed?.getVirtualQueueItems() else curQueue.episodes
+        if (eList.isNullOrEmpty()) {
+            Logd(TAG, "getNextInQueue queue is empty")
+            writeNoMediaPlaying()
+            return null
+        }
+        Logd(TAG, "getNextInQueue curIndexInQueue: $curIndexInQueue ${eList.size}")
+        val nextItem = if (curIndexInQueue >= 0 && curIndexInQueue < eList.size) {
+            when {
+                eList[curIndexInQueue].id != currentMedia.id -> eList[curIndexInQueue]
+                eList.size == 1 -> return null
+                else -> {
+                    var j = if (curIndexInQueue < eList.size - 1) curIndexInQueue + 1 else 0
+                    Logd(TAG, "getNextInQueue next j: $j")
+                    eList[j]
+                }
+            }
+        } else eList[0]
+        Logd(TAG, "getNextInQueue nextItem ${nextItem.title}")
+        if (!getPref(AppPrefs.prefFollowQueue, true)) {
+            Logd(TAG, "getNextInQueue(), but follow queue is not enabled.")
+            writeMediaPlaying(nextItem, PlayerStatus.STOPPED)
+            return null
+        }
+        if (!nextItem.localFileAvailable() && !isStreamingAllowed && getPref(AppPrefs.prefFollowQueue, true) && nextItem.feed?.isLocalFeed != true) {
+            Logd(TAG, "getNextInQueue nextItem has no local file ${nextItem.title}")
+            streamNotifyCB(nextItem)
+            writeNoMediaPlaying()
+            return null
+        }
+        EventFlow.postEvent(FlowEvent.PlayEvent(nextItem))
+        return unmanaged(nextItem)
     }
 
     class EnqueuePositionPolicy(private val enqueueLocation: EnqueueLocation) {

@@ -184,6 +184,7 @@ object AutoDownloads {
                 }
                 if (allowedDLCount > 0 || f.autoDLPolicy.replace) {
                     when (f.autoDLPolicy) {
+                        Feed.AutoDownloadPolicy.DISCRETION -> {}
                         Feed.AutoDownloadPolicy.ONLY_NEW -> {
                             if (!onlyExisting) {
                                 if (f.autoDLPolicy.replace) {

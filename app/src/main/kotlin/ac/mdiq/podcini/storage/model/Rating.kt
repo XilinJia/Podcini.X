@@ -3,7 +3,7 @@ package ac.mdiq.podcini.storage.model
 import ac.mdiq.podcini.R
 
 enum class Rating(val code: Int, val res: Int) {
-    UNRATED(-3, R.drawable.ic_questionmark),
+    UNRATED(-3, R.drawable.baseline_thumb_right_off_alt_24),
     TRASH(-2, R.drawable.ic_delete),
     BAD(-1, androidx.media3.session.R.drawable.media3_icon_thumb_down_filled),
     OK(0, R.drawable.baseline_sentiment_neutral_24),

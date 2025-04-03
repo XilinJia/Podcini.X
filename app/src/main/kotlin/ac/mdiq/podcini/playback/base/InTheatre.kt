@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.playback.base
 
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.SegmentSavingDataSource
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeMedia
 import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
@@ -12,6 +11,9 @@ import ac.mdiq.podcini.storage.model.CurrentState
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.NO_MEDIA_PLAYING
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_OTHER
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
+import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
@@ -19,6 +21,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
+import androidx.media3.session.MediaController
+import com.google.common.util.concurrent.ListenableFuture
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +32,11 @@ import kotlinx.coroutines.withContext
 
 object InTheatre {
     val TAG: String = InTheatre::class.simpleName ?: "Anonymous"
+
+    internal var aCtrlFuture: ListenableFuture<MediaController>? = null
+    var aController: MediaController? = null
+    internal var vCtrlFuture: ListenableFuture<MediaController>? = null
+    var vController: MediaController? = null
 
     var curIndexInQueue = -1
 
@@ -96,6 +105,30 @@ object InTheatre {
         }
     }
 
+    fun clearCurTempSpeed() {
+        curState = upsertBlk(curState) { it.curTempSpeed = Feed.SPEED_USE_GLOBAL }
+    }
+
+    fun writePlayerStatus(playerStatus: PlayerStatus) {
+        Logd(TAG, "Writing player status playback preferences")
+        curState = upsertBlk(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
+    }
+
+    fun writeMediaPlaying(playable: Episode?, playerStatus: PlayerStatus) {
+        Logd(TAG, "Writing playback preferences ${playable?.id}")
+        if (playable == null) writeNoMediaPlaying()
+        else {
+            curState = upsertBlk(curState) {
+                it.curMediaType = PLAYABLE_TYPE_FEEDMEDIA.toLong()
+                it.curIsVideo = playable.getMediaType() == MediaType.VIDEO
+                val feedId = playable.feed?.id
+                if (feedId != null) it.curFeedId = feedId
+                it.curMediaId = playable.id
+                it.curPlayerStatus = playerStatus.getAsInt()
+            }
+        }
+    }
+
     fun writeNoMediaPlaying() {
         curState = upsertBlk(curState) {
             it.curMediaType = NO_MEDIA_PLAYING
@@ -114,7 +147,7 @@ object InTheatre {
         Logd(TAG, "loadPlayableFromPreferences currentlyPlayingType: $curState.curMediaType")
         if (curState.curMediaType != NO_MEDIA_PLAYING) {
             val type = curState.curMediaType.toInt()
-            if (type == Episode.PLAYABLE_TYPE_FEEDMEDIA) {
+            if (type == PLAYABLE_TYPE_FEEDMEDIA) {
                 val mediaId = curState.curMediaId
                 Logd(TAG, "loadPlayableFromPreferences getting mediaId: $mediaId")
                 if (mediaId != 0L) setCurEpisode(getEpisodeMedia(mediaId))
@@ -123,7 +156,7 @@ object InTheatre {
         }
     }
 
-     @JvmStatic
+    @JvmStatic
     fun isCurrentlyPlaying(media: Episode?): Boolean {
         return isCurMedia(media) && PlaybackService.isRunning && MediaPlayerBase.status == PlayerStatus.PLAYING
     }

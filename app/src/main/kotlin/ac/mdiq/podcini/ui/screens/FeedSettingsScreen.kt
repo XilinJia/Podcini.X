@@ -9,6 +9,7 @@ import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.AutoDownloadPolicy
@@ -155,6 +156,7 @@ class FeedSettingsVM(val context: Context, val lcScope: CoroutineScope) {
 //    vm.notificationPermissionDenied = true
 //}
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun FeedSettingsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -871,12 +873,12 @@ fun FeedSettingsScreen() {
                     )
                 }
                 //                    automation policy
-                Column(modifier = Modifier.padding(start = 20.dp)) {
+                Column(modifier = Modifier.padding(start = 20.dp, bottom = 5.dp)) {
                     Row(Modifier.fillMaxWidth()) {
                         val showDialog = remember { mutableStateOf(false) }
                         if (showDialog.value) AutoDLEQPolicyDialog(onDismissRequest = { showDialog.value = false })
-                        Text(text = stringResource(R.string.feed_automation_policy), style = CustomTextStyles.titleCustom, color = textColor,
-                            modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                        Text(text = stringResource(R.string.feed_automation_policy) + ":", style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                        Text(stringResource(selectedPolicy.resId), modifier = Modifier.padding(start = 20.dp))
                     }
                 }
                 if (selectedPolicy != AutoDownloadPolicy.FILTER_SORT) {
@@ -1015,6 +1017,14 @@ fun FeedSettingsScreen() {
                             Text(text = stringResource(R.string.episode_exclusive_filters_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                         }
                         Text(text = stringResource(R.string.episode_filters_description), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                    }
+                } else {
+                    Column(modifier = Modifier.padding(start = 20.dp, bottom = 5.dp)) {
+                        Text("Sorted by: " + stringResource(vm.feed?.sortOrderADL?.res ?: 0), modifier = Modifier.padding(start = 10.dp))
+                        Text("Filtered by: ", modifier = Modifier.padding(start = 10.dp))
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(start = 20.dp)) {
+                            vm.feed?.episodeFilterADL?.propertySet?.forEach { FilterChip(onClick = { }, label = { Text(it) }, selected = false) }
+                        }
                     }
                 }
             }

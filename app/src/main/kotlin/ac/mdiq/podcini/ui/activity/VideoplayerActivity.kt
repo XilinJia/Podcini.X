@@ -2,24 +2,21 @@ package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.playback.base.InTheatre.vCtrlFuture
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
+import ac.mdiq.podcini.playback.base.InTheatre.vController
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.PlayerStatus
+import ac.mdiq.podcini.playback.base.TaskManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curDurationFB
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideoLocally
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isSleepTimerActive
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playPause
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
-import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
-import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
@@ -47,14 +44,11 @@ import ac.mdiq.podcini.util.toastMassege
 import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.content.res.Configuration
-import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
-import android.view.KeyEvent
 import android.view.View
 import android.view.WindowInsetsController
 import android.view.WindowManager
-import android.widget.EditText
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -104,7 +98,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.media3.ui.PlayerView
-import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -115,7 +108,7 @@ import kotlinx.coroutines.withContext
 class VideoplayerActivity : BaseActivity() {
     var switchToAudioOnly = false
 
-    private var controllerFuture: ListenableFuture<MediaController>? = null
+//    private var controllerFuture: ListenableFuture<MediaController>? = null
 
     private var cleanedNotes by mutableStateOf<String?>(null)
     private var feedTitle by mutableStateOf("")
@@ -265,7 +258,7 @@ class VideoplayerActivity : BaseActivity() {
         if (cleanedNotes == null) loadMediaInfo()
         AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
             ShownotesWebView(context).apply {
-                setTimecodeSelectedListener { time: Int -> seekTo(time) }
+                setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
                 setPageFinishedListener { postDelayed({ }, 50) }
             }
         }, update = { webView -> webView.loadDataWithBaseURL("https://127.0.0.1", if (cleanedNotes.isNullOrBlank()) "No notes" else cleanedNotes!!, "text/html", "utf-8", "about:blank") })
@@ -297,7 +290,7 @@ class VideoplayerActivity : BaseActivity() {
         insetsController.show(WindowInsetsCompat.Type.statusBars())
         insetsController.show(WindowInsetsCompat.Type.navigationBars())
         window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        if (controllerFuture != null) MediaController.releaseFuture(controllerFuture!!)
+        if (vCtrlFuture != null) MediaController.releaseFuture(vCtrlFuture!!)
         super.onDestroy()
     }
 
@@ -310,9 +303,9 @@ class VideoplayerActivity : BaseActivity() {
         super.onStart()
         procFlowEvents()
         val sessionToken = SessionToken(this, ComponentName(this, PlaybackService::class.java))
-        controllerFuture = MediaController.Builder(this, sessionToken).buildAsync()
-        controllerFuture?.addListener({
-            media3Controller = controllerFuture!!.get()
+        vCtrlFuture = MediaController.Builder(this, sessionToken).buildAsync()
+        vCtrlFuture?.addListener({
+            vController = vCtrlFuture!!.get()
 //            Logd(TAG, "controllerFuture.addListener: $mediaController")
         }, MoreExecutors.directExecutor())
     }
@@ -542,7 +535,7 @@ class VideoplayerActivity : BaseActivity() {
                 LazyColumn {
                     items(audioTracks.size) {index ->
                         Text(audioTracks[index], color = textColor, modifier = Modifier.clickable(onClick = {
-                            playbackService?.mPlayer?.setAudioTrack((selectedAudioTrack + 1) % audioTracks.size)
+                            mPlayer?.setAudioTrack((selectedAudioTrack + 1) % audioTracks.size)
 //                            Handler(Looper.getMainLooper()).postDelayed({ setupAudioTracks() }, 500)
                         }))
                     }
@@ -555,17 +548,17 @@ class VideoplayerActivity : BaseActivity() {
     companion object {
         private val TAG: String = VideoplayerActivity::class.simpleName ?: "Anonymous"
         var videoMode by mutableStateOf(VideoMode.NONE)
-        var media3Controller: MediaController? = null
+//        var media3Controller: MediaController? = null
 
         private val audioTracks: List<String>
             get() {
-                val tracks = playbackService?.mPlayer?.getAudioTracks()
+                val tracks = mPlayer?.getAudioTracks()
                 if (tracks.isNullOrEmpty()) return emptyList()
                 return tracks
             }
 
         private val selectedAudioTrack: Int
-            get() = playbackService?.mPlayer?.getSelectedAudioTrack() ?: -1
+            get() = mPlayer?.getSelectedAudioTrack() ?: -1
 
         private fun getWebsiteLinkWithFallback(media: Episode?): String? {
             return when {

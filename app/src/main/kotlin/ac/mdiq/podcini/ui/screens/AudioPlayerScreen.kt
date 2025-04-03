@@ -2,27 +2,31 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.playback.PlaybackServiceStarter
+import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.Recorder.saveClipInOriginalFormat
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
+import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
-import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curDurationFB
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.normalSpeed
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
+import ac.mdiq.podcini.playback.base.TaskManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curDurationFB
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideoLocally
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isSleepTimerActive
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playPause
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
@@ -35,7 +39,6 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.model.Episode
@@ -152,7 +155,6 @@ import androidx.media3.session.SessionToken
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import java.text.DecimalFormat
 import java.text.NumberFormat
@@ -168,8 +170,6 @@ import kotlin.math.sin
 
 class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal val actMain: MainActivity? = generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull()
-
-    internal var controllerFuture: ListenableFuture<MediaController>? = null
 
     internal var playerLocal: ExoPlayer? = null
     internal var episodeMonitor: Job? = null
@@ -292,10 +292,10 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
     private fun bufferUpdate(event: BufferUpdateEvent) {
-        Logd(TAG, "bufferUpdate ${playbackService?.mPlayer?.isStreaming} ${event.progress}")
+        Logd(TAG, "bufferUpdate ${mPlayer?.isStreaming} ${event.progress}")
         when {
             event.hasStarted() || event.hasEnded() -> {}
-            playbackService?.mPlayer?.isStreaming == true -> bufferValue = event.progress
+            mPlayer?.isStreaming == true -> bufferValue = event.progress
             else -> bufferValue = 0f
         }
     }
@@ -416,18 +416,18 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         val curr: Chapter? = curChapter
         if (curr == null || displayedChapterIndex == -1) return
         when {
-            displayedChapterIndex < 1 -> seekTo(0)
+            displayedChapterIndex < 1 -> mPlayer?.seekTo(0)
             (curPositionFB - 10000 * curPBSpeed) < curr.start -> {
                 refreshChapterData(displayedChapterIndex - 1)
-                if (!curItem?.chapters.isNullOrEmpty()) seekTo(curItem!!.chapters[displayedChapterIndex].start.toInt())
+                if (!curItem?.chapters.isNullOrEmpty()) mPlayer?.seekTo(curItem!!.chapters[displayedChapterIndex].start.toInt())
             }
-            else -> seekTo(curr.start.toInt())
+            else -> mPlayer?.seekTo(curr.start.toInt())
         }
     }
     internal fun seekToNextChapter() {
         if (curItem?.chapters.isNullOrEmpty() || displayedChapterIndex == -1 || displayedChapterIndex + 1 >= curItem!!.chapters.size) return
         refreshChapterData(displayedChapterIndex + 1)
-        seekTo(curItem!!.chapters[displayedChapterIndex].start.toInt())
+        mPlayer?.seekTo(curItem!!.chapters[displayedChapterIndex].start.toInt())
     }
     private var loadItemsRunning = false
     internal fun loadMediaInfo() {
@@ -493,9 +493,9 @@ fun AudioPlayerScreen() {
                     vm.procFlowEvents()
                     vm.monitor()
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-                    if (vm.controllerFuture == null) {
-                        vm.controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-                        vm.controllerFuture?.addListener({ media3Controller = vm.controllerFuture!!.get() }, MoreExecutors.directExecutor())
+                    if (aCtrlFuture == null) {
+                        aCtrlFuture = MediaController.Builder(context, sessionToken).buildAsync()
+                        aCtrlFuture?.addListener({ aController = aCtrlFuture!!.get() }, MoreExecutors.directExecutor())
                     }
                 }
                 Lifecycle.Event.ON_RESUME -> {
@@ -516,8 +516,8 @@ fun AudioPlayerScreen() {
             vm.playerLocal = null
             vm.episodeMonitor?.cancel()
             vm.episodeMonitor = null
-            if (vm.controllerFuture != null) MediaController.releaseFuture(vm.controllerFuture!!)
-            vm.controllerFuture =  null
+            if (aCtrlFuture != null) MediaController.releaseFuture(aCtrlFuture!!)
+            aCtrlFuture =  null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -554,7 +554,7 @@ fun AudioPlayerScreen() {
         Row {
             fun ensureService() {
                 if (curEpisode == null) return
-                if (playbackService == null) PlaybackServiceStarter(context, curEpisode!!).start()
+                if (playbackService == null) PlaybackStarter(context, curEpisode!!).start()
             }
             AsyncImage(contentDescription = "imgvCover", model = ImageRequest.Builder(context).data(vm.imgLoc).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
                 modifier = Modifier.width(50.dp).height(50.dp).padding(start = 5.dp)
@@ -607,7 +607,7 @@ fun AudioPlayerScreen() {
             Spacer(Modifier.weight(0.1f))
             var showSkipDialog by remember { mutableStateOf(false) }
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
-                onClick = { playbackService?.mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) },
+                onClick = { mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) },
                 onLongClick = { showSkipDialog = true })) {
                 var rewindSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.rewindSecs.toLong())) }
                 if (showSkipDialog) SkipDialog(SkipDirection.SKIP_REWIND, onDismissRequest = { showSkipDialog = false }) { rewindSecs = it.toString() }
@@ -616,14 +616,14 @@ fun AudioPlayerScreen() {
             }
             Spacer(Modifier.weight(0.1f))
             fun toggleFallbackSpeed(speed: Float) {
-                if (playbackService?.mPlayer == null || playbackService!!.isSpeedForward) return
+                if (mPlayer == null || isSpeedForward) return
                 if (status == PlayerStatus.PLAYING) {
-                    val pbs = playbackService!!
-                    if (!pbs.isFallbackSpeed) {
-                        pbs.normalSpeed = pbs.mPlayer!!.getPlaybackSpeed()
-                        pbs.mPlayer!!.setPlaybackParams(speed, isSkipSilence)
-                    } else pbs.mPlayer!!.setPlaybackParams(pbs.normalSpeed, isSkipSilence)
-                    pbs.isFallbackSpeed = !pbs.isFallbackSpeed
+                    val player = mPlayer!!
+                    if (!isFallbackSpeed) {
+                        normalSpeed = player.getPlaybackSpeed()
+                        player.setPlaybackParams(speed, isSkipSilence)
+                    } else player.setPlaybackParams(normalSpeed, isSkipSilence)
+                    isFallbackSpeed = !isFallbackSpeed
                 }
             }
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
@@ -643,7 +643,7 @@ fun AudioPlayerScreen() {
 //                            if (status == PlayerStatus.STOPPED) playbackService?.recreateMediaPlayer()
                             if (status <= PlayerStatus.STOPPED || playbackService?.isServiceReady() != true) {
                                 val playOverStream = !(prefStreamOverDownload && media.feed?.prefStreamOverDownload == true) || media.downloaded || media.feed?.isLocalFeed == true
-                                PlaybackServiceStarter(context, media).shouldStreamThisTime(!playOverStream).callEvenIfRunning(false).start()
+                                PlaybackStarter(context, media).shouldStreamThisTime(!playOverStream).start()
                                 EventFlow.postEvent(FlowEvent.PlayEvent(media))
                             } else playPause()
                         }
@@ -659,7 +659,7 @@ fun AudioPlayerScreen() {
             }
             Spacer(Modifier.weight(0.1f))
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
-                onClick = { playbackService?.mPlayer?.seekDelta(AppPreferences.fastForwardSecs * 1000) },
+                onClick = { mPlayer?.seekDelta(AppPreferences.fastForwardSecs * 1000) },
                 onLongClick = { showSkipDialog = true })) {
                 var showSkipDialog by remember { mutableStateOf(false) }
                 var fastForwardSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.fastForwardSecs.toLong())) }
@@ -669,12 +669,12 @@ fun AudioPlayerScreen() {
             }
             Spacer(Modifier.weight(0.1f))
             fun speedForward(speed: Float) {
-                if (playbackService?.mPlayer == null || playbackService?.isFallbackSpeed == true) return
-                if (playbackService?.isSpeedForward == false) {
-                    playbackService?.normalSpeed = playbackService?.mPlayer!!.getPlaybackSpeed()
-                    playbackService?.mPlayer!!.setPlaybackParams(speed, isSkipSilence)
-                } else playbackService?.mPlayer?.setPlaybackParams(playbackService!!.normalSpeed, isSkipSilence)
-                playbackService!!.isSpeedForward = !playbackService!!.isSpeedForward
+                if (mPlayer == null || isFallbackSpeed == true) return
+                if (isSpeedForward == false) {
+                    normalSpeed = mPlayer!!.getPlaybackSpeed()
+                    mPlayer!!.setPlaybackParams(speed, isSkipSilence)
+                } else mPlayer?.setPlaybackParams(normalSpeed, isSkipSilence)
+                isSpeedForward = !isSpeedForward
             }
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
                 onClick = {
@@ -684,7 +684,7 @@ fun AudioPlayerScreen() {
                     } },
                 onLongClick = {
 //                    context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT))
-                    if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) playbackService?.mPlayer?.skip()
+                    if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) mPlayer?.skip()
                 })) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = textColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
                 if (AppPreferences.speedforwardSpeed > 0.1f) Text(NumberFormat.getInstance().format(AppPreferences.speedforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
@@ -702,7 +702,7 @@ fun AudioPlayerScreen() {
                 modifier = Modifier.height(12.dp).padding(top = 2.dp, bottom = 2.dp),
                 onValueChange = { vm.sliderValue = it }, onValueChangeFinished = {
                     vm.curPosition = vm.sliderValue.toInt()
-                    seekTo(vm.curPosition)
+                    mPlayer?.seekTo(vm.curPosition)
                 })
             if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
                 modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
@@ -749,7 +749,7 @@ fun AudioPlayerScreen() {
                                         if (vm.curItem != null) {
                                             vm.curItem!!.volumeAdaptionSetting = item
                                             curEpisode!!.volumeAdaptionSetting = item
-                                            playbackService?.mPlayer?.setVolume(1.0f, 1.0f)
+                                            mPlayer?.setVolume(1.0f, 1.0f)
                                         }
                                         onDismissRequest()
                                     }
@@ -801,7 +801,7 @@ fun AudioPlayerScreen() {
                     if (!notAudioOnly && curEpisode?.forceVideo != true) {
                         curEpisode?.forceVideo = true
                         status = PlayerStatus.STOPPED
-                        playbackService?.mPlayer?.pause(reinit = true)
+                        mPlayer?.pause(reinit = true)
                         playbackService?.recreateMediaPlayer()
                     }
                     VideoPlayerActivityStarter(context).start()
@@ -869,7 +869,7 @@ fun AudioPlayerScreen() {
 //            }
             AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
                 ShownotesWebView(context).apply {
-                    setTimecodeSelectedListener { time: Int -> seekTo(time) }
+                    setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
                     // Restoring the scroll position might not always work
                     setPageFinishedListener {
 //                        postDelayed({ restoreFromPreference() }, 50)
@@ -915,10 +915,6 @@ fun AudioPlayerScreen() {
 }
 
 private const val TAG = "AudioPlayerScreen"
-var media3Controller: MediaController? = null
-
-//private val mPlayerInfo: MediaPlayerInfo?
-//    get() = playbackService?.mPlayer?.playerInfo
 
 private val curPositionFB: Int
-    get() = playbackService?.curPosition ?: curEpisode?.position ?: Episode.INVALID_TIME
+    get() = mPlayer?.getPosition() ?: curEpisode?.position ?: Episode.INVALID_TIME

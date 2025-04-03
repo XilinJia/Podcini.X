@@ -3,10 +3,10 @@ package ac.mdiq.podcini.ui.compose
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playPause
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.seekTo
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.storage.database.Episodes.getClipFile
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -72,7 +72,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
-import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -169,7 +168,7 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
                             Icon(imageVector = ImageVector.Companion.vectorResource(playRes), tint = textColor, contentDescription = "play button",
                                 modifier = Modifier.Companion.width(28.dp).height(32.dp).clickable {
                                     if (status != PlayerStatus.PLAYING) playPause()
-                                    seekTo(ch.start.toInt())
+                                    mPlayer?.seekTo(ch.start.toInt())
                                     currentChapterIndex = index
                                 })
                         }
@@ -233,7 +232,7 @@ fun EpisodeMarks(episode: Episode?) {
                 FilterChip(onClick = {
                     if (curEpisode != null && exoPlayer != null && episode.id == curEpisode?.id) {
                         if (status != PlayerStatus.PLAYING) playPause()
-                        seekTo(mark.toInt())
+                        mPlayer?.seekTo(mark.toInt())
                     }
                     else Logt(TAG, context.getString(R.string.play_mark_msg))
                 }, label = { Text(getDurationStringShort(mark, false)) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete",

@@ -128,8 +128,7 @@ class ShownotesCleaner(context: Context) {
         Logd(TAG, "cleanCss number of elements: ${document.allElements.size}")
         for (element in document.allElements) {
             when {
-                element.hasAttr("style") ->
-                    element.attr("style", element.attr("style").replace(CSS_COLOR.toRegex(), ""))
+                element.hasAttr("style") -> element.attr("style", element.attr("style").replace(CSS_COLOR.toRegex(), ""))
                 element.tagName() == "style" -> element.html(cleanStyleTag(element.html()))
             }
         }

@@ -477,10 +477,10 @@ class Feed : RealmObject {
     }
 
     enum class AutoDownloadPolicy(val code: Int, val resId: Int, var replace: Boolean) {
+        DISCRETION(-1, R.string.feed_auto_dleq_discretion, false),
         ONLY_NEW(0, R.string.feed_auto_dleq_new, false),
         NEWER(1, R.string.feed_auto_dleq_newer, false),
         OLDER(2, R.string.feed_auto_dleq_older, false),
-//        SOON(3, R.string.feed_auto_dleq_soon, false),
         FILTER_SORT(4, R.string.feed_auto_dleq_filter_sort, false);
 
         companion object {

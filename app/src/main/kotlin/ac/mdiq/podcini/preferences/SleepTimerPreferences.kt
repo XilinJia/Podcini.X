@@ -2,9 +2,9 @@ package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
+import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.curPBSpeed
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
@@ -166,7 +166,7 @@ object SleepTimerPreferences {
     @Composable
     fun SleepTimerDialog(onDismiss: () -> Unit) {
         val lcScope = rememberCoroutineScope()
-        val timeLeft = remember { (playbackService?.taskManager?.sleepTimerTimeLeft?:0) }
+        val timeLeft = remember { taskManager?.sleepTimerTimeLeft?:0 }
         var showTimeDisplay by remember { mutableStateOf(false) }
         var showTimeSetup by remember { mutableStateOf(true) }
         var timerText by remember { mutableStateOf(getDurationStringLong(timeLeft.toInt())) }
@@ -201,10 +201,10 @@ object SleepTimerPreferences {
         var toEnd by remember { mutableStateOf(false) }
         var etxtTime by remember { mutableStateOf(lastTimerValue()?:"") }
         fun setSleepTimer(time: Long) {
-            playbackService?.taskManager?.setSleepTimer(time)
+            taskManager?.setSleepTimer(time)
         }
         fun extendSleepTimer(extendTime: Long) {
-            val timeLeft = playbackService?.taskManager?.sleepTimerTimeLeft ?: Episode.INVALID_TIME.toLong()
+            val timeLeft = taskManager?.sleepTimerTimeLeft ?: Episode.INVALID_TIME.toLong()
             if (timeLeft != Episode.INVALID_TIME.toLong()) setSleepTimer(timeLeft + extendTime)
         }
 
@@ -242,7 +242,7 @@ object SleepTimerPreferences {
                     }
                     if (showTimeDisplay || timeLeft > 0) {
                         Text(timerText, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                        Button(modifier = Modifier.fillMaxWidth(), onClick = { playbackService?.taskManager?.disableSleepTimer()
+                        Button(modifier = Modifier.fillMaxWidth(), onClick = { taskManager?.disableSleepTimer()
                         }) { Text(stringResource(R.string.disable_sleeptimer_label)) }
                         Row {
                             Button(onClick = { extendSleepTimer((10 * 1000 * 60).toLong())
