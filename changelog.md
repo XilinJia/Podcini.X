@@ -1,11 +1,12 @@
 # 8.14.2
 
 * largely trimmed and restructured PlaybackService
+* in case of player error, automatically start the next in queue
 * replaced streamingNotAllowed notification with a Compose dialog
-* changed the icon of Unrated
 * in FeedSettings, active auto-download/auto-enqueue policy is shown
 * in FeedSettings, added policy Discretionary, to only include those set as Soon
 * in FeedSettings, when policy "Current filter and sort" is selected, the the filters and sorting are indicated
+* changed the icon of Unrated
 
 # 8.14.1
 
