@@ -183,7 +183,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
                     val dateTo = dateFormat.format(if (timeFilterTo != Long.MAX_VALUE) Date(timeFilterTo) else Date())
                     "$dateFrom to $dateTo"
                 }
-        } catch (error: Throwable) { Logs(TAG, error) }
+        } catch (error: Throwable) { Logs(TAG, error, "loadStatistics failed") }
     }
 }
 
@@ -818,7 +818,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
             if (data.feedStats.isNotEmpty()) fStat = data.feedStats[0]
             vms.clear()
             for (e in data.episodes) vms.add(EpisodeVM(e, TAG))
-        } catch (error: Throwable) { Logs(TAG, error) }
+        } catch (error: Throwable) { Logs(TAG, error, "loadStatistics failed") }
     }
     LaunchedEffect(Unit) { loadStatistics() }
     AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },

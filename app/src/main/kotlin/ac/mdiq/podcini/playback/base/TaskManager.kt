@@ -79,7 +79,7 @@ class TaskManager(private val context: Context) {
         val curDuration = mPlayer!!.getDuration()
         Logd(TAG, "positionSaverTick currentPosition: $curPosition")
         if (curPosition != mPlayer!!.prevPosition) {
-            if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, curPosition, curDuration))
+//            if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, curPosition, curDuration))
             // skip ending
             val remainingTime = curDuration - curPosition
             val item = curEpisode ?: return

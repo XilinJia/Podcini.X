@@ -48,7 +48,7 @@ object LocalFeedUpdater {
             tryUpdateFeed(feed, context, documentFolder.uri, updaterProgressListener)
             if (mustReportDownloadSuccessful(feed)) reportSuccess(feed)
         } catch (e: Exception) {
-            Logs(TAG, e)
+            Logs(TAG, e, "updateFeed failed")
             reportError(feed, e.message)
         }
     }
@@ -139,7 +139,7 @@ object LocalFeedUpdater {
         }
         // Did not find existing item. Scan metadata.
         try { loadMetadata(item, file, context) } catch (e: Exception) {
-            Logs(TAG, e)
+            Logs(TAG, e, "loadMetadata failed")
             item.setDescriptionIfLonger(e.message) }
         return item
     }
@@ -153,7 +153,7 @@ object LocalFeedUpdater {
                     val simpleDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.getDefault())
                     item.pubDate = simpleDateFormat.parse(dateStr)?.time ?: 0L
                 } catch (e: ParseException) {
-                    Logs(TAG, e)
+                    Logs(TAG, e, "loadMetadata failed")
                     val date = DateUtils.parse(dateStr)
                     if (date != null) item.pubDate = date.time
                 }

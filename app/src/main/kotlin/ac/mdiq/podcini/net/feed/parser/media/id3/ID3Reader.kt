@@ -188,7 +188,7 @@ open class ID3Reader(private val inputStream: CountingInputStream) {
         }
         return try { charset.newDecoder().decode(ByteBuffer.wrap(bytes.toByteArray())).toString() }
         catch (e: MalformedInputException) {
-            Logs(TAG, e)
+            Logs(TAG, e, "readEncodedString2 failed")
             ""
         }
     }

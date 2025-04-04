@@ -231,7 +231,7 @@ class EpisodeAction private constructor(builder: Builder) {
 
             val action: Action
             try { action = Action.valueOf(actionString.uppercase()) } catch (e: IllegalArgumentException) {
-                Logs(TAG, e)
+                Logs(TAG, e, "readFromJsonObject failed")
                 return null
             }
             val builder = Builder(podcast, episode, action)
@@ -241,7 +241,7 @@ class EpisodeAction private constructor(builder: Builder) {
                     val parser = SimpleDateFormat(PATTERN_ISO_DATEFORMAT, Locale.US)
                     parser.timeZone = TimeZone.getTimeZone("UTC")
                     builder.timestamp(parser.parse(utcTimestamp))
-                } catch (e: ParseException) { Logs(TAG, e) }
+                } catch (e: ParseException) { Logs(TAG, e, "readFromJsonObject failed") }
             }
             val guid = `object`.optString("guid")
             if (guid.isNotEmpty()) builder.guid(guid)

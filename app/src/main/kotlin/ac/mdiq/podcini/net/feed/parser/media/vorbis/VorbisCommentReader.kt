@@ -57,7 +57,7 @@ abstract class VorbisCommentReader internal constructor(private val input: Input
                 val value = readUtf8String(vectorLength - key.length - 1)
                 onContentVectorValue(key, value)
             } else IOUtils.skipFully(input, vectorLength - key.length - 1)
-        } catch (e: IOException) { Logs(TAG, e) }
+        } catch (e: IOException) { Logs(TAG, e, "readUserComment failed") }
     }
 
     @Throws(IOException::class)

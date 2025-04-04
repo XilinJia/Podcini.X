@@ -31,6 +31,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
@@ -366,7 +367,7 @@ class PlaybackService : MediaLibraryService() {
         if (mPlayer == null) mPlayer = LocalMediaPlayer(applicationContext) // Cast not supported or not connected
 
         Logd(TAG, "recreateMediaPlayer wasPlaying: $wasPlaying")
-        if (media != null) mPlayer!!.playMediaObject(media, !media.localFileAvailable(), wasPlaying, true)
+        if (media != null) mPlayer!!.prepareMedia(playable = media, streaming = !media.localFileAvailable(), startWhenPrepared = wasPlaying, prepareImmediately = true, doPostPlayback = true)
         isCasting = mPlayer!!.isCasting()
     }
 
@@ -436,8 +437,8 @@ class PlaybackService : MediaLibraryService() {
         if (keycode == -1 && curEpisode != null) {
             if (mPlayer?.prevMedia?.id == curEpisode?.id) {
                 Logd(TAG, "onStartCommand playing same media: $status")
-//                if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) return super.onStartCommand(intent, flags, startId)
-                if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) return START_STICKY
+                if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) return super.onStartCommand(intent, flags, startId)
+//                if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) return START_STICKY
                 Logd(TAG, "onStartCommand playing same media: $status proceed")
             }
         }
@@ -466,12 +467,6 @@ class PlaybackService : MediaLibraryService() {
                     nm.createNotificationChannel(channel)
                 }
                 val notification = NotificationCompat.Builder(this, CHANNEL_ID).setSmallIcon(android.R.drawable.ic_media_play).setOngoing(true).setContentTitle("").setContentText("").build()
-//                if (isForeground) nm.notify(1, notification)
-//                else {
-//                    Logd(TAG, "onStartCommand starting foreground")
-//                    startForeground(1, notification)
-//                    isForeground = true
-//                }
                 startForeground(1, notification)
                 recreateMediaSessionIfNeeded()
                 val allowStreamThisTime = intent?.getBooleanExtra(EXTRA_ALLOW_STREAM_THIS_TIME, false) == true
@@ -592,7 +587,7 @@ class PlaybackService : MediaLibraryService() {
             writeNoMediaPlaying()
             return
         }
-        mPlayer?.playMediaObject(media, streaming!!, startWhenPrepared = true, true)
+        mPlayer?.prepareMedia(playable = media, streaming = streaming!!, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
     }
 
     private var eventSink: Job?     = null
@@ -608,8 +603,8 @@ class PlaybackService : MediaLibraryService() {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
                     is FlowEvent.BufferUpdateEvent -> onBufferUpdate(event)
                     is FlowEvent.SleepTimerUpdatedEvent -> onSleepTimerUpdate(event)
-                    is FlowEvent.FeedChangeEvent -> onFeedPrefsChanged(event)
-                    is FlowEvent.PlayerErrorEvent -> onPlayerError(event)
+                    is FlowEvent.FeedChangeEvent -> if (curEpisode?.feed?.id == event.feed.id) curEpisode?.feed = null
+                    is FlowEvent.PlayerErrorEvent -> if (status == PlayerStatus.PLAYING) mPlayer!!.pause(reinit = false)
                     is FlowEvent.PlayEvent -> if (event.action != Action.END) setCurEpisode(event.episode)
                     is FlowEvent.EpisodeMediaEvent -> onEpisodeMediaEvent(event)
                     else -> {}
@@ -632,12 +627,12 @@ class PlaybackService : MediaLibraryService() {
 
     private fun onQueueEvent(event: FlowEvent.QueueEvent) {
         if (event.action == FlowEvent.QueueEvent.Action.REMOVED) {
-//            Logd(TAG, "onQueueEvent: ending playback curEpisode ${curEpisode?.title}")
             notifyCurQueueItemsChanged()
             for (e in event.episodes) {
                 if (e.id == curEpisode?.id) {
                     Logd(TAG, "onQueueEvent: queue event removed ${e.title}")
-                    mPlayer?.endPlayback(hasEnded = false, wasSkipped = true)
+                    val isPlaying = status == PlayerStatus.PLAYING
+                    mPlayer?.endPlayback(hasEnded = false, wasSkipped = true, shouldContinue = isPlaying)
                     break
                 }
             }
@@ -645,21 +640,12 @@ class PlaybackService : MediaLibraryService() {
     }
 
     fun notifyCurQueueItemsChanged(range_: Int = -1) {
-        val range = if (range_ > 0) range_ else curQueue.size()
         Logd(TAG, "notifyCurQueueItemsChanged curQueue: ${curQueue.id}")
-        mediaSession?.notifyChildrenChanged("CurQueue", range, null)
-    }
-
-    private fun onFeedPrefsChanged(event: FlowEvent.FeedChangeEvent) {
-        if (curEpisode?.feed?.id == event.feed.id) curEpisode?.feed = null
-    }
-
-    private fun onPlayerError(event: FlowEvent.PlayerErrorEvent) {
-        if (status == PlayerStatus.PLAYING) mPlayer!!.pause(reinit = false)
+        mediaSession?.notifyChildrenChanged("CurQueue", if (range_ > 0) range_ else curQueue.size(), null)
     }
 
     private fun onBufferUpdate(event: FlowEvent.BufferUpdateEvent) {
-        if (event.hasEnded() && curEpisode != null && curEpisode!!.duration <= 0 && (mPlayer?.getDuration()?:0) > 0) curEpisode!!.duration = mPlayer!!.getDuration()
+        if (event.hasEnded() && curEpisode != null && curEpisode!!.duration <= 0 && (mPlayer?.getDuration()?:0) > 0) upsertBlk(curEpisode!!) { it.duration = mPlayer!!.getDuration() }
     }
 
     private fun onSleepTimerUpdate(event: FlowEvent.SleepTimerUpdatedEvent) {

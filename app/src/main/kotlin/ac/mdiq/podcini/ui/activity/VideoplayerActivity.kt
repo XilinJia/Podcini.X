@@ -338,7 +338,7 @@ class VideoplayerActivity : BaseActivity() {
                         }
                         episode_
                     }
-                } catch (e: Throwable) { Logs(TAG, e)
+                } catch (e: Throwable) { Logs(TAG, e, "loadMediaInfo failed")
                 } finally { loadItemsRunning = false }
             }
         }
@@ -363,7 +363,7 @@ class VideoplayerActivity : BaseActivity() {
                     // TODO
 //                    is FlowEvent.SleepTimerUpdatedEvent -> if (event.isCancelled || event.wasJustEnabled()) supportInvalidateOptionsMenu()
                     is FlowEvent.PlaybackServiceEvent -> if (event.action == FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN) finish()
-                    is FlowEvent.MessageEvent -> onEventMainThread(event)
+                    is FlowEvent.MessageEvent -> onMessageEvent(event)
                     is FlowEvent.PlayerErrorEvent -> {
                         showErrorDialog.value = true
                         errorMessage = event.message
@@ -374,7 +374,7 @@ class VideoplayerActivity : BaseActivity() {
         }
     }
 
-    private fun onEventMainThread(event: FlowEvent.MessageEvent) {
+    private fun onMessageEvent(event: FlowEvent.MessageEvent) {
         commonConfirm = CommonConfirmAttrib(
             title = "",
             message = event.message,

@@ -4,7 +4,6 @@ import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeMedia
 import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState
@@ -28,7 +27,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 object InTheatre {
     val TAG: String = InTheatre::class.simpleName ?: "Anonymous"
@@ -80,22 +78,36 @@ object InTheatre {
             if (curState_ != null) curState = curState_
             else {
                 Logd(TAG, "creating new curState")
-                curState_ = CurrentState()
-                curState = curState_
-                upsert(curState_) {}
+                curState = CurrentState()
+                upsert(curState) {}
             }
             loadPlayableFromPreferences()
         }
     }
 
+    var onCurInitUICB: (suspend (e: Episode)->Unit)? = null
+    var onCurChangedUICB: (suspend (e: Episode, fields: Array<String>)->Unit)? = null
+
     fun setCurEpisode(episode: Episode?) {
         if (episode != null && episode.id == curEpisode?.id) return
+        Logd(TAG, "episodeMonitor cancel monitoring")
         curEpisodeMonitor?.cancel()
         curEpisodeMonitor = null
         when {
             episode != null -> {
-                curEpisode = unmanaged(episode)
-                curEpisodeMonitor = episodeMonitor(curEpisode!!) {e, f ->  withContext(Dispatchers.Main) { curEpisode = unmanaged(e) } }
+                curEpisode = episode
+                Logd(TAG, "episodeMonitor start monitoring curEpisode ${curEpisode?.title}")
+                curEpisodeMonitor = episodeMonitor(curEpisode!!,
+                    onChanges = { e, f ->
+                        curEpisode = e
+//                        Logd(TAG, "episodeMonitor updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
+                        onCurChangedUICB?.invoke(e, f)
+                    },
+                    onInit = { e ->
+//                        curEpisode = e
+                        onCurInitUICB?.invoke(e)
+                    }
+                )
                 curMediaId = episode.id
             }
             else -> {
@@ -110,7 +122,6 @@ object InTheatre {
     }
 
     fun writePlayerStatus(playerStatus: PlayerStatus) {
-        Logd(TAG, "Writing player status playback preferences")
         curState = upsertBlk(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
     }
 

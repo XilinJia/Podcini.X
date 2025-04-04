@@ -135,7 +135,7 @@ class SubscriptionShortcutActivity : ComponentActivity() {
             try {
                 val result = withContext(Dispatchers.IO) { getFeedList() }
                 withContext(Dispatchers.Main) { listItems.addAll(result) }
-            } catch (e: Throwable) { Logs(TAG, e) }
+            } catch (e: Throwable) { Logs(TAG, e, "loadSubscriptions failed") }
         }
     }
 

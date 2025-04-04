@@ -196,21 +196,22 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal fun monitor() {
         if (episodeMonitor != null) return
-        episodeMonitor = episodeMonitor(episode!!) { e, fields ->
-            withContext(Dispatchers.Main) {
-                Logd(TAG, "monitor: ${fields.joinToString()}")
-                var isChanged = false
-                for (f in fields) {
-                    if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime")) continue
-                    isChanged = true
+        episodeMonitor = episodeMonitor(episode!!,
+            onChanges = { e, fields ->
+                withContext(Dispatchers.Main) {
+                    Logd(TAG, "monitor: ${fields.joinToString()}")
+                    var isChanged = false
+                    for (f in fields) {
+                        if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime")) continue
+                        isChanged = true
+                    }
+                    if (isChanged) {
+                        episode = e
+                        rating = e.rating
+                        isPlayed = e.playState
+                    }
                 }
-                if (isChanged) {
-                    episode = e
-                    rating = e.rating
-                    isPlayed = e.playState
-                }
-            }
-        }
+        } )
     }
 
     internal fun updateAppearance() {
@@ -267,14 +268,6 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         feedScreenMode = FeedScreenMode.List
         mainNavController.navigate(Screens.FeedDetails.name)
     }
-
-//    private fun onRatingEvent(event: FlowEvent.RatingEvent) {
-//        if (episode?.id == event.episode.id) {
-//            episode = unmanaged(episode!!)
-//            episode!!.rating = event.rating
-//            rating = episode!!.rating
-//        }
-//    }
 
     private fun onQueueEvent(event: FlowEvent.QueueEvent) {
         if (episode == null) return

@@ -17,10 +17,7 @@ class CombinedSearcher : PodcastSearcher {
                 val searcher = searchProviderInfo.searcher
                 if (searchProviderInfo.weight > 0.00001f && searcher.javaClass != CombinedSearcher::class.java) {
                     async(Dispatchers.IO) {
-                        try {
-                            val results = searcher.search(query)
-                            searchResults[index] = results
-                        } catch (e: Throwable) { Logs(TAG, e) }
+                        try { searchResults[index] = searcher.search(query) } catch (e: Throwable) { Logs(TAG, e) }
                     }
                 } else null
             }.filterNotNull()

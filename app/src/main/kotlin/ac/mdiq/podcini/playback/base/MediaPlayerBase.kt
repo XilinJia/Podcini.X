@@ -136,7 +136,9 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     abstract fun getPlaybackSpeed(): Float
 
-    abstract fun getDuration(): Int
+    open fun getDuration(): Int {
+        return curEpisode?.duration ?: Episode.INVALID_TIME
+    }
 
     abstract fun getPosition(): Int
 
@@ -228,18 +230,20 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      * for playback immediately (see 'prepareImmediately' parameter for more details)
      * @param prepareImmediately Set to true if the method should also prepare the episode for playback.
      */
-    abstract fun playMediaObject(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean = false)
+    abstract fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean = false, doPostPlayback: Boolean = false)
 
     fun onPlaybackStart(playable: Episode, position: Int) {
         val delayInterval = positionUpdateInterval(playable.duration)
         Logd(TAG, "onPlaybackStart ${playable.title}")
         Logd(TAG, "onPlaybackStart position: $position delayInterval: $delayInterval")
-//            if (position != EpisodeMedia.INVALID_TIME) playable.setPosition(position + (delayInterval/2).toInt())
-        if (position != Episode.INVALID_TIME) playable.setPosition(position)
-        else {
+        if (position != Episode.INVALID_TIME) {
+            upsertBlk(playable) {
+                it.setPosition(position)
+                it.onPlaybackStart()
+            }
+        } else {
             // skip intro
-            val item = playable
-            val feed = item.feed
+            val feed = playable.feed
             val skipIntro = feed?.introSkip ?: 0
             val skipIntroMS = skipIntro * 1000
             if (skipIntro > 0 && playable.position < skipIntroMS) {
@@ -250,8 +254,8 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     Logt(TAG, context.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
                 }
             }
+            upsertBlk(playable) { it.onPlaybackStart() }
         }
-        playable.onPlaybackStart()
         taskManager?.startPositionSaver(delayInterval)
     }
 
@@ -355,17 +359,13 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      * @param wasSkipped       Whether the user chose to skip the episode (by pressing the skip button).
      * @param shouldContinue   If true, the media player should try to load, and possibly play,
      * the next item, based on the user preferences and whether such item exists.
-     * @param toStoppedState   If true, the playback state gets set to STOPPED if the media player
-     * is not loading/playing after this call, and the UI will reflect that.
-     * Only relevant if {@param shouldContinue} is set to false, otherwise
-     * this method's behavior defaults as if this parameter was true.
      *
      * @return a Future, just for the purpose of tracking its execution.
      */
-    internal abstract fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean = true, toStoppedState: Boolean= true)
+    internal abstract fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean = true)
 
-    internal fun onPlaybackEnded(mediaType: MediaType?, stopPlaying: Boolean) {
-        Logd(TAG, "onPlaybackEnded mediaType: $mediaType stopPlaying: $stopPlaying")
+    internal fun onPlaybackEnded(stopPlaying: Boolean) {
+        Logd(TAG, "onPlaybackEnded stopPlaying: $stopPlaying")
         clearCurTempSpeed()
         if (stopPlaying) taskManager?.cancelPositionSaver()
     }
@@ -389,17 +389,15 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             if (ended || smartMarkAsPlayed || autoSkipped || (skipped && !getPref(AppPrefs.prefSkipKeepsEpisode, true))) {
                 Logd(TAG, "onPostPlayback ended: $ended smartMarkAsPlayed: $smartMarkAsPlayed autoSkipped: $autoSkipped skipped: $skipped")
                 // only mark the item as played if we're not keeping it anyways
-                val item_ = realm.query(Episode::class).query("id == $0", item.id).first().find()
-                if (item_ != null) {
-                    item = upsert(item_) {
-                        if (it.playState < PlayState.AGAIN.code || it.playState in listOf(PlayState.SKIPPED.code, PlayState.PASSED.code, PlayState.IGNORED.code)) it.setPlayState(PlayState.PLAYED)
-                        upsertDB(it, item, item.position)
-                        it.startTime = 0
-                        it.startPosition = if (completed) -1 else it.position
-                        if (ended || (skipped && smartMarkAsPlayed)) it.setPosition(0)
-                        if (ended || skipped || playingNext) it.playbackCompletionDate = Date()
-                    }
+                item = upsert(item) {
+                    if (it.playState < PlayState.AGAIN.code || it.playState in listOf(PlayState.SKIPPED.code, PlayState.PASSED.code, PlayState.IGNORED.code)) it.setPlayState(PlayState.PLAYED)
+                    upsertDB(it, item.position)
+                    it.startTime = 0
+                    it.startPosition = if (completed) -1 else it.position
+                    if (ended || (skipped && smartMarkAsPlayed)) it.setPosition(0)
+                    if (ended || skipped || playingNext) it.playbackCompletionDate = Date()
                 }
+
                 EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(item))
                 EventFlow.postEvent(FlowEvent.HistoryEvent())
 
@@ -438,7 +436,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     }
 
     fun persistCurrentPosition(fromMediaPlayer: Boolean, playable_: Episode?, position_: Int) {
-        var playable = playable_
+        var playable = if (curEpisode != null && playable_?.id == curEpisode?.id) curEpisode else playable_
         var position = position_
         val duration_: Int
         if (fromMediaPlayer) {
@@ -450,21 +448,14 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
         if (position != Episode.INVALID_TIME && duration_ != Episode.INVALID_TIME && playable != null) {
             Logd(TAG, "persistCurrentPosition to position: $position duration: $duration_ ${playable.getEpisodeTitle()}")
-            playable.setPosition(position)
-            playable.lastPlayedTime = (System.currentTimeMillis())
-            var item = realm.query(Episode::class, "id == ${playable.id}").first().find()
-            if (item != null) item = upsertBlk(item) { upsertDB(it, playable, position) }
+//            var item = realm.query(Episode::class, "id == ${playable.id}").first().find()
+//            if (item != null) item = upsertBlk(item) { upsertDB(it, playable, position) }
+            upsertBlk(playable) { upsertDB(it, position) }
             prevPosition = position
         }
     }
 
-    private fun upsertDB(it: Episode, playable: Episode, position: Int) {
-        it.startPosition = playable.startPosition
-        Logd(TAG, "upsertDB start: ${playable.startTime} timeSpentOnStart: ${playable.timeSpentOnStart} ${playable.title}")
-        Logd(TAG, "upsertDB start: ${playable.startPosition} playedDurationWhenStarted: ${playable.playedDurationWhenStarted}")
-        it.startTime = playable.startTime
-        it.timeSpentOnStart = playable.timeSpentOnStart
-        it.playedDurationWhenStarted = playable.playedDurationWhenStarted
+    private fun upsertDB(it: Episode, position: Int) {
         it.setPosition(position)
 
         if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
@@ -544,10 +535,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                         EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { taskManager?.disableSleepTimer() }, context.getString(R.string.undo)))
                     }
                 }
-                PlayerStatus.ERROR -> {
-                    writeNoMediaPlaying()
-                    endPlayback(false, true)
-                }
+                PlayerStatus.ERROR -> writeNoMediaPlaying()
                 else -> {}
             }
         }

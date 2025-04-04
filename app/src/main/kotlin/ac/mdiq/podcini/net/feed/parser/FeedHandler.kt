@@ -109,7 +109,7 @@ class FeedHandler {
                     }
                 }
             } catch (e: XmlPullParserException) {
-                Logs(TAG, e)
+                Logs(TAG, e, "getType for feed failed")
                 // XML document might actually be a HTML document -> try to parse as HTML
                 var rootElement: String? = null
                 try {

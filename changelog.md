@@ -1,3 +1,12 @@
+# 8.14.3
+
+* removing curEpisode from queue when not playing will not automatically play the next episode
+* in case of player error, pause on the current media (rather than starting the next)
+* curEpisode is fully a lazy object updated by the DB in PlaybackService and AudioPlayer screen
+* reordered items on episodes sort dialog
+* cleared up getNextInQueue
+* PlaybackPositionEvent is removed
+
 # 8.14.2
 
 * largely trimmed and restructured PlaybackService

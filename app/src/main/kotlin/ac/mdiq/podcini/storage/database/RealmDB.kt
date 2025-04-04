@@ -25,6 +25,7 @@ import io.github.xilinjia.krdb.dynamic.DynamicRealmObject
 import io.github.xilinjia.krdb.dynamic.getValue
 import io.github.xilinjia.krdb.dynamic.getValueSet
 import io.github.xilinjia.krdb.ext.isManaged
+import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.types.RealmObject
@@ -329,7 +330,7 @@ object RealmDB {
         }
     }
 
-    fun episodeMonitor(episode: Episode, onChanges: suspend (Episode, fields: Array<String>)->Unit): Job {
+    fun episodeMonitor(episode: Episode, onChanges: suspend (Episode, fields: Array<String>)->Unit, onInit: (suspend (Episode)->Unit)? = null): Job {
         return CoroutineScope(Dispatchers.Default).launch {
             val item_ = realm.query(Episode::class).query("id == ${episode.id}").first()
 //            Logd(TAG, "start monitoring episode: ${episode.id} ${episode.title}")
@@ -337,11 +338,15 @@ object RealmDB {
             episodeFlow.collect { changes: SingleQueryChange<Episode> ->
                 when (changes) {
                     is UpdatedObject -> {
-                        Logd(TAG, "episodeMonitor UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
+//                        Logd(TAG, "episodeMonitor UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
                         if (episode.id == changes.obj.id) onChanges(changes.obj, changes.changedFields)
                         else Loge(TAG, "episodeMonitor index out bound")
                     }
-                    else -> {}
+                    is InitialObject -> {
+//                        Logd(TAG, "episodeMonitor InitialObject ${changes.obj.title}")
+                        onInit?.invoke(changes.obj)
+                    }
+                    else -> Logd(TAG, "episodeMonitor other changes: $changes")
                 }
             }
         }

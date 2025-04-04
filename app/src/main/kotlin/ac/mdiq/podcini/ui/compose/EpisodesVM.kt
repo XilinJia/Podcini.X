@@ -254,17 +254,18 @@ class EpisodeVM(var episode: Episode, val tag: String) {
 
     fun startMonitoring() {
         if (episodeMonitor == null) {
-            episodeMonitor = episodeMonitor(episode) { e, fields ->
-                withContext(Dispatchers.Main) {
-                    playedState = e.playState
-                    ratingState = e.rating
-                    positionState = e.position
-                    durationState = e.duration
-                    inProgressState = e.isInProgress
-                    downloadState = if (e.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
+            episodeMonitor = episodeMonitor(episode,
+                onChanges = { e, fields ->
                     episode = e
-                }
-            }
+                    withContext(Dispatchers.Main) {
+                        playedState = e.playState
+                        ratingState = e.rating
+                        positionState = e.position
+                        durationState = e.duration
+                        inProgressState = e.isInProgress
+                        downloadState = if (e.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
+                    }
+            })
         }
     }
 }

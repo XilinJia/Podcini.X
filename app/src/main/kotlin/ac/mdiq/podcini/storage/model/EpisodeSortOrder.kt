@@ -7,6 +7,16 @@ import java.util.Locale
 enum class EpisodeSortOrder(val code: Int, val res: Int) {
     DATE_OLD_NEW(1, R.string.publish_date),
     DATE_NEW_OLD(2, R.string.publish_date),
+
+    EPISODE_TITLE_A_Z(3, R.string.episode_title),
+    EPISODE_TITLE_Z_A(4, R.string.episode_title),
+
+    DURATION_SHORT_LONG(5, R.string.duration),
+    DURATION_LONG_SHORT(6, R.string.duration),
+
+    VIEWS_LOW_HIGH(17, R.string.view_count),
+    VIEWS_HIGH_LOW(18, R.string.view_count),
+
     PLAYED_DATE_OLD_NEW(11, R.string.last_played_date),
     PLAYED_DATE_NEW_OLD(12, R.string.last_played_date),
     COMPLETED_DATE_OLD_NEW(13, R.string.completed_date),
@@ -16,20 +26,14 @@ enum class EpisodeSortOrder(val code: Int, val res: Int) {
     COMMENT_DATE_OLD_NEW(19, R.string.last_comment_date),
     COMMENT_DATE_NEW_OLD(20, R.string.last_comment_date),
 
-    EPISODE_TITLE_A_Z(3, R.string.episode_title),
-    EPISODE_TITLE_Z_A(4, R.string.episode_title),
     EPISODE_FILENAME_A_Z(7, R.string.filename),
     EPISODE_FILENAME_Z_A(8, R.string.filename),
     FEED_TITLE_A_Z(101, R.string.feed_title),
     FEED_TITLE_Z_A(102, R.string.feed_title),
 
-    DURATION_SHORT_LONG(5, R.string.duration),
-    DURATION_LONG_SHORT(6, R.string.duration),
     SIZE_SMALL_LARGE(9, R.string.size),
     SIZE_LARGE_SMALL(10, R.string.size),
 
-    VIEWS_LOW_HIGH(17, R.string.view_count),
-    VIEWS_HIGH_LOW(18, R.string.view_count),
     RANDOM(103, R.string.random),
     RANDOM1(104, R.string.random),
     SMART_SHUFFLE_OLD_NEW(105, R.string.smart_shuffle),

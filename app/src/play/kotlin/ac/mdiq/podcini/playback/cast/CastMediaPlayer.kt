@@ -10,11 +10,13 @@ import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.Queues.getNextInQueue
+import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -126,11 +128,12 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             Logd(TAG, "Both media and state haven't changed, so nothing to do")
             return
         }
-        val currentMedia = if (mediaChanged) toPlayable(mediaInfo) else curEpisode
+//        var currentMedia = if (mediaChanged) toPlayable(mediaInfo) else curEpisode
+        if (mediaChanged) setCurEpisode(toPlayable(mediaInfo))
 //        val oldMedia = curEpisode
         val position = mediaStatus.streamPosition.toInt()
         // check for incompatible states
-        if ((state == MediaStatus.PLAYER_STATE_PLAYING || state == MediaStatus.PLAYER_STATE_PAUSED) && currentMedia == null) {
+        if ((state == MediaStatus.PLAYER_STATE_PLAYING || state == MediaStatus.PLAYER_STATE_PAUSED) && curEpisode == null) {
             Loge(TAG, "onStatusUpdated returned playing or pausing state, but with no media")
             state = MediaStatus.PLAYER_STATE_UNKNOWN
             stateChanged = oldState != MediaStatus.PLAYER_STATE_UNKNOWN
@@ -147,23 +150,23 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             MediaStatus.PLAYER_STATE_PLAYING -> {
                 if (!stateChanged) {
                     //These steps are necessary because they won't be performed by setPlayerStatus()
-                    if (position >= 0) currentMedia?.setPosition(position)
-                    currentMedia?.onPlaybackStart()
+                    if (position >= 0 && curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(position) }
+                    if (curEpisode != null) upsertBlk(curEpisode!!) { it.onPlaybackStart() }
                 }
-                setPlayerStatus(PlayerStatus.PLAYING, currentMedia, position)
+                setPlayerStatus(PlayerStatus.PLAYING, curEpisode, position)
             }
-            MediaStatus.PLAYER_STATE_PAUSED -> setPlayerStatus(PlayerStatus.PAUSED, currentMedia, position)
+            MediaStatus.PLAYER_STATE_PAUSED -> setPlayerStatus(PlayerStatus.PAUSED, curEpisode, position)
             MediaStatus.PLAYER_STATE_LOADING -> { Logd(TAG, "Remote player loading") }
-            MediaStatus.PLAYER_STATE_BUFFERING -> setPlayerStatus(PlayerStatus.PREPARING, currentMedia, currentMedia?.position ?: Episode.INVALID_TIME)
+            MediaStatus.PLAYER_STATE_BUFFERING -> setPlayerStatus(PlayerStatus.PREPARING, curEpisode, curEpisode?.position ?: Episode.INVALID_TIME)
             MediaStatus.PLAYER_STATE_IDLE -> {
                 val reason = mediaStatus.idleReason
                 when (reason) {
                     MediaStatus.IDLE_REASON_CANCELED -> {
                         // Essentially means stopped at the request of a user
-                        onPlaybackEnded(null, true)
-                        setPlayerStatus(PlayerStatus.STOPPED, currentMedia)
+                        onPlaybackEnded(true)
+                        setPlayerStatus(PlayerStatus.STOPPED, curEpisode)
                         if (curEpisode != null) {
-                            if (position >= 0) curEpisode?.setPosition(position)
+                            if (position >= 0) upsertBlk(curEpisode!!) { it.setPosition(position) }
                             onPostPlayback(curEpisode!!, ended = false, skipped = false, playingNext = false)
                         }
                         // onPlaybackEnded pretty much takes care of updating the UI
@@ -171,18 +174,18 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     }
                     MediaStatus.IDLE_REASON_INTERRUPTED -> {
                         // Means that a request to load a different media was sent
-                        // Not sure if currentMedia already reflects the to be loaded one
+                        // Not sure if curEpisode already reflects the to be loaded one
                         if (mediaChanged && oldState == MediaStatus.PLAYER_STATE_PLAYING) {
                             onPlaybackPause(null, Episode.INVALID_TIME)
                             setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                         }
-                        setPlayerStatus(PlayerStatus.PREPARING, currentMedia)
+                        setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
                     }
                     // This probably only happens when we connected but no command has been sent yet.
-                    MediaStatus.IDLE_REASON_NONE -> setPlayerStatus(PlayerStatus.INITIALIZED, currentMedia)
+                    MediaStatus.IDLE_REASON_NONE -> setPlayerStatus(PlayerStatus.INITIALIZED, curEpisode)
                     MediaStatus.IDLE_REASON_FINISHED -> {
                         // This is our onCompletionListener...
-                        if (mediaChanged && currentMedia != null) setCurEpisode(currentMedia)
+                        if (mediaChanged && curEpisode != null) setCurEpisode(curEpisode)
                         endPlayback(true, wasSkipped = false)
                         return
                     }
@@ -195,41 +198,41 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     else -> return
                 }
             }
-            MediaStatus.PLAYER_STATE_UNKNOWN -> if (status != PlayerStatus.INDETERMINATE || curEpisode !== currentMedia) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
+            MediaStatus.PLAYER_STATE_UNKNOWN -> if (status != PlayerStatus.INDETERMINATE) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
             else -> Loge(TAG, "Remote media state undetermined!")
         }
-        if (mediaChanged) {
-            if (curEpisode != null) onPostPlayback(curEpisode!!, ended = false, skipped = false, playingNext = currentMedia != null)
-        }
+        if (mediaChanged && curEpisode != null) onPostPlayback(curEpisode!!, ended = false, skipped = false, playingNext = true)
     }
 
     /**
-     * Internal implementation of playMediaObject. This method has an additional parameter that
+     * Internal implementation of prepareMedia. This method has an additional parameter that
      * allows the caller to force a media player reset even if
      * the given playable parameter is the same object as the currently playing media.
-     * @see .playMediaObject
+     * @see .prepareMedia
      */
-    override fun playMediaObject(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean) {
-       Logd(TAG, "playMediaObject")
+    override fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean, doPostPlayback: Boolean) {
+       Logd(TAG, "prepareMedia")
         if (!isCastable(playable, castContext?.sessionManager?.currentCastSession)) {
             Logd(TAG, "media provided is not compatible with cast device")
             EventFlow.postEvent(FlowEvent.PlayerErrorEvent("Media not compatible with cast device"))
+            var prevPlayable: Episode? = playable
             var nextPlayable: Episode? = playable
-            do { nextPlayable = getNextInQueue(nextPlayable) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
-            } while (nextPlayable != null && !isCastable(nextPlayable, castContext?.sessionManager?.currentCastSession))
-            if (nextPlayable != null) playMediaObject(nextPlayable, streaming, startWhenPrepared, prepareImmediately, forceReset)
+            do {
+                prevPlayable = nextPlayable
+                nextPlayable = getNextInQueue(nextPlayable) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
+            } while (nextPlayable != null && nextPlayable.id != prevPlayable?.id && !isCastable(nextPlayable, castContext?.sessionManager?.currentCastSession))
+            if (nextPlayable != null) prepareMedia(nextPlayable, streaming, startWhenPrepared, prepareImmediately, forceReset)
             return
         }
 
-        if (curEpisode != null) {
-            if (!forceReset && curEpisode!!.id == prevMedia?.id && status == PlayerStatus.PLAYING) {
-                // episode is already playing -> ignore method call
-                Logd(TAG, "Method call to playMediaObject was ignored: media file already playing.")
-                return
-            } else {
-                if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, false, false, true)
-                setPlayerStatus(PlayerStatus.INDETERMINATE, null)
-            }
+        if (!forceReset && curEpisode?.id == prevMedia?.id && status == PlayerStatus.PLAYING) {
+            // episode is already playing -> ignore method call
+            Logd(TAG, "Method call to prepareMedia was ignored: media file already playing.")
+            return
+        }
+        if (curEpisode != null && doPostPlayback) {
+            if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, false, false, true)
+            setPlayerStatus(PlayerStatus.INDETERMINATE, null)
         }
 
         setCurEpisode(playable)
@@ -255,17 +258,17 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 }
                 else -> {}
             }
-            mediaInfo = toMediaInfo(playable)
+            mediaInfo = toMediaInfo(curEpisode)
             val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager
             if (uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_CAR) setPlayerStatus(PlayerStatus.INITIALIZED, curEpisode)
             if (prepareImmediately) prepare()
         } catch (e: IOException) {
             Logs(TAG, e)
-            setPlayerStatus(PlayerStatus.ERROR, playable)
+            setPlayerStatus(PlayerStatus.ERROR, curEpisode)
             EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: ""))
         } catch (e: IllegalStateException) {
             Logs(TAG, e)
-            setPlayerStatus(PlayerStatus.ERROR, playable)
+            setPlayerStatus(PlayerStatus.ERROR, curEpisode)
             EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: ""))
         } finally { }
     }
@@ -304,7 +307,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     override fun reinit() {
         Logd(TAG, "reinit() called")
-        if (curEpisode != null) playMediaObject(curEpisode!!, streaming = false, startWhenPrepared = startWhenPrepared.get(), prepareImmediately = false, true)
+        if (curEpisode != null) prepareMedia(playable = curEpisode!!, streaming = false, startWhenPrepared = startWhenPrepared.get(), prepareImmediately = false, forceReset = true, doPostPlayback = true)
         else Logd(TAG, "Call to reinit was ignored: media was null")
     }
 
@@ -312,7 +315,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         remoteMediaClient?.seek(MediaSeekOptions.Builder().setPosition(t.toLong()).setResumeState(MediaSeekOptions.RESUME_STATE_PLAY).build())?.addStatusListener {
             if (it.isSuccess) {
                 Logd(TAG, "seekTo Seek succeeded to position $t ms")
-                if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, t, curEpisode!!.duration))
+//                if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, t, curEpisode!!.duration))
             } else Loge(TAG, "seekTo failed")
         }
     }
@@ -350,14 +353,8 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         remoteMediaClient?.unregisterCallback(remoteMediaClientCallback)
     }
 
-//    override fun setPlayable(playable: Episode?) {
-//        if (playable != null && playable !== curEpisode) {
-//            setCurEpisode(playable)
-//            mediaInfo = toMediaInfo(playable)
-//        }
-//    }
-
-    override fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean, toStoppedState: Boolean) {
+    // TODO: better merge with LocalMediaPlayer
+    override fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean) {
         Logd(TAG, "endPlayback() called")
         val isPlaying = status == PlayerStatus.PLAYING
         if (status != PlayerStatus.INDETERMINATE) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
@@ -365,33 +362,33 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (curEpisode != null && wasSkipped) {
             // current position only really matters when we skip
             val position = getPosition()
-            if (position >= 0) curEpisode!!.setPosition(position)
+            if (position >= 0) upsertBlk(curEpisode!!) { it.setPosition(position) }
+            EventFlow.postEvent(FlowEvent.PlayEvent(curEpisode!!, Action.END))
         }
         val currentMedia = curEpisode
-        var nextMedia: Episode? = null
-        if (shouldContinue) {
-            nextMedia = getNextInQueue(currentMedia) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
-            val playNextEpisode = isPlaying && nextMedia != null
-            when {
-                playNextEpisode -> Logd(TAG, "Playback of next episode will start immediately.")
-                nextMedia == null -> Logd(TAG, "No more episodes available to play")
-                else -> Logd(TAG, "Loading next episode, but not playing automatically.")
-            }
-            if (nextMedia != null) {
-                onPlaybackEnded(nextMedia.getMediaType(), !playNextEpisode)
-                // setting media to null signals to playMediaObject() that we're taking care of post-playback processing
-                setCurEpisode(null)
-                playMediaObject(nextMedia, streaming = true, startWhenPrepared = playNextEpisode, prepareImmediately = playNextEpisode, forceReset = false)
-            }
-        }
         when {
-            shouldContinue || toStoppedState -> {
+            shouldContinue -> {
+                var nextMedia = getNextInQueue(currentMedia) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
+                val playNextEpisode = isPlaying && nextMedia != null
+                when {
+                    playNextEpisode -> Logd(TAG, "Playback of next episode will start immediately.")
+                    nextMedia == null -> Logd(TAG, "No more episodes available to play")
+                    else -> Logd(TAG, "Loading next episode, but not playing automatically.")
+                }
+                if (nextMedia != null) {
+                    EventFlow.postEvent(FlowEvent.PlayEvent(nextMedia))
+                    onPlaybackEnded(!playNextEpisode)
+                    // setting media to null signals to prepareMedia() that we're taking care of post-playback processing
+//                    setCurEpisode(null)
+                    prepareMedia(nextMedia, streaming = true, startWhenPrepared = playNextEpisode, prepareImmediately = playNextEpisode, forceReset = false)
+                }
                 if (currentMedia != null) {
+                    var playingNext = true
                     if (nextMedia == null) {
                         remoteMediaClient?.stop()
-                        // Otherwise we rely on the chromecast callback to tell us the playback has stopped.
-                        onPostPlayback(currentMedia, hasEnded, wasSkipped, false)
-                    } else onPostPlayback(currentMedia, hasEnded, wasSkipped, true)
+                        playingNext = false
+                    }
+                    onPostPlayback(currentMedia, hasEnded, wasSkipped, playingNext)
                 }
             }
             isPlaying -> onPlaybackPause(currentMedia, currentMedia?.position ?: Episode.INVALID_TIME)

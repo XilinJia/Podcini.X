@@ -20,8 +20,6 @@ sealed class FlowEvent {
     val TAG = this::class.simpleName ?: "FlowEvent"
     val id: Long = Date().time
 
-    data class PlaybackPositionEvent(val episode: Episode?, val position: Int, val duration: Int) : FlowEvent()
-
     data class PlaybackServiceEvent(val action: Action) : FlowEvent() {
         enum class Action { SERVICE_STARTED, SERVICE_SHUT_DOWN, }
     }
@@ -32,8 +30,6 @@ sealed class FlowEvent {
     }
 
     data class PlayerErrorEvent(val message: String) : FlowEvent()
-
-//    data class PlayerSettingsEvent(val dummy: Unit = Unit) : FlowEvent()
 
     data class BufferUpdateEvent(val progress: Float) : FlowEvent() {
         fun hasStarted(): Boolean = progress == PROGRESS_STARTED
@@ -113,8 +109,6 @@ sealed class FlowEvent {
     //    TODO: need better handling at receving end
     data class EpisodePlayedEvent(val episode: Episode? = null) : FlowEvent()
 
-//    data class RatingEvent(val episode: Episode, val rating: Int = Rating.SUPER.code) : FlowEvent()
-
     data class EpisodeEvent(val episodes: List<Episode>) : FlowEvent() {
         companion object {
             fun updated(vararg episodes: Episode): EpisodeEvent = EpisodeEvent(listOf(*episodes))
@@ -136,8 +130,6 @@ sealed class FlowEvent {
     data class FeedUpdatingEvent(val isRunning: Boolean) : FlowEvent()
 
     data class MessageEvent(val message: String, val action: ((Context)->Unit)? = null, val actionText: String? = null) : FlowEvent()
-
-//    data class SwipeActionsChangedEvent(val dummy: Unit = Unit) : FlowEvent()
 
     data class SyncServiceEvent(val messageResId: Int, val message: String = "") : FlowEvent()
 

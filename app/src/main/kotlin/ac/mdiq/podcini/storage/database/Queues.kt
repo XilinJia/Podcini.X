@@ -29,7 +29,6 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -366,20 +365,7 @@ object Queues {
 
     fun getNextInQueue(currentMedia: Episode?, streamNotifyCB: (Episode)->Unit): Episode? {
         Logd(TAG, "getNextInQueue called currentMedia: ${currentMedia?.getEpisodeTitle()}")
-        if (currentMedia == null) {
-            Logd(TAG, "getNextInQueue(), but playable not an instance of EpisodeMedia, so not proceeding")
-            writeNoMediaPlaying()
-            return null
-        }
-        Logd(TAG, "getNextInQueue curIndexInQueue: $curIndexInQueue")
-        // TODO: ensure check no media
-        EventFlow.postEvent(FlowEvent.PlayEvent(currentMedia, Action.END))
-        if (curIndexInQueue < 0 && currentMedia.feed?.queue != null) {
-            Logd(TAG, "getNextInQueue(), curMedia is not in curQueue")
-            writeNoMediaPlaying()
-            return null
-        }
-        val eList = if (currentMedia.feed?.queue == null) currentMedia.feed?.getVirtualQueueItems() else curQueue.episodes
+        val eList = if (currentMedia?.feed?.queue == null) currentMedia?.feed?.getVirtualQueueItems() else curQueue.episodes
         if (eList.isNullOrEmpty()) {
             Logd(TAG, "getNextInQueue queue is empty")
             writeNoMediaPlaying()
@@ -388,7 +374,7 @@ object Queues {
         Logd(TAG, "getNextInQueue curIndexInQueue: $curIndexInQueue ${eList.size}")
         val nextItem = if (curIndexInQueue >= 0 && curIndexInQueue < eList.size) {
             when {
-                eList[curIndexInQueue].id != currentMedia.id -> eList[curIndexInQueue]
+                eList[curIndexInQueue].id != currentMedia?.id -> eList[curIndexInQueue]
                 eList.size == 1 -> return null
                 else -> {
                     var j = if (curIndexInQueue < eList.size - 1) curIndexInQueue + 1 else 0
@@ -398,19 +384,21 @@ object Queues {
             }
         } else eList[0]
         Logd(TAG, "getNextInQueue nextItem ${nextItem.title}")
-        if (!getPref(AppPrefs.prefFollowQueue, true)) {
+        val continuePlay = getPref(AppPrefs.prefFollowQueue, true)
+        if (!continuePlay) {
             Logd(TAG, "getNextInQueue(), but follow queue is not enabled.")
             writeMediaPlaying(nextItem, PlayerStatus.STOPPED)
             return null
         }
-        if (!nextItem.localFileAvailable() && !isStreamingAllowed && getPref(AppPrefs.prefFollowQueue, true) && nextItem.feed?.isLocalFeed != true) {
+        if (!nextItem.localFileAvailable() && !isStreamingAllowed && nextItem.feed?.isLocalFeed != true) {
             Logd(TAG, "getNextInQueue nextItem has no local file ${nextItem.title}")
             streamNotifyCB(nextItem)
             writeNoMediaPlaying()
             return null
         }
-        EventFlow.postEvent(FlowEvent.PlayEvent(nextItem))
-        return unmanaged(nextItem)
+        // TODO: test
+//        return unmanaged(nextItem)
+        return nextItem
     }
 
     class EnqueuePositionPolicy(private val enqueueLocation: EnqueueLocation) {

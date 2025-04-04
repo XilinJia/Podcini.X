@@ -666,10 +666,10 @@ class Episode : RealmObject {
                         val response = client.newCall(httpReq.build()).execute()
                         if (response.isSuccessful) {
                             val contentLength = response.header("Content-Length")?:"0"
-                            try { size_ = contentLength.toInt().toLong() } catch (e: NumberFormatException) { Logs(TAG, e) }
+                            try { size_ = contentLength.toInt().toLong() } catch (e: NumberFormatException) { Logs(TAG, e, "fetchMediaSize failed") }
                         }
                     } catch (e: Exception) {
-                        Logs(TAG, e)
+                        Logs(TAG, e, "fetchMediaSize failed")
                         return@withContext -1  // better luck next time
                     }
                 }
@@ -882,7 +882,7 @@ class Episode : RealmObject {
      */
     class MediaMetadataRetrieverCompat : MediaMetadataRetriever(), AutoCloseable {
         override fun close() {
-            try { release() } catch (e: IOException) { Logs(TAG, e) }
+            try { release() } catch (e: IOException) { Logs(TAG, e, "MediaMetadataRetriever failed") }
         }
     }
 

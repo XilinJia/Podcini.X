@@ -233,8 +233,8 @@ object Feeds {
                 resultFeed = searchFeedByIdentifyingValueOrID(newFeed)
                 // TODO: This doesn't appear needed as unlistedItems is still empty
 //                if (removeUnlistedItems && unlistedItems.isNotEmpty()) runBlocking { deleteEpisodes(context, unlistedItems).join() }
-            } catch (e: InterruptedException) { Logs(TAG, e)
-            } catch (e: ExecutionException) { Logs(TAG, e) }
+            } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
+            } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
             return resultFeed
         }
 
@@ -344,8 +344,8 @@ object Feeds {
         try {
             upsertBlk(savedFeed) {}
             if (removeUnlistedItems && unlistedItems.isNotEmpty()) deleteEpisodesSync(context, unlistedItems)
-        } catch (e: InterruptedException) { Logs(TAG, e)
-        } catch (e: ExecutionException) { Logs(TAG, e) }
+        } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
+        } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
         return resultFeed
     }
 
@@ -403,7 +403,7 @@ object Feeds {
         for (e in savedFeed.episodes) savedFeed.totleDuration += e.duration
 
         val resultFeed = savedFeed
-        try { upsert(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
+        try { upsert(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedSimple failed") } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedSimple failed") }
         return resultFeed
     }
 

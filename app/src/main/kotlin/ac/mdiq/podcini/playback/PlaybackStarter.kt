@@ -56,10 +56,8 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
                 Logd(TAG, "aController ready, play")
                 mPlayer?.isStreaming = shouldStreamThisTime
                 when (status) {
-                    PlayerStatus.PLAYING, PlayerStatus.PAUSED, PlayerStatus.PREPARED -> playPause()
-//                    PlayerStatus.PLAYING -> mPlayer?.pause(true)
-//                    PlayerStatus.PAUSED -> mPlayer!!.resume()
-//                    PlayerStatus.PREPARED -> mPlayer!!.playMediaObject(media, shouldStreamThisTime, true, true)
+                    PlayerStatus.PLAYING -> playPause()
+                    PlayerStatus.PAUSED, PlayerStatus.PREPARED -> mPlayer?.prepareMedia(media, shouldStreamThisTime, true, true)
                     PlayerStatus.STOPPED -> ContextCompat.startForegroundService(context, intent)
                     else -> mPlayer?.reinit()
                 }

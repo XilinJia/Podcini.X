@@ -4,12 +4,14 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.Recorder.saveClipInOriginalFormat
-import ac.mdiq.podcini.playback.base.InTheatre.bitrate
+import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
+import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
-import ac.mdiq.podcini.playback.base.InTheatre.aController
+import ac.mdiq.podcini.playback.base.InTheatre.onCurChangedUICB
+import ac.mdiq.podcini.playback.base.InTheatre.onCurInitUICB
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curDurationFB
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
@@ -36,7 +38,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
-import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.model.Chapter
@@ -172,7 +173,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal val actMain: MainActivity? = generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull()
 
     internal var playerLocal: ExoPlayer? = null
-    internal var episodeMonitor: Job? = null
 
     private var prevItem: Episode? = null
     internal var curItem by mutableStateOf<Episode?>(null)  // TODO: this appears unmanaged?
@@ -254,43 +254,66 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 //                        }
                     }
                     is BufferUpdateEvent -> bufferUpdate(event)
-                    is FlowEvent.PlayEvent -> onPlayEvent(event)
-//                    is FlowEvent.RatingEvent -> if (curEpisode?.id == event.episode.id) rating = event.rating
+                    is FlowEvent.PlayEvent -> showPlayButton = (event.action == FlowEvent.PlayEvent.Action.END)
 //                    is FlowEvent.SleepTimerUpdatedEvent ->  if (event.isCancelled || event.wasJustEnabled()) loadMediaInfo(false)
                     is FlowEvent.PlayerErrorEvent -> {
                         showErrorDialog.value = true
                         errorMessage = event.message
                     }
                     is FlowEvent.SleepTimerUpdatedEvent ->  if (event.isCancelled || event.wasJustEnabled()) sleepTimerActive = isSleepTimerActive()
-                    is FlowEvent.PlaybackPositionEvent -> onPlaybackPositionEvent(event)
                     is FlowEvent.SpeedChangedEvent -> updatePlaybackSpeedButton(event)
                     else -> {}
                 }
             }
         }
     }
-    internal fun monitor() {
-        if (episodeMonitor != null || curItem == null) return
-        episodeMonitor = episodeMonitor(curItem!!) { e, fields ->
-            withContext(Dispatchers.Main) {
-                Logd(TAG, "monitor: ${fields.joinToString()}")
-                var isChanged = false
-                var isDetailChanged = false
-                for (f in fields) {
-                    if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime", "playedDuration")) continue
-                    isChanged = true
-                    Logd(TAG, "monitor: field changed: $f")
-                    if (f == "clips" || f == "marks") isDetailChanged = true
-                }
-                if (isChanged) {
-                    Logd(TAG, "monitor: curItem changed")
-                    curItem = e
-                    rating = e.rating
-                    if (isDetailChanged) updateDetails()
-                }
-            }
+    suspend fun onEpisodeInit(e: Episode) {
+        withContext(Dispatchers.Main) {
+            curItem = e
+            Logd(TAG, "monitor: curItem changed")
+            rating = e.rating
+            updateUi()
+            updateDetails()
+            updateTimeline()
         }
     }
+    suspend fun onEpisodeChanged(e: Episode, fields: Array<String>) {
+        withContext(Dispatchers.Main) {
+            Logd(TAG, "monitor: ${fields.joinToString()}")
+            var isChanged = false
+            var isDetailChanged = false
+            for (f in fields) {
+                if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime", "playedDuration")) continue
+                isChanged = true
+                if (f == "clips" || f == "marks") isDetailChanged = true
+            }
+            curItem = e
+            if (isChanged) {
+                Logd(TAG, "monitor: curItem changed")
+                rating = curItem!!.rating
+                updateUi()
+                if (isDetailChanged) updateDetails()
+            }
+            updateTimeline()
+        }
+    }
+    private fun updateTimeline() {
+        if (isBSExpanded) {
+            val newChapterIndex: Int = curItem!!.getCurrentChapterIndex(curItem!!.position)
+            if (newChapterIndex >= 0 && newChapterIndex != displayedChapterIndex) refreshChapterData(newChapterIndex)
+        }
+        if (!playButInit && playButRes == R.drawable.ic_play_48dp && curEpisode != null) {
+            showPlayButton = !isCurrentlyPlaying(curEpisode)
+            playButInit = true
+        }
+        curPosition = convertOnSpeed(curItem!!.position, curPBSpeed)
+        duration = convertOnSpeed(curItem!!.duration, curPBSpeed)
+        val remainingTime: Int = convertOnSpeed(max((curItem!!.duration - curItem!!.position).toDouble(), 0.0).toInt(), curPBSpeed)
+        showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
+        txtvLengtTexth = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + DurationConverter.getDurationStringLong(remainingTime) else DurationConverter.getDurationStringLong(duration)
+        sliderValue = curItem!!.position.toFloat()
+    }
+
     private fun bufferUpdate(event: BufferUpdateEvent) {
         Logd(TAG, "bufferUpdate ${mPlayer?.isStreaming} ${event.progress}")
         when {
@@ -303,58 +326,14 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         curPlaybackSpeed = event.newSpeed
         txtvPlaybackSpeed = DecimalFormat("0.00").format(event.newSpeed.toDouble())
     }
-    private fun onPlaybackPositionEvent(event: FlowEvent.PlaybackPositionEvent) {
-//        Logd(TAG, "onPlaybackPositionEvent ${event.episode.title}")
-        val media = event.episode ?: return
-        if (curItem?.id == null || media.id != curItem?.id) {
-            setItem(media)
-            updateUi(curItem!!)
-        }
-        if (showPlayButton) showPlayButton = false
-        onPositionUpdate(event)
-        if (isBSExpanded) {
-            if (curItem?.id != event.episode.id) return
-            val newChapterIndex: Int = curItem!!.getCurrentChapterIndex(event.position)
-            if (newChapterIndex >= 0 && newChapterIndex != displayedChapterIndex) refreshChapterData(newChapterIndex)
-        }
-    }
-    private fun onPlayEvent(event: FlowEvent.PlayEvent) {
-        Logd(TAG, "onPlayEvent ${event.episode.title}")
-        val currentitem = event.episode
-        if (curItem?.id == null || currentitem.id != curItem?.id) {
-            setItem(currentitem)
-            updateUi(curItem!!)
-        }
-        showPlayButton = (event.action == FlowEvent.PlayEvent.Action.END)
-    }
-    internal fun onPositionUpdate(event: FlowEvent.PlaybackPositionEvent) {
-//        Logd(TAG, "onPositionUpdate")
-        if (!playButInit && playButRes == R.drawable.ic_play_48dp && curEpisode != null) {
-            showPlayButton = !isCurrentlyPlaying(curEpisode)
-//            if (isCurrentlyPlaying(curEpisode)) playButRes = R.drawable.ic_pause
-            playButInit = true
-        }
-        if (curEpisode?.id != event.episode?.id || curPositionFB == Episode.INVALID_TIME || curDurationFB == Episode.INVALID_TIME) return
-//        val converter = TimeSpeedConverter(curSpeedFB)
-        curPosition = convertOnSpeed(event.position, curPBSpeed)
-        duration = convertOnSpeed(event.duration, curPBSpeed)
-        val remainingTime: Int = convertOnSpeed(max((event.duration - event.position).toDouble(), 0.0).toInt(), curPBSpeed)
-        if (curPosition == Episode.INVALID_TIME || duration == Episode.INVALID_TIME) {
-            Loge(TAG, "Could not react to position observer update because of invalid time")
-            return
-        }
-        showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
-        txtvLengtTexth = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + DurationConverter.getDurationStringLong(remainingTime) else DurationConverter.getDurationStringLong(duration)
-        sliderValue = event.position.toFloat()
-    }
-    internal fun updateUi(media: Episode) {
+    internal fun updateUi() {
 //        Logd(TAG, "updateUi called $media")
-        titleText = media.getEpisodeTitle()
+        titleText = curItem?.getEpisodeTitle() ?: ""
         txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
         curPlaybackSpeed = curPBSpeed
-        onPositionUpdate(FlowEvent.PlaybackPositionEvent(media, media.position, media.duration))
+//        onPositionUpdate(FlowEvent.PlaybackPositionEvent(media, media.position, media.duration))
         if (isPlayingVideoLocally && curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY) isBSExpanded = false
-        prevItem = media
+        prevItem = curItem
     }
     internal fun updateDetails() {
         lcScope.launch {
@@ -438,8 +417,8 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             loadItemsRunning = true
             val curMediaChanged = curItem == null || curEpisode?.id != curItem?.id
             if (curEpisode != null && curEpisode?.id != curItem?.id) {
-                updateUi(curEpisode!!)
                 setItem(curEpisode!!)
+                updateUi()
             }
             if (isBSExpanded && curMediaChanged) {
                 Logd(TAG, "loadMediaInfo loading details ${curEpisode?.id}")
@@ -461,10 +440,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun setItem(item_: Episode) {
         Logd(TAG, "setItem ${item_.title}")
         if (curItem?.identifyingValue != item_.identifyingValue) {
-            episodeMonitor?.cancel()
-            episodeMonitor = null
             curItem = item_
-            monitor()
             rating = curItem!!.rating
             showHomeText = false
             homeText = null
@@ -487,11 +463,12 @@ fun AudioPlayerScreen() {
                 Lifecycle.Event.ON_CREATE -> {
                     isBSExpanded = false
                     if (vm.shownotesCleaner == null) vm.shownotesCleaner = ShownotesCleaner(context)
-                    if (curEpisode != null) vm.updateUi(curEpisode!!)
+                    if (curEpisode != null) vm.updateUi()
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.procFlowEvents()
-                    vm.monitor()
+                    onCurChangedUICB = { e, f -> vm.onEpisodeChanged(e, f) }
+                    onCurInitUICB = { e -> vm.onEpisodeInit(e) }
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     if (aCtrlFuture == null) {
                         aCtrlFuture = MediaController.Builder(context, sessionToken).buildAsync()
@@ -500,10 +477,10 @@ fun AudioPlayerScreen() {
                 }
                 Lifecycle.Event.ON_RESUME -> {
                     vm.loadMediaInfo()
-                    if (curEpisode != null) {
-                        !isCurrentlyPlaying(curEpisode)     // TODO: what is this? introduced since 8.11.7
-                        vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode!!, curEpisode!!.position, curEpisode!!.duration))
-                    }
+//                    if (curEpisode != null) {
+//                        !isCurrentlyPlaying(curEpisode)     // TODO: what is this? introduced since 8.11.7
+//                        vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode!!, curEpisode!!.position, curEpisode!!.duration))
+//                    }
                 }
                 Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
                 Lifecycle.Event.ON_DESTROY -> {}
@@ -514,8 +491,8 @@ fun AudioPlayerScreen() {
         onDispose {
             vm.playerLocal?.release()
             vm.playerLocal = null
-            vm.episodeMonitor?.cancel()
-            vm.episodeMonitor = null
+            onCurChangedUICB = null
+            onCurInitUICB = null
             if (aCtrlFuture != null) MediaController.releaseFuture(aCtrlFuture!!)
             aCtrlFuture =  null
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -716,7 +693,7 @@ fun AudioPlayerScreen() {
             Text(vm.txtvLengtTexth, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
                 vm.showTimeLeft = !vm.showTimeLeft
                 putPref(AppPrefs.showTimeLeft, vm.showTimeLeft)
-                vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode, curPositionFB, curDurationFB))
+//                vm.onPositionUpdate(FlowEvent.PlaybackPositionEvent(curEpisode, curPositionFB, curDurationFB))
             })
         }
     }
@@ -896,7 +873,7 @@ fun AudioPlayerScreen() {
     LaunchedEffect(key1 = curMediaId) {
         vm.cleanedNotes = null
         if (curEpisode != null) {
-            vm.updateUi(curEpisode!!)
+            vm.updateUi()
             vm.imgLoc = curEpisode!!.imageLocation
             if (vm.curItem?.id != curEpisode?.id) vm.setItem(curEpisode!!)
         }
