@@ -27,7 +27,6 @@ import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
-import ac.mdiq.podcini.ui.compose.MediaPlayerErrorDialog
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
@@ -119,8 +118,8 @@ class VideoplayerActivity : BaseActivity() {
     var showChapterDialog by mutableStateOf(false)
     var showAudioControlDialog by mutableStateOf(false)
     var showSpeedDialog by mutableStateOf(false)
-    val showErrorDialog = mutableStateOf(false)
-    var errorMessage by mutableStateOf("")
+//    val showErrorDialog = mutableStateOf(false)
+//    var errorMessage by mutableStateOf("")
 
     var showSleepTimeDialog by mutableStateOf(false)
 
@@ -159,7 +158,6 @@ class VideoplayerActivity : BaseActivity() {
                 if (showChapterDialog) ChaptersDialog(curEpisode!!, onDismissRequest = { showChapterDialog = false })
                 if (showAudioControlDialog) PlaybackControlsDialog(onDismiss = { showAudioControlDialog = false })
                 if (showSpeedDialog) PlaybackSpeedFullDialog(settingCode = booleanArrayOf(true, true, true), indexDefault = 0, maxSpeed = 3f, onDismiss = { showSpeedDialog = false })
-                MediaPlayerErrorDialog(this, errorMessage, showErrorDialog)
                 if (showShareDialog) {
                     val feedItem = curEpisode
                     if (feedItem != null) ShareDialog(feedItem, this@VideoplayerActivity) { showShareDialog = false }
@@ -364,10 +362,6 @@ class VideoplayerActivity : BaseActivity() {
 //                    is FlowEvent.SleepTimerUpdatedEvent -> if (event.isCancelled || event.wasJustEnabled()) supportInvalidateOptionsMenu()
                     is FlowEvent.PlaybackServiceEvent -> if (event.action == FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN) finish()
                     is FlowEvent.MessageEvent -> onMessageEvent(event)
-                    is FlowEvent.PlayerErrorEvent -> {
-                        showErrorDialog.value = true
-                        errorMessage = event.message
-                    }
                     else -> {}
                 }
             }

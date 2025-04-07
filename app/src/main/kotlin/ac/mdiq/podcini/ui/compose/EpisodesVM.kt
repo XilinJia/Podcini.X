@@ -232,7 +232,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     var positionState by mutableStateOf(episode.position)
     var durationState by mutableStateOf(episode.duration)
     var playedState by mutableIntStateOf(episode.playState)
-    var isPlayingState by mutableStateOf(false)
+//    var isPlayingState by mutableStateOf(false)
     var hasComment by mutableStateOf(episode.comment.isNotBlank())
     var ratingState by mutableIntStateOf(episode.rating)
     var inProgressState by mutableStateOf(episode.isInProgress)
@@ -543,10 +543,10 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
 @Composable
 fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed? = null, layoutMode: Int = 0,
                       showCoverImage: Boolean = true, showActionButtons: Boolean = true, showComment: Boolean = false,
-                      buildMoreItems: (()-> Unit) = {},
+                      buildMoreItems: (()->Unit) = {},
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
-                      refreshCB: (()->Unit)? = null, leftSwipeCB: ((Episode) -> Unit)? = null, rightSwipeCB: ((Episode) -> Unit)? = null,
-                      actionButton_: ((Episode)-> EpisodeActionButton)? = null,
+                      refreshCB: (()->Unit)? = null, leftSwipeCB: ((Episode)->Unit)? = null, rightSwipeCB: ((Episode)->Unit)? = null,
+                      actionButton_: ((Episode)->EpisodeActionButton)? = null, actionButtonCB: ((Episode, String)->Unit)? = null,
                       multiSelectCB: ((Int, Int)->List<Episode>)? = null) {
     val TAG = "EpisodeLazyColumn"
     var selectMode by remember { mutableStateOf(false) }
@@ -878,7 +878,11 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         }
                     } else LaunchedEffect(Unit) { vm.actionButton = actionButton_(vm.episode) }
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd)
-                        .pointerInput(Unit) { detectTapGestures(onLongPress = { vms[index].showAltActionsDialog = true }, onTap = { vm.actionButton.onClick(activity) }) }) {
+                        .pointerInput(Unit) { detectTapGestures(onLongPress = { vms[index].showAltActionsDialog = true },
+                            onTap = {
+                                vm.actionButton.onClick(activity)
+                                actionButtonCB?.invoke(vm.episode, vm.actionButton.TAG)
+                            }) }) {
                         Icon(imageVector = ImageVector.vectorResource(vm.actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
                         if (isDownloading() && vm.dlPercent >= 0) CircularProgressIndicator(progress = { 0.01f * vm.dlPercent }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                         if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))

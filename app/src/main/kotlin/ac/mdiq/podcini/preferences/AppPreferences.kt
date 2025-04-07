@@ -188,7 +188,7 @@ object AppPreferences {
     enum class DefaultPages(val res: Int) {
         Subscriptions(R.string.subscriptions_label),
         Queues(R.string.queue_label),
-        Episodes(R.string.episodes_label),
+        Facets(R.string.facets),
         OnlineSearch(R.string.add_feed_label),
         Statistics(R.string.statistics_label),
         Remember(R.string.remember_last_page);
@@ -216,6 +216,9 @@ object AppPreferences {
         prefQueueKeepSortedOrder("use-default"),
         prefShowErrorToasts(true),
         prefPrintDebugLogs(false),
+
+        prefLastScreen(""),
+        prefLastScreenArg(""),
 
         // Episodes
         prefEpisodesSort("" + EpisodeSortOrder.DATE_NEW_OLD.code),

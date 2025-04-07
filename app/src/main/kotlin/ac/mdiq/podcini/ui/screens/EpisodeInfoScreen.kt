@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.ui.screens
 
-import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
@@ -10,8 +9,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.UsageStatistics
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
@@ -175,10 +172,6 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
-//                    is FlowEvent.RatingEvent -> onRatingEvent(event)
-//                    is FlowEvent.EpisodeEvent -> onEpisodeEvent(event)
-//                    is FlowEvent.PlayerSettingsEvent -> updateButtons()
-                    is FlowEvent.EpisodePlayedEvent -> load()
                     else -> {}
                 }
             }
@@ -221,7 +214,6 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
             txtvPodcast = if (episode!!.feed!!.isSynthetic() && episode!!.origFeedTitle != null) episode!!.origFeedTitle!! else episode!!.feed!!.title ?: ""
         
         txtvTitle = episode!!.title ?:""
-//        itemLink = episode!!.link?: ""
 
         if (episode?.pubDate != null) txtvPublished = formatDateTimeFlex(Date(episode!!.pubDate))
 
@@ -282,17 +274,6 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
             i++
         }
     }
-
-//    private fun onEpisodeEvent(event: FlowEvent.EpisodeEvent) {
-////        Logd(TAG, "onEventMainThread() called with ${event.TAG}")
-//        if (this.episode == null) return
-//        for (item in event.episodes) {
-//            if (this.episode!!.id == item.id) {
-//                load()
-//                return
-//            }
-//        }
-//    }
 
     private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
         if (episode == null) return
@@ -394,7 +375,8 @@ fun EpisodeInfoScreen() {
                     if (vm.episode?.feed != null) vm.episode!!.feed = upsertBlk(vm.episode!!.feed!!) { it.prefStreamOverDownload = offerStreaming }
                     // Update all visible lists to reflect new streaming action button
                     //            TODO: need another event type?
-                    EventFlow.postEvent(FlowEvent.EpisodePlayedEvent())
+//                    EventFlow.postEvent(FlowEvent.EpisodePlayedEvent())
+                    vm.load()
                     Logt(TAG, context.getString(R.string.on_demand_config_setting_changed))
                     onDismiss()
                 }) { Text("OK") }

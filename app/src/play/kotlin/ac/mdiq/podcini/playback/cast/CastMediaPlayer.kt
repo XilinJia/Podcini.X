@@ -16,7 +16,6 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -74,7 +73,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             this@CastMediaPlayer.onStatusUpdated()
         }
         override fun onMediaError(mediaError: MediaError) {
-            EventFlow.postEvent(FlowEvent.PlayerErrorEvent(mediaError.reason?: "No reason"))
+            Loge(TAG, "onMediaError ${mediaError.reason}")
         }
     }
 
@@ -191,7 +190,6 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     }
                     MediaStatus.IDLE_REASON_ERROR -> {
                         Loge(TAG, "Got an error status from the Chromecast. Skipping, if possible, to the next episode...")
-                        EventFlow.postEvent(FlowEvent.PlayerErrorEvent("Chromecast error code 1"))
                         endPlayback(false, wasSkipped = false)
                         return
                     }
@@ -213,8 +211,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
     override fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean, doPostPlayback: Boolean) {
        Logd(TAG, "prepareMedia")
         if (!isCastable(playable, castContext?.sessionManager?.currentCastSession)) {
-            Logd(TAG, "media provided is not compatible with cast device")
-            EventFlow.postEvent(FlowEvent.PlayerErrorEvent("Media not compatible with cast device"))
+            Loge(TAG, "media provided is not compatible with cast device: ${playable.title}, getting next in queue")
             var prevPlayable: Episode? = playable
             var nextPlayable: Episode? = playable
             do {
@@ -238,7 +235,6 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         setCurEpisode(playable)
         this.mediaType = curEpisode!!.getMediaType()
         this.startWhenPrepared.set(startWhenPrepared)
-//        setPlayerStatus(PlayerStatus.INITIALIZING, curEpisode)
 
         val metadata = buildMetadata(curEpisode!!)
         try {
@@ -246,15 +242,11 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             when {
                 streaming -> {
                     val streamurl = curEpisode!!.downloadUrl
-                    if (streamurl != null) {
-                        val media = curEpisode
-                        if (media != null) {
-                            mediaItem = null
-                            mediaSource = null
-                            try { setDataSource(metadata, media) } catch (e: Throwable) { EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: "")) }
-                        }
-//                        else setDataSource(media, metadata, streamurl, null, null)
-                    }
+                    if (!streamurl.isNullOrBlank()) {
+                        mediaItem = null
+                        mediaSource = null
+                        setDataSource(metadata, curEpisode!!)
+                    } else throw IOException("episode downloadUrl is empty ${curEpisode?.title}")
                 }
                 else -> {}
             }
@@ -263,13 +255,14 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             if (uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_CAR) setPlayerStatus(PlayerStatus.INITIALIZED, curEpisode)
             if (prepareImmediately) prepare()
         } catch (e: IOException) {
-            Logs(TAG, e)
+            Logs(TAG, e, e.localizedMessage ?: "")
             setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-            EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: ""))
         } catch (e: IllegalStateException) {
-            Logs(TAG, e)
+            Logs(TAG, e, e.localizedMessage ?: "")
             setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-            EventFlow.postEvent(FlowEvent.PlayerErrorEvent(e.localizedMessage ?: ""))
+        } catch (e: Throwable) {
+            Logs(TAG, e, "setDataSource error: [${e.localizedMessage}]")
+            setPlayerStatus(PlayerStatus.ERROR, curEpisode)
         } finally { }
     }
 
@@ -282,7 +275,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         }
     }
 
-    override fun resume() {
+    override fun play() {
         val newPosition = calculatePositionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime)
         seekTo(newPosition)
         remoteMediaClient?.play()
@@ -313,10 +306,8 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     override fun seekTo(t: Int) {
         remoteMediaClient?.seek(MediaSeekOptions.Builder().setPosition(t.toLong()).setResumeState(MediaSeekOptions.RESUME_STATE_PLAY).build())?.addStatusListener {
-            if (it.isSuccess) {
-                Logd(TAG, "seekTo Seek succeeded to position $t ms")
-//                if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, t, curEpisode!!.duration))
-            } else Loge(TAG, "seekTo failed")
+            if (it.isSuccess) Logd(TAG, "seekTo Seek succeeded to position $t ms")
+            else Loge(TAG, "seekTo failed")
         }
     }
 
@@ -363,7 +354,6 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             // current position only really matters when we skip
             val position = getPosition()
             if (position >= 0) upsertBlk(curEpisode!!) { it.setPosition(position) }
-            EventFlow.postEvent(FlowEvent.PlayEvent(curEpisode!!, Action.END))
         }
         val currentMedia = curEpisode
         when {
@@ -376,10 +366,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     else -> Logd(TAG, "Loading next episode, but not playing automatically.")
                 }
                 if (nextMedia != null) {
-                    EventFlow.postEvent(FlowEvent.PlayEvent(nextMedia))
                     onPlaybackEnded(!playNextEpisode)
-                    // setting media to null signals to prepareMedia() that we're taking care of post-playback processing
-//                    setCurEpisode(null)
                     prepareMedia(nextMedia, streaming = true, startWhenPrepared = playNextEpisode, prepareImmediately = playNextEpisode, forceReset = false)
                 }
                 if (currentMedia != null) {

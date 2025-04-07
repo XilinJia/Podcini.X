@@ -6,6 +6,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
+import ac.mdiq.podcini.playback.base.InTheatre.setCurTempSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
@@ -523,9 +524,6 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
         val jsonArray = JSONArray()
         for (speed in speeds) jsonArray.put(speedFormat.format(speed.toDouble()))
         putPref(AppPrefs.prefPlaybackSpeedArray, jsonArray.toString())
-    }
-    fun setCurTempSpeed(speed: Float) {
-        curState = upsertBlk(curState) { it.curTempSpeed = speed }
     }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider

@@ -22,11 +22,15 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.session.MediaController
 import com.google.common.util.concurrent.ListenableFuture
+import io.github.xilinjia.krdb.notifications.InitialObject
+import io.github.xilinjia.krdb.notifications.SingleQueryChange
+import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 object InTheatre {
     val TAG: String = InTheatre::class.simpleName ?: "Anonymous"
@@ -41,19 +45,21 @@ object InTheatre {
     var curQueue: PlayQueue     // managed
 
     var curEpisodeMonitor: Job? = null
-    var curEpisode: Episode? = null     // unmanged
+    var curEpisode: Episode? = null     // manged
         private set
 
     var curMediaId by mutableLongStateOf(-1L)
 
+    var curStateMonitor: Job? = null
     var curState: CurrentState      // managed
+
+    var playerStat by mutableIntStateOf(PLAYER_STATUS_OTHER)
 
     var bitrate by mutableIntStateOf(0)
 
     init {
         curQueue = PlayQueue()
         curState = CurrentState()
-
         CoroutineScope(Dispatchers.IO).launch {
             Logd(TAG, "starting curQueue")
             var curQueue_ = realm.query(PlayQueue::class).sort("updated", Sort.DESCENDING).first().find()
@@ -72,16 +78,39 @@ object InTheatre {
                 }
                 upsert(curQueue) { it.update() }
             }
-
             Logd(TAG, "starting curState")
             var curState_ = realm.query(CurrentState::class).first().find()
             if (curState_ != null) curState = curState_
             else {
                 Logd(TAG, "creating new curState")
-                curState = CurrentState()
                 upsert(curState) {}
             }
             loadPlayableFromPreferences()
+        }
+        monitorState()
+    }
+
+    fun monitorState() {
+        if (curStateMonitor == null) curStateMonitor = CoroutineScope(Dispatchers.Default).launch {
+            val item_ = realm.query(CurrentState::class).first()
+            Logd(TAG, "start monitoring curState: ")
+            val stateFlow = item_.asFlow()
+            stateFlow.collect { changes: SingleQueryChange<CurrentState> ->
+                when (changes) {
+                    is UpdatedObject -> {
+                        curState = changes.obj
+                        if (changes.changedFields.contains("curPlayerStatus")) {
+                            withContext(Dispatchers.Main) { playerStat = curState.curPlayerStatus }
+                        }
+                        Logd(TAG, "stateMonitor UpdatedObject ${changes.obj.curMediaId} playerStat: $playerStat ${changes.changedFields.joinToString()}")
+                    }
+                    is InitialObject -> {
+                        curState = changes.obj
+                        Logd(TAG, "stateMonitor InitialObject ${changes.obj.curMediaId}")
+                    }
+                    else -> Logd(TAG, "stateMonitor other changes: $changes")
+                }
+            }
         }
     }
 
@@ -117,31 +146,35 @@ object InTheatre {
         }
     }
 
+    fun setCurTempSpeed(speed: Float) {
+        upsertBlk(curState) { it.curTempSpeed = speed }
+    }
+
     fun clearCurTempSpeed() {
-        curState = upsertBlk(curState) { it.curTempSpeed = Feed.SPEED_USE_GLOBAL }
+        upsertBlk(curState) { it.curTempSpeed = Feed.SPEED_USE_GLOBAL }
     }
 
     fun writePlayerStatus(playerStatus: PlayerStatus) {
-        curState = upsertBlk(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
+        upsertBlk(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
     }
 
     fun writeMediaPlaying(playable: Episode?, playerStatus: PlayerStatus) {
         Logd(TAG, "Writing playback preferences ${playable?.id}")
         if (playable == null) writeNoMediaPlaying()
         else {
-            curState = upsertBlk(curState) {
+            upsertBlk(curState) {
                 it.curMediaType = PLAYABLE_TYPE_FEEDMEDIA.toLong()
                 it.curIsVideo = playable.getMediaType() == MediaType.VIDEO
                 val feedId = playable.feed?.id
                 if (feedId != null) it.curFeedId = feedId
                 it.curMediaId = playable.id
-                it.curPlayerStatus = playerStatus.getAsInt()
+//                it.curPlayerStatus = playerStatus.getAsInt()
             }
         }
     }
 
     fun writeNoMediaPlaying() {
-        curState = upsertBlk(curState) {
+        upsertBlk(curState) {
             it.curMediaType = NO_MEDIA_PLAYING
             it.curFeedId = NO_MEDIA_PLAYING
             it.curMediaId = NO_MEDIA_PLAYING
@@ -175,5 +208,13 @@ object InTheatre {
     @JvmStatic
     fun isCurMedia(media: Episode?): Boolean {
         return media != null && curEpisode?.id == media.id
+    }
+
+    fun cleanup() {
+        Logd(TAG, "cleanup()")
+        curEpisodeMonitor?.cancel()
+        curEpisodeMonitor = null
+        curStateMonitor?.cancel()
+        curStateMonitor = null
     }
 }

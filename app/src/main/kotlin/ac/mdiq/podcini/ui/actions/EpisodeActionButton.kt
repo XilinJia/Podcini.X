@@ -249,9 +249,8 @@ class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.str
 
     companion object {
         fun stream(context: Context, media: Episode) {
-            var item = media
             PlaybackStarter(context, media).shouldStreamThisTime(true).start()
-            playVideoIfNeeded(context, item)
+            playVideoIfNeeded(context, media)
         }
     }
 }
@@ -278,7 +277,6 @@ class PauseActionButton(item: Episode) : EpisodeActionButton(item, R.string.paus
         Logd("PauseActionButton", "onClick called")
 //        if (isCurrentlyPlaying(item)) context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_PAUSE))
         if (isCurrentlyPlaying(item)) playPause()
-//        EventFlow.postEvent(FlowEvent.PlayEvent(item, Action.END))
         actionState.value = label
     }
 }
@@ -444,13 +442,12 @@ class PlayLocalActionButton(item: Episode) : EpisodeActionButton(item, R.string.
     override fun onClick(context: Context) {
         Logd("PlayLocalActionButton", "onClick called")
         if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
-            mPlayer?.resume()
+            mPlayer?.play()
             taskManager?.restartSleepTimer()
         } else {
             clearCurTempSpeed()
             PlaybackStarter(context, item).start()
             if (item.playState < PlayState.PROGRESS.code || item.playState == PlayState.SKIPPED.code || item.playState == PlayState.AGAIN.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
-            EventFlow.postEvent(FlowEvent.PlayEvent(item))
         }
         if (item.getMediaType() == MediaType.VIDEO) context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
         actionState.value = label

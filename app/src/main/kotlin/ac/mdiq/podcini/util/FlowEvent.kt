@@ -24,13 +24,6 @@ sealed class FlowEvent {
         enum class Action { SERVICE_STARTED, SERVICE_SHUT_DOWN, }
     }
 
-    data class PlayEvent(val episode: Episode, val action: Action = Action.START) : FlowEvent() {
-        enum class Action { START, END, }
-        fun isPlaying(): Boolean = action == Action.START
-    }
-
-    data class PlayerErrorEvent(val message: String) : FlowEvent()
-
     data class BufferUpdateEvent(val progress: Float) : FlowEvent() {
         fun hasStarted(): Boolean = progress == PROGRESS_STARTED
         fun hasEnded(): Boolean = progress == PROGRESS_ENDED

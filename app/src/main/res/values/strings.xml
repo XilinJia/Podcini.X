@@ -124,6 +124,7 @@
     <string name="error_msg_prefix">An error occurred:</string>
     <string name="refresh_label">Refresh</string>
     <string name="fetch_size">Fetch size</string>
+    <string name="clear_cache">Clear froms cache</string>
     <string name="new_synth_label">New synthetic feed</string>
     <string name="new_synth_yt_label">New synthetic Youtube</string>
     <string name="toggle_grid_list">Toggle grid list</string>

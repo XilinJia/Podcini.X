@@ -208,7 +208,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             EventFlow.events.collectLatest { event ->
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
-                    is FlowEvent.PlayEvent -> if (feedScreenMode == FeedScreenMode.List) onPlayEvent(event)
                     is FlowEvent.FeedChangeEvent -> if (feed?.id == event.feed.id) loadFeed(true)
                     is FlowEvent.FeedListEvent -> if (feed != null && event.contains(feed!!)) loadFeed(true)
                     else -> {}
@@ -233,14 +232,9 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 //        }
     }
 
-    private fun onPlayEvent(event: FlowEvent.PlayEvent) {
-        if (feed != null) {
-            val pos: Int = vms.indexOfItem(event.episode.id)
-            if (pos >= 0) {
-                if (!isFilteredOut(event.episode) && pos < vms.size)  vms[pos].isPlayingState = event.isPlaying()
-                if (event.isPlaying()) upsertBlk(feed!!) { it.lastPlayed = Date().time }
-            }
-        }
+    fun playButtonCB(e: Episode, actionTAG: String) {
+        if (e.feed?.id == feed?.id && actionTAG in listOf("PlayActionButton", "StreamActionButton", "PlayLocalActionButton"))
+            upsertBlk(feed!!) { it.lastPlayed = Date().time }
     }
 
     private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
@@ -836,6 +830,7 @@ fun FeedDetailsScreen() {
                         if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
                         else vm.rightActionState.value.performAction(it)
                     },
+                    actionButtonCB = { e, tag -> vm.playButtonCB(e, tag) },
                     multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) }
                 )
             } else DetailUI()

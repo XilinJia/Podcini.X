@@ -722,30 +722,6 @@ class Episode : RealmObject {
         startTime = System.currentTimeMillis()
     }
 
-    /**
-     * This method should be called every time playback pauses or stops on this object,
-     * including just before a seeking operation is performed, after which a call to
-     * [.onPlaybackStart] should be made. If playback completes, calling this method is not
-     * necessary, as long as a call to [.onPlaybackCompleted] is made.
-     * Position held by this EpisodeMedia should be set accurately before a call to this method is made.
-     */
-//    fun savePlayTime(completed: Boolean = false) {
-//        Logd(TAG, "savePlayTime $position $duration")
-//        if (position > startPosition) playedDuration = playedDurationWhenStarted + position - startPosition
-//        if (playedDuration < position) Logt(TAG, "savePlayTime likely wrong playedDuration: ${playedDuration} < ${position} ${title}")
-//        if (startTime > 0) {
-//            var delta = System.currentTimeMillis() - startTime
-//            if (delta > 3* max(playedDuration, 60000)) {
-//                Logt(TAG, "savePlayTime likely invalid delta: $delta ${title}")
-////                startTime = System.currentTimeMillis()
-////                delta = 0
-//            } else timeSpent = timeSpentOnStart + delta
-//        }
-//        Logd(TAG, "savePlayTime startTime: $startTime timeSpent: $timeSpent playedDuration: $playedDuration playedDurationWhenStarted: $playedDurationWhenStarted")
-//        startPosition = if (completed) -1 else position
-//        startTime = 0
-//    }
-
     fun setChapters(chapters_: List<Chapter>) {
         chapters.clear()
         for (c in chapters_) c.episode = this

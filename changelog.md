@@ -1,3 +1,14 @@
+# 8.14.4
+
+* properly release cache on destroy of PlaybackService 
+* added menu item "Clear from cache" in AudioPlayer screen to remove current episode from cache
+* further improvements and bug fixes in PlaybackService. improved power efficiency since 8.14.3
+* in case of player error, no longer showing the daunting player error dialog, only toast messages
+* player play/pause status is tracked by a state variable
+* recent feed list in the drawer is expanded to 8
+* straightened behaviors of navigation with default pages and open drawer
+* PlayerErrorEvent and PlayEvent are no longer used and are removed
+
 # 8.14.3
 
 * removing curEpisode from queue when not playing will not automatically play the next episode

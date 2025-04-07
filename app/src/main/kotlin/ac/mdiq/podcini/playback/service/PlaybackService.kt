@@ -9,6 +9,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.loadPlayableFromPreferences
+import ac.mdiq.podcini.playback.base.InTheatre.monitorState
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.createStaticPlayer
@@ -20,6 +21,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.EXTRA_ALLOW_STREA
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.buildMediaItem
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentMediaType
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.releaseCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.showStreamingNotAllowedDialog
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
@@ -36,7 +38,6 @@ import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.util.*
-import ac.mdiq.podcini.util.FlowEvent.PlayEvent.Action
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -89,7 +90,7 @@ class PlaybackService : MediaLibraryService() {
             else {
                 val playerStatus = MediaPlayerBase.status
                 when (playerStatus) {
-                    PlayerStatus.PAUSED, PlayerStatus.PREPARED -> mPlayer?.resume()
+                    PlayerStatus.PAUSED, PlayerStatus.PREPARED -> mPlayer?.play()
                     PlayerStatus.PREPARING -> mPlayer?.startWhenPrepared?.set(!mPlayer!!.startWhenPrepared.get())
                     PlayerStatus.INITIALIZED -> {
                         mPlayer?.startWhenPrepared?.set(true)
@@ -298,7 +299,6 @@ class PlaybackService : MediaLibraryService() {
             val episode = getEpisodeByGuidOrUrl(null, mediaItems.first().mediaId) ?: return Futures.immediateFuture(mutableListOf())
             if (!InTheatre.isCurMedia(episode)) {
                 PlaybackStarter(applicationContext, episode).start()
-                EventFlow.postEvent(FlowEvent.PlayEvent(episode))
             }
             val updatedMediaItems = mediaItems.map { it.buildUpon().setUri(it.mediaId).build() }.toMutableList()
 //            updatedMediaItems += mediaItemsInQueue
@@ -327,6 +327,7 @@ class PlaybackService : MediaLibraryService() {
         registerReceiver(audioBecomingNoisy, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
         procFlowEvents()
         taskManager = TaskManager(applicationContext)
+        monitorState()
 
         recreateMediaSessionIfNeeded()
 
@@ -400,6 +401,9 @@ class PlaybackService : MediaLibraryService() {
         unregisterReceiver(audioBecomingNoisy)
         taskManager?.shutdown()
 
+        releaseCache()
+
+        InTheatre.cleanup()
         playbackService = null
         isRunning = false
         super.onDestroy()
@@ -434,11 +438,11 @@ class PlaybackService : MediaLibraryService() {
         Logd(TAG, "onStartCommand mPlayer?.prevMedia: ${mPlayer?.prevMedia?.title}")
         Logd(TAG, "onStartCommand curEpisode: ${curEpisode?.title}")
         Logd(TAG, "onStartCommand status: $status")
+
         if (keycode == -1 && curEpisode != null) {
             if (mPlayer?.prevMedia?.id == curEpisode?.id) {
                 Logd(TAG, "onStartCommand playing same media: $status")
                 if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) return super.onStartCommand(intent, flags, startId)
-//                if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) return START_STICKY
                 Logd(TAG, "onStartCommand playing same media: $status proceed")
             }
         }
@@ -491,7 +495,7 @@ class PlaybackService : MediaLibraryService() {
             KeyEvent.KEYCODE_HEADSETHOOK, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
                 when {
                     status == PlayerStatus.PLAYING -> mPlayer?.pause(false)
-                    status in listOf(PlayerStatus.PAUSED, PlayerStatus.PREPARED) -> mPlayer?.resume()
+                    status in listOf(PlayerStatus.PAUSED, PlayerStatus.PREPARED) -> mPlayer?.play()
                     status == PlayerStatus.PREPARING -> mPlayer?.startWhenPrepared?.set(!mPlayer!!.startWhenPrepared.get())
                     status == PlayerStatus.INITIALIZED -> {
                         mPlayer?.startWhenPrepared?.set(true)
@@ -505,7 +509,7 @@ class PlaybackService : MediaLibraryService() {
             }
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
                 when {
-                    status in listOf(PlayerStatus.PAUSED, PlayerStatus.PREPARED) -> mPlayer?.resume()
+                    status in listOf(PlayerStatus.PAUSED, PlayerStatus.PREPARED) -> mPlayer?.play()
                     status == PlayerStatus.INITIALIZED -> {
                         mPlayer?.startWhenPrepared?.set(true)
                         mPlayer?.prepare()
@@ -604,8 +608,6 @@ class PlaybackService : MediaLibraryService() {
                     is FlowEvent.BufferUpdateEvent -> onBufferUpdate(event)
                     is FlowEvent.SleepTimerUpdatedEvent -> onSleepTimerUpdate(event)
                     is FlowEvent.FeedChangeEvent -> if (curEpisode?.feed?.id == event.feed.id) curEpisode?.feed = null
-                    is FlowEvent.PlayerErrorEvent -> if (status == PlayerStatus.PLAYING) mPlayer!!.pause(reinit = false)
-                    is FlowEvent.PlayEvent -> if (event.action != Action.END) setCurEpisode(event.episode)
                     is FlowEvent.EpisodeMediaEvent -> onEpisodeMediaEvent(event)
                     else -> {}
                 }
@@ -676,12 +678,12 @@ class PlaybackService : MediaLibraryService() {
             transientPause = false
             if (Build.VERSION.SDK_INT >= 31) return
             when {
-                !bluetooth && getPref(AppPrefs.prefUnpauseOnHeadsetReconnect, true) -> mPlayer?.resume()
+                !bluetooth && getPref(AppPrefs.prefUnpauseOnHeadsetReconnect, true) -> mPlayer?.play()
                 bluetooth && getPref(AppPrefs.prefUnpauseOnBluetoothReconnect, false) -> {
                     // let the user know we've started playback again...
                     val v = applicationContext.getSystemService(VIBRATOR_SERVICE) as? Vibrator
                     v?.vibrate(500)
-                    mPlayer?.resume()
+                    mPlayer?.play()
                 }
             }
         }

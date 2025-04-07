@@ -5,10 +5,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.util.Logd
-import android.content.Context
-import android.text.Spannable
-import android.text.SpannableString
-import android.text.style.ForegroundColorSpan
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -332,30 +328,6 @@ fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boole
                 }) { Text(stringResource(R.string.confirm_label)) }
             },
             dismissButton = { if (cancellable) TextButton(onClick = { showDialog.value = false }) { Text(stringResource(R.string.cancel_label)) } }
-        )
-    }
-}
-
-@Composable
-fun MediaPlayerErrorDialog(activity: Context, message: String, showDialog: MutableState<Boolean>) {
-    if (showDialog.value) {
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showDialog.value = false },
-            title = { Text(stringResource(R.string.error_label)) },
-            text = {
-                val genericMessage: String = activity.getString(R.string.playback_error_generic)
-                val errorMessage = SpannableString("""$genericMessage
-                                    
-                                    $message
-                                    """.trimIndent())
-                errorMessage.setSpan(ForegroundColorSpan(-0x77777778), genericMessage.length, errorMessage.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
-                Text(errorMessage.toString())
-            },
-            confirmButton = {
-                TextButton(onClick = {
-//                    isBSExpanded = false
-                    showDialog.value = false
-                }) { Text("OK") }
-            },
         )
     }
 }

@@ -73,13 +73,12 @@ class TaskManager(private val context: Context) {
         }
     }
 
-    fun positionSaverTick() {
+    private fun positionSaverTick() {
         if (mPlayer == null) return
         val curPosition = mPlayer!!.getPosition()
         val curDuration = mPlayer!!.getDuration()
         Logd(TAG, "positionSaverTick currentPosition: $curPosition")
         if (curPosition != mPlayer!!.prevPosition) {
-//            if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlaybackPositionEvent(curEpisode, curPosition, curDuration))
             // skip ending
             val remainingTime = curDuration - curPosition
             val item = curEpisode ?: return
@@ -107,6 +106,7 @@ class TaskManager(private val context: Context) {
 
     @Synchronized
     fun cancelPositionSaver() {
+        Logd(TAG, "canelling PositionSaver")
         positionSaverJob?.cancel()
         positionSaverJob = null
     }

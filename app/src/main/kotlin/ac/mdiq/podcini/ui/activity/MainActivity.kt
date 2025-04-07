@@ -484,21 +484,6 @@ class MainActivity : BaseActivity() {
         handleNavIntent()
     }
 
-    // TODO
-//    fun showSnackbarAbovePlayer(text: CharSequence, duration: Int): Snackbar {
-//        val s: Snackbar
-//        if (bottomSheet.state == BottomSheetBehavior.STATE_COLLAPSED) {
-//            s = Snackbar.make(mainView, text, duration)
-//            if (audioPlayerView.visibility == View.VISIBLE) s.anchorView = audioPlayerView
-//        } else s = Snackbar.make(mainView, text, duration)
-//        s.show()
-//        return s
-//    }
-
-//    fun showSnackbarAbovePlayer(text: Int, duration: Int): Snackbar {
-//        return showSnackbarAbovePlayer(resources.getText(text), duration)
-//    }
-
     /**
      * Handles the deep link incoming via App Actions.
      * Performs an in-app search or opens the relevant feature of the app depending on the query
@@ -529,39 +514,6 @@ class MainActivity : BaseActivity() {
             else -> {}
         }
     }
-
-    //Hardware keyboard support
-//    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-//        val currentFocus = currentFocus
-//        if (currentFocus is EditText) return super.onKeyUp(keyCode, event)
-//
-//        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-//        var customKeyCode: Int? = null
-//        EventFlow.postEvent(event)
-//
-//        when (keyCode) {
-//            KeyEvent.KEYCODE_P -> customKeyCode = KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
-//            KeyEvent.KEYCODE_J, KeyEvent.KEYCODE_A, KeyEvent.KEYCODE_COMMA -> customKeyCode = KeyEvent.KEYCODE_MEDIA_REWIND
-//            KeyEvent.KEYCODE_K, KeyEvent.KEYCODE_D, KeyEvent.KEYCODE_PERIOD -> customKeyCode = KeyEvent.KEYCODE_MEDIA_FAST_FORWARD
-//            KeyEvent.KEYCODE_PLUS, KeyEvent.KEYCODE_W -> {
-//                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, AudioManager.FLAG_SHOW_UI)
-//                return true
-//            }
-//            KeyEvent.KEYCODE_MINUS, KeyEvent.KEYCODE_S -> {
-//                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
-//                return true
-//            }
-//            KeyEvent.KEYCODE_M -> {
-//                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, AudioManager.FLAG_SHOW_UI)
-//                return true
-//            }
-//        }
-//        if (customKeyCode != null) {
-//            sendBroadcast(createIntent(this, customKeyCode))
-//            return true
-//        }
-//        return super.onKeyUp(keyCode, event)
-//    }
 
     @Suppress("EnumEntryName")
     enum class Extras {

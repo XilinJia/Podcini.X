@@ -12,7 +12,9 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
 import ac.mdiq.podcini.playback.service.PlaybackService
+import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -25,7 +27,6 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
     private val TAG = "PlaybackStarter"
 
     private var shouldStreamThisTime = false
-    private var callEvenIfRunning = false
     val intent: Intent
         get() {
             val launchIntent = Intent(context, PlaybackService::class.java)
@@ -33,20 +34,17 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
             return launchIntent
         }
 
-    fun callEvenIfRunning(callEvenIfRunning: Boolean): PlaybackStarter {
-        this.callEvenIfRunning = callEvenIfRunning
-        return this
-    }
-
-    fun shouldStreamThisTime(shouldStreamThisTime: Boolean): PlaybackStarter {
-        this.shouldStreamThisTime = shouldStreamThisTime
+    fun shouldStreamThisTime(shouldStreamThisTime: Boolean?): PlaybackStarter {
+        if (shouldStreamThisTime == null) {
+            this.shouldStreamThisTime = media.feed == null || media.feedId == null || media.feed?.type == Feed.FeedType.YOUTUBE.name
+                    || (prefStreamOverDownload && media.feed?.prefStreamOverDownload == true)
+        } else this.shouldStreamThisTime = shouldStreamThisTime
         return this
     }
 
     fun start() {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
         if (curEpisode?.id != media.id) {
-            if (curEpisode != null) EventFlow.postEvent(FlowEvent.PlayEvent(curEpisode!!, FlowEvent.PlayEvent.Action.END))
             setCurEpisode(media)
             clearCurTempSpeed()
         }

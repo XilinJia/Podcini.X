@@ -4,6 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodesCount
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedCount
@@ -22,13 +23,13 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.openDrawer
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.screens.navHostMap
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -43,6 +44,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -82,19 +86,33 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "NavDrawerScreen"
 
-private lateinit var prefs: SharedPreferences
+private val defaultScreen: String
+    get() {
+        var value = getPref(AppPrefs.prefDefaultPage, "")
+        val isValid = try {
+            Screens.valueOf(value)
+            true
+        } catch (e: Throwable) { false }
+        if (value.isBlank() || !isValid) value = Screens.Subscriptions.name
+        if (value == AppPreferences.DefaultPages.Remember.name) {
+            value = getPref(AppPrefs.prefLastScreen, "")
+            if (value.isBlank()) value = Screens.Subscriptions.name
+            if (value == Screens.FeedDetails.name) {
+                var feedId = getPref(AppPrefs.prefLastScreenArg, "0L").toLongOrNull()
+                if (feedId != null) feedOnDisplay = getFeed(feedId) ?: Feed()
+            }
+        }
+        Logd(TAG, "get defaultScreen: [$value]")
+        return value
+    }
 
 class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
     internal val feeds = mutableStateListOf<Feed>()
 
     internal fun getRecentPodcasts() {
-        var feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(5).find()
+        var feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(8).find()
         feeds.clear()
         feeds.addAll(feeds_)
-    }
-
-    init {
-        prefs = context.getSharedPreferences("NavDrawerPrefs", Context.MODE_PRIVATE)
     }
 
     fun loadData() {
@@ -115,6 +133,7 @@ fun NavDrawerScreen() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val vm = remember { NavDrawerVM(context, scope) }
+    var curruntRoute = remember { "" }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -133,21 +152,24 @@ fun NavDrawerScreen() {
         }
     }
 
-    fun loadScreen(tag: String?, args: Bundle?) {
+    fun loadScreen(tag: String?, args: Bundle?, popto: Boolean = false) {
         var tag = tag
         var args = args
-        Logd(TAG, "loadFragment(tag: $tag, args: $args)")
+        Logd(TAG, "loadScreen(tag: $tag, args: $args, popto: $popto)")
         when (tag) {
-            Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Facets.name, Screens.Statistics.name ->
-                mainNavController.navigate(tag)
+            Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Facets.name, Screens.Statistics.name -> {
+                if (popto) mainNavController.navigate(tag) { popUpTo(0) { inclusive = true } }
+                else mainNavController.navigate(tag)
+            }
             Screens.FeedDetails.name -> {
                 if (args == null) {
-                    val feedId = getLastNavScreenArg().toLongOrNull()
+                    val feedId = getPref(AppPrefs.prefLastScreenArg, "0L").toLongOrNull()
                     if (feedId != null) {
                         val feed = getFeed(feedId)
                         if (feed != null) {
                             feedOnDisplay = feed
-                            mainNavController.navigate(tag)
+                            if (popto) mainNavController.navigate(tag) { popUpTo(0) { inclusive = true } }
+                            else mainNavController.navigate(tag)
                         }
                     } else mainNavController.navigate(Screens.Subscriptions.name)
                 } else mainNavController.navigate(Screens.Subscriptions.name)
@@ -162,13 +184,25 @@ fun NavDrawerScreen() {
 
     BackHandler(enabled = true) {
         Logd(TAG, "BackHandler: $isBSExpanded")
-        val toPage = getPref(AppPrefs.prefDefaultPage, "")
         val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
+        val defPage = defaultScreen
+        val currentDestination = mainNavController.currentDestination
+        curruntRoute = currentDestination?.route ?: ""
+        Logd(TAG, "BackHandler curruntRoute0: $curruntRoute")
         when {
             drawerState.isOpen -> closeDrawer()
             isBSExpanded -> isBSExpanded = false
-            mainNavController.previousBackStackEntry != null -> mainNavController.popBackStack()
-            toPage.isNotBlank() && getLastNavScreen() != toPage && AppPreferences.DefaultPages.Remember.name != toPage -> loadScreen(toPage, null)
+            mainNavController.previousBackStackEntry != null -> {
+                mainNavController.popBackStack()
+                curruntRoute = currentDestination?.route ?: ""
+                runOnIOScope { saveLastNavScreen(curruntRoute) }
+                Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")
+            }
+            defPage.isNotBlank() && curruntRoute.isNotBlank() && curruntRoute != defPage -> {
+                loadScreen(defPage, null, true)
+                curruntRoute = currentDestination?.route ?: ""
+                Logd(TAG, "BackHandler curruntRoute1: [$curruntRoute]")
+            }
             openDrawer -> openDrawer()
         }
     }
@@ -184,35 +218,32 @@ fun NavDrawerScreen() {
                 val textColor = MaterialTheme.colorScheme.onSurface
                 for (nav in navMap.entries) {
                     if (nav.value.show) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        mainNavController.navigate(nav.key) { popUpTo(nav.key) { inclusive = true } }
+                        mainNavController.navigate(nav.key) { popUpTo(0) { inclusive = true } }
                         closeDrawer()
                     }) {
                         Icon(imageVector = ImageVector.vectorResource(nav.value.iconRes), tint = textColor, contentDescription = nav.key, modifier = Modifier.padding(start = 10.dp))
-//                    val nametag = if (nav.tag != QueuesFragment.TAG) stringResource(nav.nameRes) else curQueue.name
                         Text(stringResource(nav.value.nameRes), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
                         Spacer(Modifier.weight(1f))
                         if (nav.value.count > 0) Text(nav.value.count.toString(), color = textColor, modifier = Modifier.padding(end = 10.dp))
                     }
                 }
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                Column {
-                    for (f in vm.feeds) {
+                val lazyListState = rememberLazyListState()
+                LazyColumn(state = lazyListState) {
+                    itemsIndexed(vm.feeds) { _, f ->
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp).clickable {
                             feedOnDisplay = f
                             feedScreenMode = FeedScreenMode.List
-                            mainNavController.navigate(Screens.FeedDetails.name) { popUpTo(Screens.FeedDetails.name) { inclusive = true } }
+                            mainNavController.navigate(Screens.FeedDetails.name) { popUpTo(0) { inclusive = true } }
                             closeDrawer()
                             isBSExpanded = false
                         }) {
-                            AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
-                                modifier = Modifier.width(40.dp).height(40.dp))
+                            AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(40.dp).height(40.dp))
                             Text(f.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
                         }
                     }
                 }
                 Spacer(Modifier.weight(1f))
-//            Text("Formal listing on Google Play has been approved - many thanks to all for the kind support!", color = textColor,
-//                modifier = Modifier.clickable(onClick = {}))
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable {
                     context.startActivity(Intent(context, PreferenceActivity::class.java))
@@ -226,8 +257,8 @@ fun NavDrawerScreen() {
     }
 }
 
-const val PREF_LAST_FRAGMENT_TAG: String = "prefLastFragmentTag"
-const val PREF_LAST_FRAGMENT_ARG: String = "prefLastFragmentArg"
+//const val PREF_LAST_FRAGMENT_TAG: String = "prefLastFragmentTag"
+//const val PREF_LAST_FRAGMENT_ARG: String = "prefLastFragmentArg"
 
 var feedCount: Int = -1
     get() {
@@ -258,7 +289,7 @@ enum class Screens {
     Statistics
 }
 
-val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
+private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.Subscriptions.name to NavItem(R.drawable.ic_subscriptions, R.string.subscriptions_label),
     Screens.Queues.name to NavItem(R.drawable.ic_playlist_play, R.string.queue_label),
     Screens.Facets.name to NavItem(R.drawable.baseline_view_in_ar_24, R.string.facets),
@@ -267,40 +298,41 @@ val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.OnlineSearch.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
 )
 
+private val navHostMap: HashMap<Screens, @Composable ()->Unit> = hashMapOf(
+    Screens.Subscriptions to { SubscriptionsScreen() },
+    Screens.FeedDetails to { FeedDetailsScreen() },
+    Screens.FeedSettings to { FeedSettingsScreen() },
+    Screens.EpisodeInfo to { EpisodeInfoScreen() },
+    Screens.EpisodeText to { EpisodeTextScreen() },
+    Screens.Facets to { FacetsScreen() },
+    Screens.Queues to { QueuesScreen() },
+    Screens.Search to { SearchScreen() },
+    Screens.OnlineSearch to { OnlineSearchScreen() },
+    Screens.Discovery to { DiscoveryScreen() },
+    Screens.OnlineFeed to { OnlineFeedScreen() },
+    Screens.SearchResults to { SearchResultsScreen() },
+    Screens.Logs to { LogsScreen() },
+    Screens.Statistics to { StatisticsScreen() }
+)
+
 @Composable
 fun Navigate(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = Screens.Subscriptions.name) {
-        composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
-        composable(Screens.FeedDetails.name) { FeedDetailsScreen() }
-        composable(Screens.FeedSettings.name) { FeedSettingsScreen() }
-        composable(Screens.EpisodeInfo.name) { EpisodeInfoScreen() }
-        composable(Screens.EpisodeText.name) { EpisodeTextScreen() }
-        composable(Screens.Facets.name) { FacetsScreen() }
-        composable(Screens.Queues.name) { QueuesScreen() }
-        composable(Screens.Search.name) { SearchScreen() }
-        composable(Screens.OnlineSearch.name) { OnlineSearchScreen() }
-        composable(Screens.Discovery.name) { DiscoveryScreen() }
-        composable(Screens.OnlineFeed.name) { OnlineFeedScreen() }
-        composable(Screens.SearchResults.name) { SearchResultsScreen() }
-        composable(Screens.Logs.name) { LogsScreen() }
-        composable(Screens.Statistics.name) { StatisticsScreen() }
-        composable("DefaultPage") { SubscriptionsScreen() }
+    NavHost(navController = navController, startDestination = defaultScreen) {
+        for (nv in navHostMap.entries) composable(nv.key.name) { nv.value() }
     }
 }
 
 fun saveLastNavScreen(tag: String?, arg: String? = null) {
     Logd(TAG, "saveLastNavScreen(tag: $tag)")
-    val edit: SharedPreferences.Editor? = prefs.edit()
-    if (tag != null) {
-        edit?.putString(PREF_LAST_FRAGMENT_TAG, tag)
-        if (arg != null) edit?.putString(PREF_LAST_FRAGMENT_ARG, arg)
-    }
-    else edit?.remove(PREF_LAST_FRAGMENT_TAG)
-    edit?.apply()
+    putPref(AppPrefs.prefLastScreen, tag ?:"")
+    if (arg == null && tag in listOf(Screens.FeedDetails.name, Screens.FeedSettings.name)) {
+        val arg_ = feedOnDisplay.id.toString()
+        putPref(AppPrefs.prefLastScreenArg, arg_)
+    } else putPref(AppPrefs.prefLastScreenArg, arg ?:"")
 }
 
-fun getLastNavScreen(): String = prefs.getString(PREF_LAST_FRAGMENT_TAG, "") ?: ""
-fun getLastNavScreenArg(): String = prefs.getString(PREF_LAST_FRAGMENT_ARG, "0") ?: ""
+//fun getLastNavScreen(): String = prefs.getString(PREF_LAST_FRAGMENT_TAG, "") ?: ""
+//fun getLastNavScreenArg(): String = prefs.getString(PREF_LAST_FRAGMENT_ARG, "0") ?: ""
 
 /**
  * Returns data necessary for displaying the navigation drawer. This includes

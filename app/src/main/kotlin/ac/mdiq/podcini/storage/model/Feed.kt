@@ -415,44 +415,26 @@ class Feed : RealmObject {
     }
 
     fun differentFrom(other: Feed): Boolean {
-        if (other.imageUrl != null) {
-            if (imageUrl == null || imageUrl != other.imageUrl) return true
-        }
+        if (other.imageUrl != null && (imageUrl == null || imageUrl != other.imageUrl)) return true
         if (eigenTitle != other.eigenTitle) return true
-        if (other.identifier != null) {
-            if (identifier == null || identifier != other.identifier) return true
-        }
-        if (other.link != null) {
-            if (link == null || link != other.link) return true
-        }
-        if (other.description != null) {
-            if (description == null || description != other.description) return true
-        }
-        if (other.language != null) {
-            if (language == null || language != other.language) return true
-        }
-        if (other.author != null) {
-            if (author == null || author != other.author) return true
-        }
-        if (other.paymentLinkList.isNotEmpty()) {
-            if (paymentLinkList.isEmpty() || paymentLinkList != other.paymentLinkList) return true
-        }
+        if (other.identifier != null && (identifier == null || identifier != other.identifier)) return true
+        if (other.link != null && (link == null || link != other.link)) return true
+        if (other.description != null && (description == null || description != other.description)) return true
+        if (other.language != null && (language == null || language != other.language)) return true
+        if (other.author != null && (author == null || author != other.author)) return true
+        if (other.paymentLinkList.isNotEmpty() && (paymentLinkList.isEmpty() || paymentLinkList != other.paymentLinkList)) return true
         if (other.isPaged && !this.isPaged) return true
         if (other.nextPageLink != this.nextPageLink) return true
         return false
     }
 
-    fun getTypeAsInt(): Int {
-        return FEEDFILETYPE_FEED
-    }
+    fun getTypeAsInt(): Int = FEEDFILETYPE_FEED
 
     fun addPayment(funding: FeedFunding) {
         paymentLinkList.add(funding)
     }
 
-    fun isSynthetic(): Boolean {
-        return id <= MAX_SYNTHETIC_ID
-    }
+    fun isSynthetic(): Boolean = id <= MAX_SYNTHETIC_ID
 
     fun getVirtualQueueItems():  List<Episode> {
         var qString = "feedId == $id AND (playState < ${PlayState.SKIPPED.code} OR playState == ${PlayState.AGAIN.code} OR playState == ${PlayState.FOREVER.code})"
@@ -484,9 +466,7 @@ class Feed : RealmObject {
         FILTER_SORT(4, R.string.feed_auto_dleq_filter_sort, false);
 
         companion object {
-            fun fromCode(code: Int): AutoDownloadPolicy {
-                return enumValues<AutoDownloadPolicy>().firstOrNull { it.code == code } ?: ONLY_NEW
-            }
+            fun fromCode(code: Int): AutoDownloadPolicy = enumValues<AutoDownloadPolicy>().firstOrNull { it.code == code } ?: ONLY_NEW
         }
     }
 
@@ -496,12 +476,8 @@ class Feed : RealmObject {
         NEVER(2, "never");
 
         companion object {
-            fun fromCode(code: Int): AutoDeleteAction {
-                return enumValues<AutoDeleteAction>().firstOrNull { it.code == code } ?: NEVER
-            }
-            fun fromTag(tag: String): AutoDeleteAction {
-                return enumValues<AutoDeleteAction>().firstOrNull { it.tag == tag } ?: NEVER
-            }
+            fun fromCode(code: Int): AutoDeleteAction = enumValues<AutoDeleteAction>().firstOrNull { it.code == code } ?: NEVER
+            fun fromTag(tag: String): AutoDeleteAction = enumValues<AutoDeleteAction>().firstOrNull { it.tag == tag } ?: NEVER
         }
     }
 
@@ -512,12 +488,8 @@ class Feed : RealmObject {
         MOVIE(C.AUDIO_CONTENT_TYPE_MOVIE, "Movie");
 
         companion object {
-            fun fromCode(code: Int): AudioType {
-                return enumValues<AudioType>().firstOrNull { it.code == code } ?: SPEECH
-            }
-            fun fromTag(tag: String): AudioType {
-                return enumValues<AudioType>().firstOrNull { it.tag == tag } ?: SPEECH
-            }
+            fun fromCode(code: Int): AudioType = enumValues<AudioType>().firstOrNull { it.code == code } ?: SPEECH
+            fun fromTag(tag: String): AudioType = enumValues<AudioType>().firstOrNull { it.tag == tag } ?: SPEECH
         }
     }
 
@@ -528,12 +500,8 @@ class Feed : RealmObject {
         HIGH(10, "High");
 
         companion object {
-            fun fromCode(code: Int): AVQuality {
-                return enumValues<AVQuality>().firstOrNull { it.code == code } ?: GLOBAL
-            }
-            fun fromTag(tag: String): AVQuality {
-                return enumValues<AVQuality>().firstOrNull { it.tag == tag } ?: GLOBAL
-            }
+            fun fromCode(code: Int): AVQuality = enumValues<AVQuality>().firstOrNull { it.code == code } ?: GLOBAL
+            fun fromTag(tag: String): AVQuality = enumValues<AVQuality>().firstOrNull { it.tag == tag } ?: GLOBAL
         }
     }
 
@@ -553,8 +521,6 @@ class Feed : RealmObject {
 
         val FeedAutoDeleteOptions = AutoDeleteAction.entries.map { it.tag }
 
-        fun newId(): Long {
-            return Date().time * 100
-        }
+        fun newId(): Long = Date().time * 100
     }
 }

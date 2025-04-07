@@ -197,7 +197,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
-                    is FlowEvent.PlayEvent -> onPlayEvent(event)
                     is FlowEvent.FeedChangeEvent -> onFeedPrefsChanged(event)
                     is FlowEvent.EpisodePlayedEvent -> onEpisodePlayedEvent(event)
                     else -> {}
@@ -280,12 +279,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         infoBarText.value = "$listInfoText $infoTextUpdate"
     }
 
-    private fun onPlayEvent(event: FlowEvent.PlayEvent) {
-        val pos: Int = queueItems.indexOfItemWithId(event.episode.id)
-        Logd(TAG, "onPlayEvent action: ${event.action} pos: $pos ${event.episode.title}")
-        if (pos >= 0 && pos < vms.size) vms[pos].isPlayingState = event.isPlaying()
-    }
-
     private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
 //        Logd(TAG, "onEventMainThread() called with ${event.TAG}")
         if (loadItemsRunning) return
@@ -299,7 +292,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     private fun onEpisodePlayedEvent(event: FlowEvent.EpisodePlayedEvent) {
         // Sent when playback position is reset
         Logd(TAG, "onUnreadItemsChanged() called with event = [$event]")
-        if (event.episode == null && !showBin) loadCurQueue(false)
+        if (event.episode != null && !showBin && queueItems.indexOfItemWithId(event.episode.id) >= 0) loadCurQueue(false)
     }
 
     private fun onFeedPrefsChanged(event: FlowEvent.FeedChangeEvent) {
