@@ -25,8 +25,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 157
-        versionName "8.14.4"
+        versionCode 158
+        versionName "8.14.4.0"
 
         ndkVersion "27.0.12077973"
 
@@ -118,7 +118,7 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard.cfg"
             resValue "string", "app_name", "Podcini.X"
             resValue "string", "provider_authority", "ac.mdiq.podcini.X.provider"
-            vcsInfo.include false
+//            vcsInfo.include false
             minifyEnabled true
             shrinkResources true
             signingConfig signingConfigs.releaseConfig
