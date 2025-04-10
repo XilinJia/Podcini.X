@@ -23,7 +23,6 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.openDrawer
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.screens.navHostMap
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
@@ -218,7 +217,10 @@ fun NavDrawerScreen() {
                 val textColor = MaterialTheme.colorScheme.onSurface
                 for (nav in navMap.entries) {
                     if (nav.value.show) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        mainNavController.navigate(nav.key) { popUpTo(0) { inclusive = true } }
+                        mainNavController.navigate(nav.key) {
+                            if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
+                            else popUpTo(nav.key) { inclusive = true }
+                        }
                         closeDrawer()
                     }) {
                         Icon(imageVector = ImageVector.vectorResource(nav.value.iconRes), tint = textColor, contentDescription = nav.key, modifier = Modifier.padding(start = 10.dp))
@@ -234,7 +236,7 @@ fun NavDrawerScreen() {
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp).clickable {
                             feedOnDisplay = f
                             feedScreenMode = FeedScreenMode.List
-                            mainNavController.navigate(Screens.FeedDetails.name) { popUpTo(0) { inclusive = true } }
+                            mainNavController.navigate(Screens.FeedDetails.name) { popUpTo(Screens.FeedDetails.name) { inclusive = true } }
                             closeDrawer()
                             isBSExpanded = false
                         }) {

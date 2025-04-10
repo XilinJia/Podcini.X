@@ -57,6 +57,8 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
     override suspend fun doWork(): Result {
         ClientConfigurator.initialize(applicationContext)
         val feedsToUpdate: MutableList<Feed>
+        val feedsToOnlyDownload: MutableList<Feed> = mutableListOf()
+        val feedsToOnlyEnqueue: MutableList<Feed> = mutableListOf()
         val feedId = inputData.getLong(EXTRA_FEED_ID, -1L)
         var allAreLocal = true
         var force = false
@@ -65,7 +67,11 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
             val itr = feedsToUpdate.iterator()
             while (itr.hasNext()) {
                 val feed = itr.next()
-                if (feed.keepUpdated == false) itr.remove()
+                if (feed.keepUpdated == false) {
+                    if (feed.autoEnqueue) feedsToOnlyEnqueue.add(feed)
+                    else if (feed.autoDownload) feedsToOnlyDownload.add(feed)
+                    itr.remove()
+                }
                 if (!feed.isLocalFeed) allAreLocal = false
             }
             feedsToUpdate.shuffle() // If the worker gets cancelled early, every feed has a chance to be updated
@@ -85,14 +91,14 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         val fullUpdate = inputData.getBoolean(EXTRA_FULL_UPDATE, false)
         refreshFeeds(feedsToUpdate, force, fullUpdate)
         notificationManager.cancel(R.id.notification_updating_feeds)
+        if (feedsToOnlyEnqueue.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyEnqueue)
+        if (feedsToOnlyDownload.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyDownload)
         autoenqueue(feedsToUpdate.toList())
         autodownload(applicationContext, feedsToUpdate.toList())
         feedsToUpdate.clear()
+        feedsToOnlyEnqueue.clear()
+        feedsToOnlyDownload.clear()
         Logd(TAG, "feedId: $feedId prefAutoUpdateStartTime: [${getPref(AppPrefs.prefAutoUpdateStartTime, ":")}]")
-//        if (feedId == -1L && getPref(AppPrefs.prefAutoUpdateStartTime, ":") == ":") {
-//            putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
-//            restartUpdateAlarm(applicationContext, true)
-//        }
         return Result.success()
     }
 

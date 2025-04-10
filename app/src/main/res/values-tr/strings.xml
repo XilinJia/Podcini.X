@@ -4,10 +4,8 @@
     tools:ignore="MissingTranslation">
 
     <!-- Activity and fragment titles -->
-    <string name="provider_authority" translatable="false">ac.mdiq.podcini.provider</string>
     <string name="feed_update_receiver_name">Abonelikleri güncelle</string>
     <string name="feeds">Beslemeler</string>
-    <string name="pafeeds" translatable="false">PAFeeds</string>
 
     <string name="feeds_label">Podcast\'ler</string>
     <string name="statistics_label">İstatistikler</string>
@@ -259,7 +257,6 @@
     <string name="delete_episode_label">Bölüm medyasını sil</string>
 
     <string name="show_hidden">Gizli olanları göster</string>
-    <string name="javasript_label" translatable="false">JavaScript</string>
     <string name="no_action_label">Eylem yok</string>
     <string name="my_opinion_label">Fikrim</string>
     <string name="add_opinion_label">Fikir ekle</string>
@@ -379,7 +376,6 @@
     <string name="playback_error_generic"><![CDATA[Medya dosyası oynatılamadı.\n\n- İndirilen medya dosyasında bir sorun var veya akış yapıyorsanız, medya URL adresinde veya ağ bağlantınızda bir sorun var.]]></string>
 
     <string name="no_media_playing_label">Oynatılan medya yok</string>
-    <string name="position_default_label" translatable="false">00:00:00</string>
     <string name="unknown_media_key">Podcini - Bilinmeyen medya tuşu: %1$d</string>
     <string name="error_file_not_found">Dosya bulunamadı</string>
     <string name="no_media_label">Öğe bir medya dosyası içermiyor</string>
@@ -910,7 +906,6 @@
     <string name="gpodnet_search_hint">gpodder.net\'te ara</string>
     <string name="advanced">Gelişmiş</string>
     <string name="add_podcast_by_url">RSS adresiyle Podcast ekle</string>
-    <string name="add_podcast_by_url_hint" translatable="false">www.example.com/feed</string>
     <string name="discover">Keşfet</string>
     <string name="discover_hide">Gizle</string>
 
