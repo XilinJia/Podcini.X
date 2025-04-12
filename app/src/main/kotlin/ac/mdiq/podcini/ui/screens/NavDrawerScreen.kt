@@ -85,7 +85,7 @@ import kotlinx.coroutines.withContext
 
 private const val TAG = "NavDrawerScreen"
 
-private val defaultScreen: String
+val defaultScreen: String
     get() {
         var value = getPref(AppPrefs.prefDefaultPage, "")
         val isValid = try {
@@ -116,12 +116,8 @@ class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
 
     fun loadData() {
         lcScope.launch {
-            try {
-                withContext(Dispatchers.IO) {
-                    getRecentPodcasts()
-                    getDatasetStats()
-                }
-            } catch (e: Throwable) { Logs(TAG, e) }
+            withContext(Dispatchers.IO) { getDatasetStats() }
+            withContext(Dispatchers.Main) { getRecentPodcasts() }
         }
     }
 }
@@ -259,9 +255,6 @@ fun NavDrawerScreen() {
     }
 }
 
-//const val PREF_LAST_FRAGMENT_TAG: String = "prefLastFragmentTag"
-//const val PREF_LAST_FRAGMENT_ARG: String = "prefLastFragmentArg"
-
 var feedCount: Int = -1
     get() {
         if (field < 0) field = getFeedCount()
@@ -332,9 +325,6 @@ fun saveLastNavScreen(tag: String?, arg: String? = null) {
         putPref(AppPrefs.prefLastScreenArg, arg_)
     } else putPref(AppPrefs.prefLastScreenArg, arg ?:"")
 }
-
-//fun getLastNavScreen(): String = prefs.getString(PREF_LAST_FRAGMENT_TAG, "") ?: ""
-//fun getLastNavScreenArg(): String = prefs.getString(PREF_LAST_FRAGMENT_ARG, "0") ?: ""
 
 /**
  * Returns data necessary for displaying the navigation drawer. This includes

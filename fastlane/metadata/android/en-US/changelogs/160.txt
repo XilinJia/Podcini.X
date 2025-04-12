@@ -1,0 +1,6 @@
+# 8.14.6
+
+* fixed crash when removing feed
+* title is filtered when adding Youtube feed
+* when auto-enqueue an episode, set it not auto-downloadable, fixed issue of possibly enqueuing past episodes
+* likely fixed empty recent feeds on the drawer

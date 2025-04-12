@@ -147,7 +147,10 @@ object AutoDownloads {
                 for (e in candidates) {
                     Logd(TAG, "adding to queue ${e.title} ${e.playState} ${e.downloadUrl}")
                     val q = e.feed?.queue
-                    if (q != null) addToQueueSync(e, q)
+                    if (q != null) {
+                        val e_ = upsertBlk(e) { it.disableAutoDownload() }
+                        addToQueueSync(e_, q)
+                    }
                     else Loge(TAG, "auto-enqueue not performed: feed associated queue is null: ${e.title}")
                 }
                 Logt(TAG, "Auto enqueued episodes: ${candidates.size}")

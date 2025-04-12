@@ -1,3 +1,9 @@
+# 8.14.6
+
+* fixed crash when removing feed
+* when auto-enqueue an episode, set it not auto-downloadable, fixed issue of possibly enqueuing past episodes
+* likely fixed empty recent feeds on the drawer
+
 # 8.14.5
 
 * changed navigation behavior from drawer: only Subscriptions, Queues and Facets fully clears backstack, others partially

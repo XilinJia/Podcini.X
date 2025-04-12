@@ -308,12 +308,15 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                         Logd(TAG, "loadItems feed_.episodes.size: ${feed_.episodes.size}")
                         val eListTmp = mutableListOf<Episode>()
                         if (enableFilter && feed_.filterString.isNotEmpty()) {
-                            Logd(TAG, "episodeFilter: ${feed_.episodeFilter.queryString()}")
-                            val episodes_ = realm.query(Episode::class).query("feedId == ${feed_.id}").query(feed_.episodeFilter.queryString()).find()
+                            val qstr = feed_.episodeFilter.queryString()
+                            Logd(TAG, "episodeFilter: $qstr")
+                            val episodes_ = realm.query(Episode::class).query("feedId == ${feed_.id} AND $qstr").find()
                             eListTmp.addAll(episodes_)
                         } else eListTmp.addAll(feed_.episodes)
+                        Logd(TAG, "loadItems eListTmp.size: ${eListTmp.size}")
                         sortOrder = feed_.sortOrder ?: EpisodeSortOrder.DATE_NEW_OLD
                         getPermutor(sortOrder).reorder(eListTmp)
+                        Logd(TAG, "loadItems eListTmp.size1: ${eListTmp.size}")
                         episodes.clear()
                         episodes.addAll(eListTmp)
                         withContext(Dispatchers.Main) {
@@ -547,7 +550,7 @@ fun FeedDetailsScreen() {
     fun FeedDetailsHeader() {
         val textColor = MaterialTheme.colorScheme.onSurface
         ConstraintLayout(modifier = Modifier.fillMaxWidth().height(80.dp)) {
-            val (bgImage, bgColor, controlRow, imgvCover) = createRefs()
+            val (bgImage, bgColor, imgvCover) = createRefs()
             AsyncImage(model = vm.feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser),
                 modifier = Modifier.fillMaxSize().blur(radiusX = 15.dp, radiusY = 15.dp).constrainAs(bgImage) {
                     bottom.linkTo(parent.bottom)
@@ -596,8 +599,7 @@ fun FeedDetailsScreen() {
         val textColor = MaterialTheme.colorScheme.onSurface
         TopAppBar(title = { Text("") },
             navigationIcon = if (displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-                }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
+                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
             } else {
                 { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }
             },
@@ -676,10 +678,9 @@ fun FeedDetailsScreen() {
     }
 
     if (vm.showRemoveFeedDialog) RemoveFeedDialog(listOf(vm.feed!!), onDismissRequest = { vm.showRemoveFeedDialog = false }) {
-        mainNavController.navigate("DefaultPage")
+        mainNavController.navigate(defaultScreen)
     }
-    if (vm.showFilterDialog) EpisodesFilterDialog(filter = vm.feed!!.episodeFilter,
-        onDismissRequest = { vm.showFilterDialog = false }) { filter ->
+    if (vm.showFilterDialog) EpisodesFilterDialog(filter = vm.feed!!.episodeFilter, onDismissRequest = { vm.showFilterDialog = false }) { filter ->
         if (vm.feed != null) {
             Logd(TAG, "persist Episode Filter(): feedId = [${vm.feed?.id}], filterValues = [${filter.propertySet}]")
             runOnIOScope {

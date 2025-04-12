@@ -2,7 +2,6 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
@@ -96,7 +95,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -243,7 +241,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     private fun updateButtons() {
-        val dls = DownloadServiceInterface.impl
+//        val dls = DownloadServiceInterface.impl
         if (episode?.downloadUrl.isNullOrBlank()) {
             hasMedia = false
             return
@@ -290,13 +288,11 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                 try {
                     withContext(Dispatchers.IO) {
                         if (episode != null && !episode!!.isRemote.value) episode = realm.query(Episode::class).query("id == $0", episode!!.id).first().find()
-                        if (episode != null && webviewData.isNullOrBlank()) {
+                        if (episode != null && webviewData.isBlank()) {
                             val duration = episode!!.duration
                             Logd(TAG, "description: ${episode?.description}")
                             val result = gearbox.buildWebviewData(episode!!, shownotesCleaner)
-                            if (result != null) {
-                                webviewData = result.second
-                            } else webviewData = shownotesCleaner.processShownotes(episode!!.description ?: "", duration)
+                            webviewData = result?.second ?: shownotesCleaner.processShownotes(episode!!.description ?: "", duration)
                         }
                     }
                     withContext(Dispatchers.Main) {
@@ -330,7 +326,7 @@ fun EpisodeInfoScreen() {
 //        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
 //        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
 
-    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
+//    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -371,7 +367,7 @@ fun EpisodeInfoScreen() {
             text = { Text(stringResource(if (offerStreaming) R.string.on_demand_config_stream_text else R.string.on_demand_config_download_text)) },
             confirmButton = {
                 TextButton(onClick = {
-                    if (offerStreaming) AppPreferences.prefStreamOverDownload = offerStreaming
+                    if (offerStreaming) AppPreferences.prefStreamOverDownload = true
                     if (vm.episode?.feed != null) vm.episode!!.feed = upsertBlk(vm.episode!!.feed!!) { it.prefStreamOverDownload = offerStreaming }
                     // Update all visible lists to reflect new streaming action button
                     //            TODO: need another event type?

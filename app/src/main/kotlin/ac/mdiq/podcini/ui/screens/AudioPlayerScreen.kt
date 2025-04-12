@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.PlaybackStarter
-import ac.mdiq.podcini.playback.Recorder
 import ac.mdiq.podcini.playback.Recorder.saveClipInOriginalFormat
 import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
@@ -810,7 +809,6 @@ fun AudioPlayerScreen() {
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun DetailUI(modifier: Modifier) {
-        val context = LocalContext.current
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(vm.curItem!!)) { showChooseRatingDialog = false }
         var showChaptersDialog by remember { mutableStateOf(false) }

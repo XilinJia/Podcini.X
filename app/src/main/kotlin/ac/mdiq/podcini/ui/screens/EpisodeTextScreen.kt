@@ -36,7 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -59,7 +58,7 @@ import net.dankito.readability4j.extended.Readability4JExtended
 
 class EpisodeTextVM(val context: Context, val lcScope: CoroutineScope) {
 
-    var episode: Episode? = null    // unmanged
+    var episode: Episode? = null    // unmanged?
 
     internal var startIndex = 0
     internal var ttsSpeed = 1.0f
@@ -145,7 +144,7 @@ fun EpisodeTextScreen() {
 //        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
 //        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
 
-    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
+//    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {

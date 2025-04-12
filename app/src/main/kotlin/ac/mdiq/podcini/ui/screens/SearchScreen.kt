@@ -16,7 +16,6 @@ import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDial
 import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
@@ -80,7 +79,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -310,7 +308,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     /**
      * Searches the FeedItems of a specific Feed for a given string.
      * @param feedID  The id of the feed whose episodes should be searched.
-     * @param query   The search string.
      * @return A FutureTask object that executes the search request
      * and returns the search result as a List of FeedItems.
      */
@@ -372,7 +369,7 @@ fun SearchScreen() {
 //        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
 //        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
 
-    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
+//    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
