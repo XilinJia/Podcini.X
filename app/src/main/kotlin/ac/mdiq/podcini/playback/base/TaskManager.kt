@@ -99,7 +99,10 @@ class TaskManager(private val context: Context) {
     @Synchronized
     fun startPositionSaver(delayInterval: Long) {
         if (positionSaverJob == null) {
-            positionSaverJob = scheduleTaskRepeating(delayInterval, delayInterval) { positionSaverTick() }
+            positionSaverJob = scheduleTaskRepeating(delayInterval, delayInterval) {
+                positionSaverTick()
+                mPlayer?.invokeBufferListener()
+            }
             Logd(TAG, "Started PositionSaver")
         }
     }

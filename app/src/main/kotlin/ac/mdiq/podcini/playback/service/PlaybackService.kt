@@ -12,7 +12,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.loadPlayableFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.monitorState
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
-import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.createStaticPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.isStreaming
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.streaming
@@ -345,7 +344,7 @@ class PlaybackService : MediaLibraryService() {
         setMediaNotificationProvider(CustomMediaNotificationProvider(applicationContext))
 
         recreateMediaPlayer()
-        if (exoPlayer == null) createStaticPlayer(applicationContext)
+        if (exoPlayer == null) mPlayer?.createStaticPlayer(applicationContext)
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
         mediaSession = MediaLibrarySession.Builder(applicationContext, exoPlayer!!, MediaLibrarySessionCK())

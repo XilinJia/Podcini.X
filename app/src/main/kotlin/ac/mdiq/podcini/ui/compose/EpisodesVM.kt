@@ -874,7 +874,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
 //                            Logd(TAG, "LaunchedEffect $index isPlayingState: ${vms[index].isPlayingState} ${vm.episode.playState} ${vms[index].episode.title}")
 //                            Logd(TAG, "LaunchedEffect $index downloadState: ${vms[index].downloadState} ${vm.episode.downloaded} ${vm.dlPercent}")
                             vm.actionButton = vm.actionButton.forItem(vm.episode)
-                            Logd(TAG, "LaunchedEffect vm.actionButton: ${vm.actionButton.TAG}")
+//                            Logd(TAG, "LaunchedEffect vm.actionButton: ${vm.actionButton.TAG}")
                         }
                     } else LaunchedEffect(Unit) { vm.actionButton = actionButton_(vm.episode) }
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd)

@@ -142,11 +142,15 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     abstract fun getPosition(): Int
 
+    open suspend fun invokeBufferListener() {}
+
     open fun getAudioTracks(): List<String> = emptyList()
 
     open fun getSelectedAudioTrack(): Int = -1
 
     open fun resetMediaPlayer() {}
+
+    open fun createStaticPlayer(context: Context) {}
 
     protected fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
         Logd(TAG, "setDataSource: $mediaUrl")
@@ -187,7 +191,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     private fun setSourceCredentials(user: String?, password: String?) {
         if (!user.isNullOrEmpty() && !password.isNullOrEmpty()) {
             if (httpDataSourceFactory == null)
-                httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent(ClientConfig.USER_AGENT)
+                httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0")
 
             val requestProperties = HashMap<String, String>()
             requestProperties["Authorization"] = HttpCredentialEncoder.encode(user, password, "ISO-8859-1")
@@ -596,12 +600,15 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
 
         override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-            val bytesRead = cacheDataSource.read(buffer, offset, length)
+            var bytesRead = -1
+            try {
+                bytesRead = cacheDataSource.read(buffer, offset, length)
 //            Logd(TAG, "read offset=$offset length=$length bytesRead=$bytesRead")
-            if (bytesRead > 0 && isRecording) {
-                clipTempFos?.write(buffer, offset, bytesRead)
-                clipBytesWritten += bytesRead
-            }
+                if (bytesRead > 0 && isRecording) {
+                    clipTempFos?.write(buffer, offset, bytesRead)
+                    clipBytesWritten += bytesRead
+                }
+            } catch (e: Throwable) { Logd(TAG, "data source read/write error: ${e.message}") }
             return bytesRead
         }
 

@@ -217,9 +217,7 @@ object Queues {
     fun removeFromAllQueuesSync(vararg episodes: Episode) {
         Logd(TAG, "removeFromAllQueuesSync called ")
         val queues = realm.query(PlayQueue::class).find()
-        for (q in queues) {
-            if (q.id != curQueue.id) removeFromQueueSync(q, *episodes)
-        }
+        for (q in queues) if (q.id != curQueue.id) removeFromQueueSync(q, *episodes)
 //        ensure curQueue is last updated
         if (curQueue.size() > 0) removeFromQueueSync(curQueue, *episodes)
         else upsertBlk(curQueue) { it.update() }

@@ -32,9 +32,9 @@ If you intend to sync through a server, NextCloud server has been tested, but ca
 
 1. Is fully based on Jetpack Compose, using `media3` with `AudioOffloadMode` enabled (nicer to device battery).
 2. Features multiple, natural and circular play queues associable with any podcast.
-3. Presents synthetic podcasts and allows episodes to be shelved to any synthetic podcast.
+3. Presents synthetic podcasts and allows episodes to be separately shelved.
 4. Allows setting personal notes/comments, 5-level rating, and 12-level play state on every episode.
-5. Boasts sophisticated filtering and sorting on episodes and podcasts.
+5. Boasts sophisticated sorting, filtering and searching on episodes and podcasts.
 6. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed (podcast).
 7. Caches streamed audio for seamless local rewind and replay.
 8. Features audio clips recording and position marking on any episodes

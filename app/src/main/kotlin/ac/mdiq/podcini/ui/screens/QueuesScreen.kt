@@ -646,11 +646,11 @@ fun QueuesScreen() {
     }
 
     BackHandler(enabled = vm.showBin || vm.showFeeds) {
+        Logd(TAG, "BackHandler ${vm.showBin} ${vm.showFeeds}")
         if (vm.showBin) {
             vm.showBin = false
             refreshQueueOrBin()
-        }
-        else if (vm.showFeeds) vm.showFeeds = false
+        } else if (vm.showFeeds) vm.showFeeds = false
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->

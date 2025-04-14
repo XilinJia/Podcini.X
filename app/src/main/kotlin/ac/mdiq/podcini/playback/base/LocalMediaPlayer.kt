@@ -30,7 +30,6 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.config.ClientConfig
 import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
@@ -56,6 +55,7 @@ import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.common.Tracks
 import androidx.media3.datasource.HttpDataSource.HttpDataSourceException
 import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.SeekParameters
@@ -69,7 +69,6 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -80,19 +79,21 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     private var videoSize: Pair<Int, Int>? = null
     private var seekLatch: CountDownLatch? = null
 
-    private val bufferUpdateInterval = 5000L
+    private var trackSelector: DefaultTrackSelector? = null
+
+//    private val bufferUpdateInterval = 5000L
     private var playbackParameters: PlaybackParameters
 
     private var bufferedPercentagePrev = 0
+
+//    private var bufferUpdateJob: Job? = null
 
     private val formats: List<Format>
         get() {
             val formats_: MutableList<Format> = arrayListOf()
             val trackInfo = trackSelector!!.currentMappedTrackInfo ?: return emptyList()
             val trackGroups = trackInfo.getTrackGroups(audioRendererIndex)
-            for (i in 0 until trackGroups.length) {
-                formats_.add(trackGroups[i].getFormat(0))
-            }
+            for (i in 0 until trackGroups.length) formats_.add(trackGroups[i].getFormat(0))
             return formats_
         }
 
@@ -109,7 +110,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         get() = exoPlayer?.videoFormat?.height ?: 0
 
     init {
-        if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent(ClientConfig.USER_AGENT) }
+        if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0") }
         if (exoPlayer == null) {
             exoplayerListener = object : Listener {
                 override fun onPlaybackStateChanged(playbackState: @State Int) {
@@ -168,17 +169,60 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             createStaticPlayer(context)
         }
         playbackParameters = exoPlayer!!.playbackParameters
-        val scope = CoroutineScope(Dispatchers.Main)
-        scope.launch {
-            while (true) {
-                delay(bufferUpdateInterval)
-                withContext(Dispatchers.Main) {
-                    if (exoPlayer != null && bufferedPercentagePrev != exoPlayer!!.bufferedPercentage) {
-                        bufferingUpdateListener?.invoke(exoPlayer!!.bufferedPercentage)
-                        bufferedPercentagePrev = exoPlayer!!.bufferedPercentage
-                    }
+//        bufferUpdateJob?.cancel()
+//        bufferUpdateJob = CoroutineScope(Dispatchers.Default).launch {
+//            while (true) {
+//                delay(bufferUpdateInterval)
+//                invokeBufferListener()
+//            }
+//        }
+    }
+
+    override suspend fun invokeBufferListener() {
+        if (exoPlayer != null && status == PlayerStatus.PLAYING) {
+            withContext(Dispatchers.Main) {
+                val pct = exoPlayer!!.bufferedPercentage
+                if (bufferedPercentagePrev != pct) {
+                    bufferingUpdateListener?.invoke(pct)
+                    bufferedPercentagePrev = pct
                 }
             }
+        }
+    }
+
+    override fun createStaticPlayer(context: Context) {
+        val loadControl = DefaultLoadControl.Builder()
+        loadControl.setBufferDurationsMs(20000, 60000, 2000, 5000)
+
+        val audioOffloadPreferences = AudioOffloadPreferences.Builder()
+            .setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED) // Add additional options as needed
+            .setIsGaplessSupportRequired(true)
+            .setIsSpeedChangeSupportRequired(true)
+            .build()
+        Logd(TAG, "createStaticPlayer creating exoPlayer_")
+
+        simpleCache = getCache(context)
+
+        // Initialize ExoPlayer
+        trackSelector = DefaultTrackSelector(context)
+        val defaultRenderersFactory = DefaultRenderersFactory(context)
+        exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
+            .setLoadControl(loadControl.build())
+            .setTrackSelector(trackSelector!!)
+            .setSeekBackIncrementMs(rewindSecs * 1000L)
+            .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
+            .build()
+
+        exoPlayer?.setSeekParameters(SeekParameters.EXACT)
+        exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters
+            .buildUpon()
+            .setAudioOffloadPreferences(audioOffloadPreferences)
+            .build()
+
+        Logd(TAG, "createStaticPlayer exoplayerListener == null: ${exoplayerListener == null}")
+        if (exoplayerListener != null) {
+            exoPlayer?.removeListener(exoplayerListener!!)
+            exoPlayer?.addListener(exoplayerListener!!)
         }
     }
 
@@ -290,6 +334,15 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         }
     }
 
+    private fun setSource() {
+        Logd(TAG, "setSource() called")
+        if (mediaSource == null && mediaItem == null) return
+
+        if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, false)
+        else exoPlayer?.setMediaItem(mediaItem!!)
+        exoPlayer?.prepare()
+    }
+
     override fun play() {
         Logd(TAG, "play(): status: $status exoPlayer?.playbackState: ${exoPlayer?.playbackState}")
         if (status in listOf(PlayerStatus.PAUSED, PlayerStatus.PREPARED)) {
@@ -300,13 +353,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             if (curEpisode != null && status == PlayerStatus.PREPARED && curEpisode!!.position > 0)
                 seekTo(calculatePositionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime))
 
-            if (exoPlayer?.playbackState in listOf(STATE_IDLE, STATE_ENDED)) {
-                if (mediaSource != null || mediaItem != null) {
-                    if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, false)
-                    else exoPlayer?.setMediaItem(mediaItem!!)
-                    exoPlayer?.prepare()
-                }
-            }
+            if (exoPlayer?.playbackState in listOf(STATE_IDLE, STATE_ENDED)) setSource()
+
             exoPlayer?.play()
             // Can't set params when paused - so always set it on start in case they changed
             exoPlayer?.playbackParameters = playbackParameters
@@ -329,11 +377,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (status == PlayerStatus.INITIALIZED) {
             Logd(TAG, "prepare Preparing media player: status: $status")
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
-            if (mediaSource != null || mediaItem != null) {
-                if (mediaSource != null) exoPlayer?.setMediaSource(mediaSource!!, false)
-                else exoPlayer?.setMediaItem(mediaItem!!)
-                exoPlayer?.prepare()
-            }
+            setSource()
+
 //            onPrepared(startWhenPrepared.get())
             if (mediaType == MediaType.VIDEO) videoSize = Pair(videoWidth, videoHeight)
             if (curEpisode != null) {
@@ -394,10 +439,11 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     override fun getPosition(): Int {
         var retVal = Episode.INVALID_TIME
+//        showStackTrace()
         if (exoPlayer != null && status.isAtLeast(PlayerStatus.PREPARED)) retVal = exoPlayer!!.currentPosition.toInt()
-        Logd(TAG, "getPosition player position: $retVal")
+//        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
-        Logd(TAG, "getPosition final position: $retVal")
+//        Logd(TAG, "getPosition final position: $retVal")
         return retVal
     }
 
@@ -449,10 +495,11 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             audioSeekCompleteListener = {}
             bufferingUpdateListener = { }
             audioErrorListener = {}
-
 //            TODO: should use: exoPlayer!!.playWhenReady ?
             if (exoPlayer?.isPlaying == true) exoPlayer?.stop()
         } catch (e: Exception) { Logs(TAG, e) }
+//        bufferUpdateJob?.cancel()
+//        bufferUpdateJob = null
         release()
         status = PlayerStatus.STOPPED
         releaseWifiLockIfNecessary()
@@ -596,8 +643,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         const val BUFFERING_STARTED: Int = -1
         const val BUFFERING_ENDED: Int = -2
 
-        private var trackSelector: DefaultTrackSelector? = null
-
         var streaming: Boolean? = getPref(AppPrefs.prefStreamOverDownload, false)
 
         var exoPlayer: ExoPlayer? = null
@@ -616,45 +661,45 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 //            memoryBuffer = CircularByteBuffer(memoryBufferSize)
 //        }
 
-        fun createStaticPlayer(context: Context) {
-//            val loadControl = DefaultLoadControl.Builder()
-//            loadControl.setBufferDurationsMs(30000, 120000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
-//            if (streaming == true) loadControl.setBackBuffer(streamingBackBufferSecs * 1000, true) else loadControl.setBackBuffer(rewindSecs * 1000 + 500, true)
-            Logd(TAG, "createStaticPlayer reset back buffer for streaming == $streaming")
-
-            trackSelector = DefaultTrackSelector(context)
-            val audioOffloadPreferences = AudioOffloadPreferences.Builder()
-                .setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED) // Add additional options as needed
-                .setIsGaplessSupportRequired(true)
-                .setIsSpeedChangeSupportRequired(true)
-                .build()
-            Logd(TAG, "createStaticPlayer creating exoPlayer_")
-
-            simpleCache = getCache(context)
-
-            // Initialize ExoPlayer
-            val trackSelector = DefaultTrackSelector(context)
-            val defaultRenderersFactory = DefaultRenderersFactory(context)
-            exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
-                .setTrackSelector(trackSelector)
-                .setSeekBackIncrementMs(rewindSecs * 1000L)
-                .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
-                .build()
-
-            exoPlayer?.setSeekParameters(SeekParameters.EXACT)
-            exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters
-                .buildUpon()
-                .setAudioOffloadPreferences(audioOffloadPreferences)
-                .build()
-
-//            if (BuildConfig.DEBUG) exoPlayer!!.addAnalyticsListener(EventLogger())
-
-            Logd(TAG, "createStaticPlayer exoplayerListener == null: ${exoplayerListener == null}")
-            if (exoplayerListener != null) {
-                exoPlayer?.removeListener(exoplayerListener!!)
-                exoPlayer?.addListener(exoplayerListener!!)
-            }
-        }
+//        fun createStaticPlayer(context: Context) {
+////            val loadControl = DefaultLoadControl.Builder()
+////            loadControl.setBufferDurationsMs(30000, 120000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
+////            if (streaming == true) loadControl.setBackBuffer(streamingBackBufferSecs * 1000, true) else loadControl.setBackBuffer(rewindSecs * 1000 + 500, true)
+//            Logd(TAG, "createStaticPlayer reset back buffer for streaming == $streaming")
+//
+//            val audioOffloadPreferences = AudioOffloadPreferences.Builder()
+//                .setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED) // Add additional options as needed
+//                .setIsGaplessSupportRequired(true)
+//                .setIsSpeedChangeSupportRequired(true)
+//                .build()
+//            Logd(TAG, "createStaticPlayer creating exoPlayer_")
+//
+//            simpleCache = getCache(context)
+//
+//            // Initialize ExoPlayer
+////            val trackSelector = DefaultTrackSelector(context)
+//            trackSelector = DefaultTrackSelector(context)
+//            val defaultRenderersFactory = DefaultRenderersFactory(context)
+//            exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
+//                .setTrackSelector(trackSelector!!)
+//                .setSeekBackIncrementMs(rewindSecs * 1000L)
+//                .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
+//                .build()
+//
+//            exoPlayer?.setSeekParameters(SeekParameters.EXACT)
+//            exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters
+//                .buildUpon()
+//                .setAudioOffloadPreferences(audioOffloadPreferences)
+//                .build()
+//
+////            if (BuildConfig.DEBUG) exoPlayer!!.addAnalyticsListener(EventLogger())
+//
+//            Logd(TAG, "createStaticPlayer exoplayerListener == null: ${exoplayerListener == null}")
+//            if (exoplayerListener != null) {
+//                exoPlayer?.removeListener(exoplayerListener!!)
+//                exoPlayer?.addListener(exoplayerListener!!)
+//            }
+//        }
 
         private fun initLoudnessEnhancer(audioStreamId: Int) {
             runOnIOScope {
