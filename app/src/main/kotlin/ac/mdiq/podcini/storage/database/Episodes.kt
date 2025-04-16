@@ -168,7 +168,7 @@ object Episodes {
                     }
                     episode = upsertBlk(episode) {
                         it.setfileUrlOrNull(null)
-                        if (it.playState < PlayState.SKIPPED.code) it.setPlayState(PlayState.SKIPPED)
+                        if (it.playState < PlayState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(PlayState.SKIPPED)
                     }
                     EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
                     localDelete = true
@@ -192,7 +192,7 @@ object Episodes {
                         it.downloaded = false
                         it.setfileUrlOrNull(null)
                         it.hasEmbeddedPicture = false
-                        if (it.playState < PlayState.SKIPPED.code) it.setPlayState(PlayState.SKIPPED)
+                        if (it.playState < PlayState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(PlayState.SKIPPED)
                     }
                     EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
                 }
@@ -251,9 +251,10 @@ object Episodes {
 
     suspend fun setRating(episode: Episode, rating: Int) {
         Logd(TAG, "setRating called $rating")
-        val result = upsert(episode) { it.rating = rating }
-//        EventFlow.postEvent(FlowEvent.RatingEvent(result, result.rating))
+        upsert(episode) { it.rating = rating }
     }
+
+    fun stateToPreserve(stat: Int): Boolean = stat in listOf(PlayState.SOON.code, PlayState.LATER.code, PlayState.AGAIN.code, PlayState.FOREVER.code)
 
     suspend fun setPlayStateSync(played: Int, episode: Episode, resetMediaPosition: Boolean, removeFromQueue: Boolean = true) : Episode {
         Logd(TAG, "setPlayStateSync called played: $played resetMediaPosition: $resetMediaPosition ${episode.title}")
@@ -283,9 +284,7 @@ object Episodes {
     fun List<EpisodeVM>.indexOfItem(downloadUrl: String): Int = indexOfFirst { it.episode.downloadUrl == downloadUrl }
 
     @JvmStatic
-    fun hasAlmostEnded(media: Episode): Boolean {
-        return media.duration > 0 && media.position >= media.duration * smartMarkAsPlayedPercent * 0.01
-    }
+    fun hasAlmostEnded(media: Episode): Boolean = media.duration > 0 && media.position >= media.duration * smartMarkAsPlayedPercent * 0.01
 
     fun getClipFile(episode: Episode, clipname: String): File {
         val mediaFilesDir = context.getExternalFilesDir("media")?.apply { mkdirs() } ?: File(context.filesDir, "media").apply { mkdirs() }

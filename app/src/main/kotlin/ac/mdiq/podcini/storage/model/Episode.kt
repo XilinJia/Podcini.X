@@ -482,7 +482,7 @@ class Episode : RealmObject {
         setfileUrlOrNull(fileUrl)
         this.downloadUrl = downloadUrl
         if (downloaded) setIsDownloaded()
-        else this.downloaded = downloaded
+        else this.downloaded = false
     }
 
     fun fillMedia(downloadUrl: String?, size: Long, mimeType: String?) {
@@ -714,8 +714,8 @@ class Episode : RealmObject {
      * This method should be called every time playback starts on this object.
      * Position held by this EpisodeMedia should be set accurately before a call to this method is made.
      */
-    fun onPlaybackStart() {
-        Logd(TAG, "onPlaybackStart ${System.currentTimeMillis()} timeSpent: $timeSpent")
+    fun setPlaybackStart() {
+        Logd(TAG, "setPlaybackStart ${System.currentTimeMillis()} timeSpent: $timeSpent")
         startPosition = max(position.toDouble(), 0.0).toInt()
         playedDurationWhenStarted = playedDuration
         timeSpentOnStart = timeSpent

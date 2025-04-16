@@ -8,9 +8,11 @@ import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
+import ac.mdiq.podcini.storage.database.Episodes.stateToPreserve
 import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
+import ac.mdiq.podcini.storage.database.Queues.smartRemoveFromQueue
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -526,14 +528,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             return getAppContext().getString(R.string.remove_from_queue_label)
         }
         override fun performAction(item_: Episode) {
-//            val position: Int = curQueue.episodes.indexOf(item_)
             var item = item_
             super.performAction(item)
-            val almostEnded = hasAlmostEnded(item)
-            if (almostEnded && item.playState < PlayState.PLAYED.code) item = runBlocking { setPlayStateSync(PlayState.PLAYED.code, item, resetMediaPosition = true, removeFromQueue = false) }
-            if (almostEnded) item = upsertBlk(item) { it.playbackCompletionDate = Date() }
-            if (item.playState < PlayState.SKIPPED.code) item = runBlocking { setPlayStateSync(PlayState.SKIPPED.code, item, resetMediaPosition = false, removeFromQueue = false) }
-            runOnIOScope { removeFromQueueSync(curQueue, item) }
+            runOnIOScope { smartRemoveFromQueue(item) }
         }
     }
 

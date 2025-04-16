@@ -65,7 +65,7 @@ import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
-import kotlin.math.max
+import kotlin.math.min
 
 class PlaybackService : MediaLibraryService() {
     private val scope = CoroutineScope(Dispatchers.Main)
@@ -76,8 +76,6 @@ class PlaybackService : MediaLibraryService() {
 
     private var clickCount = 0
     private val clickHandler = Handler(Looper.getMainLooper())
-
-    private var isForeground = false
 
     private val autoStateUpdated: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -652,12 +650,13 @@ class PlaybackService : MediaLibraryService() {
     private fun onSleepTimerUpdate(event: FlowEvent.SleepTimerUpdatedEvent) {
         when {
             event.isOver -> {
-                mPlayer?.pause(reinit = true)
+                Logd(TAG, "sleep timer is over")
+                mPlayer?.pause(reinit = false)
                 mPlayer?.setVolume(1.0f, 1.0f)
             }
-            event.getTimeLeft() < TaskManager.NOTIFICATION_THRESHOLD -> {
-                val multiplicators = floatArrayOf(0.1f, 0.2f, 0.3f, 0.3f, 0.3f, 0.4f, 0.4f, 0.4f, 0.6f, 0.8f)
-                val multiplicator = multiplicators[max(0.0, (event.getTimeLeft().toInt() / 1000).toDouble()).toInt()]
+            event.getTimeLeft() < TaskManager.SLEEP_TIMER_ENDING_THRESHOLD -> {
+                val multiplicators = floatArrayOf(0.1f, 0.1f, 0.2f, 0.2f, 0.3f, 0.3f, 0.4f, 0.4f, 0.5f, 0.5f, 0.6f, 0.6f, 0.7f, 0.7f, 0.8f, 0.8f, 0.9f, 0.9f)
+                val multiplicator = multiplicators[min(multiplicators.size-1, (event.getTimeLeft().toInt() / 1000))]
                 Logd(TAG, "onSleepTimerAlmostExpired: $multiplicator")
                 mPlayer?.setVolume(multiplicator, multiplicator)
             }

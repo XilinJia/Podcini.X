@@ -3,8 +3,6 @@ package ac.mdiq.podcini.playback.base
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.SleepTimerPreferences
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.util.EventFlow
@@ -30,7 +28,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.max
 import kotlin.math.sqrt
 
 /**
@@ -55,23 +52,6 @@ class TaskManager(private val context: Context) {
         get() = if (isSleepTimerActive) sleepTimer!!.timeLeft else 0
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
-
-    fun scheduleTask(delay: Long, block: suspend () -> Unit): Job {
-        return scope.launch {
-            delay(delay)
-            block()
-        }
-    }
-
-    fun scheduleTaskRepeating(initialDelay: Long, period: Long, block: suspend () -> Unit): Job {
-        return scope.launch {
-            delay(initialDelay)
-            while (isActive) {
-                block()
-                delay(period)
-            }
-        }
-    }
 
     private fun positionSaverTick() {
         if (mPlayer == null) return
@@ -98,13 +78,16 @@ class TaskManager(private val context: Context) {
 
     @Synchronized
     fun startPositionSaver(delayInterval: Long) {
-        if (positionSaverJob == null) {
-            positionSaverJob = scheduleTaskRepeating(delayInterval, delayInterval) {
+        cancelPositionSaver()
+        positionSaverJob = scope.launch {
+            delay(delayInterval)
+            while (isActive) {
                 positionSaverTick()
                 mPlayer?.invokeBufferListener()
+                delay(delayInterval)
             }
-            Logd(TAG, "Started PositionSaver")
         }
+        Logd(TAG, "Started PositionSaver with interval: $delayInterval")
     }
 
     @Synchronized
@@ -130,8 +113,7 @@ class TaskManager(private val context: Context) {
         Logd(TAG, "Setting sleep timer to $waitingTime milliseconds")
         if (isSleepTimerActive) sleepTimerJob!!.cancel()
         sleepTimer = SleepTimer(waitingTime)
-        sleepTimerJob = scheduleTask(0) { SleepTimer(waitingTime) }
-        EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.justEnabled(waitingTime))
+        sleepTimerJob = sleepTimer!!.start()
     }
 
     @Synchronized
@@ -165,7 +147,7 @@ class TaskManager(private val context: Context) {
     }
 
     @Synchronized
-    fun cancelAllTasks() {
+    private fun cancelAllTasks() {
         cancelPositionSaver()
         disableSleepTimer()
     }
@@ -182,30 +164,47 @@ class TaskManager(private val context: Context) {
 
         private var hasVibrated = false
         private var shakeListener: ShakeListener? = null
-        private var job: Job? = null
 
-        fun start() {
-            job?.cancel()
-
+        fun start(): Job {
+            var lastTick = System.currentTimeMillis()
+            fun postTimeLeft() {
+                val now = System.currentTimeMillis()
+                timeLeft -= now - lastTick
+                lastTick = now
+                Logd(TAG, "timeLeft: $timeLeft")
+                EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.updated(timeLeft))
+            }
             EventFlow.postEvent(FlowEvent.SleepTimerUpdatedEvent.updated(timeLeft))
-            job = CoroutineScope(Dispatchers.Default).launch {
+            return scope.launch {
                 try {
-                    delay(waitingTime - NOTIFICATION_THRESHOLD)
-                    Logd(TAG, "Sleep timer is about to expire")
-                    if (SleepTimerPreferences.vibrate() && !hasVibrated) {
-                        val v = context.getSystemService(VIBRATOR_SERVICE) as? Vibrator
-                        if (v != null) {
-                            v.vibrate(500)
-                            hasVibrated = true
+                    while (timeLeft > SLEEP_TIMER_ENDING_THRESHOLD) {
+                        delay(SLEEP_TIMER_UPDATE_INTERVAL)
+                        postTimeLeft()
+                    }
+                    while (timeLeft > 0) {
+                        delay(1000L)
+                        postTimeLeft()
+                        Logd(TAG, "Sleep timer is about to expire")
+                        if (SleepTimerPreferences.vibrate() && !hasVibrated) {
+                            val v = context.getSystemService(VIBRATOR_SERVICE) as? Vibrator
+                            if (v != null) {
+                                v.vibrate(500)
+                                hasVibrated = true
+                            }
+                        }
+                        if (shakeListener == null && SleepTimerPreferences.shakeToReset()) shakeListener = ShakeListener(context, this@SleepTimer)
+                        if (timeLeft <= 0) {
+                            Logd(TAG, "Sleep timer expired")
+                            shakeListener?.pause()
+                            shakeListener = null
+                            hasVibrated = false
                         }
                     }
-                    if (shakeListener == null && SleepTimerPreferences.shakeToReset()) shakeListener = ShakeListener(context, this@SleepTimer)
-                    delay(NOTIFICATION_THRESHOLD)
                     Logd(TAG, "Sleep timer expired")
                     shakeListener?.pause()
                     shakeListener = null
                     hasVibrated = false
-                } catch (e: CancellationException) { Logs(TAG, e, "SleepTimer cancelation error") }
+                } catch (e: CancellationException) {  }
             }
         }
 
@@ -241,7 +240,8 @@ class TaskManager(private val context: Context) {
             mAccelerometer = mSensorMgr!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
             if (!mSensorMgr!!.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_UI)) { // if not supported
                 mSensorMgr!!.unregisterListener(this)
-                throw UnsupportedOperationException("Accelerometer not supported")
+//                throw UnsupportedOperationException("Accelerometer not supported")
+                Logt(TAG, "Shaking and Accelerometer not supported on device")
             }
         }
 
@@ -267,16 +267,11 @@ class TaskManager(private val context: Context) {
     companion object {
         private val TAG: String = TaskManager::class.simpleName ?: "Anonymous"
 
-        const val MIN_POSITION_SAVER_INTERVAL: Int = 5000   // in millisoconds
-        const val NOTIFICATION_THRESHOLD: Long = 10000  // in millisoconds
+        private const val SLEEP_TIMER_UPDATE_INTERVAL = 10000L  // in millisoconds
+        const val SLEEP_TIMER_ENDING_THRESHOLD: Long = 20000  // in millisoconds
 
         @SuppressLint("StaticFieldLeak")
         internal var taskManager: TaskManager? = null
-
-        fun positionUpdateInterval(duration: Int): Long {
-            return if (getPref(AppPrefs.prefUseAdaptiveProgressUpdate, true)) max(MIN_POSITION_SAVER_INTERVAL, duration/50).toLong()
-            else MIN_POSITION_SAVER_INTERVAL.toLong()
-        }
 
         fun isSleepTimerActive(): Boolean = taskManager?.isSleepTimerActive == true
     }

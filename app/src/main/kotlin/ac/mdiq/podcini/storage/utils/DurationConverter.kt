@@ -108,7 +108,7 @@ object DurationConverter {
     }
 
     fun convertOnSpeed(time: Int, speed: Float): Int {
-        if (time > 0 && getPref(AppPrefs.prefPlaybackTimeRespectsSpeed, false)) return (time / speed).toInt()
+        if (time > 0 && speed > 0 && getPref(AppPrefs.prefPlaybackTimeRespectsSpeed, false)) return (time / speed).toInt()
         return time
     }
 }

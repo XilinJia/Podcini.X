@@ -25,7 +25,7 @@ private suspend fun trimToasts() {
     val size = toastMessages.size
     if (size > 120) {
         withContext(Dispatchers.Main) {
-            val newList = toastMessages.subList(20, size)
+            val newList = toastMessages.subList(20, size).toList()
             toastMessages.clear()
             toastMessages.addAll(newList)
         }

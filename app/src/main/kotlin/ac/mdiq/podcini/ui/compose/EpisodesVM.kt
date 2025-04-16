@@ -22,6 +22,7 @@ import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.deleteMediaSync
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
+import ac.mdiq.podcini.storage.database.Episodes.stateToPreserve
 import ac.mdiq.podcini.storage.database.Feeds.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.Feeds.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.Feeds.shelveToFeed
@@ -30,6 +31,7 @@ import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesQuiet
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
+import ac.mdiq.podcini.storage.database.Queues.smartRemoveFromQueue
 import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -196,6 +198,7 @@ fun buildListInfo(episodes: List<Episode>): String {
         for (item in episodes) {
             var playbackSpeed = 1f
             if (getPref(AppPrefs.prefPlaybackTimeRespectsSpeed, false)) playbackSpeed = getCurrentPlaybackSpeed(item)
+            if (playbackSpeed <= 0) playbackSpeed = 1f
             val itemTimeLeft: Long = (item.duration - item.position).toLong()
             timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
         }
@@ -650,16 +653,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 Text(stringResource(id = R.string.put_in_queue_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
-                runOnIOScope {
-                    for (item_ in selected) {
-                        var item = item_
-                        val almostEnded = hasAlmostEnded(item)
-                        if (almostEnded && item.playState < PlayState.PLAYED.code) item = setPlayStateSync(PlayState.PLAYED.code, item, almostEnded, false)
-                        if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
-                        if (item.playState < PlayState.SKIPPED.code) setPlayStateSync(PlayState.SKIPPED.code, item, false)
-                    }
-                    removeFromQueueSync(curQueue, *selected.toTypedArray())
-                }
+                runOnIOScope { for (item_ in selected) smartRemoveFromQueue(item_) }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), "Remove from active queue")
                 Text(stringResource(id = R.string.remove_from_queue_label)) } },

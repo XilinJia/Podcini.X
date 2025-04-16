@@ -244,16 +244,12 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                 if (event.episodes.isNotEmpty()) {
                     for (e in event.episodes) {
                         val pos: Int = queueItems.indexOfItemWithId(e.id)
-                        if (pos >= 0) {
-                            Logd(TAG, "removing episode $pos ${queueItems[pos].title} $e")
-                            queueItems.removeAt(pos)
-                            if (pos < vms.size) {
-                                vms[pos].stopMonitoring()
-                                vms.removeAt(pos)
-                            }
-                        } else {
-                            Loge(TAG, "Trying to remove item non-existent from queue ${e.id} ${e.title}")
-                            continue
+                        if (pos < 0) continue
+                        Logd(TAG, "removing episode $pos ${queueItems[pos].title} $e")
+                        queueItems.removeAt(pos)
+                        if (pos < vms.size) {
+                            vms[pos].stopMonitoring()
+                            vms.removeAt(pos)
                         }
                     }
                 }

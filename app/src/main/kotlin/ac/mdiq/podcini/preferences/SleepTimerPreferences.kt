@@ -87,80 +87,33 @@ object SleepTimerPreferences {
     }
 
     @JvmStatic
-    fun setLastTimer(value: String?) {  // in minutes
-        prefs!!.edit().putString(Prefs.LastValue.name, value).apply()
-    }
+    fun lastTimerValue(): String = prefs!!.getString(Prefs.LastValue.name, DEFAULT_LAST_TIMER) ?: DEFAULT_LAST_TIMER    // in minutes
 
     @JvmStatic
-    fun lastTimerValue(): String? { // in minutes
-        return prefs!!.getString(Prefs.LastValue.name, DEFAULT_LAST_TIMER)
-    }
+    fun timerMillis(): Long = TimeUnit.MINUTES.toMillis(lastTimerValue().toLong())
 
     @JvmStatic
-    fun timerMillis(): Long {
-        val value = lastTimerValue()!!.toLong()
-        return TimeUnit.MINUTES.toMillis(value)
-    }
+    fun vibrate(): Boolean = prefs!!.getBoolean(Prefs.Vibrate.name, false)
 
     @JvmStatic
-    fun setVibrate(vibrate: Boolean) {
-        prefs!!.edit().putBoolean(Prefs.Vibrate.name, vibrate).apply()
-    }
+    fun shakeToReset(): Boolean = prefs!!.getBoolean(Prefs.ShakeToReset.name, true)
 
     @JvmStatic
-    fun vibrate(): Boolean {
-        return prefs!!.getBoolean(Prefs.Vibrate.name, false)
-    }
+    fun autoEnable(): Boolean = prefs!!.getBoolean(Prefs.AutoEnable.name, false)
 
     @JvmStatic
-    fun setShakeToReset(shakeToReset: Boolean) {
-        prefs!!.edit().putBoolean(Prefs.ShakeToReset.name, shakeToReset).apply()
-    }
+    fun autoEnableFrom(): Int = prefs!!.getInt(Prefs.AutoEnableFrom.name, DEFAULT_AUTO_ENABLE_FROM)
 
     @JvmStatic
-    fun shakeToReset(): Boolean {
-        return prefs!!.getBoolean(Prefs.ShakeToReset.name, true)
-    }
-
-    @JvmStatic
-    fun setAutoEnable(autoEnable: Boolean) {
-        prefs!!.edit().putBoolean(Prefs.AutoEnable.name, autoEnable).apply()
-    }
-
-    @JvmStatic
-    fun autoEnable(): Boolean {
-        return prefs!!.getBoolean(Prefs.AutoEnable.name, false)
-    }
-
-    @JvmStatic
-    fun setAutoEnableFrom(hourOfDay: Int) {
-        prefs!!.edit().putInt(Prefs.AutoEnableFrom.name, hourOfDay).apply()
-    }
-
-    @JvmStatic
-    fun autoEnableFrom(): Int {
-        return prefs!!.getInt(Prefs.AutoEnableFrom.name, DEFAULT_AUTO_ENABLE_FROM)
-    }
-
-    @JvmStatic
-    fun setAutoEnableTo(hourOfDay: Int) {
-        prefs!!.edit().putInt(Prefs.AutoEnableTo.name, hourOfDay).apply()
-    }
-
-    @JvmStatic
-    fun autoEnableTo(): Int {
-        return prefs!!.getInt(Prefs.AutoEnableTo.name, DEFAULT_AUTO_ENABLE_TO)
-    }
+    fun autoEnableTo(): Int = prefs!!.getInt(Prefs.AutoEnableTo.name, DEFAULT_AUTO_ENABLE_TO)
 
     @JvmStatic
     fun isInTimeRange(from: Int, to: Int, current: Int): Boolean {
-        // Range covers one day
-        if (from < to) return current in from..<to
-
-        // Range covers two days
-        if (from <= current) return true
-
-        return current < to
+        return when {
+            from < to -> current in from..<to   // Range covers one day
+            from <= current -> true     // Range covers two days
+            else -> current < to
+        }
     }
 
     @Composable
@@ -172,12 +125,6 @@ object SleepTimerPreferences {
         var timerText by remember { mutableStateOf(getDurationStringLong(timeLeft.toInt())) }
         val context = LocalContext.current
 
-        fun timerUpdated(event: FlowEvent.SleepTimerUpdatedEvent) {
-            showTimeDisplay = !event.isOver && !event.isCancelled
-            showTimeSetup = event.isOver || event.isCancelled
-            timerText = getDurationStringLong(event.getTimeLeft().toInt())
-        }
-
         var eventSink: Job? = remember { null }
         fun cancelFlowEvents() {
             eventSink?.cancel()
@@ -188,7 +135,11 @@ object SleepTimerPreferences {
             eventSink = lcScope.launch {
                 EventFlow.events.collectLatest { event ->
                     when (event) {
-                        is FlowEvent.SleepTimerUpdatedEvent -> timerUpdated(event)
+                        is FlowEvent.SleepTimerUpdatedEvent -> {
+                            showTimeDisplay = !event.isOver && !event.isCancelled
+                            showTimeSetup = event.isOver || event.isCancelled
+                            timerText = getDurationStringLong(event.getTimeLeft().toInt())
+                        }
                         else -> {}
                     }
                 }
@@ -199,13 +150,10 @@ object SleepTimerPreferences {
         DisposableEffect(Unit) { onDispose { cancelFlowEvents() } }
 
         var toEnd by remember { mutableStateOf(false) }
-        var etxtTime by remember { mutableStateOf(lastTimerValue()?:"") }
-        fun setSleepTimer(time: Long) {
-            taskManager?.setSleepTimer(time)
-        }
+        var etxtTime by remember { mutableStateOf(lastTimerValue()) }
         fun extendSleepTimer(extendTime: Long) {
             val timeLeft = taskManager?.sleepTimerTimeLeft ?: Episode.INVALID_TIME.toLong()
-            if (timeLeft != Episode.INVALID_TIME.toLong()) setSleepTimer(timeLeft + extendTime)
+            if (timeLeft != Episode.INVALID_TIME.toLong()) taskManager?.setSleepTimer(timeLeft + extendTime)
         }
 
         val scrollState = rememberScrollState()
@@ -232,8 +180,8 @@ object SleepTimerPreferences {
                                 } else etxtTime.toLong()
                                 Logd("SleepTimerDialog", "Sleep timer set: $time")
                                 if (time == 0L) throw NumberFormatException("Timer must not be zero")
-                                setLastTimer(time.toString())
-                                setSleepTimer(timerMillis())
+                                prefs!!.edit().putString(Prefs.LastValue.name, time.toString()).apply()
+                                taskManager?.setSleepTimer(timerMillis())
                                 showTimeSetup = false
                                 showTimeDisplay = true
 //                        closeKeyboard(content)
@@ -242,21 +190,18 @@ object SleepTimerPreferences {
                     }
                     if (showTimeDisplay || timeLeft > 0) {
                         Text(timerText, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                        Button(modifier = Modifier.fillMaxWidth(), onClick = { taskManager?.disableSleepTimer()
-                        }) { Text(stringResource(R.string.disable_sleeptimer_label)) }
+                        Button(modifier = Modifier.fillMaxWidth(), onClick = { taskManager?.disableSleepTimer() }) { Text(stringResource(R.string.disable_sleeptimer_label)) }
                         Row {
-                            Button(onClick = { extendSleepTimer((10 * 1000 * 60).toLong())
-                            }) { Text(stringResource(R.string.extend_sleep_timer_label, 10)) }
+                            Button(onClick = { extendSleepTimer((10 * 1000 * 60).toLong()) }) { Text(stringResource(R.string.extend_sleep_timer_label, 10)) }
                             Spacer(Modifier.weight(1f))
-                            Button(onClick = { extendSleepTimer((30 * 1000 * 60).toLong())
-                            }) { Text(stringResource(R.string.extend_sleep_timer_label, 30)) }
+                            Button(onClick = { extendSleepTimer((30 * 1000 * 60).toLong()) }) { Text(stringResource(R.string.extend_sleep_timer_label, 30)) }
                         }
                     }
                     var cbShakeToReset by remember { mutableStateOf(shakeToReset()) }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
                         Checkbox(checked = cbShakeToReset, onCheckedChange = {
                             cbShakeToReset = it
-                            setShakeToReset(it)
+                            prefs!!.edit().putBoolean(Prefs.ShakeToReset.name, it).apply()
                         })
                         Text(stringResource(R.string.shake_to_reset_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
                     }
@@ -264,7 +209,7 @@ object SleepTimerPreferences {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
                         Checkbox(checked = cbVibrate, onCheckedChange = {
                             cbVibrate = it
-                            setVibrate(it)
+                            prefs!!.edit().putBoolean(Prefs.Vibrate.name, it).apply()
                         })
                         Text(stringResource(R.string.timer_vibration_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
                     }
@@ -273,7 +218,7 @@ object SleepTimerPreferences {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
                         Checkbox(checked = chAutoEnable, onCheckedChange = {
                             chAutoEnable = it
-                            setAutoEnable(it)
+                            prefs!!.edit().putBoolean(Prefs.AutoEnable.name, it).apply()
                             enableChangeTime = it
                         })
                         Text(stringResource(R.string.auto_enable_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
@@ -283,15 +228,13 @@ object SleepTimerPreferences {
                         var to by remember { mutableStateOf(autoEnableTo().toString()) }
                         Text(stringResource(R.string.auto_enable_sum), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp).fillMaxWidth()) {
-                            TextField(value = from, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number),
-                                label = { Text("From") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            TextField(value = from, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number), label = { Text("From") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
                                 onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) from = it })
-                            TextField(value = to, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number),
-                                label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            TextField(value = to, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number), label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
                                 onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) to = it })
                             IconButton(onClick = {
-                                setAutoEnableFrom(from.toInt())
-                                setAutoEnableTo(to.toInt())
+                                prefs!!.edit().putInt(Prefs.AutoEnableFrom.name, from.toInt()).apply()
+                                prefs!!.edit().putInt(Prefs.AutoEnableTo.name, to.toInt()).apply()
                             }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "setting") }
                         }
                     }

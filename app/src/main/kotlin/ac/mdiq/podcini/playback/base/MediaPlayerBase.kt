@@ -12,7 +12,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.writeMediaPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.writePlayerStatus
-import ac.mdiq.podcini.playback.base.TaskManager.Companion.positionUpdateInterval
 import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
 import ac.mdiq.podcini.playback.service.QuickSettingsTileService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
@@ -45,7 +44,7 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.config.ClientConfig
+import ac.mdiq.podcini.util.showStackTrace
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
@@ -235,6 +234,11 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      */
     abstract fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean = false, doPostPlayback: Boolean = false)
 
+    private fun positionUpdateInterval(duration: Int): Long {
+        return if (getPref(AppPrefs.prefUseAdaptiveProgressUpdate, true)) max(MIN_POSITION_SAVER_INTERVAL, duration/50).toLong()
+        else MIN_POSITION_SAVER_INTERVAL.toLong()
+    }
+
     fun onPlaybackStart(playable: Episode, position: Int) {
         val delayInterval = positionUpdateInterval(playable.duration)
         Logd(TAG, "onPlaybackStart ${playable.title}")
@@ -242,7 +246,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         if (position != Episode.INVALID_TIME) {
             upsertBlk(playable) {
                 it.setPosition(position)
-                it.onPlaybackStart()
+                it.setPlaybackStart()
             }
         } else {
             // skip intro
@@ -252,12 +256,12 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             if (skipIntro > 0 && playable.position < skipIntroMS) {
                 val duration = getDuration()
                 if (skipIntroMS < duration || duration <= 0) {
-                    Logd(TAG, "skipIntro " + playable.getEpisodeTitle())
+                    Logd(TAG, "onPlaybackStart skipIntro ${playable.getEpisodeTitle()}")
                     seekTo(skipIntroMS)
                     Logt(TAG, context.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
                 }
             }
-            upsertBlk(playable) { it.onPlaybackStart() }
+            upsertBlk(playable) { it.setPlaybackStart() }
         }
         taskManager?.startPositionSaver(delayInterval)
     }
@@ -525,7 +529,8 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 }
                 if (newInfo.oldPlayerStatus != null && autoEnable() && autoEnableByTime && taskManager?.isSleepTimerActive != true) {
                     taskManager?.setSleepTimer(timerMillis())
-                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { taskManager?.disableSleepTimer() }, context.getString(R.string.undo)))
+                    // TODO: what to do?
+//                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { taskManager?.disableSleepTimer() }, context.getString(R.string.undo)))
                 }
             }
             PlayerStatus.ERROR -> {
@@ -699,6 +704,8 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         @get:Synchronized
         @JvmStatic
         var status by mutableStateOf(PlayerStatus.STOPPED)
+
+        private const val MIN_POSITION_SAVER_INTERVAL: Int = 5000   // in millisoconds
 
         private const val AVRCP_ACTION_PLAYER_STATUS_CHANGED = "com.android.music.playstatechanged"
         private const val AVRCP_ACTION_META_CHANGED = "com.android.music.metachanged"

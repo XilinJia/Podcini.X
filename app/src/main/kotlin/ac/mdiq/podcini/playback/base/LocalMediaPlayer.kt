@@ -81,12 +81,9 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     private var trackSelector: DefaultTrackSelector? = null
 
-//    private val bufferUpdateInterval = 5000L
     private var playbackParameters: PlaybackParameters
 
     private var bufferedPercentagePrev = 0
-
-//    private var bufferUpdateJob: Job? = null
 
     private val formats: List<Format>
         get() {
@@ -169,13 +166,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             createStaticPlayer(context)
         }
         playbackParameters = exoPlayer!!.playbackParameters
-//        bufferUpdateJob?.cancel()
-//        bufferUpdateJob = CoroutineScope(Dispatchers.Default).launch {
-//            while (true) {
-//                delay(bufferUpdateInterval)
-//                invokeBufferListener()
-//            }
-//        }
     }
 
     override suspend fun invokeBufferListener() {
@@ -498,8 +488,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 //            TODO: should use: exoPlayer!!.playWhenReady ?
             if (exoPlayer?.isPlaying == true) exoPlayer?.stop()
         } catch (e: Exception) { Logs(TAG, e) }
-//        bufferUpdateJob?.cancel()
-//        bufferUpdateJob = null
         release()
         status = PlayerStatus.STOPPED
         releaseWifiLockIfNecessary()

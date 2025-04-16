@@ -5,14 +5,13 @@ import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.Rating
 import android.content.Context
 import android.view.KeyEvent
+import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
-import java.util.Date
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -65,16 +64,14 @@ sealed class FlowEvent {
 
     data class SleepTimerUpdatedEvent(private val timeLeft: Long) : FlowEvent() {
         val isOver: Boolean
-            get() = timeLeft == 0L
+            get() = timeLeft <= 0L
         val isCancelled: Boolean
             get() = timeLeft == CANCELLED
 
-        fun getTimeLeft(): Long = abs(timeLeft.toDouble()).toLong()
-        fun wasJustEnabled(): Boolean = timeLeft < 0
+        fun getTimeLeft(): Long = abs(timeLeft)
         companion object {
             private const val CANCELLED = Long.MAX_VALUE
-            fun justEnabled(timeLeft: Long): SleepTimerUpdatedEvent = SleepTimerUpdatedEvent(-timeLeft)
-            fun updated(timeLeft: Long): SleepTimerUpdatedEvent = SleepTimerUpdatedEvent(max(0.0, timeLeft.toDouble()).toLong())
+            fun updated(timeLeft: Long): SleepTimerUpdatedEvent = SleepTimerUpdatedEvent(max(0, timeLeft))
             fun cancelled(): SleepTimerUpdatedEvent = SleepTimerUpdatedEvent(CANCELLED)
         }
     }

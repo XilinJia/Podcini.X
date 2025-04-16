@@ -15,8 +15,6 @@ import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import android.content.Intent

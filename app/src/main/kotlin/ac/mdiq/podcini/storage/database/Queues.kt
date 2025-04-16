@@ -15,8 +15,10 @@ import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
+import ac.mdiq.podcini.storage.database.Episodes.stateToPreserve
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -31,6 +33,7 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
+import java.util.Date
 import kotlinx.coroutines.Job
 import kotlin.random.Random
 
@@ -196,12 +199,21 @@ object Queues {
                 it.episodeIds.clear()
                 it.update()
             }
-            for (e in curQueue.episodes) if (e.playState < PlayState.SKIPPED.code) setPlayStateSync(PlayState.SKIPPED.code, e, false)
+            for (e in curQueue.episodes) if (e.playState < PlayState.SKIPPED.code && !stateToPreserve(e.playState)) setPlayStateSync(PlayState.SKIPPED.code, e, false)
             curQueue.episodes.clear()
             EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
             autoenqueueForQueue(curQueue)
             if(autoDLOnEmptyQueues.contains(curQueue.name)) autodownloadForQueue(getAppContext(), curQueue)
         }
+    }
+
+    suspend fun smartRemoveFromQueue(item_: Episode) {
+        var item = item_
+        val almostEnded = hasAlmostEnded(item)
+        if (almostEnded && item.playState < PlayState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(PlayState.PLAYED.code, item, true, false)
+        if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
+        if (item.playState < PlayState.SKIPPED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(PlayState.SKIPPED.code, item, false, false)
+        removeFromQueueSync(curQueue, item)
     }
 
     private fun trimBin(queue: PlayQueue) {
@@ -290,7 +302,7 @@ object Queues {
             idsInQueuesToRemove = q.episodeIds.intersect(episodeIds.toSet()).toMutableSet()
             if (idsInQueuesToRemove.isNotEmpty()) {
                 val eList = realm.query(Episode::class).query("id IN $0", idsInQueuesToRemove).find()
-                for (e in eList) if (e.playState < PlayState.SKIPPED.code) setPlayStateSync(PlayState.SKIPPED.code, e, false)
+                for (e in eList) if (e.playState < PlayState.SKIPPED.code && !stateToPreserve(e.playState)) setPlayStateSync(PlayState.SKIPPED.code, e, false)
                 val qNew = upsert(q) {
                     it.idsBinList.removeAll(idsInQueuesToRemove)
                     it.idsBinList.addAll(idsInQueuesToRemove)
@@ -317,7 +329,7 @@ object Queues {
         idsInQueuesToRemove = q.episodeIds.intersect(episodeIds.toSet()).toMutableSet()
         if (idsInQueuesToRemove.isNotEmpty()) {
             val eList = realm.query(Episode::class).query("id IN $0", idsInQueuesToRemove).find()
-            for (e in eList) if (e.playState < PlayState.SKIPPED.code) setPlayStateSync(PlayState.SKIPPED.code, e, false)
+            for (e in eList) if (e.playState < PlayState.SKIPPED.code && !stateToPreserve(e.playState)) setPlayStateSync(PlayState.SKIPPED.code, e, false)
             curQueue = upsert(q) {
                 it.idsBinList.removeAll(idsInQueuesToRemove)
                 it.idsBinList.addAll(idsInQueuesToRemove)

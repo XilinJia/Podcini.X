@@ -48,8 +48,8 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting
-import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
+import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
@@ -205,7 +205,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal var playButRes by mutableIntStateOf(R.drawable.ic_play_48dp)
     internal var curPosition by mutableIntStateOf(0)
     internal var duration by mutableIntStateOf(0)
-    internal var txtvLengtTexth by mutableStateOf("")
+    internal var txtvLengthText by mutableStateOf("")
     internal var sliderValue by mutableFloatStateOf(0f)
     internal var bufferValue by mutableFloatStateOf(0f)
     internal var sleepTimerActive by mutableStateOf(isSleepTimerActive())
@@ -261,7 +261,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                     is BufferUpdateEvent -> bufferUpdate(event)
 //                    is FlowEvent.SleepTimerUpdatedEvent ->  if (event.isCancelled || event.wasJustEnabled()) loadMediaInfo(false)
-                    is FlowEvent.SleepTimerUpdatedEvent ->  if (event.isCancelled || event.wasJustEnabled()) sleepTimerActive = isSleepTimerActive()
+                    is FlowEvent.SleepTimerUpdatedEvent -> sleepTimerActive = isSleepTimerActive()
                     is FlowEvent.SpeedChangedEvent -> updatePlaybackSpeedButton(event)
                     else -> {}
                 }
@@ -298,6 +298,11 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             updateTimeline()
         }
     }
+    fun lengthText() {
+        val remainingTime: Int = convertOnSpeed(max((curItem!!.duration - curItem!!.position).toDouble(), 0.0).toInt(), curPBSpeed)
+        txtvLengthText = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + getDurationStringLong(remainingTime) else getDurationStringLong(duration)
+    }
+
     private fun updateTimeline() {
         if (isBSExpanded) {
             val newChapterIndex: Int = curItem!!.getCurrentChapterIndex(curItem!!.position)
@@ -307,11 +312,12 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             showPlayButton = !isCurrentlyPlaying(curEpisode)
             playButInit = true
         }
-        curPosition = convertOnSpeed(curItem!!.position, curPBSpeed)
-        duration = convertOnSpeed(curItem!!.duration, curPBSpeed)
-        val remainingTime: Int = convertOnSpeed(max((curItem!!.duration - curItem!!.position).toDouble(), 0.0).toInt(), curPBSpeed)
+//        curPosition = convertOnSpeed(curItem!!.position, curPBSpeed)
+        curPosition = curItem!!.position
+//        duration = convertOnSpeed(curItem!!.duration, curPBSpeed)
+        duration = curItem!!.duration
         showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
-        txtvLengtTexth = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + DurationConverter.getDurationStringLong(remainingTime) else DurationConverter.getDurationStringLong(duration)
+        lengthText()
         sliderValue = curItem!!.position.toFloat()
     }
 
@@ -677,14 +683,14 @@ fun AudioPlayerScreen() {
                 modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
         }
         Row {
-            Text(DurationConverter.getDurationStringLong(vm.curPosition), color = textColor, style = MaterialTheme.typography.bodySmall)
+            Text(getDurationStringLong(vm.curPosition), color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
             if (bitrate > 0) Text(formatLargeInteger(bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
-            vm.showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
-            Text(vm.txtvLengtTexth, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
+            Text(vm.txtvLengthText, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
                 vm.showTimeLeft = !vm.showTimeLeft
                 putPref(AppPrefs.showTimeLeft, vm.showTimeLeft)
+                vm.lengthText()
             })
         }
     }

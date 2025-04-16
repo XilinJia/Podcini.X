@@ -150,7 +150,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 if (!stateChanged) {
                     //These steps are necessary because they won't be performed by setPlayerStatus()
                     if (position >= 0 && curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(position) }
-                    if (curEpisode != null) upsertBlk(curEpisode!!) { it.onPlaybackStart() }
+                    if (curEpisode != null) upsertBlk(curEpisode!!) { it.setPlaybackStart() }
                 }
                 setPlayerStatus(PlayerStatus.PLAYING, curEpisode, position)
             }

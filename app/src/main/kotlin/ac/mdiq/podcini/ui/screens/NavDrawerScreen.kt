@@ -26,7 +26,6 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle

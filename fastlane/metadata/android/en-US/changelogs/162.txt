@@ -1,0 +1,9 @@
+# 8.14.8
+
+* fixed concurrent modification crash when trimming toast messages
+* straightened sleep timer and added fading
+* preserve states of Soon, Later, Again and Forever when auto set to Played or Skipped
+* when "Adjust media info to playback speed" is turned on, only time left on PlayerUI is adjusted with speed, position and duration are not adjusted
+* tapping on time left on PlayerUI is more responsive
+* ensured position saving internal properly set when jumping on playing a different episode
+* some code cleaning
