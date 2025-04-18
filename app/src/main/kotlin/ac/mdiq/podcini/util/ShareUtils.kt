@@ -35,15 +35,15 @@ object ShareUtils {
 //        shareLink(context, text)
 //    }
 
-    @JvmStatic
-    fun shareFeedLink(context: Context, feed: Feed) {
-        val text = """
-             ${feed.title}
-             
-             ${URLEncoder.encode(feed.downloadUrl)}&title=${URLEncoder.encode(feed.title)}
-             """.trimIndent()
-        shareLink(context, text)
-    }
+//    @JvmStatic
+//    fun shareFeedLink(context: Context, feed: Feed) {
+//        val text = """
+//             ${feed.title}
+//
+//             ${URLEncoder.encode(feed.downloadUrl)}&title=${URLEncoder.encode(feed.title)}
+//             """.trimIndent()
+//        shareLink(context, text)
+//    }
 
     fun shareFeedLinkNew(context: Context, feed: Feed) {
         shareLink(context, feed.downloadUrl?:"")

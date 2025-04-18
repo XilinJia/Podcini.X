@@ -287,7 +287,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
             if (SearchBy.DESCRIPTION.selected) {
                 if (!isStart) sb1.append(" OR ")
                 sb1.append("description contains[c] '${queryWords[i]}'")
-                isStart = false
+//                isStart = false
             }
 //            if (SearchBy.COMMENT.selected) {
 //                if (!isStart) sb1.append(" OR ")
@@ -540,7 +540,7 @@ fun SearchScreen() {
     }
     vm.swipeActions.ActionOptionsDialog()
     val tabTitles = listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds)
-    val tabCounts = listOf<Int>(vm.episodes.size, vm.feeds.size, vm.pafeeds.size)
+    val tabCounts = listOf(vm.episodes.size, vm.feeds.size, vm.pafeeds.size)
     val selectedTabIndex = remember { mutableIntStateOf(0) }
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
@@ -553,14 +553,14 @@ fun SearchScreen() {
                 }
             )
             CriteriaList()
-            TabRow(modifier = Modifier.fillMaxWidth(), selectedTabIndex = selectedTabIndex.value, divider = {}, indicator = { tabPositions ->
-                Box(modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex.value]).height(4.dp).background(Color.Blue))
+            TabRow(modifier = Modifier.fillMaxWidth(), selectedTabIndex = selectedTabIndex.intValue, divider = {}, indicator = { tabPositions ->
+                Box(modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex.intValue]).height(4.dp).background(Color.Blue))
             }) {
                 tabTitles.forEachIndexed { index, titleRes ->
-                    Tab(text = { Text(stringResource(titleRes)+"(${tabCounts[index]})") }, selected = selectedTabIndex.value == index, onClick = { selectedTabIndex.value = index })
+                    Tab(text = { Text(stringResource(titleRes)+"(${tabCounts[index]})") }, selected = selectedTabIndex.intValue == index, onClick = { selectedTabIndex.intValue = index })
                 }
             }
-            when (selectedTabIndex.value) {
+            when (selectedTabIndex.intValue) {
                 0 -> {
                     InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
                     EpisodeLazyColumn(context as MainActivity, vms = vm.vms, buildMoreItems = { vm.buildMoreItems() },

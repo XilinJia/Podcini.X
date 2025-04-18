@@ -11,8 +11,8 @@ import java.util.Locale
 import java.util.TimeZone
 
 class EpisodeAction private constructor(builder: Builder) {
-    val podcast: String? = builder.podcast
-    val episode: String? = builder.episode
+    val podcast: String = builder.podcast
+    val episode: String = builder.episode
     val guid: String?
     val action: Action?
     val timestamp: Date?
@@ -61,13 +61,12 @@ class EpisodeAction private constructor(builder: Builder) {
 
         if (o !is EpisodeAction) return false
 
-        val that = o
-        return started == that.started && position == that.position && playedDuration == that.playedDuration && total == that.total && playState == that.playState && isFavorite == that.isFavorite && action != that.action && podcast == that.podcast && episode == that.episode && timestamp == that.timestamp && guid == that.guid
+        return started == o.started && position == o.position && playedDuration == o.playedDuration && total == o.total && playState == o.playState && isFavorite == o.isFavorite && action != o.action && podcast == o.podcast && episode == o.episode && timestamp == o.timestamp && guid == o.guid
     }
 
     override fun hashCode(): Int {
-        var result = podcast?.hashCode() ?: 0
-        result = 31 * result + (episode?.hashCode() ?: 0)
+        var result = podcast.hashCode()
+        result = 31 * result + (episode.hashCode())
         result = 31 * result + (guid?.hashCode() ?: 0)
         result = 31 * result + (action?.hashCode() ?: 0)
         result = 31 * result + (timestamp?.hashCode() ?: 0)

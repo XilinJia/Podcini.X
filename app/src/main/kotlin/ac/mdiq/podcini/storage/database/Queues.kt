@@ -59,7 +59,7 @@ object Queues {
         }
 
     val autoDLOnEmptyQueues: Set<String>
-        get() = getPref(AppPrefs.prefAutoDLOnEmptyIncludeQueues, setOf<String>())
+        get() = getPref(AppPrefs.prefAutoDLOnEmptyIncludeQueues, setOf())
 
     /**
      * Returns the sort order for the queue keep sorted mode.
@@ -210,9 +210,9 @@ object Queues {
     suspend fun smartRemoveFromQueue(item_: Episode) {
         var item = item_
         val almostEnded = hasAlmostEnded(item)
-        if (almostEnded && item.playState < PlayState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(PlayState.PLAYED.code, item, true, false)
+        if (almostEnded && item.playState < PlayState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(PlayState.PLAYED.code, item, resetMediaPosition = true, removeFromQueue = false)
         if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
-        if (item.playState < PlayState.SKIPPED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(PlayState.SKIPPED.code, item, false, false)
+        if (item.playState < PlayState.SKIPPED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(PlayState.SKIPPED.code, item, resetMediaPosition = false, removeFromQueue = false)
         removeFromQueueSync(curQueue, item)
     }
 
@@ -245,7 +245,7 @@ object Queues {
     internal fun removeFromQueueSync(queue_: PlayQueue?, vararg episodes: Episode) {
         Logd(TAG, "removeFromQueueSync called ")
         if (episodes.isEmpty()) return
-        var queue = queue_ ?: curQueue
+        val queue = queue_ ?: curQueue
         if (queue.size() == 0) {
             autoenqueueForQueue(queue)
             if(autoDLOnEmptyQueues.contains(queue.name)) autodownloadForQueue(getAppContext(), queue)
@@ -386,7 +386,7 @@ object Queues {
                 eList[curIndexInQueue].id != currentMedia?.id -> eList[curIndexInQueue]
                 eList.size == 1 -> return null
                 else -> {
-                    var j = if (curIndexInQueue < eList.size - 1) curIndexInQueue + 1 else 0
+                    val j = if (curIndexInQueue < eList.size - 1) curIndexInQueue + 1 else 0
                     Logd(TAG, "getNextInQueue next j: $j")
                     eList[j]
                 }

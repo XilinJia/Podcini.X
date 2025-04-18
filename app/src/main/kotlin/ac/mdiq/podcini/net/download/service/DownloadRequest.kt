@@ -100,9 +100,9 @@ class DownloadRequest private constructor(
         var result = destination.hashCode()
         result = 31 * result + source.hashCode()
         result = 31 * result + (title?.hashCode() ?: 0)
-        result = 31 * result + (if (username != null) username.hashCode() else 0)
-        result = 31 * result + (if (password != null) password.hashCode() else 0)
-        result = 31 * result + (if (lastModified != null) lastModified.hashCode() else 0)
+        result = 31 * result + (username?.hashCode() ?: 0)
+        result = 31 * result + (password?.hashCode() ?: 0)
+        result = 31 * result + (lastModified?.hashCode() ?: 0)
         result = 31 * result + (feedfileId xor (feedfileId ushr 32)).toInt()
         result = 31 * result + feedfileType
         result = 31 * result + arguments.hashCode()

@@ -117,6 +117,7 @@ import kotlin.math.max
 import kotlin.reflect.KMutableProperty1
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.jvmErasure
+import androidx.core.content.edit
 
 private val prefs: SharedPreferences by lazy { getAppContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE) }
 
@@ -150,7 +151,10 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun setTimeFilter(timeFilterFrom_: Long, timeFilterTo_: Long) {
         timeFilterFrom = timeFilterFrom_
         timeFilterTo = timeFilterTo_
-        prefs.edit()?.putLong(Prefs.FilterFrom.name, timeFilterFrom_)?.putLong(Prefs.FilterTo.name, timeFilterTo_)?.apply()
+        prefs.edit {
+            putLong(Prefs.FilterFrom.name, timeFilterFrom_)
+            putLong(Prefs.FilterTo.name, timeFilterTo_)
+        }
     }
 
     fun numOfDays(): Int {
@@ -225,7 +229,7 @@ fun StatisticsScreen() {
         TopAppBar(title = { Text("") },
             navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } },
             actions = {
-                if (vm.selectedTabIndex.value <= 2) {
+                if (vm.selectedTabIndex.intValue <= 2) {
                     IconButton(onClick = { vm.showFilter = true }) {
                         val filterColor = if (vm.timeFilterFrom > 0L || vm.timeFilterTo < Long.MAX_VALUE) Color.Green else MaterialTheme.colorScheme.onSurface
                         Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = filterColor, contentDescription = "filter")
@@ -233,7 +237,7 @@ fun StatisticsScreen() {
                 }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                    if (vm.selectedTabIndex.value == 0 || vm.selectedTabIndex.value == 1) DropdownMenuItem(text = { Text(stringResource(R.string.statistics_reset_data)) }, onClick = {
+                    if (vm.selectedTabIndex.intValue == 0 || vm.selectedTabIndex.intValue == 1) DropdownMenuItem(text = { Text(stringResource(R.string.statistics_reset_data)) }, onClick = {
                         vm.showResetDialog.value = true
                         expanded = false
                     })
@@ -383,13 +387,13 @@ fun StatisticsScreen() {
                 }) { Text("-", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold) }
                 Spacer(Modifier.weight(0.2f))
                 TextButton(onClick = { vm.showTodayStats = true }) {
-                    val dateText by derivedStateOf {
+                    val dateText by remember { derivedStateOf {
                         if (vm.date == LocalDate.now()) context.getString(R.string.statistics_today) else {
                             val locale = Locale.getDefault()
                             val dateFormat = SimpleDateFormat(DateFormat.getBestDateTimePattern(locale, "MMM d yyyy"), locale)
                             dateFormat.format(Date.from(vm.date.atStartOfDay(ZoneId.systemDefault()).toInstant()))
                         }
-                    }
+                    } }
                     Text(dateText, style = MaterialTheme.typography.headlineSmall)
                 }
                 Spacer(Modifier.weight(0.2f))
@@ -399,7 +403,7 @@ fun StatisticsScreen() {
                         vm.loadDailyStats()
                     }
                 }) {
-                    val plusText by derivedStateOf { if (vm.date >= LocalDate.now()) "" else "+" }
+                    val plusText by remember { derivedStateOf { if (vm.date >= LocalDate.now()) "" else "+" } }
                     Text(plusText, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.weight(0.2f))
@@ -409,7 +413,7 @@ fun StatisticsScreen() {
                         vm.loadDailyStats()
                     }
                 }) {
-                    val plusText by derivedStateOf { if (vm.date.plusDays(6) >= LocalDate.now()) "" else "+7" }
+                    val plusText by remember { derivedStateOf { if (vm.date.plusDays(6) >= LocalDate.now()) "" else "+7" } }
                     Text(plusText, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.weight(1f))
@@ -569,7 +573,7 @@ fun StatisticsScreen() {
             try {
                 while (realm.query(Episode::class).query("playedDuration != 0 || timeSpent != 0").count().find() > 0) {
                     realm.write {
-                        var mediaAll = query(Episode::class).query("playedDuration != 0 || timeSpent != 0").find()
+                        val mediaAll = query(Episode::class).query("playedDuration != 0 || timeSpent != 0").find()
                         if (mediaAll.isNotEmpty()) {
                             Logd(TAG, "mediaAll: ${mediaAll.size}")
                             for (m in mediaAll) {
@@ -599,15 +603,15 @@ fun StatisticsScreen() {
             Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                 tabTitles.forEachIndexed { index, titleRes ->
                     Tab(modifier = Modifier.wrapContentWidth().padding(horizontal = 2.dp, vertical = 4.dp).background(shape = RoundedCornerShape(8.dp),
-                        color = if (vm.selectedTabIndex.value == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }),
-                        selected = vm.selectedTabIndex.value == index,
-                        onClick = { vm.selectedTabIndex.value = index },
+                        color = if (vm.selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }),
+                        selected = vm.selectedTabIndex.intValue == index,
+                        onClick = { vm.selectedTabIndex.intValue = index },
                         text = { Text(text = stringResource(titleRes), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium,
-                            color = if (vm.selectedTabIndex.value == index) MaterialTheme.colorScheme.primary else { MaterialTheme.colorScheme.onSurface }) }
+                            color = if (vm.selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary else { MaterialTheme.colorScheme.onSurface }) }
                     )
                 }
             }
-            when (vm.selectedTabIndex.value) {
+            when (vm.selectedTabIndex.intValue) {
                 0 -> Overview()
                 1 -> Subscriptions()
                 2 -> MonthlyStats()
@@ -688,7 +692,7 @@ enum class Prefs {
 
 private fun getStatsQueryText(timeFrom: Long, timeTo: Long): String {
     var qs1 = "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo)"
-    var qs3 = "playStateSetTime > $timeFrom AND playStateSetTime < $timeTo"
+    val qs3 = "playStateSetTime > $timeFrom AND playStateSetTime < $timeTo"
     qs1 += " OR ($qs3 AND playState == ${PlayState.PLAYED.code})"
     qs1 += " OR ($qs3 AND playState == ${PlayState.SKIPPED.code})"
     qs1 += " OR ($qs3 AND playState == ${PlayState.PASSED.code})"
@@ -734,7 +738,7 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                     fStat.item.episodesStarted++
                     fStat.item.timePlayed += e.playedDuration
                     fStat.item.durationStarted += e.duration
-                    var tSpent = e.timeSpent
+                    val tSpent = e.timeSpent
 //                    if (tSpent > 3 * max(e.playedDuration, 60000)) {
 //                        Logt(TAG, "timeSpent: ${e.timeSpent} > playedDuration: ${e.playedDuration} ${e.title}")
 ////                        tSpent = e.playedDuration.toLong()

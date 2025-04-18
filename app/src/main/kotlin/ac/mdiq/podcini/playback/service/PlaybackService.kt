@@ -37,6 +37,7 @@ import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.util.*
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -53,11 +54,14 @@ import android.view.KeyEvent
 import android.view.KeyEvent.KEYCODE_MEDIA_STOP
 import android.view.ViewConfiguration
 import android.webkit.URLUtil
+import androidx.annotation.OptIn
+import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_IDLE
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.*
 import androidx.work.impl.utils.futures.SettableFuture
 import com.google.common.collect.ImmutableList
@@ -67,6 +71,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collectLatest
 import kotlin.math.min
 
+@UnstableApi
 class PlaybackService : MediaLibraryService() {
     private val scope = CoroutineScope(Dispatchers.Main)
 
@@ -78,6 +83,7 @@ class PlaybackService : MediaLibraryService() {
     private val clickHandler = Handler(Looper.getMainLooper())
 
     private val autoStateUpdated: BroadcastReceiver = object : BroadcastReceiver() {
+        @OptIn(UnstableApi::class)
         override fun onReceive(context: Context, intent: Intent) {
             Logd(TAG, "autoStateUpdated onReceive called with action: ${intent.action}")
             val status = intent.getStringExtra("media_connection_status")
@@ -107,6 +113,7 @@ class PlaybackService : MediaLibraryService() {
         private val UNPLUGGED = 0
         private val PLUGGED = 1
 
+        @RequiresPermission(Manifest.permission.VIBRATE)
         override fun onReceive(context: Context, intent: Intent) {
             // Don't pause playback after we just started, just because the receiver
             // delivers the current headset state (instead of a change)
@@ -130,6 +137,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private val bluetoothStateUpdated: BroadcastReceiver = object : BroadcastReceiver() {
+        @RequiresPermission(Manifest.permission.VIBRATE)
         override fun onReceive(context: Context, intent: Intent) {
             Logd(TAG, "bluetoothStateUpdated onReceive called with action: ${intent.action}")
             if (intent.action == BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED) {
@@ -143,6 +151,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private val audioBecomingNoisy: BroadcastReceiver = object : BroadcastReceiver() {
+        @OptIn(UnstableApi::class)
         override fun onReceive(context: Context, intent: Intent) {
             // sound is about to change, eg. bluetooth -> speaker
             Logd(TAG, "audioBecomingNoisy onReceive called with action: ${intent.action}")
@@ -667,6 +676,7 @@ class PlaybackService : MediaLibraryService() {
     /**
      * @param bluetooth true if the event for unpausing came from bluetooth
      */
+    @RequiresPermission(Manifest.permission.VIBRATE)
     private fun unpauseIfPauseOnDisconnect(bluetooth: Boolean) {
         if (mPlayer != null && mPlayer!!.isAudioChannelInUse) {
             Logd(TAG, "unpauseIfPauseOnDisconnect() audio is in use")

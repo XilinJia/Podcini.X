@@ -6,6 +6,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.util.config.ClientConfig
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 
 /**
  * Manages preferences for accessing gpodder.net service and other sync providers
@@ -25,40 +26,36 @@ object SynchronizationCredentials {
     var username: String?
         get() = preferences.getString(PREF_USERNAME, null)
         set(username) {
-            preferences.edit().putString(PREF_USERNAME, username).apply()
+            preferences.edit { putString(PREF_USERNAME, username) }
         }
 
     @JvmStatic
     var password: String?
         get() = preferences.getString(PREF_PASSWORD, null)
         set(password) {
-            preferences.edit().putString(PREF_PASSWORD, password).apply()
+            preferences.edit { putString(PREF_PASSWORD, password) }
         }
 
     @JvmStatic
     var deviceID: String?
         get() = preferences.getString(PREF_DEVICEID, null)
         set(deviceID) {
-            preferences.edit().putString(PREF_DEVICEID, deviceID).apply()
+            preferences.edit { putString(PREF_DEVICEID, deviceID) }
         }
 
     @JvmStatic
     var hosturl: String?
         get() = preferences.getString(PREF_HOSTNAME, null)
         set(value) {
-            preferences.edit().putString(PREF_HOSTNAME, value).apply()
+            preferences.edit { putString(PREF_HOSTNAME, value) }
         }
 
     @JvmStatic
     var hostport: Int
         get() = preferences.getInt(PREF_HOSTPORT, 0)
         set(value) {
-            preferences.edit().putInt(PREF_HOSTPORT, value).apply()
+            preferences.edit { putInt(PREF_HOSTPORT, value) }
         }
-
-    fun setGpodnetNotificationsEnabled() {
-        putPref(AppPrefs.pref_gpodnet_notifications, true)
-    }
 
     @Synchronized
     fun clear(context: Context) {
@@ -66,6 +63,6 @@ object SynchronizationCredentials {
         password = null
         deviceID = null
         clearQueue(context)
-        setGpodnetNotificationsEnabled()
+        putPref(AppPrefs.pref_gpodnet_notifications, true)
     }
 }

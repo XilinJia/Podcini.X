@@ -14,15 +14,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.freeSpaceAvailable
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
-import android.net.Uri
-import okhttp3.CacheControl
-import okhttp3.Protocol
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.ResponseBody
-import okhttp3.internal.http.StatusLine
-import org.apache.commons.io.IOUtils
+import androidx.core.net.toUri
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.IOException
@@ -32,6 +24,13 @@ import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.Locale
+import okhttp3.CacheControl
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.ResponseBody
+import okhttp3.internal.http.StatusLine
+import org.apache.commons.io.IOUtils
 
 class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
@@ -211,7 +210,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
             if (uri.scheme == "http") httpReq.addHeader("Upgrade-Insecure-Requests", "1")
 
-            val destinationUri = Uri.parse(downloadRequest.destination)
+            val destinationUri = downloadRequest.destination.toUri()
             val existingFileSize: Long = when (destinationUri.scheme) {
                 "content" -> {
                     val fileDescriptor = getAppContext().contentResolver.openFileDescriptor(destinationUri, "rw")

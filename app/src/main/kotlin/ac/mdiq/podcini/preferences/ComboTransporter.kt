@@ -22,6 +22,7 @@ import java.io.*
 import java.nio.channels.FileChannel
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
+import androidx.core.net.toUri
 
 class PreferencesTransporter(val prefsDirName: String) {
     val TAG = "PreferencesTransporter"
@@ -126,7 +127,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             val feeds = getFeedList()
             feeds.forEach { f -> if (!f.title.isNullOrEmpty()) nameFeedMap[generateFileName(f.title!!)] = f }
             if (customMediaUriString.isNotBlank()) {
-                val customUri = Uri.parse(customMediaUriString)
+                val customUri = customMediaUriString.toUri()
                 val directory = DocumentFile.fromTreeUri(getAppContext(), customUri) ?: throw IllegalArgumentException("Invalid tree URI: $customMediaUriString")
                 directory.listFiles().forEach { file -> copyRecursive(context, file, directory, exportSubDir, move) }
             } else {
@@ -343,7 +344,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 feeds.forEach { f -> if (!f.title.isNullOrEmpty()) nameFeedMap[generateFileName(f.title!!)] = f }
                 Logd(TAG, "importFromUri customMediaUriString: [$customMediaUriString]")
                 if (customMediaUriString.isNotBlank()) {
-                    val customUri = Uri.parse(customMediaUriString)
+                    val customUri = customMediaUriString.toUri()
                     val directory = DocumentFile.fromTreeUri(getAppContext(), customUri) ?: throw IllegalArgumentException("Invalid tree URI: $customMediaUriString")
                     fileList.forEach { file -> copyRecursive(context, file, exportedDir, directory, move) }
                 } else {
@@ -367,16 +368,16 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             feeds.forEach { f -> if (!f.title.isNullOrEmpty()) nameFeedMap[generateFileName(f.title!!)] = f }
             Logd(TAG, "importFromUri customMediaUriString: [$customMediaUriString]")
             if (customMediaUriString.isNotBlank()) {
-                val customUri = Uri.parse(customMediaUriString)
+                val customUri = customMediaUriString.toUri()
                 val directory = DocumentFile.fromTreeUri(getAppContext(), customUri) ?: throw IllegalArgumentException("Invalid tree URI: $customMediaUriString")
                 val exportedDir = directory
                 val fileList = exportedDir.listFiles()
-                fileList.forEach { file -> copyRecursive(context, file, exportedDir, directory, false, true) }
+                fileList.forEach { file -> copyRecursive(context, file, exportedDir, directory, move = false, onlyUpdateDB = true) }
             } else {
                 val mediaDir = context.getExternalFilesDir("media") ?: return
                 val exportedDir = mediaDir
                 val fileList = exportedDir.listFiles()
-                fileList?.forEach { file -> copyRecursive(file, exportedDir, mediaDir, false, true) }
+                fileList?.forEach { file -> copyRecursive(file, exportedDir, mediaDir, move = false, onlyUpdateDB = true) }
             }
         } catch (e: IOException) {
             Logs(TAG, e)

@@ -99,9 +99,8 @@ object RealmDB {
                     mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
                         newObject?.run {
                             val media = oldObject.getObject(propertyName = "media")
-                            var playedDuration = 0L
                             if (media != null) {
-                                playedDuration = media.getValue(propertyName = "playedDuration", Long::class)
+                                val playedDuration = media.getValue(propertyName = "playedDuration", Long::class)
                                 Logd(TAG, "position: $playedDuration")
                                 if (playedDuration > 0L) {
                                     val newMedia = newObject.getObject(propertyName = "media")
@@ -268,11 +267,11 @@ object RealmDB {
     }
 
     suspend fun <T : RealmObject> upsert(entity: T, block: MutableRealm.(T) -> Unit) : T {
-        if (BuildConfig.DEBUG) {
-            val stackTrace = Thread.currentThread().stackTrace
-            val caller = if (stackTrace.size > 3) stackTrace[3] else null
-            Logd(TAG, "${caller?.className}.${caller?.methodName} upsert: ${entity.javaClass.simpleName}")
-        }
+//        if (BuildConfig.DEBUG) {
+//            val stackTrace = Thread.currentThread().stackTrace
+//            val caller = if (stackTrace.size > 3) stackTrace[3] else null
+//            Logd(TAG, "${caller?.className}.${caller?.methodName} upsert: ${entity.javaClass.simpleName}")
+//        }
         return realm.write {
             var result: T = entity
             if (entity.isManaged()) {
@@ -296,11 +295,11 @@ object RealmDB {
     }
 
     fun <T : RealmObject> upsertBlk(entity: T, block: MutableRealm.(T) -> Unit) : T {
-        if (BuildConfig.DEBUG) {
-            val stackTrace = Thread.currentThread().stackTrace
-            val caller = if (stackTrace.size > 3) stackTrace[3] else null
-            Logd(TAG, "${caller?.className}.${caller?.methodName} upsertBlk: ${entity.javaClass.simpleName}")
-        }
+//        if (BuildConfig.DEBUG) {
+//            val stackTrace = Thread.currentThread().stackTrace
+//            val caller = if (stackTrace.size > 3) stackTrace[3] else null
+//            Logd(TAG, "${caller?.className}.${caller?.methodName} upsertBlk: ${entity.javaClass.simpleName}")
+//        }
         return realm.writeBlocking {
             var result: T = entity
             if (entity.isManaged()) {
@@ -333,12 +332,12 @@ object RealmDB {
     fun episodeMonitor(episode: Episode, onChanges: suspend (Episode, fields: Array<String>)->Unit, onInit: (suspend (Episode)->Unit)? = null): Job {
         return CoroutineScope(Dispatchers.Default).launch {
             val item_ = realm.query(Episode::class).query("id == ${episode.id}").first()
-//            Logd(TAG, "start monitoring episode: ${episode.id} ${episode.title}")
+            Logd(TAG, "start monitoring episode: ${episode.id} ${episode.title}")
             val episodeFlow = item_.asFlow()
             episodeFlow.collect { changes: SingleQueryChange<Episode> ->
                 when (changes) {
                     is UpdatedObject -> {
-//                        Logd(TAG, "episodeMonitor UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
+                        Logd(TAG, "episodeMonitor UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
                         if (episode.id == changes.obj.id) onChanges(changes.obj, changes.changedFields)
                         else Loge(TAG, "episodeMonitor index out bound")
                     }

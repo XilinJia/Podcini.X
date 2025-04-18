@@ -6,7 +6,6 @@ import ac.mdiq.podcini.util.Logs
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.annotation.VisibleForTesting
 import com.google.android.play.core.review.ReviewInfo
 import com.google.android.play.core.review.ReviewManager
 import com.google.android.play.core.review.ReviewManagerFactory
@@ -64,7 +63,6 @@ object RatingDialog {
         return mPreferences.getBoolean(KEY_RATED, false)
     }
 
-    @VisibleForTesting
     fun saveRated() {
         mPreferences.edit().putBoolean(KEY_RATED, true).apply()
     }

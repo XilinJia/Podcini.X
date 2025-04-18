@@ -1,3 +1,18 @@
+# 8.15.0
+
+* long-press on image on PlayerUI opens the FeedDetails screen
+* long-press on Rewind/Forward buttons no longer opens the skip settings
+	* Rewind button opens volume adaptation dialog
+	* Forward button opens the sleep timer
+* Play button on PlayerUI does auto streaming if media is not downloaded 
+* amended colors in PlayerUI
+* enhanced Reconcile routine in Facets screen, more efficient and effective
+* replaced all remaining SnackBars with Compose dialog
+* download notification is moved to Dispatchers.IO from Default for efficiency
+* app built with and targeted to Android 16
+* large code cleaning and refactoring based on new IDE suggestions
+* various dependencies updates
+
 # 8.14.8
 
 * fixed concurrent modification crash when trimming toast messages

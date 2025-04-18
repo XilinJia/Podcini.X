@@ -10,9 +10,16 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.FeedFunding
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import androidx.core.text.HtmlCompat
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.Reader
+import java.util.Stack
+import java.util.concurrent.TimeUnit
+import javax.xml.parsers.ParserConfigurationException
+import javax.xml.parsers.SAXParserFactory
 import org.apache.commons.io.input.XmlStreamReader
 import org.jsoup.Jsoup
 import org.xml.sax.Attributes
@@ -22,14 +29,6 @@ import org.xml.sax.helpers.DefaultHandler
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
 import org.xmlpull.v1.XmlPullParserFactory
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.io.Reader
-import java.util.Stack
-import java.util.concurrent.TimeUnit
-import javax.xml.parsers.ParserConfigurationException
-import javax.xml.parsers.SAXParserFactory
 
 class FeedHandler {
     @Throws(SAXException::class, IOException::class, ParserConfigurationException::class, UnsupportedFeedtypeException::class)

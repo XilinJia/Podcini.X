@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.util.Loge
 
 enum class VolumeAdaptionSetting(val value: Int, @JvmField val adaptionFactor: Float, val resId: Int) {
     OFF(0, 1.0f, R.string.feed_volume_reduction_off),
@@ -10,14 +11,15 @@ enum class VolumeAdaptionSetting(val value: Int, @JvmField val adaptionFactor: F
     MEDIUM_BOOST(4, 2.4f, R.string.feed_volume_boost_medium),
     HEAVY_BOOST(5, 3.6f, R.string.feed_volume_boost_heavy);
 
-    fun toInteger(): Int {
-        return value
-    }
-
     companion object {
         @JvmStatic
         fun fromInteger(value: Int): VolumeAdaptionSetting {
-            return enumValues<VolumeAdaptionSetting>().firstOrNull { it.value == value } ?: throw IllegalArgumentException("Cannot map value to VolumeAdaptionSetting: $value")
+            val vs = enumValues<VolumeAdaptionSetting>().firstOrNull { it.value == value }
+            if (vs == null) {
+                Loge("VolumeAdaptionSetting", "Cannot map value to VolumeAdaptionSetting: $value resort to OFF")
+                return OFF
+            }
+            return vs
         }
     }
 }

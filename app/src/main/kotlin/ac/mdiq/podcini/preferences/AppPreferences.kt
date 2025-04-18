@@ -14,6 +14,7 @@ import android.content.SharedPreferences
 import android.view.KeyEvent
 import androidx.preference.PreferenceManager
 import java.net.Proxy
+import androidx.core.content.edit
 
 /**
  * Provides access to preferences set by the user in the settings screen. A
@@ -160,20 +161,20 @@ object AppPreferences {
     inline fun <reified T> putPref(key: String, value: T) {
         Logd("AppPreferences", "putPref key: $key value: $value")
         cachedPrefs[key] = value
-        val editor = appPrefs.edit()
-        when (value) {
-            is String -> editor.putString(key, value)
-            is Int -> editor.putInt(key, value)
-            is Boolean -> editor.putBoolean(key, value)
-            is Float -> editor.putFloat(key, value)
-            is Long -> editor.putLong(key, value)
-            is Set<*> -> {
-                val stringSet = value.filterIsInstance<String>().toSet()
-                if (stringSet.size == value.size) editor.putStringSet(key, stringSet)
+        appPrefs.edit {
+            when (value) {
+                is String -> putString(key, value)
+                is Int -> putInt(key, value)
+                is Boolean -> putBoolean(key, value)
+                is Float -> putFloat(key, value)
+                is Long -> putLong(key, value)
+                is Set<*> -> {
+                    val stringSet = value.filterIsInstance<String>().toSet()
+                    if (stringSet.size == value.size) putStringSet(key, stringSet)
+                }
+                else -> throw IllegalArgumentException("Unsupported type")
             }
-            else -> throw IllegalArgumentException("Unsupported type")
         }
-        editor.apply()
     }
 
     inline fun <reified T> putPref(key: AppPrefs, value: T) {
@@ -182,7 +183,7 @@ object AppPreferences {
 
     fun removePref(key: String) {
         cachedPrefs.remove(key)
-        appPrefs.edit().remove(key).apply()
+        appPrefs.edit { remove(key) }
     }
 
     enum class DefaultPages(val res: Int) {

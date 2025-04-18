@@ -10,7 +10,7 @@ abstract class UploadChangesResponse(@JvmField val timestamp: Long) {
 
     companion object {
         fun fromJSONObject(objectString: String?): Pair<Long,  Map<String, String>> {
-            val `object` = JSONObject(objectString)
+            val `object` = JSONObject(objectString?: "")
             val timestamp = `object`.getLong("timestamp")
             val updatedUrls: MutableMap<String, String> = ArrayMap()
             val urls = `object`.getJSONArray("update_urls")

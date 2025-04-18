@@ -82,7 +82,7 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
         }
     }
 
-    suspend fun buildFeeds(db: SQLiteDatabase) {
+    fun buildFeeds(db: SQLiteDatabase) {
         val cursor = db.rawQuery("SELECT * FROM Feeds", null)
         cursor.use {
             val columnCount = cursor.columnCount
@@ -123,7 +123,7 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
                     item.feedId = null
                     item.feed = feed
                 }
-                updateFeedFull(activity, feed, false, true)
+                updateFeedFull(activity, feed, removeUnlistedItems = false, overwriteOld = true)
             }
         }
     }

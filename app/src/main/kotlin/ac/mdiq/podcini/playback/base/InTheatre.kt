@@ -16,10 +16,12 @@ import ac.mdiq.podcini.storage.model.MediaType
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
+import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.setValue
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import com.google.common.util.concurrent.ListenableFuture
 import io.github.xilinjia.krdb.notifications.InitialObject
@@ -44,13 +46,13 @@ object InTheatre {
 
     var curQueue: PlayQueue     // managed
 
-    var curEpisodeMonitor: Job? = null
+    private var curEpisodeMonitor: Job? = null
     var curEpisode: Episode? = null     // manged
         private set
 
     var curMediaId by mutableLongStateOf(-1L)
 
-    var curStateMonitor: Job? = null
+    private var curStateMonitor: Job? = null
     var curState: CurrentState      // managed
 
     var playerStat by mutableIntStateOf(PLAYER_STATUS_OTHER)
@@ -79,7 +81,7 @@ object InTheatre {
                 upsert(curQueue) { it.update() }
             }
             Logd(TAG, "starting curState")
-            var curState_ = realm.query(CurrentState::class).first().find()
+            val curState_ = realm.query(CurrentState::class).first().find()
             if (curState_ != null) curState = curState_
             else {
                 Logd(TAG, "creating new curState")
@@ -99,9 +101,7 @@ object InTheatre {
                 when (changes) {
                     is UpdatedObject -> {
                         curState = changes.obj
-                        if (changes.changedFields.contains("curPlayerStatus")) {
-                            withContext(Dispatchers.Main) { playerStat = curState.curPlayerStatus }
-                        }
+                        if (changes.changedFields.contains("curPlayerStatus")) withContext(Dispatchers.Main) { playerStat = curState.curPlayerStatus }
                         Logd(TAG, "stateMonitor UpdatedObject ${changes.obj.curMediaId} playerStat: $playerStat ${changes.changedFields.joinToString()}")
                     }
                     is InitialObject -> {
@@ -129,7 +129,7 @@ object InTheatre {
                 curEpisodeMonitor = episodeMonitor(curEpisode!!,
                     onChanges = { e, f ->
                         curEpisode = e
-//                        Logd(TAG, "episodeMonitor updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
+                        Logd(TAG, "episodeMonitor updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
                         onCurChangedUICB?.invoke(e, f)
                     },
                     onInit = { e ->
@@ -200,6 +200,7 @@ object InTheatre {
         }
     }
 
+    @OptIn(UnstableApi::class)
     @JvmStatic
     fun isCurrentlyPlaying(media: Episode?): Boolean {
         return isCurMedia(media) && PlaybackService.isRunning && MediaPlayerBase.status == PlayerStatus.PLAYING

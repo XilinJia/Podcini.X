@@ -78,11 +78,11 @@ class HtmlToPlainText {
          * Use this method to strip off HTML encoding from given text.
          * Replaces bullet points with *, ignores colors/bold/...
          *
-         * @param str String with any encoding
+         * @param str_ String with any encoding
          * @return Human readable text with minimal HTML formatting
          */
-        fun getPlainText(str: String): String {
-            var str = str
+        fun getPlainText(str_: String): String {
+            var str = str_
             when {
                 str.isNotEmpty() && isHtml(str) -> {
                     val formatter = HtmlToPlainText()

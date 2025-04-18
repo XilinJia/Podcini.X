@@ -16,9 +16,8 @@ object LockingAsyncExecutor {
      */
     @JvmStatic
     fun executeLockedAsync(runnable: ()->Unit) {
-        if (lock.tryLock()) {
-            try { runnable() } finally { lock.unlock() }
-        } else {
+        if (lock.tryLock()) try { runnable() } finally { lock.unlock() }
+        else {
             val coroutineScope = CoroutineScope(Dispatchers.Main)
             coroutineScope.launch {
                 withContext(Dispatchers.IO) {

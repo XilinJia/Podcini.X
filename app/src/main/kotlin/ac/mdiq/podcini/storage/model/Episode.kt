@@ -59,6 +59,7 @@ import org.apache.commons.io.input.CountingInputStream
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import kotlin.math.max
+import androidx.core.net.toUri
 
 class Episode : RealmObject {
     @PrimaryKey
@@ -243,7 +244,7 @@ class Episode : RealmObject {
         get() = fromInteger(volumeAdaption)
         set(value) {
             field = value
-            volumeAdaption = field.toInteger()
+            volumeAdaption = field.value
         }
     @Ignore
     var volumeAdaption: Int = 0
@@ -526,7 +527,7 @@ class Episode : RealmObject {
     fun setIsDownloaded() {
         downloaded = true
         downloadTime = Date().time
-        if (isNew == true) setPlayed(false)
+        if (isNew) setPlayed(false)
     }
 
     fun setfileUrlOrNull(url: String?) {
@@ -536,12 +537,12 @@ class Episode : RealmObject {
 
     fun setPosition(newPosition: Int) {
         this.position = newPosition
-        if (newPosition > 0 && isNew == true) setPlayed(false)
+        if (newPosition > 0 && isNew) setPlayed(false)
     }
 
     fun fileSize(): Long? {
         if (fileUrl == null) return null
-        val fileUri = Uri.parse(fileUrl)
+        val fileUri = fileUrl!!.toUri()
         return try {
             when (fileUri.scheme) {
                 "file" -> {
@@ -569,8 +570,7 @@ class Episode : RealmObject {
 
     fun fileExists(): Boolean {
         if (fileUrl == null) return false
-        val fileuri = Uri.parse(fileUrl)
-        if (fileuri == null) return false
+        val fileuri = fileUrl!!.toUri()
         return when (fileuri.scheme) {
             "file" -> {
                 val file = File(fileuri.path!!)
@@ -599,12 +599,12 @@ class Episode : RealmObject {
         }
     }
 
-    fun getMediaFileUriString(): String? {
+    fun getMediaFileUriString(): String {
         val fileName = getMediafilename()
         Logd(TAG, "getMediaFileUriString: filename: $fileName customMediaUriString: $customMediaUriString")
         val subDirectoryName = generateFileName(feed?.title ?: "NoFeed")
         return if (customMediaUriString.isNotBlank()) {
-            val customUri = Uri.parse(customMediaUriString)
+            val customUri = customMediaUriString.toUri()
             val baseDir = DocumentFile.fromTreeUri(getAppContext(), customUri)
             if (baseDir == null || !baseDir.isDirectory) throw IllegalArgumentException("Invalid tree URI: $customMediaUriString")
 
@@ -775,7 +775,7 @@ class Episode : RealmObject {
     private fun openStream(context: Context): CountingInputStream {
         if (localFileAvailable()) {
             if (fileUrl.isNullOrBlank()) throw IOException("No local url")
-            val fileuri = Uri.parse(fileUrl) ?: throw IOException("Not valid uri")
+            val fileuri = fileUrl!!.toUri()
             when (fileuri.scheme) {
                 "file" -> {
                     if (fileuri.path.isNullOrBlank()) throw IOException("Local file does not exist")
@@ -789,7 +789,7 @@ class Episode : RealmObject {
         } else {
             val streamurl = downloadUrl
             if (streamurl != null && streamurl.startsWith(ContentResolver.SCHEME_CONTENT))
-                return CountingInputStream(BufferedInputStream(context.contentResolver.openInputStream(Uri.parse(streamurl))))
+                return CountingInputStream(BufferedInputStream(context.contentResolver.openInputStream(streamurl.toUri())))
 
             if (streamurl.isNullOrEmpty()) throw IOException("stream url is null of empty")
             val request: Request = Builder().url(streamurl).build()

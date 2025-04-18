@@ -93,6 +93,7 @@ import okhttp3.Request
 import okhttp3.Request.Builder
 import okhttp3.Response
 import okhttp3.Route
+import androidx.core.net.toUri
 
 @Suppress("EnumEntryName")
 enum class MobileUpdateOptions(val res: Int) {
@@ -124,8 +125,8 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
         var port by remember { mutableStateOf(if (proxyConfig.port > 0) proxyConfig.port.toString() else "") }
         var portError by remember { mutableStateOf("") }
         var portValue by remember { mutableIntStateOf(proxyConfig.port) }
-        var username by remember { mutableStateOf<String?>(proxyConfig.username) }
-        var password by remember { mutableStateOf<String?>(proxyConfig.password) }
+        var username by remember { mutableStateOf(proxyConfig.username) }
+        var password by remember { mutableStateOf(proxyConfig.password) }
         var message by remember { mutableStateOf("") }
         var messageColor by remember { mutableStateOf(textColor) }
         var showOKButton by remember { mutableStateOf(false) }
@@ -303,7 +304,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
             if (uri != null) {
                 showProgress = true
                 CoroutineScope(Dispatchers.IO).launch {
-                    val chosenDir = if (customMediaFolderUriString.isNotBlank()) DocumentFile.fromTreeUri(activity, Uri.parse(customMediaFolderUriString)) else null
+                    val chosenDir = if (customMediaFolderUriString.isNotBlank()) DocumentFile.fromTreeUri(activity, customMediaFolderUriString.toUri()) else null
                     activity.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                     val baseDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: return@launch
                     val mediaDir = baseDir.createDirectory("Podcini.media") ?: return@launch
@@ -394,8 +395,8 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                                 var h = ""
                                 var m = ""
                                 if (hm[0].isNotBlank() || hm[1].isNotBlank()) {
-                                    h = if (hm[0].isBlank()) "0" else hm[0]
-                                    m = if (hm[1].isBlank()) "0" else hm[1]
+                                    h = hm[0].ifBlank { "0" }
+                                    m = hm[1].ifBlank { "0" }
                                 }
                                 putPref(AppPrefs.prefAutoUpdateStartTime, "$h:$m")
                                 showIcon = false
@@ -427,7 +428,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
         Text(stringResource(R.string.download_pref_details), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp))
         var showSetCustomFolderDialog by remember { mutableStateOf(false) }
         if (showSetCustomFolderDialog) {
-            var sumTextRes = if (useCustomMediaDir) R.string.pref_custom_media_dir_sum1 else R.string.pref_custom_media_dir_sum
+            val sumTextRes = if (useCustomMediaDir) R.string.pref_custom_media_dir_sum1 else R.string.pref_custom_media_dir_sum
             AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showSetCustomFolderDialog = false },
                 title = { Text(stringResource(R.string.pref_custom_media_dir_title), style = CustomTextStyles.titleCustom) },
                 text = { Text(stringResource(sumTextRes), color = textColor, style = MaterialTheme.typography.bodySmall) },
@@ -452,7 +453,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                     TextButton(onClick = {
                         showProgress = true
                         CoroutineScope(Dispatchers.IO).launch {
-                            val chosenDir = DocumentFile.fromTreeUri(activity, Uri.parse(customMediaFolderUriString)) ?: throw IOException("Destination directory is not valid")
+                            val chosenDir = DocumentFile.fromTreeUri(activity, customMediaFolderUriString.toUri()) ?: throw IOException("Destination directory is not valid")
                             customMediaFolderUriString = ""
                             useCustomMediaDir = false
                             putPref(AppPrefs.prefUseCustomMediaFolder, false)
@@ -472,7 +473,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Column(modifier = Modifier.weight(1f).clickable(onClick = { showSetCustomFolderDialog = true })) {
                 Text(stringResource(R.string.pref_custom_media_dir_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                Text(if (customMediaFolderUriString.isNotBlank()) customMediaFolderUriString else stringResource(R.string.pref_custom_media_dir_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+                Text(customMediaFolderUriString.ifBlank { stringResource(R.string.pref_custom_media_dir_sum) }, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
             if (useCustomMediaDir) TextButton(onClick = { showResetCustomFolderDialog = true }) { Text(stringResource(R.string.reset)) }
         }

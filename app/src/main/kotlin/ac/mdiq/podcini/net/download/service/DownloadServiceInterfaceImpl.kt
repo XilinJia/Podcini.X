@@ -34,8 +34,8 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.media.MediaMetadataRetriever
-import android.net.Uri
 import androidx.core.app.NotificationCompat
+import androidx.core.net.toUri
 import androidx.work.Constraints
 import androidx.work.Constraints.Builder
 import androidx.work.CoroutineWorker
@@ -55,11 +55,13 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.commons.io.FileUtils
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -91,20 +93,14 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
     override fun cancel(context: Context, media: Episode) {
         Logd(TAG, "starting cancel")
         // This needs to be done here, not in the worker. Reason: The worker might or might not be running.
-        val item_ = media
-        if (item_ != null) Episodes.deleteAndRemoveFromQueues(context, item_) // Remove partially downloaded file
+        Episodes.deleteAndRemoveFromQueues(context, media) // Remove partially downloaded file
         val tag = WORK_TAG_EPISODE_URL + media.downloadUrl
         val future: Future<List<WorkInfo>> = WorkManager.getInstance(context).getWorkInfosByTag(tag)
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val workInfoList = future.get() // Wait for the completion of the future operation and retrieve the result
-                workInfoList.forEach { workInfo ->
-                    if (workInfo.tags.contains(WORK_DATA_WAS_QUEUED)) {
-                        val item_ = media
-                        if (item_ != null) removeFromQueueSync(curQueue, item_)
-                    }
-                }
+                workInfoList.forEach { workInfo -> if (workInfo.tags.contains(WORK_DATA_WAS_QUEUED)) removeFromQueueSync(curQueue, media) }
             } catch (exception: Throwable) { Logs(TAG, exception)
             } finally { WorkManager.getInstance(context).cancelAllWorkByTag(tag) }
         }
@@ -129,13 +125,15 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 return Result.failure()
             }
             val request = create(media).build()
-            val progressUpdaterJob = CoroutineScope(Dispatchers.Default).launch {
+            val progressUpdaterJob = CoroutineScope(Dispatchers.IO).launch {
+                val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 while (isActive) {
                     try {
                         synchronized(notificationProgress) { notificationProgress.put(media.getEpisodeTitle(), request.progressPercent) }
-                        setProgressAsync(Data.Builder().putInt(WORK_DATA_PROGRESS, request.progressPercent).build()).get()
-                        val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                        nm.notify(R.id.notification_downloading, generateProgressNotification())
+                        withTimeoutOrNull(5000) {
+                            setProgressAsync(Data.Builder().putInt(WORK_DATA_PROGRESS, request.progressPercent).build()).get()
+                            nm.notify(R.id.notification_downloading, generateProgressNotification())
+                        }
                         delay(1000)
                     } catch (e: CancellationException) { return@launch
                     } catch (e: Exception) {
@@ -178,7 +176,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 return Result.failure()
             }
 
-            ensureMediaFileExists(Uri.parse(request.destination))
+            ensureMediaFileExists(request.destination.toUri())
             downloader = DefaultDownloaderFactory().create(request)
             if (downloader == null) {
                 Loge(TAG, "performDownload Unable to create downloader")
@@ -225,11 +223,12 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 return Result.failure()
             } else return Result.retry()
         }
-        private fun sendMessage(episodeTitle: String, isImmediateFail: Boolean) {
-            var episodeTitle = episodeTitle
+        private fun sendMessage(episodeTitle_: String, isImmediateFail: Boolean) {
+            var episodeTitle = episodeTitle_
             val retrying = !isLastRunAttempt && !isImmediateFail
             if (episodeTitle.length > 20) episodeTitle = episodeTitle.substring(0, 19) + "…"
 
+            // TODO: the action may need to be changed
             EventFlow.postEvent(FlowEvent.MessageEvent(
                 applicationContext.getString(if (retrying) R.string.download_error_retrying else R.string.download_error_not_retrying, episodeTitle),
                 { ctx: Context -> {
@@ -237,22 +236,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 } },
                 applicationContext.getString(R.string.download_error_details)))
         }
-//        private fun getDownloadLogsIntent(context: Context): PendingIntent {
-//            val intent = MainActivityStarter(context).withDownloadLogsOpen().getIntent()
-//            return PendingIntent.getActivity(context, R.id.pending_intent_download_service_report, intent,
-//                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-//        }
-//        private fun getDownloadsIntent(context: Context): PendingIntent {
-//            val intent = MainActivityStarter(context).withFragmentLoaded("DownloadsFragment").getIntent()
-//            return PendingIntent.getActivity(context, R.id.pending_intent_download_service_notification, intent,
-//                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-//        }
         private fun sendErrorNotification(title: String) {
-//        TODO: need to get number of subscribers in SharedFlow
-//        if (EventBus.getDefault().hasSubscriberForEvent(FlowEvent.MessageEvent::class.java)) {
-//            sendMessage(title, false)
-//            return
-//        }
             val builder = NotificationCompat.Builder(applicationContext, NotificationUtils.CHANNEL_ID.error.name)
             builder.setTicker(applicationContext.getString(R.string.download_report_title))
                 .setContentTitle(applicationContext.getString(R.string.download_report_title))
@@ -308,16 +292,21 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                     it.checkEmbeddedPicture(false) // enforce check
                     if (it.chapters.isEmpty()) it.setChapters(it.loadChaptersFromMediaFile(context))
                     if (!it.podcastIndexChapterUrl.isNullOrBlank()) ChapterUtils.loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
-                    var durationStr: String? = null
-                    try {
-                        MediaMetadataRetrieverCompat().use { mmr ->
-                            mmr.setDataSource(context, Uri.parse(it.fileUrl))
-                            durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                            if (durationStr != null) it.duration = (durationStr.toInt())
+                    if (!it.fileUrl.isNullOrBlank()) {
+                        var durationStr: String? = null
+                        try {
+                            MediaMetadataRetrieverCompat().use { mmr ->
+                                mmr.setDataSource(context, it.fileUrl?.toUri())
+                                durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                                if (durationStr != null) it.duration = (durationStr!!.toInt())
+                            }
+                        } catch (e: NumberFormatException) { Logs(TAG, e, "Invalid file duration: $durationStr")
+                        } catch (e: Exception) {
+                            Logs(TAG, e, "Get duration failed. Reset to 30sc")
+                            it.duration = 30000
                         }
-                    } catch (e: NumberFormatException) { Logs(TAG, e, "Invalid file duration: $durationStr")
-                    } catch (e: Exception) {
-                        Logs(TAG, e, "Get duration failed. Reset to 30sc")
+                    } else {
+                        Loge(TAG, "Get duration failed. fileUrl: ${it.fileUrl} Reset to 30sc")
                         it.duration = 30000
                     }
                     Logd(TAG, "run() set duration: ${it.duration}")

@@ -22,7 +22,6 @@ import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
-import androidx.annotation.VisibleForTesting
 import androidx.documentfile.provider.DocumentFile
 import java.io.BufferedInputStream
 import java.io.IOException
@@ -32,6 +31,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import org.apache.commons.io.input.CountingInputStream
+import androidx.core.net.toUri
 
 object LocalFeedUpdater {
     private val TAG: String = LocalFeedUpdater::class.simpleName ?: "Anonymous"
@@ -42,7 +42,7 @@ object LocalFeedUpdater {
         if (feed.downloadUrl.isNullOrEmpty()) return
         try {
             val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
-            val documentFolder = DocumentFile.fromTreeUri(context, Uri.parse(uriString)) ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
+            val documentFolder = DocumentFile.fromTreeUri(context, uriString.toUri()) ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
             if (!documentFolder.exists() || !documentFolder.canRead()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
 
             tryUpdateFeed(feed, context, documentFolder.uri, updaterProgressListener)
@@ -53,10 +53,8 @@ object LocalFeedUpdater {
         }
     }
 
-    @VisibleForTesting
     @Throws(IOException::class)
     fun tryUpdateFeed(feed: Feed, context: Context, folderUri: Uri?, updaterProgressListener: UpdaterProgressListener?) {
-        var feed = feed
         //make sure it is the latest 'version' of this feed from the db (all items etc)
 //        feed = Feeds.updateFeedFull(context, feed, false)?: feed
 

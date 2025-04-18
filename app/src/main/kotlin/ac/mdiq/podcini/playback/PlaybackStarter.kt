@@ -18,7 +18,9 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
+import androidx.media3.common.util.UnstableApi
 
 
 class PlaybackStarter(private val context: Context, private val media: Episode) {
@@ -26,6 +28,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
 
     private var shouldStreamThisTime = false
     val intent: Intent
+        @OptIn(UnstableApi::class)
         get() {
             val launchIntent = Intent(context, PlaybackService::class.java)
             launchIntent.putExtra(EXTRA_ALLOW_STREAM_THIS_TIME, shouldStreamThisTime)
@@ -34,12 +37,13 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
 
     fun shouldStreamThisTime(shouldStreamThisTime: Boolean?): PlaybackStarter {
         if (shouldStreamThisTime == null) {
-            this.shouldStreamThisTime = media.feed == null || media.feedId == null || media.feed?.type == Feed.FeedType.YOUTUBE.name
-                    || (prefStreamOverDownload && media.feed?.prefStreamOverDownload == true)
+            this.shouldStreamThisTime = media.feed == null || media.feedId == null || !media.downloaded
+                    || media.feed?.type == Feed.FeedType.YOUTUBE.name || (prefStreamOverDownload && media.feed?.prefStreamOverDownload == true)
         } else this.shouldStreamThisTime = shouldStreamThisTime
         return this
     }
 
+    @OptIn(UnstableApi::class)
     fun start() {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
         if (curEpisode?.id != media.id) {
@@ -53,7 +57,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
                 mPlayer?.isStreaming = shouldStreamThisTime
                 when (status) {
                     PlayerStatus.PLAYING -> playPause()
-                    PlayerStatus.PAUSED, PlayerStatus.PREPARED -> mPlayer?.prepareMedia(media, shouldStreamThisTime, true, true)
+                    PlayerStatus.PAUSED, PlayerStatus.PREPARED -> mPlayer?.prepareMedia(media, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
                     PlayerStatus.STOPPED -> ContextCompat.startForegroundService(context, intent)
                     else -> mPlayer?.reinit()
                 }

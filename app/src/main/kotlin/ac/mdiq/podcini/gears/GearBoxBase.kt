@@ -2,6 +2,7 @@ package ac.mdiq.podcini.gears
 
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUpdateWorkerBase
+import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.getFinalRedirectedUrl
@@ -13,16 +14,12 @@ import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.util.Loge
 import android.content.Context
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.setValue
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.source.MediaSource
+import java.net.URL
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.net.URL
-import kotlin.jvm.java
 
 open class GearBoxBase {
 
@@ -40,10 +37,8 @@ open class GearBoxBase {
     open fun cleanGearData() {}
     open fun buildWebviewData(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
 
-    open fun buildCleanedNotes(curItem_: Episode, shownotesCleaner: ShownotesCleaner?): Pair<Episode, String?> {
-        var curItem = curItem_
-        var cleanedNotes: String? = null
-        cleanedNotes = shownotesCleaner?.processShownotes(curItem.description ?: "", curItem.duration)
+    open fun buildCleanedNotes(curItem: Episode, shownotesCleaner: ShownotesCleaner?): Pair<Episode, String?> {
+        val cleanedNotes: String? = shownotesCleaner?.processShownotes(curItem.description ?: "", curItem.duration)
         return Pair(curItem, cleanedNotes)
     }
 
@@ -65,7 +60,7 @@ open class GearBoxBase {
 
     open fun hasSearcher(): Boolean = false
 
-    open fun getSearcher(): PodcastSearcher? = null
+    open fun getSearcher(): PodcastSearcher = CombinedSearcher()
 
     open fun feedUpdateWorkerClass(): Class<out FeedUpdateWorkerBase> = FeedUpdateWorkerBase::class.java
 
@@ -74,7 +69,7 @@ open class GearBoxBase {
     }
 
     open suspend fun buildFeed(url: String, username: String, password: String, fbb: FeedBuilderBase, handleFeed: (Feed, Map<String, String>)->Unit, showDialog: ()->Unit) {
-        val urlFinal = getFinalRedirectedUrl(url)?:""
+        val urlFinal = getFinalRedirectedUrl(url)
         fbb.buildPodcast(urlFinal, username, password) { feed_, map -> handleFeed(feed_, map) }
     }
 

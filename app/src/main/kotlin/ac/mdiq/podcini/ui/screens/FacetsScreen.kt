@@ -50,7 +50,6 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
-import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -98,6 +97,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -105,6 +105,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import io.github.xilinjia.krdb.UpdatePolicy
 import java.io.File
 import java.text.NumberFormat
 import java.util.Date
@@ -148,6 +149,8 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var startDate: Long = 0L
     internal var endDate: Long = Date().time
+
+    var progressing by mutableStateOf(false)
 
     internal val showClearHistoryDialog = mutableStateOf(false)
 
@@ -197,7 +200,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
             EventFlow.events.collectLatest { event ->
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
-//                    is FlowEvent.SwipeActionsChangedEvent -> refreshSwipeTelltale()
                     is FlowEvent.EpisodeEvent -> onEpisodeEvent(event)
                     is FlowEvent.EpisodeMediaEvent -> onEpisodeMediaEvent(event)
                     is FlowEvent.HistoryEvent -> onHistoryEvent(event)
@@ -291,7 +293,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         return episodes
     }
 
-    var progressing by mutableStateOf(false)
     fun updateToolbar() {
         var info = buildListInfo(episodes)
         isFiltered = filter.propertySet.isNotEmpty()
@@ -301,7 +302,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
             for (item in episodes) sizeMB += item.size
             info += " • " + (sizeMB / 1000000) + " MB"
         }
-        if (progressing) info += " - ${context.getString(R.string.progressing_label)}"
         infoBarText.value = info
     }
 
@@ -309,17 +309,15 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         progressing = true
         runOnIOScope {
             for (e in episodes) if (e.isNew) upsert(e) { it.setPlayed(false) }
-            withContext(Dispatchers.Main) {
-                progressing = false
-                Logt(TAG, "New items cleared")
-            }
+            Logt(TAG, "New items cleared")
+            withContext(Dispatchers.Main) { progressing = false }
             loadItems()
         }
     }
 
-    private val nameEpisodeMap: MutableMap<String, Episode> = mutableMapOf()
-    private val filesRemoved: MutableList<String> = mutableListOf()
     internal fun reconcile() {
+        val nameEpisodeMap: MutableMap<String, Episode> = mutableMapOf()
+        val filesRemoved: MutableList<String> = mutableListOf()
         fun traverse(srcFile: File) {
             val filename = srcFile.name
             if (srcFile.isDirectory) {
@@ -358,35 +356,44 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         }
         runOnIOScope {
             progressing = true
-//            val items = realm.query(Episode::class).query("media.episode == nil").find()
-//            Logd(TAG, "number of episode with null backlink: ${items.size}")
             nameEpisodeMap.clear()
             MediaFilesTransporter("").updateDB(context)
-            val eList = realm.query(Episode::class).find()
-
+            var eList = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(prefFilterDownloads), episodesSortOrder, false)
             for (e in eList) {
                 var fileUrl = e.fileUrl
                 if (fileUrl.isNullOrBlank()) continue
-                fileUrl = fileUrl.substring(fileUrl.lastIndexOf('/') + 1)
                 Logd(TAG, "reconcile: fileUrl: $fileUrl")
+                fileUrl = fileUrl.substring(fileUrl.lastIndexOf('/') + 1)
                 nameEpisodeMap[fileUrl] = e
             }
+            eList = listOf()
             if (customMediaUriString.isBlank()) {
                 val mediaDir = context.getExternalFilesDir("media") ?: return@runOnIOScope
                 mediaDir.listFiles()?.forEach { file -> traverse(file) }
             } else {
-                val customUri = Uri.parse(customMediaUriString)
+                val customUri = customMediaUriString.toUri()
                 val baseDir = DocumentFile.fromTreeUri(getAppContext(), customUri)
                 baseDir?.listFiles()?.forEach { file -> traverse(file) }
             }
             Logd(TAG, "reconcile: end, episodes missing file: ${nameEpisodeMap.size}")
             if (nameEpisodeMap.isNotEmpty()) for (e in nameEpisodeMap.values) upsertBlk(e) { it.setfileUrlOrNull(null) }
-            loadItems()
-            Logd(TAG, "Episodes reconsiled: ${nameEpisodeMap.size}\nFiles removed: ${filesRemoved.size}")
-            withContext(Dispatchers.Main) {
-                progressing = false
-                Logt(TAG, "Episodes reconsiled: ${nameEpisodeMap.size}\nFiles removed: ${filesRemoved.size}")
+            var count = nameEpisodeMap.size
+            nameEpisodeMap.clear()
+            realm.write {
+                while (true) {
+                    val el = query(Episode::class, "fileUrl != nil AND downloaded == false LIMIT(50)").find()
+                    if (el.isEmpty()) break
+                    Logd(TAG, "batch processing episodes not downloaded with fileUrl not null $count")
+                    el.map { e ->
+                        count++
+                        e.setfileUrlOrNull(null)
+                        copyToRealm(e, UpdatePolicy.ALL)
+                    }
+                }
             }
+            Logt(TAG, "Episodes reconsiled: $count\nFiles removed: ${filesRemoved.size}")
+            loadItems()
+            withContext(Dispatchers.Main) { progressing = false }
         }
     }
 
@@ -403,10 +410,8 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                 }
             }
-            withContext(Dispatchers.Main) {
-                progressing = false
-                Logt(TAG, "History cleared")
-            }
+            Logt(TAG, "History cleared")
+            withContext(Dispatchers.Main) { progressing = false }
             EventFlow.postEvent(FlowEvent.HistoryEvent())
         }
     }
@@ -646,7 +651,8 @@ fun FacetsScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
         else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true  })
+            val info = remember(vm.infoBarText, vm.progressing) { derivedStateOf { vm.infoBarText.value + if (vm.progressing) " - ${context.getString(R.string.progressing_label)}" else "" }}
+            InforBar(info, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true  })
             val showComment = vm.spinnerTexts[vm.curIndex] == QuickAccess.Commented.name
             EpisodeLazyColumn(context, vms = vm.vms, showComment = showComment, showActionButtons = !showComment,
                 buildMoreItems = { vm.buildMoreItems() },

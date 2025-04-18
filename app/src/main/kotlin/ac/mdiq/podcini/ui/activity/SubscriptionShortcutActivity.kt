@@ -49,6 +49,7 @@ import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.core.graphics.scale
 
 class SubscriptionShortcutActivity : ComponentActivity() {
     private val listItems = mutableStateListOf<Feed>()
@@ -92,7 +93,6 @@ class SubscriptionShortcutActivity : ComponentActivity() {
         intent.putExtra(MainActivity.Extras.fragment_feed_id.name, feed.id)
         val id = "subscription-" + feed.id
 
-//         val icon: IconCompat = if (bitmap != null) IconCompat.createWithAdaptiveBitmap(bitmap)
         val icon: IconCompat = if (bitmap != null) bitmapToIconCompat(bitmap, getAppIconSize())
         else IconCompat.createWithResource(this, R.drawable.ic_subscriptions_shortcut)
 
@@ -112,21 +112,21 @@ class SubscriptionShortcutActivity : ComponentActivity() {
             .data(feed.imageUrl)
             .setHeader("User-Agent", "Mozilla/5.0")
             .placeholder(R.mipmap.ic_launcher)
-            .listener(onError = {_, e -> addShortcut(feed, null) }, onSuccess = { _, result -> addShortcut(feed, result.drawable.toBitmap()) })
+            .listener(onError = { _, _ -> addShortcut(feed, null) }, onSuccess = { _, result -> addShortcut(feed, result.drawable.toBitmap()) })
             .size(iconSize, iconSize)
             .build()
         imageLoader.enqueue(request)
     }
 
-    fun getAppIconSize(): Int {
+    private fun getAppIconSize(): Int {
         val activityManager = getSystemService(ActivityManager::class.java)
         val appIconSize = try { activityManager.launcherLargeIconSize } catch (e: Exception) { TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 48f, resources.displayMetrics).toInt() }
         return appIconSize
     }
 
-    fun bitmapToIconCompat(bitmap: Bitmap, desiredSizeDp: Int): IconCompat {
+    private fun bitmapToIconCompat(bitmap: Bitmap, desiredSizeDp: Int): IconCompat {
         val desiredSizePx = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, desiredSizeDp.toFloat(), resources.displayMetrics).toInt()
-        val resizedBitmap = Bitmap.createScaledBitmap(bitmap, desiredSizePx, desiredSizePx, true)
+        val resizedBitmap = bitmap.scale(desiredSizePx, desiredSizePx)
         return IconCompat.createWithBitmap(resizedBitmap)
     }
 

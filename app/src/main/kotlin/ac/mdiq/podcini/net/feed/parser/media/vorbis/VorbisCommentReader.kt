@@ -119,7 +119,7 @@ abstract class VorbisCommentReader internal constructor(private val input: Input
      * Reads backwards in haystack, starting at position. Checks if the bytes match needle.
      * Uses haystack circularly, so when reading at (-1), it reads at (length - 1).
      */
-    fun bufferMatches(haystack: ByteArray, needle: ByteArray, position: Int): Boolean {
+    private fun bufferMatches(haystack: ByteArray, needle: ByteArray, position: Int): Boolean {
         for (i in needle.indices) {
             var posInHaystack = position - i
             while (posInHaystack < 0) posInHaystack += haystack.size
@@ -163,11 +163,11 @@ abstract class VorbisCommentReader internal constructor(private val input: Input
     protected abstract fun onContentVectorValue(key: String?, value: String?)
 
     internal class VorbisCommentHeader(
-            val vendorString: String,
-            val userCommentLength: Long) {
+        private val vendorString: String,
+        val userCommentLength: Long) {
 
         override fun toString(): String {
-            return ("VorbisCommentHeader [vendorString=" + vendorString + ", userCommentLength=" + userCommentLength + "]")
+            return ("VorbisCommentHeader [vendorString=$vendorString, userCommentLength=$userCommentLength]")
         }
     }
 

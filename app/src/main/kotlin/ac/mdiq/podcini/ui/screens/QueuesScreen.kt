@@ -45,7 +45,6 @@ import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import android.content.ComponentName
 import android.content.Context
@@ -114,6 +113,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
 import coil.compose.AsyncImage
@@ -223,6 +223,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
+    @androidx.annotation.OptIn(UnstableApi::class)
     private fun onQueueEvent(event: FlowEvent.QueueEvent) {
         Logd(TAG, "onQueueEvent() called with ${event.action.name}")
         if (showBin) return
@@ -358,6 +359,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun QueuesScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current

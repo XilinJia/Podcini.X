@@ -10,12 +10,12 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import android.content.DialogInterface
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.core.net.toUri
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.net.URL
 import java.net.URLDecoder
@@ -38,8 +38,8 @@ class ShareReceiverActivity : ComponentActivity() {
             return
         }
         if (!sharedUrl!!.startsWith("http")) {
-            val uri = Uri.parse(sharedUrl)
-            val urlString = uri?.getQueryParameter("url")
+            val uri = sharedUrl!!.toUri()
+            val urlString = uri.getQueryParameter("url")
             if (urlString != null) sharedUrl = URLDecoder.decode(urlString, "UTF-8")
         }
         Logd(TAG, "feedUrl: $sharedUrl")

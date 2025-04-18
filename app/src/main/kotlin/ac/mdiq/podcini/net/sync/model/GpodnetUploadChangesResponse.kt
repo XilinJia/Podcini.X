@@ -10,7 +10,7 @@ import org.json.JSONException
  * URLs that should be updated. The key of the map is the original URL, the value of the map
  * is the sanitized URL.
  */
-class GpodnetUploadChangesResponse(timestamp: Long, val updatedUrls: Map<String, String>) : UploadChangesResponse(timestamp) {
+class GpodnetUploadChangesResponse(timestamp: Long, private val updatedUrls: Map<String, String>) : UploadChangesResponse(timestamp) {
 
     override fun toString(): String {
         return "GpodnetUploadChangesResponse{timestamp=$timestamp, updatedUrls=$updatedUrls}"

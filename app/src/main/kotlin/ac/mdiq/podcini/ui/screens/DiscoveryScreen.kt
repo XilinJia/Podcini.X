@@ -39,6 +39,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.core.content.edit
 
 
 class DiscoveryVM(val context: Context, val lcScope: CoroutineScope) {
@@ -150,7 +151,7 @@ fun DiscoveryScreen() {
                     }, onClick = {
                         hideChecked = !hideChecked
                         vm.hidden = hideChecked
-                        vm.prefs.edit().putBoolean(ItunesTopListLoader.PREF_KEY_HIDDEN_DISCOVERY_COUNTRY, vm.hidden).apply()
+                        vm.prefs.edit { putBoolean(ItunesTopListLoader.PREF_KEY_HIDDEN_DISCOVERY_COUNTRY, vm.hidden) }
                         EventFlow.postEvent(FlowEvent.DiscoveryDefaultUpdateEvent())
                         vm.loadToplist(vm.countryCode)
                         expanded = false
@@ -223,8 +224,10 @@ fun DiscoveryScreen() {
                         vm.countryCode = countryNameCodeMap[selectedCountry]
                         vm.hidden = false
                     }
-                    vm.prefs.edit().putBoolean(ItunesTopListLoader.PREF_KEY_HIDDEN_DISCOVERY_COUNTRY, vm.hidden).apply()
-                    vm.prefs.edit().putString(ItunesTopListLoader.PREF_KEY_COUNTRY_CODE, vm.countryCode).apply()
+                    vm.prefs.edit {
+                        putBoolean(ItunesTopListLoader.PREF_KEY_HIDDEN_DISCOVERY_COUNTRY, vm.hidden)
+                        putString(ItunesTopListLoader.PREF_KEY_COUNTRY_CODE, vm.countryCode)
+                    }
                     EventFlow.postEvent(FlowEvent.DiscoveryDefaultUpdateEvent())
                     vm.loadToplist(vm.countryCode)
                     onDismiss()
@@ -236,7 +239,7 @@ fun DiscoveryScreen() {
 
     val textColor = MaterialTheme.colorScheme.onSurface
 
-    if (vm.showSelectCounrty == true) SelectCountryDialog { vm.showSelectCounrty = false }
+    if (vm.showSelectCounrty) SelectCountryDialog { vm.showSelectCounrty = false }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
@@ -258,7 +261,7 @@ fun DiscoveryScreen() {
                 modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) },
                 onClick = {
                     if (vm.needsConfirm) {
-                        vm.prefs.edit().putBoolean(ItunesTopListLoader.PREF_KEY_NEEDS_CONFIRM, false).apply()
+                        vm.prefs.edit { putBoolean(ItunesTopListLoader.PREF_KEY_NEEDS_CONFIRM, false) }
                         vm.needsConfirm = false
                     }
                     vm.loadToplist(vm.countryCode)

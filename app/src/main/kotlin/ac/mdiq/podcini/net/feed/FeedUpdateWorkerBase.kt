@@ -34,6 +34,7 @@ import android.app.Notification
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.annotation.RequiresPermission
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -54,6 +55,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
     protected val TAG = "FeedUpdateWorkerBase"
     private val notificationManager = NotificationManagerCompat.from(context)
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     override suspend fun doWork(): Result {
         ClientConfigurator.initialize(applicationContext)
         val feedsToUpdate: MutableList<Feed>
@@ -67,7 +69,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
             val itr = feedsToUpdate.iterator()
             while (itr.hasNext()) {
                 val feed = itr.next()
-                if (feed.keepUpdated == false) {
+                if (!feed.keepUpdated) {
                     if (feed.autoEnqueue) feedsToOnlyEnqueue.add(feed)
                     else if (feed.autoDownload) feedsToOnlyDownload.add(feed)
                     itr.remove()
@@ -128,16 +130,11 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         return withContext(Dispatchers.Main) { ForegroundInfo(R.id.notification_updating_feeds, createNotification(null)) }
     }
 
+    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private suspend fun refreshFeeds(feedsToUpdate: MutableList<Feed>, force: Boolean, fullUpdate: Boolean) {
         if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(this.applicationContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-//            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
+//            postFornotificationPermission()
             Loge(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
             return
         }
@@ -191,7 +188,6 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
             LogsAndStats.addDownloadStatus(feedUpdateTask.downloadStatus)
             return
         }
-        if (request.feedfileId == null) return  // No download logs for new subscriptions
         // we create a 'successful' download log if the feed's last refresh failed
         val log = LogsAndStats.getFeedDownloadLog(request.feedfileId)
         if (log.isNotEmpty() && !log[0].isSuccessful) LogsAndStats.addDownloadStatus(feedUpdateTask.downloadStatus)

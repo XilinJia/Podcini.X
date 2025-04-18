@@ -7,7 +7,6 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
-import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.storage.database.Episodes.getClipFile
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -38,7 +37,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -52,7 +50,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -67,10 +64,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.edit
 import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -126,7 +124,10 @@ fun ShareDialog(item: Episode, act: Activity, onDismissRequest: () -> Unit) {
                     2 -> ShareUtils.shareMediaDownloadLink(ctx, item)
                     3 -> ShareUtils.shareFeedItemFile(ctx, item)
                 }
-                prefs.edit().putBoolean(PREF_SHARE_EPISODE_START_AT, isChecked).putInt(PREF_SHARE_EPISODE_TYPE, position).apply()
+                prefs.edit {
+                    putBoolean(PREF_SHARE_EPISODE_START_AT, isChecked)
+                    putInt(PREF_SHARE_EPISODE_TYPE, position)
+                }
                 onDismissRequest()
             }) { Text(text = "OK") }
         },
@@ -134,6 +135,7 @@ fun ShareDialog(item: Episode, act: Activity, onDismissRequest: () -> Unit) {
     )
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
     val lazyListState = rememberLazyListState()
@@ -179,35 +181,36 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
     }
 }
 
-@Composable
-fun SkipDialog(direction: SkipDirection, onDismissRequest: () -> Unit, callBack: (Int) -> Unit) {
-    val titleRes = if (direction == SkipDirection.SKIP_FORWARD) R.string.pref_fast_forward else R.string.pref_rewind
-    var interval by remember { mutableStateOf((if (direction == SkipDirection.SKIP_FORWARD) AppPreferences.fastForwardSecs else AppPreferences.rewindSecs).toString()) }
-    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
-        title = { Text(stringResource(titleRes), style = CustomTextStyles.titleCustom) },
-        text = {
-            TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number), label = { Text("seconds") }, singleLine = true,
-                onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) interval = it })
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                if (interval.isNotBlank()) {
-                    val value = interval.toInt()
-                    if (direction == SkipDirection.SKIP_FORWARD) AppPreferences.fastForwardSecs = value
-                    else AppPreferences.rewindSecs = value
-                    callBack(value)
-                    onDismissRequest()
-                }
-            }) { Text(text = "OK") }
-        },
-        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
-    )
-}
+//@Composable
+//fun SkipDialog(direction: SkipDirection, onDismissRequest: () -> Unit, callBack: (Int) -> Unit) {
+//    val titleRes = if (direction == SkipDirection.SKIP_FORWARD) R.string.pref_fast_forward else R.string.pref_rewind
+//    var interval by remember { mutableStateOf((if (direction == SkipDirection.SKIP_FORWARD) AppPreferences.fastForwardSecs else AppPreferences.rewindSecs).toString()) }
+//    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+//        title = { Text(stringResource(titleRes), style = CustomTextStyles.titleCustom) },
+//        text = {
+//            TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number), label = { Text("seconds") }, singleLine = true,
+//                onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) interval = it })
+//        },
+//        confirmButton = {
+//            TextButton(onClick = {
+//                if (interval.isNotBlank()) {
+//                    val value = interval.toInt()
+//                    if (direction == SkipDirection.SKIP_FORWARD) AppPreferences.fastForwardSecs = value
+//                    else AppPreferences.rewindSecs = value
+//                    callBack(value)
+//                    onDismissRequest()
+//                }
+//            }) { Text(text = "OK") }
+//        },
+//        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+//    )
+//}
 
-enum class SkipDirection {
-    SKIP_FORWARD, SKIP_REWIND
-}
+//enum class SkipDirection {
+//    SKIP_FORWARD, SKIP_REWIND
+//}
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EpisodeMarks(episode: Episode?) {

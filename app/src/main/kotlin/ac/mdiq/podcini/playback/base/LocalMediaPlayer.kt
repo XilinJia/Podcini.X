@@ -53,6 +53,7 @@ import androidx.media3.common.Player.STATE_READY
 import androidx.media3.common.Player.State
 import androidx.media3.common.TrackSelectionParameters.AudioOffloadPreferences
 import androidx.media3.common.Tracks
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource.HttpDataSourceException
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -73,6 +74,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 
+@UnstableApi
 class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     @Volatile
@@ -292,7 +294,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             try {
                 when {
                     streaming -> {
-                        val streamurl = curEpisode!!.downloadUrl
+                        val streamurl = curEpisode?.downloadUrl
                         Logd(TAG, "streamurl: $streamurl")
                         if (!streamurl.isNullOrBlank()) {
                             mediaItem = null
@@ -301,7 +303,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                         } else throw IOException("episode downloadUrl is empty ${curEpisode?.title}")
                     }
                     else -> {
-                        val localMediaurl = curEpisode!!.fileUrl
+                        val localMediaurl = curEpisode?.fileUrl
                         if (!localMediaurl.isNullOrBlank()) setDataSource(curEpisode!!, metadata, localMediaurl, null, null)
                         else throw IOException("Unable to read local file $localMediaurl")
                     }
@@ -313,12 +315,12 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 }
             } catch (e: IOException) {
                 Logs(TAG, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
-                setPlayerStatus(PlayerStatus.ERROR, curEpisode)
+                withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
             } catch (e: IllegalStateException) {
                 Logs(TAG, e, "prepareMedia failed ${e.localizedMessage ?: ""}")
-                setPlayerStatus(PlayerStatus.ERROR, curEpisode)
+                withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
             } catch (e: Throwable) {
-                setPlayerStatus(PlayerStatus.ERROR, curEpisode)
+                withContext(Dispatchers.Main) { setPlayerStatus(PlayerStatus.ERROR, curEpisode) }
                 Logs(TAG, e, "setDataSource error: [${e.localizedMessage}]")
             } finally { }
         }
@@ -601,7 +603,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             shouldContinue -> {
                 // Load next episode if previous episode was in the queue and if there is an episode in the queue left.
                 // Start playback immediately if continuous playback is enabled
-                var nextMedia = getNextInQueue(currentMedia) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
+                val nextMedia = getNextInQueue(currentMedia) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
                 if (nextMedia == null) {
                     Logd(TAG, "nextMedia is null. call callback.onPlaybackEnded true")
                     onPlaybackEnded(true)

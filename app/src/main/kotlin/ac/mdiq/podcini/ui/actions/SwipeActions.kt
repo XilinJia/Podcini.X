@@ -8,10 +8,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.Episodes.stateToPreserve
 import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
-import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.Queues.smartRemoveFromQueue
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -21,6 +19,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
@@ -28,6 +27,7 @@ import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.ShelveDialog
+import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.EventFlow
@@ -82,11 +82,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.edit
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import java.util.Date
-import kotlinx.coroutines.runBlocking
-import kotlin.math.max
 
 abstract class SwipeAction {
     abstract fun getId(): String
@@ -138,7 +137,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         ERASE
     }
 
-    var actions by mutableStateOf<RightLeftActions>(getPrefs(tag, ""))
+    var actions by mutableStateOf(getPrefs(tag, ""))
 
     override fun onStart(owner: LifecycleOwner) {
         actions = getPrefs(tag, "")
@@ -173,7 +172,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class SetPlaybackState : SwipeAction() {
-        var showPlayStateDialog by mutableStateOf(false)
+        private var showPlayStateDialog by mutableStateOf(false)
         override fun getId(): String {
             return ActionTypes.SET_PLAY_STATE.name
         }
@@ -245,7 +244,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class PutToQueue : SwipeAction() {
-        var showPutToQueueDialog by mutableStateOf(false)
+        private var showPutToQueueDialog by mutableStateOf(false)
         override fun getId(): String {
             return ActionTypes.PUT_TO_QUEUE.name
         }
@@ -270,7 +269,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
     inner class Combo : SwipeAction() {
         var showDialog by mutableStateOf(false)
-        var useAction by mutableStateOf<SwipeAction?>(null)
+        private var useAction by mutableStateOf<SwipeAction?>(null)
         override fun getId(): String {
             return ActionTypes.COMBO.name
         }
@@ -297,11 +296,13 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         for (action in actionsList) {
                             if (action is NoAction || action is Combo) continue
                             if (!action.enabled()) continue
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
-                                useAction = action
-                                action.performAction(onEpisode!!)
-                                showDialog = false
-                            }) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
+                                .padding(4.dp)
+                                .clickable {
+                                    useAction = action
+                                    action.performAction(onEpisode!!)
+                                    showDialog = false
+                                }) {
                                 val colorAccent = remember {
                                     val typedValue = TypedValue()
                                     context.theme.resolveAttribute(action.getActionColor(), typedValue, true)
@@ -333,22 +334,21 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override fun getTitle(): String {
             return getAppContext().getString(R.string.delete_episode_label)
         }
-        override fun performAction(item_: Episode) {
-            var item = item_
-            super.performAction(item)
-            if (!item.downloaded && item.feed?.isLocalFeed != true) return
+        override fun performAction(item: Episode) {
+            var item_ = item
+            super.performAction(item_)
+            if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
             runOnIOScope {
-                val almostEnded = hasAlmostEnded(item)
-                if (almostEnded && item.playState < PlayState.PLAYED.code)
-                    item = setPlayStateSync(PlayState.PLAYED.code, item, resetMediaPosition = true, removeFromQueue = false)
-                if (almostEnded) item = upsertBlk(item) { it.playbackCompletionDate = Date() }
-                deleteEpisodesWarnLocalRepeat(context, listOf(item))
+                val almostEnded = hasAlmostEnded(item_)
+                if (almostEnded && item_.playState < PlayState.PLAYED.code) item_ = setPlayStateSync(PlayState.PLAYED.code, item_, resetMediaPosition = true, removeFromQueue = false)
+                if (almostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
+                deleteEpisodesWarnLocalRepeat(context, listOf(item_))
             }
         }
     }
 
     inner class SetRating : SwipeAction() {
-        var showChooseRatingDialog by mutableStateOf(false)
+        private var showChooseRatingDialog by mutableStateOf(false)
         override fun getId(): String {
             return ActionTypes.RATING.name
         }
@@ -372,9 +372,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class AddComment : SwipeAction() {
-        var showEditComment by mutableStateOf(false)
-        var localTime by mutableLongStateOf(System.currentTimeMillis())
-        var editCommentText by mutableStateOf(TextFieldValue(""))
+        private var showEditComment by mutableStateOf(false)
+        private var localTime by mutableLongStateOf(System.currentTimeMillis())
+        private var editCommentText by mutableStateOf(TextFieldValue(""))
         override fun getId(): String {
             return ActionTypes.COMMENT.name
         }
@@ -412,7 +412,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class SearchSelected : SwipeAction() {
-        var showSearchDialog by mutableStateOf(false)
+        private var showSearchDialog by mutableStateOf(false)
         override fun getId(): String {
             return ActionTypes.SEARCH_SELECTED.name
         }
@@ -442,7 +442,10 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                     }) }
                 AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showSearchDialog = false },
                     title = { Text(stringResource(R.string.select_text_to_search), style = CustomTextStyles.titleCustom) },
-                    text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },
+                    text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .border(1.dp, MaterialTheme.colorScheme.primary)) },
                     confirmButton = {
                         if (selectedText.isNotEmpty()) {
                             Button(modifier = Modifier.padding(top = 8.dp), onClick = {
@@ -491,11 +494,15 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
         override fun performAction(item: Episode) {
             super.performAction(item)
-//            val playbackCompletionDate: Date? = item.playbackCompletionDate
-//            val lastPlayedDate = item.lastPlayedTime
+            val playbackCompletionDate = item.playbackCompletionDate
+            val lastPlayedDate = item.lastPlayedTime
             setHistoryDates(item)
-//            (context as? MainActivity)?.showSnackbarAbovePlayer(R.string.removed_history_label, Snackbar.LENGTH_LONG)
-//                ?.setAction(context.getString(R.string.undo)) { if (playbackCompletionDate != null) setHistoryDates(item, lastPlayedDate, playbackCompletionDate) }
+            commonConfirm = CommonConfirmAttrib(
+                title = context.getString(R.string.removed_history_label),
+                message = "",
+                confirmRes = R.string.undo,
+                cancelRes = R.string.no,
+                onConfirm = {  if (playbackCompletionDate != null) setHistoryDates(item, lastPlayedDate, playbackCompletionDate) })
         }
         private fun setHistoryDates(episode: Episode, lastPlayed: Long = 0, completed: Date = Date(0)) {
             runOnIOScope {
@@ -527,8 +534,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override fun getTitle(): String {
             return getAppContext().getString(R.string.remove_from_queue_label)
         }
-        override fun performAction(item_: Episode) {
-            var item = item_
+        override fun performAction(item: Episode) {
             super.performAction(item)
             runOnIOScope { smartRemoveFromQueue(item) }
         }
@@ -557,7 +563,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class Shelve : SwipeAction() {
-        var showShelveDialog by mutableStateOf(false)
+        private var showShelveDialog by mutableStateOf(false)
         override fun getId(): String {
             return ActionTypes.SHELVE.name
         }
@@ -581,7 +587,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class Erase : SwipeAction() {
-        var showEraseDialog by mutableStateOf(false)
+        private var showEraseDialog by mutableStateOf(false)
         override fun getId(): String {
             return ActionTypes.ERASE.name
         }
@@ -627,31 +633,29 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             val rightAction = remember { mutableStateOf(actions.right) }
             var keys by remember { mutableStateOf(sa.actionsList) }
 
-            fun savePrefs(tag: String, right: String?, left: String?) {
-//                getSharedPrefs(context)
-                prefs.edit()?.putString(KEY_PREFIX_SWIPEACTIONS + tag, "$right,$left")?.apply()
-            }
-            fun saveActionsEnabledPrefs(enabled: Boolean) {
-//                getSharedPrefs(context)
-                prefs.edit()?.putBoolean(KEY_PREFIX_NO_ACTION + sa.tag, enabled)?.apply()
-            }
-
             var direction by remember { mutableIntStateOf(0) }
             var showPickerDialog by remember { mutableStateOf(false) }
             if (showPickerDialog) {
                 Dialog(onDismissRequest = { showPickerDialog = false }) {
-                    Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                    Card(modifier = Modifier
+                        .wrapContentSize(align = Alignment.Center)
+                        .fillMaxWidth()
+                        .padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                         LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(16.dp)) {
                             items(keys.size) { index ->
-                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp).clickable {
-                                    when (direction) {
-                                        -1 -> leftAction.value[0] = keys[index]
-                                        1 -> rightAction.value[0] = keys[index]
-                                        else -> {}
-                                    }
-                                    showPickerDialog = false
-                                }) {
-                                    Icon(imageVector = ImageVector.vectorResource(keys[index].getActionIcon()), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp))
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
+                                    .padding(16.dp)
+                                    .clickable {
+                                        when (direction) {
+                                            -1 -> leftAction.value[0] = keys[index]
+                                            1 -> rightAction.value[0] = keys[index]
+                                            else -> {}
+                                        }
+                                        showPickerDialog = false
+                                    }) {
+                                    Icon(imageVector = ImageVector.vectorResource(keys[index].getActionIcon()), tint = textColor, contentDescription = null, modifier = Modifier
+                                        .width(35.dp)
+                                        .height(35.dp))
                                     Text(keys[index].getTitle(), color = textColor, textAlign = TextAlign.Center)
                                 }
                             }
@@ -678,27 +682,38 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         }
                         else -> { "" }
                 } }
-                Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                Card(modifier = Modifier
+                    .wrapContentSize(align = Alignment.Center)
+                    .fillMaxWidth()
+                    .padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         Text(stringResource(R.string.swipeactions_label) + " - " + forFragment)
                         Text(stringResource(R.string.swipe_left))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(leftAction.value[0].getActionIcon()), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
+                            Icon(imageVector = ImageVector.vectorResource(leftAction.value[0].getActionIcon()), tint = textColor, contentDescription = null, modifier = Modifier
+                                .width(35.dp)
+                                .height(35.dp)
                                 .clickable(onClick = {
                                     direction = -1
                                     showPickerDialog = true
                                 }))
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier
+                                .width(50.dp)
+                                .height(35.dp))
                             Spacer(Modifier.weight(0.5f))
                         }
                         Text(stringResource(R.string.swipe_right))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
                             Spacer(Modifier.weight(0.5f))
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier
+                                .width(50.dp)
+                                .height(35.dp))
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(rightAction.value[0].getActionIcon()), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
+                            Icon(imageVector = ImageVector.vectorResource(rightAction.value[0].getActionIcon()), tint = textColor, contentDescription = null, modifier = Modifier
+                                .width(35.dp)
+                                .height(35.dp)
                                 .clickable(onClick = {
                                     direction = 1
                                     showPickerDialog = true
@@ -707,8 +722,8 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         }
                         Button(onClick = {
                             actions = sa.RightLeftActions("${rightAction.value[0].getId()},${leftAction.value[0].getId()}")
-                            savePrefs(sa.tag, rightAction.value[0].getId(), leftAction.value[0].getId())
-                            saveActionsEnabledPrefs(true)
+                            prefs.edit { putString(KEY_PREFIX_SWIPEACTIONS + sa.tag, "${rightAction.value[0].getId()},${leftAction.value[0].getId()}") }
+                            prefs.edit { putBoolean(KEY_PREFIX_NO_ACTION + sa.tag, true) }
                             callback(actions)
                             onDismissRequest()
                         }) { Text(stringResource(R.string.confirm_label)) }

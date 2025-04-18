@@ -5,7 +5,6 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.setCurTempSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
@@ -40,8 +39,8 @@ import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
+import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
@@ -357,7 +356,7 @@ fun TagSettingDialog(feeds_: List<Feed>, onDismiss: () -> Unit) {
                 var text by remember { mutableStateOf("") }
                 var filteredSuggestions by remember { mutableStateOf(suggestions) }
                 var showSuggestions by remember { mutableStateOf(false) }
-                var tags = remember { commonTags.toMutableStateList() }
+                val tags = remember { commonTags.toMutableStateList() }
                 if (feeds.size > 1 && commonTags.isNotEmpty()) Text(stringResource(R.string.multi_feed_common_tags_info))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     tags.forEach { FilterChip(onClick = {  }, label = { Text(it) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
@@ -432,7 +431,7 @@ fun SpeedSetter(initSpeed: Float, maxSpeed: Float, speedCB: (Float) -> Unit) {
 //        Text(text = String.format(Locale.getDefault(), "%.2fx", speed))
 //    }
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        var speed by remember { mutableStateOf(initSpeed) }
+        var speed by remember { mutableFloatStateOf(initSpeed) }
         var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
         val stepSize = 0.05f
         Text("-", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
@@ -472,18 +471,21 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
         Card(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column {
                 Text(stringResource(R.string.playback_speed), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
-                var speed by remember { mutableStateOf(initSpeed) }
-                var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
+                var speed by remember { mutableFloatStateOf(initSpeed) }
+//                var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
                 var useGlobal by remember { mutableStateOf(!isGlobal && speed == Feed.SPEED_USE_GLOBAL) }
                 if (!isGlobal) Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = useGlobal, onCheckedChange = { isChecked ->
                         useGlobal = isChecked
-                        speed = if (useGlobal) Feed.SPEED_USE_GLOBAL
-                        else if (feeds.size == 1) {
-                            if (feeds[0].playSpeed == Feed.SPEED_USE_GLOBAL) prefPlaybackSpeed
-                            else feeds[0].playSpeed
-                        } else 1f
-                        if (!useGlobal) sliderPosition = speed2Slider(speed, maxSpeed)
+                        speed = when {
+                            useGlobal -> Feed.SPEED_USE_GLOBAL
+                            feeds.size == 1 -> {
+                                if (feeds[0].playSpeed == Feed.SPEED_USE_GLOBAL) prefPlaybackSpeed
+                                else feeds[0].playSpeed
+                            }
+                            else -> 1f
+                        }
+//                        if (!useGlobal) sliderPosition = speed2Slider(speed, maxSpeed)
                     })
                     Text(stringResource(R.string.global_default))
                 }
@@ -502,6 +504,7 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
     }
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpeed: Float, onDismiss: () -> Unit) {
@@ -527,12 +530,12 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
     }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
-        dialogWindowProvider?.window?.let { window -> window.setGravity(Gravity.BOTTOM) }
+        dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
         Card(modifier = Modifier.fillMaxWidth().wrapContentHeight().padding(top = 10.dp, bottom = 10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val scrollState = rememberScrollState()
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
-                var speed by remember { mutableStateOf(curPBSpeed) }
-                var speeds = remember { readPlaybackSpeedArray(getPrefOrNull<String>(AppPrefs.prefPlaybackSpeedArray, null)).toMutableStateList() }
+                var speed by remember { mutableFloatStateOf(curPBSpeed) }
+                val speeds = remember { readPlaybackSpeedArray(getPrefOrNull<String>(AppPrefs.prefPlaybackSpeedArray, null)).toMutableStateList() }
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.playback_speed), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                     Spacer(Modifier.width(50.dp))
@@ -599,10 +602,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                 if (settingCode.size == 3) {
                                     Logd(TAG, "setSpeed codeArray: ${settingCode[0]} ${settingCode[1]} ${settingCode[2]}")
                                     if (settingCode[2]) putPref(AppPrefs.prefPlaybackSpeed, chipSpeed.toString())
-                                    if (settingCode[1]) {
-                                        val episode = curEpisode ?: curEpisode
-                                        if (episode?.feed != null) upsertBlk(episode.feed!!) { it.playSpeed = chipSpeed }
-                                    }
+                                    if (settingCode[1] && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
                                     if (settingCode[0]) {
                                         setCurTempSpeed(chipSpeed)
                                         mPlayer?.setPlaybackParams(chipSpeed, isSkipSilence)
@@ -647,7 +647,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                         NumberEditor(fastForwardSecs, modifier = Modifier.weight(0.6f)) { fastForwardSecs = it }
                     }
                     HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
-                    Text(stringResource(R.string.pref_fallback_speed), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold,)
+                    Text(stringResource(R.string.pref_fallback_speed), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                     SpeedSetter(fallbackSpeed, maxSpeed = 3f) {
                         val speed_ = when {
                             it < 0.0f -> 0.0f
@@ -657,7 +657,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                         fallbackSpeed = round(100 * speed_) / 100f
                     }
                     HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
-                    Text(stringResource(R.string.pref_speed_forward), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold,)
+                    Text(stringResource(R.string.pref_speed_forward), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                     SpeedSetter(speedforwardSpeed, maxSpeed = 10f) {
                         val speed_ = when {
                             it < 0.0f -> 0.0f

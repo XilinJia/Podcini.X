@@ -30,7 +30,7 @@ object PodcastSearcherRegistry {
             if (field.isEmpty()) {
                 field = mutableListOf()
                 field.add(SearcherInfo(CombinedSearcher(), 1.0f))
-                if (gearbox.hasSearcher()) field.add(SearcherInfo(gearbox.getSearcher()!!, 1.0f))
+                if (gearbox.hasSearcher()) field.add(SearcherInfo(gearbox.getSearcher(), 1.0f))
                 field.add(SearcherInfo(ItunesPodcastSearcher(), 1.0f))
                 field.add(SearcherInfo(PodcastIndexPodcastSearcher(), 1.0f))
             }

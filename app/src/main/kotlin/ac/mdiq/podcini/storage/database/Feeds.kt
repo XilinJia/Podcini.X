@@ -35,8 +35,8 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import android.app.backup.BackupManager
 import android.content.Context
-import android.net.Uri
 import androidx.compose.runtime.mutableStateListOf
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.ext.asFlow
 import io.github.xilinjia.krdb.notifications.ResultsChange
@@ -307,7 +307,7 @@ object Feeds {
                 if (priorMostRecentDate == null || priorMostRecentDate.before(pubDate) || priorMostRecentDate == pubDate) {
                     Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
                     episode.setPlayState(PlayState.NEW)
-                    if (savedFeed.autoAddNewToQueue == true) {
+                    if (savedFeed.autoAddNewToQueue) {
                         val q = savedFeed.queue
                         if (q != null) runOnIOScope {  addToQueueSync(episode, q) }
                     }
@@ -387,7 +387,7 @@ object Feeds {
             if (priorMostRecentDate < pubDate) {
                 Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
                 episode.setPlayState(PlayState.NEW)
-                if (savedFeed.autoAddNewToQueue == true) {
+                if (savedFeed.autoAddNewToQueue) {
                     val q = savedFeed.queue
                     if (q != null) runOnIOScope {  addToQueueSync(episode, q) }
                 }
@@ -468,9 +468,9 @@ object Feeds {
                         val url = episode.fileUrl
                         when {
                             // Local feed or custom media folder
-                            url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, Uri.parse(url))?.delete()
+                            url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, url.toUri())?.delete()
                             url != null -> {
-                                val path = Uri.parse(url).path
+                                val path = url.toUri().path
                                 if (path != null) File(path).delete()
                             }
                         }

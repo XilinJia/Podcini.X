@@ -51,7 +51,7 @@ object AutoDownloads {
 
     fun autodownloadForQueue(context: Context, queue: PlayQueue): Job {
         val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find()
-        return CoroutineScope(Dispatchers.IO).launch { if (isAutodownloadEnabled) AutoDownloadAlgorithm().run(context, feeds, false, true) }
+        return CoroutineScope(Dispatchers.IO).launch { if (isAutodownloadEnabled) AutoDownloadAlgorithm().run(context, feeds, false, onlyExisting = true) }
     }
 
     fun autoenqueueForQueue(queue: PlayQueue): Job {
@@ -124,7 +124,7 @@ object AutoDownloads {
             } else Logt(TAG, "Auto download not performed: network: $networkAllowAutoDownload power: $powerShouldAutoDl")
         }
 
-        fun deviceCharging(context: Context): Boolean {
+        private fun deviceCharging(context: Context): Boolean {
             // from http://developer.android.com/training/monitoring-device-state/battery-monitoring.html
             val iFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
             val batteryStatus = context.registerReceiver(null, iFilter)
@@ -159,8 +159,8 @@ object AutoDownloads {
         }
     }
 
-    private fun assembleFeedsCandidates(feeds: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, onlyExisting: Boolean = false) {
-        val feeds = feeds ?: getFeedList()
+    private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, onlyExisting: Boolean = false) {
+        val feeds = feeds_ ?: getFeedList()
         feeds.forEach { f ->
             Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocalFeed} ${f.title}")
             if (((dl && f.autoDownload) || (!dl && f.autoEnqueue)) && !f.isLocalFeed) {
@@ -174,7 +174,7 @@ object AutoDownloads {
                 var allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount
                 Logd(TAG, "assembleFeedsCandidates ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")
                 Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${f.autoDLPolicy.name}")
-                var episodes = mutableListOf<Episode>()
+                val episodes = mutableListOf<Episode>()
                 var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND downloaded == false"
                 if (allowedDLCount > 0 && f.autoDLSoon) {
                     val queryStringSoon = queryString + " AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"

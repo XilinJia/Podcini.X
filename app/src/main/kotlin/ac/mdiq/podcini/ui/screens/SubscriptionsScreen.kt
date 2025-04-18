@@ -160,6 +160,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
+import androidx.core.content.edit
 
 class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     val prefs: SharedPreferences by lazy { context.getSharedPreferences("SubscriptionsFragmentPrefs", Context.MODE_PRIVATE) }
@@ -172,7 +173,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
         }
         set(filter) {
             _feedsFilter = filter
-            prefs.edit().putString("feedsFilter", filter).apply()
+            prefs.edit { putString("feedsFilter", filter) }
         }
 
     private var _langFilterIndex: Int = -1
@@ -183,7 +184,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
         }
         set(index) {
             _langFilterIndex = index
-            prefs.edit().putInt("tagFilterIndex", index).apply()
+            prefs.edit { putInt("tagFilterIndex", index)}
         }
     private var _tagFilterIndex: Int = -1
     internal var tagFilterIndex: Int
@@ -193,7 +194,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
         }
         set(index) {
             _tagFilterIndex = index
-            prefs.edit().putInt("tagFilterIndex", index).apply()
+            prefs.edit { putInt("tagFilterIndex", index)}
         }
     private var _queueFilterIndex: Int = -1
     internal var queueFilterIndex: Int
@@ -203,7 +204,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
         }
         set(index) {
             _queueFilterIndex = index
-            prefs.edit().putInt("queueFilterIndex", index).apply()
+            prefs.edit { putInt("queueFilterIndex", index)}
         }
 
     internal val languages: MutableList<String> = mutableListOf()
@@ -221,19 +222,19 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var feedCountState by mutableStateOf("")
     internal var feedSorted by mutableIntStateOf(0)
 
-    internal var sortIndex by mutableStateOf(0)
+    internal var sortIndex by mutableIntStateOf(0)
     internal var titleAscending by mutableStateOf(true)
     internal var dateAscending by mutableStateOf(true)
     internal var timeAscending by mutableStateOf(true)
     internal var countAscending by mutableStateOf(true)
-    internal var dateSortIndex by mutableStateOf(0)
-    internal var timeSortIndex by mutableStateOf(0)
+    internal var dateSortIndex by mutableIntStateOf(0)
+    internal var timeSortIndex by mutableIntStateOf(0)
     internal val playStateSort = MutableList(PlayState.entries.size) { mutableStateOf(false) }
     internal val playStateCodeSet = mutableSetOf<String>()
     internal val ratingSort = MutableList(Rating.entries.size) { mutableStateOf(false) }
     internal val ratingCodeSet = mutableSetOf<String>()
-    internal var downlaodedSortIndex by mutableStateOf(-1)
-    internal var commentedSortIndex by mutableStateOf(-1)
+    internal var downlaodedSortIndex by mutableIntStateOf(-1)
+    internal var commentedSortIndex by mutableIntStateOf(-1)
 
     internal var feedListFiltered = mutableStateListOf<Feed>()
     internal var showFilterDialog by mutableStateOf(false)
@@ -362,16 +363,18 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     private fun saveSortingPrefs() {
-        prefs.edit().putInt("sortIndex", sortIndex).apply()
-        prefs.edit().putBoolean("titleAscending", titleAscending).apply()
-        prefs.edit().putBoolean("dateAscending", dateAscending).apply()
-        prefs.edit().putBoolean("countAscending", countAscending).apply()
-        prefs.edit().putInt("dateSortIndex", dateSortIndex).apply()
-        prefs.edit().putInt("downlaodedSortIndex", downlaodedSortIndex).apply()
-        prefs.edit().putInt("commentedSortIndex", commentedSortIndex).apply()
         sortArrays2CodeSet()
-        prefs.edit().putStringSet("playStateCodeSet", playStateCodeSet).apply()
-        prefs.edit().putStringSet("ratingCodeSet", ratingCodeSet).apply()
+        prefs.edit {
+            putInt("sortIndex", sortIndex)
+            putBoolean("titleAscending", titleAscending)
+            putBoolean("dateAscending", dateAscending)
+            putBoolean("countAscending", countAscending)
+            putInt("dateSortIndex", dateSortIndex)
+            putInt("downlaodedSortIndex", downlaodedSortIndex)
+            putInt("commentedSortIndex", commentedSortIndex)
+            putStringSet("playStateCodeSet", playStateCodeSet)
+            putStringSet("ratingCodeSet", ratingCodeSet)
+        }
     }
 
     internal fun getSortingPrefs() {
@@ -697,7 +700,7 @@ fun SubscriptionsScreen() {
     @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
     @Composable
     fun LazyList() {
-        var selectedSize by remember { mutableStateOf(0) }
+        var selectedSize by remember { mutableIntStateOf(0) }
         val selected = remember { mutableStateListOf<Feed>() }
         var longPressIndex by remember { mutableIntStateOf(-1) }
         var refreshing by remember { mutableStateOf(false)}
@@ -1450,7 +1453,7 @@ fun SubscriptionsScreen() {
                     for (item in FeedFilter.FeedFilterGroup.entries) {
                         if (item.values.size == 2) {
                             Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
-                                var selectedIndex by remember { mutableStateOf(-1) }
+                                var selectedIndex by remember { mutableIntStateOf(-1) }
                                 if (selectNone) selectedIndex = -1
                                 LaunchedEffect(Unit) {
                                     if (filter != null) {
@@ -1460,7 +1463,8 @@ fun SubscriptionsScreen() {
                                 }
                                 Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge , color = textColor, modifier = Modifier.padding(end = 10.dp))
                                 Spacer(Modifier.weight(0.3f))
-                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp),
+                                OutlinedButton(
+                                    modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp),
                                     border = BorderStroke(2.dp, if (selectedIndex != 0) textColor else Color.Green),
                                     onClick = {
                                         if (selectedIndex != 0) {
@@ -1476,7 +1480,8 @@ fun SubscriptionsScreen() {
                                     },
                                 ) { Text(text = stringResource(item.values[0].displayName), color = textColor) }
                                 Spacer(Modifier.weight(0.1f))
-                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp),
+                                OutlinedButton(
+                                    modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp),
                                     border = BorderStroke(2.dp, if (selectedIndex != 1) textColor else Color.Green),
                                     onClick = {
                                         if (selectedIndex != 1) {
@@ -1552,7 +1557,8 @@ fun SubscriptionsScreen() {
                                     LaunchedEffect(Unit) {
                                         if (filter != null && item.values[index].filterId in filter.properties) selectedList[index].value = true
                                     }
-                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
+                                    OutlinedButton(
+                                        modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
                                         border = BorderStroke(2.dp, if (selectedList[index].value) Color.Green else textColor),
                                         onClick = {
                                             selectNone = false

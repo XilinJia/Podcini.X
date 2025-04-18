@@ -79,16 +79,16 @@ class FeedAutoDownloadFilter(
     /**
      * @return true if only include is set
      */
-    fun includeOnly(): Boolean = hasIncludeFilter() && !hasExcludeFilter()
+//    fun includeOnly(): Boolean = hasIncludeFilter() && !hasExcludeFilter()
 
     /**
      * @return true if only exclude is set
      */
-    fun excludeOnly(): Boolean = hasExcludeFilter() && !hasIncludeFilter()
+//    fun excludeOnly(): Boolean = hasExcludeFilter() && !hasIncludeFilter()
 
-    fun hasIncludeFilter(): Boolean = !includeFilterRaw.isNullOrBlank()
+    private fun hasIncludeFilter(): Boolean = !includeFilterRaw.isNullOrBlank()
 
-    fun hasExcludeFilter(): Boolean = !excludeFilterRaw.isNullOrBlank()
+    private fun hasExcludeFilter(): Boolean = !excludeFilterRaw.isNullOrBlank()
 
     fun hasMinDurationFilter(): Boolean = minDurationFilter > 0
 

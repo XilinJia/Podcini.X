@@ -196,9 +196,9 @@ fun EpisodeTextScreen() {
                         } else vm.ttsPlaying = false
                     }) { Icon(imageVector = ImageVector.vectorResource(iconRes), contentDescription = "home") }
                 }
-                var showJSIconRes = if (vm.readMode) R.drawable.outline_eyeglasses_24 else R.drawable.javascript_icon_245402
+                val showJSIconRes = if (vm.readMode) R.drawable.outline_eyeglasses_24 else R.drawable.javascript_icon_245402
                 IconButton(onClick = { vm.jsEnabled = !vm.jsEnabled }) { Icon(imageVector = ImageVector.vectorResource(showJSIconRes), contentDescription = "JS") }
-                var homeIconRes = if (vm.readMode) R.drawable.baseline_home_24 else R.drawable.outline_home_24
+                val homeIconRes = if (vm.readMode) R.drawable.baseline_home_24 else R.drawable.outline_home_24
                 IconButton(onClick = {
                     vm.readMode = !vm.readMode
                     vm.jsEnabled = false

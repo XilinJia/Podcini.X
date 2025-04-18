@@ -17,8 +17,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.containsUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileFor
 import ac.mdiq.podcini.net.utils.NetworkUtils.setAllowMobileFor
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
@@ -40,11 +38,9 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
-import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
-import android.os.Build
 import androidx.collection.ArrayMap
 import androidx.core.app.NotificationCompat
 import androidx.work.BackoffPolicy
@@ -55,14 +51,14 @@ import androidx.work.NetworkType
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import org.apache.commons.lang3.StringUtils
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.TimeUnit
 
 open class SyncService(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     val TAG = this::class.simpleName ?: "Anonymous"
@@ -198,7 +194,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             .first { !it.isRunning }
     }
 
-    fun getEpisodeActions(syncServiceImpl: ISyncService) : Pair<Long, Long> {
+    private fun getEpisodeActions(syncServiceImpl: ISyncService) : Pair<Long, Long> {
         val lastSync = SynchronizationSettings.lastEpisodeActionSynchronizationTimestamp
         EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_episodes_download))
         val getResponse = syncServiceImpl.getEpisodeActionChanges(lastSync)
@@ -217,12 +213,11 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             val readItems = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_NEW_OLD)
             Logd(TAG, "First sync. Upload state for all " + readItems.size + " played episodes")
             for (item in readItems) {
-                val media = item
                 val played = EpisodeAction.Builder(item, EpisodeAction.PLAY)
                     .currentTimestamp()
-                    .started(media.duration / 1000)
-                    .position(media.position / 1000)
-                    .total(media.duration / 1000)
+                    .started(item.duration / 1000)
+                    .position(item.position / 1000)
+                    .total(item.duration / 1000)
                     .build()
                 queuedEpisodeActions.add(played)
             }
@@ -252,7 +247,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
 
     open fun processEpisodeAction(action: EpisodeAction): Pair<Long, Episode>? {
         val guid = if (isValidGuid(action.guid)) action.guid else null
-        val feedItem = getEpisodeByGuidOrUrl(guid, action.episode?:"")
+        val feedItem = getEpisodeByGuidOrUrl(guid, action.episode)
         if (feedItem == null) {
             Logd(TAG, "Unknown feed item: $action")
             return null
@@ -291,17 +286,17 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         }
     }
 
-    protected fun clearErrorNotifications() {
+    private fun clearErrorNotifications() {
         val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.cancel(R.id.notification_gpodnet_sync_error)
         nm.cancel(R.id.notification_gpodnet_sync_autherror)
     }
 
-    fun gpodnetNotificationsEnabled(): Boolean {
+    private fun gpodnetNotificationsEnabled(): Boolean {
         return true // for Android SDK 26 and above
     }
 
-    protected fun updateErrorNotification(exception: Exception) {
+    private fun updateErrorNotification(exception: Exception) {
         Logd(TAG, "Posting sync error notification")
         val description = ("${applicationContext.getString(R.string.gpodnetsync_error_descr)}${exception.message}")
 
@@ -351,7 +346,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         internal fun setCurrentlyActive(active: Boolean) {
             isCurrentlyActive = active
         }
-        var isAllowMobileSync: Boolean
+        private var isAllowMobileSync: Boolean
             get() = isAllowMobileFor(MobileUpdateOptions.sync.name)
             set(allow) {
                 setAllowMobileFor(MobileUpdateOptions.sync.name, allow)
@@ -400,7 +395,6 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             val remoteActionsThatOverrideLocalActions: MutableMap<Pair<String, String>, EpisodeAction> = ArrayMap()
             val localMostRecentPlayActions = createUniqueLocalMostRecentPlayActions(queuedEpisodeActions)
             for (remoteAction in remoteActions) {
-                if (remoteAction.podcast == null || remoteAction.episode == null) continue
                 val key = Pair(remoteAction.podcast, remoteAction.episode)
                 when (remoteAction.action) {
                     EpisodeAction.Action.NEW, EpisodeAction.Action.DOWNLOAD -> {}
@@ -421,7 +415,6 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         private fun createUniqueLocalMostRecentPlayActions(queuedEpisodeActions: List<EpisodeAction>): Map<Pair<String, String>, EpisodeAction> {
             val localMostRecentPlayAction: MutableMap<Pair<String, String>, EpisodeAction> = ArrayMap()
             for (action in queuedEpisodeActions) {
-                if (action.podcast == null || action.episode == null) continue
                 val key = Pair(action.podcast, action.episode)
                 val mostRecent = localMostRecentPlayAction[key]
                 when {

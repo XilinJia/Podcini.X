@@ -14,8 +14,10 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import android.annotation.SuppressLint
+import androidx.annotation.OptIn
 import androidx.media3.common.Format
 import androidx.media3.common.Timeline
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import java.io.File
@@ -26,6 +28,7 @@ object Recorder {
     const val TAG = "Recorder"
     val context = getAppContext()
 
+    @OptIn(UnstableApi::class)
     fun ExoPlayer.contentPositionToByte(positionMs: Long): Long? {
         val timeline = currentTimeline
         if (timeline.isEmpty) return null
@@ -55,6 +58,8 @@ object Recorder {
     // Format adjustments
     fun adjustMp3Clip(bytes: ByteArray): ByteArray = bytes
     fun adjustRawAacClip(bytes: ByteArray): ByteArray = bytes
+
+    @OptIn(UnstableApi::class)
     fun adjustOggClip(bytes: ByteArray, cache: SimpleCache, key: String, startByte: Long, endByte: Long): ByteArray {
         if (startByte > 0) {
             val headerBytes = getHeaderBytesFromCache(cache, key, 1024)
@@ -62,6 +67,8 @@ object Recorder {
         }
         return bytes
     }
+
+    @OptIn(UnstableApi::class)
     fun adjustMp4Clip(bytes: ByteArray, cache: SimpleCache, key: String, startByte: Long, endByte: Long): ByteArray {
         if (startByte > 0 || endByte < spansTotalLength(cache, key)) {
             Logt(TAG, "MP4 clip may not be playable without re-muxing.")
@@ -75,6 +82,8 @@ object Recorder {
         Logt(TAG, "Local MP4 clip may not be playable without re-muxing.")
         return bytes
     }
+
+    @OptIn(UnstableApi::class)
     fun getHeaderBytesFromCache(cache: SimpleCache, key: String, maxHeaderSize: Int): ByteArray? {
         val firstSpan = cache.getCachedSpans(key).minByOrNull { it.position } ?: return null
         if (firstSpan.position > 0 || firstSpan.file?.exists() != true) return null
@@ -84,6 +93,8 @@ object Recorder {
             if (bytesRead > 0) buffer.copyOf(bytesRead) else null
         }
     }
+
+    @OptIn(UnstableApi::class)
     fun getFullFileFromCache(cache: SimpleCache, key: String): ByteArray? {
         val spans = cache.getCachedSpans(key).sortedBy { it.position }
         if (spans.isEmpty()) return null
@@ -91,6 +102,8 @@ object Recorder {
         spans.forEach { span -> span.file?.inputStream()?.use { it.copyTo(outputStream) } }
         return outputStream.toByteArray().takeIf { it.isNotEmpty() }
     }
+
+    @OptIn(UnstableApi::class)
     fun spansTotalLength(cache: SimpleCache, key: String): Long = cache.getCachedSpans(key).sumOf { it.length }
 
     /**
@@ -98,6 +111,7 @@ object Recorder {
      * startPositionMs: Long? = null, // Null for stop/save
      * endPositionMs: Long? = null,   // Null for start
      */
+    @OptIn(UnstableApi::class)
     fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null) {
         val mediaItem = exoPlayer!!.currentMediaItem ?: run {
             Loge(TAG, "No current media item.")
@@ -132,8 +146,8 @@ object Recorder {
         val startBytePlayer = exoPlayer?.contentPositionToByte(startPositionMs)
         val endBytePlayer = exoPlayer?.contentPositionToByte(endPositionMs)
 
-        var clipname = "${getDurationStringShort(startPositionMs, false)}-${getDurationStringShort(endPositionMs, false)}.$ext"
-        var outputFile = getClipFile(curEpisode!!, clipname)
+        val clipname = "${getDurationStringShort(startPositionMs, false)}-${getDurationStringShort(endPositionMs, false)}.$ext"
+        val outputFile = getClipFile(curEpisode!!, clipname)
         runOnIOScope {
             when {
                 uri.scheme == "file" || uri.scheme == "content" -> {

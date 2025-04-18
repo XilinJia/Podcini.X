@@ -66,5 +66,5 @@ fun CustomTheme(context: Context, content: @Composable () -> Unit) {
 }
 
 fun isLightTheme(context: Context): Boolean {
-    return readThemeValue(context) == AppPreferences.ThemePreference.LIGHT
+    return readThemeValue(context) == ThemePreference.LIGHT
 }

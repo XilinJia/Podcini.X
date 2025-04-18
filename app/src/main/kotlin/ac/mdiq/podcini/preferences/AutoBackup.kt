@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.IOException
+import androidx.core.net.toUri
 
 const val autoBackupDirName = "Podcini-AutoBackups"
 
@@ -41,10 +42,10 @@ fun autoBackup(activity: Activity) {
 
     CoroutineScope(Dispatchers.IO).launch {
         val interval = getPref(AppPrefs.prefAutoBackupIntervall, 24)
-        var lastBackupTime = getPref(AppPrefs.prefAutoBackupTimeStamp, 0L)
+        val lastBackupTime = getPref(AppPrefs.prefAutoBackupTimeStamp, 0L)
         val curTime = System.currentTimeMillis()
         if ((curTime - lastBackupTime) / 1000 / 3600 > interval) {
-            val uri = Uri.parse(uriString)
+            val uri = uriString.toUri()
             val permissions = activity.contentResolver.persistedUriPermissions.find { it.uri == uri }
             if (permissions != null && permissions.isReadPermission && permissions.isWritePermission) {
                 val chosenDir = DocumentFile.fromTreeUri(activity, uri)

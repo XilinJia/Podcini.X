@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.util.error
 
-import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadError
 import androidx.annotation.StringRes

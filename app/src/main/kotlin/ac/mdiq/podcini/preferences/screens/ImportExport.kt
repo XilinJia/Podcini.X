@@ -24,11 +24,13 @@ import ac.mdiq.podcini.preferences.importAP
 import ac.mdiq.podcini.preferences.importPA
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
+import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.MiscFormatter.dateStampFilename
@@ -83,7 +85,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
-import com.google.android.material.snackbar.Snackbar
 import java.io.BufferedReader
 import java.io.IOException
 import java.io.InputStream
@@ -113,10 +114,13 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
         val fileName = uri.lastPathSegment ?: return false
         return fileName.contains(backupDirName, ignoreCase = true) || fileName.contains(autoBackupDirName, ignoreCase = true)
     }
-    fun showExportSuccessSnackbar(uri: Uri?, mimeType: String?) {
-        Snackbar.make(activity.findViewById(android.R.id.content), R.string.export_success_title, Snackbar.LENGTH_LONG)
-            .setAction(R.string.share_label) { IntentBuilder(activity).setType(mimeType).addStream(uri!!).setChooserTitle(R.string.share_label).startChooser() }
-            .show()
+    fun showExportSuccess(uri: Uri?, mimeType: String?) {
+        commonConfirm = CommonConfirmAttrib(
+            title = activity.getString(R.string.export_success_title),
+            message = "",
+            confirmRes = R.string.share_label,
+            cancelRes = R.string.no,
+            onConfirm = { IntentBuilder(activity).setType(mimeType).addStream(uri!!).setChooserTitle(R.string.share_label).startChooser() })
     }
     val showImporSuccessDialog = remember { mutableStateOf(false) }
     ComfirmDialog(titleRes = R.string.successful_import_label, message = stringResource(R.string.import_ok), showDialog = showImporSuccessDialog, cancellable = false) { forceRestart() }
@@ -134,7 +138,7 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
                     val output = ExportWorker(exportWriter, activity).exportFile()
                     withContext(Dispatchers.Main) {
                         val fileUri = FileProvider.getUriForFile(context!!.applicationContext, context.getString(R.string.provider_authority), output!!)
-                        showExportSuccessSnackbar(fileUri, exportType.contentType)
+                        showExportSuccess(fileUri, exportType.contentType)
                     }
                 } catch (e: Exception) {
                     showProgress = false
@@ -147,7 +151,7 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
                 val worker = DocumentFileExportWorker(exportWriter, context!!, uri)
                 try {
                     val output = worker.exportFile()
-                    withContext(Dispatchers.Main) { showExportSuccessSnackbar(output.uri, exportType.contentType) }
+                    withContext(Dispatchers.Main) { showExportSuccess(output.uri, exportType.contentType) }
                 } catch (e: Exception) {
                     showProgress = false
                     importErrorMessage = e.message?:"Reason unknown"

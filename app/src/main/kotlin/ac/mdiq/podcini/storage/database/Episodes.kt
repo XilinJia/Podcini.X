@@ -8,7 +8,6 @@ import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.Recorder.context
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
@@ -34,9 +33,11 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import android.content.Context
-import android.net.Uri
+import androidx.annotation.OptIn
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import androidx.media3.common.util.UnstableApi
 import io.github.xilinjia.krdb.ext.isManaged
 import java.io.File
 import java.util.Locale
@@ -58,8 +59,8 @@ object Episodes {
      * TODO: filters of queued and notqueued don't work in this
      */
     fun getEpisodes(offset: Int, limit: Int, filter: EpisodeFilter?, sortOrder: EpisodeSortOrder?, copy: Boolean = true): List<Episode> {
-        Logd(TAG, "getEpisodes called with: offset=$offset, limit=$limit")
         val queryString = filter?.queryString()?:"id > 0"
+        Logd(TAG, "getEpisodes called with: offset=$offset, limit=$limit queryString: $queryString")
         var episodes = realm.query(Episode::class).query(queryString).find().toMutableList()
         if (sortOrder != null) getPermutor(sortOrder).reorder(episodes)
         val size = episodes.size
@@ -68,15 +69,15 @@ object Episodes {
     }
 
     fun getEpisodesCount(filter: EpisodeFilter?, feedId: Long = -1): Int {
-        Logd(TAG, "getEpisodesCount called")
         var queryString = filter?.queryString()?:"id > 0"
+        Logd(TAG, "getEpisodesCount called queryString: $queryString")
         if (feedId >= 0) queryString += " AND feedId == $feedId "
         return realm.query(Episode::class).query(queryString).count().find().toInt()
     }
 
     fun getEpisodes(filter: EpisodeFilter?, feedId: Long = -1, limit: Int): List<Episode> {
-        Logd(TAG, "getEpisodes called")
         var queryString = filter?.queryString()?:"id > 0"
+        Logd(TAG, "getEpisodes called queryString: $queryString")
         if (feedId >= 0) queryString += " AND feedId == $feedId "
         queryString += " SORT(pubDate ASC) LIMIT($limit) "
         return realm.query(Episode::class).query(queryString).find()
@@ -150,6 +151,7 @@ object Episodes {
         if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(episode_)
     }
 
+    @OptIn(UnstableApi::class)
     fun deleteMediaSync(context: Context, episode: Episode): Episode {
         Logd(TAG, String.format(Locale.US, "deleteMediaSync [id=%d, title=%s, downloaded=%s", episode.id, episode.getEpisodeTitle(), episode.downloaded))
         var localDelete = false
@@ -160,7 +162,7 @@ object Episodes {
             when {
                 url != null && url.startsWith("content://") -> {
                     // Local feed or custom media folder
-                    val documentFile = DocumentFile.fromSingleUri(context, Uri.parse(url))
+                    val documentFile = DocumentFile.fromSingleUri(context, url.toUri())
                     if (documentFile == null || !documentFile.exists() || !documentFile.delete()) {
                         Loge(TAG, "deleteMediaSync delete media file failed: file not exists? ${episode.title} $url")
                         EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
@@ -175,7 +177,7 @@ object Episodes {
                 }
                 url != null -> {
                     // delete downloaded media file
-                    val path = Uri.parse(url).path
+                    val path = url.toUri().path
                     if (path == null) {
                         Loge(TAG, "deleteMediaSync delete media file failed: file not exists? ${episode.title} $url")
                         EventFlow.postEvent(FlowEvent.MessageEvent(getAppContext().getString(R.string.delete_local_failed)))
@@ -225,6 +227,7 @@ object Episodes {
      * Remove the listed episodes and their EpisodeMedia entries.
      * Deleting media also removes the download log entries.
      */
+    @OptIn(UnstableApi::class)
     fun deleteEpisodesSync(context: Context, episodes: List<Episode>)  {
         val removedFromQueue: MutableList<Episode> = mutableListOf()
         val queueItems = curQueue.episodes.toMutableList()

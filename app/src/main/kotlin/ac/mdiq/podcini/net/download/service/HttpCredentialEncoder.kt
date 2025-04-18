@@ -11,8 +11,6 @@ object HttpCredentialEncoder {
             val bytes = credentials.toByteArray(charset(charset!!))
             val encoded: String = ByteString.of(*bytes).base64()
             return "Basic $encoded"
-        } catch (e: UnsupportedEncodingException) {
-            throw AssertionError(e)
-        }
+        } catch (e: UnsupportedEncodingException) { throw AssertionError(e) }
     }
 }

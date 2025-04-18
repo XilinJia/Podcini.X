@@ -95,6 +95,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.core.content.edit
 
 
 class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
@@ -151,7 +152,7 @@ class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
             showRetry = false
             return
         }
-        if (BuildConfig.FLAVOR == "free" && prefs.getBoolean(ItunesTopListLoader.PREF_KEY_NEEDS_CONFIRM, true) == true) {
+        if (BuildConfig.FLAVOR == "free" && prefs.getBoolean(ItunesTopListLoader.PREF_KEY_NEEDS_CONFIRM, true)) {
             showError = true
             errorText = ""
             showGrid = true
@@ -220,7 +221,7 @@ fun OnlineSearchScreen() {
                     Logd(TAG, "size of directory: ${PAFeed.size}")
                     vm.loadToplist()
                     if (getPref(AppPrefs.prefOPMLRestore, false) && feedCount == 0) {
-                        vm.numberOPMLFeedsToRestore.value = getPref(AppPrefs.prefOPMLFeedsToRestore, 0)
+                        vm.numberOPMLFeedsToRestore.intValue = getPref(AppPrefs.prefOPMLFeedsToRestore, 0)
                         vm.showOPMLRestoreDialog.value = true
                     }
                 }
@@ -240,7 +241,7 @@ fun OnlineSearchScreen() {
     val textColor = MaterialTheme.colorScheme.onSurface
     val actionColor = MaterialTheme.colorScheme.tertiary
     val scrollState = rememberScrollState()
-    ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, vm.numberOPMLFeedsToRestore.value), vm.showOPMLRestoreDialog) {
+    ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, vm.numberOPMLFeedsToRestore.intValue), vm.showOPMLRestoreDialog) {
         vm.showProgress = true
         performRestore(context)
         vm.showProgress = false
@@ -259,7 +260,7 @@ fun OnlineSearchScreen() {
                     context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                     val documentFile = DocumentFile.fromTreeUri(context, uri)
                     requireNotNull(documentFile) { "Unable to retrieve document tree" }
-                    var title = documentFile.name ?: context.getString(R.string.local_folder)
+                    val title = documentFile.name ?: context.getString(R.string.local_folder)
 
                     val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
                     Logd(TAG, "addLocalFolderLauncher dirFeed episodes: ${dirFeed.episodes.size}")
@@ -329,7 +330,7 @@ fun OnlineSearchScreen() {
                 if (vm.showError) Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     Text(vm.errorText, color = textColor)
                     if (vm.showRetry) Button(onClick = {
-                        vm.prefs.edit().putBoolean(ItunesTopListLoader.PREF_KEY_NEEDS_CONFIRM, false).apply()
+                        vm.prefs.edit { putBoolean(ItunesTopListLoader.PREF_KEY_NEEDS_CONFIRM, false) }
                         vm.loadToplist()
                     }) { Text(stringResource(vm.retryTextRes)) }
                 }

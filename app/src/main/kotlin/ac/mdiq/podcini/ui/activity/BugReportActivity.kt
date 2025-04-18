@@ -49,18 +49,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.content.FileProvider
+import org.apache.commons.io.IOUtils
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.nio.charset.Charset
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-import org.apache.commons.io.IOUtils
 
 class BugReportActivity : ComponentActivity() {
     private var crashDetailsTextView by mutableStateOf("")
-    var showConfirmExport = mutableStateOf(false)
+    private var showConfirmExport = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(getNoTitleTheme(this))

@@ -164,7 +164,7 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                 val tag = idTagMap[tid]
                 if (tag != null) {
                     val tSet = pIdTagMap[pid]
-                    if (tSet == null) pIdTagMap[pid] = mutableSetOf<String>(tag)
+                    if (tSet == null) pIdTagMap[pid] = mutableSetOf(tag)
                     else tSet.add(tag)
                 }
             }
@@ -211,7 +211,7 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                     item.feedId = null
                     item.feed = feed
                 }
-                updateFeedFull(activity, feed, false, true)
+                updateFeedFull(activity, feed, removeUnlistedItems = false, overwriteOld = true)
             }
         }
     }

@@ -115,7 +115,7 @@ class FeedSettingsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var videoMode = VideoMode.NONE.name
     internal var queues: List<PlayQueue>? = null
 
-    internal var notificationPermissionDenied: Boolean = false
+//    internal var notificationPermissionDenied: Boolean = false
 
     private var eventSink: Job? = null
     internal fun cancelFlowEvents() {
@@ -950,7 +950,7 @@ fun FeedSettingsScreen() {
                                             if (filterMinDuration) {
                                                 BasicTextField(value = filterMinDurationMinutes, textStyle = TextStyle(fontSize = 16.sp, color = textColor),
                                                     modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small),
-                                                    onValueChange = { if (it.all { it.isDigit() }) filterMinDurationMinutes = it }, )
+                                                    onValueChange = { it -> if (it.all { it.isDigit() }) filterMinDurationMinutes = it }, )
                                                 Text(stringResource(R.string.time_minutes), color = textColor)
                                             }
                                         }
@@ -961,7 +961,7 @@ fun FeedSettingsScreen() {
                                             })
                                             Text(text = stringResource(R.string.exclude_longer_than), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                             if (filterMaxDuration) {
-                                                BasicTextField(value = filterMaxDurationMinutes, onValueChange = { if (it.all { it.isDigit() }) filterMaxDurationMinutes = it },
+                                                BasicTextField(value = filterMaxDurationMinutes, onValueChange = { it -> if (it.all { it.isDigit() }) filterMaxDurationMinutes = it },
                                                     textStyle = TextStyle(fontSize = 16.sp, color = textColor),
                                                     modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
                                                 Text(stringResource(R.string.time_minutes), color = textColor)

@@ -40,23 +40,22 @@ sealed class FlowEvent {
         enum class Action {
             ADDED, SET_QUEUE, REMOVED, IRREVERSIBLE_REMOVED, CLEARED, DELETED_MEDIA, SORTED, MOVED, SWITCH_QUEUE
         }
-        fun inQueue(): Boolean {
-            return when (action) {
-                Action.ADDED, Action.SET_QUEUE, Action.SORTED, Action.MOVED, Action.SWITCH_QUEUE -> true
-                else -> false
-            }
-
-        }
+//        fun inQueue(): Boolean {
+//            return when (action) {
+//                Action.ADDED, Action.SET_QUEUE, Action.SORTED, Action.MOVED, Action.SWITCH_QUEUE -> true
+//                else -> false
+//            }
+//        }
         companion object {
             fun added(episode: Episode, position: Int): QueueEvent = QueueEvent(Action.ADDED, listOf(episode), position)
-            fun setQueue(queue: List<Episode>): QueueEvent = QueueEvent(Action.SET_QUEUE, queue, -1)
+//            fun setQueue(queue: List<Episode>): QueueEvent = QueueEvent(Action.SET_QUEUE, queue, -1)
             fun removed(episode: Episode): QueueEvent = QueueEvent(Action.REMOVED, listOf(episode), -1)
             fun removed(episodes: List<Episode>): QueueEvent = QueueEvent(Action.REMOVED, episodes, -1)
             fun irreversibleRemoved(episode: Episode): QueueEvent = QueueEvent(Action.IRREVERSIBLE_REMOVED, listOf(episode), -1)
             fun cleared(): QueueEvent = QueueEvent(Action.CLEARED, listOf(), -1)
             fun sorted(sortedQueue: List<Episode>): QueueEvent = QueueEvent(Action.SORTED, sortedQueue, -1)
             fun moved(episode: Episode, newPosition: Int): QueueEvent = QueueEvent(Action.MOVED, listOf(episode), newPosition)
-            fun switchQueue(qItems: List<Episode>): QueueEvent = QueueEvent(Action.SWITCH_QUEUE, qItems, -1)
+//            fun switchQueue(qItems: List<Episode>): QueueEvent = QueueEvent(Action.SWITCH_QUEUE, qItems, -1)
         }
     }
 
@@ -93,7 +92,7 @@ sealed class FlowEvent {
     data class EpisodeDownloadEvent(val map: Map<String, DownloadStatus>) : FlowEvent() {
         val urls: Set<String>
             get() = map.keys
-        fun isCompleted(url: String): Boolean = map[url]?.state == DownloadStatus.State.COMPLETED.ordinal
+//        fun isCompleted(url: String): Boolean = map[url]?.state == DownloadStatus.State.COMPLETED.ordinal
     }
 
     //    TODO: need better handling at receving end

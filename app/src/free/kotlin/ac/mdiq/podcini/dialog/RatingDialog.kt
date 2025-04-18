@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.ui.dialog
 
 import android.content.Context
-import androidx.annotation.VisibleForTesting
 
 object RatingDialog {
     @JvmStatic
@@ -10,7 +9,6 @@ object RatingDialog {
     fun check() {}
 
     @JvmStatic
-    @VisibleForTesting
     fun saveRated() {
     }
 }

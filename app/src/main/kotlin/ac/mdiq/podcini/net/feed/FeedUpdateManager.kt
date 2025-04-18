@@ -114,6 +114,7 @@ object FeedUpdateManager {
     @JvmStatic
     @JvmOverloads
     fun runOnce(context: Context, feed: Feed? = null, nextPage: Boolean = false, fullUpdate: Boolean = false) {
+        Logd(TAG, "runOnce feed: ${feed?.title}")
         val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(gearbox.feedUpdateWorkerClass())
             .setInitialDelay(0L, TimeUnit.MILLISECONDS)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)

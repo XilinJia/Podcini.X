@@ -215,7 +215,7 @@ class Feed : RealmObject {
         get() = fromInteger(volumeAdaption)
         set(value) {
             field = value
-            volumeAdaption = field.toInteger()
+            volumeAdaption = field.value
         }
     var volumeAdaption: Int = VolumeAdaptionSetting.OFF.value
 
@@ -261,7 +261,7 @@ class Feed : RealmObject {
             queueId = value?.id ?: -1L
         }
     @Ignore
-    var queueText: String = "Default"
+    val queueText: String
         get() = when (queueId) {
             0L -> "Default"
             -1L -> "Active"
@@ -352,7 +352,7 @@ class Feed : RealmObject {
         this.username = username
         this.password = password
         this.autoDelete = autoDeleteAction.code
-        this.volumeAdaption = volumeAdaptionSetting?.toInteger() ?: 0
+        this.volumeAdaption = volumeAdaptionSetting?.value ?: 0
     }
 
     // above from FeedPreferences
@@ -439,7 +439,7 @@ class Feed : RealmObject {
     fun getVirtualQueueItems():  List<Episode> {
         var qString = "feedId == $id AND (playState < ${PlayState.SKIPPED.code} OR playState == ${PlayState.AGAIN.code} OR playState == ${PlayState.FOREVER.code})"
 //        TODO: perhaps need to set prefStreamOverDownload for youtube feeds
-        if (type != FeedType.YOUTUBE.name && prefStreamOverDownload != true) qString += " AND downloaded == true"
+        if (type != FeedType.YOUTUBE.name && !prefStreamOverDownload) qString += " AND downloaded == true"
         val eList_ = realm.query(Episode::class, qString).query(episodeFilter.queryString()).find().toMutableList()
         if (sortOrder != null) getPermutor(sortOrder!!).reorder(eList_)
         return eList_

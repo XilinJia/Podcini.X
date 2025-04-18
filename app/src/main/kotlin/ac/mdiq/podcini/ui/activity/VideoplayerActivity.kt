@@ -33,7 +33,7 @@ import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.isLightTheme
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
-import ac.mdiq.podcini.ui.view.ShownotesWebView
+import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.openInBrowser

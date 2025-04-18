@@ -32,6 +32,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import kotlinx.coroutines.delay
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
@@ -48,7 +49,7 @@ import kotlin.math.min
 
 class WifiSyncService(val context: Context, params: WorkerParameters) : SyncService(context, params), ISyncService {
 
-    var loginFail = false
+    private var loginFail = false
 
     override suspend fun doWork(): Result {
         Logd(TAG, "doWork() called")
@@ -60,7 +61,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
 
         if (socket != null && !loginFail) {
             if (isGuest) {
-                Thread.sleep(1000)
+                delay(1000)
 //                TODO: not using lastSync
                 val lastSync = SynchronizationSettings.lastEpisodeActionSynchronizationTimestamp
                 val newTimeStamp = pushEpisodeActions(this, 0L, System.currentTimeMillis())
@@ -233,7 +234,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
     }
 
     @Throws(SyncServiceException::class)
-    override fun getEpisodeActionChanges(timestamp: Long): EpisodeActionChanges? {
+    override fun getEpisodeActionChanges(lastSync: Long): EpisodeActionChanges? {
         Logd(TAG, "getEpisodeActionChanges does nothing")
         return null
     }
@@ -315,7 +316,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
 
     override fun processEpisodeAction(action: EpisodeAction): Pair<Long, Episode>? {
         val guid = if (isValidGuid(action.guid)) action.guid else null
-        var feedItem = getEpisodeByGuidOrUrl(guid, action.episode?:"", false)
+        var feedItem = getEpisodeByGuidOrUrl(guid, action.episode, false)
         if (feedItem == null) {
             Logd(TAG, "Unknown feed item: $action")
             return null

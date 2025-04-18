@@ -10,6 +10,8 @@ import android.os.IBinder
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.view.KeyEvent
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 
 class QuickSettingsTileService : TileService() {
     override fun onTileAdded() {
@@ -37,6 +39,7 @@ class QuickSettingsTileService : TileService() {
         return super.onBind(intent)
     }
 
+    @OptIn(UnstableApi::class)
     private fun updateTile() {
         val qsTile = qsTile
         if (qsTile == null) Logd(TAG, "Ignored call to update QS tile: getQsTile() returned null.")

@@ -3,6 +3,7 @@ package ac.mdiq.podcini.preferences
 import android.content.Context
 import android.content.SharedPreferences
 import kotlin.math.abs
+import androidx.core.content.edit
 
 /**
  * Collects statistics about the app usage. The statistics are used to allow on-demand configuration:
@@ -37,10 +38,10 @@ object UsageStatistics {
     fun logAction(action: StatsAction) {
         val numExecutions = prefs!!.getInt(action.type + action.value, 0)
         val movingAverage = prefs!!.getFloat(action.type, 0.5f)
-        prefs!!.edit()
-            .putInt(action.type + action.value, numExecutions + 1)
-            .putFloat(action.type, MOVING_AVERAGE_WEIGHT * movingAverage + (1 - MOVING_AVERAGE_WEIGHT) * action.value)
-            .apply()
+        prefs!!.edit {
+            putInt(action.type + action.value, numExecutions + 1)
+            putFloat(action.type, MOVING_AVERAGE_WEIGHT * movingAverage + (1 - MOVING_AVERAGE_WEIGHT) * action.value)
+        }
     }
 
     @JvmStatic
@@ -54,7 +55,7 @@ object UsageStatistics {
 
     @JvmStatic
     fun doNotAskAgain(action: StatsAction) {
-        prefs!!.edit().putBoolean(action.type + SUFFIX_HIDDEN, true).apply()
+        prefs!!.edit { putBoolean(action.type + SUFFIX_HIDDEN, true) }
     }
 
     class StatsAction(val type: String, val value: Int)

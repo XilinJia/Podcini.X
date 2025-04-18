@@ -44,7 +44,6 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.showStackTrace
 import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
@@ -59,6 +58,7 @@ import android.net.wifi.WifiManager.WifiLock
 import android.service.quicksettings.TileService
 import android.util.Pair
 import android.view.SurfaceHolder
+import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -88,7 +88,10 @@ import java.util.GregorianCalendar
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
+import androidx.core.net.toUri
+import androidx.media3.common.util.UnstableApi
 
+@UnstableApi
 abstract class MediaPlayerBase protected constructor(protected val context: Context) {
 
     @Volatile
@@ -151,18 +154,18 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     open fun createStaticPlayer(context: Context) {}
 
+    @OptIn(UnstableApi::class)
     protected fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
         Logd(TAG, "setDataSource: $mediaUrl")
-        val uri = Uri.parse(mediaUrl)
+        val uri = mediaUrl.toUri()
         mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
-        if (mediaItem != null) {
-            val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-            val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
-            mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem!!)
-            setSourceCredentials(user, password)
-        } else Loge(TAG, "episode mediaUrl not valid $mediaUrl")
+        val httpDataSourceFactory = DefaultHttpDataSource.Factory()
+        val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
+        mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem!!)
+        setSourceCredentials(user, password)
     }
 
+    @UnstableApi
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     protected open fun setDataSource(metadata: MediaMetadata, media: Episode) {
         Logd(TAG, "setDataSource1 called ${media.title}")
@@ -187,6 +190,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
     }
 
+    @OptIn(UnstableApi::class)
     private fun setSourceCredentials(user: String?, password: String?) {
         if (!user.isNullOrEmpty() && !password.isNullOrEmpty()) {
             if (httpDataSourceFactory == null)
@@ -239,7 +243,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         else MIN_POSITION_SAVER_INTERVAL.toLong()
     }
 
-    fun onPlaybackStart(playable: Episode, position: Int) {
+    private fun onPlaybackStart(playable: Episode, position: Int) {
         val delayInterval = positionUpdateInterval(playable.duration)
         Logd(TAG, "onPlaybackStart ${playable.title}")
         Logd(TAG, "onPlaybackStart position: $position delayInterval: $delayInterval")
@@ -409,7 +413,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
                 val action = item.feed?.autoDeleteAction
                 val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))
-                val isItemdeletable = (!getPref(AppPrefs.prefFavoriteKeepsEpisode, true) || (item.isSUPER != true && item.playState != PlayState.AGAIN.code && item.playState != PlayState.FOREVER.code))
+                val isItemdeletable = (!getPref(AppPrefs.prefFavoriteKeepsEpisode, true) || (!item.isSUPER && item.playState != PlayState.AGAIN.code && item.playState != PlayState.FOREVER.code))
                 if (shouldAutoDelete && isItemdeletable) {
                     if (item.localFileAvailable()) item = deleteMediaSync(context, item)
                     if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(item)
@@ -464,7 +468,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
         if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
         if (it.startTime > 0) {
-            var delta = (System.currentTimeMillis() - it.startTime)
+            val delta = (System.currentTimeMillis() - it.startTime)
             if (delta > 3 * max(it.playedDuration, 60000)) Logt(TAG, "upsertDB likely invalid delta: $delta ${it.title}")
             else it.timeSpent = it.timeSpentOnStart + delta
         }
@@ -571,6 +575,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      * Custom DataSource that saves clip data during read when recording is active.
      * Adapted to use an existing CacheDataSource instance.
      */
+    @OptIn(UnstableApi::class)
     class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : DataSource {
         private val TAG = "SegmentSavingDataSource"
 
@@ -637,7 +642,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 isRecording = true
                 clipTempFile = File(tempDir, "clip_temp_${System.currentTimeMillis()}.tmp")
                 clipTempFos = FileOutputStream(clipTempFile!!)
-                clipStartByte = (startPositionMs * bitrate / 8 / 1000).toLong()
+                clipStartByte = (startPositionMs * bitrate / 8 / 1000)
                 clipBytesWritten = 0L
                 Logd(TAG, "Started recording at byte offset $clipStartByte")
             } else Loge(TAG, "Cannot start recording: tempDir not set or already recording")
@@ -649,7 +654,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 isRecording = false
                 clipTempFos?.close()
                 clipTempFos = null
-                val endByte = (endPositionMs * bitrate / 8 / 1000).toLong()
+                val endByte = (endPositionMs * bitrate / 8 / 1000)
                 Logd(TAG, "Stopped recording at byte offset $endByte, written: $clipBytesWritten")
                 return clipTempFile?.takeIf { it.exists() && clipBytesWritten > 0 }
             }
@@ -660,8 +665,8 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
     }
 
+    @UnstableApi
     class CustomDataSourceFactory(private val context: Context, private val upstreamFactory: DataSource.Factory) : DataSource.Factory {
-
         override fun createDataSource(): DataSource {
             return object : DataSource {
                 private var dataSource: DataSource? = null
@@ -754,7 +759,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         val curPBSpeed: Float
             get() = mPlayer?.getPlaybackSpeed() ?: getCurrentPlaybackSpeed(curEpisode)
 
-        var isStartWhenPrepared: Boolean
+        private var isStartWhenPrepared: Boolean
             get() = mPlayer?.startWhenPrepared?.get() == true
             set(s) {
                 mPlayer?.startWhenPrepared?.set(s)
@@ -785,7 +790,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 .setAlbumArtist(e.feed?.title?:"")
                 .setDisplayTitle(e.getEpisodeTitle())
                 .setSubtitle(e.feed?.title?:"")
-                .setArtworkUri(Uri.parse(e.imageLocation?:""))
+                .setArtworkUri((e.imageLocation ?: "").toUri())
             return builder.build()
         }
 
@@ -794,7 +799,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             val metadata = buildMetadata(e)
             return MediaItem.Builder()
                 .setMediaId(url)
-                .setUri(Uri.parse(url))
+                .setUri(url.toUri())
                 .setMediaMetadata(metadata).build()
         }
 

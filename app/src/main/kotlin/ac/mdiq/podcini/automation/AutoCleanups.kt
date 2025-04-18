@@ -17,7 +17,6 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
-import androidx.annotation.VisibleForTesting
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -100,8 +99,8 @@ object AutoCleanups {
             var candidates = candidates
             // in the absence of better data, we'll sort by item publication date
             candidates = candidates.sortedWith { lhs: Episode, rhs: Episode ->
-                var l = lhs.getPubDate()
-                var r = rhs.getPubDate()
+                val l = lhs.getPubDate()
+                val r = rhs.getPubDate()
                 l.compareTo(r)
             }
             val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
@@ -137,7 +136,7 @@ object AutoCleanups {
     /** the number of days after playback to wait before an item is eligible to be cleaned up.
      * Fractional for number of hours, e.g., 0.5 = 12 hours, 0.0416 = 1 hour.   */
 
-    class APCleanupAlgorithm(@JvmField @get:VisibleForTesting val numberOfHoursAfterPlayback: Int) : EpisodeCleanupAlgorithm() {
+    class APCleanupAlgorithm(@JvmField val numberOfHoursAfterPlayback: Int) : EpisodeCleanupAlgorithm() {
         private val candidates: List<Episode>
             get() {
                 val candidates: MutableList<Episode> = mutableListOf()
@@ -172,13 +171,8 @@ object AutoCleanups {
             Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
             return counter
         }
-        @VisibleForTesting
-        fun calcMostRecentDateForDeletion(currentDate: Date): Date {
-            return minusHours(currentDate, numberOfHoursAfterPlayback)
-        }
-        public override fun getDefaultCleanupParameter(): Int {
-            return getNumEpisodesToCleanup(0)
-        }
+        fun calcMostRecentDateForDeletion(currentDate: Date): Date = minusHours(currentDate, numberOfHoursAfterPlayback)
+        public override fun getDefaultCleanupParameter(): Int = getNumEpisodesToCleanup(0)
         companion object {
             private fun minusHours(baseDate: Date, numberOfHours: Int): Date {
                 val cal = Calendar.getInstance()

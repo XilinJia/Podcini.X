@@ -58,6 +58,7 @@ import android.provider.Settings
 import android.view.View
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -101,7 +102,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.Insets
+import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -117,14 +118,14 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : BaseActivity() {
     private var lastTheme = 0
-    private var navigationBarInsets = Insets.NONE
+//    private var navigationBarInsets = Insets.NONE
 
     val prefs: SharedPreferences by lazy { getSharedPreferences("MainActivityPrefs", MODE_PRIVATE) }
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
         Logt(TAG, getString(R.string.notification_permission_text))
         if (isGranted) {
-            checkAndRequestUnrestrictedBackgroundActivity(this)
+            checkAndRequestUnrestrictedBackgroundActivity()
             return@registerForActivityResult
         }
         commonConfirm = CommonConfirmAttrib(
@@ -132,11 +133,22 @@ class MainActivity : BaseActivity() {
             message = getString(R.string.notification_permission_text),
             confirmRes = android.R.string.ok,
             cancelRes = R.string.cancel_label,
-            onConfirm = { checkAndRequestUnrestrictedBackgroundActivity(this) },
-            onCancel = { checkAndRequestUnrestrictedBackgroundActivity(this) })
+            onConfirm = { checkAndRequestUnrestrictedBackgroundActivity() },
+            onCancel = { checkAndRequestUnrestrictedBackgroundActivity() })
     }
 
-    var showUnrestrictedBackgroundPermissionDialog by mutableStateOf(false)
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
+    fun postFornotificationPermission() {
+        commonConfirm = CommonConfirmAttrib(
+            title = getString(R.string.notification_check_permission),
+            message = getString(R.string.notification_permission_text),
+            confirmRes = android.R.string.ok,
+            cancelRes = R.string.cancel_label,
+            onConfirm = { requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+            onCancel = { checkAndRequestUnrestrictedBackgroundActivity() })
+    }
+
+    private var showUnrestrictedBackgroundPermissionDialog by mutableStateOf(false)
 
     private var hasFeedUpdateObserverStarted = false
     private var hasDownloadObserverStarted = false
@@ -165,23 +177,16 @@ class MainActivity : BaseActivity() {
 
         setContent { CustomTheme(this) { MainActivityUI() } }
 
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-//            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            commonConfirm = CommonConfirmAttrib(
-                title = getString(R.string.notification_check_permission),
-                message = getString(R.string.notification_permission_text),
-                confirmRes = android.R.string.ok,
-                cancelRes = R.string.cancel_label,
-                onConfirm = { requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS) },
-                onCancel = { checkAndRequestUnrestrictedBackgroundActivity(this@MainActivity) })
-        } else checkAndRequestUnrestrictedBackgroundActivity(this)
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
+            postFornotificationPermission()
+        else checkAndRequestUnrestrictedBackgroundActivity()
 
         val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
         val lastScheduledVersion = prefs.getString(Extras.lastVersion.name, "0")
         if (currentVersion != lastScheduledVersion) {
             WorkManager.getInstance(applicationContext).cancelUniqueWork(feedUpdateWorkId)
             restartUpdateAlarm(applicationContext, true)
-            prefs.edit().putString(Extras.lastVersion.name, currentVersion).apply()
+            prefs.edit { putString(Extras.lastVersion.name, currentVersion) }
         } else restartUpdateAlarm(applicationContext, false)
 
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
@@ -237,13 +242,13 @@ class MainActivity : BaseActivity() {
                 else lcScope?.launch { sheetState.bottomSheetState.partialExpand() }
             } else lcScope?.launch { sheetState.bottomSheetState.hide() }
         }
-        val dynamicBottomPadding by derivedStateOf {
+        val dynamicBottomPadding by remember { derivedStateOf {
             when (sheetState.bottomSheetState.currentValue) {
                 SheetValue.Expanded -> 300.dp
                 SheetValue.PartiallyExpanded -> 100.dp
                 else -> 0.dp
             }
-        }
+        } }
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             val insets = WindowInsets.systemBars.asPaddingValues()
             val dynamicSheetHeight = insets.calculateBottomPadding()
@@ -280,7 +285,7 @@ class MainActivity : BaseActivity() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (dontAskAgain) prefs.edit().putBoolean("dont_ask_again_unrestricted_background", true).apply()
+                    if (dontAskAgain) prefs.edit { putBoolean("dont_ask_again_unrestricted_background", true) }
                     val intent = Intent()
                     intent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
                     this@MainActivity.startActivity(intent)
@@ -291,9 +296,9 @@ class MainActivity : BaseActivity() {
         )
     }
 
-    fun checkAndRequestUnrestrictedBackgroundActivity(context: Context) {
-        val powerManager = context.getSystemService(POWER_SERVICE) as PowerManager
-        val isIgnoringBatteryOptimizations = powerManager.isIgnoringBatteryOptimizations(context.packageName)
+    private fun checkAndRequestUnrestrictedBackgroundActivity() {
+        val powerManager = getSystemService(POWER_SERVICE) as PowerManager
+        val isIgnoringBatteryOptimizations = powerManager.isIgnoringBatteryOptimizations(packageName)
         val dontAskAgain = prefs.getBoolean("dont_ask_again_unrestricted_background", false)
         if (!isIgnoringBatteryOptimizations && !dontAskAgain) showUnrestrictedBackgroundPermissionDialog = true
     }
@@ -312,8 +317,7 @@ class MainActivity : BaseActivity() {
                     for (workInfo in workInfos) {
                         var downloadUrl: String? = null
                         for (tag in workInfo.tags) {
-                            if (tag.startsWith(DownloadServiceInterface.WORK_TAG_EPISODE_URL))
-                                downloadUrl = tag.substring(DownloadServiceInterface.WORK_TAG_EPISODE_URL.length)
+                            if (tag.startsWith(DownloadServiceInterface.WORK_TAG_EPISODE_URL)) downloadUrl = tag.substring(DownloadServiceInterface.WORK_TAG_EPISODE_URL.length)
                         }
                         if (downloadUrl == null) continue
 //                        Logd(TAG, "workInfo.state: ${workInfo.state}")
@@ -343,9 +347,6 @@ class MainActivity : BaseActivity() {
                 }
         }
     }
-    //    fun requestPostNotificationPermission() {
-//        if (Build.VERSION.SDK_INT >= 33) requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-//    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
@@ -412,8 +413,14 @@ class MainActivity : BaseActivity() {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.MessageEvent -> {
-//                        val snackbar = showSnackbarAbovePlayer(event.message, Snackbar.LENGTH_LONG)
-//                        if (event.action != null) snackbar.setAction(event.actionText) { event.action.accept(this@MainActivity) }
+                        if (event.action != null)
+                            commonConfirm = CommonConfirmAttrib(
+                                title = event.message,
+                                message = event.actionText ?: "",
+                                confirmRes = R.string.confirm_label,
+                                cancelRes = R.string.no,
+                                onConfirm = { event.action(this@MainActivity) })
+                        else Logt(TAG, event.message)
                     }
                     else -> {}
                 }
@@ -518,7 +525,6 @@ class MainActivity : BaseActivity() {
     @Suppress("EnumEntryName")
     enum class Extras {
         lastVersion,
-        prefMainActivityIsFirstLaunch,
         fragment_feed_id,
         fragment_feed_url,
         refresh_on_start,

@@ -15,7 +15,7 @@ object SynchronizationQueueSink {
         serviceStarterImpl = serviceStarter
     }
 
-    fun syncNow() {
+    private fun syncNow() {
         serviceStarterImpl()
     }
 
@@ -54,10 +54,9 @@ object SynchronizationQueueSink {
 
     fun enqueueEpisodePlayedIfSyncActive(context: Context, media: Episode, completed: Boolean) {
         if (!isProviderConnected) return
-        val item_ = media
-        if (item_.feed?.isLocalFeed == true) return
+        if (media.feed?.isLocalFeed == true) return
         if (media.startPosition < 0 || (!completed && media.startPosition >= media.position)) return
-        val action = EpisodeAction.Builder(item_, EpisodeAction.PLAY)
+        val action = EpisodeAction.Builder(media, EpisodeAction.PLAY)
             .currentTimestamp()
             .started(media.startPosition / 1000)
             .position((if (completed) media.duration else media.position) / 1000)

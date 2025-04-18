@@ -62,7 +62,7 @@ class ShownotesCleaner(context: Context) {
             shownotes = "<html><head></head><body><p id='apNoShownotes'>$noShownotesLabel</p></body></html>"
         }
 
-        var startTime = System.nanoTime()
+        val startTime = System.nanoTime()
         // replace ASCII line breaks with HTML ones if shownotes don't contain HTML line breaks already
         if (!LINE_BREAK_REGEX.matcher(shownotes).find() && !shownotes.contains("<p>")) shownotes = shownotes.replace("\n", "<br />")
         Logd(TAG, "nanotime0: ${System.nanoTime() - startTime}")

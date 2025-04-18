@@ -28,7 +28,7 @@ object DownloadRequestCreator {
     @JvmStatic
     fun create(media: Episode): DownloadRequest.Builder {
         Logd(TAG, "create: ${media.fileUrl} ${media.title}")
-        val destUriString = try { media.getMediaFileUriString() ?: "" } catch (e: Throwable ) {
+        val destUriString = try { media.getMediaFileUriString() } catch (e: Throwable ) {
             Logs(TAG, e)
             ""
         }

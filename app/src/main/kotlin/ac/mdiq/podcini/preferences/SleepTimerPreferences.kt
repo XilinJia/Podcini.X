@@ -15,6 +15,7 @@ import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.annotation.OptIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Column
@@ -56,6 +57,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
+import androidx.core.content.edit
+import androidx.media3.common.util.UnstableApi
 
 object SleepTimerPreferences {
     private val TAG: String = SleepTimerPreferences::class.simpleName ?: "Anonymous"
@@ -116,6 +119,7 @@ object SleepTimerPreferences {
         }
     }
 
+    @OptIn(UnstableApi::class)
     @Composable
     fun SleepTimerDialog(onDismiss: () -> Unit) {
         val lcScope = rememberCoroutineScope()
@@ -180,7 +184,7 @@ object SleepTimerPreferences {
                                 } else etxtTime.toLong()
                                 Logd("SleepTimerDialog", "Sleep timer set: $time")
                                 if (time == 0L) throw NumberFormatException("Timer must not be zero")
-                                prefs!!.edit().putString(Prefs.LastValue.name, time.toString()).apply()
+                                prefs!!.edit { putString(Prefs.LastValue.name, time.toString()) }
                                 taskManager?.setSleepTimer(timerMillis())
                                 showTimeSetup = false
                                 showTimeDisplay = true
@@ -201,7 +205,7 @@ object SleepTimerPreferences {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
                         Checkbox(checked = cbShakeToReset, onCheckedChange = {
                             cbShakeToReset = it
-                            prefs!!.edit().putBoolean(Prefs.ShakeToReset.name, it).apply()
+                            prefs!!.edit { putBoolean(Prefs.ShakeToReset.name, it) }
                         })
                         Text(stringResource(R.string.shake_to_reset_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
                     }
@@ -209,7 +213,7 @@ object SleepTimerPreferences {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
                         Checkbox(checked = cbVibrate, onCheckedChange = {
                             cbVibrate = it
-                            prefs!!.edit().putBoolean(Prefs.Vibrate.name, it).apply()
+                            prefs!!.edit { putBoolean(Prefs.Vibrate.name, it) }
                         })
                         Text(stringResource(R.string.timer_vibration_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
                     }
@@ -218,7 +222,7 @@ object SleepTimerPreferences {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
                         Checkbox(checked = chAutoEnable, onCheckedChange = {
                             chAutoEnable = it
-                            prefs!!.edit().putBoolean(Prefs.AutoEnable.name, it).apply()
+                            prefs!!.edit { putBoolean(Prefs.AutoEnable.name, it) }
                             enableChangeTime = it
                         })
                         Text(stringResource(R.string.auto_enable_label), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
@@ -233,8 +237,10 @@ object SleepTimerPreferences {
                             TextField(value = to, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number), label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
                                 onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) to = it })
                             IconButton(onClick = {
-                                prefs!!.edit().putInt(Prefs.AutoEnableFrom.name, from.toInt()).apply()
-                                prefs!!.edit().putInt(Prefs.AutoEnableTo.name, to.toInt()).apply()
+                                prefs!!.edit {
+                                    putInt(Prefs.AutoEnableFrom.name, from.toInt())
+                                    putInt(Prefs.AutoEnableTo.name, to.toInt())
+                                }
                             }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "setting") }
                         }
                     }

@@ -16,6 +16,7 @@ import ac.mdiq.podcini.preferences.screens.ImportExportPreferencesScreen
 import ac.mdiq.podcini.preferences.screens.PlaybackPreferencesScreen
 import ac.mdiq.podcini.preferences.screens.SynchronizationPreferencesScreen
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.CustomTheme
@@ -99,20 +100,19 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.preference.PreferenceManager
-import com.google.android.material.snackbar.Snackbar
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStreamReader
-import javax.xml.parsers.DocumentBuilderFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.BufferedReader
+import java.io.IOException
+import java.io.InputStreamReader
+import javax.xml.parsers.DocumentBuilderFactory
 
 class PreferenceActivity : ComponentActivity() {
     val TAG = "PreferenceActivity"
-    var copyrightNoticeText by mutableStateOf("")
-    var topAppBarTitle by mutableStateOf("Home")
+    private var copyrightNoticeText by mutableStateOf("")
+    private var topAppBarTitle by mutableStateOf("Home")
 
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -208,17 +208,18 @@ class PreferenceActivity : ComponentActivity() {
             EventFlow.events.collectLatest { event ->
                 Logd("PreferenceActivity", "Received event: ${event.TAG}")
                 when (event) {
-                    is FlowEvent.MessageEvent -> onEventMainThread(event)
+                    is FlowEvent.MessageEvent -> {
+                        commonConfirm = CommonConfirmAttrib(
+                            title = event.message,
+                            message = event.actionText ?: "",
+                            confirmRes = R.string.confirm_label,
+                            cancelRes = R.string.no,
+                            onConfirm = { event.action?.invoke(this@PreferenceActivity) })
+                    }
                     else -> {}
                 }
             }
         }
-    }
-
-    fun onEventMainThread(event: FlowEvent.MessageEvent) {
-        val s = Snackbar.make(findViewById(android.R.id.content), event.message, Snackbar.LENGTH_LONG)
-        if (event.action != null) s.setAction(event.actionText) { event.action(this) }
-        s.show()
     }
 
     @Composable
@@ -228,9 +229,7 @@ class PreferenceActivity : ComponentActivity() {
             val textColor = MaterialTheme.colorScheme.onSurface
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
                 Icon(imageVector = ImageVector.vectorResource(vecRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
-                Column(modifier = Modifier.weight(1f).clickable(onClick = {
-                    navController.navigate(screen)
-                })) {
+                Column(modifier = Modifier.weight(1f).clickable(onClick = { navController.navigate(screen) })) {
                     Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                     Text(stringResource(summaryRes), color = textColor, style = MaterialTheme.typography.bodySmall)
                 }
@@ -286,11 +285,11 @@ class PreferenceActivity : ComponentActivity() {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, top = 5.dp, bottom = 5.dp)) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_star), contentDescription = "", tint = textColor)
                 Column(Modifier.padding(start = 10.dp).clickable(onClick = {
-                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
-                    val clip = ClipData.newPlainText(getString(R.string.bug_report_title), PreferenceManager.getDefaultSharedPreferences(this@PreferenceActivity).getString("about_version", "Default summary"))
-                    clipboard.setPrimaryClip(clip)
-                    if (Build.VERSION.SDK_INT <= 32) Logt(TAG, getString(R.string.copied_to_clipboard))
-                })) {
+                        val clipboard = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
+                        val clip = ClipData.newPlainText(getString(R.string.bug_report_title), PreferenceManager.getDefaultSharedPreferences(this@PreferenceActivity).getString("about_version", "Default summary"))
+                        clipboard.setPrimaryClip(clip)
+                        if (Build.VERSION.SDK_INT <= 32) Logt(TAG, getString(R.string.copied_to_clipboard))
+                    })) {
                     Text(stringResource(R.string.podcini_version), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                     Text(String.format("%s (%s)", BuildConfig.VERSION_NAME, BuildConfig.COMMIT_HASH), color = textColor)
                 }
@@ -366,7 +365,9 @@ class PreferenceActivity : ComponentActivity() {
                 }
             }
         }
-        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(state = lazyListState, modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(licenses) { index, item ->
                 Column(Modifier.clickable(onClick = {
                     curLicenseIndex = index
@@ -461,7 +462,9 @@ class PreferenceActivity : ComponentActivity() {
                     text = {
                         Column {
                             DefaultPages.entries.forEach { option ->
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { tempSelectedOption = option.name }) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { tempSelectedOption = option.name }) {
                                     Checkbox(checked = tempSelectedOption == option.name, onCheckedChange = { tempSelectedOption = option.name })
                                     Text(stringResource(option.res), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
                                 }

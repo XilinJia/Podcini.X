@@ -9,7 +9,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.net.Uri
+import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
@@ -166,7 +166,7 @@ object NetworkUtils {
         }
     }
 
-    fun getFinalRedirectedUrl(url: String): String? {
+    fun getFinalRedirectedUrl(url: String): String {
         val client = OkHttpClient()
         val request = Request.Builder().url(url).build()
         client.newCall(request).execute().use { response -> return if (response.isSuccessful) response.request.url.toString() else url }
@@ -220,8 +220,8 @@ object NetworkUtils {
         var base = base_ ?: return prepareUrl(url)
         url = url.trim { it <= ' ' }
         base = prepareUrl(base)
-        val urlUri = Uri.parse(url)
-        val baseUri = Uri.parse(base)
+        val urlUri = url.toUri()
+        val baseUri = base.toUri()
         return if (urlUri.isRelative && baseUri.isAbsolute) urlUri.buildUpon().scheme(baseUri.scheme).build().toString() else prepareUrl(url)
     }
 

@@ -9,10 +9,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
-var episodeOnDisplay by mutableStateOf<Episode>(Episode())
+var episodeOnDisplay by mutableStateOf(Episode())
 
-var feedScreenMode by mutableStateOf<FeedScreenMode>(FeedScreenMode.List)
-var feedOnDisplay by mutableStateOf<Feed>(Feed())
+var feedScreenMode by mutableStateOf(FeedScreenMode.List)
+var feedOnDisplay by mutableStateOf(Feed())
 
 var curSearchString by mutableStateOf("")
 var feedToSearchIn by mutableStateOf<Feed?>(null)

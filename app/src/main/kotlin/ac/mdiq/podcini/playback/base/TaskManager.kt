@@ -19,6 +19,8 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import android.os.Vibrator
+import androidx.annotation.OptIn
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +55,7 @@ class TaskManager(private val context: Context) {
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
+    @OptIn(UnstableApi::class)
     private fun positionSaverTick() {
         if (mPlayer == null) return
         val curPosition = mPlayer!!.getPosition()
@@ -76,6 +79,7 @@ class TaskManager(private val context: Context) {
         }
     }
 
+    @OptIn(UnstableApi::class)
     @Synchronized
     fun startPositionSaver(delayInterval: Long) {
         cancelPositionSaver()

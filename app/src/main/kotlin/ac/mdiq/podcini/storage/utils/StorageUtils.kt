@@ -8,12 +8,8 @@ import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.net.Uri
-import android.os.Build
 import android.os.StatFs
 import android.os.storage.StorageManager
-import android.provider.DocumentsContract
-import android.provider.MediaStore
-import android.provider.OpenableColumns
 import android.webkit.MimeTypeMap
 import androidx.documentfile.provider.DocumentFile
 import java.io.File
@@ -30,6 +26,7 @@ import org.apache.commons.io.FilenameUtils.getBaseName
 import org.apache.commons.io.FilenameUtils.getExtension
 import org.apache.commons.lang3.ArrayUtils
 import org.apache.commons.lang3.StringUtils
+import androidx.core.net.toUri
 
 /**
  * Utility functions for handling storage errors
@@ -59,7 +56,7 @@ object StorageUtils {
                 val dataFolder = getDataFolder(null)
                 return if (dataFolder != null) getFreeSpaceAvailable(dataFolder.absolutePath) else 0
             } else {
-                val uri = Uri.parse(customMediaUriString)
+                val uri = customMediaUriString.toUri()
 //                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     val pickedDir = DocumentFile.fromTreeUri(getAppContext(), uri)
                     if (pickedDir == null || !pickedDir.isDirectory) {
@@ -107,7 +104,7 @@ object StorageUtils {
         val sharedPreferences = getAppContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val folderUriString = sharedPreferences.getString("custom_folder_uri", null)
         return if (folderUriString != null) {
-            val folderUri = Uri.parse(folderUriString)
+            val folderUri = folderUriString.toUri()
             DocumentFile.fromTreeUri(getAppContext(), folderUri)
         } else null
     }
@@ -164,7 +161,7 @@ object StorageUtils {
         }
     }
 
-    fun getTypeDir(baseDirPath: String?, type: String?): File? {
+    private fun getTypeDir(baseDirPath: String?, type: String?): File? {
         if (baseDirPath == null) return null
 
         val baseDir = File(baseDirPath)
@@ -213,7 +210,7 @@ object StorageUtils {
     fun createNoMediaFile() {
         CoroutineScope(Dispatchers.IO).launch {
             if (customMediaUriString.isNotBlank()) {
-                val customUri = Uri.parse(customMediaUriString)
+                val customUri = customMediaUriString.toUri()
                 val baseDir = DocumentFile.fromTreeUri(getAppContext(), customUri) ?: return@launch
                 if (baseDir.isDirectory) {
                     val nomediaFile = baseDir.findFile(".nomedia")
@@ -237,8 +234,8 @@ object StorageUtils {
      * This method will return a new string that doesn't contain any illegal characters of the given string.
      */
     @JvmStatic
-    fun generateFileName(string: String): String {
-        val string = StringUtils.stripAccents(string)
+    fun generateFileName(string_: String): String {
+        val string = StringUtils.stripAccents(string_)
         val buf = StringBuilder()
         for (c in string) {
             if (Character.isSpaceChar(c) && (buf.isEmpty() || Character.isSpaceChar(buf[buf.length - 1]))) continue
@@ -246,16 +243,15 @@ object StorageUtils {
         }
         val filename = buf.toString().trim { it <= ' ' }
         return when {
-            filename.isEmpty() -> randomString(8)
+            filename.isEmpty() -> {
+                val length = 8
+                val sb = StringBuilder(length)
+                for (i in 0 until length) sb.append(validChars[(Math.random() * validChars.size).toInt()])
+                sb.toString()
+            }
             filename.length >= MAX_FILENAME_LENGTH -> filename.substring(0, MAX_FILENAME_LENGTH - MD5_HEX_LENGTH - 1) + "_" + md5(filename)
             else -> filename
         }
-    }
-
-    private fun randomString(length: Int): String {
-        val sb = StringBuilder(length)
-        for (i in 0 until length) sb.append(validChars[(Math.random() * validChars.size).toInt()])
-        return sb.toString()
     }
 
     private fun md5(md5: String): String? {

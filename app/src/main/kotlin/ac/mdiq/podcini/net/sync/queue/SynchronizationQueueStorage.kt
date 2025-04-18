@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.util.Logs
 import org.json.JSONArray
 import org.json.JSONException
+import androidx.core.content.edit
 
 class SynchronizationQueueStorage(context: Context) {
     private val TAG = "SynchronizationQueueStorage"
@@ -49,16 +50,23 @@ class SynchronizationQueueStorage(context: Context) {
         }
 
     fun clearEpisodeActionQueue() {
-        sharedPreferences.edit().putString(QUEUED_EPISODE_ACTIONS, "[]").apply()
+        sharedPreferences.edit { putString(QUEUED_EPISODE_ACTIONS, "[]") }
     }
 
     fun clearFeedQueues() {
-        sharedPreferences.edit().putString(QUEUED_FEEDS_ADDED, "[]").putString(QUEUED_FEEDS_REMOVED, "[]").apply()
+        sharedPreferences.edit {
+            putString(QUEUED_FEEDS_ADDED, "[]")
+            putString(QUEUED_FEEDS_REMOVED, "[]")
+        }
     }
 
     fun clearQueue() {
         SynchronizationSettings.resetTimestamps()
-        sharedPreferences.edit().putString(QUEUED_EPISODE_ACTIONS, "[]").putString(QUEUED_FEEDS_ADDED, "[]").putString(QUEUED_FEEDS_REMOVED, "[]").apply()
+        sharedPreferences.edit {
+            putString(QUEUED_EPISODE_ACTIONS, "[]")
+            putString(QUEUED_FEEDS_ADDED, "[]")
+            putString(QUEUED_FEEDS_REMOVED, "[]")
+        }
     }
 
     fun enqueueFeedAdded(downloadUrl: String) {
@@ -68,7 +76,12 @@ class SynchronizationQueueStorage(context: Context) {
             addedQueue.put(downloadUrl)
             val removedQueue = JSONArray(sharedPreferences.getString(QUEUED_FEEDS_REMOVED, "[]"))
             removedQueue.remove(indexOf(downloadUrl, removedQueue))
-            sharedPreferences.edit().putString(QUEUED_FEEDS_ADDED, addedQueue.toString()).putString(QUEUED_FEEDS_REMOVED, removedQueue.toString()).apply()
+            sharedPreferences.edit {
+                putString(QUEUED_FEEDS_ADDED, addedQueue.toString()).putString(
+                    QUEUED_FEEDS_REMOVED,
+                    removedQueue.toString()
+                )
+            }
         } catch (jsonException: JSONException) { Logs("SynchronizationQueueStorage", jsonException) }
     }
 
@@ -79,7 +92,10 @@ class SynchronizationQueueStorage(context: Context) {
             removedQueue.put(downloadUrl)
             val addedQueue = JSONArray(sharedPreferences.getString(QUEUED_FEEDS_ADDED, "[]"))
             addedQueue.remove(indexOf(downloadUrl, addedQueue))
-            sharedPreferences.edit().putString(QUEUED_FEEDS_ADDED, addedQueue.toString()).putString(QUEUED_FEEDS_REMOVED, removedQueue.toString()).apply()
+            sharedPreferences.edit {
+                putString(QUEUED_FEEDS_ADDED, addedQueue.toString())
+                putString(QUEUED_FEEDS_REMOVED, removedQueue.toString())
+            }
         } catch (jsonException: JSONException) { Logs("SynchronizationQueueStorage", jsonException) }
     }
 
@@ -94,7 +110,7 @@ class SynchronizationQueueStorage(context: Context) {
         try {
             val queue = JSONArray(json)
             queue.put(action.writeToJsonObjectForServer())
-            sharedPreferences.edit().putString(QUEUED_EPISODE_ACTIONS, queue.toString()).apply()
+            sharedPreferences.edit { putString(QUEUED_EPISODE_ACTIONS, queue.toString()) }
         } catch (jsonException: JSONException) { Logs("SynchronizationQueueStorage", jsonException) }
     }
 

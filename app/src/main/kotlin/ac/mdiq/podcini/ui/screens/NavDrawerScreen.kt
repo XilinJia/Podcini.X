@@ -96,7 +96,7 @@ val defaultScreen: String
             value = getPref(AppPrefs.prefLastScreen, "")
             if (value.isBlank()) value = Screens.Subscriptions.name
             if (value == Screens.FeedDetails.name) {
-                var feedId = getPref(AppPrefs.prefLastScreenArg, "0L").toLongOrNull()
+                val feedId = getPref(AppPrefs.prefLastScreenArg, "0L").toLongOrNull()
                 if (feedId != null) feedOnDisplay = getFeed(feedId) ?: Feed()
             }
         }
@@ -108,7 +108,7 @@ class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
     internal val feeds = mutableStateListOf<Feed>()
 
     internal fun getRecentPodcasts() {
-        var feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(8).find()
+        val feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(8).find()
         feeds.clear()
         feeds.addAll(feeds_)
     }
@@ -127,7 +127,7 @@ fun NavDrawerScreen() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val vm = remember { NavDrawerVM(context, scope) }
-    var curruntRoute = remember { "" }
+    var curruntRoute: String
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -148,7 +148,7 @@ fun NavDrawerScreen() {
 
     fun loadScreen(tag: String?, args: Bundle?, popto: Boolean = false) {
         var tag = tag
-        var args = args
+//        val args = args
         Logd(TAG, "loadScreen(tag: $tag, args: $args, popto: $popto)")
         when (tag) {
             Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Facets.name, Screens.Statistics.name -> {

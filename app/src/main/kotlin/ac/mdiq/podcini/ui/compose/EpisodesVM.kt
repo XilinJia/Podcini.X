@@ -22,7 +22,6 @@ import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.deleteMediaSync
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.Episodes.stateToPreserve
 import ac.mdiq.podcini.storage.database.Feeds.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.Feeds.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.Feeds.shelveToFeed
@@ -30,7 +29,6 @@ import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesQuiet
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
-import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.Queues.smartRemoveFromQueue
 import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
 import ac.mdiq.podcini.storage.database.RealmDB.realm
@@ -68,7 +66,6 @@ import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
 import ac.mdiq.podcini.util.MiscFormatter.stripDateTimeLines
 import android.content.Context
-import android.net.Uri
 import android.text.format.Formatter
 import android.util.TypedValue
 import android.view.Gravity
@@ -134,6 +131,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -167,7 +165,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -191,6 +191,7 @@ import kotlin.math.roundToInt
 const val VMS_CHUNK_SIZE = 50
 const val loadThreshold = (VMS_CHUNK_SIZE * 0.8).toInt()
 
+@androidx.annotation.OptIn(UnstableApi::class)
 fun buildListInfo(episodes: List<Episode>): String {
     var infoText = String.format(Locale.getDefault(), "%d", episodes.size)
     if (episodes.isNotEmpty()) {
@@ -209,7 +210,7 @@ fun buildListInfo(episodes: List<Episode>): String {
 }
 
 @Composable
-fun InforBar(text: MutableState<String>, leftAction: MutableState<SwipeAction>, rightAction: MutableState<SwipeAction>, actionConfig: () -> Unit) {
+fun InforBar(text: State<String>, leftAction: MutableState<SwipeAction>, rightAction: MutableState<SwipeAction>, actionConfig: () -> Unit) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
     Logd("InforBar", "textState: ${text.value}")
@@ -232,16 +233,16 @@ fun stopMonitor(vms: List<EpisodeVM>) {
 
 @Stable
 class EpisodeVM(var episode: Episode, val tag: String) {
-    var positionState by mutableStateOf(episode.position)
-    var durationState by mutableStateOf(episode.duration)
+    var positionState by mutableIntStateOf(episode.position)
+    var durationState by mutableIntStateOf(episode.duration)
     var playedState by mutableIntStateOf(episode.playState)
 //    var isPlayingState by mutableStateOf(false)
     var hasComment by mutableStateOf(episode.comment.isNotBlank())
     var ratingState by mutableIntStateOf(episode.rating)
     var inProgressState by mutableStateOf(episode.isInProgress)
-    var downloadState by mutableIntStateOf(if (episode.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal)
+    var downloadState by mutableIntStateOf(if (episode.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal)
     var viewCount by mutableIntStateOf(episode.viewCount)
-    var actionButton by mutableStateOf<EpisodeActionButton>(NullActionButton(episode).forItem(episode))
+    var actionButton by mutableStateOf(NullActionButton(episode).forItem(episode))
     var showAltActionsDialog by mutableStateOf(false)
     var dlPercent by mutableIntStateOf(0)
     var isSelected by mutableStateOf(false)
@@ -266,7 +267,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
                         positionState = e.position
                         durationState = e.duration
                         inProgressState = e.isInProgress
-                        downloadState = if (e.downloaded == true) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
+                        downloadState = if (e.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
                     }
             })
         }
@@ -488,9 +489,9 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
                                 for (e in selected) {
                                     val url = e.fileUrl
                                     when {
-                                        url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, Uri.parse(url))?.delete()
+                                        url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, url.toUri())?.delete()
                                         url != null -> {
-                                            val path = Uri.parse(url).path
+                                            val path = url.toUri().path
                                             if (path != null) File(path).delete()
                                         }
                                     }
@@ -553,7 +554,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                       multiSelectCB: ((Int, Int)->List<Episode>)? = null) {
     val TAG = "EpisodeLazyColumn"
     var selectMode by remember { mutableStateOf(false) }
-    var selectedSize by remember { mutableStateOf(0) }
+    var selectedSize by remember { mutableIntStateOf(0) }
     val selected = remember { mutableStateListOf<Episode>() }
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
@@ -664,8 +665,8 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         var item = item_
                         if (!item.downloaded && item.feed?.isLocalFeed != true) continue
                         val almostEnded = hasAlmostEnded(item)
-                        if (almostEnded && item.playState < PlayState.PLAYED.code) item = setPlayStateSync(PlayState.PLAYED.code, item, almostEnded, false)
-                        if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
+                        if (almostEnded && item.playState < PlayState.PLAYED.code) item = setPlayStateSync(played = PlayState.PLAYED.code, episode = item, resetMediaPosition = true, removeFromQueue = false)
+                        if (almostEnded) upsert(item) { it.playbackCompletionDate = Date() }
                     }
                     deleteEpisodesWarnLocalRepeat(activity, selected)
                 }
@@ -815,7 +816,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
 
     @Composable
     fun MainRow(vm: EpisodeVM, index: Int, isBeingDragged: Boolean, yOffset: Float, onDragStart: () -> Unit, onDrag: (Float) -> Unit, onDragEnd: () -> Unit) {
-        val textColor = MaterialTheme.colorScheme.onSurface
+//        val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = MaterialTheme.colorScheme.tertiary
         val density = LocalDensity.current
         val imageWidth = if (layoutMode == 0) 56.dp else 150.dp
@@ -972,7 +973,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                         Logd(TAG, "LaunchedEffect $index ${vm.isSelected} ${selected.size}")
                     }
                     Column {
-                        var yOffset by remember { mutableStateOf(0f) }
+                        var yOffset by remember { mutableFloatStateOf(0f) }
                         var draggedIndex by remember { mutableStateOf<Int?>(null) }
                         MainRow(vm, index, isBeingDragged = draggedIndex == index,
                             yOffset = if (draggedIndex == index) yOffset else 0f,
@@ -1061,7 +1062,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                     if (item in filtersDisabled) continue
                     if (item.properties.size == 2) {
                         Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                            var selectedIndex by remember { mutableStateOf(-1) }
+                            var selectedIndex by remember { mutableIntStateOf(-1) }
                             if (selectNone) selectedIndex = -1
                             LaunchedEffect(Unit) {
                                 if (item.properties[0].filterId in filter.propertySet) selectedIndex = 0
@@ -1133,11 +1134,9 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                                 })
                                             if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
                                                 modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                                    var f = 0
-                                                    var c = Int.MAX_VALUE
                                                     if (floor.isNotBlank() || ceiling.isNotBlank()) {
-                                                        f = if (floor.isBlank() || floor.toIntOrNull() == null) 0 else floor.toInt()
-                                                        c = if (ceiling.isBlank() || ceiling.toIntOrNull() == null) Int.MAX_VALUE else ceiling.toInt()
+                                                        val f = if (floor.isBlank() || floor.toIntOrNull() == null) 0 else floor.toInt()
+                                                        val c = if (ceiling.isBlank() || ceiling.toIntOrNull() == null) Int.MAX_VALUE else ceiling.toInt()
                                                         Logd("EpisodeFilterDialog", "f = $f c = $c")
                                                         filter.durationFloor = f * 1000
                                                         filter.durationCeiling = if (c < Int.MAX_VALUE) c * 1000 else c
@@ -1222,7 +1221,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                             if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size) { index ->
                                 if (selectNone) selectedList[index].value = false
                                 LaunchedEffect(Unit) {
-                                    if (filter != null && item.properties[index].filterId in filter.propertySet) selectedList[index].value = true
+                                    if (item.properties[index].filterId in filter.propertySet) selectedList[index].value = true
                                 }
                                 OutlinedButton(
                                     modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
@@ -1340,8 +1339,8 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
     var timeFilterFrom by remember { mutableLongStateOf(from ?: 0L) }
     var timeFilterTo by remember { mutableLongStateOf(to ?: Long.MAX_VALUE) }
     var useAllTime by remember { mutableStateOf((from == null || from == 0L) && (to == null || to == Long.MAX_VALUE)) }
-    val timeFrom by derivedStateOf { if (timeFilterFrom == 0L) oldestDate else timeFilterFrom  }
-    val timeTo by derivedStateOf { if (timeFilterTo == Long.MAX_VALUE) System.currentTimeMillis() else timeFilterTo }
+    val timeFrom by remember { derivedStateOf { if (timeFilterFrom == 0L) oldestDate else timeFilterFrom  } }
+    val timeTo by remember { derivedStateOf { if (timeFilterTo == Long.MAX_VALUE) System.currentTimeMillis() else timeFilterTo } }
     AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
         text = {

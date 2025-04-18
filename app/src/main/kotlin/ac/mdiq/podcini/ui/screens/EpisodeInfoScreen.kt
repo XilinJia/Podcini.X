@@ -41,7 +41,7 @@ import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.view.ShownotesWebView
+import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils
@@ -113,6 +113,7 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import coil.compose.AsyncImage
 import java.util.Date
@@ -141,7 +142,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal var txtvSize by mutableStateOf("")
     internal var txtvDuration by mutableStateOf("")
     internal var hasMedia by mutableStateOf(true)
-    var rating by mutableStateOf(episode?.rating ?: Rating.UNRATED.code)
+    var rating by mutableIntStateOf(episode?.rating ?: Rating.UNRATED.code)
     internal var inQueue by mutableStateOf(false)
     var isPlayed by mutableIntStateOf(episode?.playState ?: PlayState.UNSPECIFIED.code)
 
@@ -314,6 +315,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 }
 
+@androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun EpisodeInfoScreen() {

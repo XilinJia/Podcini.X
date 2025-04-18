@@ -61,14 +61,12 @@ import ac.mdiq.podcini.ui.compose.EpisodeClips
 import ac.mdiq.podcini.ui.compose.EpisodeMarks
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
-import ac.mdiq.podcini.ui.compose.SkipDialog
-import ac.mdiq.podcini.ui.compose.SkipDirection
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
-import ac.mdiq.podcini.ui.view.ShownotesWebView
+import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.FlowEvent.BufferUpdateEvent
@@ -91,7 +89,6 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -113,7 +110,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -156,6 +152,7 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -200,7 +197,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal var imgLoc by mutableStateOf<String?>(null)
     internal var imgLocLarge by mutableStateOf<String?>(null)
     internal var txtvPlaybackSpeed by mutableStateOf("")
-    internal var curPlaybackSpeed by mutableStateOf(1f)
+    internal var curPlaybackSpeed by mutableFloatStateOf(1f)
     private var isVideoScreen = false
     internal var playButRes by mutableIntStateOf(R.drawable.ic_play_48dp)
     internal var curPosition by mutableIntStateOf(0)
@@ -223,7 +220,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 
     //    private var chapterControlVisible by mutableStateOf(false)
     internal var hasNextChapter by mutableStateOf(true)
-    internal var rating by mutableStateOf(curItem?.rating ?: Rating.UNRATED.code)
+    internal var rating by mutableIntStateOf(curItem?.rating ?: Rating.UNRATED.code)
 
     internal var resetPlayer by mutableStateOf(false)
 //    internal val showErrorDialog = mutableStateOf(false)
@@ -333,6 +330,8 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         curPlaybackSpeed = event.newSpeed
         txtvPlaybackSpeed = DecimalFormat("0.00").format(event.newSpeed.toDouble())
     }
+
+    @androidx.annotation.OptIn(UnstableApi::class)
     internal fun updateUi() {
 //        Logd(TAG, "updateUi called $media")
         titleText = curItem?.getEpisodeTitle() ?: ""
@@ -397,6 +396,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
+    @androidx.annotation.OptIn(UnstableApi::class)
     internal fun seekToPrevChapter() {
         val curr: Chapter? = curChapter
         if (curr == null || displayedChapterIndex == -1) return
@@ -409,6 +409,8 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             else -> mPlayer?.seekTo(curr.start.toInt())
         }
     }
+
+    @androidx.annotation.OptIn(UnstableApi::class)
     internal fun seekToNextChapter() {
         if (curItem?.chapters.isNullOrEmpty() || displayedChapterIndex == -1 || displayedChapterIndex + 1 >= curItem!!.chapters.size) return
         refreshChapterData(displayedChapterIndex + 1)
@@ -455,7 +457,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun AudioPlayerScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -508,11 +510,48 @@ fun AudioPlayerScreen() {
         Logd(TAG, "isExpanded: $isBSExpanded")
     }
 
+    @Composable
+    fun VolumeAdaptionDialog(onDismissRequest: () -> Unit) {
+        val (selectedOption, onOptionSelected) = remember { mutableStateOf(vm.curItem?.volumeAdaptionSetting ?: VolumeAdaptionSetting.OFF) }
+        Dialog(onDismissRequest = { onDismissRequest() }) {
+            Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VolumeAdaptionSetting.entries.forEach { item ->
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = (item == selectedOption),
+                                onCheckedChange = { _ ->
+                                    Logd(TAG, "row clicked: $item $selectedOption")
+                                    if (item != selectedOption) {
+                                        onOptionSelected(item)
+                                        if (vm.curItem != null) {
+                                            vm.curItem!!.volumeAdaptionSetting = item
+                                            curEpisode!!.volumeAdaptionSetting = item
+                                            mPlayer?.setVolume(1.0f, 1.0f)
+                                        }
+                                        onDismissRequest()
+                                    }
+                                }
+                            )
+                            Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    var showVolumeDialog by remember { mutableStateOf(false) }
+    if (showVolumeDialog) VolumeAdaptionDialog { showVolumeDialog = false }
+
+    var showSleepTimeDialog by remember { mutableStateOf(false) }
+    if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
+
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun ControlUI() {
         val textColor = MaterialTheme.colorScheme.onSurface
-        val context = LocalContext.current
+        val buttonColor = Color(0xDDFFD700)
+        val buttonColor1 = Color(0xEEAA7700)
 
         LaunchedEffect(key1 = playerStat) { vm.showPlayButton = playerStat != PLAYER_STATUS_PLAYING }
 
@@ -537,8 +576,8 @@ fun AudioPlayerScreen() {
                 if (playbackService == null) PlaybackStarter(context, curEpisode!!).start()
             }
             AsyncImage(contentDescription = "imgvCover", model = ImageRequest.Builder(context).data(vm.imgLoc).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                modifier = Modifier.width(50.dp).height(50.dp).padding(start = 5.dp)
-                    .clickable(onClick = {
+                modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, buttonColor)).padding(start = 5.dp).combinedClickable(
+                    onClick = {
                         Logd(TAG, "playerUi icon was clicked")
                         if (!isBSExpanded) {
                             val media = curEpisode
@@ -555,15 +594,23 @@ fun AudioPlayerScreen() {
                                 }
                             }
                         } else isBSExpanded = false
+                    },
+                    onLongClick = {
+                        if (curEpisode?.feed != null) {
+                            feedOnDisplay = curEpisode!!.feed!!
+                            feedScreenMode = FeedScreenMode.List
+                            mainNavController.navigate(Screens.FeedDetails.name)
+                            isBSExpanded = false
+                        }
                     }))
             val buttonSize = 46.dp
             Spacer(Modifier.weight(0.1f))
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).clickable(onClick = { vm.showSpeedDialog = true })) {
-                SpeedometerWithArc(speed = vm.curPlaybackSpeed*100, maxSpeed = 300f, trackColor = textColor, modifier = Modifier.width(40.dp).height(40.dp).align(Alignment.TopCenter))
+                SpeedometerWithArc(speed = vm.curPlaybackSpeed*100, maxSpeed = 300f, trackColor = buttonColor, modifier = Modifier.width(40.dp).height(40.dp).align(Alignment.TopCenter))
                 Text(vm.txtvPlaybackSpeed, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
-            val recordColor = if (vm.recordingStartTime == null) { if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) textColor else Color.Gray } else Color.Red
+            val recordColor = if (vm.recordingStartTime == null) { if (curEpisode != null && exoPlayer != null && status == PlayerStatus.PLAYING) buttonColor else Color.Gray } else Color.Red
             Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fiber_manual_record_24), tint = recordColor, contentDescription = "record",
                 modifier = Modifier.size(buttonSize).combinedClickable(
                     onClick = {
@@ -585,13 +632,12 @@ fun AudioPlayerScreen() {
                         } else Loge(TAG, "Marking position only works during playback.")
                     }))
             Spacer(Modifier.weight(0.1f))
-            var showSkipDialog by remember { mutableStateOf(false) }
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
                 onClick = { mPlayer?.seekDelta(-AppPreferences.rewindSecs * 1000) },
-                onLongClick = { showSkipDialog = true })) {
-                var rewindSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.rewindSecs.toLong())) }
-                if (showSkipDialog) SkipDialog(SkipDirection.SKIP_REWIND, onDismissRequest = { showSkipDialog = false }) { rewindSecs = it.toString() }
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_rewind), tint = textColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
+                onLongClick = { if (vm.curItem != null) showVolumeDialog = true })) {
+                val rewindSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.rewindSecs.toLong())) }
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_rewind), tint = buttonColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_volume_adaption), tint = buttonColor1, contentDescription = "Volume adaptation", modifier = Modifier.align(Alignment.Center))
                 Text(rewindSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
@@ -629,23 +675,23 @@ fun AudioPlayerScreen() {
                         val speedFB = fallbackSpeed
                         if (speedFB > 0.1f) toggleFallbackSpeed(speedFB)
                     } })) {
-                Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = textColor, contentDescription = "play", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
+                Icon(imageVector = ImageVector.vectorResource(vm.playButRes), tint = buttonColor, contentDescription = "play", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
                 if (fallbackSpeed > 0.1f) Text(fallbackSpeed.toString(), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
                 onClick = { mPlayer?.seekDelta(AppPreferences.fastForwardSecs * 1000) },
-                onLongClick = { showSkipDialog = true })) {
-                var showSkipDialog by remember { mutableStateOf(false) }
-                var fastForwardSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.fastForwardSecs.toLong())) }
-                if (showSkipDialog) SkipDialog(SkipDirection.SKIP_FORWARD, onDismissRequest = {showSkipDialog = false }) { fastForwardSecs = it.toString()}
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_forward), tint = textColor, contentDescription = "forward", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
+                onLongClick = { showSleepTimeDialog = true })) {
+                val fastForwardSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.fastForwardSecs.toLong())) }
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_forward), tint = buttonColor, contentDescription = "forward", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
+                val sleepRes = if (vm.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep
+                Icon(imageVector = ImageVector.vectorResource(sleepRes), tint = buttonColor1, contentDescription = "Sleep timer", modifier = Modifier.align(Alignment.Center))
                 Text(fastForwardSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
             fun speedForward(speed: Float) {
-                if (mPlayer == null || isFallbackSpeed == true) return
-                if (isSpeedForward == false) {
+                if (mPlayer == null || isFallbackSpeed) return
+                if (!isSpeedForward) {
                     normalSpeed = mPlayer!!.getPlaybackSpeed()
                     mPlayer!!.setPlaybackParams(speed, isSkipSilence)
                 } else mPlayer?.setPlaybackParams(normalSpeed, isSkipSilence)
@@ -661,7 +707,7 @@ fun AudioPlayerScreen() {
 //                    context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT))
                     if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) mPlayer?.skip()
                 })) {
-                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = textColor, contentDescription = "rewind", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = buttonColor, contentDescription = "skip", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
                 if (AppPreferences.speedforwardSpeed > 0.1f) Text(NumberFormat.getInstance().format(AppPreferences.speedforwardSpeed), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
             Spacer(Modifier.weight(0.1f))
@@ -679,8 +725,7 @@ fun AudioPlayerScreen() {
                     vm.curPosition = vm.sliderValue.toInt()
                     mPlayer?.seekTo(vm.curPosition)
                 })
-            if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
-                modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
+            if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f), modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
         }
         Row {
             Text(getDurationStringLong(vm.curPosition), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -698,7 +743,7 @@ fun AudioPlayerScreen() {
     @Composable
     fun PlayerUI(modifier: Modifier) {
         val textColor = MaterialTheme.colorScheme.onSurface
-        Box(modifier = modifier.fillMaxWidth().height(100.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)).background(MaterialTheme.colorScheme.surface)) {
+        Box(modifier = modifier.fillMaxWidth().height(100.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))) {
             Column {
                 Text(vm.titleText, maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 ProgressBar()
@@ -708,62 +753,25 @@ fun AudioPlayerScreen() {
     }
 
     @Composable
-    fun VolumeAdaptionDialog(onDismissRequest: () -> Unit) {
-        val (selectedOption, onOptionSelected) = remember { mutableStateOf(vm.curItem?.volumeAdaptionSetting ?: VolumeAdaptionSetting.OFF) }
-        Dialog(onDismissRequest = { onDismissRequest() }) {
-            Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    VolumeAdaptionSetting.entries.forEach { item ->
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = (item == selectedOption),
-                                onCheckedChange = { _ ->
-                                    Logd(TAG, "row clicked: $item $selectedOption")
-                                    if (item != selectedOption) {
-                                        onOptionSelected(item)
-                                        if (vm.curItem != null) {
-                                            vm.curItem!!.volumeAdaptionSetting = item
-                                            curEpisode!!.volumeAdaptionSetting = item
-                                            mPlayer?.setVolume(1.0f, 1.0f)
-                                        }
-                                        onDismissRequest()
-                                    }
-                                }
-                            )
-                            Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    var showSleepTimeDialog by remember { mutableStateOf(false) }
-    if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
-
-    @Composable
     fun Toolbar() {
-        val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
-        val feedItem: Episode = curEpisode ?: return
         val textColor = MaterialTheme.colorScheme.onSurface
         val mediaType = curEpisode?.getMediaType()
         val notAudioOnly = curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY
-        var showVolumeDialog by remember { mutableStateOf(false) }
-        if (showVolumeDialog) VolumeAdaptionDialog { showVolumeDialog = false }
         var showShareDialog by remember { mutableStateOf(false) }
         if (showShareDialog && vm.curItem != null && vm.actMain != null) ShareDialog(vm.curItem!!, vm.actMain) {showShareDialog = false }
         Row(modifier = Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { isBSExpanded = false })
             if (vm.curItem != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = textColor, contentDescription = "Open podcast",
                 modifier = Modifier.clickable {
-                    if (feedItem.feed != null) {
-                        feedOnDisplay = feedItem.feed!!
+                    if (curEpisode?.feed != null) {
+                        feedOnDisplay = curEpisode!!.feed!!
                         feedScreenMode = FeedScreenMode.List
                         mainNavController.navigate(Screens.FeedDetails.name)
                         isBSExpanded = false
                     }
                 })
-            var homeIcon by remember { mutableIntStateOf(R.drawable.outline_home_24)}
+            val homeIcon by remember { mutableIntStateOf(R.drawable.outline_home_24)}
             Icon(imageVector = ImageVector.vectorResource(homeIcon), tint = textColor, contentDescription = "Home", modifier = Modifier.clickable {
                 if (vm.curItem != null) {
                     episodeOnDisplay = vm.curItem!!
@@ -786,10 +794,9 @@ fun AudioPlayerScreen() {
             Icon(imageVector = ImageVector.vectorResource(sleepRes), tint = textColor, contentDescription = "Sleep timer", modifier = Modifier.clickable { showSleepTimeDialog = true })
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), tint = textColor, contentDescription = "Share", modifier = Modifier.clickable { if (vm.curItem != null) showShareDialog = true })
             Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_offline_share_24), tint = textColor, contentDescription = "Share Note", modifier = Modifier.clickable {
-                val notes = if (vm.showHomeText) vm.readerhtml else feedItem.description
+                val notes = if (vm.showHomeText) vm.readerhtml else curEpisode?.description
                 if (!notes.isNullOrEmpty()) {
                     val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                    val context = context
                     val intent = ShareCompat.IntentBuilder(context).setType("text/plain").setText(shareText).setChooserTitle(R.string.share_notes_label).createChooserIntent()
                     context.startActivity(intent)
                 }
@@ -812,7 +819,6 @@ fun AudioPlayerScreen() {
         }
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun DetailUI(modifier: Modifier) {
         var showChooseRatingDialog by remember { mutableStateOf(false) }
@@ -827,7 +833,7 @@ fun AudioPlayerScreen() {
             SelectionContainer { Text(vm.txtvPodcastTitle, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
                 Spacer(modifier = Modifier.weight(0.2f))
-                val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
+                val ratingIconRes by remember { derivedStateOf { Rating.fromCode(vm.rating).res } }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { showChooseRatingDialog = true }))
                 Spacer(modifier = Modifier.weight(0.4f))
                 Text(vm.episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
@@ -904,4 +910,5 @@ fun AudioPlayerScreen() {
 private const val TAG = "AudioPlayerScreen"
 
 private val curPositionFB: Int
+    @androidx.annotation.OptIn(UnstableApi::class)
     get() = mPlayer?.getPosition() ?: curEpisode?.position ?: Episode.INVALID_TIME

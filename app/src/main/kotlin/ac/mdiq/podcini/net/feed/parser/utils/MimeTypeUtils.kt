@@ -7,15 +7,15 @@ import org.apache.commons.io.FilenameUtils
  * Utility class for handling MIME-Types of enclosures.
  */
 object MimeTypeUtils {
-    const val OCTET_STREAM: String = "application/octet-stream"
+    private const val OCTET_STREAM: String = "application/octet-stream"
 
     // based on https://developer.android.com/guide/topics/media/media-formats
-    val AUDIO_FILE_EXTENSIONS: Set<String> = HashSet(mutableListOf(
+    private val AUDIO_FILE_EXTENSIONS: Set<String> = HashSet(mutableListOf(
         "3gp", "aac", "amr", "flac", "imy", "m4a", "m4b", "mid", "mkv", "mp3", "mp4", "mxmf", "oga",
         "ogg", "ogx", "opus", "ota", "rtttl", "rtx", "wav", "xmf"
     ))
 
-    val VIDEO_FILE_EXTENSIONS: Set<String> = HashSet(mutableListOf(
+    private val VIDEO_FILE_EXTENSIONS: Set<String> = HashSet(mutableListOf(
         "3gp", "mkv", "mp4", "ogg", "ogv", "ogx", "webm", "swf"
     ))
 

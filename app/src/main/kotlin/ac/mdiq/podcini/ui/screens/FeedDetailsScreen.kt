@@ -142,6 +142,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
+import androidx.core.net.toUri
 
 
 class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
@@ -162,7 +163,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var infoBarText = mutableStateOf("")
     //        internal var displayUpArrow by mutableStateOf(false)
     private var headerCreated = false
-    internal var rating by mutableStateOf(Rating.UNRATED.code)
+    internal var rating by mutableIntStateOf(Rating.UNRATED.code)
 
     internal val episodes = mutableStateListOf<Episode>()
     internal val vms = mutableStateListOf<EpisodeVM>()
@@ -273,17 +274,17 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         infoBarText.value = "$listInfoText $updateInfoText"
     }
 
-    private fun isFilteredOut(episode: Episode): Boolean {
-        if (enableFilter && !feed?.filterString.isNullOrEmpty()) {
-            val episodes_ = realm.query(Episode::class).query("feedId == ${feed!!.id}").query(feed!!.episodeFilter.queryString()).find()
-            if (!episodes_.contains(episode)) {
-                episodes.remove(episode)
-                return true
-            }
-            return false
-        }
-        return false
-    }
+//    private fun isFilteredOut(episode: Episode): Boolean {
+//        if (enableFilter && !feed?.filterString.isNullOrEmpty()) {
+//            val episodes_ = realm.query(Episode::class).query("feedId == ${feed!!.id}").query(feed!!.episodeFilter.queryString()).find()
+//            if (!episodes_.contains(episode)) {
+//                episodes.remove(episode)
+//                return true
+//            }
+//            return false
+//        }
+//        return false
+//    }
 
     private var loadJob: Job? = null
     internal fun loadFeed(force: Boolean = false) {
@@ -320,7 +321,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                         episodes.clear()
                         episodes.addAll(eListTmp)
                         withContext(Dispatchers.Main) {
-                            layoutModeIndex = if (feed_.useWideLayout == true) 1 else 0
+                            layoutModeIndex = if (feed_.useWideLayout) 1 else 0
                             stopMonitor(vms)
                             vms.clear()
                             buildMoreItems()
@@ -460,7 +461,7 @@ fun FeedDetailsScreen() {
 //                    Logd(TAG, "test eList: ${eList.size}")
                     vm.txtvAuthor = vm.feed?.author ?: ""
                     vm.txtvUrl = vm.feed?.downloadUrl
-                    if (!vm.feed?.link.isNullOrEmpty()) vm.isCallable = IntentUtils.isCallable(context, Intent(Intent.ACTION_VIEW, Uri.parse(vm.feed!!.link)))
+                    if (!vm.feed?.link.isNullOrEmpty()) vm.isCallable = IntentUtils.isCallable(context, Intent(Intent.ACTION_VIEW, vm.feed!!.link!!.toUri()))
                     saveLastNavScreen(TAG, vm.feedID.toString())
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     vm.refreshSwipeTelltale()
@@ -492,7 +493,7 @@ fun FeedDetailsScreen() {
 //    BackHandler { mainNavController.popBackStack() }
 
     ComfirmDialog(0, stringResource(R.string.reconnect_local_folder_warning), vm.showConnectLocalFolderConfirm) {
-        try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Loge(TAG, "No activity found. Should never happen...") }
+        try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
     }
 
     var showEditConfirmDialog by remember { mutableStateOf(false) }
@@ -580,7 +581,7 @@ fun FeedDetailsScreen() {
                     Text(vm.feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(vm.feed?.author ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        val ratingIconRes by derivedStateOf { Rating.fromCode(vm.rating).res }
+                        val ratingIconRes by remember { derivedStateOf { Rating.fromCode(vm.rating).res } }
                         IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(start = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer)) }
                         Spacer(modifier = Modifier.weight(0.3f))
                         if (feedScreenMode == FeedScreenMode.List) Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)

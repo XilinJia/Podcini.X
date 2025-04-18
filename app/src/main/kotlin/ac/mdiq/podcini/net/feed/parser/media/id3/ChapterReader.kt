@@ -5,7 +5,6 @@ import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.EmbeddedChapterImage.Companion.makeUrl
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
 import org.apache.commons.io.input.CountingInputStream
 import java.io.IOException
 import java.net.URLDecoder

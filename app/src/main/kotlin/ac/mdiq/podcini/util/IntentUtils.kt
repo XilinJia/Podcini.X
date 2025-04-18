@@ -5,7 +5,7 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
+import androidx.core.net.toUri
 
 
 object IntentUtils {
@@ -30,7 +30,7 @@ object IntentUtils {
     fun openInBrowser(context: Context, url: String) {
         Logd(TAG, "url: $url")
         try {
-            val myIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            val myIntent = Intent(Intent.ACTION_VIEW, url.toUri())
             myIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(myIntent)
         } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.pref_no_browser_found)) }
