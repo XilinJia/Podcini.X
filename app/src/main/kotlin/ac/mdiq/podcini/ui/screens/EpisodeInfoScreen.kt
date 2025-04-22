@@ -11,9 +11,11 @@ import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.UsageStatistics
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
-import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
+import ac.mdiq.podcini.storage.database.RealmDB.MonitorEntity
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.RealmDB.subscribeEpisode
+import ac.mdiq.podcini.storage.database.RealmDB.unsubscribeEpisode
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -38,10 +40,10 @@ import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
+import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils
@@ -116,7 +118,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import coil.compose.AsyncImage
-import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -124,6 +125,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Date
 
 class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal val actMain: MainActivity? = generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull()
@@ -134,7 +136,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var itemLoaded = false
     internal var episode by mutableStateOf<Episode?>(null)    // managed
-    internal var episodeMonitor: Job? = null
+//    internal var episodeMonitor: Job? = null
 
     internal var txtvPodcast by mutableStateOf("")
     internal var txtvTitle by mutableStateOf("")
@@ -187,11 +189,11 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun monitor() {
-        if (episodeMonitor != null) return
-        episodeMonitor = episodeMonitor(episode!!,
+        subscribeEpisode(episode!!, MonitorEntity(TAG,
             onChanges = { e, fields ->
                 withContext(Dispatchers.Main) {
                     Logd(TAG, "monitor: ${fields.joinToString()}")
+                    if (e.id != episode?.id) return@withContext
                     var isChanged = false
                     for (f in fields) {
                         if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime")) continue
@@ -203,7 +205,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                         isPlayed = e.playState
                     }
                 }
-        } )
+            }))
     }
 
     internal fun updateAppearance() {
@@ -344,15 +346,17 @@ fun EpisodeInfoScreen() {
                     vm.monitor()
                 }
                 Lifecycle.Event.ON_RESUME -> if (vm.itemLoaded) vm.updateAppearance()
-                Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
+                Lifecycle.Event.ON_STOP -> {
+                    vm.cancelFlowEvents()
+                    if (vm.episode != null) unsubscribeEpisode(vm.episode!!, TAG)
+                }
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            vm.episodeMonitor?.cancel()
-            vm.episodeMonitor = null
+            if (vm.episode != null) unsubscribeEpisode(vm.episode!!, TAG)
             vm.episode = null
             vm.playerLocal?.release()
             vm.playerLocal = null

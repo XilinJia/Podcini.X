@@ -30,9 +30,12 @@ import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesQuiet
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
 import ac.mdiq.podcini.storage.database.Queues.smartRemoveFromQueue
-import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
+import ac.mdiq.podcini.storage.database.RealmDB.MonitorEntity
+import ac.mdiq.podcini.storage.database.RealmDB.EpisodeMonitorSpec
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.RealmDB.subscribeEpisode
+import ac.mdiq.podcini.storage.database.RealmDB.unsubscribeEpisode
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -143,6 +146,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -171,6 +175,13 @@ import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.URL
 import java.time.Instant
@@ -179,17 +190,11 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 const val VMS_CHUNK_SIZE = 50
-const val loadThreshold = (VMS_CHUNK_SIZE * 0.8).toInt()
+private const val loadThreshold = (VMS_CHUNK_SIZE * 0.8).toInt()
+private const val TAG = "EpisodesVM"
 
 @androidx.annotation.OptIn(UnstableApi::class)
 fun buildListInfo(episodes: List<Episode>): String {
@@ -228,7 +233,12 @@ fun InforBar(text: State<String>, leftAction: MutableState<SwipeAction>, rightAc
 }
 
 fun stopMonitor(vms: List<EpisodeVM>) {
-    vms.forEach { it.stopMonitoring() }
+    Logd(TAG, "stopMonitor ${vms.size} episodes")
+    if (vms.isNotEmpty()) unsubscribeEpisode(vms.map { it.episode.id }, vms[0].tag)
+}
+
+fun startMonitor(vms: List<EpisodeVM>) {
+    subscribeEpisode(vms.map { EpisodeMonitorSpec(it.episode, MonitorEntity(it.tag, onChanges = { e, fields -> it.monitorCB(e, fields) })) })
 }
 
 @Stable
@@ -236,7 +246,6 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     var positionState by mutableIntStateOf(episode.position)
     var durationState by mutableIntStateOf(episode.duration)
     var playedState by mutableIntStateOf(episode.playState)
-//    var isPlayingState by mutableStateOf(false)
     var hasComment by mutableStateOf(episode.comment.isNotBlank())
     var ratingState by mutableIntStateOf(episode.rating)
     var inProgressState by mutableStateOf(episode.isInProgress)
@@ -248,30 +257,34 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     var isSelected by mutableStateOf(false)
     var prog by mutableFloatStateOf(0f)
 
-    private var episodeMonitor: Job? by mutableStateOf(null)
+    private var monitoring = false
 
     fun stopMonitoring() {
-        episodeMonitor?.cancel()
-        episodeMonitor = null
-//        Logd("EpisodeVM", "cancel monitoring")
+        Logd(TAG, "stopMonitoring ${episode.title}")
+        unsubscribeEpisode(episode, tag)
+        monitoring = false
     }
 
-    fun startMonitoring() {
-        if (episodeMonitor == null) {
-            episodeMonitor = episodeMonitor(episode,
-                onChanges = { e, fields ->
-                    episode = e
-                    withContext(Dispatchers.Main) {
-                        playedState = e.playState
-                        ratingState = e.rating
-                        positionState = e.position
-                        durationState = e.duration
-                        inProgressState = e.isInProgress
-                        downloadState = if (e.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
-                    }
-            })
+    suspend fun monitorCB(e: Episode, fields: Array<String>) {
+        Logd(TAG, "monitorCB onChange ${e.title}")
+        if (episode.id == e.id) {
+            episode = e
+            withContext(Dispatchers.Main) {
+                playedState = e.playState
+                ratingState = e.rating
+                positionState = e.position
+                durationState = e.duration
+                inProgressState = e.isInProgress
+                downloadState = if (e.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
+            }
         }
     }
+
+//    fun startMonitoring() {
+//        Logd(TAG, "startMonitoring ${episode.title}")
+//        subscribeEpisode(episode, MonitorEntity(tag, onChanges = { e, fields -> monitorCB(e, fields) }))
+//        monitoring = true
+//    }
 }
 
 @Composable
@@ -545,14 +558,13 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
-fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed? = null, layoutMode: Int = 0,
+fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed: Feed? = null, layoutMode: Int = 0,
                       showCoverImage: Boolean = true, showActionButtons: Boolean = true, showComment: Boolean = false,
                       buildMoreItems: (()->Unit) = {},
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       refreshCB: (()->Unit)? = null, leftSwipeCB: ((Episode)->Unit)? = null, rightSwipeCB: ((Episode)->Unit)? = null,
                       actionButton_: ((Episode)->EpisodeActionButton)? = null, actionButtonCB: ((Episode, String)->Unit)? = null,
                       multiSelectCB: ((Int, Int)->List<Episode>)? = null) {
-    val TAG = "EpisodeLazyColumn"
     var selectMode by remember { mutableStateOf(false) }
     var selectedSize by remember { mutableIntStateOf(0) }
     val selected = remember { mutableStateListOf<Episode>() }
@@ -934,15 +946,32 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
             }
         }
         val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
+        val lazyListState = rememberLazyListState()
+        val isScrolling by remember { derivedStateOf { lazyListState.isScrollInProgress } }
+        var isStabilized by remember { mutableStateOf(true) }
+        LaunchedEffect(isScrolling) {
+            Logd(TAG, "LaunchedEffect isScrolling: $isScrolling")
+            if (isScrolling) isStabilized = false
+            else {
+                delay(200)
+                isStabilized = true
+            }
+        }
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vms, key = { _, vm -> vm.episode.id}) { index, vm ->
-                vm.startMonitoring()
-                DisposableEffect(Unit) {
-                    onDispose {
+//                vm.startMonitoring()c
+//                LaunchedEffect(vm.episode.id, isScrolling) {
+//                    if (!isScrolling) {
+//                        delay(200)
+//                        vm.startMonitoring()
+//                    }
+//                }
+//                DisposableEffect(Unit) {
+//                    onDispose {
 //                        Logd(TAG, "cancelling monitoring $index")
-                        vm.stopMonitoring()
-                    }
-                }
+//                        vm.stopMonitoring()
+//                    }
+//                }
                 val velocityTracker = remember { VelocityTracker() }
                 val offsetX = remember { Animatable(0f) }
                 Box(modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
@@ -970,7 +999,7 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 }.offset { IntOffset(offsetX.value.roundToInt(), 0) }) {
                     LaunchedEffect(key1 = selectMode, key2 = selectedSize) {
                         vm.isSelected = selectMode && vm.episode in selected
-                        Logd(TAG, "LaunchedEffect $index ${vm.isSelected} ${selected.size}")
+//                        Logd(TAG, "LaunchedEffect $index ${vm.isSelected} ${selected.size}")
                     }
                     Column {
                         var yOffset by remember { mutableFloatStateOf(0f) }
@@ -997,6 +1026,21 @@ fun EpisodeLazyColumn(activity: Context, vms: MutableList<EpisodeVM>, feed: Feed
                 }
             }
         }
+
+        DisposableEffect(isStabilized, lazyListState.layoutInfo) {
+            Logd(TAG, "DisposableEffect preparing monitoredItems")
+            val monitoredItems = mutableListOf<EpisodeVM>()
+            if (isStabilized) {
+                monitoredItems.addAll(lazyListState.layoutInfo.visibleItemsInfo.mapNotNull { vms.getOrNull(it.index) })
+                startMonitor(monitoredItems)
+                Logd(TAG, "DisposableEffect monitoredItems: ${monitoredItems.size}")
+            }
+            onDispose {
+                Logd(TAG, "DisposableEffect onDispose monitoredItems: ${monitoredItems.size}")
+                if (monitoredItems.isNotEmpty()) unsubscribeEpisode(monitoredItems.map { it.episode.id }, monitoredItems[0].tag)
+            }
+        }
+
         if (selectMode) {
             val buttonColor = MaterialTheme.colorScheme.onTertiary
             Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.onTertiaryContainer),

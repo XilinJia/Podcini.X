@@ -5,7 +5,7 @@ import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.storage.model.Episode
 
 abstract class DownloadServiceInterface {
-    private var currentDownloads: Map<String, DownloadStatus> = HashMap()
+    private var currentDownloads: Map<String, DownloadStatus> = mutableMapOf()
 
     fun setCurrentDownloads(currentDownloads: Map<String, DownloadStatus>) {
         this.currentDownloads = currentDownloads

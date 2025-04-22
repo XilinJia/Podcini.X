@@ -55,7 +55,6 @@ import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -249,13 +248,12 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             nm.notify(R.id.notification_download_report, builder.build())
         }
         private fun generateProgressNotification(): Notification {
-            val bigTextB = StringBuilder()
+            val sb = StringBuilder()
             var progressCopy: Map<String, Int>
-            synchronized(notificationProgress) { progressCopy = HashMap(notificationProgress) }
-            for ((key, value) in progressCopy) bigTextB.append(String.format(Locale.getDefault(), "%s (%d%%)\n", key, value))
-            val bigText = bigTextB.toString().trim { it <= ' ' }
-            val contentText = if (progressCopy.size == 1) bigText
-            else applicationContext.resources.getQuantityString(R.plurals.downloads_left, progressCopy.size, progressCopy.size)
+            synchronized(notificationProgress) { progressCopy = notificationProgress.toMap() }
+            for ((key, value) in progressCopy) sb.append(String.format(Locale.getDefault(), "%s (%d%%)\n", key, value))
+            val bigText = sb.toString().trim { it <= ' ' }
+            val contentText = if (progressCopy.size == 1) bigText else applicationContext.resources.getQuantityString(R.plurals.downloads_left, progressCopy.size, progressCopy.size)
             val builder = NotificationCompat.Builder(applicationContext, NotificationUtils.CHANNEL_ID.downloading.name)
             builder.setTicker(applicationContext.getString(R.string.download_notification_title_episodes))
                 .setContentTitle(applicationContext.getString(R.string.download_notification_title_episodes))
@@ -312,9 +310,9 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                     Logd(TAG, "run() set duration: ${it.duration}")
                     it.disableAutoDownload()
                 }
+                // TODO: need to post two events?
                 EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
-//                        TODO: should use different event?
-                if (broadcastUnreadStateUpdate) EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(item))
+                if (broadcastUnreadStateUpdate) EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.updated(item))
                 if (isProviderConnected) {
                     Logd(TAG, "enqueue synch")
                     val action = EpisodeAction.Builder(item, EpisodeAction.DOWNLOAD).currentTimestamp().build()
@@ -325,7 +323,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         }
 
         companion object {
-            private val notificationProgress: MutableMap<String, Int> = HashMap()
+            private val notificationProgress: MutableMap<String, Int> = mutableMapOf()
         }
     }
 

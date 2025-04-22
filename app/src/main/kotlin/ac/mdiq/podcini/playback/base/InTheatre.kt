@@ -2,8 +2,10 @@ package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeMedia
-import ac.mdiq.podcini.storage.database.RealmDB.episodeMonitor
+import ac.mdiq.podcini.storage.database.RealmDB.MonitorEntity
 import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.RealmDB.subscribeEpisode
+import ac.mdiq.podcini.storage.database.RealmDB.unsubscribeEpisode
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState
@@ -35,7 +37,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 object InTheatre {
-    val TAG: String = InTheatre::class.simpleName ?: "Anonymous"
+    private val TAG: String = InTheatre::class.simpleName ?: "Anonymous"
 
     internal var aCtrlFuture: ListenableFuture<MediaController>? = null
     var aController: MediaController? = null
@@ -46,7 +48,7 @@ object InTheatre {
 
     var curQueue: PlayQueue     // managed
 
-    private var curEpisodeMonitor: Job? = null
+//    private var curEpisodeMonitor: Job? = null
     var curEpisode: Episode? = null     // manged
         private set
 
@@ -93,7 +95,7 @@ object InTheatre {
     }
 
     fun monitorState() {
-        if (curStateMonitor == null) curStateMonitor = CoroutineScope(Dispatchers.Default).launch {
+        if (curStateMonitor == null) curStateMonitor = CoroutineScope(Dispatchers.IO).launch {
             val item_ = realm.query(CurrentState::class).first()
             Logd(TAG, "start monitoring curState: ")
             val stateFlow = item_.asFlow()
@@ -118,25 +120,27 @@ object InTheatre {
     var onCurChangedUICB: (suspend (e: Episode, fields: Array<String>)->Unit)? = null
 
     fun setCurEpisode(episode: Episode?) {
+        Logd(TAG, "setCurEpisode episode: ${episode?.title}")
+//        showStackTrace()
         if (episode != null && episode.id == curEpisode?.id) return
-        Logd(TAG, "episodeMonitor cancel monitoring")
-        curEpisodeMonitor?.cancel()
-        curEpisodeMonitor = null
+        if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
         when {
             episode != null -> {
                 curEpisode = episode
-                Logd(TAG, "episodeMonitor start monitoring curEpisode ${curEpisode?.title}")
-                curEpisodeMonitor = episodeMonitor(curEpisode!!,
+                Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")
+                subscribeEpisode(curEpisode!!, MonitorEntity(TAG,
                     onChanges = { e, f ->
-                        curEpisode = e
-                        Logd(TAG, "episodeMonitor updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
-                        onCurChangedUICB?.invoke(e, f)
+                        if (e.id == curEpisode?.id) {
+                            curEpisode = e
+                            Logd(TAG, "setCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
+                            onCurChangedUICB?.invoke(e, f)
+                        }
                     },
                     onInit = { e ->
 //                        curEpisode = e
                         onCurInitUICB?.invoke(e)
                     }
-                )
+                ))
                 curMediaId = episode.id
             }
             else -> {
@@ -213,8 +217,9 @@ object InTheatre {
 
     fun cleanup() {
         Logd(TAG, "cleanup()")
-        curEpisodeMonitor?.cancel()
-        curEpisodeMonitor = null
+//        curEpisodeMonitor?.cancel()
+//        curEpisodeMonitor = null
+        if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
         curStateMonitor?.cancel()
         curStateMonitor = null
     }

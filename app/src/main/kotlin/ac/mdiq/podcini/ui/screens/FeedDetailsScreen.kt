@@ -359,7 +359,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             } catch (e: Throwable) {
                 feed = null
                 Logs(TAG, e)
-            } catch (e: Exception) { Logs(TAG, e) }
+            }
         }.apply { invokeOnCompletion { loadJob = null } }
     }
     fun buildMoreItems() {

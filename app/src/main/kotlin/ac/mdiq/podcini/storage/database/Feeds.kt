@@ -43,16 +43,18 @@ import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.notifications.UpdatedResults
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ExecutionException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlin.math.abs
 
 object Feeds {
@@ -96,33 +98,69 @@ object Feeds {
         }
     }
 
-    private var monitorJob: Job? = null
-    private val monitorJobs = mutableListOf<Job>()
-    fun cancelMonitorFeeds() {
-        monitorJobs.forEach { it.cancel() }
-        monitorJobs.clear()
-        monitorJob?.cancel()
-        monitorJob = null
-    }
+    private val monitoredIds = MutableStateFlow<List<Long>>(emptyList())
+    private var monitoringJob: Job? = null
 
     fun monitorFeeds(scope: CoroutineScope) {
+        Logd(TAG, "monitorFeeds starting")
+        monitoringJob?.cancel()
+        monitoringJob = scope.launch(Dispatchers.IO) {
+            monitoredIds.collect { itemIds ->
+                Logd(TAG, "monitorFeeds itemIds: ${itemIds.size}")
+                val query = if (itemIds.isNotEmpty()) "id IN ${itemIds.joinToString(prefix = "{", postfix = "}", separator = ", ")}" else "FALSE"
+                Logd(TAG, "monitorFeeds query: $query")
+                val results = realm.query(Feed::class).query(query).find()
+                Logd(TAG, "monitorFeeds results: ${results.size}")
+                results.map { it.asFlow() }
+                    .merge()
+                    .collect { changes: SingleQueryChange<Feed> ->
+                        when (changes) {
+                            is UpdatedObject -> {
+                                Logd(TAG, "monitorFeed UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
+                                if (changes.changedFields.isNotEmpty() && (changes.changedFields.size > 1 || changes.changedFields[0] != "lastPlayed"))
+                                    EventFlow.postEvent(FlowEvent.FeedChangeEvent(changes.obj, changes.changedFields))
+                            }
+//                    is DeletedObject -> {
+//                        Logd(TAG, "monitorFeed DeletedObject ${feed.title}")
+//                        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feed.id))
+//                    }
+                            else -> {}
+                        }
+                    }
+            }
+        }
+    }
+
+    private var monitorJob: Job? = null
+    fun cancelMonitorFeeds() {
+        monitorJob?.cancel()
+        monitorJob = null
+        monitoringJob?.cancel()
+        monitoringJob = null
+    }
+
+    fun monitorFeedList(scope: CoroutineScope) {
         if (monitorJob != null) return
 
         val feeds = realm.query(Feed::class).find()
-        for (f in feeds) monitorJobs.add(monitorFeed(f, scope))
+        monitoredIds.value = feeds.map { it.id }
+        monitorFeeds(scope)
 
         val feedQuery = realm.query(Feed::class)
         monitorJob = scope.launch(Dispatchers.IO) {
-            val feedsFlow = feedQuery.asFlow()
-            feedsFlow.collect { changes: ResultsChange<Feed> ->
+            feedQuery.asFlow().collect { changes: ResultsChange<Feed> ->
                 when (changes) {
                     is UpdatedResults -> {
                         when {
                             changes.insertions.isNotEmpty() -> {
+                                val ids = monitoredIds.value.toMutableList()
                                 for (i in changes.insertions) {
-                                    Logd(TAG, "monitorFeeds inserted feed: ${changes.list[i].title}")
-                                    monitorJobs.add(monitorFeed(changes.list[i], scope))
+                                    Logd(TAG, "monitorFeedList inserted feed: ${changes.list[i].title}")
+                                    ids.add(changes.list[i].id)
                                 }
+                                monitoredIds.value = ids.toList()
+                                // TODO: not sure why the state flow doens not collect
+                                monitorFeeds(scope)
                                 EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
                             }
 //                            changes.changes.isNotEmpty() -> {
@@ -131,7 +169,14 @@ object Feeds {
 //                                }
 //                            }
                             changes.deletions.isNotEmpty() -> {
-                                Logd(TAG, "monitorFeeds feed deleted: ${changes.deletions.size}")
+                                val ids = monitoredIds.value.toMutableList()
+                                for (i in changes.deletions) {
+                                    Logd(TAG, "monitorFeedList deleted feed: ${feeds[i].title}")
+                                    ids.removeAt(i)
+                                }
+                                monitoredIds.value = ids.toList()
+                                monitorFeeds(scope)
+                                Logd(TAG, "monitorFeedList feed deleted: ${changes.deletions.size}")
                                 compileTags()
                             }
                         }
@@ -139,26 +184,6 @@ object Feeds {
                     else -> {
                         // types other than UpdatedResults are not changes -- ignore them
                     }
-                }
-            }
-        }
-    }
-
-    private fun monitorFeed(feed: Feed, scope: CoroutineScope): Job {
-        return scope.launch(Dispatchers.IO) {
-            val feedFlow = feed.asFlow()
-            feedFlow.collect { changes: SingleQueryChange<Feed> ->
-                when (changes) {
-                    is UpdatedObject -> {
-                        Logd(TAG, "monitorFeed UpdatedObject ${changes.obj.title} ${changes.changedFields.joinToString()}")
-                        if (changes.changedFields.isNotEmpty() && (changes.changedFields.size > 1 || changes.changedFields[0] != "lastPlayed"))
-                            EventFlow.postEvent(FlowEvent.FeedChangeEvent(changes.obj, changes.changedFields))
-                    }
-//                    is DeletedObject -> {
-//                        Logd(TAG, "monitorFeed DeletedObject ${feed.title}")
-//                        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feed.id))
-//                    }
-                    else -> {}
                 }
             }
         }

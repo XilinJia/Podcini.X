@@ -172,7 +172,8 @@ object Episodes {
                         it.setfileUrlOrNull(null)
                         if (it.playState < PlayState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(PlayState.SKIPPED)
                     }
-                    EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
+                    // TODO: need to change event
+                    EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
                     localDelete = true
                 }
                 url != null -> {
@@ -196,7 +197,8 @@ object Episodes {
                         it.hasEmbeddedPicture = false
                         if (it.playState < PlayState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(PlayState.SKIPPED)
                     }
-                    EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(episode))
+                    // TODO: need to change event
+                    EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
                 }
             }
         } catch (e: Throwable) { Logs(TAG, e, "deleteMediaSync failed") }
@@ -274,7 +276,7 @@ object Episodes {
         Logd(TAG, "setPlayStateSync played0: ${result.playState}")
         if (removeFromQueue && played == PlayState.PLAYED.code && getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(result)
         Logd(TAG, "setPlayStateSync played1: ${result.playState}")
-        EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(result))
+//        EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(result))
         return result
     }
 

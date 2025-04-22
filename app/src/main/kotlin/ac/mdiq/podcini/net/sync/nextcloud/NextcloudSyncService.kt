@@ -54,7 +54,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
             val requestBody = RequestBody.create("application/json".toMediaType(), requestObject.toString())
             performRequest(url, "POST", requestBody)
         } catch (e: Exception) { throw NextcloudSynchronizationServiceException(e) }
-        return GpodnetUploadChangesResponse(System.currentTimeMillis() / 1000, HashMap())
+        return GpodnetUploadChangesResponse(System.currentTimeMillis() / 1000, mutableMapOf())
     }
 
     @Throws(SyncServiceException::class)

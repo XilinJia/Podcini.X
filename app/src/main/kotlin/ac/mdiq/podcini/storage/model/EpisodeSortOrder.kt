@@ -193,7 +193,7 @@ enum class EpisodeSortOrder(val code: Int, val res: Int) {
          */
         private fun smartShuffle(queue: MutableList<Episode?>, ascending: Boolean) {
             // Divide FeedItems into lists by feed
-            val map: MutableMap<Long, MutableList<Episode>> = HashMap()
+            val map: MutableMap<Long, MutableList<Episode>> = mutableMapOf()
             for (item in queue) {
                 if (item == null) continue
                 val id = item.feedId

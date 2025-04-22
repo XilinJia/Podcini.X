@@ -223,8 +223,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal var rating by mutableIntStateOf(curItem?.rating ?: Rating.UNRATED.code)
 
     internal var resetPlayer by mutableStateOf(false)
-//    internal val showErrorDialog = mutableStateOf(false)
-//    internal var errorMessage by mutableStateOf("")
 
     internal var recordingStartTime by mutableStateOf<Long?>(null)
 
@@ -268,7 +266,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     suspend fun onEpisodeInit(e: Episode) {
         withContext(Dispatchers.Main) {
             curItem = e
-            Logd(TAG, "monitor: curItem changed")
+            Logd(TAG, "onEpisodeInit: curItem changed")
             rating = e.rating
             updateUi()
             updateDetails()
@@ -277,7 +275,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     }
     suspend fun onEpisodeChanged(e: Episode, fields: Array<String>) {
         withContext(Dispatchers.Main) {
-            Logd(TAG, "monitor: ${fields.joinToString()}")
+            Logd(TAG, "onEpisodeChanged: ${fields.joinToString()}")
             var isChanged = false
             var isDetailChanged = false
             for (f in fields) {
@@ -285,9 +283,10 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                 isChanged = true
                 if (f == "clips" || f == "marks") isDetailChanged = true
             }
+//            if (curItem?.id != e.id) isChanged    // this doesn't happen
             curItem = e
             if (isChanged) {
-                Logd(TAG, "monitor: curItem changed")
+                Logd(TAG, "onEpisodeChanged: curItem changed")
                 rating = curItem!!.rating
                 updateUi()
                 if (isDetailChanged) updateDetails()
@@ -300,7 +299,8 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         txtvLengthText = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + getDurationStringLong(remainingTime) else getDurationStringLong(duration)
     }
 
-    private fun updateTimeline() {
+    internal fun updateTimeline() {
+        if (curItem == null) return
         if (isBSExpanded) {
             val newChapterIndex: Int = curItem!!.getCurrentChapterIndex(curItem!!.position)
             if (newChapterIndex >= 0 && newChapterIndex != displayedChapterIndex) refreshChapterData(newChapterIndex)
@@ -445,11 +445,11 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
     }
-    internal fun setItem(item_: Episode) {
-        Logd(TAG, "setItem ${item_.title}")
-        if (curItem?.identifyingValue != item_.identifyingValue) {
+    internal fun setItem(item_: Episode?) {
+        Logd(TAG, "setItem ${item_?.title}")
+        if (curItem?.identifyingValue != item_?.identifyingValue) {
             curItem = item_
-            rating = curItem!!.rating
+            rating = curItem?.rating ?: Rating.UNRATED.code
             showHomeText = false
             homeText = null
             cleanedNotes = null
@@ -888,12 +888,14 @@ fun AudioPlayerScreen() {
 
     if (vm.showSpeedDialog) PlaybackSpeedFullDialog(settingCode = booleanArrayOf(true, true, true), indexDefault = 0, maxSpeed = 3f, onDismiss = {vm.showSpeedDialog = false})
     LaunchedEffect(key1 = curMediaId) {
+        Logd(TAG, "LaunchedEffect curEpisode: ${curEpisode?.title}")
         vm.cleanedNotes = null
-        if (curEpisode != null) {
-            vm.updateUi()
-            vm.imgLoc = curEpisode!!.imageLocation
-            if (vm.curItem?.id != curEpisode?.id) vm.setItem(curEpisode!!)
-        }
+//        if (curEpisode != null) {
+        vm.setItem(curEpisode)
+        vm.updateUi()
+        vm.updateTimeline()
+        vm.imgLoc = curEpisode?.imageLocation
+//        }
     }
     Box(modifier = Modifier.fillMaxWidth().then(if (!isBSExpanded) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())) {
         PlayerUI(Modifier.align(if (!isBSExpanded) Alignment.TopCenter else Alignment.BottomCenter).zIndex(1f))

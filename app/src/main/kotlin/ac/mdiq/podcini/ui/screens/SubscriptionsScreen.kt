@@ -268,7 +268,8 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.FeedListEvent -> loadSubscriptions(true)
-                    is FlowEvent.EpisodePlayedEvent -> loadSubscriptions(true)
+                    // TODO: is this needed
+//                    is FlowEvent.EpisodePlayedEvent -> loadSubscriptions(true)
                     is FlowEvent.FeedTagsChangedEvent -> loadSubscriptions(true)
                     is FlowEvent.FeedChangeEvent -> loadSubscriptions(true)
                     else -> {}
@@ -315,7 +316,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     isFiltered = feedsFilter.isNotEmpty()
                     txtvInformation = infoTextUpdate
                 }
-            } catch (e: Throwable) { Logs(TAG, e) }
+            } catch (e: Throwable) { Logd(TAG, e.message ?: "No message") }
         }.apply { invokeOnCompletion { loadingJob = null } }
     }
 

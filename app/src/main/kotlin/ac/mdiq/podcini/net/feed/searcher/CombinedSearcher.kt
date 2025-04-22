@@ -27,8 +27,8 @@ class CombinedSearcher : PodcastSearcher {
     }
 
     private fun weightSearchResults(singleResults: List<List<PodcastSearchResult>>): List<PodcastSearchResult> {
-        val resultRanking = HashMap<String?, Float>()
-        val urlToResult = HashMap<String?, PodcastSearchResult>()
+        val resultRanking = mutableMapOf<String?, Float>()
+        val urlToResult = mutableMapOf<String?, PodcastSearchResult>()
         for (i in singleResults.indices) {
             val providerPriority = PodcastSearcherRegistry.searchProviders[i].weight
             val providerResults = singleResults[i]

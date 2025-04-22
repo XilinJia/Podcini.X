@@ -160,7 +160,7 @@ class FeedHandler {
          * URL of the feed, the value is the title
          */
         @JvmField
-        val alternateUrls: MutableMap<String, String> = HashMap()
+        val alternateUrls: MutableMap<String, String> = mutableMapOf()
         @JvmField
         var redirectUrl: String? = null
         @JvmField
@@ -175,7 +175,7 @@ class FeedHandler {
          * Namespaces that have been defined so far.
          */
         @JvmField
-        val namespaces: MutableMap<String, Namespace> = HashMap()
+        val namespaces: MutableMap<String, Namespace> = mutableMapOf()
         @JvmField
         val defaultNamespaces: Stack<Namespace> = Stack()
         /**
@@ -187,7 +187,7 @@ class FeedHandler {
          * Temporarily saved objects.
          */
         @JvmField
-        val tempObjects: MutableMap<String, Any> = HashMap()
+        val tempObjects: MutableMap<String, Any> = mutableMapOf()
         /**
          * Returns the SyndElement that comes after the top element of the tagstack.
          */

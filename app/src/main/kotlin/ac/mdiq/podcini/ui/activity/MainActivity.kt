@@ -17,7 +17,7 @@ import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.storage.database.Feeds.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.Feeds.compileTags
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.monitorFeeds
+import ac.mdiq.podcini.storage.database.Feeds.monitorFeedList
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -313,7 +313,7 @@ class MainActivity : BaseActivity() {
                         hasDownloadObserverStarted = true
                         return@observe
                     }
-                    val updatedEpisodes: MutableMap<String, DownloadStatus> = HashMap()
+                    val updatedEpisodes: MutableMap<String, DownloadStatus> = mutableMapOf()
                     for (workInfo in workInfos) {
                         var downloadUrl: String? = null
                         for (tag in workInfo.tags) {
@@ -373,7 +373,7 @@ class MainActivity : BaseActivity() {
         super.onStart()
         procFlowEvents()
         RatingDialog.init(this)
-        monitorFeeds(lifecycleScope)
+        monitorFeedList(lifecycleScope)
     }
 
     override fun onStop() {

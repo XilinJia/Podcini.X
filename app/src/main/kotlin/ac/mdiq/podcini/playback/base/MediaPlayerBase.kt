@@ -196,7 +196,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             if (httpDataSourceFactory == null)
                 httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0")
 
-            val requestProperties = HashMap<String, String>()
+            val requestProperties = mutableMapOf<String, String>()
             requestProperties["Authorization"] = HttpCredentialEncoder.encode(user, password, "ISO-8859-1")
             httpDataSourceFactory!!.setDefaultRequestProperties(requestProperties)
 
@@ -408,7 +408,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     if (ended || skipped || playingNext) it.playbackCompletionDate = Date()
                 }
 
-                EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(item))
+//                EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(item))
                 EventFlow.postEvent(FlowEvent.HistoryEvent())
 
                 val action = item.feed?.autoDeleteAction
@@ -468,8 +468,12 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
         if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
         if (it.startTime > 0) {
-            val delta = (System.currentTimeMillis() - it.startTime)
-            if (delta > 3 * max(it.playedDuration, 60000)) Logt(TAG, "upsertDB likely invalid delta: $delta ${it.title}")
+            var delta = (System.currentTimeMillis() - it.startTime)
+            if (delta > 3 * max(it.playedDuration, 60000)) {
+                Logt(TAG, "upsertDB likely invalid delta: $delta ${it.title}")
+                it.startTime = System.currentTimeMillis()
+                delta = 0L
+            }
             else it.timeSpent = it.timeSpentOnStart + delta
         }
 

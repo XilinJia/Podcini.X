@@ -292,7 +292,7 @@ private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.OnlineSearch.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
 )
 
-private val navHostMap: HashMap<Screens, @Composable ()->Unit> = hashMapOf(
+private val navHostMap: MutableMap<Screens, @Composable ()->Unit> = mutableMapOf(
     Screens.Subscriptions to { SubscriptionsScreen() },
     Screens.FeedDetails to { FeedDetailsScreen() },
     Screens.FeedSettings to { FeedSettingsScreen() },

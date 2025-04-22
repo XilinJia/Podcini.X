@@ -197,7 +197,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                 when (event) {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
                     is FlowEvent.FeedChangeEvent -> onFeedPrefsChanged(event)
-                    is FlowEvent.EpisodePlayedEvent -> onEpisodePlayedEvent(event)
+//                    is FlowEvent.EpisodePlayedEvent -> onEpisodePlayedEvent(event)
                     else -> {}
                 }
             }
@@ -246,12 +246,15 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                     for (e in event.episodes) {
                         val pos: Int = queueItems.indexOfItemWithId(e.id)
                         if (pos < 0) continue
-                        Logd(TAG, "removing episode $pos ${queueItems[pos].title} $e")
-                        queueItems.removeAt(pos)
+                        Logd(TAG, "removing episode $pos ${queueItems[pos].title}")
                         if (pos < vms.size) {
-                            vms[pos].stopMonitoring()
-                            vms.removeAt(pos)
+                            Logd(TAG, "vms at $pos ${vms[pos].episode.title}")
+                            if (vms[pos].episode.id == e.id) {
+//                                vms[pos].stopMonitoring()
+                                vms.removeAt(pos)
+                            }
                         }
+                        queueItems.removeAt(pos)
                     }
                 }
             }
@@ -285,11 +288,14 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    private fun onEpisodePlayedEvent(event: FlowEvent.EpisodePlayedEvent) {
-        // Sent when playback position is reset
-        Logd(TAG, "onUnreadItemsChanged() called with event = [$event]")
-        if (event.episode != null && !showBin && queueItems.indexOfItemWithId(event.episode.id) >= 0) loadCurQueue(false)
-    }
+//    private fun onEpisodePlayedEvent(event: FlowEvent.EpisodePlayedEvent) {
+//        // Sent when playback position is reset
+//        Logd(TAG, "onEpisodePlayedEvent() called with event = [$event]")
+////        if (event.episode != null && !showBin) {
+////            val pos = queueItems.indexOfItemWithId(event.episode.id)
+////            if (pos >= 0 && pos < vms.size) vms[pos].playedState = event.episode.playState
+////        }
+//    }
 
     private fun onFeedPrefsChanged(event: FlowEvent.FeedChangeEvent) {
         Logd(TAG,"speedPresetChanged called")
@@ -316,13 +322,13 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             queueItems.clear()
             stopMonitor(vms)
             vms.clear()
-            if (showBin) queueItems.addAll(realm.query(Episode::class, "id IN $0", curQueue.idsBinList)
-                .find().sortedByDescending { curQueue.idsBinList.indexOf(it.id) })
+            if (showBin) queueItems.addAll(realm.query(Episode::class, "id IN $0", curQueue.idsBinList).find().sortedByDescending { curQueue.idsBinList.indexOf(it.id) })
             else {
                 curQueue.episodes.clear()
                 queueItems.addAll(curQueue.episodes)
             }
-            for (e in queueItems) vms.add(EpisodeVM(e, TAG))
+            val tag = if (showBin) TAG+"bin" else TAG
+            for (e in queueItems) vms.add(EpisodeVM(e, tag))
             Logd(TAG, "loadCurQueue() curQueue.episodes: ${curQueue.episodes.size}")
             queues = realm.query(PlayQueue::class).find()
             curIndex = queues.indexOfFirst { it.id == curQueue.id }

@@ -146,9 +146,11 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal val spinnerTexts = QuickAccess.entries.map { it.name }
     internal var curIndex by mutableIntStateOf(0)
+    var tag = TAG+QuickAccess.entries[0]
 
     internal var startDate: Long = 0L
     internal var endDate: Long = Date().time
+
 
     var progressing by mutableStateOf(false)
 
@@ -203,7 +205,8 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                     is FlowEvent.EpisodeEvent -> onEpisodeEvent(event)
                     is FlowEvent.EpisodeMediaEvent -> onEpisodeMediaEvent(event)
                     is FlowEvent.HistoryEvent -> onHistoryEvent(event)
-                    is FlowEvent.FeedListEvent, is FlowEvent.EpisodePlayedEvent -> loadItems()
+//                    is FlowEvent.FeedListEvent, is FlowEvent.EpisodePlayedEvent -> loadItems()
+                    is FlowEvent.FeedListEvent -> loadItems()
                     else -> {}
                 }
             }
@@ -272,7 +275,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun buildMoreItems() {
-        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], tag) }
         if (nextItems.isNotEmpty()) vms.addAll(nextItems)
     }
 
@@ -413,6 +416,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
             Logt(TAG, "History cleared")
             withContext(Dispatchers.Main) { progressing = false }
             EventFlow.postEvent(FlowEvent.HistoryEvent())
+
         }
     }
 
@@ -459,7 +463,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                     if (pos < vms.size) vms.removeAt(pos)
                     if (item.downloaded) {
                         episodes.add(pos, item)
-                        vms.add(pos, EpisodeVM(item, TAG))
+                        vms.add(pos, EpisodeVM(item, tag))
                     }
                 }
             }
@@ -479,7 +483,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                     if (pos < vms.size) vms.removeAt(pos)
                     if (item.downloaded) {
                         episodes.add(pos, item)
-                        vms.add(pos, EpisodeVM(item, TAG))
+                        vms.add(pos, EpisodeVM(item, tag))
                     }
                 }
             }
@@ -502,6 +506,7 @@ fun FacetsScreen() {
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     vm.refreshSwipeTelltale()
                     vm.curIndex = getPref(AppPrefs.prefFacetsCurIndex, 0)
+                    vm.tag = TAG+QuickAccess.entries[vm.curIndex]
                     sortOrder = vm.episodesSortOrder
                     vm.updateToolbar()
                 }
@@ -549,6 +554,7 @@ fun FacetsScreen() {
             SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
                 Logd(TAG, "Item selected: $index")
                 vm.curIndex = index
+                vm.tag = TAG+QuickAccess.entries[vm.curIndex]
                 putPref(AppPrefs.prefFacetsCurIndex, index)
                 vm.actionButtonToPass = if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name)  { it -> DeleteActionButton(it) } else null
                 vm.loadItems()

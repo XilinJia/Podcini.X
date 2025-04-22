@@ -96,7 +96,7 @@ sealed class FlowEvent {
     }
 
     //    TODO: need better handling at receving end
-    data class EpisodePlayedEvent(val episode: Episode? = null) : FlowEvent()
+//    data class EpisodePlayedEvent(val episode: Episode? = null) : FlowEvent()
 
     data class EpisodeEvent(val episodes: List<Episode>) : FlowEvent() {
         companion object {

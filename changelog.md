@@ -1,3 +1,11 @@
+# 8.15.1
+
+* feeds monitoring are on a single coroutine
+* episode monitoring is centrally managed and is limited to one monitor per episode and is tagged by the list
+* enhanced efficiency of episode list scrolling
+* replaced some mis-posting of PlayedEvent with other event
+* episodes lists monitors played status, PlayedEvent not needed, removed
+
 # 8.15.0
 
 * long-press on image on PlayerUI opens the FeedDetails screen
