@@ -76,7 +76,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
         Logd(TAG, "uploadEpisodeActions")
         var i = 0
         while (i < queuedEpisodeActions.size) {
-            uploadEpisodeActionsPartial(queuedEpisodeActions, i, min(queuedEpisodeActions.size.toDouble(), (i + UPLOAD_BULK_SIZE).toDouble()).toInt())
+            uploadEpisodeActionsPartial(queuedEpisodeActions, i, min(queuedEpisodeActions.size, (i + UPLOAD_BULK_SIZE)))
             i += UPLOAD_BULK_SIZE
         }
         return NextcloudGpodderEpisodeActionPostResponse(System.currentTimeMillis() / 1000)

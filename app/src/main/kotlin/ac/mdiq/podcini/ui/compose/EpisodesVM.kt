@@ -203,8 +203,10 @@ fun buildListInfo(episodes: List<Episode>): String {
         var timeLeft: Long = 0
         for (item in episodes) {
             var playbackSpeed = 1f
-            if (getPref(AppPrefs.prefPlaybackTimeRespectsSpeed, false)) playbackSpeed = getCurrentPlaybackSpeed(item)
-            if (playbackSpeed <= 0) playbackSpeed = 1f
+            if (getPref(AppPrefs.prefPlaybackTimeRespectsSpeed, false)) {
+                playbackSpeed = getCurrentPlaybackSpeed(item)
+                if (playbackSpeed <= 0) playbackSpeed = 1f
+            }
             val itemTimeLeft: Long = (item.duration - item.position).toLong()
             timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
         }
@@ -559,7 +561,7 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed: Feed? = null, layoutMode: Int = 0,
-                      showCoverImage: Boolean = true, showActionButtons: Boolean = true, showComment: Boolean = false,
+                      showCoverImage: Boolean = true, showActionButtons: Boolean = true, showComment: Boolean = false, doMonitor: Boolean = false,
                       buildMoreItems: (()->Unit) = {},
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       refreshCB: (()->Unit)? = null, leftSwipeCB: ((Episode)->Unit)? = null, rightSwipeCB: ((Episode)->Unit)? = null,
@@ -670,6 +672,22 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), "Remove from active queue")
                 Text(stringResource(id = R.string.remove_from_queue_label)) } },
+            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                onSelected()
+                runOnIOScope {
+                    realm.write {
+                        val selected_ = query(Episode::class, "id IN $0", selected.map { it.id }.toList()).find()
+                        for (e in selected_) {
+                            for (e1 in selected_) {
+                                if (e.id == e1.id) continue
+                                e.related.add(e1)
+                            }
+                        }
+                    }
+                }
+            }, verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "Set related")
+                Text(stringResource(id = R.string.set_related)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 runOnIOScope {
@@ -959,6 +977,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
         }
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vms, key = { _, vm -> vm.episode.id}) { index, vm ->
+//            itemsIndexed(vms) { index, vm ->
 //                vm.startMonitoring()c
 //                LaunchedEffect(vm.episode.id, isScrolling) {
 //                    if (!isScrolling) {
@@ -1030,7 +1049,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
         DisposableEffect(isStabilized, lazyListState.layoutInfo) {
             Logd(TAG, "DisposableEffect preparing monitoredItems")
             val monitoredItems = mutableListOf<EpisodeVM>()
-            if (isStabilized) {
+            if (isStabilized && doMonitor) {
                 monitoredItems.addAll(lazyListState.layoutInfo.visibleItemsInfo.mapNotNull { vms.getOrNull(it.index) })
                 startMonitor(monitoredItems)
                 Logd(TAG, "DisposableEffect monitoredItems: ${monitoredItems.size}")

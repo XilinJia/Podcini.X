@@ -564,7 +564,8 @@ fun SearchScreen() {
             when (selectedTabIndex.intValue) {
                 0 -> {
                     InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
-                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, buildMoreItems = { vm.buildMoreItems() },
+                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true,
+                        buildMoreItems = { vm.buildMoreItems() },
                         leftSwipeCB = {
                             if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
                             else vm.leftActionState.value.performAction(it)

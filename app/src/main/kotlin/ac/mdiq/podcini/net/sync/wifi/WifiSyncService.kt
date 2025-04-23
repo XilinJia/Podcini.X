@@ -287,7 +287,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
 //        Logd(TAG, "uploadEpisodeActions called")
         var i = 0
         while (i < queuedEpisodeActions.size) {
-            uploadEpisodeActionsPartial(queuedEpisodeActions, i, min(queuedEpisodeActions.size.toDouble(), (i + UPLOAD_BULK_SIZE).toDouble()).toInt())
+            uploadEpisodeActionsPartial(queuedEpisodeActions, i, min(queuedEpisodeActions.size, (i + UPLOAD_BULK_SIZE)))
             i += UPLOAD_BULK_SIZE
             Thread.sleep(1000)
         }

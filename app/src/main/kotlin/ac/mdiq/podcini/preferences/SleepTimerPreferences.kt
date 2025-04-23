@@ -177,11 +177,7 @@ object SleepTimerPreferences {
                                 return@Button
                             }
                             try {
-                                val time = if (toEnd) {
-                                    val curPosition = curEpisode?.position ?: 0
-                                    val duration = curEpisode?.duration ?: 0
-                                    TimeUnit.MILLISECONDS.toMinutes(convertOnSpeed(max((duration - curPosition).toDouble(), 0.0).toInt(), curPBSpeed).toLong()) // ms to minutes
-                                } else etxtTime.toLong()
+                                val time = if (!toEnd) etxtTime.toLong() else TimeUnit.MILLISECONDS.toMinutes(convertOnSpeed(max(((curEpisode?.duration ?: 0) - (curEpisode?.position ?: 0)), 0), curPBSpeed).toLong()) // ms to minutes
                                 Logd("SleepTimerDialog", "Sleep timer set: $time")
                                 if (time == 0L) throw NumberFormatException("Timer must not be zero")
                                 prefs!!.edit { putString(Prefs.LastValue.name, time.toString()) }

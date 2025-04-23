@@ -8,6 +8,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.storage.database.Episodes.getClipFile
+import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
@@ -15,6 +16,8 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
+import ac.mdiq.podcini.ui.actions.NullZapActionButton
+import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.ShareUtils
@@ -51,9 +54,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -66,6 +71,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.edit
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
@@ -281,5 +287,36 @@ fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
             }
         }
     }
+}
 
+@Composable
+fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
+    // TODO: somehow, episode is not updated after unrelate
+    var episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return
+    val vmsr = remember { mutableStateListOf<EpisodeVM>() }
+    LaunchedEffect(Unit) {
+        vmsr.clear()
+        for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
+    }
+    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
+        text = { EpisodeLazyColumn(LocalContext.current, vms = vmsr, showCoverImage = false,
+            actionButton_ = { NullZapActionButton(it) },
+            actionButtonCB = {e1, _ ->
+                runOnIOScope {
+                    realm.write {
+                        val es = query(Episode::class, "id IN $0", listOf(episode.id, e1.id)).find()
+                        if (es.size == 2) {
+                            es[0].related.remove(es[1])
+                            es[1].related.remove(es[0])
+                        }
+                    }
+                    episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return@runOnIOScope
+                    Logd("RelatedEpisodesDialog", "episode.related: ${episode.related.size}")
+                    withContext(Dispatchers.Main) {
+                        vmsr.clear()
+                        for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
+                    }
+                }
+            } ) },
+        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } } )
 }

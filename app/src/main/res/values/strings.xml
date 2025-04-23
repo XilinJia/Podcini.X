@@ -255,11 +255,14 @@
     <string name="erase_episodes_label">Erase episodes</string>
     <string name="reserve_episodes_label">Reserve episodes</string>
     <string name="null_label">Null</string>
+    <string name="null_zap_label">Null</string>
     <string name="delete_label">Delete</string>
     <string name="delete_failed_simple">Unable to delete file.</string>
 
     <string name="delete_local_failed">Unable to delete file. Try re-connecting the local folder from the podcast info screen.</string>
     <string name="delete_episode_label">Delete episode media</string>
+
+    <string name="set_related">Set episodes related</string>
 
     <string name="show_hidden">Show hidden</string>
     <string name="javasript_label" translatable="false">JavaScript</string>
@@ -267,6 +270,7 @@
     <string name="my_opinion_label">My opinion</string>
     <string name="add_opinion_label">Add opinion</string>
     <string name="cancelled_on_label">Cancelled on</string>
+    <string name="related">Related</string>
 
     <string name="choose_tab">Choose a tab in the channel</string>
 

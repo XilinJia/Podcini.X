@@ -212,6 +212,10 @@ class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_
 
 class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.stream_label, R.drawable.ic_stream) {
     override fun onClick(context: Context) {
+        fun stream() {
+            PlaybackStarter(context, item).shouldStreamThisTime(true).start()
+            playVideoIfNeeded(context, item)
+        }
 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
         UsageStatistics.logAction(UsageStatistics.ACTION_STREAM)
         if (!NetworkUtils.isStreamingAllowed) {
@@ -223,20 +227,13 @@ class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.str
                 neutralRes = R.string.confirm_mobile_streaming_button_once,
                 onConfirm = {
                     NetworkUtils.mobileAllowStreaming = true
-                    stream(context, item)
+                    stream()
                 },
-                onNeutral = { stream(context, item) })
+                onNeutral = { stream() })
             return
         }
-        stream(context, item)
+        stream()
         actionState.intValue = label
-    }
-
-    companion object {
-        fun stream(context: Context, media: Episode) {
-            PlaybackStarter(context, media).shouldStreamThisTime(true).start()
-            playVideoIfNeeded(context, media)
-        }
     }
 }
 
@@ -254,6 +251,10 @@ class DeleteActionButton(item: Episode) : EpisodeActionButton(item, R.string.del
 }
 
 class NullActionButton(item: Episode) : EpisodeActionButton(item, R.string.null_label, R.drawable.ic_questionmark) {
+    override fun onClick(context: Context) {}
+}
+
+class NullZapActionButton(item: Episode) : EpisodeActionButton(item, R.string.null_zap_label, R.drawable.ic_close_white) {
     override fun onClick(context: Context) {}
 }
 

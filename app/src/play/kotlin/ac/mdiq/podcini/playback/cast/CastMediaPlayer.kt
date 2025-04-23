@@ -24,7 +24,9 @@ import android.app.UiModeManager
 import android.content.ContentResolver
 import android.content.Context
 import android.content.res.Configuration
-import android.net.Uri
+import androidx.annotation.OptIn
+import androidx.core.net.toUri
+import androidx.media3.common.util.UnstableApi
 import com.google.android.gms.cast.CastDevice
 import com.google.android.gms.cast.MediaError
 import com.google.android.gms.cast.MediaInfo
@@ -50,6 +52,7 @@ import kotlin.math.min
  * Implementation of MediaPlayerBase suitable for remote playback on Cast Devices.
  */
 @SuppressLint("VisibleForTests")
+@OptIn(UnstableApi::class)
 class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
     @Volatile
     private var mediaInfo: MediaInfo? = null
@@ -326,7 +329,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
     }
 
     override fun setPlaybackParams(speed: Float, skipSilence: Boolean) {
-        val playbackRate = max(MediaLoadOptions.PLAYBACK_RATE_MIN, min(MediaLoadOptions.PLAYBACK_RATE_MAX, speed.toDouble())).toFloat().toDouble()
+        val playbackRate = max(MediaLoadOptions.PLAYBACK_RATE_MIN, min(MediaLoadOptions.PLAYBACK_RATE_MAX, speed.toDouble()))
         remoteMediaClient?.setPlaybackRate(playbackRate)
     }
 
@@ -406,7 +409,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             val feed: Feed? = feedItem.feed
             // Manual because cast does not support embedded images
             val url: String = if (feedItem.imageUrl == null && feed != null) feed.imageUrl?:"" else feedItem.imageUrl?:""
-            if (url.isNotEmpty()) metadata.addImage(WebImage(Uri.parse(url)))
+            if (url.isNotEmpty()) metadata.addImage(WebImage(url.toUri()))
             val calendar = Calendar.getInstance()
             calendar.time = feedItem.getPubDate()
             metadata.putDate(MediaMetadata.KEY_RELEASE_DATE, calendar)

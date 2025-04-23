@@ -38,6 +38,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeMarks
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
+import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
@@ -147,6 +148,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     var rating by mutableIntStateOf(episode?.rating ?: Rating.UNRATED.code)
     internal var inQueue by mutableStateOf(false)
     var isPlayed by mutableIntStateOf(episode?.playState ?: PlayState.UNSPECIFIED.code)
+    var hasRelations by mutableStateOf(false)
 
     var showShareDialog by mutableStateOf(false)
 
@@ -156,6 +158,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 
     init {
         episode = episodeOnDisplay
+        hasRelations = !episode?.related.isNullOrEmpty()
         inQueue = (episode!!.feed?.queue ?: curQueue).contains(episode!!)
     }
 
@@ -191,6 +194,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun monitor() {
         subscribeEpisode(episode!!, MonitorEntity(TAG,
             onChanges = { e, fields ->
+                Logd(TAG, "monitor: ${e.title}")
                 withContext(Dispatchers.Main) {
                     Logd(TAG, "monitor: ${fields.joinToString()}")
                     if (e.id != episode?.id) return@withContext
@@ -199,23 +203,26 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                         if (f in listOf("startPosition", "timeSpent", "playedDurationWhenStarted", "timeSpentOnStart", "position", "startTime", "lastPlayedTime")) continue
                         isChanged = true
                     }
+                    Logd(TAG, "monitor: isChanged: $isChanged")
+                    Logd(TAG, "monitor: hasRelations0: $hasRelations ${episode?.related?.size}")
                     if (isChanged) {
                         episode = e
+                        hasRelations = !episode?.related.isNullOrEmpty()
+                        episodeOnDisplay = e
                         rating = e.rating
                         isPlayed = e.playState
                     }
+                    Logd(TAG, "monitor: hasRelations: $hasRelations ${episode?.related?.size}")
                 }
             }))
     }
 
     internal fun updateAppearance() {
         if (episode == null) return
-
         if (episode!!.feed != null)
             txtvPodcast = if (episode!!.feed!!.isSynthetic() && episode!!.origFeedTitle != null) episode!!.origFeedTitle!! else episode!!.feed!!.title ?: ""
         
         txtvTitle = episode!!.title ?:""
-
         if (episode?.pubDate != null) txtvPublished = formatDateTimeFlex(Date(episode!!.pubDate))
 
         val media = episode
@@ -508,7 +515,7 @@ fun EpisodeInfoScreen() {
                 EpisodeClips(vm.episode, vm.playerLocal)
                 Text(stringResource(R.string.my_opinion_label) + if (commentTextState.text.isBlank()) " (Add)" else "",
                     color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
-                    modifier = Modifier.padding(start = 15.dp, top = 20.dp, bottom = 5.dp).clickable {
+                    modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable {
                         editCommentText = TextFieldValue((if (vm.episode?.comment.isNullOrBlank()) "" else vm.episode!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
                         showEditComment = true
                     })
@@ -520,6 +527,11 @@ fun EpisodeInfoScreen() {
                     Text("Time spent: " + getDurationStringShort(vm.episode?.timeSpent?:0L, true))
                     Spacer(Modifier.width(50.dp))
                     Text("Played duration: " + getDurationStringShort(vm.episode?.playedDuration?.toLong()?:0L, true))
+                }
+                if (vm.hasRelations) {
+                    var showTodayStats by remember { mutableStateOf(false) }
+                    if (showTodayStats) RelatedEpisodesDialog(vm.episode!!) { showTodayStats = false }
+                    Text(stringResource(R.string.related), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
                 }
             }
         }

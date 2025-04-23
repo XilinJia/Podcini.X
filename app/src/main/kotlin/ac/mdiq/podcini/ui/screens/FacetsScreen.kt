@@ -660,7 +660,7 @@ fun FacetsScreen() {
             val info = remember(vm.infoBarText, vm.progressing) { derivedStateOf { vm.infoBarText.value + if (vm.progressing) " - ${context.getString(R.string.progressing_label)}" else "" }}
             InforBar(info, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true  })
             val showComment = vm.spinnerTexts[vm.curIndex] == QuickAccess.Commented.name
-            EpisodeLazyColumn(context, vms = vm.vms, showComment = showComment, showActionButtons = !showComment,
+            EpisodeLazyColumn(context, vms = vm.vms, showComment = showComment, showActionButtons = !showComment, doMonitor = true,
                 buildMoreItems = { vm.buildMoreItems() },
                 leftSwipeCB = {
                     if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true

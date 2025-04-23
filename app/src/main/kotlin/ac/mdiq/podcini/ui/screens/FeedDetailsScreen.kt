@@ -195,14 +195,11 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     }
     private var eventSink: Job? = null
     private var eventStickySink: Job? = null
-//    private var eventKeySink: Job? = null
     internal fun cancelFlowEvents() {
         eventSink?.cancel()
         eventSink = null
         eventStickySink?.cancel()
         eventStickySink = null
-//        eventKeySink?.cancel()
-//        eventKeySink = null
     }
     internal fun procFlowEvents() {
         if (eventSink == null) eventSink = lcScope.launch {
@@ -225,17 +222,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
             }
         }
-//        if (eventKeySink == null) eventKeySink = lifecycleScope.launch {
-//            EventFlow.keyEvents.collectLatest { event ->
-//                Logd(TAG, "Received key event: $event, ignored")
-////                onKeyUp(event)
-//            }
-//        }
-    }
-
-    fun playButtonCB(e: Episode, actionTAG: String) {
-        if (e.feed?.id == feed?.id && actionTAG in listOf("PlayActionButton", "StreamActionButton", "PlayLocalActionButton"))
-            upsertBlk(feed!!) { it.lastPlayed = Date().time }
     }
 
     private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
@@ -260,18 +246,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun refreshSwipeTelltale() {
         leftActionState.value = swipeActions.actions.left[0]
         rightActionState.value = swipeActions.actions.right[0]
-    }
-
-    private fun refreshHeaderView() {
-        if (feed == null) {
-            Loge(TAG, "Unable to refresh header view")
-            return
-        }
-        isFiltered = !feed?.filterString.isNullOrEmpty() && feed!!.episodeFilter.propertySet.isNotEmpty()
-        filterButtonColor.value = if (enableFilter) if (isFiltered) Color.Green else Color.White else Color.Red
-        if (!headerCreated) headerCreated = true
-        listInfoText = buildListInfo(episodes)
-        infoBarText.value = "$listInfoText $updateInfoText"
     }
 
 //    private fun isFilteredOut(episode: Episode): Boolean {
@@ -354,7 +328,13 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 withContext(Dispatchers.Main) {
                     Logd(TAG, "loadItems subscribe called ${feed?.title}")
                     rating = feed?.rating ?: Rating.UNRATED.code
-                    refreshHeaderView()
+                    if (feed != null) {
+                        isFiltered = !feed?.filterString.isNullOrEmpty() && feed!!.episodeFilter.propertySet.isNotEmpty()
+                        filterButtonColor.value = if (enableFilter) if (isFiltered) Color.Green else Color.White else Color.Red
+                        if (!headerCreated) headerCreated = true
+                        listInfoText = buildListInfo(episodes)
+                        infoBarText.value = "$listInfoText $updateInfoText"
+                    }
                 }
             } catch (e: Throwable) {
                 feed = null
@@ -443,11 +423,6 @@ fun FeedDetailsScreen() {
     val vm = remember(feedOnDisplay.id) { FeedDetailsVM(context, scope) }
 
     val addLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? -> vm.addLocalFolderResult(uri) }
-
-    //        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
-//        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
-//        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
-
     var displayUpArrow by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
@@ -646,7 +621,7 @@ fun FeedDetailsScreen() {
                         DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
                             scope.launch {
                                 for (e in vm.episodes) e.fetchMediaSize(force = true)
-                                vm.loadFeed(true)
+//                                vm.loadFeed(true)
                             }
                             expanded = false
                         })
@@ -820,7 +795,7 @@ fun FeedDetailsScreen() {
             FeedDetailsHeader()
             if (feedScreenMode == FeedScreenMode.List) {
                 InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
-                EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex,
+                EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex, doMonitor = true,
                     buildMoreItems = { vm.buildMoreItems() },
                     refreshCB = { FeedUpdateManager.runOnceOrAsk(context, vm.feed) },
                     leftSwipeCB = {
@@ -832,7 +807,10 @@ fun FeedDetailsScreen() {
                         if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
                         else vm.rightActionState.value.performAction(it)
                     },
-                    actionButtonCB = { e, tag -> vm.playButtonCB(e, tag) },
+                    actionButtonCB = { e, tag ->
+                        if (e.feed?.id == vm.feed?.id && tag in listOf("PlayActionButton", "StreamActionButton", "PlayLocalActionButton"))
+                            upsertBlk(vm.feed!!) { it.lastPlayed = Date().time }
+                    },
                     multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) }
                 )
             } else DetailUI()

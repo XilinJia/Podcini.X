@@ -669,7 +669,7 @@ fun QueuesScreen() {
                     if (vm.rightActionStateBin.value is NoAction) vm.showSwipeActionsDialog = true
                     else vm.rightActionStateBin.value.performAction(episode)
                 }
-                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) }, multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) } )
+                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true, leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) }, multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) } )
             }
         } else {
             if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
@@ -689,7 +689,7 @@ fun QueuesScreen() {
                         if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
                         else vm.rightActionState.value.performAction(episode)
                     }
-                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
+                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true,
                         isDraggable = vm.dragDropEnabled, dragCB = { iFrom, iTo -> runOnIOScope { moveInQueueSync(iFrom, iTo, true) } },
                         leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) },
                         multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) } )

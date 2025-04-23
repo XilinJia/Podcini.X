@@ -823,7 +823,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     elapsedTime > ELAPSED_TIME_FOR_SHORT_REWIND -> rewindTime = SHORT_REWIND
                 }
                 val newPosition = currentPosition - rewindTime.toInt()
-                return max(newPosition.toDouble(), 0.0).toInt()
+                return max(newPosition, 0)
             } else return currentPosition
         }
 

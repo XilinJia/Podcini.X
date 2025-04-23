@@ -98,18 +98,17 @@ object Feeds {
         }
     }
 
-    private val monitoredIds = MutableStateFlow<List<Long>>(emptyList())
+    private val feedIds = MutableStateFlow<List<Long>>(emptyList())
     private var monitoringJob: Job? = null
 
     fun monitorFeeds(scope: CoroutineScope) {
         Logd(TAG, "monitorFeeds starting")
         monitoringJob?.cancel()
         monitoringJob = scope.launch(Dispatchers.IO) {
-            monitoredIds.collect { itemIds ->
+            feedIds.collect { itemIds ->
                 Logd(TAG, "monitorFeeds itemIds: ${itemIds.size}")
-                val query = if (itemIds.isNotEmpty()) "id IN ${itemIds.joinToString(prefix = "{", postfix = "}", separator = ", ")}" else "FALSE"
-                Logd(TAG, "monitorFeeds query: $query")
-                val results = realm.query(Feed::class).query(query).find()
+                val results = if (itemIds.isNotEmpty()) realm.query(Feed::class).query("id IN ${itemIds.joinToString(prefix = "{", postfix = "}", separator = ", ")}").find()
+                else realm.query(Feed::class).find()
                 Logd(TAG, "monitorFeeds results: ${results.size}")
                 results.map { it.asFlow() }
                     .merge()
@@ -142,8 +141,7 @@ object Feeds {
     fun monitorFeedList(scope: CoroutineScope) {
         if (monitorJob != null) return
 
-        val feeds = realm.query(Feed::class).find()
-        monitoredIds.value = feeds.map { it.id }
+        feedIds.value = realm.query(Feed::class).find().map { it.id }
         monitorFeeds(scope)
 
         val feedQuery = realm.query(Feed::class)
@@ -153,12 +151,12 @@ object Feeds {
                     is UpdatedResults -> {
                         when {
                             changes.insertions.isNotEmpty() -> {
-                                val ids = monitoredIds.value.toMutableList()
+                                val ids = feedIds.value.toMutableList()
                                 for (i in changes.insertions) {
                                     Logd(TAG, "monitorFeedList inserted feed: ${changes.list[i].title}")
                                     ids.add(changes.list[i].id)
                                 }
-                                monitoredIds.value = ids.toList()
+                                feedIds.value = ids.toList()
                                 // TODO: not sure why the state flow doens not collect
                                 monitorFeeds(scope)
                                 EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
@@ -169,12 +167,12 @@ object Feeds {
 //                                }
 //                            }
                             changes.deletions.isNotEmpty() -> {
-                                val ids = monitoredIds.value.toMutableList()
+                                val ids = feedIds.value.toMutableList()
                                 for (i in changes.deletions) {
-                                    Logd(TAG, "monitorFeedList deleted feed: ${feeds[i].title}")
+//                                    Logd(TAG, "monitorFeedList deleted feed: ${feeds[i].title}")
                                     ids.removeAt(i)
                                 }
-                                monitoredIds.value = ids.toList()
+                                feedIds.value = ids.toList()
                                 monitorFeeds(scope)
                                 Logd(TAG, "monitorFeedList feed deleted: ${changes.deletions.size}")
                                 compileTags()

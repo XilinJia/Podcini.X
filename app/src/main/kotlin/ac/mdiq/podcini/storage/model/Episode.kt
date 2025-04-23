@@ -99,6 +99,8 @@ class Episode : RealmObject {
 
     var parentURL: String? = null
 
+    var related: RealmSet<Episode> = realmSetOf()
+
     var podcastIndexChapterUrl: String? = null
 
     @set:JvmName("setPlayStateProperty")
@@ -147,7 +149,6 @@ class Episode : RealmObject {
         private set
 
     var comment: String = ""
-
     var commentTime: Long = 0L
 
     @Ignore
@@ -716,7 +717,7 @@ class Episode : RealmObject {
      */
     fun setPlaybackStart() {
         Logd(TAG, "setPlaybackStart ${System.currentTimeMillis()} timeSpent: $timeSpent")
-        startPosition = max(position.toDouble(), 0.0).toInt()
+        startPosition = max(position, 0)
         playedDurationWhenStarted = playedDuration
         timeSpentOnStart = timeSpent
         startTime = System.currentTimeMillis()

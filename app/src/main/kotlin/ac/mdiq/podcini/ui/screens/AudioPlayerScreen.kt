@@ -60,6 +60,7 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeClips
 import ac.mdiq.podcini.ui.compose.EpisodeMarks
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
+import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
@@ -207,6 +208,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     internal var bufferValue by mutableFloatStateOf(0f)
     internal var sleepTimerActive by mutableStateOf(isSleepTimerActive())
     internal var showSpeedDialog by mutableStateOf(false)
+    var hasRelations by mutableStateOf(false)
 
     internal var shownotesCleaner: ShownotesCleaner? = null
 
@@ -254,10 +256,18 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 //                PlaybackServiceEvent.Action.SERVICE_RESTARTED -> (context as MainActivity).setPlayerVisible(true)
 //                        }
                     }
-                    is BufferUpdateEvent -> bufferUpdate(event)
-//                    is FlowEvent.SleepTimerUpdatedEvent ->  if (event.isCancelled || event.wasJustEnabled()) loadMediaInfo(false)
+                    is BufferUpdateEvent -> {
+                        when {
+                            event.hasStarted() || event.hasEnded() -> {}
+                            mPlayer?.isStreaming == true -> bufferValue = event.progress
+                            else -> bufferValue = 0f
+                        }
+                    }
                     is FlowEvent.SleepTimerUpdatedEvent -> sleepTimerActive = isSleepTimerActive()
-                    is FlowEvent.SpeedChangedEvent -> updatePlaybackSpeedButton(event)
+                    is FlowEvent.SpeedChangedEvent -> {
+                        curPlaybackSpeed = event.newSpeed
+                        txtvPlaybackSpeed = DecimalFormat("0.00").format(event.newSpeed.toDouble())
+                    }
                     else -> {}
                 }
             }
@@ -266,6 +276,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
     suspend fun onEpisodeInit(e: Episode) {
         withContext(Dispatchers.Main) {
             curItem = e
+            hasRelations = !curItem?.related.isNullOrEmpty()
             Logd(TAG, "onEpisodeInit: curItem changed")
             rating = e.rating
             updateUi()
@@ -288,14 +299,15 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             if (isChanged) {
                 Logd(TAG, "onEpisodeChanged: curItem changed")
                 rating = curItem!!.rating
+                hasRelations = !curItem?.related.isNullOrEmpty()
                 updateUi()
                 if (isDetailChanged) updateDetails()
             }
             updateTimeline()
         }
     }
-    fun lengthText() {
-        val remainingTime: Int = convertOnSpeed(max((curItem!!.duration - curItem!!.position).toDouble(), 0.0).toInt(), curPBSpeed)
+    internal fun lengthText() {
+        val remainingTime: Int = convertOnSpeed(max((curItem!!.duration - curItem!!.position), 0), curPBSpeed)
         txtvLengthText = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + getDurationStringLong(remainingTime) else getDurationStringLong(duration)
     }
 
@@ -309,26 +321,11 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             showPlayButton = !isCurrentlyPlaying(curEpisode)
             playButInit = true
         }
-//        curPosition = convertOnSpeed(curItem!!.position, curPBSpeed)
         curPosition = curItem!!.position
-//        duration = convertOnSpeed(curItem!!.duration, curPBSpeed)
         duration = curItem!!.duration
         showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
         lengthText()
         sliderValue = curItem!!.position.toFloat()
-    }
-
-    private fun bufferUpdate(event: BufferUpdateEvent) {
-        Logd(TAG, "bufferUpdate ${mPlayer?.isStreaming} ${event.progress}")
-        when {
-            event.hasStarted() || event.hasEnded() -> {}
-            mPlayer?.isStreaming == true -> bufferValue = event.progress
-            else -> bufferValue = 0f
-        }
-    }
-    private fun updatePlaybackSpeedButton(event: FlowEvent.SpeedChangedEvent) {
-        curPlaybackSpeed = event.newSpeed
-        txtvPlaybackSpeed = DecimalFormat("0.00").format(event.newSpeed.toDouble())
     }
 
     @androidx.annotation.OptIn(UnstableApi::class)
@@ -377,7 +374,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
     }
 
-    private fun refreshChapterData(chapterIndex: Int) {
+    internal fun refreshChapterData(chapterIndex: Int) {
         Logd(TAG, "in refreshChapterData $chapterIndex")
         if (curItem != null && chapterIndex > -1) {
             if (curItem!!.position > curItem!!.duration || chapterIndex >= (curItem?.chapters?: listOf()).size - 1) {
@@ -396,26 +393,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    @androidx.annotation.OptIn(UnstableApi::class)
-    internal fun seekToPrevChapter() {
-        val curr: Chapter? = curChapter
-        if (curr == null || displayedChapterIndex == -1) return
-        when {
-            displayedChapterIndex < 1 -> mPlayer?.seekTo(0)
-            (curPositionFB - 10000 * curPBSpeed) < curr.start -> {
-                refreshChapterData(displayedChapterIndex - 1)
-                if (!curItem?.chapters.isNullOrEmpty()) mPlayer?.seekTo(curItem!!.chapters[displayedChapterIndex].start.toInt())
-            }
-            else -> mPlayer?.seekTo(curr.start.toInt())
-        }
-    }
-
-    @androidx.annotation.OptIn(UnstableApi::class)
-    internal fun seekToNextChapter() {
-        if (curItem?.chapters.isNullOrEmpty() || displayedChapterIndex == -1 || displayedChapterIndex + 1 >= curItem!!.chapters.size) return
-        refreshChapterData(displayedChapterIndex + 1)
-        mPlayer?.seekTo(curItem!!.chapters[displayedChapterIndex].start.toInt())
-    }
     private var loadItemsRunning = false
     internal fun loadMediaInfo() {
         Logd(TAG, "loadMediaInfo() curMedia: ${curEpisode?.id}")
@@ -449,6 +426,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         Logd(TAG, "setItem ${item_?.title}")
         if (curItem?.identifyingValue != item_?.identifyingValue) {
             curItem = item_
+            hasRelations = !curItem?.related.isNullOrEmpty()
             rating = curItem?.rating ?: Rating.UNRATED.code
             showHomeText = false
             homeText = null
@@ -875,14 +853,38 @@ fun AudioPlayerScreen() {
             EpisodeClips(vm.curItem, vm.playerLocal)
 
             if (vm.displayedChapterIndex >= 0) {
+                @androidx.annotation.OptIn(UnstableApi::class)
+                fun seekToPrevChapter() {
+                    val curr = vm.curChapter
+                    if (curr == null || vm.displayedChapterIndex == -1) return
+                    when {
+                        vm.displayedChapterIndex < 1 -> mPlayer?.seekTo(0)
+                        (curPositionFB - 10000 * curPBSpeed) < curr.start -> {
+                            vm.refreshChapterData(vm.displayedChapterIndex - 1)
+                            if (!vm.curItem?.chapters.isNullOrEmpty()) mPlayer?.seekTo(vm.curItem!!.chapters[vm.displayedChapterIndex].start.toInt())
+                        }
+                        else -> mPlayer?.seekTo(curr.start.toInt())
+                    }
+                }
+                @androidx.annotation.OptIn(UnstableApi::class)
+                fun seekToNextChapter() {
+                    if (vm.curItem?.chapters.isNullOrEmpty() || vm.displayedChapterIndex == -1 || vm.displayedChapterIndex + 1 >= vm.curItem!!.chapters.size) return
+                    vm.refreshChapterData(vm.displayedChapterIndex + 1)
+                    mPlayer?.seekTo(vm.curItem!!.chapters[vm.displayedChapterIndex].start.toInt())
+                }
                 Row(modifier = Modifier.padding(start = 20.dp, end = 20.dp),
                     horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_prev), tint = textColor, contentDescription = "prev_chapter", modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { vm.seekToPrevChapter() }))
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_prev), tint = textColor, contentDescription = "prev_chapter", modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { seekToPrevChapter() }))
                     Text("Ch " + vm.displayedChapterIndex.toString() + ": " + vm.curChapter?.title, color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp).clickable(onClick = { showChaptersDialog = true }))
-                    if (vm.hasNextChapter) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_next), tint = textColor, contentDescription = "next_chapter", modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { vm.seekToNextChapter() }))
+                    if (vm.hasNextChapter) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_next), tint = textColor, contentDescription = "next_chapter", modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { seekToNextChapter() }))
                 }
             }
             AsyncImage(model = vm.imgLocLarge, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
+            if (vm.hasRelations) {
+                var showTodayStats by remember { mutableStateOf(false) }
+                if (showTodayStats) RelatedEpisodesDialog(vm.curItem!!) { showTodayStats = false }
+                Text(stringResource(R.string.related), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
+            }
         }
     }
 
@@ -890,12 +892,10 @@ fun AudioPlayerScreen() {
     LaunchedEffect(key1 = curMediaId) {
         Logd(TAG, "LaunchedEffect curEpisode: ${curEpisode?.title}")
         vm.cleanedNotes = null
-//        if (curEpisode != null) {
         vm.setItem(curEpisode)
         vm.updateUi()
         vm.updateTimeline()
         vm.imgLoc = curEpisode?.imageLocation
-//        }
     }
     Box(modifier = Modifier.fillMaxWidth().then(if (!isBSExpanded) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())) {
         PlayerUI(Modifier.align(if (!isBSExpanded) Alignment.TopCenter else Alignment.BottomCenter).zIndex(1f))
