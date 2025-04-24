@@ -691,14 +691,14 @@ object Feeds {
         private fun addDownloadStatus(episode: Episode, possibleDuplicate: Episode) {
             addDownloadStatus(DownloadResult(savedFeedId, episode.title ?: "", DownloadError.ERROR_PARSER_EXCEPTION_DUPLICATE, false,
                 """
-                                            The podcast host appears to have added the same episode twice. Podcini still refreshed the feed and attempted to repair it.
-                
-                                            Original episode:
-                                            ${EpisodeAssistant.duplicateEpisodeDetails(episode)}
-                
-                                            Second episode that is also in the feed:
-                                            ${EpisodeAssistant.duplicateEpisodeDetails(possibleDuplicate)}
-                                            """.trimIndent()))
+                The podcast host appears to have added the same episode twice. Podcini still refreshed the feed and attempted to repair it.
+
+                Original episode:
+                ${EpisodeAssistant.duplicateEpisodeDetails(episode)}
+
+                Second episode that is also in the feed:
+                ${EpisodeAssistant.duplicateEpisodeDetails(possibleDuplicate)}
+                """.trimIndent()))
         }
         fun getEpisodeByIdentifyingValue(item: Episode): Episode? = map[item.identifyingValue]
         fun guessDuplicate(item: Episode): Episode? {

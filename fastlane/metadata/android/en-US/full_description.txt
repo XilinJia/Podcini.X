@@ -6,7 +6,7 @@ Common functionalities of a podcast player are well-supported:
 <ul>
 <li>Search, discover and subscribe to podcasts, by keywords, simple RSS URLs, or OPML files.</li>
 <li>Download, stream or queue episodes, and enjoy them the way you like with adjustable playback speeds.</li>
-<li>Save effort, battery power and mobile data usage with powerful automation controls for downloading episodes.</li>
+<li>Save effort, battery power and mobile data usage with powerful automation controls for auto-downloading/auto-enqueuing episodes.</li>
 <li>If the feed contains no media (plain RSS feed), Text-to-Speech engine is used to play the text.</li>
 <li>Listening progress can be instantly synced through a NextCloud server or across devices in the same Wi-Fi network without a server.</li>
 </ul>
@@ -23,6 +23,9 @@ Well, aside from doing the above well, the following make it stand out:
 <li>You have 12 levels of play states (like to play soon, add in queue, or play again) to better plan and record your listening experiences.</li>
 <li>You can also keep your personal notes with your opinions/comments on each podcast/episode.</li>
 <li>It has sophisticated sorting and filtering options for you to better select contents.</li>
+<li>It caches streamed audio for seamless local rewind and replay.</li>
+<li>You can record audio clips or mark positions on any episodes for better review.</li>
+<li>You can also set selected episodes as related for better grouping.</li>
 <li>Sure, you can play any episodes in your car's speakers.</li>
 <li>And, it's not all about audio, video is well handled.</li>
 <li>You can cast the audio/video to Chromecast speakers/screens.</li>

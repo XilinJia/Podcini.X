@@ -4,7 +4,7 @@ import ac.mdiq.podcini.R
 import java.util.Date
 import java.util.Locale
 
-enum class EpisodeSortOrder(val code: Int, val res: Int) {
+enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolean = false) {
     DATE_OLD_NEW(1, R.string.publish_date),
     DATE_NEW_OLD(2, R.string.publish_date),
 
@@ -14,8 +14,11 @@ enum class EpisodeSortOrder(val code: Int, val res: Int) {
     DURATION_SHORT_LONG(5, R.string.duration),
     DURATION_LONG_SHORT(6, R.string.duration),
 
-    VIEWS_LOW_HIGH(17, R.string.view_count),
-    VIEWS_HIGH_LOW(18, R.string.view_count),
+    VIEWS_LOW_HIGH(17, R.string.view_count, true),
+    VIEWS_HIGH_LOW(18, R.string.view_count, true),
+
+    VIEWS_SPEED_LOW_HIGH(31, R.string.view_speed, true),
+    VIEWS_SPEED_HIGH_LOW(32, R.string.view_speed, true),
 
     PLAYED_DATE_OLD_NEW(11, R.string.last_played_date),
     PLAYED_DATE_NEW_OLD(12, R.string.last_played_date),
@@ -51,20 +54,14 @@ enum class EpisodeSortOrder(val code: Int, val res: Int) {
         fun fromCodeString(codeStr: String?): EpisodeSortOrder {
             if (codeStr.isNullOrEmpty()) return EPISODE_TITLE_A_Z
             val code = codeStr.toInt()
-            for (sortOrder in entries) {
-                if (sortOrder.code == code) return sortOrder
-            }
+            for (sortOrder in entries) if (sortOrder.code == code) return sortOrder
             return EPISODE_TITLE_A_Z
 //            throw IllegalArgumentException("Unsupported code: $code")
         }
 
-        fun fromCode(code: Int): EpisodeSortOrder {
-            return enumValues<EpisodeSortOrder>().firstOrNull { it.code == code } ?: EPISODE_TITLE_A_Z
-        }
+        fun fromCode(code: Int): EpisodeSortOrder = enumValues<EpisodeSortOrder>().firstOrNull { it.code == code } ?: EPISODE_TITLE_A_Z
 
-        fun toCodeString(sortOrder: EpisodeSortOrder): String? {
-            return sortOrder.code.toString()
-        }
+        fun toCodeString(sortOrder: EpisodeSortOrder): String? = sortOrder.code.toString()
 
         fun valuesOf(stringValues: Array<String?>): Array<EpisodeSortOrder?> {
             val values = arrayOfNulls<EpisodeSortOrder>(stringValues.size)
@@ -98,6 +95,8 @@ enum class EpisodeSortOrder(val code: Int, val res: Int) {
                 DOWNLOAD_DATE_NEW_OLD -> comparator = Comparator { f1: Episode?, f2: Episode? -> downloadDate(f2).compareTo(downloadDate(f1)) }
                 VIEWS_LOW_HIGH -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewCount(f1).compareTo(viewCount(f2)) }
                 VIEWS_HIGH_LOW -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewCount(f2).compareTo(viewCount(f1)) }
+                VIEWS_SPEED_LOW_HIGH -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewSpeed(f1).compareTo(viewSpeed(f2)) }
+                VIEWS_SPEED_HIGH_LOW -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewSpeed(f2).compareTo(viewSpeed(f1)) }
                 COMMENT_DATE_OLD_NEW -> comparator = Comparator { f1: Episode?, f2: Episode? -> commentDate(f1).compareTo(commentDate(f2)) }
                 COMMENT_DATE_NEW_OLD -> comparator = Comparator { f1: Episode?, f2: Episode? -> commentDate(f2).compareTo(playDate(f1)) }
 
@@ -130,49 +129,30 @@ enum class EpisodeSortOrder(val code: Int, val res: Int) {
             return permutor!!
         }
 
-        private fun pubDate(item: Episode?): Date {
-            return if (item == null) Date() else Date(item.pubDate)
-        }
+        private fun pubDate(item: Episode?): Date = if (item == null) Date() else Date(item.pubDate)
 
-        private fun playDate(item: Episode?): Long {
-            return item?.lastPlayedTime ?: 0
-        }
+        private fun playDate(item: Episode?): Long = item?.lastPlayedTime ?: 0
 
-        private fun commentDate(item: Episode?): Long {
-            return item?.commentTime ?: 0
-        }
+        private fun commentDate(item: Episode?): Long = item?.commentTime ?: 0
 
-        private fun downloadDate(item: Episode?): Long {
-            return item?.downloadTime ?: 0
-        }
+        private fun downloadDate(item: Episode?): Long = item?.downloadTime ?: 0
 
-        private fun completeDate(item: Episode?): Date {
-            return item?.playbackCompletionDate ?: Date(0)
-        }
+        private fun completeDate(item: Episode?): Date = item?.playbackCompletionDate ?: Date(0)
 
-        private fun itemTitle(item: Episode?): String {
-            return (item?.title ?: "").lowercase(Locale.getDefault())
-        }
+        private fun itemTitle(item: Episode?): String = (item?.title ?: "").lowercase(Locale.getDefault())
 
-        private fun duration(item: Episode?): Int {
-            return item?.duration ?: 0
-        }
+        private fun duration(item: Episode?): Int = item?.duration ?: 0
 
-        private fun size(item: Episode?): Long {
-            return item?.size ?: 0
-        }
+        private fun size(item: Episode?): Long = item?.size ?: 0
 
-        private fun itemLink(item: Episode?): String {
-            return (item?.link ?: "").lowercase(Locale.getDefault())
-        }
+        private fun itemLink(item: Episode?): String = (item?.link ?: "").lowercase(Locale.getDefault())
 
-        private fun feedTitle(item: Episode?): String {
-            return (item?.feed?.title ?: "").lowercase(Locale.getDefault())
-        }
+        private fun feedTitle(item: Episode?): String = (item?.feed?.title ?: "").lowercase(Locale.getDefault())
 
-        private fun viewCount(item: Episode?): Int {
-            return item?.viewCount ?: 0
-        }
+        private fun viewCount(item: Episode?): Int = item?.viewCount ?: 0
+
+        // per minute
+        private fun viewSpeed(item: Episode?): Double = 60000.0 * (item?.viewCount ?: 0) / (System.currentTimeMillis() - (item?.pubDate ?: 0L))
 
         /**
          * Implements a reordering by pubdate that avoids consecutive episodes from the same feed in the queue.

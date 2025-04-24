@@ -22,10 +22,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Rating.Companion.fromCode
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
-import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
-import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -33,7 +30,6 @@ import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
-import ac.mdiq.podcini.ui.compose.stopMonitor
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.isOnlineFeedShared
@@ -105,7 +101,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
-import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -114,6 +109,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Date
 
 /**
  * Downloads a feed from a feed URL and parses it. Subclasses can display the
@@ -149,13 +145,8 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
             return 0
         }
 
-
     internal var infoBarText = mutableStateOf("")
     internal var swipeActions: SwipeActions
-    internal var leftActionState = mutableStateOf<SwipeAction>(NoAction())
-    internal var rightActionState = mutableStateOf<SwipeAction>(NoAction())
-
-    internal var showSwipeActionsDialog by mutableStateOf(false)
 
     internal var episodes = mutableListOf<Episode>()
     internal val vms = mutableStateListOf<EpisodeVM>()
@@ -164,10 +155,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
         feedSource = onlineFeedSource
         feedUrl = onlineFeedUrl
         isShared = isOnlineFeedShared
-
         swipeActions = SwipeActions(context, TAG)
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
     }
 
     @Volatile
@@ -188,11 +176,6 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 //        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         if (nextItems.isNotEmpty()) vms.addAll(nextItems)
-    }
-
-    internal fun refreshSwipeTelltale() {
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
     }
 
     internal fun handleFeed(feed_: Feed, map: Map<String, String>) {
@@ -354,7 +337,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun showEpisodes() {
         if (feed == null) return
         episodes = feed!!.episodes
-        stopMonitor(vms)
+//        stopMonitor(vms)
         vms.clear()
         buildMoreItems()
         infoBarText.value = "${episodes.size} episodes"
@@ -446,12 +429,12 @@ fun OnlineFeedScreen() {
                         vm.lookupUrlAndBuild(vm.feedUrl)
                     }
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
-                    vm.refreshSwipeTelltale()
+//                    vm.refreshSwipeTelltale()
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.isPaused = false
                     vm.procFlowEvents()
-                    stopMonitor(vm.vms)
+//                    stopMonitor(vm.vms)
                     vm.vms.clear()
                     vm.buildMoreItems()
                     vm.infoBarText.value = "${vm.episodes.size} episodes"
@@ -470,7 +453,7 @@ fun OnlineFeedScreen() {
         onDispose {
             vm.feeds = null
             vm.episodes.clear()
-            stopMonitor(vm.vms)
+//            stopMonitor(vm.vms)
             vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -508,17 +491,11 @@ fun OnlineFeedScreen() {
     fun MyTopAppBar() {
         TopAppBar(title = { Text(text = "Online feed") },
             navigationIcon = if (vm.displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-                }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
+                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
             } else {
                 { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }
             }
         )
-    }
-
-    if (vm.showSwipeActionsDialog) SwipeActionsSettingDialog(vm.swipeActions, onDismissRequest = { vm.showSwipeActionsDialog = false }) { actions ->
-        vm.swipeActions.actions = actions
-        vm.refreshSwipeTelltale()
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
@@ -584,27 +561,16 @@ fun OnlineFeedScreen() {
                 }
             }
             if (vm.showEpisodes) {
-                fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
-                    return when (aboveOrBelow) {
-                        0 -> vm.episodes
-                        -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
-                        1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
-                        else -> listOf()
-                    }
-                }
-                InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
-                EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
-                    buildMoreItems = { vm.buildMoreItems() },
-                    leftSwipeCB = {
-                        if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                        else vm.leftActionState.value.performAction(it)
-                    },
-                    rightSwipeCB = {
-                        if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                        else vm.rightActionState.value.performAction(it)
-                    },
-                    multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) }
-                )
+//                fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
+//                    return when (aboveOrBelow) {
+//                        0 -> vm.episodes
+//                        -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
+//                        1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
+//                        else -> listOf()
+//                    }
+//                }
+                InforBar(vm.infoBarText, vm.swipeActions)
+                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions)
             } else {
                 Column {
 //                    alternate_urls_spinner
@@ -630,7 +596,7 @@ fun OnlineFeedScreen() {
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
-                    val sLog = remember { feedLogsMap_[vm.feed?.downloadUrl ?: ""] }
+                    val sLog = remember { feedLogsMap_[vm.feed?.downloadUrl ?: ""] ?: feedLogsMap_[vm.feed?.title ?: ""] }
                     if (sLog != null) {
                         val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
                         val context = LocalContext.current

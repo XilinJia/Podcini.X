@@ -13,15 +13,10 @@ import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
+import ac.mdiq.podcini.storage.database.Episodes.checkAndMarkDuplicates
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.PlayState
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.Context
 import android.content.Intent
 import androidx.annotation.OptIn
@@ -49,37 +44,13 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
         return this
     }
 
-    fun checkDuplicates() {
-        runOnIOScope {
-            realm.write {
-                val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", media.title, media.downloadUrl).find()
-                if (duplicates.size > 1) {
-                    Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, set to Ignored")
-                    val localTime = System.currentTimeMillis()
-                    val comment = fullDateTimeString(localTime) + ":\nduplicate"
-                    for (e in duplicates) {
-                        if (e.id != media.id) {
-                            e.setPlayState(PlayState.IGNORED)
-                            e.comment += if (e.comment.isBlank()) comment else "\n" + comment
-                        }
-                    }
-                    for (e in duplicates) {
-                        for (e1 in duplicates) {
-                            if (e.id == e1.id) continue
-                            e.related.add(e1)
-                        }
-                    }
-                }
-            }
-        }
-    }
     @OptIn(UnstableApi::class)
     fun start() {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
         if (curEpisode?.id != media.id) {
             setCurEpisode(media)
             clearCurTempSpeed()
-            checkDuplicates()
+            checkAndMarkDuplicates(media)
         }
         Logd(TAG, "start: status: $status")
         aCtrlFuture?.let { future ->

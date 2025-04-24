@@ -417,6 +417,7 @@
     <string name="max_duration">Max duration</string>
 
     <string name="view_count">View count</string>
+    <string name="view_speed">Views per day</string>
     <string name="date">Date</string>
     <string name="time">Time</string>
     <string name="count">Count</string>

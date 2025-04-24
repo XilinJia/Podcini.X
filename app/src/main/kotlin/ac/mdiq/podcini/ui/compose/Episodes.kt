@@ -187,35 +187,6 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
     }
 }
 
-//@Composable
-//fun SkipDialog(direction: SkipDirection, onDismissRequest: () -> Unit, callBack: (Int) -> Unit) {
-//    val titleRes = if (direction == SkipDirection.SKIP_FORWARD) R.string.pref_fast_forward else R.string.pref_rewind
-//    var interval by remember { mutableStateOf((if (direction == SkipDirection.SKIP_FORWARD) AppPreferences.fastForwardSecs else AppPreferences.rewindSecs).toString()) }
-//    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
-//        title = { Text(stringResource(titleRes), style = CustomTextStyles.titleCustom) },
-//        text = {
-//            TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number), label = { Text("seconds") }, singleLine = true,
-//                onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) interval = it })
-//        },
-//        confirmButton = {
-//            TextButton(onClick = {
-//                if (interval.isNotBlank()) {
-//                    val value = interval.toInt()
-//                    if (direction == SkipDirection.SKIP_FORWARD) AppPreferences.fastForwardSecs = value
-//                    else AppPreferences.rewindSecs = value
-//                    callBack(value)
-//                    onDismissRequest()
-//                }
-//            }) { Text(text = "OK") }
-//        },
-//        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
-//    )
-//}
-
-//enum class SkipDirection {
-//    SKIP_FORWARD, SKIP_REWIND
-//}
-
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -299,7 +270,7 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
         for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
     }
     AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
-        text = { EpisodeLazyColumn(LocalContext.current, vms = vmsr, showCoverImage = false,
+        text = { EpisodeLazyColumn(LocalContext.current, vms = vmsr, layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
             actionButton_ = { NullZapActionButton(it) },
             actionButtonCB = {e1, _ ->
                 runOnIOScope {

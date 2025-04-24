@@ -15,6 +15,7 @@ import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.storage.database.Episodes.checkAndMarkDuplicates
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
@@ -405,6 +406,7 @@ object Queues {
             writeNoMediaPlaying()
             return null
         }
+        checkAndMarkDuplicates(nextItem)
         return nextItem
     }
 

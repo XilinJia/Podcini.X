@@ -6,7 +6,7 @@ import ac.mdiq.podcini.net.feed.searcher.PodcastSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.getFeedLogMap
+import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.SearchBarRow
@@ -59,7 +59,7 @@ import kotlinx.coroutines.withContext
 class SearchResultsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var searchProvider: PodcastSearcher? = null
 
-    internal val feedLogs = getFeedLogMap()
+    internal val feedLogs = feedLogsMap!!
 
     internal var defaultText by mutableStateOf("")
     internal var searchResults = mutableStateListOf<PodcastSearchResult>()
@@ -181,7 +181,7 @@ fun SearchResultsScreen() {
                 items(vm.searchResults.size) { index ->
                     val result = vm.searchResults[index]
                     val urlPrepared by remember { mutableStateOf(prepareUrl(result.feedUrl!!)) }
-                    val sLog = remember { mutableStateOf(vm.feedLogs[urlPrepared]) }
+                    val sLog = remember { mutableStateOf(vm.feedLogs[urlPrepared] ?: vm.feedLogs[result.title]) }
 //                    Logd(TAG, "result: ${result.feedUrl} ${feedLogs[urlPrepared]}")
                     OnlineFeedItem(result, sLog.value)
                 }

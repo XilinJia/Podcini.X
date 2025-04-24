@@ -16,6 +16,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -32,6 +33,8 @@ import ac.mdiq.podcini.util.IntentUtils.sendLocalBroadcast
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.Context
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationManagerCompat
@@ -254,9 +257,34 @@ object Episodes {
         EventFlow.postEvent(FlowEvent.DownloadLogEvent())
     }
 
-    suspend fun setRating(episode: Episode, rating: Int) {
+    fun checkAndMarkDuplicates(media: Episode) {
+        runOnIOScope {
+            realm.write {
+                val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", media.title, media.downloadUrl).find()
+                if (duplicates.size > 1) {
+                    Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, set to Ignored")
+                    val localTime = System.currentTimeMillis()
+                    val comment = fullDateTimeString(localTime) + ":\nduplicate"
+                    for (e in duplicates) {
+                        if (e.id != media.id) {
+                            e.setPlayState(PlayState.IGNORED)
+                            e.comment += if (e.comment.isBlank()) comment else "\n" + comment
+                        }
+                    }
+                    for (e in duplicates) {
+                        for (e1 in duplicates) {
+                            if (e.id == e1.id) continue
+                            e.related.add(e1)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    suspend fun setRating(episode: Episode, rating: Int): Episode {
         Logd(TAG, "setRating called $rating")
-        upsert(episode) { it.rating = rating }
+        return upsert(episode) { it.rating = rating }
     }
 
     fun stateToPreserve(stat: Int): Boolean = stat in listOf(PlayState.SOON.code, PlayState.LATER.code, PlayState.AGAIN.code, PlayState.FOREVER.code)

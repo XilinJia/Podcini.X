@@ -1,0 +1,10 @@
+# 8.16.1
+
+* duplicate search is also performed on playing the next item in queue
+* amended item info in duplicate dialog
+* episodes sort dialog amended and sorting on View count filtered out for RSS feeds
+* added episodes sorting based on views per day (if available)
+* SwipeActions are centrally managed in EpisodeVM
+* list of episodes are updated directly, no longer monitored from DB
+* when getting new feed, title is also checked against past subscription logs
+* large code refactoring in SwipeActions and EpisodeVM

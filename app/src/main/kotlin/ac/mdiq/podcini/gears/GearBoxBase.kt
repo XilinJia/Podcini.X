@@ -34,6 +34,8 @@ open class GearBoxBase {
 
     open fun isGearUrl(url: URL): Boolean = false
 
+    open fun SupportExtraSort(): Boolean = false
+
     open fun cleanGearData() {}
     open fun buildWebviewData(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
 

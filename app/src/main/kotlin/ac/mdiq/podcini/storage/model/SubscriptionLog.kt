@@ -53,11 +53,12 @@ class SubscriptionLog: RealmObject {
                 return field
             }
 
-        fun getFeedLogMap(): Map<String, SubscriptionLog> {
+        private fun getFeedLogMap(): Map<String, SubscriptionLog> {
             val logs = realm.query(SubscriptionLog::class).query("type == $0", "Feed").find()
             val map = mutableMapOf<String, SubscriptionLog>()
             for (l in logs) {
                 Logd(TAG, "getFeedLogMap ${l.title} ${l.url}")
+                map[l.title] = l
                 if (!l.url.isNullOrEmpty()) map[l.url!!] = l
                 if (!l.link.isNullOrEmpty()) map[l.link!!] = l
             }

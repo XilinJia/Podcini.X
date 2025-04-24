@@ -37,10 +37,11 @@ If you intend to sync through a server, NextCloud server has been tested, but ca
 5. Boasts sophisticated sorting, filtering and searching on episodes and podcasts.
 6. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed (podcast).
 7. Caches streamed audio for seamless local rewind and replay.
-8. Features audio clips recording and position marking on any episodes
-9. Spotlights `instant sync` across devices without a server.
-10. Offers Readability and Text-to-Speech for RSS contents.
-11. Supports auto-backups, customized media folder and importing DB from other apps
+8. Features audio clips recording and position marking on any episodes for better review.
+9. Allows linking/relating multiple episodes for better grouping.
+10. Spotlights `instant sync` across devices without a server.
+11. Offers Readability and Text-to-Speech for RSS contents.
+12. Supports auto-backups, customized media folder and importing DB from other apps
 
 ## Usage and notable features description 
 <details> <summary>Click to expand</summary>

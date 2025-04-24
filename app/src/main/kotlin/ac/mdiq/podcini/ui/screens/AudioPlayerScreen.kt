@@ -59,6 +59,7 @@ import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeClips
 import ac.mdiq.podcini.ui.compose.EpisodeMarks
+import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
@@ -387,7 +388,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }
         if (curItem != null) {
             imgLocLarge =
-                if (displayedChapterIndex == -1 || curItem?.chapters.isNullOrEmpty() || curItem!!.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) curItem!!.imageLocation
+                if (displayedChapterIndex == -1 || curItem?.chapters.isNullOrEmpty() || curItem!!.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) curItem!!.imageLocation()
                 else EmbeddedChapterImage.getModelFor(curItem!!, displayedChapterIndex)?.toString()
             Logd(TAG, "displayCoverImage: imgLoc: $imgLoc")
         }
@@ -800,7 +801,7 @@ fun AudioPlayerScreen() {
     @Composable
     fun DetailUI(modifier: Modifier) {
         var showChooseRatingDialog by remember { mutableStateOf(false) }
-        if (showChooseRatingDialog) ChooseRatingDialog(listOf(vm.curItem!!)) { showChooseRatingDialog = false }
+        if (showChooseRatingDialog) ChooseRatingDialog(listOf(EpisodeVM(vm.curItem!!, TAG))) { showChooseRatingDialog = false }
         var showChaptersDialog by remember { mutableStateOf(false) }
         if (showChaptersDialog) ChaptersDialog(media = vm.curItem!!, onDismissRequest = {showChaptersDialog = false})
 
@@ -895,7 +896,7 @@ fun AudioPlayerScreen() {
         vm.setItem(curEpisode)
         vm.updateUi()
         vm.updateTimeline()
-        vm.imgLoc = curEpisode?.imageLocation
+        vm.imgLoc = curEpisode?.imageLocation()
     }
     Box(modifier = Modifier.fillMaxWidth().then(if (!isBSExpanded) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())) {
         PlayerUI(Modifier.align(if (!isBSExpanded) Alignment.TopCenter else Alignment.BottomCenter).zIndex(1f))

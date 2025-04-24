@@ -24,10 +24,7 @@ import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.utils.StorageUtils.customMediaUriString
 import ac.mdiq.podcini.ui.actions.DeleteActionButton
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
-import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
-import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
@@ -40,7 +37,6 @@ import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
 import ac.mdiq.podcini.ui.compose.buildListInfo
-import ac.mdiq.podcini.ui.compose.stopMonitor
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
@@ -106,9 +102,6 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import io.github.xilinjia.krdb.UpdatePolicy
-import java.io.File
-import java.text.NumberFormat
-import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -117,16 +110,15 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
+import java.io.File
+import java.text.NumberFormat
+import java.util.Date
 import kotlin.math.min
 
 class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var displayUpArrow = false
 
     internal var infoBarText = mutableStateOf("")
-    internal var leftActionState = mutableStateOf<SwipeAction>(NoAction())
-    internal var rightActionState = mutableStateOf<SwipeAction>(NoAction())
-    internal var showSwipeActionsDialog by mutableStateOf(false)
-
     var swipeActions: SwipeActions = SwipeActions(context, TAG)
 
     internal var showFeeds by mutableStateOf(false)
@@ -173,8 +165,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         }
 
     init {
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
         filter = EpisodeFilter(prefFilterEpisodes)
     }
 
@@ -229,11 +219,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    internal fun refreshSwipeTelltale() {
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
-    }
-
     internal fun loadAssociatedFeeds() {
         feedsAssociated.clear()
         if (spinnerTexts[curIndex] == QuickAccess.All.name) feedsAssociated.addAll(getFeedList())
@@ -244,7 +229,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         Logd(TAG, "loadItems() called")
         if (loadJob != null) {
             loadJob?.cancel()
-            stopMonitor(vms)
+//            stopMonitor(vms)
             vms.clear()
         }
         loadJob = lcScope.launch {
@@ -265,7 +250,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 withContext(Dispatchers.Main) {
                     if (showFeeds) loadAssociatedFeeds()
-                    stopMonitor(vms)
+//                    stopMonitor(vms)
                     vms.clear()
                     buildMoreItems()
                     updateToolbar()
@@ -504,7 +489,7 @@ fun FacetsScreen() {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
-                    vm.refreshSwipeTelltale()
+//                    vm.refreshSwipeTelltale()
                     vm.curIndex = getPref(AppPrefs.prefFacetsCurIndex, 0)
                     vm.tag = TAG+QuickAccess.entries[vm.curIndex]
                     sortOrder = vm.episodesSortOrder
@@ -523,7 +508,7 @@ fun FacetsScreen() {
         onDispose {
             vm.episodes.clear()
             vm.feedsAssociated.clear()
-            stopMonitor(vm.vms)
+//            stopMonitor(vm.vms)
             vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -531,10 +516,6 @@ fun FacetsScreen() {
 
     @Composable
     fun OpenDialogs() {
-        if (vm.showSwipeActionsDialog) SwipeActionsSettingDialog(vm.swipeActions, onDismissRequest = { vm.showSwipeActionsDialog = false }) { actions ->
-            vm.swipeActions.actions = actions
-            vm.refreshSwipeTelltale()
-        }
         if (vm.showFilterDialog) EpisodesFilterDialog(filter = filter, filtersDisabled = vm.filtersDisabled(),
             onDismissRequest = { vm.showFilterDialog = false }) { filter -> vm.onFilterChanged(filter) }
         if (vm.showSortDialog) EpisodeSortDialog(initOrder = sortOrder, onDismissRequest = { vm.showSortDialog = false }) { order, _ -> vm.onSort(order) }
@@ -644,34 +625,24 @@ fun FacetsScreen() {
             }
         }
     }
-    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
-        return when (aboveOrBelow) {
-            0 -> vm.episodes
-            -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
-            1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
-            else -> listOf()
-        }
-    }
+//    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
+//        return when (aboveOrBelow) {
+//            0 -> vm.episodes
+//            -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
+//            1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
+//            else -> listOf()
+//        }
+//    }
 
     OpenDialogs()
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
         else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val info = remember(vm.infoBarText, vm.progressing) { derivedStateOf { vm.infoBarText.value + if (vm.progressing) " - ${context.getString(R.string.progressing_label)}" else "" }}
-            InforBar(info, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true  })
+            InforBar(info, vm.swipeActions)
             val showComment = vm.spinnerTexts[vm.curIndex] == QuickAccess.Commented.name
             EpisodeLazyColumn(context, vms = vm.vms, showComment = showComment, showActionButtons = !showComment, doMonitor = true,
-                buildMoreItems = { vm.buildMoreItems() },
-                leftSwipeCB = {
-                    if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                    else vm.leftActionState.value.performAction(it)
-                },
-                rightSwipeCB = {
-                    if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                    else vm.rightActionState.value.performAction(it)
-                },
-                actionButton_ = vm.actionButtonToPass,
-                multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) }
+                buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions, actionButton_ = vm.actionButtonToPass,
             )
         }
     }

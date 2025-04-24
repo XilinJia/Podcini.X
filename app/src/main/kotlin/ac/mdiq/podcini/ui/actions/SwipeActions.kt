@@ -21,6 +21,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
@@ -37,8 +38,6 @@ import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.TypedValue
-import androidx.annotation.AttrRes
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -88,26 +87,22 @@ import androidx.lifecycle.LifecycleOwner
 import java.util.Date
 
 abstract class SwipeAction {
-    abstract fun getId(): String
-    abstract fun getTitle(): String
+    abstract val id: String
+    abstract val title: String
     open fun enabled(): Boolean = true
-    @DrawableRes
-    abstract fun getActionIcon(): Int
-    @AttrRes
-    @DrawableRes
-    abstract fun getActionColor(): Int
+    abstract val iconRes: Int
+    abstract val colorRes: Int
     @Composable
     open fun ActionOptions() {}
-    open fun performAction(item: Episode) {
-        onEpisode = item
+    open fun performAction(vm: EpisodeVM) {
+        onEVM = vm
     }
     companion object {
-        var onEpisode by mutableStateOf<Episode?>(null)
+        internal var onEVM by mutableStateOf<EpisodeVM?>(null)
     }
 }
 
 class SwipeActions(private val context: Context, private val tag: String) : DefaultLifecycleObserver {
-
     val actionsList: List<SwipeAction> = listOf(
         NoAction(), Combo(),
         SetPlaybackState(),
@@ -163,9 +158,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         init {
             val actions = actions_.split(",".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
             if (actions.size == 2) {
-                val rActs = actionsList.filter { a: SwipeAction -> a.getId() == actions[0] }
+                val rActs = actionsList.filter { a: SwipeAction -> a.id == actions[0] }
                 this.right[0] = if (rActs.isEmpty()) actionsList[0] else rActs[0]
-                val lActs = actionsList.filter { a: SwipeAction -> a.getId() == actions[1] }
+                val lActs = actionsList.filter { a: SwipeAction -> a.id == actions[1] }
                 this.left[0] = if (lActs.isEmpty()) actionsList[0] else lActs[0]
             }
         }
@@ -173,123 +168,105 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
     inner class SetPlaybackState : SwipeAction() {
         private var showPlayStateDialog by mutableStateOf(false)
-        override fun getId(): String {
-            return ActionTypes.SET_PLAY_STATE.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_mark_played
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_gray
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.set_play_state_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
+        override val id: String
+            get() = ActionTypes.SET_PLAY_STATE.name
+        override val title: String
+            get() = getAppContext().getString(R.string.set_play_state_label)
+
+        override val iconRes:  Int = R.drawable.ic_mark_played
+        override val colorRes:  Int = R.attr.icon_gray
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
             showPlayStateDialog = true
         }
         @Composable
         override fun ActionOptions() {
             var showIgnoreDialog by remember { mutableStateOf(false) }
-            if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEpisode!!), onDismissRequest = { showIgnoreDialog = false })
-            if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!), onDismissRequest = { showPlayStateDialog = false }) { showIgnoreDialog = true }
+            if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEVM!!), onDismissRequest = { showIgnoreDialog = false })
+            if (showPlayStateDialog && onEVM != null) PlayStateDialog(listOf(onEVM!!), onDismissRequest = { showPlayStateDialog = false }) { showIgnoreDialog = true }
         }
     }
 
     inner class AddToActiveQueue : SwipeAction() {
-        override fun getId(): String {
-            return ActionTypes.ADD_TO_QUEUE.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_playlist_play
-        }
+        override val id: String
+            get() = ActionTypes.ADD_TO_QUEUE.name
+        override val title: String
+            get() = getAppContext().getString(R.string.add_to_queue_label)
+
+        override val iconRes:  Int = R.drawable.ic_playlist_play
+        override val colorRes:  Int = android.R.attr.colorAccent
+
         override fun enabled(): Boolean {
-            if (onEpisode?.feed?.queue != null) return false
-            return onEpisode != null && !curQueue.contains(onEpisode!!)
+            if (onEVM?.episode?.feed?.queue != null) return false
+            return onEVM != null && !curQueue.contains(onEVM!!.episode)
         }
-        override fun getActionColor(): Int {
-            return android.R.attr.colorAccent
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.add_to_queue_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
-            addToActiveQueue(item)
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
+            addToActiveQueue(vm.episode)
         }
     }
 
     inner class AddToAssociatedQueue : SwipeAction() {
-        override fun getId(): String {
-            return ActionTypes.ADD_TO_ASSOCIATED.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_playlist_play
-        }
+        override val id: String
+            get() = ActionTypes.ADD_TO_ASSOCIATED.name
+        override val title: String
+            get() = getAppContext().getString(R.string.add_to_associated_queue)
+
+        override val iconRes:  Int = R.drawable.ic_playlist_play
+        override val colorRes:  Int = android.R.attr.colorAccent
+
         override fun enabled(): Boolean {
-            val q = onEpisode?.feed?.queue ?: return false
-            return !q.contains(onEpisode!!)
+            val q = onEVM?.episode?.feed?.queue ?: return false
+            return !q.contains(onEVM!!.episode)
         }
-        override fun getActionColor(): Int {
-            return android.R.attr.colorAccent
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.add_to_associated_queue)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
-            if (item.feed?.queue != null) runOnIOScope { addToQueueSync(item) }
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
+            if (vm.episode.feed?.queue != null) runOnIOScope { addToQueueSync(vm.episode) }
         }
     }
 
     inner class PutToQueue : SwipeAction() {
         private var showPutToQueueDialog by mutableStateOf(false)
-        override fun getId(): String {
-            return ActionTypes.PUT_TO_QUEUE.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_playlist_play
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_gray
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.put_in_queue_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
+        override val id: String
+            get() = ActionTypes.PUT_TO_QUEUE.name
+        override val title: String
+            get() = getAppContext().getString(R.string.put_in_queue_label)
+
+        override val iconRes:  Int = R.drawable.ic_playlist_play
+        override val colorRes:  Int = R.attr.icon_gray
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
             showPutToQueueDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showPutToQueueDialog && onEpisode != null) PutToQueueDialog(listOf(onEpisode!!)) { showPutToQueueDialog = false }
+            if (showPutToQueueDialog && onEVM != null) PutToQueueDialog(listOf(onEVM!!)) { showPutToQueueDialog = false }
         }
     }
 
     inner class Combo : SwipeAction() {
         var showDialog by mutableStateOf(false)
         private var useAction by mutableStateOf<SwipeAction?>(null)
-        override fun getId(): String {
-            return ActionTypes.COMBO.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.baseline_category_24
-        }
-        override fun getActionColor(): Int {
-            return android.R.attr.colorAccent
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.combo_action)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
+        override val id: String
+            get() = ActionTypes.COMBO.name
+        override val title: String
+            get() = getAppContext().getString(R.string.combo_action)
+
+        override val iconRes:  Int = R.drawable.baseline_category_24
+        override val colorRes:  Int = android.R.attr.colorAccent
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
             showDialog = true
         }
         @Composable
         override fun ActionOptions() {
             useAction?.ActionOptions()
-            if (showDialog && onEpisode != null) Dialog(onDismissRequest = { showDialog = false }) {
+            if (showDialog && onEVM != null) Dialog(onDismissRequest = { showDialog = false }) {
                 val context = LocalContext.current
                 Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -300,16 +277,16 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                 .padding(4.dp)
                                 .clickable {
                                     useAction = action
-                                    action.performAction(onEpisode!!)
+                                    action.performAction(onEVM!!)
                                     showDialog = false
                                 }) {
                                 val colorAccent = remember {
                                     val typedValue = TypedValue()
-                                    context.theme.resolveAttribute(action.getActionColor(), typedValue, true)
+                                    context.theme.resolveAttribute(action.colorRes, typedValue, true)
                                     Color(typedValue.data)
                                 }
-                                Icon(imageVector = ImageVector.vectorResource(id = action.getActionIcon()),  tint = colorAccent, contentDescription = action.getTitle())
-                                Text(action.getTitle(), Modifier.padding(start = 4.dp))
+                                Icon(imageVector = ImageVector.vectorResource(id = action.iconRes),  tint = colorAccent, contentDescription = action.title)
+                                Text(action.title, Modifier.padding(start = 4.dp))
                             }
                         }
                     }
@@ -319,55 +296,48 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class Delete : SwipeAction() {
-        override fun getId(): String {
-            return ActionTypes.DELETE.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_delete
-        }
-        override fun enabled(): Boolean {
-            return onEpisode?.downloaded == true
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_red
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.delete_episode_label)
-        }
-        override fun performAction(item: Episode) {
-            var item_ = item
-            super.performAction(item_)
+        override val id: String
+            get() = ActionTypes.DELETE.name
+        override val title: String
+            get() = getAppContext().getString(R.string.delete_episode_label)
+
+        override val iconRes:  Int = R.drawable.ic_delete
+        override val colorRes:  Int = R.attr.icon_red
+
+        override fun enabled(): Boolean = onEVM?.episode?.downloaded == true
+
+        override fun performAction(vm: EpisodeVM) {
+            var item_ = vm.episode
+            super.performAction(vm)
             if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
             runOnIOScope {
                 val almostEnded = hasAlmostEnded(item_)
                 if (almostEnded && item_.playState < PlayState.PLAYED.code) item_ = setPlayStateSync(PlayState.PLAYED.code, item_, resetMediaPosition = true, removeFromQueue = false)
                 if (almostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
                 deleteEpisodesWarnLocalRepeat(context, listOf(item_))
+                vm.updateVMFromDB()
             }
         }
     }
 
     inner class SetRating : SwipeAction() {
         private var showChooseRatingDialog by mutableStateOf(false)
-        override fun getId(): String {
-            return ActionTypes.RATING.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_star
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_yellow
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.set_rating_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
+        override val id: String
+            get() = ActionTypes.RATING.name
+        override val title: String
+            get() = getAppContext().getString(R.string.set_rating_label)
+
+        override val iconRes:  Int = R.drawable.ic_star
+        override val colorRes:  Int = R.attr.icon_yellow
+
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
             showChooseRatingDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showChooseRatingDialog && onEpisode != null) ChooseRatingDialog(listOf(onEpisode!!)) { showChooseRatingDialog = false }
+            if (showChooseRatingDialog && onEVM != null) ChooseRatingDialog(listOf(onEVM!!)) { showChooseRatingDialog = false }
         }
     }
 
@@ -375,22 +345,19 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         private var showEditComment by mutableStateOf(false)
         private var localTime by mutableLongStateOf(System.currentTimeMillis())
         private var editCommentText by mutableStateOf(TextFieldValue(""))
-        override fun getId(): String {
-            return ActionTypes.COMMENT.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.baseline_comment_24
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_yellow
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.add_opinion_label)
-        }
-        override fun performAction(item: Episode) {
-            onEpisode = if (isCurMedia(item)) curEpisode else realm.query(Episode::class).query("id == ${item.id}").first().find()
+        override val id: String
+            get() = ActionTypes.COMMENT.name
+        override val title: String
+            get() = getAppContext().getString(R.string.add_opinion_label)
+
+        override val iconRes:  Int = R.drawable.baseline_comment_24
+        override val colorRes:  Int = R.attr.icon_yellow
+
+        override fun performAction(vm: EpisodeVM) {
+            val e = (if (isCurMedia(vm.episode)) curEpisode else realm.query(Episode::class).query("id == ${vm.episode.id}").first().find()) ?: return
+            onEVM?.episode = e
             localTime = System.currentTimeMillis()
-            editCommentText = TextFieldValue((if (onEpisode?.comment.isNullOrBlank()) "" else onEpisode!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
+            editCommentText = TextFieldValue((if (onEVM?.episode?.comment.isNullOrBlank()) "" else onEVM!!.episode.comment + "\n") + fullDateTimeString(localTime) + ":\n")
             showEditComment = true
         }
         @Composable
@@ -398,8 +365,8 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             if (showEditComment) {
                 LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false },
                     onSave = {
-                        if (onEpisode != null) runOnIOScope {
-                            onEpisode = upsert(onEpisode!!) {
+                        if (onEVM != null) runOnIOScope {
+                            onEVM!!.episode = upsert(onEVM!!.episode) {
                                 it.comment = editCommentText.text
                                 it.commentTime = localTime
                             }
@@ -413,26 +380,22 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
     inner class SearchSelected : SwipeAction() {
         private var showSearchDialog by mutableStateOf(false)
-        override fun getId(): String {
-            return ActionTypes.SEARCH_SELECTED.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_search
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_yellow
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.search_selected)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
+        override val id: String
+            get() = ActionTypes.SEARCH_SELECTED.name
+        override val title: String
+            get() = getAppContext().getString(R.string.search_selected)
+
+        override val iconRes:  Int = R.drawable.ic_search
+        override val colorRes:  Int = R.attr.icon_yellow
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
             showSearchDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showSearchDialog && onEpisode?.title != null) {
-                var textFieldValue by remember { mutableStateOf(TextFieldValue(onEpisode!!.title!!)) }
+            if (showSearchDialog && onEVM?.episode?.title != null) {
+                var textFieldValue by remember { mutableStateOf(TextFieldValue(onEVM!!.episode.title!!)) }
                 val selectedText by remember(textFieldValue.selection) { mutableStateOf(
                     if (textFieldValue.selection.collapsed) ""
                     else {
@@ -459,50 +422,41 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     class NoAction : SwipeAction() {
-        override fun getId(): String {
-            return ActionTypes.NO_ACTION.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_questionmark
-        }
+        override val id: String
+            get() = ActionTypes.NO_ACTION.name
+        override val title: String
+            get() = getAppContext().getString(R.string.no_action_label)
+
+        override val iconRes:  Int = R.drawable.ic_questionmark
+        override val colorRes:  Int = R.attr.icon_red
+
         override fun enabled(): Boolean = false
-        override fun getActionColor(): Int {
-            return R.attr.icon_red
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.no_action_label)
-        }
     }
 
     inner class RemoveFromHistory : SwipeAction() {
         val TAG = this::class.simpleName ?: "Anonymous"
 
-        override fun getId(): String {
-            return ActionTypes.REMOVE_FROM_HISTORY.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_history_remove
-        }
-        override fun enabled(): Boolean {
-            return (onEpisode?.lastPlayedTime ?: 0L) > 0L || (onEpisode?.playbackCompletionTime ?: 0L) > 0L
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_purple
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.remove_history_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
-            val playbackCompletionDate = item.playbackCompletionDate
-            val lastPlayedDate = item.lastPlayedTime
-            setHistoryDates(item)
+        override val id: String
+            get() = ActionTypes.REMOVE_FROM_HISTORY.name
+        override val title: String
+            get() = getAppContext().getString(R.string.remove_history_label)
+
+        override val iconRes:  Int = R.drawable.ic_history_remove
+        override val colorRes:  Int = R.attr.icon_purple
+
+        override fun enabled(): Boolean = (onEVM?.episode?.lastPlayedTime ?: 0L) > 0L || (onEVM?.episode?.playbackCompletionTime ?: 0L) > 0L
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
+            val playbackCompletionDate = vm.episode.playbackCompletionDate
+            val lastPlayedDate = vm.episode.lastPlayedTime
+            setHistoryDates(vm.episode)
             commonConfirm = CommonConfirmAttrib(
                 title = context.getString(R.string.removed_history_label),
                 message = "",
                 confirmRes = R.string.undo,
                 cancelRes = R.string.no,
-                onConfirm = {  if (playbackCompletionDate != null) setHistoryDates(item, lastPlayedDate, playbackCompletionDate) })
+                onConfirm = {  if (playbackCompletionDate != null) setHistoryDates(vm.episode, lastPlayedDate, playbackCompletionDate) })
         }
         private fun setHistoryDates(episode: Episode, lastPlayed: Long = 0, completed: Date = Date(0)) {
             runOnIOScope {
@@ -519,97 +473,78 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class RemoveFromQueue : SwipeAction() {
-        override fun getId(): String {
-            return ActionTypes.REMOVE_FROM_QUEUE.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_playlist_remove
-        }
-        override fun enabled(): Boolean {
-            return onEpisode != null && curQueue.contains(onEpisode!!)
-        }
-        override fun getActionColor(): Int {
-            return android.R.attr.colorAccent
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.remove_from_queue_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
-            runOnIOScope { smartRemoveFromQueue(item) }
+        override val id: String
+            get() = ActionTypes.REMOVE_FROM_QUEUE.name
+        override val title: String
+            get() = getAppContext().getString(R.string.remove_from_queue_label)
+
+        override val iconRes:  Int = R.drawable.ic_playlist_remove
+        override val colorRes:  Int = android.R.attr.colorAccent
+
+        override fun enabled(): Boolean = onEVM != null && curQueue.contains(onEVM!!.episode)
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
+            runOnIOScope { smartRemoveFromQueue(vm.episode) }
         }
     }
 
     inner class Download : SwipeAction() {
-        override fun getId(): String {
-            return ActionTypes.START_DOWNLOAD.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.ic_download
-        }
-        override fun enabled(): Boolean {
-            return onEpisode?.downloaded == false && onEpisode?.feed != null && !onEpisode!!.feed!!.isLocalFeed
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_green
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.download_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
-            if (!item.downloaded && item.feed != null && !item.feed!!.isLocalFeed) DownloadActionButton(item).onClick(context)
+        override val id: String
+            get() = ActionTypes.START_DOWNLOAD.name
+        override val title: String
+            get() = getAppContext().getString(R.string.download_label)
+
+        override val iconRes:  Int = R.drawable.ic_download
+        override val colorRes:  Int = R.attr.icon_green
+
+        override fun enabled(): Boolean = onEVM?.episode?.downloaded == false && onEVM?.episode?.feed != null && !onEVM!!.episode.feed!!.isLocalFeed
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
+            if (!vm.episode.downloaded && vm.episode.feed != null && !vm.episode.feed!!.isLocalFeed) DownloadActionButton(vm.episode).onClick(context)
         }
     }
 
     inner class Shelve : SwipeAction() {
         private var showShelveDialog by mutableStateOf(false)
-        override fun getId(): String {
-            return ActionTypes.SHELVE.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.baseline_shelves_24
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_gray
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.shelve_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
+        override val id: String
+            get() = ActionTypes.SHELVE.name
+        override val title: String
+            get() = getAppContext().getString(R.string.shelve_label)
+
+        override val iconRes:  Int = R.drawable.baseline_shelves_24
+        override val colorRes:  Int = R.attr.icon_gray
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
             showShelveDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showShelveDialog && onEpisode != null) ShelveDialog(listOf(onEpisode!!)) { showShelveDialog = false }
+            if (showShelveDialog && onEVM != null) ShelveDialog(listOf(onEVM!!)) { showShelveDialog = false }
         }
     }
 
     inner class Erase : SwipeAction() {
         private var showEraseDialog by mutableStateOf(false)
-        override fun getId(): String {
-            return ActionTypes.ERASE.name
-        }
-        override fun getActionIcon(): Int {
-            return R.drawable.baseline_delete_forever_24
-        }
-        override fun enabled(): Boolean {
-            return onEpisode?.feed?.isSynthetic() == true
-        }
-        override fun getActionColor(): Int {
-            return R.attr.icon_gray
-        }
-        override fun getTitle(): String {
-            return getAppContext().getString(R.string.erase_episodes_label)
-        }
-        override fun performAction(item: Episode) {
-            super.performAction(item)
+        override val id: String
+            get() =  ActionTypes.ERASE.name
+        override val title: String
+            get() = getAppContext().getString(R.string.erase_episodes_label)
+
+        override val iconRes:  Int = R.drawable.baseline_delete_forever_24
+        override val colorRes:  Int = R.attr.icon_gray
+
+        override fun enabled(): Boolean = onEVM?.episode?.feed?.isSynthetic() == true
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
             showEraseDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showEraseDialog && onEpisode != null) EraseEpisodesDialog(listOf(onEpisode!!), onEpisode!!.feed) { showEraseDialog = false }
+            if (showEraseDialog && onEVM != null) EraseEpisodesDialog(listOf(onEVM!!), onEVM!!.episode.feed) { showEraseDialog = false }
         }
     }
 
@@ -653,10 +588,10 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                         }
                                         showPickerDialog = false
                                     }) {
-                                    Icon(imageVector = ImageVector.vectorResource(keys[index].getActionIcon()), tint = textColor, contentDescription = null, modifier = Modifier
+                                    Icon(imageVector = ImageVector.vectorResource(keys[index].iconRes), tint = textColor, contentDescription = null, modifier = Modifier
                                         .width(35.dp)
                                         .height(35.dp))
-                                    Text(keys[index].getTitle(), color = textColor, textAlign = TextAlign.Center)
+                                    Text(keys[index].title, color = textColor, textAlign = TextAlign.Center)
                                 }
                             }
                         }
@@ -691,7 +626,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         Text(stringResource(R.string.swipe_left))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(leftAction.value[0].getActionIcon()), tint = textColor, contentDescription = null, modifier = Modifier
+                            Icon(imageVector = ImageVector.vectorResource(leftAction.value[0].iconRes), tint = textColor, contentDescription = null, modifier = Modifier
                                 .width(35.dp)
                                 .height(35.dp)
                                 .clickable(onClick = {
@@ -711,7 +646,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                 .width(50.dp)
                                 .height(35.dp))
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(rightAction.value[0].getActionIcon()), tint = textColor, contentDescription = null, modifier = Modifier
+                            Icon(imageVector = ImageVector.vectorResource(rightAction.value[0].iconRes), tint = textColor, contentDescription = null, modifier = Modifier
                                 .width(35.dp)
                                 .height(35.dp)
                                 .clickable(onClick = {
@@ -721,8 +656,8 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                             Spacer(Modifier.weight(0.1f))
                         }
                         Button(onClick = {
-                            actions = sa.RightLeftActions("${rightAction.value[0].getId()},${leftAction.value[0].getId()}")
-                            prefs.edit { putString(KEY_PREFIX_SWIPEACTIONS + sa.tag, "${rightAction.value[0].getId()},${leftAction.value[0].getId()}") }
+                            actions = sa.RightLeftActions("${rightAction.value[0].id},${leftAction.value[0].id}")
+                            prefs.edit { putString(KEY_PREFIX_SWIPEACTIONS + sa.tag, "${rightAction.value[0].id},${leftAction.value[0].id}") }
                             prefs.edit { putBoolean(KEY_PREFIX_NO_ACTION + sa.tag, true) }
                             callback(actions)
                             onDismissRequest()

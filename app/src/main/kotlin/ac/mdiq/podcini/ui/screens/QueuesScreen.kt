@@ -26,10 +26,7 @@ import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.Rating
-import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
-import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
@@ -39,7 +36,6 @@ import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.buildListInfo
-import ac.mdiq.podcini.ui.compose.stopMonitor
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
@@ -121,7 +117,6 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
-import java.text.NumberFormat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -129,21 +124,16 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.text.NumberFormat
 import kotlin.math.max
 
 class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     internal var swipeActions: SwipeActions
     internal var swipeActionsBin: SwipeActions
-    internal var leftActionState = mutableStateOf<SwipeAction>(NoAction())
-    internal var rightActionState = mutableStateOf<SwipeAction>(NoAction())
-    internal var leftActionStateBin = mutableStateOf<SwipeAction>(NoAction())
-    internal var rightActionStateBin = mutableStateOf<SwipeAction>(NoAction())
 
     internal var infoTextUpdate = ""
     internal var listInfoText = ""
     internal var infoBarText = mutableStateOf("")
-
-    internal var showSwipeActionsDialog by mutableStateOf(false)
 
     internal var isQueueLocked by mutableStateOf(getPref(AppPrefs.prefQueueLocked, true))
 
@@ -173,11 +163,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         queues = realm.query(PlayQueue::class).find()
 
         swipeActions = SwipeActions(context, TAG)
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
         swipeActionsBin = SwipeActions(context, "$TAG.Bin")
-        leftActionStateBin.value = swipeActions.actions.left[0]
-        rightActionStateBin.value = swipeActions.actions.right[0]
     }
     private var eventSink: Job?     = null
     private var eventStickySink: Job? = null
@@ -197,7 +183,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                 when (event) {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
                     is FlowEvent.FeedChangeEvent -> onFeedPrefsChanged(event)
-//                    is FlowEvent.EpisodePlayedEvent -> onEpisodePlayedEvent(event)
                     else -> {}
                 }
             }
@@ -237,7 +222,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             FlowEvent.QueueEvent.Action.SET_QUEUE, FlowEvent.QueueEvent.Action.SORTED -> {
                 queueItems.clear()
                 queueItems.addAll(event.episodes)
-                stopMonitor(vms)
+//                stopMonitor(vms)
                 vms.clear()
                 for (e in event.episodes) vms.add(EpisodeVM(e, TAG))
             }
@@ -264,7 +249,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             }
             FlowEvent.QueueEvent.Action.CLEARED -> {
                 queueItems.clear()
-                stopMonitor(vms)
+//                stopMonitor(vms)
                 vms.clear()
             }
             FlowEvent.QueueEvent.Action.MOVED, FlowEvent.QueueEvent.Action.DELETED_MEDIA -> return
@@ -288,28 +273,9 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-//    private fun onEpisodePlayedEvent(event: FlowEvent.EpisodePlayedEvent) {
-//        // Sent when playback position is reset
-//        Logd(TAG, "onEpisodePlayedEvent() called with event = [$event]")
-////        if (event.episode != null && !showBin) {
-////            val pos = queueItems.indexOfItemWithId(event.episode.id)
-////            if (pos >= 0 && pos < vms.size) vms[pos].playedState = event.episode.playState
-////        }
-//    }
-
     private fun onFeedPrefsChanged(event: FlowEvent.FeedChangeEvent) {
         Logd(TAG,"speedPresetChanged called")
         for (item in queueItems) if (item.feed?.id == event.feed.id) item.feed = null
-    }
-
-    internal fun refreshSwipeTelltale() {
-        if (showBin) {
-            leftActionStateBin.value = swipeActionsBin.actions.left[0]
-            rightActionStateBin.value = swipeActionsBin.actions.right[0]
-        } else {
-            leftActionState.value = swipeActions.actions.left[0]
-            rightActionState.value = swipeActions.actions.right[0]
-        }
     }
 
     private var loadItemsRunning = false
@@ -320,7 +286,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             while (curQueue.name.isEmpty()) runBlocking { delay(100) }
             feedsAssociated = realm.query(Feed::class).query("queueId == ${curQueue.id}").find()
             queueItems.clear()
-            stopMonitor(vms)
+//            stopMonitor(vms)
             vms.clear()
             if (showBin) queueItems.addAll(realm.query(Episode::class, "id IN $0", curQueue.idsBinList).find().sortedByDescending { curQueue.idsBinList.indexOf(it.id) })
             else {
@@ -389,8 +355,7 @@ fun QueuesScreen() {
                     vm.spinnerTexts.addAll(vm.queues.map { "${it.name} : ${it.size()}" })
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActionsBin)
-                    lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
-                    vm.refreshSwipeTelltale()
+//                    lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.loadCurQueue(true)
@@ -417,7 +382,7 @@ fun QueuesScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             vm.queueItems.clear()
-            stopMonitor(vm.vms)
+//            stopMonitor(vm.vms)
             vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -444,7 +409,6 @@ fun QueuesScreen() {
     fun refreshQueueOrBin() {
         showTopSpinner = !vm.showBin
         title = if (vm.showBin) curQueue.name + " Bin" else ""
-        vm.refreshSwipeTelltale()
         vm.loadCurQueue(false)
     }
     @OptIn(ExperimentalMaterial3Api::class)
@@ -586,10 +550,6 @@ fun QueuesScreen() {
         }
     }
 
-    if (vm.showSwipeActionsDialog) SwipeActionsSettingDialog(if (vm.showBin) vm.swipeActionsBin else vm.swipeActions, onDismissRequest = { vm.showSwipeActionsDialog = false }) { actions ->
-        vm.swipeActions.actions = actions
-        vm.refreshSwipeTelltale()
-    }
     ComfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = vm.showClearQueueDialog) { clearQueue() }
     RenameQueueDialog(showDialog = vm.showRenameQueueDialog.value, onDismiss = { vm.showRenameQueueDialog.value = false })
     AddQueueDialog(showDialog = vm.showAddQueueDialog.value, onDismiss = { vm.showAddQueueDialog.value = false })
@@ -640,14 +600,14 @@ fun QueuesScreen() {
         }
     }
 
-    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
-        return when (aboveOrBelow) {
-            0 -> vm.queueItems
-            -1 -> if (index < vm.queueItems.size) vm.queueItems.subList(0, index+1) else vm.queueItems
-            1 -> if (index < vm.queueItems.size) vm.queueItems.subList(index, vm.queueItems.size) else vm.queueItems
-            else -> listOf()
-        }
-    }
+//    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
+//        return when (aboveOrBelow) {
+//            0 -> vm.queueItems
+//            -1 -> if (index < vm.queueItems.size) vm.queueItems.subList(0, index+1) else vm.queueItems
+//            1 -> if (index < vm.queueItems.size) vm.queueItems.subList(index, vm.queueItems.size) else vm.queueItems
+//            else -> listOf()
+//        }
+//    }
 
     BackHandler(enabled = vm.showBin || vm.showFeeds) {
         Logd(TAG, "BackHandler ${vm.showBin} ${vm.showFeeds}")
@@ -660,16 +620,8 @@ fun QueuesScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showBin) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                InforBar(vm.infoBarText, leftAction = vm.leftActionStateBin, rightAction = vm.rightActionStateBin, actionConfig = { vm.showSwipeActionsDialog = true })
-                val leftCB = { episode: Episode ->
-                    if (vm.leftActionStateBin.value is NoAction) vm.showSwipeActionsDialog = true
-                    else vm.leftActionStateBin.value.performAction(episode)
-                }
-                val rightCB = { episode: Episode ->
-                    if (vm.rightActionStateBin.value is NoAction) vm.showSwipeActionsDialog = true
-                    else vm.rightActionStateBin.value.performAction(episode)
-                }
-                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true, leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) }, multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) } )
+                InforBar(vm.infoBarText, vm.swipeActionsBin)
+                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true, swipeActions = vm.swipeActionsBin)
             }
         } else {
             if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
@@ -680,19 +632,11 @@ fun QueuesScreen() {
                         queueKeepSortedOrder = sortOrder
                         vm.reorderQueue(sortOrder, true)
                     }
-                    InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
-                    val leftCB = { episode: Episode ->
-                        if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                        else vm.leftActionState.value.performAction(episode)
-                    }
-                    val rightCB = { episode: Episode ->
-                        if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                        else vm.rightActionState.value.performAction(episode)
-                    }
+                    InforBar(vm.infoBarText, vm.swipeActions)
                     EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true,
                         isDraggable = vm.dragDropEnabled, dragCB = { iFrom, iTo -> runOnIOScope { moveInQueueSync(iFrom, iTo, true) } },
-                        leftSwipeCB = { leftCB(it) }, rightSwipeCB = { rightCB(it) },
-                        multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) } )
+                        swipeActions = vm.swipeActions,
+                    )
                 }
             }
         }

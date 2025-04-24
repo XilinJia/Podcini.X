@@ -35,6 +35,7 @@ import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeClips
 import ac.mdiq.podcini.ui.compose.EpisodeMarks
+import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
@@ -415,16 +416,16 @@ fun EpisodeInfoScreen() {
         })
 
     var showChooseRatingDialog by remember { mutableStateOf(false) }
-    if (showChooseRatingDialog) ChooseRatingDialog(listOf(vm.episode!!)) { showChooseRatingDialog = false }
+    if (showChooseRatingDialog) ChooseRatingDialog(listOf(EpisodeVM(vm.episode!!, TAG))) { showChooseRatingDialog = false }
 
     var showChaptersDialog by remember { mutableStateOf(false) }
     if (showChaptersDialog && vm.episode != null) ChaptersDialog(media = vm.episode!!, onDismissRequest = {showChaptersDialog = false})
 
     var showIgnoreDialog by remember { mutableStateOf(false) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
-    if (showPlayStateDialog) PlayStateDialog(listOf(vm.episode!!), onDismissRequest = { showPlayStateDialog = false }) { showIgnoreDialog = true }
+    if (showPlayStateDialog) PlayStateDialog(listOf(EpisodeVM(vm.episode!!, TAG)), onDismissRequest = { showPlayStateDialog = false }) { showIgnoreDialog = true }
 
-    if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(vm.episode!!), onDismissRequest = { showIgnoreDialog = false })
+    if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(EpisodeVM(vm.episode!!, TAG)), onDismissRequest = { showIgnoreDialog = false })
 
     if (vm.showShareDialog && vm.episode != null && vm.actMain != null) ShareDialog(vm.episode!!, vm.actMain) { vm.showShareDialog = false }
 
@@ -486,7 +487,7 @@ fun EpisodeInfoScreen() {
                 SelectionContainer { Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { vm.openPodcast() }) }
             }
             Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                val imgLoc = vm.episode?.imageLocation
+                val imgLoc = vm.episode?.imageLocation()
                 AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { vm.openPodcast() }))
                 Box(Modifier.weight(1f).padding(start = 10.dp).height(80.dp)) {
                     Column {

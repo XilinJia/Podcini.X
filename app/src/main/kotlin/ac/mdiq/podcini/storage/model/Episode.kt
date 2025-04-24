@@ -175,19 +175,6 @@ class Episode : RealmObject {
         }
 
     @Ignore
-    val imageLocation: String?
-        get() = if (getPref(AppPrefs.prefEpisodeCover, false)) {
-            when {
-                imageUrl != null -> imageUrl
-//            TODO: this can be very expensive for list
-//            media != null && media?.hasEmbeddedPicture() == true -> EpisodeMedia.FILENAME_PREFIX_EMBEDDED_COVER + media!!.fileUrl
-                feed != null -> feed!!.imageUrl
-                hasEmbeddedPicture() -> FILENAME_PREFIX_EMBEDDED_COVER+fileUrl
-                else -> null
-            }
-        } else feed?.imageUrl
-
-    @Ignore
     val isRemote = mutableStateOf(false)
 
     // from EpisodeMedia
@@ -318,6 +305,20 @@ class Episode : RealmObject {
             this.hasEmbeddedPicture = other.hasEmbeddedPicture
             this.lastPlayedTime = other.lastPlayedTime
             this.isAutoDownloadEnabled = other.isAutoDownloadEnabled
+        }
+    }
+
+    fun imageLocation(forceFeed: Boolean = false): String? {
+        return if (forceFeed || !getPref(AppPrefs.prefEpisodeCover, false)) feed?.imageUrl
+        else {
+            when {
+                imageUrl != null -> imageUrl
+//            TODO: this can be very expensive for list
+//            media != null && media?.hasEmbeddedPicture() == true -> EpisodeMedia.FILENAME_PREFIX_EMBEDDED_COVER + media!!.fileUrl
+                feed != null -> feed!!.imageUrl
+                hasEmbeddedPicture() -> FILENAME_PREFIX_EMBEDDED_COVER+fileUrl
+                else -> null
+            }
         }
     }
 

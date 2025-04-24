@@ -21,10 +21,7 @@ import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.FeedFunding
 import ac.mdiq.podcini.storage.model.Rating
-import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
-import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
@@ -37,11 +34,11 @@ import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
+import ac.mdiq.podcini.ui.compose.LayoutMode
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
 import ac.mdiq.podcini.ui.compose.buildListInfo
-import ac.mdiq.podcini.ui.compose.stopMonitor
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
@@ -126,14 +123,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
-import java.util.Date
-import java.util.concurrent.ExecutionException
-import java.util.concurrent.Semaphore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -142,14 +137,13 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
-import androidx.core.net.toUri
+import java.util.Date
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Semaphore
 
 
 class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var swipeActions: SwipeActions
-    internal var leftActionState = mutableStateOf<SwipeAction>(NoAction())
-    internal var rightActionState = mutableStateOf<SwipeAction>(NoAction())
-    internal var showSwipeActionsDialog by mutableStateOf(false)
 
     internal var feedID: Long = 0
     internal var feed by mutableStateOf<Feed?>(null)
@@ -176,7 +170,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var showRenameDialog by mutableStateOf(false)
     internal var showSortDialog by mutableStateOf(false)
     internal var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
-    internal var layoutModeIndex by mutableIntStateOf(0)
+    internal var layoutModeIndex by mutableIntStateOf(LayoutMode.Normal.ordinal)
 
     private var onInit: Boolean = true
     private var filterJob: Job? = null
@@ -189,9 +183,9 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     init {
         sortOrder = feed?.sortOrder ?: EpisodeSortOrder.DATE_NEW_OLD
         swipeActions = SwipeActions(context, TAG)
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
-        layoutModeIndex = if (feed?.useWideLayout == true) 1 else 0
+//        leftActionState.value = swipeActions.actions.left[0]
+//        rightActionState.value = swipeActions.actions.right[0]
+        layoutModeIndex = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
     }
     private var eventSink: Job? = null
     private var eventStickySink: Job? = null
@@ -243,11 +237,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         if (!event.isRunning) loadFeed(true)
     }
 
-    internal fun refreshSwipeTelltale() {
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
-    }
-
 //    private fun isFilteredOut(episode: Episode): Boolean {
 //        if (enableFilter && !feed?.filterString.isNullOrEmpty()) {
 //            val episodes_ = realm.query(Episode::class).query("feedId == ${feed!!.id}").query(feed!!.episodeFilter.queryString()).find()
@@ -271,7 +260,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         if (loadJob != null) {
             if (force) {
                 loadJob?.cancel()
-                stopMonitor(vms)
+//                stopMonitor(vms)
                 vms.clear()
             } else return
         }
@@ -295,8 +284,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                         episodes.clear()
                         episodes.addAll(eListTmp)
                         withContext(Dispatchers.Main) {
-                            layoutModeIndex = if (feed_.useWideLayout) 1 else 0
-                            stopMonitor(vms)
+                            layoutModeIndex = if (feed_.useWideLayout) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
+//                            stopMonitor(vms)
                             vms.clear()
                             buildMoreItems()
                         }
@@ -366,7 +355,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         if (filterJob != null) {
             Logd(TAG, "filterLongClick cancelling job")
             filterJob?.cancel()
-            stopMonitor(vms)
+//            stopMonitor(vms)
             vms.clear()
         }
         filterJob = lcScope.launch {
@@ -385,7 +374,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 episodes.addAll(eListTmp)
             }
             withContext(Dispatchers.Main) {
-                stopMonitor(vms)
+//                stopMonitor(vms)
                 vms.clear()
                 for (e in eListTmp) vms.add(EpisodeVM(e, TAG))
             }
@@ -439,7 +428,6 @@ fun FeedDetailsScreen() {
                     if (!vm.feed?.link.isNullOrEmpty()) vm.isCallable = IntentUtils.isCallable(context, Intent(Intent.ACTION_VIEW, vm.feed!!.link!!.toUri()))
                     saveLastNavScreen(TAG, vm.feedID.toString())
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
-                    vm.refreshSwipeTelltale()
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.loadFeed()
@@ -455,7 +443,7 @@ fun FeedDetailsScreen() {
         onDispose {
             vm.feed = null
             vm.episodes.clear()
-            stopMonitor(vm.vms)
+//            stopMonitor(vm.vms)
             vm.vms.clear()
             FEObj.tts?.stop()
             FEObj.tts?.shutdown()
@@ -676,11 +664,6 @@ fun FeedDetailsScreen() {
             }
         }
     }
-    if (vm.showSwipeActionsDialog) SwipeActionsSettingDialog(vm.swipeActions, onDismissRequest = { vm.showSwipeActionsDialog = false }) { actions ->
-        vm.swipeActions.actions = actions
-        vm.refreshSwipeTelltale()
-    }
-
     @Composable
     fun DetailUI() {
         val context = LocalContext.current
@@ -780,38 +763,26 @@ fun FeedDetailsScreen() {
         }
     }
 
-    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
-        return when (aboveOrBelow) {
-            0 -> vm.episodes
-            -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
-            1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
-            else -> listOf()
-        }
-    }
+//    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
+//        return when (aboveOrBelow) {
+//            0 -> vm.episodes
+//            -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
+//            1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
+//            else -> listOf()
+//        }
+//    }
 
     vm.swipeActions.ActionOptionsDialog()
     Scaffold(topBar = { MyTopAppBar(displayUpArrow) }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             FeedDetailsHeader()
             if (feedScreenMode == FeedScreenMode.List) {
-                InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
+                InforBar(vm.infoBarText, vm.swipeActions)
                 EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex, doMonitor = true,
                     buildMoreItems = { vm.buildMoreItems() },
                     refreshCB = { FeedUpdateManager.runOnceOrAsk(context, vm.feed) },
-                    leftSwipeCB = {
-                        if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                        else vm.leftActionState.value.performAction(it)
-                    },
-                    rightSwipeCB = {
-                        Logd(TAG, "vm.rightActionState: ${vm.rightActionState.value.getId()}")
-                        if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                        else vm.rightActionState.value.performAction(it)
-                    },
-                    actionButtonCB = { e, tag ->
-                        if (e.feed?.id == vm.feed?.id && tag in listOf("PlayActionButton", "StreamActionButton", "PlayLocalActionButton"))
-                            upsertBlk(vm.feed!!) { it.lastPlayed = Date().time }
-                    },
-                    multiSelectCB = { index, aboveOrBelow -> multiSelectCB(index, aboveOrBelow) }
+                    swipeActions = vm.swipeActions,
+                    actionButtonCB = { e, tag -> if (e.feed?.id == vm.feed?.id && tag in listOf("PlayActionButton", "StreamActionButton", "PlayLocalActionButton")) upsertBlk(vm.feed!!) { it.lastPlayed = Date().time } },
                 )
             } else DetailUI()
         }

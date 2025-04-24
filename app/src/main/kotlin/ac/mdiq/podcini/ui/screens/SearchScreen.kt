@@ -10,10 +10,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.utils.DurationConverter
-import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
-import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
@@ -22,7 +19,6 @@ import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
-import ac.mdiq.podcini.ui.compose.stopMonitor
 import ac.mdiq.podcini.ui.utils.curSearchString
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
@@ -97,7 +93,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import java.text.NumberFormat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -105,6 +100,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.NumberFormat
 
 class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     internal var automaticSearchDebouncer: Handler
@@ -120,10 +116,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     internal var feedName by mutableStateOf("")
     internal var queryText by mutableStateOf("")
 
-    internal var showSwipeActionsDialog by mutableStateOf(false)
     internal var swipeActions: SwipeActions
-    internal var leftActionState = mutableStateOf<SwipeAction>(NoAction())
-    internal var rightActionState = mutableStateOf<SwipeAction>(NoAction())
 
     init {
         Logd(TAG, "init $curSearchString")
@@ -135,13 +128,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         }
         automaticSearchDebouncer = Handler(Looper.getMainLooper())
         swipeActions = SwipeActions(context, TAG)
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
-    }
-
-    internal fun refreshSwipeTelltale() {
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
     }
 
     fun buildMoreItems() {
@@ -164,7 +150,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                 when (event) {
 //                    is FlowEvent.FeedListEvent, is FlowEvent.EpisodePlayedEvent -> search(queryText)
                     is FlowEvent.FeedListEvent -> search(queryText)
-//                    is FlowEvent.SwipeActionsChangedEvent -> refreshSwipeTelltale()
                     else -> {}
                 }
             }
@@ -195,7 +180,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         if (query.isBlank()) return
         if (searchJob != null) {
             searchJob?.cancel()
-            stopMonitor(vms)
+//            stopMonitor(vms)
             vms.clear()
         }
         searchJob = lcScope.launch {
@@ -214,7 +199,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                 withContext(Dispatchers.Main) {
                     val first_ = results_.episodes
                     episodes.clear()
-                    stopMonitor(vms)
+//                    stopMonitor(vms)
                     vms.clear()
                     if (first_.isNotEmpty()) {
                         episodes.addAll(first_)
@@ -377,7 +362,7 @@ fun SearchScreen() {
                 Lifecycle.Event.ON_CREATE -> {
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     if (vm.feedId > 0L) vm.searchInFeed = true
-                    vm.refreshSwipeTelltale()
+//                    vm.refreshSwipeTelltale()
                     if (vm.queryText.isNotBlank()) vm.search(vm.queryText)
                 }
                 Lifecycle.Event.ON_START -> vm.procFlowEvents()
@@ -391,7 +376,7 @@ fun SearchScreen() {
         onDispose {
             vm.episodes.clear()
             vm.feeds.clear()
-            stopMonitor(vm.vms)
+//            stopMonitor(vm.vms)
             vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -535,10 +520,6 @@ fun SearchScreen() {
         }
     }
 
-    if (vm.showSwipeActionsDialog) SwipeActionsSettingDialog(vm.swipeActions, onDismissRequest = { vm.showSwipeActionsDialog = false }) { actions ->
-        vm.swipeActions.actions = actions
-        vm.refreshSwipeTelltale()
-    }
     vm.swipeActions.ActionOptionsDialog()
     val tabTitles = listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds)
     val tabCounts = listOf(vm.episodes.size, vm.feeds.size, vm.pafeeds.size)
@@ -563,18 +544,8 @@ fun SearchScreen() {
             }
             when (selectedTabIndex.intValue) {
                 0 -> {
-                    InforBar(vm.infoBarText, leftAction = vm.leftActionState, rightAction = vm.rightActionState, actionConfig = { vm.showSwipeActionsDialog = true })
-                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true,
-                        buildMoreItems = { vm.buildMoreItems() },
-                        leftSwipeCB = {
-                            if (vm.leftActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                            else vm.leftActionState.value.performAction(it)
-                        },
-                        rightSwipeCB = {
-                            if (vm.rightActionState.value is NoAction) vm.showSwipeActionsDialog = true
-                            else vm.rightActionState.value.performAction(it)
-                        },
-                    )
+                    InforBar(vm.infoBarText, vm.swipeActions)
+                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true, buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions, )
                 }
                 1 -> FeedsColumn()
                 2 -> PAFeedsColumn()
