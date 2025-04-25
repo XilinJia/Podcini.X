@@ -455,8 +455,8 @@
     <string name="pref_auto_download_counting_played_summary">Встановити, якщо завантаження епізодів вже відтворюється враховуйте кеш епізодів</string>
     <string name="pref_episode_cover_title">Показувати обкладинку епізоду</string>
     <string name="pref_episode_cover_summary">Використовуйте обкладинку для епізоду у списках, коли це можливо. Якщо цей прапорець не встановлено, програма завжди буде використовувати зображення обкладинки подкасту.</string>
-    <string name="pref_show_remain_time_title">Показати залишок часу</string>
-    <string name="pref_show_remain_time_summary">Відображати час, що залишився для епізодів, коли встановлено прапорець. Якщо цей прапорець не встановлено, відображається загальна тривалість епізодів.</string>
+
+
     <string name="pref_theme_title_automatic">Автоматична</string>
     <string name="pref_theme_title_light">Світла</string>
     <string name="pref_theme_title_dark">Темна</string>
@@ -478,8 +478,8 @@
     <string name="pref_feed_skip_intro">Пропуск спочатку</string>
     <string name="pref_feed_skip_ending_toast">Пропущено в кінці %d секунд</string>
     <string name="pref_feed_skip_intro_toast">Пропущено спочатку %d секунд</string>
-    <string name="pref_playback_time_respects_speed_title">Налаштування метаданних під швидкість відтворення</string>
-    <string name="pref_playback_time_respects_speed_sum">Відображувана позиція та тривалість адаптовані до швидкості відтворення</string>
+
+
     <string name="pref_fallback_speed">Швидкість повернення</string>
     <string name="pref_speed_forward">Швидка швидкість вперед</string>
     <string name="pref_speed_forward_sum">Налаштування швидкості уперед, коли натиснута кнопка запуску</string>

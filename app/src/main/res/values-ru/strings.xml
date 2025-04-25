@@ -455,8 +455,8 @@
     <string name="pref_auto_download_counting_played_summary">Установка если загруженные эпизоды уже воспроизведены в кэш эпизодов</string>
     <string name="pref_episode_cover_title">Использовать обложку выпуска</string>
     <string name="pref_episode_cover_summary">Если выпуск содержит свою обложку, показывать в списках её. Если не выбрано, всегда используется обложка подкаста.</string>
-    <string name="pref_show_remain_time_title">Показывать оставшееся время</string>
-    <string name="pref_show_remain_time_summary">Отображать оставшееся время выпусков. Если не выбрано, будет отображаться общая длительность.</string>
+
+
     <string name="pref_theme_title_automatic">Автоматически</string>
     <string name="pref_theme_title_light">Светлая</string>
     <string name="pref_theme_title_dark">Темная</string>
@@ -478,8 +478,8 @@
     <string name="pref_feed_skip_intro">Промотать в начале</string>
     <string name="pref_feed_skip_ending_toast">Промотаны последние %d с</string>
     <string name="pref_feed_skip_intro_toast">Промотаны первые %d с</string>
-    <string name="pref_playback_time_respects_speed_title">Подстройка метаданных под скорость воспроизведения</string>
-    <string name="pref_playback_time_respects_speed_sum">Отображаемые позиция и длительность меняются со скоростью</string>
+
+
     <string name="pref_fallback_speed">Резервная скорость</string>
     <string name="pref_speed_forward">Скорость перемотки вперед</string>
     <string name="pref_speed_forward_sum">Настроить скорость вперед при нажатии кнопки \"Пропустить\"</string>

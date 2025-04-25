@@ -445,8 +445,8 @@
     <string name="pref_auto_download_counting_played_summary">Ορίστε αν τα κατεβασμένα επεισόδια έχουν ήδη παίξει μετράνε στο επεισόδιο cache</string>
     <string name="pref_episode_cover_title">Χρήση κάλυψης επεισοδίων</string>
     <string name="pref_episode_cover_summary">Χρησιμοποιήστε το συγκεκριμένο εξώφυλλο του επεισοδίου σε λίστες όποτε είναι διαθέσιμο. Αν δεν είναι επιλεγμένο, η εφαρμογή θα χρησιμοποιεί πάντα την εικόνα εξωφύλλου podcast.</string>
-    <string name="pref_show_remain_time_title">Εμφάνιση χρόνου που απομένει</string>
-    <string name="pref_show_remain_time_summary">Εμφάνιση του υπόλοιπου χρόνου των επεισοδίων όταν είναι επιλεγμένο. Αν δεν είναι επιλεγμένο, εμφανίζεται η συνολική διάρκεια των επεισοδίων.</string>
+
+
     <string name="pref_theme_title_automatic">Αυτόματο</string>
     <string name="pref_theme_title_light">Φωτεινό</string>
     <string name="pref_theme_title_dark">Σκοτεινό</string>
@@ -468,8 +468,8 @@
     <string name="pref_feed_skip_intro">Παράλειψη πρώτα</string>
     <string name="pref_feed_skip_ending_toast">Παράλειψη των τελευταίων %d δευτερολέπτων</string>
     <string name="pref_feed_skip_intro_toast">Παράλειψη των πρώτων %d δευτερολέπτων</string>
-    <string name="pref_playback_time_respects_speed_title">Προσαρμογή πληροφοριών πολυμέσων στην ταχύτητα αναπαραγωγής</string>
-    <string name="pref_playback_time_respects_speed_sum">Η εμφανιζόμενη θέση και διάρκεια προσαρμόζονται στην ταχύτητα αναπαραγωγής</string>
+
+
     <string name="pref_fallback_speed">Ταχύτητα επιστροφής</string>
     <string name="pref_speed_forward">Γρήγορη ταχύτητα προώθησης</string>
     <string name="pref_speed_forward_sum">Προσαρμόστε την ταχύτητα προς τα εμπρός όταν πατηθεί το κουμπί παράλειψης</string>

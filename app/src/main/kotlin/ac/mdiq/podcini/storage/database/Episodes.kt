@@ -24,6 +24,7 @@ import ac.mdiq.podcini.storage.model.EpisodeFilter
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.model.PlayState.Companion.fromCode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.commonConfirm
@@ -262,13 +263,15 @@ object Episodes {
             realm.write {
                 val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", media.title, media.downloadUrl).find()
                 if (duplicates.size > 1) {
-                    Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, set to Ignored")
+                    Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, setting to Ignored")
                     val localTime = System.currentTimeMillis()
                     val comment = fullDateTimeString(localTime) + ":\nduplicate"
                     for (e in duplicates) {
                         if (e.id != media.id) {
-                            e.setPlayState(PlayState.IGNORED)
-                            e.comment += if (e.comment.isBlank()) comment else "\n" + comment
+                            if (e.playState <= PlayState.AGAIN.code || e.playState in listOf(PlayState.LATER.code, PlayState.SOON.code)) {
+                                e.setPlayState(PlayState.IGNORED)
+                                e.comment += if (e.comment.isBlank()) comment else "\n" + comment
+                            } else Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
                         }
                     }
                     for (e in duplicates) {

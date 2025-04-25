@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -104,7 +105,7 @@ fun PlaybackPreferencesScreen() {
             fallbackSpeed = round(100 * speed_) / 100f
         }
         TitleSummaryActionColumn(R.string.pref_fallback_speed, R.string.pref_fallback_speed_sum) { showFBSpeedDialog = true }
-        TitleSummarySwitchPrefRow(R.string.pref_playback_time_respects_speed_title, R.string.pref_playback_time_respects_speed_sum, AppPrefs.prefPlaybackTimeRespectsSpeed)
+//        TitleSummarySwitchPrefRow(R.string.pref_playback_time_respects_speed_title, R.string.pref_playback_time_respects_speed_sum, AppPrefs.prefPlaybackTimeRespectsSpeed)
         var showFFSpeedDialog by remember { mutableStateOf(false) }
         if (showFFSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = speedforwardSpeed, maxSpeed = 10f, isGlobal = true,
             onDismiss = { showFFSpeedDialog = false }) { speed ->
@@ -141,7 +142,7 @@ fun PlaybackPreferencesScreen() {
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         Text(stringResource(R.string.reassign_hardware_buttons), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
         var showHardwareForwardButtonOptions by remember { mutableStateOf(false) }
-        var tempFFSelectedOption by remember { mutableStateOf(R.string.keycode_media_fast_forward) }
+        var tempFFSelectedOption by remember { mutableIntStateOf(R.string.keycode_media_fast_forward) }
         TitleSummaryActionColumn(R.string.pref_hardware_forward_button_title, R.string.pref_hardware_forward_button_summary) { showHardwareForwardButtonOptions = true }
         if (showHardwareForwardButtonOptions) {
             AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showHardwareForwardButtonOptions = false },
@@ -166,7 +167,7 @@ fun PlaybackPreferencesScreen() {
             )
         }
         var showHardwarePreviousButtonOptions by remember { mutableStateOf(false) }
-        var tempPRSelectedOption by remember { mutableStateOf(R.string.keycode_media_rewind) }
+        var tempPRSelectedOption by remember { mutableIntStateOf(R.string.keycode_media_rewind) }
         TitleSummaryActionColumn(R.string.pref_hardware_previous_button_title, R.string.pref_hardware_previous_button_summary) { showHardwarePreviousButtonOptions = true }
         if (showHardwarePreviousButtonOptions) {
             AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showHardwarePreviousButtonOptions = false },

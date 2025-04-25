@@ -310,7 +310,7 @@
   <string name="pref_automatic_download_on_battery_sum">Aotren ar pellgargañ emgefreek pa ne vez ket ar benveg o kargañ</string>
 
   <string name="pref_episode_cover_summary">Ober gant golo ar rann e listennoù pa vez dioutañ. Mard eo digevasket e vo graet gant golo ar podskignad.</string>
-  <string name="pref_show_remain_time_summary">Diskouez amzer ar rannoù a chom mard eo gweredekaet. Ma n\'eo ket e tiskouez padelezh ar rannoù. </string>
+
   <string name="pref_theme_title_light">Sklaer</string>
   <string name="pref_theme_title_dark">Teñval</string>
   <string name="pref_episode_cache_unlimited">Divevenn</string>
@@ -321,8 +321,8 @@
   <string name="pref_feed_skip_intro">Tremen ar penn-kentañ</string>
   <string name="pref_feed_skip_ending_toast">Tremenet an %d eilenn diwezhañ</string>
   <string name="pref_feed_skip_intro_toast">Tremenet an %d eilenn kentañ</string>
-  <string name="pref_playback_time_respects_speed_title">Azasaat titouroù ar media hervez an tizh lenn</string>
-  <string name="pref_playback_time_respects_speed_sum">Al lec\'hiadur hag ar padelezh diskouezet a zo azasaet d\'an tizh lenn</string>
+
+
   <string name="pref_fast_forward_sum">Personelaat an niver a eilennoù da lammat war-raok pa vez pouezet war an afell war-raok.</string>
   <string name="pref_rewind_sum">Dibabit ar c\'hementad a eilennoù da lammat an a-dreñv pa vez pouezet war \'lamm a-dreñv\'</string>
 

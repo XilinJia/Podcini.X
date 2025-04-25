@@ -17,15 +17,16 @@ Well, aside from doing the above well, the following make it stand out:
 <ol>
 <li>It's open sourced, free to use and free of ads, free as in beer and free as in speech!</li>
 <li>It takes advantage of modern frameworks to be efficient and conserve energy.</li>
-<li>In addition to subscriptions, it allows you to create your own synthetic podcasts to compile your interested episodes from various podcasts to better focus on your interests.</li>
+<li>In addition to subscriptions, it allows you to create your own synthetic podcasts to compile your interested episodes from various sources to better focus on your interests.</li>
 <li>While the list of episodes (filtered and sorted by you) in each podcast serves a natural playlist for you, it also empowers you with multiple queues each associable with any podcasts to group similar contents for better listening.</li>
 <li>On any podcast/episode, you can assign 5 levels of rating allowing you to make better decisions on where to put your attention.</li>
-<li>You have 12 levels of play states (like to play soon, add in queue, or play again) to better plan and record your listening experiences.</li>
+<li>You have 12 levels of play states (like to play soon, play again, etc) to better plan and enhance your listening experiences.</li>
 <li>You can also keep your personal notes with your opinions/comments on each podcast/episode.</li>
 <li>It has sophisticated sorting and filtering options for you to better select contents.</li>
+<li>It keeps a record of your unsubscribed podcasts and notifies you if you unknowingly try to re-subscribe to some.</li>
 <li>It caches streamed audio for seamless local rewind and replay.</li>
 <li>You can record audio clips or mark positions on any episodes for better review.</li>
-<li>You can also set selected episodes as related for better grouping.</li>
+<li>You can also set selected episodes related for better grouping.</li>
 <li>Sure, you can play any episodes in your car's speakers.</li>
 <li>And, it's not all about audio, video is well handled.</li>
 <li>You can cast the audio/video to Chromecast speakers/screens.</li>

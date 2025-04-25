@@ -50,6 +50,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -195,26 +196,28 @@ fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
         var progressMessage by remember { mutableStateOf("") }
         var errorMessage by remember { mutableStateOf("") }
         val scope = rememberCoroutineScope()
-        scope.launch {
-            EventFlow.events.collectLatest { event ->
-                Logd(TAG, "Received event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.SyncServiceEvent -> {
-                        when (event.messageResId) {
-                            R.string.sync_status_error -> {
-                                errorMessage = event.message
-                                Loge(TAG, errorMessage)
-                                onDismissRequest()
+        LaunchedEffect(Unit) {
+            scope.launch {
+                EventFlow.events.collectLatest { event ->
+                    Logd(TAG, "Received event: ${event.TAG}")
+                    when (event) {
+                        is FlowEvent.SyncServiceEvent -> {
+                            when (event.messageResId) {
+                                R.string.sync_status_error -> {
+                                    errorMessage = event.message
+                                    Loge(TAG, errorMessage)
+                                    onDismissRequest()
+                                }
+                                R.string.sync_status_success -> {
+                                    Logt(TAG, context.getString(R.string.sync_status_success))
+                                    onDismissRequest()
+                                }
+                                R.string.sync_status_in_progress -> progressMessage = event.message
+                                else -> Loge(TAG, "Sync result unknown ${event.messageResId}")
                             }
-                            R.string.sync_status_success -> {
-                                Logt(TAG, context.getString(R.string.sync_status_success))
-                                onDismissRequest()
-                            }
-                            R.string.sync_status_in_progress -> progressMessage = event.message
-                            else -> Loge(TAG, "Sync result unknown ${event.messageResId}")
                         }
+                        else -> {}
                     }
-                    else -> {}
                 }
             }
         }

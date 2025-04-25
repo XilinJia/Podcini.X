@@ -3,6 +3,7 @@ package ac.mdiq.podcini.storage.utils
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.TimeLeftMode
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import java.util.Locale
 
@@ -108,7 +109,7 @@ object DurationConverter {
     }
 
     fun convertOnSpeed(time: Int, speed: Float): Int {
-        if (time > 0 && speed > 0 && getPref(AppPrefs.prefPlaybackTimeRespectsSpeed, false)) return (time / speed).toInt()
+        if (time > 0 && speed > 0 && getPref(AppPrefs.prefShowTimeLeft, 0) == TimeLeftMode.TimeLeftOnSpeed.ordinal) return (time / speed).toInt()
         return time
     }
 }

@@ -446,7 +446,6 @@ class PreferenceActivity : ComponentActivity() {
 //                })
 //            }
             TitleSummarySwitchPrefRow(R.string.pref_episode_cover_title, R.string.pref_episode_cover_summary, AppPrefs.prefEpisodeCover)
-            TitleSummarySwitchPrefRow(R.string.pref_show_remain_time_title, R.string.pref_show_remain_time_summary, AppPrefs.showTimeLeft)
             Text(stringResource(R.string.subscriptions_label), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
             TitleSummarySwitchPrefRow(R.string.pref_swipe_refresh_title, R.string.pref_swipe_refresh_sum, AppPrefs.prefSwipeToRefreshAll)
             TitleSummarySwitchPrefRow(R.string.pref_feedGridLayout_title, R.string.pref_feedGridLayout_sum, AppPrefs.prefFeedGridLayout)

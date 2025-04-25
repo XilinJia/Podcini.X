@@ -445,8 +445,8 @@
     <string name="pref_auto_download_counting_played_summary">Set if downloaded episodes already played count into the episode cache</string>
     <string name="pref_episode_cover_title">Use episode cover</string>
     <string name="pref_episode_cover_summary">Epizódspecifikus borító használata, ha lehetséges. Ha nincs bekapcsolva, akkor az alkalmazás mindig a podcast borítóját fogja használni.</string>
-    <string name="pref_show_remain_time_title">Show remaining time</string>
-    <string name="pref_show_remain_time_summary">Ha be van jelölve, akkor megjeleníti az epizódból hátralévő időt. Ha nincs bejelölve, akkor az epizód hosszát jeleníti meg.</string>
+
+
     <string name="pref_theme_title_automatic">Automatic</string>
     <string name="pref_theme_title_light">Világos</string>
     <string name="pref_theme_title_dark">Sötét</string>
@@ -468,8 +468,8 @@
     <string name="pref_feed_skip_intro">Első másodpercek átugrása</string>
     <string name="pref_feed_skip_ending_toast">Utolsó %d másodperc kihagyva</string>
     <string name="pref_feed_skip_intro_toast">Első %d másodperc kihagyva</string>
-    <string name="pref_playback_time_respects_speed_title">Médiainformáció hozzáigazítása a lejátszási sebességhez</string>
-    <string name="pref_playback_time_respects_speed_sum">A megjelenített pozíció és hossz a lejátszási sebességhez lesz igazítva</string>
+
+
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>

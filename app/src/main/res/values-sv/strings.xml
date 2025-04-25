@@ -445,8 +445,8 @@
     <string name="pref_auto_download_counting_played_summary">Ange om hämtade avsnitt redan spelats in i avsnittets cache</string>
     <string name="pref_episode_cover_title">Använd episodomslag</string>
     <string name="pref_episode_cover_summary">Använd episodspecifika omslag i listan när de är tillgängliga. Om urkryssat kommer appen alltid använda podcastens omslagsbild.</string>
-    <string name="pref_show_remain_time_title">Visa återstående tid</string>
-    <string name="pref_show_remain_time_summary">Visa kvarvarande tid för episoder när ikryssad. Om urkryssad visas totala tiden för episoder.</string>
+
+
     <string name="pref_theme_title_automatic">Automatisk</string>
     <string name="pref_theme_title_light">Ljust</string>
     <string name="pref_theme_title_dark">Mörkt</string>
@@ -468,8 +468,8 @@
     <string name="pref_feed_skip_intro">Hoppa över början</string>
     <string name="pref_feed_skip_ending_toast">Hoppade över %d sista sekunderna</string>
     <string name="pref_feed_skip_intro_toast">Hoppade över %d första sekunderna</string>
-    <string name="pref_playback_time_respects_speed_title">Justera mediainfo till uppspelningshastigheten</string>
-    <string name="pref_playback_time_respects_speed_sum">Visad position och totallängd anpassas till uppspelningshastigheten</string>
+
+
     <string name="pref_fallback_speed">Hastighet i baksätet</string>
     <string name="pref_speed_forward">Snabb framåt hastighet</string>
     <string name="pref_speed_forward_sum">Anpassa hastigheten för att snabba framåt när hopp-knappen klickas på</string>

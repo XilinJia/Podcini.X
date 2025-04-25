@@ -455,8 +455,8 @@
     <string name="pref_auto_download_counting_played_summary">Nastavte, zda je počet stažených epizod již přehraných do mezipaměti epizod</string>
     <string name="pref_episode_cover_title">Použít obrázek epizody</string>
     <string name="pref_episode_cover_summary">Použít v seznamu obrázek přímo z epizody, pokud je k dispozici. Není-li tato možnost zaškrtnuta, tak se vždy použije obrázek podcastu.</string>
-    <string name="pref_show_remain_time_title">Zobrazit zbývající čas</string>
-    <string name="pref_show_remain_time_summary">Pokud je vybráno, zobrazí se zbývající čas epizody. Jinak se zobrazí celková délka epizody.</string>
+
+
     <string name="pref_theme_title_automatic">Automaticky</string>
     <string name="pref_theme_title_light">Světlý</string>
     <string name="pref_theme_title_dark">Tmavý</string>
@@ -478,8 +478,8 @@
     <string name="pref_feed_skip_intro">Přeskočit prvních</string>
     <string name="pref_feed_skip_ending_toast">Přeskočeno posledních %d sekund</string>
     <string name="pref_feed_skip_intro_toast">Přeskočeno prvních %d sekund</string>
-    <string name="pref_playback_time_respects_speed_title">Upravit informace o médiu vzhledem k rychlosti přehrávání.</string>
-    <string name="pref_playback_time_respects_speed_sum">Zobrazené délka a pozice jsou upravené vzhledem k rychlosti přehrávání</string>
+
+
     <string name="pref_fallback_speed">Rychlost pádu</string>
     <string name="pref_speed_forward">Rychlá rychlost vpřed</string>
     <string name="pref_speed_forward_sum">Přizpůsobte rychlost pro rychlost dopředu po kliknutí na tlačítko přeskočit</string>

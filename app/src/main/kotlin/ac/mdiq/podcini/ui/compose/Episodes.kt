@@ -269,7 +269,7 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
         vmsr.clear()
         for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
     }
-    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
+    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(5.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
         text = { EpisodeLazyColumn(LocalContext.current, vms = vmsr, layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
             actionButton_ = { NullZapActionButton(it) },
             actionButtonCB = {e1, _ ->

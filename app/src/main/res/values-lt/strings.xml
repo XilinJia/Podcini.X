@@ -254,7 +254,7 @@
   <string name="pref_automatic_download_on_battery_sum">Leisti automatinį atsiuntimą kai baterija nėra įkraunama</string>
 
   <string name="pref_episode_cover_summary">Naudoti epizodo viršelį, kai prieinama. Nepažymėjus, programėlė visada naudos tinklalaidės viršelio paveikslėlį.</string>
-  <string name="pref_show_remain_time_summary">Kai pažymėta, atvaizduojamas likęs epizodų laikas. Jei nepažymėta, atvaizduojama bendra epizodų trukmė.</string>
+
   <string name="pref_theme_title_light">Šviesi</string>
   <string name="pref_theme_title_dark">Tamsi</string>
   <string name="pref_episode_cache_unlimited">Neribojamas</string>
@@ -265,8 +265,8 @@
   <string name="pref_feed_skip_intro">Praleisti paskutines</string>
   <string name="pref_feed_skip_ending_toast">Praleistos paskutinės %d sekundžių</string>
   <string name="pref_feed_skip_intro_toast">Praleistos pirmos %d sekundžių</string>
-  <string name="pref_playback_time_respects_speed_title">Derinti medijos informaciją pagal atkūrimo spartą</string>
-  <string name="pref_playback_time_respects_speed_sum">Atvaizduojama pozicija ir trukmė yra pritakyta prie atkūrimo spartos</string>
+
+
   <string name="pref_fast_forward_sum">Derinkite, per kiek sekundžių šoktelėti į priekį kai paspaudžiamas persukimo į priekį mygtukas</string>
   <string name="pref_rewind_sum">Derinkite, per kiek sekundžių šoktelėti atgal kai paspaudžiamas atsukimo atgal mygtukas</string>
 

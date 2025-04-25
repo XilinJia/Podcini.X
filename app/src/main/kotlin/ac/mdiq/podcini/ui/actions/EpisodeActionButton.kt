@@ -275,7 +275,10 @@ class DownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.d
     override fun onClick(context: Context) {
         if (shouldNotDownload(item)) return
         UsageStatistics.logAction(UsageStatistics.ACTION_DOWNLOAD)
-        if (mobileAllowEpisodeDownload || !isNetworkRestricted) DownloadServiceInterface.impl?.downloadNow(context, item, false)
+        if (mobileAllowEpisodeDownload || !isNetworkRestricted) {
+            DownloadServiceInterface.impl?.downloadNow(context, item, false)
+            Logd(TAG, "downloading ${item.title}")
+        }
         else {
             commonConfirm = CommonConfirmAttrib(
                 title = context.getString(R.string.confirm_mobile_download_dialog_title),
@@ -283,8 +286,14 @@ class DownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.d
                 confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                 cancelRes = R.string.cancel_label,
                 neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
-                onConfirm = { DownloadServiceInterface.impl?.downloadNow(context, item, false) },
-                onNeutral = { DownloadServiceInterface.impl?.downloadNow(context, item, true) })
+                onConfirm = {
+                    DownloadServiceInterface.impl?.downloadNow(context, item, false)
+                    Logd(TAG, "downloading ${item.title}")
+                },
+                onNeutral = {
+                    DownloadServiceInterface.impl?.downloadNow(context, item, true)
+                    Logd(TAG, "downloading ${item.title}")
+                })
         }
         actionState.intValue = label
     }

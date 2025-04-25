@@ -440,8 +440,8 @@
     <string name="pref_auto_download_counting_played_summary">Set if downloaded episodes already played count into the episode cache</string>
     <string name="pref_episode_cover_title">에피소드 커버 사용</string>
     <string name="pref_episode_cover_summary">에피소드마다 설정된 커버가 있으면 그 커버를 사용합니다. 사용하지 않으면, 앱에서는 항상 팟캐스트 커버 이미지를 사용합니다.</string>
-    <string name="pref_show_remain_time_title">남은 시간 표시</string>
-    <string name="pref_show_remain_time_summary">체크하면 에피소드 남은 시간을 표시합니다. 체크하지 않으면 에피소드의 전체 시간을 표시합니다.</string>
+
+
     <string name="pref_theme_title_automatic">자동</string>
     <string name="pref_theme_title_light">밝게</string>
     <string name="pref_theme_title_dark">어둡게</string>
@@ -463,8 +463,8 @@
     <string name="pref_feed_skip_intro">처음 건너뛰기</string>
     <string name="pref_feed_skip_ending_toast">마지막 %d초 건너뜀</string>
     <string name="pref_feed_skip_intro_toast">처음 %d초 건너뜀</string>
-    <string name="pref_playback_time_respects_speed_title">미디어 정보를 재생 속도에 맞게 조정</string>
-    <string name="pref_playback_time_respects_speed_sum">재생 속도에 맞춰 재생 위치와 재생 시간을 표시합니다</string>
+
+
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>

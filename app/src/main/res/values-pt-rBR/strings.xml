@@ -360,7 +360,7 @@
 
   <string name="pref_episode_cover_title">Usar capa do episódio</string>
   <string name="pref_episode_cover_summary">Usa a capa específica do episódio em listas, sempre que disponível. Se desmarcada, o aplicativo sempre usará a imagem de capa do podcast.</string>
-  <string name="pref_show_remain_time_summary">Exibe o tempo restante dos episódios, quando marcado. Se estiver desmarcado, exibe a duração total dos episódios.</string>
+
   <string name="pref_theme_title_automatic">Automático</string>
   <string name="pref_theme_title_light">Claro</string>
   <string name="pref_theme_title_dark">Escuro</string>
@@ -373,8 +373,8 @@
   <string name="pref_feed_skip_intro">Pular primeiros</string>
   <string name="pref_feed_skip_ending_toast">Pulou últimos %d segundos</string>
   <string name="pref_feed_skip_intro_toast">Pulou os primeiros %d segundos</string>
-  <string name="pref_playback_time_respects_speed_title">Ajuste as informações da mídia para a velocidade de reprodução</string>
-  <string name="pref_playback_time_respects_speed_sum">A posição e a duração exibidas são adaptadas à velocidade de reprodução</string>
+
+
   <string name="pref_fast_forward">Tempo de avanço rápido</string>
   <string name="pref_fast_forward_sum">Personaliza quantos segundos avançar quando o botão avanço rápido for clicado</string>
   <string name="pref_rewind_sum">Personaliza quantos segundos voltar quando o botão retroceder for clicado</string>

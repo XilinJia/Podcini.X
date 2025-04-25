@@ -442,8 +442,8 @@
     <string name="pref_auto_download_counting_played_summary">ダウンロードしたエピソードがすでに再生されている場合にエピソードキャッシュにカウントされます。</string>
     <string name="pref_episode_cover_title">エピソードカバーを使用</string>
     <string name="pref_episode_cover_summary">エピソード固有のカバー画像が利用可能な場合は常にリストで使います。チェックを外すと、アプリは常にポッドキャストのカバー画像を使います。</string>
-    <string name="pref_show_remain_time_title">残りの時間を表示</string>
-    <string name="pref_show_remain_time_summary">チェックをすると、エピソードの残り時間を表示します。チェックを外すと、エピソードの合計時間を表示します。</string>
+
+
     <string name="pref_theme_title_automatic">自動</string>
     <string name="pref_theme_title_light">ライト</string>
     <string name="pref_theme_title_dark">ダーク</string>
@@ -465,8 +465,8 @@
     <string name="pref_feed_skip_intro">最初をスキップ</string>
     <string name="pref_feed_skip_ending_toast">最後の %d 秒をスキップしました</string>
     <string name="pref_feed_skip_intro_toast">最初の %d 秒をスキップしました</string>
-    <string name="pref_playback_time_respects_speed_title">メディア情報を再生速度に合わせる</string>
-    <string name="pref_playback_time_respects_speed_sum">表示位置と時間が再生速度に合わせて調整されます</string>
+
+
     <string name="pref_fallback_speed">フォールバック速度</string>
     <string name="pref_speed_forward">早送り速度</string>
     <string name="pref_speed_forward_sum">スキップボタンをクリックしたときのスピードを変更する</string>

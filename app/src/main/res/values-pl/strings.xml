@@ -457,8 +457,8 @@
     <string name="pref_auto_download_counting_played_summary">Ustaw jeśli pobrane odcinki są już odtworzone w pamięci podręcznej odcinka</string>
     <string name="pref_episode_cover_title">Użyj okładek odcinków</string>
     <string name="pref_episode_cover_summary">Użyj okładek konkretnych odcinków na listach, kiedy to możliwe. Odznaczenie spowoduje, że aplikacja zawsze będzie używała okładki kanału.</string>
-    <string name="pref_show_remain_time_title">Pokaż pozostały czas</string>
-    <string name="pref_show_remain_time_summary">Pokazuj pozostały czas odcinka. Odznaczenie spowoduje pokazywanie całkowitej długości odcinka.</string>
+
+
     <string name="pref_theme_title_automatic">Automatyczne</string>
     <string name="pref_theme_title_light">Jasny</string>
     <string name="pref_theme_title_dark">Ciemny</string>
@@ -480,8 +480,8 @@
     <string name="pref_feed_skip_intro">Pomijaj na początku</string>
     <string name="pref_feed_skip_ending_toast">Pominięto ostatnie %d sekund(y)</string>
     <string name="pref_feed_skip_intro_toast">Pominięto pierwsze %d sekund(y)</string>
-    <string name="pref_playback_time_respects_speed_title">Dostosuj informacje do prędkości odtwarzania</string>
-    <string name="pref_playback_time_respects_speed_sum">Wyświetlana pozycja i czas trwania są dostosowane do prędkości odtwarzania</string>
+
+
     <string name="pref_fallback_speed">Prędkość cofania</string>
     <string name="pref_speed_forward">Szybka prędkość do przodu</string>
     <string name="pref_speed_forward_sum">Dostosuj szybkość do przodu po kliknięciu przycisku Pomiń</string>

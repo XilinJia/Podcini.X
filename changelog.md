@@ -1,12 +1,19 @@
 # 8.16.1
 
 * duplicate search is also performed on playing the next item in queue
-* amended item info in duplicate dialog
+	* duplicate item will not be set to Ignored if it was previously set to Later, Soon, Again, Forever, Skipped, Played, Passed
+* amended listing info in duplicate dialog
+* tap on the duration/timeLeft number on PlayerUI now cycles through and persists modes: Duration, TimeLeft and TimeLeftOnSpeed
+	* when on TimeLeftOnSpeed, "*-" is shown before the number, and "*" is shown on InfoBar of episodes lists
+* global settings of "Adjust media info to playback speed" and "Show remaining time" are removed
 * episodes sort dialog amended and sorting on View count filtered out for RSS feeds
 * added episodes sorting based on views per day (if available)
 * SwipeActions are centrally managed in EpisodeVM
 * list of episodes are updated directly, no longer monitored from DB
 * when getting new feed, title is also checked against past subscription logs
+* when deleting feed, episodes are batch deleted
+* in Reconcile, added algorithms to delete episodes belonging to no feed or non-existent feeds
+* ensured to decode filename before comparing with file, fixed mistakenly deleting files in Reconcile 
 * large code refactoring in SwipeActions and EpisodeVM
 
 # 8.16.0

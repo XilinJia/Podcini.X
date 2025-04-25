@@ -33,6 +33,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideo
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.TimeLeftMode
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
@@ -194,7 +195,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                 }
             }
         }
-    internal var showTimeLeft = false
+    internal var showTimeLeft by mutableIntStateOf(TimeLeftMode.Duration.ordinal)
     internal var titleText by mutableStateOf("")
     internal var imgLoc by mutableStateOf<String?>(null)
     internal var imgLocLarge by mutableStateOf<String?>(null)
@@ -308,8 +309,15 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
     internal fun lengthText() {
-        val remainingTime: Int = convertOnSpeed(max((curItem!!.duration - curItem!!.position), 0), curPBSpeed)
-        txtvLengthText = if (showTimeLeft) (if (remainingTime > 0) "-" else "") + getDurationStringLong(remainingTime) else getDurationStringLong(duration)
+        val remainingTime = max((curItem!!.duration - curItem!!.position), 0)
+        txtvLengthText = when (showTimeLeft) {
+            TimeLeftMode.TimeLeft.ordinal -> (if (remainingTime > 0) "-" else "") + getDurationStringLong(remainingTime)
+            TimeLeftMode.TimeLeftOnSpeed.ordinal -> {
+                val onSpeed = convertOnSpeed(remainingTime, curPBSpeed)
+                (if (onSpeed > 0) "*-" else "") + getDurationStringLong(onSpeed)
+            }
+            else -> getDurationStringLong(duration)
+        }
     }
 
     internal fun updateTimeline() {
@@ -324,7 +332,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
         }
         curPosition = curItem!!.position
         duration = curItem!!.duration
-        showTimeLeft = getPref(AppPrefs.showTimeLeft, false)
+        showTimeLeft = getPref(AppPrefs.prefShowTimeLeft, 0)
         lengthText()
         sliderValue = curItem!!.position.toFloat()
     }
@@ -712,8 +720,9 @@ fun AudioPlayerScreen() {
             if (bitrate > 0) Text(formatLargeInteger(bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
             Text(vm.txtvLengthText, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
-                vm.showTimeLeft = !vm.showTimeLeft
-                putPref(AppPrefs.showTimeLeft, vm.showTimeLeft)
+                vm.showTimeLeft++
+                if (vm.showTimeLeft > TimeLeftMode.TimeLeftOnSpeed.ordinal) vm.showTimeLeft = TimeLeftMode.Duration.ordinal
+                putPref(AppPrefs.prefShowTimeLeft, vm.showTimeLeft)
                 vm.lengthText()
             })
         }

@@ -448,8 +448,8 @@
     <string name="pref_auto_download_counting_played_summary">Imposta se gli episodi scaricati sono già stati riprodotti nella cache degli episodi</string>
     <string name="pref_episode_cover_title">Usa immagine episodio</string>
     <string name="pref_episode_cover_summary">Usa l\'immagine dell\'episodio quando disponibile. Se disattivato, l\'app userà sempre l\'immagine di copertina del podcast.</string>
-    <string name="pref_show_remain_time_title">Mostra tempo residuo</string>
-    <string name="pref_show_remain_time_summary">Mostra il tempo residuo degli episodi quando è selezionato. Se non selezionato, mostra la durata totale degli episodi.</string>
+
+
     <string name="pref_theme_title_automatic">Automatico</string>
     <string name="pref_theme_title_light">Chiaro</string>
     <string name="pref_theme_title_dark">Scuro</string>
@@ -471,8 +471,8 @@
     <string name="pref_feed_skip_intro">Salta i primi</string>
     <string name="pref_feed_skip_ending_toast">Ultimi %d secondi saltati</string>
     <string name="pref_feed_skip_intro_toast">Primi %d secondi saltati</string>
-    <string name="pref_playback_time_respects_speed_title">Adatta info alla velocità di riproduzione</string>
-    <string name="pref_playback_time_respects_speed_sum">La posizione del cursore e la durata si adattano alla velocità di riproduzione scelta.</string>
+
+
     <string name="pref_fallback_speed">Velocità di caduta</string>
     <string name="pref_speed_forward">Velocità in avanti veloce</string>
     <string name="pref_speed_forward_sum">Personalizza la velocità per velocizzare quando si fa clic sul pulsante salta</string>

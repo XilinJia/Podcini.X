@@ -299,6 +299,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                 try {
                     withContext(Dispatchers.IO) {
                         if (episode != null && !episode!!.isRemote.value) episode = realm.query(Episode::class).query("id == $0", episode!!.id).first().find()
+                        Logd(TAG, "episode feedId: ${episode?.feedId} ${episode?.feed?.title}")
                         if (episode != null && webviewData.isBlank()) {
                             val duration = episode!!.duration
                             Logd(TAG, "description: ${episode?.description}")
@@ -334,12 +335,6 @@ fun EpisodeInfoScreen() {
     val context = LocalContext.current
     val vm = remember(episodeOnDisplay.id) { EpisodeInfoVM(context, scope) }
 
-    //        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
-//        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
-//        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
-
-//    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -347,7 +342,7 @@ fun EpisodeInfoScreen() {
                     vm.shownotesCleaner = ShownotesCleaner(context)
                     vm.updateAppearance()
                     vm.load()
-                    vm.playerLocal = ExoPlayer.Builder(context).build()
+                    if (!vm.episode?.clips.isNullOrEmpty()) vm.playerLocal = ExoPlayer.Builder(context).build()
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.procFlowEvents()

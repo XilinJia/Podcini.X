@@ -385,8 +385,8 @@
 
   <string name="pref_episode_cover_title">Usar portada do episodio</string>
   <string name="pref_episode_cover_summary">Usar a capa específica do episodio nas listas cando estivese dispoñible. Sen marcar, a app sempre usará a imaxe de cuberta do podcast.</string>
-  <string name="pref_show_remain_time_title">Mostrar tempo restante</string>
-  <string name="pref_show_remain_time_summary">Se o seleccionas mostrará o tempo restante dos episodios. Se non, mostrará a duración total dos episodios.</string>
+
+
   <string name="pref_theme_title_automatic">Automático</string>
   <string name="pref_theme_title_light">Claro</string>
   <string name="pref_theme_title_dark">Escuro</string>
@@ -399,8 +399,8 @@
   <string name="pref_feed_skip_intro">Omitir o principio</string>
   <string name="pref_feed_skip_ending_toast">Omitidos os últimos %d segundos</string>
   <string name="pref_feed_skip_intro_toast">Omitidos os primeiros %d segundos</string>
-  <string name="pref_playback_time_respects_speed_title">Axustar info dos medios a velocidade de reprodución</string>
-  <string name="pref_playback_time_respects_speed_sum">A posición mostrada e a duración están adaptadas a velocidade de reprodución</string>
+
+
   <string name="pref_fast_forward">Tempo de salto ao avanzar rápido</string>
   <string name="pref_fast_forward_sum">Personaliza o número de segundos a avanzar cando o se preme o botón de avance rápido</string>
   <string name="pref_rewind">Tempo de salto ao retroceder</string>

@@ -397,8 +397,8 @@
 
   <string name="pref_episode_cover_title">להשתמש בעטיפת פרק</string>
   <string name="pref_episode_cover_summary">להשתמש בעטיפת הפרק ברשימות כאשר ניתן. אם האפשרות לא סומנה היישומון ישתמש בתמונת העטיפה של הפודקאסט.</string>
-  <string name="pref_show_remain_time_title">הצגת הזמן שנותר</string>
-  <string name="pref_show_remain_time_summary">הצגת הזמן שנותר לפרקים כאשר האפשרות מסומנת. אם אינה מסומנת, להציג את סך אורכם של הפרקים.</string>
+
+
   <string name="pref_theme_title_automatic">אוטומטי</string>
   <string name="pref_theme_title_light">בהיר</string>
   <string name="pref_theme_title_dark">כהה</string>
@@ -411,8 +411,8 @@
   <string name="pref_feed_skip_intro">לדלג על הראשון</string>
   <string name="pref_feed_skip_ending_toast">%d השניות האחרונות דולגו</string>
   <string name="pref_feed_skip_intro_toast">%d השניות הראשונות דולגו</string>
-  <string name="pref_playback_time_respects_speed_title">להתאים את פרטי המדיה למהירות הנגינה</string>
-  <string name="pref_playback_time_respects_speed_sum">המיקום המוצג והמשך מותאמים למהירות הנגינה</string>
+
+
   <string name="pref_fast_forward">זמן דילוג בהאצה קדימה</string>
   <string name="pref_fast_forward_sum">התאמת מספר השניות של הקפיצה קדימה בעת לחיצה על כפתור ההאצה</string>
   <string name="pref_rewind">זמן דילוג בקפיצה אחורה</string>

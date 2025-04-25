@@ -447,8 +447,8 @@
     <string name="pref_auto_download_counting_played_summary">Establecer si los episodios descargados ya reproducidos cuentan en la caché de episodios</string>
     <string name="pref_episode_cover_title">Usar portada del episodio</string>
     <string name="pref_episode_cover_summary">Usar la portada de cada episodio en las listas cuando sea posible. Si se desactiva, la aplicación siempre usará la portada del podcast.</string>
-    <string name="pref_show_remain_time_title">Mostrar el tiempo restante</string>
-    <string name="pref_show_remain_time_summary">Muestra el tiempo restante de los episodios si está activado. Si se desactiva, muestra la duración total de los episodios.</string>
+
+
     <string name="pref_theme_title_automatic">Automático</string>
     <string name="pref_theme_title_light">Claro</string>
     <string name="pref_theme_title_dark">Oscuro</string>
@@ -470,8 +470,8 @@
     <string name="pref_feed_skip_intro">Saltar episodio</string>
     <string name="pref_feed_skip_ending_toast">Saltados los últimos %d segundos</string>
     <string name="pref_feed_skip_intro_toast">Saltados los primeros %d segundos</string>
-    <string name="pref_playback_time_respects_speed_title">Ajustar la información del medio según la velocidad de reproducción</string>
-    <string name="pref_playback_time_respects_speed_sum">La posición y duración están adaptadas a la velocidad de reproducción</string>
+
+
     <string name="pref_fallback_speed">Velocidad de retroceso</string>
     <string name="pref_speed_forward">Velocidad hacia adelante</string>
     <string name="pref_speed_forward_sum">Personalizar la velocidad para avanzar cuando se hace clic en el botón saltar</string>

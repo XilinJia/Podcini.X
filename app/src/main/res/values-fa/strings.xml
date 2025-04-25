@@ -445,8 +445,8 @@
     <string name="pref_auto_download_counting_played_summary">Set if downloaded episodes already played count into the episode cache</string>
     <string name="pref_episode_cover_title">استفاده از جلد قسمت</string>
     <string name="pref_episode_cover_summary">هر زمان که جلد مخصوص قسمت در دسترس بود از آن استفاده کن. در صورت لغو انتخاب ، برنامه همیشه از تصویر جلد پادکست استفاده می کند.</string>
-    <string name="pref_show_remain_time_title">نمایش زمان مانده</string>
-    <string name="pref_show_remain_time_summary">در صورت انتخاب زمان  باقی مانده قسمت ها نمایش داده شود. در صورت عدم انتخاب، مدت کل قسمت ها نمایش داده میشود..</string>
+
+
     <string name="pref_theme_title_automatic">خودکار</string>
     <string name="pref_theme_title_light">روشن</string>
     <string name="pref_theme_title_dark">تاریک</string>
@@ -468,8 +468,8 @@
     <string name="pref_feed_skip_intro">پرش به اول</string>
     <string name="pref_feed_skip_ending_toast">پرش از %d ثانیه آخر</string>
     <string name="pref_feed_skip_intro_toast">پرش از %d ثانیه اول</string>
-    <string name="pref_playback_time_respects_speed_title">اطلاعات رسانه را برای سرعت بازپخش تنظیم کنید</string>
-    <string name="pref_playback_time_respects_speed_sum">موقعیت و مدت نمایش داده شده با سرعت پخش سازگار شده</string>
+
+
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>

@@ -448,8 +448,8 @@
     <string name="pref_auto_download_counting_played_summary">Legen Sie fest, ob heruntergeladene Episoden bereits im Zwischenspeicher abgespielt werden</string>
     <string name="pref_episode_cover_title">Episoden-Bilder verwenden</string>
     <string name="pref_episode_cover_summary">Falls verfügbar, episodenspezifische Titelbilder in Listen verwenden. Falls nicht ausgewählt, wird immer das Titelbild des Podcasts verwendet.</string>
-    <string name="pref_show_remain_time_title">Verbleibende Zeit anzeigen</string>
-    <string name="pref_show_remain_time_summary">Die verbleibende Zeit der Episode anzeigen. Falls deaktiviert, die gesamte Dauer der Episode.</string>
+
+
     <string name="pref_theme_title_automatic">Automatisch</string>
     <string name="pref_theme_title_light">Hell</string>
     <string name="pref_theme_title_dark">Dunkel</string>
@@ -471,8 +471,8 @@
     <string name="pref_feed_skip_intro">Anfang überspringen</string>
     <string name="pref_feed_skip_ending_toast">Letzte %d Sekunden übersprungen</string>
     <string name="pref_feed_skip_intro_toast">Erste %d Sekunden übersprungen</string>
-    <string name="pref_playback_time_respects_speed_title">Medieninfo an Abspielgeschwindigkeit anpassen</string>
-    <string name="pref_playback_time_respects_speed_sum">Position und Dauer der Wiedergabe werden an die Abspielgeschwindigkeit angepasst</string>
+
+
     <string name="pref_fallback_speed">Fallback-Geschwindigkeit</string>
     <string name="pref_speed_forward">Schnelle Vorwärtsgeschwindigkeit</string>
     <string name="pref_speed_forward_sum">Geschwindigkeit anpassen, um Vorwärts zu beschleunigen, wenn die Sprung-Taste gedrückt wird</string>

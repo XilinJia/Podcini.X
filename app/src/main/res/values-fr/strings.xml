@@ -448,8 +448,8 @@
     <string name="pref_auto_download_counting_played_summary">Définir si les épisodes téléchargés ont déjà joué le nombre dans le cache des épisodes</string>
     <string name="pref_episode_cover_title">Image des épisodes</string>
     <string name="pref_episode_cover_summary">Utiliser dans les listes les images des épisodes. Sinon l\'image du podcast sera utilisée.</string>
-    <string name="pref_show_remain_time_title">Afficher la durée restante</string>
-    <string name="pref_show_remain_time_summary">Montrer la durée restant à lire des épisodes au lieu de la durée totale.</string>
+
+
     <string name="pref_theme_title_automatic">Automatique</string>
     <string name="pref_theme_title_light">Clair</string>
     <string name="pref_theme_title_dark">Sombre</string>
@@ -471,8 +471,8 @@
     <string name="pref_feed_skip_intro">Sauter au début</string>
     <string name="pref_feed_skip_ending_toast">%d dernières secondes sautées</string>
     <string name="pref_feed_skip_intro_toast">%d premières secondes sautées</string>
-    <string name="pref_playback_time_respects_speed_title">Ajuster les informations en fonction la vitesse de lecture</string>
-    <string name="pref_playback_time_respects_speed_sum">La position et la durée affichée tiendront compte de la vitesse de lecture</string>
+
+
     <string name="pref_fallback_speed">Vitesse de repli</string>
     <string name="pref_speed_forward">Vitesse d\'avance rapide</string>
     <string name="pref_speed_forward_sum">Personnaliser la vitesse pour accélérer lorsque le bouton sauter est cliqué</string>

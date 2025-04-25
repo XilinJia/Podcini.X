@@ -212,7 +212,7 @@
   <string name="pref_automatic_download_on_battery_sum">允許未充電時也自動下載</string>
 
   <string name="pref_episode_cover_summary">在單集有專屬封面的情況下使用該封面圖。如果取消，則一律使用 Podcast 的封面圖</string>
-  <string name="pref_show_remain_time_summary">勾選時顯示剩餘播放時間，不勾選時顯示單集的總時間。</string>
+
   <string name="pref_theme_title_light">淡色</string>
   <string name="pref_theme_title_dark">深色</string>
   <string name="pref_episode_cache_unlimited">無限</string>
@@ -223,8 +223,8 @@
   <string name="pref_feed_skip_intro">跳過最初幾秒</string>
   <string name="pref_feed_skip_ending_toast">跳過最後 %d 秒</string>
   <string name="pref_feed_skip_intro_toast">跳過最初 %d 秒</string>
-  <string name="pref_playback_time_respects_speed_title">依據播放速度調整媒體資訊</string>
-  <string name="pref_playback_time_respects_speed_sum">根據播放速度調整播放進度、時長等資訊</string>
+
+
   <string name="pref_fast_forward_sum">自訂快轉鈕要往前快轉多少時間</string>
   <string name="pref_rewind_sum">自訂倒轉鈕要往後倒轉多少時間</string>
 

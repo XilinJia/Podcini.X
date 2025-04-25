@@ -440,8 +440,8 @@
     <string name="pref_auto_download_counting_played_summary">如果已下载的剧集已经被计数到剧集缓存中，请设置</string>
     <string name="pref_episode_cover_title">使用剧集封面</string>
     <string name="pref_episode_cover_summary">随时在列表中使用剧集特定封面。如果未选中，应用程序将始终使用播客封面图像。</string>
-    <string name="pref_show_remain_time_title">显示剩余时间</string>
-    <string name="pref_show_remain_time_summary">选中时显示剧集的剩余时间。如果不选中，显示剧集的总持续时间。</string>
+
+
     <string name="pref_theme_title_automatic">自动的</string>
     <string name="pref_theme_title_light">亮色的</string>
     <string name="pref_theme_title_dark">深色</string>
@@ -463,8 +463,8 @@
     <string name="pref_feed_skip_intro">跳过前</string>
     <string name="pref_feed_skip_ending_toast">跳过最后一个 %d 秒</string>
     <string name="pref_feed_skip_intro_toast">跳过前 %d 秒</string>
-    <string name="pref_playback_time_respects_speed_title">调整媒体信息以播放速度</string>
-    <string name="pref_playback_time_respects_speed_sum">显示位置和持续时间适合播放速度</string>
+
+
     <string name="pref_fallback_speed">回退速度</string>
     <string name="pref_speed_forward">快速前进速度</string>
     <string name="pref_speed_forward_sum">点击跳过按钮时自定义向前移动速度</string>

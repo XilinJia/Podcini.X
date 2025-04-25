@@ -208,7 +208,8 @@ object AppPreferences {
         prefFeedGridLayout(false),
         prefSwipeToRefreshAll(true),
         prefEpisodeCover(false),
-        showTimeLeft(false),
+//        showTimeLeft(false),
+        prefShowTimeLeft(0),
         prefShowSkip(true),
         prefShowDownloadReport(true),
         prefDefaultPage(DefaultPages.Subscriptions.name),
@@ -251,7 +252,7 @@ object AppPreferences {
         prefAutoDeleteLocal(false),
         prefPlaybackSpeedArray(null),
         prefFallbackSpeed("0.00"),
-        prefPlaybackTimeRespectsSpeed(false),
+//        prefPlaybackTimeRespectsSpeed(false),
         prefStreamOverDownload(false),
         prefLowQualityOnMobile(false),
         prefSpeedforwardSpeed("0.00"),
@@ -297,5 +298,9 @@ object AppPreferences {
 
     enum class ThemePreference {
         LIGHT, DARK, BLACK, SYSTEM
+    }
+
+    enum class TimeLeftMode {
+        Duration, TimeLeft, TimeLeftOnSpeed
     }
 }

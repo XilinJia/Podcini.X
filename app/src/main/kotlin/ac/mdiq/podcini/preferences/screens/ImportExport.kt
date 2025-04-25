@@ -389,7 +389,7 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
         uri?.let {
             showProgress = true
             CoroutineScope(Dispatchers.IO).launch {
-                if (importPADB) importPA(uri, activity = activity, importPADB, importPADirectory) {}
+                if (importPADB) importPA(uri, activity = activity, true, importPADirectory) {}
                 showImporSuccessDialog.value = true
                 showProgress = false
             }

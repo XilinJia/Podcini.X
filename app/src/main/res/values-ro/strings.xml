@@ -450,8 +450,8 @@
     <string name="pref_auto_download_counting_played_summary">Setați dacă episoadele descărcate au fost deja redate în memoria cache a episoadelor</string>
     <string name="pref_episode_cover_title">Folosește coperta episodului</string>
     <string name="pref_episode_cover_summary">Folosiți coperta specifică episodului în liste când acesta este disponibilă.Dacă opțiunea nu este activată, aplicația va folosi întodeauna coperta podcastului.</string>
-    <string name="pref_show_remain_time_title">Arată timpul rămas</string>
-    <string name="pref_show_remain_time_summary">Arată numărul de episoade rămase dacă opțiunea este activată. Dacă opțiunea este dezactivată arată durata totală a episoadelor.</string>
+
+
     <string name="pref_theme_title_automatic">Automat</string>
     <string name="pref_theme_title_light">Deschis</string>
     <string name="pref_theme_title_dark">Întunecat</string>
@@ -473,8 +473,8 @@
     <string name="pref_feed_skip_intro">Ignoră primele secunde</string>
     <string name="pref_feed_skip_ending_toast">Ultimele %dsecunde au fost ignorate</string>
     <string name="pref_feed_skip_intro_toast">Primele %dsecunde au fost ignorate</string>
-    <string name="pref_playback_time_respects_speed_title">Ajustarea informațiilor media la viteza de redare</string>
-    <string name="pref_playback_time_respects_speed_sum">Pozitiile afișate și durata sunt adaptate la viteza de redare</string>
+
+
     <string name="pref_fallback_speed">Viteză de redare</string>
     <string name="pref_speed_forward">Viteză rapidă înainte</string>
     <string name="pref_speed_forward_sum">Personalizați viteza de accelerare înainte când butonul de omitere este apăsat</string>

@@ -466,8 +466,8 @@
     <string name="pref_auto_download_counting_played_summary">تعيين إذا تم تنزيل الحلقات التي تم تشغيلها بالفعل في ذاكرة التخزين المؤقت للحلقة</string>
     <string name="pref_episode_cover_title">استخدم صورة غلاف الحلقة</string>
     <string name="pref_episode_cover_summary">استخدم الغلاف المخصص للحلقة في القوائم إن وجد. إذا لم يتم تحديد هذا الاختيار ، فسيستخدم التطبيق صورة غلاف البودكاست.</string>
-    <string name="pref_show_remain_time_title">أظهر الوقت المتبقي</string>
-    <string name="pref_show_remain_time_summary">أعرض الوقت المتبقي من الحلقات عند اختيارها. إذا لم يتم اختيارها ، اعرض المدة الإجمالية للحلقات.</string>
+
+
     <string name="pref_theme_title_automatic">تلقائي</string>
     <string name="pref_theme_title_light">فاتح</string>
     <string name="pref_theme_title_dark">داكن</string>
@@ -489,8 +489,8 @@
     <string name="pref_feed_skip_intro">تخطى الأول</string>
     <string name="pref_feed_skip_ending_toast">تخطى آخر %d ثانية</string>
     <string name="pref_feed_skip_intro_toast">تخطى أول %d ثانية</string>
-    <string name="pref_playback_time_respects_speed_title">عدل بيانات الوسائط مع سرعة التشغيل</string>
-    <string name="pref_playback_time_respects_speed_sum">الوقت المنقضي والمتبقي يتناسب مع سرعة التشغيل</string>
+
+
     <string name="pref_fallback_speed">سرعة الرجوع</string>
     <string name="pref_speed_forward">سرعة التقدم السريعة</string>
     <string name="pref_speed_forward_sum">تخصيص السرعة للامام عند النقر على زر تخطي</string>

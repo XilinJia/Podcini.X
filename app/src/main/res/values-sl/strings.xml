@@ -455,8 +455,8 @@
     <string name="pref_auto_download_counting_played_summary">Set if downloaded episodes already played count into the episode cache</string>
     <string name="pref_episode_cover_title">Use episode cover</string>
     <string name="pref_episode_cover_summary">Uporabite naslovnico za posamezno epizodo na seznamih, kadar je na voljo. Če ta možnost ni izbrana, bo aplikacija vedno uporabljala naslovno sliko podcasta.</string>
-    <string name="pref_show_remain_time_title">Show remaining time</string>
-    <string name="pref_show_remain_time_summary">Prikaži preostali čas epizod, ko je izbrano. Če ni potrjeno, prikaže skupno trajanje epizod.</string>
+
+
     <string name="pref_theme_title_automatic">Automatic</string>
     <string name="pref_theme_title_light">Svetlo</string>
     <string name="pref_theme_title_dark">Temno</string>
@@ -478,8 +478,8 @@
     <string name="pref_feed_skip_intro">Preskoči na prvo</string>
     <string name="pref_feed_skip_ending_toast">Preskočenih zadnjih %d sekund</string>
     <string name="pref_feed_skip_intro_toast">Preskočenih prvih %d sekund</string>
-    <string name="pref_playback_time_respects_speed_title">Prilagodite informacije o hitrosti predvajanja medijev</string>
-    <string name="pref_playback_time_respects_speed_sum">Prikazani položaj in trajanje sta prilagojena hitrosti predvajanja</string>
+
+
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>

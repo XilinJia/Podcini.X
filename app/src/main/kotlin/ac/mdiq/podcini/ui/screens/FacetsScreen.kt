@@ -10,6 +10,8 @@ import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
+import ac.mdiq.podcini.storage.database.Feeds.compileEpisodesFeedIds
+import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -102,6 +104,7 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import io.github.xilinjia.krdb.UpdatePolicy
+import io.github.xilinjia.krdb.delete
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -111,6 +114,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import java.io.File
+import java.net.URLDecoder
 import java.text.NumberFormat
 import java.util.Date
 import kotlin.math.min
@@ -313,7 +317,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                 val dirFiles = srcFile.listFiles()
                 dirFiles?.forEach { file -> traverse(file) }
             } else {
-                Logd(TAG, "traverse: $srcFile")
+                Logd(TAG, "traverse: $srcFile filename: $filename")
                 val episode = nameEpisodeMap.remove(filename)
                 if (episode == null) {
                     Logd(TAG, "traverse: error: episode not exist in map: $filename")
@@ -331,7 +335,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                 val dirFiles = srcFile.listFiles()
                 dirFiles.forEach { file -> traverse(file) }
             } else {
-                Logd(TAG, "traverse: $srcFile")
+                Logd(TAG, "traverse: $srcFile filename: $filename")
                 val episode = nameEpisodeMap.remove(filename)
                 if (episode == null) {
                     Logd(TAG, "traverse: error: episode not exist in map: $filename")
@@ -352,6 +356,8 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                 if (fileUrl.isNullOrBlank()) continue
                 Logd(TAG, "reconcile: fileUrl: $fileUrl")
                 fileUrl = fileUrl.substring(fileUrl.lastIndexOf('/') + 1)
+                fileUrl = URLDecoder.decode(fileUrl, "UTF-8")
+                Logd(TAG, "reconcile: add to map: fileUrl: $fileUrl")
                 nameEpisodeMap[fileUrl] = e
             }
             eList = listOf()
@@ -379,7 +385,31 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                     }
                 }
             }
-            Logt(TAG, "Episodes reconsiled: $count\nFiles removed: ${filesRemoved.size}")
+            Logt(TAG, "Episodes reconciled: $count\nFiles removed: ${filesRemoved.size}")
+            realm.write {
+                val el = query(Episode::class, "feedId == nil").find()
+                if (el.isNotEmpty()) {
+                    val size = el.size
+                    for (e in el) Logd(TAG, "deleting ${e.title}")
+                    delete(el)
+                    Logt(TAG, "reconcile deleted $size loose episodes")
+                }
+            }
+            val ids = compileEpisodesFeedIds()
+            for (id in ids) {
+                val f = getFeed(id)
+                if (f == null) {
+                    realm.write {
+                        val el = query(Episode::class, "feedId == $id").find()
+                        if (el.isNotEmpty()) {
+                            val size = el.size
+                            for (e in el) Logd(TAG, "deleting ${e.title}")
+                            delete(el)
+                            Logt(TAG, "reconcile deleted $size episodes in non-existent feed $id")
+                        }
+                    }
+                }
+            }
             loadItems()
             withContext(Dispatchers.Main) { progressing = false }
         }

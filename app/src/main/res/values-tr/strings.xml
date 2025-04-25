@@ -556,8 +556,8 @@
     <string name="pref_auto_download_counting_played_summary">İndirilen ve oynatılmış bölümlerin bölüm önbelleğine sayılıp sayılmayacağını ayarlayın</string>
     <string name="pref_episode_cover_title">Bölüm kapağını kullan</string>
     <string name="pref_episode_cover_summary">Mevcut olduğunda listelerde bölüme özgü kapağı kullan. İşaretlenmezse, uygulama her zaman podcast kapak resmini kullanır.</string>
-    <string name="pref_show_remain_time_title">Kalan süreyi göster</string>
-    <string name="pref_show_remain_time_summary">İşaretlendiğinde bölümlerin kalan süresini göster. İşaretlenmezse, bölümlerin toplam süresini göster.</string>
+
+
     <string name="pref_theme_title_automatic">Otomatik</string>
     <string name="pref_theme_title_light">Açık</string>
     <string name="pref_theme_title_dark">Koyu</string>
@@ -579,8 +579,8 @@
     <string name="pref_feed_skip_intro">Başı atla</string>
     <string name="pref_feed_skip_ending_toast">Son %d saniye atlandı</string>
     <string name="pref_feed_skip_intro_toast">İlk %d saniye atlandı</string>
-    <string name="pref_playback_time_respects_speed_title">Medya bilgisini oynatma hızına göre ayarla</string>
-    <string name="pref_playback_time_respects_speed_sum">Gösterilen konum ve süre oynatma hızına göre uyarlanır</string>
+
+
     <string name="pref_fallback_speed">Yedek hız</string>
     <string name="pref_speed_forward">Hızlı ileri hız</string>
     <string name="pref_speed_forward_sum">Atlama düğmesine tıklandığında hızlı ileri gitmek için hızı özelleştir</string>

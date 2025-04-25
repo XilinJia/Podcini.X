@@ -348,8 +348,8 @@
 
   <string name="pref_episode_cover_title">Erabili saioaren azala</string>
   <string name="pref_episode_cover_summary">Erabili atalaren azal espezifikoa zerrendetan eskuragarri dagoenean. Desaktibatzen bada, aplikazioak podcastaren azala erabiliko du beti.</string>
-  <string name="pref_show_remain_time_title">Erakutsi geratzen den denbora</string>
-  <string name="pref_show_remain_time_summary">Erakutsi saioen gelditzen denbora markatuta daudenean. Markatu gabe badaude, erakutsi saioen iraupen osoa.</string>
+
+
   <string name="pref_theme_title_automatic">Automatikoa</string>
   <string name="pref_theme_title_light">Argia</string>
   <string name="pref_theme_title_dark">Iluna</string>
@@ -362,8 +362,8 @@
   <string name="pref_feed_skip_intro">Saltatu lehenengoa</string>
   <string name="pref_feed_skip_ending_toast">Salto egin azken%d segundo</string>
   <string name="pref_feed_skip_intro_toast">Salto egin hasierako%d segundo</string>
-  <string name="pref_playback_time_respects_speed_title">Doitu medioaren informazioa erreprodukzio-abiaduraren arabera</string>
-  <string name="pref_playback_time_respects_speed_sum">Posizioa eta iraupena erreprodukzio-abiadurara egokituta daude.</string>
+
+
   <string name="pref_fast_forward_sum">Pertsonalizatu zenbat segundu egingo duen aurrera aurrera botoia sakatzean
 </string>
   <string name="pref_rewind_sum">Pertsonalizatu zenbat segundu egingo duen atzera atzera botoia sakatzean

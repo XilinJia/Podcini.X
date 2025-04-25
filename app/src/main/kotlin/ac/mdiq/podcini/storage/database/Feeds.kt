@@ -39,6 +39,8 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.ext.asFlow
+import io.github.xilinjia.krdb.notifications.InitialObject
+import io.github.xilinjia.krdb.notifications.InitialResults
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
@@ -47,6 +49,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -486,18 +489,20 @@ object Feeds {
             realm.write {
                 val feed_ = query(Feed::class).query("id == $0", feedId).first().find()
                 if (feed_ != null) {
-                    val episodes = feed_.episodes.toList()
-                    if (episodes.isNotEmpty()) episodes.forEach { episode ->
-                        val url = episode.fileUrl
-                        when {
-                            // Local feed or custom media folder
-                            url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, url.toUri())?.delete()
-                            url != null -> {
-                                val path = url.toUri().path
-                                if (path != null) File(path).delete()
+                    val episodes = feed_.episodes
+                    if (episodes.isNotEmpty()) {
+                        episodes.forEach { episode ->
+                            val url = episode.fileUrl
+                            when {
+                                // Local feed or custom media folder
+                                url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, url.toUri())?.delete()
+                                url != null -> {
+                                    val path = url.toUri().path
+                                    if (path != null) File(path).delete()
+                                }
                             }
                         }
-                        delete(episode)
+                        delete(episodes)
                     }
                     val feedToDelete = findLatest(feed_)
                     if (feedToDelete != null) delete(feedToDelete)
@@ -507,6 +512,16 @@ object Feeds {
             val backupManager = BackupManager(context)
             backupManager.dataChanged()
         }
+    }
+
+    suspend fun compileEpisodesFeedIds(): Set<Long> {
+        val changes = realm.query(Episode::class).asFlow().first { it is InitialResults }
+        val idSet = when (changes) {
+            is InitialResults -> changes.list.mapNotNull { it.feedId }.toSet()
+            else -> emptySet()
+        }
+        Logd(TAG, "compileEpisodesFeedIds idSet: ${idSet.size}")
+        return idSet
     }
 
     @JvmStatic

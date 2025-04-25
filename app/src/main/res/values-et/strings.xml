@@ -276,7 +276,7 @@
   <string name="pref_automatic_download_on_battery_sum">Luba automaatne allalaadimine ka siis, kui seade pole laadimas</string>
 
   <string name="pref_episode_cover_summary">Kui võimalik, kasutatakse nimekirjades saate kaanepilti. Kui märkimata, kasutab rakendus alati taskuhäälingu kaanepilti.</string>
-  <string name="pref_show_remain_time_summary">Kui märgitud, kuvatakse saate alles jäänud aega. Kui märkimata, näidatakse saadete kogupikkust.</string>
+
   <string name="pref_theme_title_light">Hele</string>
   <string name="pref_theme_title_dark">Tume</string>
   <string name="pref_episode_cache_unlimited">Piiramatult</string>
@@ -287,8 +287,8 @@
   <string name="pref_feed_skip_intro">Jäta vahele  algusest</string>
   <string name="pref_feed_skip_ending_toast">Lõpust jäeti vahele %d sekundit</string>
   <string name="pref_feed_skip_intro_toast">Algusest jäeti vahele %d sekundit</string>
-  <string name="pref_playback_time_respects_speed_title">Meedia info kohandamine esituse kiirusega</string>
-  <string name="pref_playback_time_respects_speed_sum">Kuvatav asukoht ja kestus kohandatakse esituse kiiruse järgi</string>
+
+
   <string name="pref_fast_forward_sum">Määra, mitu sekundit edasi hüpatakse, kui vajutatakse edasi kerimise nuppu</string>
   <string name="pref_rewind_sum">Määra, mitu sekundit tagasi hüpatakse, kui vajutatakse tagasi kerimise nuppu</string>
 

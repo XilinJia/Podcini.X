@@ -362,8 +362,8 @@
 
   <string name="pref_episode_cover_title">Bruk episode-cover</string>
   <string name="pref_episode_cover_summary">Bruk et episode-spesifikt cover hvis det er tilgjengelig. Hvis dette ikke er valgt vil appen alltid bruke podkastens cover-bilde.</string>
-  <string name="pref_show_remain_time_title">Vis gjenværende tid</string>
-  <string name="pref_show_remain_time_summary">Vis gjenværende tid når krysset av. Hvis ikke krysset av, vi totalt gjenværende tid av alle episoder.</string>
+
+
   <string name="pref_theme_title_automatic">Automatisk</string>
   <string name="pref_theme_title_light">Lyst</string>
   <string name="pref_theme_title_dark">Mørkt</string>
@@ -376,8 +376,8 @@
   <string name="pref_feed_skip_intro">Hopp over første</string>
   <string name="pref_feed_skip_ending_toast">Hoppet over siste %d sekunder</string>
   <string name="pref_feed_skip_intro_toast">Hoppet over første %d sekunder</string>
-  <string name="pref_playback_time_respects_speed_title">Juster media-info til avspillingshastighet</string>
-  <string name="pref_playback_time_respects_speed_sum">Vist posisjon og varighet tilpasses avspillingshastighet</string>
+
+
   <string name="pref_fast_forward">Hopp fremover</string>
   <string name="pref_fast_forward_sum">Velg hvor mange sekunder som skal hoppes når du trykker på \"Spol fremover\"-knappen</string>
   <string name="pref_rewind">Hopp tilbake</string>

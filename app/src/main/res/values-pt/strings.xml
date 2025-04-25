@@ -447,8 +447,8 @@
     <string name="pref_auto_download_counting_played_summary">Configura se os episódios baixados já jogados contam no cache de episódios</string>
     <string name="pref_episode_cover_title">Utilizar imagem do episódio</string>
     <string name="pref_episode_cover_summary">Utilizar imagem do episódio, se disponível. Se desativar esta opção, será utilizada a imagem do podcast.</string>
-    <string name="pref_show_remain_time_title">Mostrar tempo restante</string>
-    <string name="pref_show_remain_time_summary">Mostra o tempo restante do episódio se a opção estiver ativa. Se desativar esta opção, será mostrado o tempo total.</string>
+
+
     <string name="pref_theme_title_automatic">Automático</string>
     <string name="pref_theme_title_light">Claro</string>
     <string name="pref_theme_title_dark">Escuro</string>
@@ -470,8 +470,8 @@
     <string name="pref_feed_skip_intro">Ignorar os primeiros</string>
     <string name="pref_feed_skip_ending_toast">Últimos %d segundos ignorados</string>
     <string name="pref_feed_skip_intro_toast">Primeiros %d segundos ignorados</string>
-    <string name="pref_playback_time_respects_speed_title">Ajustar informações multimédia à velocidade de reprodução</string>
-    <string name="pref_playback_time_respects_speed_sum">A posição e a duração serão ajustadas automaticamente à velocidade de reprodução</string>
+
+
     <string name="pref_fallback_speed">Velocidade de retrocesso</string>
     <string name="pref_speed_forward">Velocidade de avanço rápida</string>
     <string name="pref_speed_forward_sum">Personalizar a velocidade para a frente quando o botão pular é clicado</string>

@@ -455,8 +455,8 @@
     <string name="pref_auto_download_counting_played_summary">Set if downloaded episodes already played count into the episode cache</string>
     <string name="pref_episode_cover_title">Použiť obrázok epizódy</string>
     <string name="pref_episode_cover_summary">Ak je k dispozícií, použiť v zozname obrázok priamo z epizódy. Ak táto možnost nie je zaškrtnutá, tak sa vždy použije obrázok podcastu.</string>
-    <string name="pref_show_remain_time_title">Zobraziť zostávajúci čas</string>
-    <string name="pref_show_remain_time_summary">Ak je vybrané, zobrazí sa zostávajúci čas epizódy. Inak sa zobrazí celková dĺžka epizódy.</string>
+
+
     <string name="pref_theme_title_automatic">Automaticky</string>
     <string name="pref_theme_title_light">Svetlá</string>
     <string name="pref_theme_title_dark">Tmavá</string>
@@ -478,8 +478,8 @@
     <string name="pref_feed_skip_intro">Preskočiť prvých</string>
     <string name="pref_feed_skip_ending_toast">Posledných %d sekúnd bolo preskočených</string>
     <string name="pref_feed_skip_intro_toast">Prvých %d sekúnd bolo preskočených</string>
-    <string name="pref_playback_time_respects_speed_title">Upraviť informáce o médiu zohľadňujúc rýchlosť prehrávania.</string>
-    <string name="pref_playback_time_respects_speed_sum">Zobrazená dĺžka a pozícia sú upravené zohľadňujúc rýchlosť prehrávania</string>
+
+
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>

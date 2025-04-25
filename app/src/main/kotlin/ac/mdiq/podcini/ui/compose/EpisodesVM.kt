@@ -17,6 +17,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.TimeLeftMode
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Episodes
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
@@ -50,6 +51,7 @@ import ac.mdiq.podcini.storage.model.Rating
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
+import ac.mdiq.podcini.ui.actions.DownloadActionButton
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.NullActionButton
 import ac.mdiq.podcini.ui.actions.SwipeAction
@@ -206,17 +208,18 @@ private const val TAG = "EpisodesVM"
 fun buildListInfo(episodes: List<Episode>): String {
     var infoText = String.format(Locale.getDefault(), "%d", episodes.size)
     if (episodes.isNotEmpty()) {
+        val useSpeed = getPref(AppPrefs.prefShowTimeLeft, 0) == TimeLeftMode.TimeLeftOnSpeed.ordinal
         var timeLeft: Long = 0
         for (item in episodes) {
             var playbackSpeed = 1f
-            if (getPref(AppPrefs.prefPlaybackTimeRespectsSpeed, false)) {
+            if (useSpeed) {
                 playbackSpeed = getCurrentPlaybackSpeed(item)
                 if (playbackSpeed <= 0) playbackSpeed = 1f
             }
             val itemTimeLeft: Long = (item.duration - item.position).toLong()
             timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
         }
-        infoText += " • "
+        infoText += if (useSpeed) " * "  else " • "
         infoText += DurationConverter.getDurationStringShort(timeLeft, true)
     }
     return infoText
@@ -267,19 +270,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
 
     suspend fun updateVMFromDB() {
         val e = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return
-        Logd(TAG, "updateVM onChange ${episode.id} ${episode.title} ")
-        Logd(TAG, "updateVM onChange ${e.id} ${e.title} ${e.position}")
-        if (episode.id == e.id) {
-            episode = e
-            withContext(Dispatchers.Main) {
-                playedState = e.playState
-                ratingState = e.rating
-                positionState = e.position
-                durationState = e.duration
-                inProgressState = e.isInProgress
-                downloadState = if (e.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
-            }
-        }
+        updateVM(e)
     }
 
     suspend fun updateVM(e: Episode) {
@@ -931,7 +922,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
 //                            Logd(TAG, "LaunchedEffect $index isPlayingState: ${vms[index].isPlayingState} ${vm.episode.playState} ${vms[index].episode.title}")
 //                            Logd(TAG, "LaunchedEffect $index downloadState: ${vms[index].downloadState} ${vm.episode.downloaded} ${vm.dlPercent}")
                             vm.actionButton = vm.actionButton.forItem(vm.episode)
-//                            Logd(TAG, "LaunchedEffect vm.actionButton: ${vm.actionButton.TAG}")
+                            Logd(TAG, "LaunchedEffect vm.downloadState: ${vm.downloadState} vm.actionButton: ${vm.actionButton.TAG}")
                         }
                     } else LaunchedEffect(Unit) { vm.actionButton = actionButton_(vm.episode) }
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd).pointerInput(Unit) {
@@ -939,9 +930,25 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                             onLongPress = { vms[index].showAltActionsDialog = true },
                             onTap = {
                                 vm.actionButton.onClick(activity)
+                                Logd(TAG, "vm.actionButton: ${vm.actionButton.TAG}")
+                                if (vm.actionButton.TAG == "DownloadActionButton") {
+                                    // TODO: better be able to pull the info deom somewhere
+                                    runOnIOScope {
+                                        repeat(10) { attempt ->
+                                            delay(1000)
+                                            vm.updateVMFromDB()
+                                            Logd(TAG, "vm.downloadState: ${vm.downloadState}")
+                                            if (vm.downloadState == DownloadStatus.State.COMPLETED.ordinal) {
+                                                vm.actionButton = vm.actionButton.forItem(vm.episode)
+                                                return@runOnIOScope
+                                            }
+                                        }
+                                    }
+                                }
                                 actionButtonCB?.invoke(vm.episode, vm.actionButton.TAG)
                             }) }) {
-                        Icon(imageVector = ImageVector.vectorResource(vm.actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
+                        val res by remember { derivedStateOf { vm.actionButton.drawable } }
+                        Icon(imageVector = ImageVector.vectorResource(res), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
                         if (isDownloading() && vm.dlPercent >= 0) CircularProgressIndicator(progress = { 0.01f * vm.dlPercent }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                         if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                     }

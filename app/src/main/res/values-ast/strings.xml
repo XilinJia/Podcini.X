@@ -184,7 +184,7 @@
   <string name="pref_automatic_download_on_battery_sum">Permite la descarga automática cuando la batería nun tea cargando.</string>
 
   <string name="pref_episode_cover_summary">Nes llistes, úsase la portada de los episodios siempres que seya posible. Si nun se marca esta opción, l\'aplicación va usar siempres la portada de los podcasts.</string>
-  <string name="pref_show_remain_time_summary">Al activar esta opción, amuesa\'l tiempu que falta de los episodios. Si se desactiva, amuesa la duración total de los episodios.</string>
+
   <string name="pref_theme_title_light">Claridá</string>
   <string name="pref_theme_title_dark">Escuridá</string>
   <string name="pref_episode_cache_unlimited">Ensin llende</string>

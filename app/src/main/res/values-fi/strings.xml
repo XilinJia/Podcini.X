@@ -445,8 +445,8 @@
     <string name="pref_auto_download_counting_played_summary">Set if downloaded episodes already played count into the episode cache</string>
     <string name="pref_episode_cover_title">Käytä jakson kansikuvaa</string>
     <string name="pref_episode_cover_summary">Käytä jaksokohtaista kansikuvaa luetteloissa aina, kun se on saatavilla. Jos tätä ei ole valittu, sovellus käyttää aina podcastin kansikuvaa.</string>
-    <string name="pref_show_remain_time_title">Näytä jäljellä oleva aika</string>
-    <string name="pref_show_remain_time_summary">Näytä jaksojen jäljellä oleva aika, kun tämä on valittuna. Jos tätä ei ole valittu, näytä jaksojen kokonaiskesto.</string>
+
+
     <string name="pref_theme_title_automatic">Automaattinen</string>
     <string name="pref_theme_title_light">Vaalea</string>
     <string name="pref_theme_title_dark">Tumma</string>
@@ -468,8 +468,8 @@
     <string name="pref_feed_skip_intro">Ohita alusta</string>
     <string name="pref_feed_skip_ending_toast">Ohitettiin viimeiset %d sekuntia</string>
     <string name="pref_feed_skip_intro_toast">Ohitettiin ensimmäiset %d sekuntia</string>
-    <string name="pref_playback_time_respects_speed_title">Mukauta mediatietoja toiston nopeuteen</string>
-    <string name="pref_playback_time_respects_speed_sum">Näytetty aika ja kesto mukautuvat toiston nopeuteen</string>
+
+
     <string name="pref_fallback_speed">Takaisinperinnän nopeus</string>
     <string name="pref_speed_forward">Nopea eteenpäin nopeus</string>
     <string name="pref_speed_forward_sum">Mukauta nopeutta nopeuttaaksesi eteenpäin kun ohituspainiketta napsautetaan</string>

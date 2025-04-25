@@ -455,8 +455,8 @@
     <string name="pref_auto_download_counting_played_summary">Set if downloaded episodes already played count into the episode cache</string>
     <string name="pref_episode_cover_title">Use episode cover</string>
     <string name="pref_episode_cover_summary">Use the episode specific cover in lists whenever available. If unchecked, the app will always use the podcast cover image.</string>
-    <string name="pref_show_remain_time_title">Show remaining time</string>
-    <string name="pref_show_remain_time_summary">Display remaining time of episodes when checked. If unchecked, display total duration of episodes.</string>
+
+
     <string name="pref_theme_title_automatic">Automatic</string>
     <string name="pref_theme_title_light">Light</string>
     <string name="pref_theme_title_dark">Dark</string>
@@ -478,8 +478,8 @@
     <string name="pref_feed_skip_intro">Skip first</string>
     <string name="pref_feed_skip_ending_toast">Skipped last %d seconds</string>
     <string name="pref_feed_skip_intro_toast">Skipped first %d seconds</string>
-    <string name="pref_playback_time_respects_speed_title">Adjust media info to playback speed</string>
-    <string name="pref_playback_time_respects_speed_sum">Displayed position and duration are adapted to playback speed</string>
+
+
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>

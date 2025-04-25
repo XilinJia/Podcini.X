@@ -440,8 +440,8 @@
     <string name="pref_auto_download_counting_played_summary">Set if downloaded episodes already played count into the episode cache</string>
     <string name="pref_episode_cover_title">Gunakan sampul episode</string>
     <string name="pref_episode_cover_summary">Gunakan sampul spesifik episode dalam daftar jika bisa. Jika tidak dicentang, aplikasi akan tetap menggunakan sampul podcast.</string>
-    <string name="pref_show_remain_time_title">Tampilkan waktu yang tersisa</string>
-    <string name="pref_show_remain_time_summary">Saat dicentang, akan menampilkan waktu episode yang tersisa. Saat tidak dicentang, tampilkan total durasi dari episode-episode yang disajikan.</string>
+
+
     <string name="pref_theme_title_automatic">Automatic</string>
     <string name="pref_theme_title_light">Terang</string>
     <string name="pref_theme_title_dark">Gelap</string>
@@ -463,8 +463,8 @@
     <string name="pref_feed_skip_intro">Lewati bagian awal</string>
     <string name="pref_feed_skip_ending_toast">%ddetik terakhir dilewati</string>
     <string name="pref_feed_skip_intro_toast">%d detik pertama dilewati</string>
-    <string name="pref_playback_time_respects_speed_title">Atur info media ke kecepatan pemutaran</string>
-    <string name="pref_playback_time_respects_speed_sum">Posisi dan durasi yang ditampilkan disesuaikan dengan kecepatan pemutaran</string>
+
+
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>

@@ -369,8 +369,8 @@
 
   <string name="pref_episode_cover_title">Usa la coberta de l\'episodi</string>
   <string name="pref_episode_cover_summary">Utilitza la portada específica de l\'episodi quan sigui possible. Si es desactiva, l\'aplicació utilitzarà sempre la portada del podcast.</string>
-  <string name="pref_show_remain_time_title">Mostra el temps restant</string>
-  <string name="pref_show_remain_time_summary">Mostra el temps restant dels episodis quan està activat. Si es desactiva, mostra la durada total dels episodis.</string>
+
+
   <string name="pref_theme_title_automatic">Automàtic</string>
   <string name="pref_theme_title_light">Clar</string>
   <string name="pref_theme_title_dark">Fosc</string>
@@ -383,8 +383,8 @@
   <string name="pref_feed_skip_intro">Omet introducció (en segons):</string>
   <string name="pref_feed_skip_ending_toast">Omesos els últims %dsegons</string>
   <string name="pref_feed_skip_intro_toast">Omesos els primers %d segons</string>
-  <string name="pref_playback_time_respects_speed_title">Ajusta la informació dels medis a la velocitat de reproducció</string>
-  <string name="pref_playback_time_respects_speed_sum">La posició i la duració son adaptades a la velocitat de reproducció</string>
+
+
   <string name="pref_fast_forward">Intèrval d\'avanç</string>
   <string name="pref_fast_forward_sum">Personalitzar el nombre de segons del salt endavant quan es prem el botó d\'Avanç ràpid.</string>
   <string name="pref_rewind">Intèrval de retrocés</string>
