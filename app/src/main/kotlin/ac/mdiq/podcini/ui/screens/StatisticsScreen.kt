@@ -6,7 +6,7 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
@@ -693,10 +693,10 @@ enum class Prefs {
 private fun getStatsQueryText(timeFrom: Long, timeTo: Long): String {
     var qs1 = "(lastPlayedTime > $timeFrom AND lastPlayedTime < $timeTo)"
     val qs3 = "playStateSetTime > $timeFrom AND playStateSetTime < $timeTo"
-    qs1 += " OR ($qs3 AND playState == ${PlayState.PLAYED.code})"
-    qs1 += " OR ($qs3 AND playState == ${PlayState.SKIPPED.code})"
-    qs1 += " OR ($qs3 AND playState == ${PlayState.PASSED.code})"
-    qs1 += " OR ($qs3 AND playState == ${PlayState.IGNORED.code})"
+    qs1 += " OR ($qs3 AND playState == ${EpisodeState.PLAYED.code})"
+    qs1 += " OR ($qs3 AND playState == ${EpisodeState.SKIPPED.code})"
+    qs1 += " OR ($qs3 AND playState == ${EpisodeState.PASSED.code})"
+    qs1 += " OR ($qs3 AND playState == ${EpisodeState.IGNORED.code})"
     return qs1
 }
 
@@ -718,19 +718,19 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
                 if (e.duration > 0) fStat.item.durationTotal += e.duration
                 else Loge(TAG, "episode duration abnormal: ${e.duration} state: ${e.playState} ${e.title}")
                 Logd(TAG, "getStatistics e.playState: ${e.playState} e.timeSpent: ${e.timeSpent} ${e.playedDuration} ${e.title}")
-                if (e.playState == PlayState.PLAYED.code) {
+                if (e.playState == EpisodeState.PLAYED.code) {
                     fStat.item.episodesPlayed++
                     fStat.item.durationPlayed += e.duration
                 }
-                if (e.playState == PlayState.SKIPPED.code) {
+                if (e.playState == EpisodeState.SKIPPED.code) {
                     fStat.item.episodesSkipped++
                     fStat.item.durationSkipped += e.duration
                 }
-                if (e.playState == PlayState.PASSED.code) {
+                if (e.playState == EpisodeState.PASSED.code) {
                     fStat.item.episodesPassed++
                     fStat.item.durationPassed += e.duration
                 }
-                if (e.playState == PlayState.IGNORED.code) {
+                if (e.playState == EpisodeState.IGNORED.code) {
                     fStat.item.episodesIgnored++
                     fStat.item.durationIgnored += e.duration
                 }

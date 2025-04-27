@@ -15,9 +15,9 @@ import ac.mdiq.podcini.storage.model.Feed.AutoDownloadPolicy
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
-import ac.mdiq.podcini.storage.model.FeedAutoDownloadFilter
+import ac.mdiq.podcini.storage.utils.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.model.PlayQueue
-import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog

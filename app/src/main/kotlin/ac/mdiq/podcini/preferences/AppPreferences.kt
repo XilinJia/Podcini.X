@@ -3,9 +3,9 @@ package ac.mdiq.podcini.preferences
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
 import ac.mdiq.podcini.storage.database.Queues.EnqueueLocation
-import ac.mdiq.podcini.storage.model.EpisodeFilter
-import ac.mdiq.podcini.storage.model.EpisodeSortOrder
-import ac.mdiq.podcini.storage.model.ProxyConfig
+import ac.mdiq.podcini.storage.utils.EpisodeFilter
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
+import ac.mdiq.podcini.storage.utils.ProxyConfig
 import ac.mdiq.podcini.storage.utils.StorageUtils.createNoMediaFile
 import ac.mdiq.podcini.util.Logd
 import android.annotation.SuppressLint

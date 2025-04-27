@@ -25,10 +25,10 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.EpisodeSortOrder
-import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.model.PlayQueue
-import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -129,7 +129,7 @@ object Queues {
                 updatedItems.add(episode)
                 qItems.add(insertPosition, episode)
                 queueModified = true
-                if (episode.playState < PlayState.QUEUE.code) setInQueue.add(episode)
+                if (episode.playState < EpisodeState.QUEUE.code) setInQueue.add(episode)
                 insertPosition++
             }
             if (queueModified) {
@@ -141,7 +141,7 @@ object Queues {
                     it.update()
                 }
                 for (event in events) EventFlow.postEvent(event)
-                for (episode in setInQueue) setPlayStateSync(PlayState.QUEUE.code, episode, false)
+                for (episode in setInQueue) setPlayStateSync(EpisodeState.QUEUE.code, episode, false)
             }
         }
     }
@@ -163,7 +163,7 @@ object Queues {
             it.update()
         }
         if (queue.id == curQueue.id) curQueue = queueNew
-        if (episode.playState < PlayState.QUEUE.code) setPlayStateSync(PlayState.QUEUE.code, episode, false)
+        if (episode.playState < EpisodeState.QUEUE.code) setPlayStateSync(EpisodeState.QUEUE.code, episode, false)
         if (queue.id == curQueue.id) EventFlow.postEvent(FlowEvent.QueueEvent.added(episode, insertPosition))
     }
 
@@ -200,7 +200,7 @@ object Queues {
                 it.episodeIds.clear()
                 it.update()
             }
-            for (e in curQueue.episodes) if (e.playState < PlayState.SKIPPED.code && !stateToPreserve(e.playState)) setPlayStateSync(PlayState.SKIPPED.code, e, false)
+            for (e in curQueue.episodes) if (e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState)) setPlayStateSync(EpisodeState.SKIPPED.code, e, false)
             curQueue.episodes.clear()
             EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
             autoenqueueForQueue(curQueue)
@@ -211,9 +211,9 @@ object Queues {
     suspend fun smartRemoveFromQueue(item_: Episode) {
         var item = item_
         val almostEnded = hasAlmostEnded(item)
-        if (almostEnded && item.playState < PlayState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(PlayState.PLAYED.code, item, resetMediaPosition = true, removeFromQueue = false)
+        if (almostEnded && item.playState < EpisodeState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(EpisodeState.PLAYED.code, item, resetMediaPosition = true, removeFromQueue = false)
         if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
-        if (item.playState < PlayState.SKIPPED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(PlayState.SKIPPED.code, item, resetMediaPosition = false, removeFromQueue = false)
+        if (item.playState < EpisodeState.SKIPPED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(EpisodeState.SKIPPED.code, item, resetMediaPosition = false, removeFromQueue = false)
         removeFromQueueSync(curQueue, item)
     }
 
@@ -303,7 +303,7 @@ object Queues {
             idsInQueuesToRemove = q.episodeIds.intersect(episodeIds.toSet()).toMutableSet()
             if (idsInQueuesToRemove.isNotEmpty()) {
                 val eList = realm.query(Episode::class).query("id IN $0", idsInQueuesToRemove).find()
-                for (e in eList) if (e.playState < PlayState.SKIPPED.code && !stateToPreserve(e.playState)) setPlayStateSync(PlayState.SKIPPED.code, e, false)
+                for (e in eList) if (e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState)) setPlayStateSync(EpisodeState.SKIPPED.code, e, false)
                 val qNew = upsert(q) {
                     it.idsBinList.removeAll(idsInQueuesToRemove)
                     it.idsBinList.addAll(idsInQueuesToRemove)
@@ -330,7 +330,7 @@ object Queues {
         idsInQueuesToRemove = q.episodeIds.intersect(episodeIds.toSet()).toMutableSet()
         if (idsInQueuesToRemove.isNotEmpty()) {
             val eList = realm.query(Episode::class).query("id IN $0", idsInQueuesToRemove).find()
-            for (e in eList) if (e.playState < PlayState.SKIPPED.code && !stateToPreserve(e.playState)) setPlayStateSync(PlayState.SKIPPED.code, e, false)
+            for (e in eList) if (e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState)) setPlayStateSync(EpisodeState.SKIPPED.code, e, false)
             curQueue = upsert(q) {
                 it.idsBinList.removeAll(idsInQueuesToRemove)
                 it.idsBinList.addAll(idsInQueuesToRemove)

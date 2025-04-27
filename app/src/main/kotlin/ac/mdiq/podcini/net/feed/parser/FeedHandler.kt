@@ -8,7 +8,7 @@ import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.isMediaFile
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.FeedFunding
+import ac.mdiq.podcini.storage.utils.FeedFunding
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import androidx.core.text.HtmlCompat

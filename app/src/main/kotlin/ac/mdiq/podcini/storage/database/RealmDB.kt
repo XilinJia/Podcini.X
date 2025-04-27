@@ -8,12 +8,13 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.PlayQueue
-import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.showStackTrace
 import android.net.Uri
 import io.github.xilinjia.krdb.MutableRealm
@@ -222,7 +223,7 @@ object RealmDB {
                     mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
                         newObject?.run {
                             val playState = oldObject.getValue<Long>(fieldName = "playState")
-                            if (playState >= PlayState.SKIPPED.code.toLong()) {
+                            if (playState >= EpisodeState.SKIPPED.code.toLong()) {
                                 var playTime = oldObject.getValue<Long>(fieldName = "lastPlayedTime")
                                 Logd(TAG, "setting playStateSetTime to $playTime")
                                 if (playTime == 0L) playTime = System.currentTimeMillis()

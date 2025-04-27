@@ -23,6 +23,7 @@ Well, aside from doing the above well, the following make it stand out:
 <li>You have 12 levels of play states (like to play soon, play again, etc) to better plan and enhance your listening experiences.</li>
 <li>You can also keep your personal notes with your opinions/comments on each podcast/episode.</li>
 <li>It has sophisticated sorting and filtering options for you to better select contents.</li>
+<li>When you unsubscribe a podcast, it allows you to preserve your important episodes of the podcast in a synthetic feed.</li>
 <li>It keeps a record of your unsubscribed podcasts and notifies you if you unknowingly try to re-subscribe to some.</li>
 <li>It caches streamed audio for seamless local rewind and replay.</li>
 <li>You can record audio clips or mark positions on any episodes for better review.</li>

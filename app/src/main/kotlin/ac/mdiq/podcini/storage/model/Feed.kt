@@ -4,10 +4,17 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.fromCode
-import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting.Companion.fromInteger
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.fromCode
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting.Companion.fromInteger
+import ac.mdiq.podcini.storage.utils.EpisodeFilter
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
+import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.FeedAutoDownloadFilter
+import ac.mdiq.podcini.storage.utils.FeedFunding
+import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
+import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -345,7 +352,7 @@ class Feed : RealmObject {
     var autoDLPolicyReplace: Boolean = false
 
     fun fillPreferences(autoDownload: Boolean, autoDeleteAction: AutoDeleteAction,
-                volumeAdaptionSetting: VolumeAdaptionSetting?, username: String?, password: String?) {
+                        volumeAdaptionSetting: VolumeAdaptionSetting?, username: String?, password: String?) {
         this.autoDownload = autoDownload
         this.autoDeleteAction = autoDeleteAction
         if (volumeAdaptionSetting != null) this.volumeAdaptionSetting = volumeAdaptionSetting
@@ -437,7 +444,7 @@ class Feed : RealmObject {
     fun isSynthetic(): Boolean = id <= MAX_SYNTHETIC_ID
 
     fun getVirtualQueueItems():  List<Episode> {
-        var qString = "feedId == $id AND (playState < ${PlayState.SKIPPED.code} OR playState == ${PlayState.AGAIN.code} OR playState == ${PlayState.FOREVER.code})"
+        var qString = "feedId == $id AND (playState < ${EpisodeState.SKIPPED.code} OR playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code})"
 //        TODO: perhaps need to set prefStreamOverDownload for youtube feeds
         if (type != FeedType.YOUTUBE.name && !prefStreamOverDownload) qString += " AND downloaded == true"
         val eList_ = realm.query(Episode::class, qString).query(episodeFilter.queryString()).find().toMutableList()

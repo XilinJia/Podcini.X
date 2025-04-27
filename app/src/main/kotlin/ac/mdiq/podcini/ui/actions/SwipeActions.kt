@@ -16,7 +16,7 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -312,7 +312,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
             runOnIOScope {
                 val almostEnded = hasAlmostEnded(item_)
-                if (almostEnded && item_.playState < PlayState.PLAYED.code) item_ = setPlayStateSync(PlayState.PLAYED.code, item_, resetMediaPosition = true, removeFromQueue = false)
+                if (almostEnded && item_.playState < EpisodeState.PLAYED.code) item_ = setPlayStateSync(EpisodeState.PLAYED.code, item_, resetMediaPosition = true, removeFromQueue = false)
                 if (almostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
                 deleteEpisodesWarnLocalRepeat(context, listOf(item_))
                 vm.updateVMFromDB()

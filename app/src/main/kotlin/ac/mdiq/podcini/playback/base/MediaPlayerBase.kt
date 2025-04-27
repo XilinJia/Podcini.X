@@ -33,8 +33,8 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
-import ac.mdiq.podcini.storage.model.MediaType
-import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.EventFlow
@@ -400,7 +400,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 Logd(TAG, "onPostPlayback ended: $ended smartMarkAsPlayed: $smartMarkAsPlayed autoSkipped: $autoSkipped skipped: $skipped")
                 // only mark the item as played if we're not keeping it anyways
                 item = upsert(item) {
-                    if (it.playState < PlayState.AGAIN.code || it.playState in listOf(PlayState.SKIPPED.code, PlayState.PASSED.code, PlayState.IGNORED.code)) it.setPlayState(PlayState.PLAYED)
+                    if (it.playState < EpisodeState.AGAIN.code || it.playState in listOf(EpisodeState.SKIPPED.code, EpisodeState.PASSED.code, EpisodeState.IGNORED.code)) it.setPlayState(EpisodeState.PLAYED)
                     upsertDB(it, item.position)
                     it.startTime = 0
                     it.startPosition = if (completed) -1 else it.position
@@ -413,7 +413,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
                 val action = item.feed?.autoDeleteAction
                 val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))
-                val isItemdeletable = (!getPref(AppPrefs.prefFavoriteKeepsEpisode, true) || (!item.isSUPER && item.playState != PlayState.AGAIN.code && item.playState != PlayState.FOREVER.code))
+                val isItemdeletable = (!getPref(AppPrefs.prefFavoriteKeepsEpisode, true) || (!item.isSUPER && item.playState != EpisodeState.AGAIN.code && item.playState != EpisodeState.FOREVER.code))
                 if (shouldAutoDelete && isItemdeletable) {
                     if (item.localFileAvailable()) item = deleteMediaSync(context, item)
                     if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(item)
@@ -478,7 +478,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
 
         it.lastPlayedTime = (System.currentTimeMillis())
-        if (it.isNew) it.setPlayState(PlayState.UNPLAYED)
+        if (it.isNew) it.setPlayState(EpisodeState.UNPLAYED)
         Logd(TAG, "upsertDB ${it.startTime} timeSpent: ${it.timeSpent} playedDuration: ${it.playedDuration}")
     }
 

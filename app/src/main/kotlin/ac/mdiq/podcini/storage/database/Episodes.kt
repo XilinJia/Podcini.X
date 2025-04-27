@@ -20,11 +20,11 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.EpisodeFilter
-import ac.mdiq.podcini.storage.model.EpisodeSortOrder
-import ac.mdiq.podcini.storage.model.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.model.PlayState
-import ac.mdiq.podcini.storage.model.PlayState.Companion.fromCode
+import ac.mdiq.podcini.storage.utils.EpisodeFilter
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.EpisodeState.Companion.fromCode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.commonConfirm
@@ -114,7 +114,7 @@ object Episodes {
         val repeatItems: MutableList<Episode> = mutableListOf()
         for (item in items) {
             if (item.feed?.isLocalFeed == true) localItems.add(item)
-            if (item.playState == PlayState.AGAIN.code || item.playState == PlayState.FOREVER.code) repeatItems.add(item)
+            if (item.playState == EpisodeState.AGAIN.code || item.playState == EpisodeState.FOREVER.code) repeatItems.add(item)
             else deleteAndRemoveFromQueues(context, item)
         }
 
@@ -174,7 +174,7 @@ object Episodes {
                     }
                     episode = upsertBlk(episode) {
                         it.setfileUrlOrNull(null)
-                        if (it.playState < PlayState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(PlayState.SKIPPED)
+                        if (it.playState < EpisodeState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
                     }
                     // TODO: need to change event
                     EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
@@ -199,7 +199,7 @@ object Episodes {
                         it.downloaded = false
                         it.setfileUrlOrNull(null)
                         it.hasEmbeddedPicture = false
-                        if (it.playState < PlayState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(PlayState.SKIPPED)
+                        if (it.playState < EpisodeState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
                     }
                     // TODO: need to change event
                     EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
@@ -268,8 +268,8 @@ object Episodes {
                     val comment = fullDateTimeString(localTime) + ":\nduplicate"
                     for (e in duplicates) {
                         if (e.id != media.id) {
-                            if (e.playState <= PlayState.AGAIN.code || e.playState in listOf(PlayState.LATER.code, PlayState.SOON.code)) {
-                                e.setPlayState(PlayState.IGNORED)
+                            if (e.playState <= EpisodeState.AGAIN.code || e.playState in listOf(EpisodeState.LATER.code, EpisodeState.SOON.code)) {
+                                e.setPlayState(EpisodeState.IGNORED)
                                 e.comment += if (e.comment.isBlank()) comment else "\n" + comment
                             } else Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
                         }
@@ -290,22 +290,22 @@ object Episodes {
         return upsert(episode) { it.rating = rating }
     }
 
-    fun stateToPreserve(stat: Int): Boolean = stat in listOf(PlayState.SOON.code, PlayState.LATER.code, PlayState.AGAIN.code, PlayState.FOREVER.code)
+    fun stateToPreserve(stat: Int): Boolean = stat in listOf(EpisodeState.SOON.code, EpisodeState.LATER.code, EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)
 
     suspend fun setPlayStateSync(played: Int, episode: Episode, resetMediaPosition: Boolean, removeFromQueue: Boolean = true) : Episode {
         Logd(TAG, "setPlayStateSync called played: $played resetMediaPosition: $resetMediaPosition ${episode.title}")
         var episode_ = episode
         if (!episode.isManaged()) episode_ = realm.query(Episode::class).query("id == $0", episode.id).first().find() ?: episode
         val result = upsert(episode_) {
-            if (played != PlayState.UNSPECIFIED.code) it.setPlayState(PlayState.fromCode(played))
+            if (played != EpisodeState.UNSPECIFIED.code) it.setPlayState(fromCode(played))
             else {
-                if (it.playState == PlayState.PLAYED.code) it.setPlayState(PlayState.UNPLAYED)
-                else it.setPlayState(PlayState.PLAYED)
+                if (it.playState == EpisodeState.PLAYED.code) it.setPlayState(EpisodeState.UNPLAYED)
+                else it.setPlayState(EpisodeState.PLAYED)
             }
-            if (resetMediaPosition || it.playState == PlayState.PLAYED.code || it.playState == PlayState.IGNORED.code) it.setPosition(0)
+            if (resetMediaPosition || it.playState == EpisodeState.PLAYED.code || it.playState == EpisodeState.IGNORED.code) it.setPosition(0)
         }
         Logd(TAG, "setPlayStateSync played0: ${result.playState}")
-        if (removeFromQueue && played == PlayState.PLAYED.code && getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(result)
+        if (removeFromQueue && played == EpisodeState.PLAYED.code && getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(result)
         Logd(TAG, "setPlayStateSync played1: ${result.playState}")
 //        EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(result))
         return result

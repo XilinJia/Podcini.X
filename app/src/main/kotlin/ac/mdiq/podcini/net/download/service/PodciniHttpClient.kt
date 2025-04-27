@@ -4,7 +4,7 @@ import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder.encode
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.ProxyConfig
+import ac.mdiq.podcini.storage.utils.ProxyConfig
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfig

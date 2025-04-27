@@ -44,11 +44,11 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
-import ac.mdiq.podcini.storage.model.EmbeddedChapterImage
+import ac.mdiq.podcini.storage.utils.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.MediaType
-import ac.mdiq.podcini.storage.model.Rating
-import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.utils.Rating
+import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.ui.activity.MainActivity
@@ -719,7 +719,7 @@ fun AudioPlayerScreen() {
             Spacer(Modifier.weight(1f))
             if (bitrate > 0) Text(formatLargeInteger(bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
-            Text(vm.txtvLengthText, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
+            Text(vm.txtvLengthText, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
                 vm.showTimeLeft++
                 if (vm.showTimeLeft > TimeLeftMode.TimeLeftOnSpeed.ordinal) vm.showTimeLeft = TimeLeftMode.Duration.ordinal
                 putPref(AppPrefs.prefShowTimeLeft, vm.showTimeLeft)

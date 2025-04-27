@@ -5,8 +5,8 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.PlayState
-import ac.mdiq.podcini.storage.model.Rating
+import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.util.Logd
 import android.app.Activity
 import android.database.sqlite.SQLiteDatabase
@@ -65,11 +65,11 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                         "position_to_resume" -> episode.position = cursor.getInt(i)
                         "new_status" -> {
                             val n = cursor.getInt(i)
-                            if (n == 1) episode.setPlayState(PlayState.NEW)
+                            if (n == 1) episode.setPlayState(EpisodeState.NEW)
                         }
                         "playing_status" -> {
                             val p = cursor.getInt(i)
-                            if (p == 1) episode.setPlayState(PlayState.PLAYED)
+                            if (p == 1) episode.setPlayState(EpisodeState.PLAYED)
                         }
                         "duration_ms" -> episode.duration = cursor.getInt(i)
                         "playback_date" -> {

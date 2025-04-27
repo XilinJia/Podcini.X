@@ -26,8 +26,8 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.MediaType
-import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.AudioMediaTools
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -84,12 +84,11 @@ abstract class EpisodeActionButton internal constructor(@JvmField var item: Epis
         get() = true
 
     var processing by mutableIntStateOf(-1)
-    val actionState = mutableIntStateOf(0)
 
     val label by mutableIntStateOf(label)
     var drawable by mutableIntStateOf(drawable)
 
-    abstract fun onClick(context: Context)
+    abstract fun onClick(context: Context): EpisodeActionButton
 
     open fun forItem(item_: Episode): EpisodeActionButton {
         item = item_
@@ -173,9 +172,9 @@ class VisitWebsiteActionButton(item: Episode) : EpisodeActionButton(item, R.stri
     override val visibility: Boolean
         get() = !item.link.isNullOrEmpty()
 
-    override fun onClick(context: Context) {
+    override fun onClick(context: Context): EpisodeActionButton {
         if (!item.link.isNullOrEmpty()) IntentUtils.openInBrowser(context, item.link!!)
-        actionState.intValue = label
+        return this
     }
 
     override fun forItem(item_: Episode): EpisodeActionButton {
@@ -185,33 +184,38 @@ class VisitWebsiteActionButton(item: Episode) : EpisodeActionButton(item, R.stri
 }
 
 class CancelDownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.cancel_download_label, R.drawable.ic_cancel) {
-    override fun onClick(context: Context) {
+    override fun onClick(context: Context): EpisodeActionButton {
         DownloadServiceInterface.impl?.cancel(context, item)
         if (AppPreferences.isAutodownloadEnabled) {
             val item_ = upsertBlk(item) { it.disableAutoDownload() }
             EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item_))
         }
-        actionState.intValue = label
+        return DownloadActionButton(item)
     }
 }
 
 class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_label, R.drawable.ic_play_24dp) {
-    override fun onClick(context: Context) {
+    override fun onClick(context: Context): EpisodeActionButton {
         Logd("PlayActionButton", "onClick called file: ${item.fileUrl}")
         if (!item.fileExists()) {
             Loge(TAG, context.getString(R.string.error_file_not_found) + ": ${item.title}")
             val episode_ = upsertBlk(item) { it.setfileUrlOrNull(null) }
             EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode_))
-            return
+            return super.forItem(episode_)
         }
         PlaybackStarter(context, item).start()
         playVideoIfNeeded(context, item)
-        actionState.intValue = label
+        return PauseActionButton(item)
+    }
+    override fun forItem(item_: Episode): EpisodeActionButton {
+        item = item_
+        if (isCurrentlyPlaying(item)) return PauseActionButton(item)
+        return this
     }
 }
 
 class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.stream_label, R.drawable.ic_stream) {
-    override fun onClick(context: Context) {
+    override fun onClick(context: Context): EpisodeActionButton {
         fun stream() {
             PlaybackStarter(context, item).shouldStreamThisTime(true).start()
             playVideoIfNeeded(context, item)
@@ -230,10 +234,15 @@ class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.str
                     stream()
                 },
                 onNeutral = { stream() })
-            return
+            return this
         }
         stream()
-        actionState.intValue = label
+        return PauseActionButton(item)
+    }
+    override fun forItem(item_: Episode): EpisodeActionButton {
+        item = item_
+        if (isCurrentlyPlaying(item)) return PauseActionButton(item)
+        return this
     }
 }
 
@@ -242,29 +251,41 @@ class DeleteActionButton(item: Episode) : EpisodeActionButton(item, R.string.del
         get() {
             return (item.downloaded || item.feed?.isLocalFeed == true)
         }
-    override fun onClick(context: Context) {
-        runOnIOScope {
-            deleteEpisodesWarnLocalRepeat(context, listOf(item))
-            withContext(Dispatchers.Main) {  actionState.intValue = label }
-        }
+    override fun onClick(context: Context): EpisodeActionButton {
+        runOnIOScope { deleteEpisodesWarnLocalRepeat(context, listOf(item)) }
+        return forItem(item)
     }
 }
 
 class NullActionButton(item: Episode) : EpisodeActionButton(item, R.string.null_label, R.drawable.ic_questionmark) {
-    override fun onClick(context: Context) {}
+    override fun onClick(context: Context):EpisodeActionButton { return this }
 }
 
 class NullZapActionButton(item: Episode) : EpisodeActionButton(item, R.string.null_zap_label, R.drawable.ic_close_white) {
-    override fun onClick(context: Context) {}
+    override fun onClick(context: Context): EpisodeActionButton { return this}
 }
 
 class PauseActionButton(item: Episode) : EpisodeActionButton(item, R.string.pause_label, R.drawable.ic_pause) {
     @OptIn(UnstableApi::class)
-    override fun onClick(context: Context) {
+    override fun onClick(context: Context): EpisodeActionButton {
         Logd("PauseActionButton", "onClick called")
 //        if (isCurrentlyPlaying(item)) context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_PAUSE))
-        if (isCurrentlyPlaying(item)) playPause()
-        actionState.intValue = label
+        if (isCurrentlyPlaying(item)) {
+            playPause()
+            return forItem(item)
+        }
+        return this
+    }
+    override fun forItem(item_: Episode): EpisodeActionButton {
+        item = item_
+        return when {
+            isCurrentlyPlaying(item) -> this
+            item.feed?.isLocalFeed == true -> PlayLocalActionButton(item)
+            item.downloaded -> PlayActionButton(item)
+            item.feed == null || item.feedId == null || item.feed?.type == Feed.FeedType.YOUTUBE.name
+                    || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> StreamActionButton(item)
+            else -> this
+        }
     }
 }
 
@@ -272,30 +293,29 @@ class DownloadActionButton(item: Episode) : EpisodeActionButton(item, R.string.d
     override val visibility: Boolean
         get() = item.feed?.isLocalFeed != true
 
-    override fun onClick(context: Context) {
-        if (shouldNotDownload(item)) return
+    override fun onClick(context: Context): EpisodeActionButton {
+        if (shouldNotDownload(item)) return this
         UsageStatistics.logAction(UsageStatistics.ACTION_DOWNLOAD)
         if (mobileAllowEpisodeDownload || !isNetworkRestricted) {
             DownloadServiceInterface.impl?.downloadNow(context, item, false)
             Logd(TAG, "downloading ${item.title}")
+            return CancelDownloadActionButton(item)
         }
-        else {
-            commonConfirm = CommonConfirmAttrib(
-                title = context.getString(R.string.confirm_mobile_download_dialog_title),
-                message = context.getString(if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
-                confirmRes = R.string.confirm_mobile_download_dialog_download_later,
-                cancelRes = R.string.cancel_label,
-                neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
-                onConfirm = {
-                    DownloadServiceInterface.impl?.downloadNow(context, item, false)
-                    Logd(TAG, "downloading ${item.title}")
-                },
-                onNeutral = {
-                    DownloadServiceInterface.impl?.downloadNow(context, item, true)
-                    Logd(TAG, "downloading ${item.title}")
-                })
-        }
-        actionState.intValue = label
+        commonConfirm = CommonConfirmAttrib(
+            title = context.getString(R.string.confirm_mobile_download_dialog_title),
+            message = context.getString(if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
+            confirmRes = R.string.confirm_mobile_download_dialog_download_later,
+            cancelRes = R.string.cancel_label,
+            neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
+            onConfirm = {
+                DownloadServiceInterface.impl?.downloadNow(context, item, false)
+                Logd(TAG, "downloading ${item.title}")
+            },
+            onNeutral = {
+                DownloadServiceInterface.impl?.downloadNow(context, item, true)
+                Logd(TAG, "downloading ${item.title}")
+            })
+        return this
     }
 
     private fun shouldNotDownload(media: Episode?): Boolean {
@@ -313,14 +333,14 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
     override val visibility: Boolean
         get() = !item.link.isNullOrEmpty()
 
-    override fun onClick(context: Context) {
+    override fun onClick(context: Context): EpisodeActionButton {
         Logd("TTSActionButton", "onClick called")
         if (item.link.isNullOrEmpty()) {
             Loge(TAG, context.getString(R.string.episode_has_no_content))
-            return
+            return NullActionButton(item)
         }
         processing = 1
-        item = upsertBlk(item) { it.setPlayState(PlayState.BUILDING) }
+        item = upsertBlk(item) { it.setPlayState(EpisodeState.BUILDING) }
         EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
         runOnIOScope {
             if (item.transcript == null) {
@@ -425,18 +445,18 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                 FEObj.ttsWorking = false
             } else Loge(TAG, context.getString(R.string.episode_has_no_content))
 
-            item = upsertBlk(item) { it.setPlayState(PlayState.UNPLAYED) }
+            item = upsertBlk(item) { it.setPlayState(EpisodeState.UNPLAYED) }
 
             processing = 100
             EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
-            actionState.intValue = label
         }
+        return PlayActionButton(item)
     }
 }
 
 class PlayLocalActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_label, R.drawable.ic_play_24dp) {
     @OptIn(UnstableApi::class)
-    override fun onClick(context: Context) {
+    override fun onClick(context: Context): EpisodeActionButton {
         Logd("PlayLocalActionButton", "onClick called")
         if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
             mPlayer?.play()
@@ -444,9 +464,14 @@ class PlayLocalActionButton(item: Episode) : EpisodeActionButton(item, R.string.
         } else {
             clearCurTempSpeed()
             PlaybackStarter(context, item).start()
-            if (item.playState < PlayState.PROGRESS.code || item.playState == PlayState.SKIPPED.code || item.playState == PlayState.AGAIN.code) item = runBlocking { setPlayStateSync(PlayState.PROGRESS.code, item, false) }
+            if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code) item = runBlocking { setPlayStateSync(EpisodeState.PROGRESS.code, item, false) }
         }
         if (item.getMediaType() == MediaType.VIDEO) context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
-        actionState.intValue = label
+        return PauseActionButton(item)
+    }
+    override fun forItem(item_: Episode): EpisodeActionButton {
+        item = item_
+        if (isCurrentlyPlaying(item)) return PauseActionButton(item)
+        return this
     }
 }

@@ -1,3 +1,10 @@
+# 8.16.2
+
+* amended color of timeLeft on PlayerUI and "Related" in EpisodeInfo
+* amended effect blocks in EpisodeVM to better handle monitoring of curEpisode
+* some code refactoring
+* updated some dependencies
+
 # 8.16.1
 
 * duplicate search is also performed on playing the next item in queue

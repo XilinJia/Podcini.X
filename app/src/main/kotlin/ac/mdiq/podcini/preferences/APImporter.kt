@@ -4,8 +4,8 @@ import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
-import ac.mdiq.podcini.storage.model.PlayState
-import ac.mdiq.podcini.storage.model.Rating
+import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.util.Logd
 import android.app.Activity
 import android.database.sqlite.SQLiteDatabase
@@ -46,7 +46,7 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
                         "pubDate" -> episode.pubDate = cursor.getLong(i)
                         "read" -> {
                             val read = cursor.getInt(i)
-                            if (read == -1) episode.setPlayState(PlayState.NEW)
+                            if (read == -1) episode.setPlayState(EpisodeState.NEW)
                             else episode.setPlayed(read == 1)
                         }
                         "link" -> episode.link = cursor.getStringOrNull(i)

@@ -11,15 +11,19 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.model.VolumeAdaptionSetting.Companion.fromInteger
+import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting.Companion.fromInteger
 import ac.mdiq.podcini.storage.utils.ChapterUtils.ChapterStartTimeComparator
 import ac.mdiq.podcini.storage.utils.ChapterUtils.loadChaptersFromUrl
 import ac.mdiq.podcini.storage.utils.ChapterUtils.merge
+import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.StorageUtils.MEDIA_DOWNLOADPATH
 import ac.mdiq.podcini.storage.utils.StorageUtils.customMediaUriString
 import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
 import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
+import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -153,7 +157,7 @@ class Episode : RealmObject {
 
     @Ignore
     val isNew: Boolean
-        get() = playState == PlayState.NEW.code
+        get() = playState == EpisodeState.NEW.code
 
     @Ignore
     val isInProgress: Boolean
@@ -257,7 +261,7 @@ class Episode : RealmObject {
     // above from EpisodeMedia
 
     constructor() {
-        this.playState = PlayState.NEW.code
+        this.playState = EpisodeState.NEW.code
         playStateSetTime = System.currentTimeMillis()
     }
 
@@ -334,15 +338,15 @@ class Episode : RealmObject {
     }
 
     @JvmName("setPlayStateFunction")
-    fun setPlayState(stat: PlayState) {
+    fun setPlayState(stat: EpisodeState) {
         playState = stat.code
         playStateSetTime = System.currentTimeMillis()
     }
 
-    fun isPlayed(): Boolean = playState >= PlayState.SKIPPED.code
+    fun isPlayed(): Boolean = playState >= EpisodeState.SKIPPED.code
 
     fun setPlayed(played: Boolean) {
-        playState = if (played) PlayState.PLAYED.code else PlayState.UNPLAYED.code
+        playState = if (played) EpisodeState.PLAYED.code else EpisodeState.UNPLAYED.code
         playStateSetTime = System.currentTimeMillis()
     }
 

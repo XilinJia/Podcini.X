@@ -18,14 +18,14 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.EpisodeFilter
+import ac.mdiq.podcini.storage.utils.EpisodeFilter
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
-import ac.mdiq.podcini.storage.model.FeedFilter
+import ac.mdiq.podcini.storage.utils.FeedFilter
 import ac.mdiq.podcini.storage.model.PlayQueue
-import ac.mdiq.podcini.storage.model.PlayState
-import ac.mdiq.podcini.storage.model.Rating
+import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.ui.activity.MainActivity
@@ -45,7 +45,6 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import android.app.Activity.RESULT_OK
@@ -229,7 +228,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var countAscending by mutableStateOf(true)
     internal var dateSortIndex by mutableIntStateOf(0)
     internal var timeSortIndex by mutableIntStateOf(0)
-    internal val playStateSort = MutableList(PlayState.entries.size) { mutableStateOf(false) }
+    internal val episodeStateSort = MutableList(EpisodeState.entries.size) { mutableStateOf(false) }
     internal val playStateCodeSet = mutableSetOf<String>()
     internal val ratingSort = MutableList(Rating.entries.size) { mutableStateOf(false) }
     internal val ratingCodeSet = mutableSetOf<String>()
@@ -348,8 +347,8 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
 
     private fun sortArrays2CodeSet() {
         playStateCodeSet.clear()
-        for (i in playStateSort.indices) {
-            if (playStateSort[i].value) playStateCodeSet.add(PlayState.entries[i].code.toString())
+        for (i in episodeStateSort.indices) {
+            if (episodeStateSort[i].value) playStateCodeSet.add(EpisodeState.entries[i].code.toString())
         }
         ratingCodeSet.clear()
         for (i in ratingSort.indices) {
@@ -357,8 +356,8 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
     private fun sortArraysFromCodeSet() {
-        for (i in playStateSort.indices) playStateSort[i].value = false
-        for (c in playStateCodeSet) playStateSort[PlayState.fromCode(c.toInt()).ordinal].value = true
+        for (i in episodeStateSort.indices) episodeStateSort[i].value = false
+        for (c in playStateCodeSet) episodeStateSort[EpisodeState.fromCode(c.toInt()).ordinal].value = true
         for (i in ratingSort.indices) ratingSort[i].value = false
         for (c in ratingCodeSet) ratingSort[Rating.fromCode(c.toInt()).ordinal].value = true
     }
@@ -457,10 +456,10 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                 when (dateSortIndex) {
                     FeedDateSortIndex.Publish.ordinal -> {  // date publish
                         var playStateQueries = ""
-                        for (i in playStateSort.indices) {
-                            if (playStateSort[i].value) {
+                        for (i in episodeStateSort.indices) {
+                            if (episodeStateSort[i].value) {
                                 if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
-                                playStateQueries += " playState == ${PlayState.entries[i].code} "
+                                playStateQueries += " playState == ${EpisodeState.entries[i].code} "
                             }
                         }
                         var queryString = "feedId == $0"
@@ -514,10 +513,10 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
             FeedSortIndex.Count.ordinal -> {   // count
                 val dir = if (countAscending) 1 else -1
                 var playStateQueries = ""
-                for (i in playStateSort.indices) {
-                    if (playStateSort[i].value) {
+                for (i in episodeStateSort.indices) {
+                    if (episodeStateSort[i].value) {
                         if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
-                        playStateQueries += " playState == ${PlayState.entries[i].code} "
+                        playStateQueries += " playState == ${EpisodeState.entries[i].code} "
                     }
                 }
                 var ratingQueries = ""
@@ -1316,13 +1315,13 @@ fun SubscriptionsScreen() {
                                 Spacer(Modifier.weight(1f))
                                 if (expandRow) Text("<<<", color = if (lowerSelected) Color.Green else textColor, style = MaterialTheme.typography.headlineSmall,
                                     modifier = Modifier.clickable {
-                                        val hIndex = vm.playStateSort.indexOfLast { it.value }
+                                        val hIndex = vm.episodeStateSort.indexOfLast { it.value }
                                         if (hIndex < 0) return@clickable
                                         if (!lowerSelected) {
-                                            for (i in 0..hIndex) vm.playStateSort[i].value = true
+                                            for (i in 0..hIndex) vm.episodeStateSort[i].value = true
                                         } else {
-                                            for (i in 0..hIndex) vm.playStateSort[i].value = false
-                                            vm.playStateSort[hIndex].value = true
+                                            for (i in 0..hIndex) vm.episodeStateSort[i].value = false
+                                            vm.episodeStateSort[hIndex].value = true
                                         }
                                         lowerSelected = !lowerSelected
                                         fetchAndSortRoutine()
@@ -1332,19 +1331,19 @@ fun SubscriptionsScreen() {
                                     modifier = Modifier.clickable {
                                         lowerSelected = false
                                         higherSelected = false
-                                        for (i in item.properties.indices) vm.playStateSort[i].value = false
+                                        for (i in item.properties.indices) vm.episodeStateSort[i].value = false
                                         fetchAndSortRoutine()
                                     })
                                 Spacer(Modifier.weight(1f))
                                 if (expandRow) Text(">>>", color = if (higherSelected) Color.Green else textColor, style = MaterialTheme.typography.headlineSmall,
                                     modifier = Modifier.clickable {
-                                        val lIndex = vm.playStateSort.indexOfFirst { it.value }
+                                        val lIndex = vm.episodeStateSort.indexOfFirst { it.value }
                                         if (lIndex < 0) return@clickable
                                         if (!higherSelected) {
-                                            for (i in lIndex..<item.properties.size) vm.playStateSort[i].value = true
+                                            for (i in lIndex..<item.properties.size) vm.episodeStateSort[i].value = true
                                         } else {
-                                            for (i in lIndex..<item.properties.size) vm.playStateSort[i].value = false
-                                            vm.playStateSort[lIndex].value = true
+                                            for (i in lIndex..<item.properties.size) vm.episodeStateSort[i].value = false
+                                            vm.episodeStateSort[lIndex].value = true
                                         }
                                         higherSelected = !higherSelected
                                         fetchAndSortRoutine()
@@ -1352,16 +1351,16 @@ fun SubscriptionsScreen() {
                                 Spacer(Modifier.weight(1f))
                             }
                             if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size) { index ->
-                                if (selectNone) vm.playStateSort[index].value = false
+                                if (selectNone) vm.episodeStateSort[index].value = false
                                 LaunchedEffect(Unit) {
 //                                if (filter != null && item.values[index].filterId in filter.properties) selectedList[index].value = true
                                 }
                                 OutlinedButton(
                                     modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
-                                    border = BorderStroke(2.dp, if (vm.playStateSort[index].value) Color.Green else textColor),
+                                    border = BorderStroke(2.dp, if (vm.episodeStateSort[index].value) Color.Green else textColor),
                                     onClick = {
                                         selectNone = false
-                                        vm.playStateSort[index].value = !vm.playStateSort[index].value
+                                        vm.episodeStateSort[index].value = !vm.episodeStateSort[index].value
                                         fetchAndSortRoutine()
                                     },
                                 ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }

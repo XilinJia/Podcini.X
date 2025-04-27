@@ -14,8 +14,8 @@ import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.MediaType
-import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import android.content.Context
@@ -123,7 +123,7 @@ object LocalFeedUpdater {
     }
 
     private fun createEpisode(feed: Feed, file: FastDocumentFile, context: Context): Episode {
-        val item = Episode(0L, file.name, UUID.randomUUID().toString(), file.name, Date(file.lastModified), PlayState.UNPLAYED.code, feed)
+        val item = Episode(0L, file.name, UUID.randomUUID().toString(), file.name, Date(file.lastModified), EpisodeState.UNPLAYED.code, feed)
         item.disableAutoDownload()
         val size = file.length
         Logd(TAG, "createEpisode file.uri: ${file.uri}")

@@ -26,8 +26,8 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.model.Feed.Companion.newId
-import ac.mdiq.podcini.storage.model.MediaType
-import ac.mdiq.podcini.storage.model.PlayState
+import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.StorageUtils.feedfilePath
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -39,7 +39,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.ext.asFlow
-import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.InitialResults
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
@@ -332,7 +331,7 @@ object Feeds {
                 val pubDate = episode.getPubDate()
                 if (priorMostRecentDate == null || priorMostRecentDate.before(pubDate) || priorMostRecentDate == pubDate) {
                     Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
-                    episode.setPlayState(PlayState.NEW)
+                    episode.setPlayState(EpisodeState.NEW)
                     if (savedFeed.autoAddNewToQueue) {
                         val q = savedFeed.queue
                         if (q != null) runOnIOScope {  addToQueueSync(episode, q) }
@@ -412,7 +411,7 @@ object Feeds {
 
             if (priorMostRecentDate < pubDate) {
                 Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
-                episode.setPlayState(PlayState.NEW)
+                episode.setPlayState(EpisodeState.NEW)
                 if (savedFeed.autoAddNewToQueue) {
                     val q = savedFeed.queue
                     if (q != null) runOnIOScope {  addToQueueSync(episode, q) }

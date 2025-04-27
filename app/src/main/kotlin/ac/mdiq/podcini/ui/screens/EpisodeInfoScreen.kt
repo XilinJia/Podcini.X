@@ -19,8 +19,8 @@ import ac.mdiq.podcini.storage.database.RealmDB.unsubscribeEpisode
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.PlayState
-import ac.mdiq.podcini.storage.model.Rating
+import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
@@ -148,7 +148,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     internal var hasMedia by mutableStateOf(true)
     var rating by mutableIntStateOf(episode?.rating ?: Rating.UNRATED.code)
     internal var inQueue by mutableStateOf(false)
-    var isPlayed by mutableIntStateOf(episode?.playState ?: PlayState.UNSPECIFIED.code)
+    var isPlayed by mutableIntStateOf(episode?.playState ?: EpisodeState.UNSPECIFIED.code)
     var hasRelations by mutableStateOf(false)
 
     var showShareDialog by mutableStateOf(false)
@@ -432,7 +432,7 @@ fun EpisodeInfoScreen() {
         TopAppBar(title = { Text("") },
             navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
             actions = {
-                IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(PlayState.fromCode(vm.isPlayed).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(vm.isPlayed).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                 if (vm.episode != null) {
                     if (!vm.inQueue) IconButton(onClick = { runOnIOScope { addToQueueSync(vm.episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     else IconButton(onClick = { runOnIOScope { removeFromQueueSync(vm.episode!!.feed?.queue ?: curQueue, vm.episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_remove), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
@@ -527,7 +527,7 @@ fun EpisodeInfoScreen() {
                 if (vm.hasRelations) {
                     var showTodayStats by remember { mutableStateOf(false) }
                     if (showTodayStats) RelatedEpisodesDialog(vm.episode!!) { showTodayStats = false }
-                    Text(stringResource(R.string.related), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
+                    Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
                 }
             }
         }
