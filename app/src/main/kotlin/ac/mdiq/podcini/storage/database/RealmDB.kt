@@ -8,13 +8,12 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.PlayQueue
-import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.showStackTrace
 import android.net.Uri
 import io.github.xilinjia.krdb.MutableRealm
@@ -402,7 +401,7 @@ object RealmDB {
             }
             Logd(TAG, "subscribeEpisode ${entity.tag} ${episode.id} ${episode.title}")
             Logd(TAG, "subscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
-            for ((k,v) in idMonitorsMap.entries) for (e in v.entities) Logd(TAG, "subscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
+            for ((k,v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "subscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
             subscriptionLock = false
         }
     }
@@ -427,7 +426,7 @@ object RealmDB {
                 Logd(TAG, "subscribeEpisode ${entity.tag} ${episode.id} ${episode.title}")
             }
             Logd(TAG, "subscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
-            for ((k,v) in idMonitorsMap.entries) for (e in v.entities) Logd(TAG, "subscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
+            for ((k,v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "subscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
             subscriptionLock = false
         }
     }
@@ -448,7 +447,7 @@ object RealmDB {
             }
             Logd(TAG, "unsubscribeEpisode $tag ${episode.id} ${episode.title}")
             Logd(TAG, "unsubscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
-            for ((k,v) in idMonitorsMap.entries) for (e in v.entities) Logd(TAG, "unsubscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
+            for ((k,v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "unsubscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
             subscriptionLock = false
         }
     }
@@ -472,7 +471,7 @@ object RealmDB {
                 }
             }
             Logd(TAG, "unsubscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
-            for ((k,v) in idMonitorsMap.entries) for (e in v.entities) Logd(TAG, "unsubscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
+            for ((k,v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "unsubscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
             subscriptionLock = false
         }
     }
