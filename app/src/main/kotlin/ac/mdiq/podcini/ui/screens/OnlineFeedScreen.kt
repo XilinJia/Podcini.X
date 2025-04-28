@@ -337,7 +337,6 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun showEpisodes() {
         if (feed == null) return
         episodes = feed!!.episodes
-//        stopMonitor(vms)
         vms.clear()
         buildMoreItems()
         infoBarText.value = "${episodes.size} episodes"
@@ -429,12 +428,10 @@ fun OnlineFeedScreen() {
                         vm.lookupUrlAndBuild(vm.feedUrl)
                     }
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
-//                    vm.refreshSwipeTelltale()
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.isPaused = false
                     vm.procFlowEvents()
-//                    stopMonitor(vm.vms)
                     vm.vms.clear()
                     vm.buildMoreItems()
                     vm.infoBarText.value = "${vm.episodes.size} episodes"
@@ -453,7 +450,6 @@ fun OnlineFeedScreen() {
         onDispose {
             vm.feeds = null
             vm.episodes.clear()
-//            stopMonitor(vm.vms)
             vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }

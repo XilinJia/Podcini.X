@@ -222,7 +222,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             FlowEvent.QueueEvent.Action.SET_QUEUE, FlowEvent.QueueEvent.Action.SORTED -> {
                 queueItems.clear()
                 queueItems.addAll(event.episodes)
-//                stopMonitor(vms)
                 vms.clear()
                 for (e in event.episodes) vms.add(EpisodeVM(e, TAG))
             }
@@ -234,10 +233,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                         Logd(TAG, "removing episode $pos ${queueItems[pos].title}")
                         if (pos < vms.size) {
                             Logd(TAG, "vms at $pos ${vms[pos].episode.title}")
-                            if (vms[pos].episode.id == e.id) {
-//                                vms[pos].stopMonitoring()
-                                vms.removeAt(pos)
-                            }
+                            if (vms[pos].episode.id == e.id) vms.removeAt(pos)
                         }
                         queueItems.removeAt(pos)
                     }
@@ -249,7 +245,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             }
             FlowEvent.QueueEvent.Action.CLEARED -> {
                 queueItems.clear()
-//                stopMonitor(vms)
                 vms.clear()
             }
             FlowEvent.QueueEvent.Action.MOVED, FlowEvent.QueueEvent.Action.DELETED_MEDIA -> return
@@ -286,7 +281,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             while (curQueue.name.isEmpty()) runBlocking { delay(100) }
             feedsAssociated = realm.query(Feed::class).query("queueId == ${curQueue.id}").find()
             queueItems.clear()
-//            stopMonitor(vms)
             vms.clear()
             if (showBin) queueItems.addAll(realm.query(Episode::class, "id IN $0", curQueue.idsBinList).find().sortedByDescending { curQueue.idsBinList.indexOf(it.id) })
             else {
@@ -339,11 +333,8 @@ fun QueuesScreen() {
     val context = LocalContext.current
     val vm = remember { QueuesVM(context, scope) }
 
-//        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
-//        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
 //        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
 
-//    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -355,10 +346,9 @@ fun QueuesScreen() {
                     vm.spinnerTexts.addAll(vm.queues.map { "${it.name} : ${it.size()}" })
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActionsBin)
-//                    lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
+                    vm.loadCurQueue(true)
                 }
                 Lifecycle.Event.ON_START -> {
-                    vm.loadCurQueue(true)
                     vm.procFlowEvents()
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     vm.browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
@@ -382,7 +372,6 @@ fun QueuesScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             vm.queueItems.clear()
-//            stopMonitor(vm.vms)
             vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -621,7 +610,7 @@ fun QueuesScreen() {
         if (vm.showBin) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                 InforBar(vm.infoBarText, vm.swipeActionsBin)
-                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true, swipeActions = vm.swipeActionsBin)
+                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, swipeActions = vm.swipeActionsBin)
             }
         } else {
             if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
@@ -633,7 +622,7 @@ fun QueuesScreen() {
                         vm.reorderQueue(sortOrder, true)
                     }
                     InforBar(vm.infoBarText, vm.swipeActions)
-                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true,
+                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
                         isDraggable = vm.dragDropEnabled, dragCB = { iFrom, iTo -> runOnIOScope { moveInQueueSync(iFrom, iTo, true) } },
                         swipeActions = vm.swipeActions,
                     )

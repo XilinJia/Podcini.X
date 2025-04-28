@@ -180,7 +180,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         if (query.isBlank()) return
         if (searchJob != null) {
             searchJob?.cancel()
-//            stopMonitor(vms)
             vms.clear()
         }
         searchJob = lcScope.launch {
@@ -199,7 +198,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                 withContext(Dispatchers.Main) {
                     val first_ = results_.episodes
                     episodes.clear()
-//                    stopMonitor(vms)
                     vms.clear()
                     if (first_.isNotEmpty()) {
                         episodes.addAll(first_)
@@ -376,7 +374,6 @@ fun SearchScreen() {
         onDispose {
             vm.episodes.clear()
             vm.feeds.clear()
-//            stopMonitor(vm.vms)
             vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -545,7 +542,7 @@ fun SearchScreen() {
             when (selectedTabIndex.intValue) {
                 0 -> {
                     InforBar(vm.infoBarText, vm.swipeActions)
-                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, doMonitor = true, buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions, )
+                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions, )
                 }
                 1 -> FeedsColumn()
                 2 -> PAFeedsColumn()

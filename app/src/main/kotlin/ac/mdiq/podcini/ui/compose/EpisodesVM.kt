@@ -189,6 +189,8 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -263,7 +265,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     var inProgressState by mutableStateOf(episode.isInProgress)
     var downloadState by mutableIntStateOf(if (episode.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal)
     var viewCount by mutableIntStateOf(episode.viewCount)
-    var actionButton by mutableStateOf(NullActionButton(episode).forItem(episode))
+    var actionButton by mutableStateOf(NullActionButton(episode).update(episode))
     var showAltActionsDialog by mutableStateOf(false)
     var dlPercent by mutableIntStateOf(0)
     var isSelected by mutableStateOf(false)
@@ -279,8 +281,8 @@ class EpisodeVM(var episode: Episode, val tag: String) {
         Logd(TAG, "updateVM onChange ${e.title} ")
         if (episode.id == e.id) {
             episode = e
-            Logd(TAG, "updateVM fields: fa.joinToString()")
             withContext(Dispatchers.Main) {
+                Logd(TAG, "updateVM fields: ${fa.joinToString()} ${e.position}")
                 playedState = e.playState
                 ratingState = e.rating
                 downloadState = if (e.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
@@ -570,7 +572,7 @@ enum class LayoutMode {
 @Composable
 fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed: Feed? = null, layoutMode: Int = LayoutMode.Normal.ordinal,
                       showCoverImage: Boolean = true, forceFeedImage: Boolean = false,
-                      showActionButtons: Boolean = true, showComment: Boolean = false, doMonitor: Boolean = false,
+                      showActionButtons: Boolean = true, showComment: Boolean = false,
                       buildMoreItems: (()->Unit) = {},
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       swipeActions: SwipeActions? = null,
@@ -921,7 +923,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                         LaunchedEffect(playerStat) {
                             if (vm.episode.id == curMediaId) {
                                 Logd(TAG, "LaunchedEffect playerStat")
-                                vm.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(vm.episode) else vm.actionButton.forItem(vm.episode)
+                                vm.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(vm.episode) else vm.actionButton.update(vm.episode)
                             }
                         }
                     } else LaunchedEffect(Unit) { vm.actionButton = actionButton_(vm.episode) }
@@ -939,7 +941,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                                             vm.updateVMFromDB()
                                             Logd(TAG, "vm.downloadState: ${vm.downloadState}")
                                             if (vm.downloadState == DownloadStatus.State.COMPLETED.ordinal) {
-                                                vm.actionButton = vm.actionButton.forItem(vm.episode)
+                                                vm.actionButton = vm.actionButton.update(vm.episode)
                                                 return@runOnIOScope
                                             }
                                         }
@@ -953,7 +955,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                         if (isDownloading() && vm.dlPercent >= 0) CircularProgressIndicator(progress = { 0.01f * vm.dlPercent }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                         if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                     }
-                    if (vm.showAltActionsDialog) vm.actionButton.AltActionsDialog(activity, onDismiss = { vm.showAltActionsDialog = false })
+                    if (vm.showAltActionsDialog) vm.actionButton.AltActionsDialog(activity, onDismiss = { vm.showAltActionsDialog = false }, cb = { vm.actionButton = it })
                 }
             }
         }
@@ -961,14 +963,15 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
 
     @Composable
     fun ProgressRow(vm: EpisodeVM, index: Int) {
-        val textColor = MaterialTheme.colorScheme.onSurface
+        Logd(TAG, "ProgressRow vm.inProgressState: ${vm.inProgressState} ${InTheatre.isCurMedia(vm.episode)} ${vm.episode.title}")
         if (vm.inProgressState || InTheatre.isCurMedia(vm.episode)) {
-            val pos by remember { derivedStateOf { vm.positionState } }
-            val dur = remember(vm.episode) { vm.episode.duration }
-            val durText = remember(dur) { getDurationStringLong(dur) }
-            val posText by remember { derivedStateOf { getDurationStringLong(vm.positionState) } }
-            vm.prog = if (dur > 0 && pos >= 0 && dur >= pos) 1.0f * pos / dur else 0f
+            val textColor = MaterialTheme.colorScheme.onSurface
+            val pos by remember(vm.episode.id) { derivedStateOf { vm.positionState } }
+            val dur = remember(vm.episode.id) { vm.episode.duration }
+            vm.prog = remember(vm.episode.id, pos) { if (dur > 0 && pos >= 0 && dur >= pos) 1f * pos / dur else 0f }
             Logd(TAG, "$index vm.prog: ${vm.prog}")
+            val durText = getDurationStringLong(dur)
+            val posText = getDurationStringLong(pos)
             Row {
                 Text(posText, color = textColor, style = MaterialTheme.typography.bodySmall)
                 LinearProgressIndicator(progress = { vm.prog }, modifier = Modifier.weight(1f).height(4.dp).align(Alignment.CenterVertically))
@@ -1006,30 +1009,40 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
             }
         }
         var curVM by remember { mutableStateOf<EpisodeVM?>(null) }
+        var subscribeLock by remember { mutableStateOf(false) }
         fun subscribeCurVM() {
-            Logd(TAG, "subscribeCurVM ${curVM?.episode?.id} $curMediaId")
+            if (subscribeLock) return
+            subscribeLock = true
             if (curVM?.episode?.id != curMediaId) {
+                Logd(TAG, "subscribeCurVM ${curVM?.episode?.id} $curMediaId")
                 if (curVM != null) {
                     unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
-                    curVM!!.actionButton = curVM!!.actionButton.forItem(curVM!!.episode)
+                    curVM!!.actionButton = curVM!!.actionButton.update(curVM!!.episode)
                     curVM = null
                 }
                 if (curMediaId > 0) {
-                    val visibleItems = lazyListState.layoutInfo.visibleItemsInfo.mapNotNull { vms.getOrNull(it.index) }
-                    for (vm in visibleItems) {
-                        if (vm.episode.id == curMediaId) {
-                            Logd(TAG, "subscribeCurVM start monitor ${vm.episode.title}")
-                            subscribeEpisode(vm.episode, MonitorEntity(vm.tag, onChanges = { e, fields -> vm.updateVM(e, fields) }))
-                            curVM = vm
-                            break
-                        }
+                    coroutineScope.launch {
+                        snapshotFlow { lazyListState.layoutInfo }
+                            .filter { it.visibleItemsInfo.isNotEmpty() }
+                            .first()
+                            .let {
+                                val visibleItems = it.visibleItemsInfo.mapNotNull { vms.getOrNull(it.index) }
+                                val vm = visibleItems.find { it.episode.id == curMediaId }
+                                if (vm != null) {
+                                    Logd(TAG, "subscribeCurVM start monitor ${vm.episode.title}")
+                                    subscribeEpisode(vm.episode, MonitorEntity(vm.tag, onChanges = { e, fields -> vm.updateVM(e, fields) }))
+                                    curVM = vm
+                                    curVM!!.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(curVM!!.episode) else curVM!!.actionButton.update(curVM!!.episode)
+                                }
+                            }
                     }
                 }
             }
+            subscribeLock = false
         }
 
         val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
-        LaunchedEffect(curMediaId) {
+        LaunchedEffect(curMediaId, vms) {
             Logd(TAG, "LaunchedEffect curMediaId")
             subscribeCurVM()
         }
@@ -1048,13 +1061,47 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
             }
             onDispose { job.cancel() }
         }
+        var forceRecomposeKey by remember { mutableIntStateOf(0) }
         val lifecycleOwner = LocalLifecycleOwner.current
         DisposableEffect(lifecycleOwner) {
-            val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_RESUME) subscribeCurVM() }
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_START) {
+                    coroutineScope.launch {
+                        lazyListState.scrollToItem(
+                            lazyListState.firstVisibleItemIndex,
+                            lazyListState.firstVisibleItemScrollOffset
+                        )
+//                        forceRecomposeKey++
+                        Logd(TAG, "Screen on, triggered scroll for recomposition")
+                    }
+                }
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    Logd(TAG, "DisposableEffect lifecycleOwner ${curVM?.episode?.id} $curMediaId")
+                    if (curVM?.episode?.id == curMediaId) {
+                        runOnIOScope {
+                            curVM?.updateVMFromDB()
+                            withContext(Dispatchers.Main) {
+                                curVM!!.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(curVM!!.episode) else curVM!!.actionButton.update(curVM!!.episode)
+                            }
+                        }
+                    } else subscribeCurVM()
+                }
+            }
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose {
                 Logd(TAG, "DisposableEffect lifecycleOwner onDispose")
                 lifecycleOwner.lifecycle.removeObserver(observer)
+            }
+        }
+
+        LaunchedEffect(vms) {
+            if (vms.isEmpty()) {
+                Logd(TAG, "vms is empty, performing cleanup")
+                if (curVM != null) {
+                    unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
+                    curVM!!.actionButton = curVM!!.actionButton.update(curVM!!.episode)
+                    curVM = null
+                }
             }
         }
 
@@ -1063,13 +1110,14 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                 Logd(TAG, "DisposableEffect onDispose")
                 if (curVM != null) {
                     unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
+                    curVM!!.actionButton = curVM!!.actionButton.update(curVM!!.episode)
                     curVM = null
                 }
             }
         }
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            itemsIndexed(vms, key = { _, vm -> vm.episode.id}) { index, vm ->
+            itemsIndexed(vms, key = { _, vm -> vm.episode.id to forceRecomposeKey }) { index, vm ->
                 val velocityTracker = remember { VelocityTracker() }
                 val offsetX = remember { Animatable(0f) }
                 Box(modifier = Modifier.fillMaxWidth().pointerInput(Unit) {

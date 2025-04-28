@@ -316,6 +316,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 if (almostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
                 deleteEpisodesWarnLocalRepeat(context, listOf(item_))
                 vm.updateVMFromDB()
+                vm.actionButton = vm.actionButton.update(vm.episode)
             }
         }
     }

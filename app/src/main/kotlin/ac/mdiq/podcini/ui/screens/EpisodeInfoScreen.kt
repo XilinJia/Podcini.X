@@ -475,7 +475,7 @@ fun EpisodeInfoScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         val buttonColor = MaterialTheme.colorScheme.tertiary
         var showAltActionsDialog by remember { mutableStateOf(false) }
-        if (showAltActionsDialog) vm.actionButton1?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
+        if (showAltActionsDialog) vm.actionButton1?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false }, cb = { vm.actionButton1 = it })
         LaunchedEffect(key1 = status) { vm.actionButton1 = vm.getButton() }
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {

@@ -1,3 +1,8 @@
+# 8.16.3
+
+* further enhancements in EpisodeVM for better monitoring of curEpisode
+* amended ActionButtons on better getting action results
+
 # 8.16.2
 
 * amended color of timeLeft on PlayerUI and "Related" in EpisodeInfo

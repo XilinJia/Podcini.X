@@ -232,7 +232,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         Logd(TAG, "loadItems() called")
         if (loadJob != null) {
             loadJob?.cancel()
-//            stopMonitor(vms)
             vms.clear()
         }
         loadJob = lcScope.launch {
@@ -253,7 +252,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 withContext(Dispatchers.Main) {
                     if (showFeeds) loadAssociatedFeeds()
-//                    stopMonitor(vms)
                     vms.clear()
                     buildMoreItems()
                     updateToolbar()
@@ -518,16 +516,13 @@ fun FacetsScreen() {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
-//                    vm.refreshSwipeTelltale()
                     vm.curIndex = getPref(AppPrefs.prefFacetsCurIndex, 0)
                     vm.tag = TAG+QuickAccess.entries[vm.curIndex]
                     sortOrder = vm.episodesSortOrder
                     vm.updateToolbar()
-                }
-                Lifecycle.Event.ON_START -> {
-                    vm.procFlowEvents()
                     vm.loadItems()
                 }
+                Lifecycle.Event.ON_START -> vm.procFlowEvents()
                 Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
@@ -537,7 +532,6 @@ fun FacetsScreen() {
         onDispose {
             vm.episodes.clear()
             vm.feedsAssociated.clear()
-//            stopMonitor(vm.vms)
             vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
@@ -670,7 +664,7 @@ fun FacetsScreen() {
             val info = remember(vm.infoBarText, vm.progressing) { derivedStateOf { vm.infoBarText.value + if (vm.progressing) " - ${context.getString(R.string.progressing_label)}" else "" }}
             InforBar(info, vm.swipeActions)
             val showComment = vm.spinnerTexts[vm.curIndex] == QuickAccess.Commented.name
-            EpisodeLazyColumn(context, vms = vm.vms, showComment = showComment, showActionButtons = !showComment, doMonitor = true,
+            EpisodeLazyColumn(context, vms = vm.vms, showComment = showComment, showActionButtons = !showComment,
                 buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions, actionButton_ = vm.actionButtonToPass,
             )
         }

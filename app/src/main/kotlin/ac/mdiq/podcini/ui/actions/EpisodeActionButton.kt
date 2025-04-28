@@ -90,7 +90,7 @@ abstract class EpisodeActionButton internal constructor(@JvmField var item: Epis
 
     abstract fun onClick(context: Context): EpisodeActionButton
 
-    open fun forItem(item_: Episode): EpisodeActionButton {
+    open fun update(item_: Episode): EpisodeActionButton {
         item = item_
         // TODO: ensure TTS
 //        val media = item.media ?: return TTSActionButton(item)
@@ -111,44 +111,44 @@ abstract class EpisodeActionButton internal constructor(@JvmField var item: Epis
     }
 
     @Composable
-    fun AltActionsDialog(context: Context, includeTTS: Boolean = false, onDismiss: () -> Unit) {
+    fun AltActionsDialog(context: Context, includeTTS: Boolean = false, onDismiss: () -> Unit, cb: (EpisodeActionButton)->Unit) {
         Dialog(onDismissRequest = onDismiss) {
             Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                 Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Logd(TAG, "button label: $label")
                     if (label != R.string.play_label && label != R.string.pause_label && label != R.string.stream_label && label != R.string.download_label) {
                         IconButton(onClick = {
-                            PlayActionButton(item).onClick(context)
+                            cb(PlayActionButton(item).onClick(context))
                             onDismiss()
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_play_24dp), contentDescription = "Play") }
                     }
                     if (label != R.string.stream_label && label != R.string.play_label && label != R.string.pause_label && label != R.string.delete_label) {
                         IconButton(onClick = {
-                            StreamActionButton(item).onClick(context)
+                            cb(StreamActionButton(item).onClick(context))
                             onDismiss()
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_stream), contentDescription = "Stream") }
                     }
                     if (label != R.string.download_label && label != R.string.play_label && label != R.string.delete_label) {
                         IconButton(onClick = {
-                            DownloadActionButton(item).onClick(context)
+                            cb(DownloadActionButton(item).onClick(context))
                             onDismiss()
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_download), contentDescription = "Download") }
                     }
                     if (label != R.string.delete_label && label != R.string.download_label && label != R.string.stream_label) {
                         IconButton(onClick = {
-                            DeleteActionButton(item).onClick(context)
+                            cb(DeleteActionButton(item).onClick(context))
                             onDismiss()
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "Delete") }
                     }
                     if (label != R.string.visit_website_label) {
                         IconButton(onClick = {
-                            VisitWebsiteActionButton(item).onClick(context)
+                            cb(VisitWebsiteActionButton(item).onClick(context))
                             onDismiss()
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "Web") }
                     }
                     if (includeTTS && label != R.string.TTS_label) {
                         IconButton(onClick = {
-                            TTSActionButton(item).onClick(context)
+                            cb(TTSActionButton(item).onClick(context))
                             onDismiss()
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech), contentDescription = "TTS") }
                     }
@@ -177,7 +177,7 @@ class VisitWebsiteActionButton(item: Episode) : EpisodeActionButton(item, R.stri
         return this
     }
 
-    override fun forItem(item_: Episode): EpisodeActionButton {
+    override fun update(item_: Episode): EpisodeActionButton {
         item = item_
         return this
     }
@@ -201,13 +201,13 @@ class PlayActionButton(item: Episode) : EpisodeActionButton(item, R.string.play_
             Loge(TAG, context.getString(R.string.error_file_not_found) + ": ${item.title}")
             val episode_ = upsertBlk(item) { it.setfileUrlOrNull(null) }
             EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode_))
-            return super.forItem(episode_)
+            return super.update(episode_)
         }
         PlaybackStarter(context, item).start()
         playVideoIfNeeded(context, item)
         return PauseActionButton(item)
     }
-    override fun forItem(item_: Episode): EpisodeActionButton {
+    override fun update(item_: Episode): EpisodeActionButton {
         item = item_
         if (isCurrentlyPlaying(item)) return PauseActionButton(item)
         return this
@@ -239,7 +239,7 @@ class StreamActionButton(item: Episode) : EpisodeActionButton(item, R.string.str
         stream()
         return PauseActionButton(item)
     }
-    override fun forItem(item_: Episode): EpisodeActionButton {
+    override fun update(item_: Episode): EpisodeActionButton {
         item = item_
         if (isCurrentlyPlaying(item)) return PauseActionButton(item)
         return this
@@ -253,7 +253,7 @@ class DeleteActionButton(item: Episode) : EpisodeActionButton(item, R.string.del
         }
     override fun onClick(context: Context): EpisodeActionButton {
         runOnIOScope { deleteEpisodesWarnLocalRepeat(context, listOf(item)) }
-        return forItem(item)
+        return update(item)
     }
 }
 
@@ -272,19 +272,19 @@ class PauseActionButton(item: Episode) : EpisodeActionButton(item, R.string.paus
 //        if (isCurrentlyPlaying(item)) context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_PAUSE))
         if (isCurrentlyPlaying(item)) {
             playPause()
-            return forItem(item)
+            return update(item)
         }
         return this
     }
-    override fun forItem(item_: Episode): EpisodeActionButton {
+    override fun update(item_: Episode): EpisodeActionButton {
         item = item_
         return when {
-            isCurrentlyPlaying(item) -> this
+//            isCurrentlyPlaying(item) -> this
             item.feed?.isLocalFeed == true -> PlayLocalActionButton(item)
             item.downloaded -> PlayActionButton(item)
             item.feed == null || item.feedId == null || item.feed?.type == Feed.FeedType.YOUTUBE.name
                     || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> StreamActionButton(item)
-            else -> this
+            else -> DownloadActionButton(item)
         }
     }
 }
@@ -469,7 +469,7 @@ class PlayLocalActionButton(item: Episode) : EpisodeActionButton(item, R.string.
         if (item.getMediaType() == MediaType.VIDEO) context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
         return PauseActionButton(item)
     }
-    override fun forItem(item_: Episode): EpisodeActionButton {
+    override fun update(item_: Episode): EpisodeActionButton {
         item = item_
         if (isCurrentlyPlaying(item)) return PauseActionButton(item)
         return this

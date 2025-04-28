@@ -260,7 +260,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         if (loadJob != null) {
             if (force) {
                 loadJob?.cancel()
-//                stopMonitor(vms)
                 vms.clear()
             } else return
         }
@@ -285,7 +284,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                         episodes.addAll(eListTmp)
                         withContext(Dispatchers.Main) {
                             layoutModeIndex = if (feed_.useWideLayout) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
-//                            stopMonitor(vms)
                             vms.clear()
                             buildMoreItems()
                         }
@@ -355,7 +353,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         if (filterJob != null) {
             Logd(TAG, "filterLongClick cancelling job")
             filterJob?.cancel()
-//            stopMonitor(vms)
             vms.clear()
         }
         filterJob = lcScope.launch {
@@ -374,7 +371,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 episodes.addAll(eListTmp)
             }
             withContext(Dispatchers.Main) {
-//                stopMonitor(vms)
                 vms.clear()
                 for (e in eListTmp) vms.add(EpisodeVM(e, TAG))
             }
@@ -428,11 +424,9 @@ fun FeedDetailsScreen() {
                     if (!vm.feed?.link.isNullOrEmpty()) vm.isCallable = IntentUtils.isCallable(context, Intent(Intent.ACTION_VIEW, vm.feed!!.link!!.toUri()))
                     saveLastNavScreen(TAG, vm.feedID.toString())
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
-                }
-                Lifecycle.Event.ON_START -> {
                     vm.loadFeed()
-                    vm.procFlowEvents()
                 }
+                Lifecycle.Event.ON_START -> vm.procFlowEvents()
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
                 Lifecycle.Event.ON_DESTROY -> {}
@@ -443,7 +437,6 @@ fun FeedDetailsScreen() {
         onDispose {
             vm.feed = null
             vm.episodes.clear()
-//            stopMonitor(vm.vms)
             vm.vms.clear()
             FEObj.tts?.stop()
             FEObj.tts?.shutdown()
@@ -778,7 +771,7 @@ fun FeedDetailsScreen() {
             FeedDetailsHeader()
             if (feedScreenMode == FeedScreenMode.List) {
                 InforBar(vm.infoBarText, vm.swipeActions)
-                EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex, doMonitor = true,
+                EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex,
                     buildMoreItems = { vm.buildMoreItems() },
                     refreshCB = { FeedUpdateManager.runOnceOrAsk(context, vm.feed) },
                     swipeActions = vm.swipeActions,
