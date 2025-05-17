@@ -335,7 +335,7 @@
     <string name="preset_already_exists">%1$.2f قبلاً به عنوان یک پیش تنظیم ذخیره شده است.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">این قسمت هیچ توضیحی ندارد.</string>
-    <string name="no_subscriptions_label">برای اشتراک در یک پادکست، آیکون بعلاوه را زیر را فشار دهید.</string>
+
     <!-- Preferences -->
     <string name="project_pref">پروژه</string>
     <string name="synchronization_pref">هم‌گام‌سازی</string>

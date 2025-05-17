@@ -335,7 +335,7 @@
     <string name="preset_already_exists">Már mentve lett előbeállításként: %1$.2fx.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Ehhez az epizódhoz nem tartozik adásnapló.</string>
-    <string name="no_subscriptions_label">Podcastra való feliratkozáshoz nyomja meg az alábbi plusz ikont.</string>
+
     <!-- Preferences -->
     <string name="project_pref">Projekt</string>
     <string name="synchronization_pref">Szinkronizálás</string>

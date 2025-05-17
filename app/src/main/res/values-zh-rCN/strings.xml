@@ -330,7 +330,7 @@
     <string name="preset_already_exists">%1$.2fx 已经保存为预设。</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">此剧集没有显示记录。</string>
-    <string name="no_subscriptions_label">要订阅播客，请点击下面的加号图标。</string>
+
     <!-- Preferences -->
     <string name="project_pref">项目</string>
     <string name="synchronization_pref">同步</string>

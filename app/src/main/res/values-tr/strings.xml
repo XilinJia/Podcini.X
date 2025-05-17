@@ -433,7 +433,7 @@
 
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Bu bölümde gösterim notları yok.</string>
-    <string name="no_subscriptions_label">Bir podcast\'e abone olmak için aşağıdaki artı simgesine basın.</string>
+
 
     <!-- Preferences -->
     <string name="project_pref">Proje</string>

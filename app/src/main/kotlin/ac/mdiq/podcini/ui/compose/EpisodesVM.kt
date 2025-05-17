@@ -997,7 +997,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     }
 
     var refreshing by remember { mutableStateOf(false)}
-    PullToRefreshBox(modifier = Modifier.fillMaxWidth(), isRefreshing = refreshing, indicator = {}, onRefresh = {
+    PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
         refreshing = true
         refreshCB?.invoke()
         refreshing = false
@@ -1116,12 +1116,17 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
             }
         }
 
-        LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             itemsIndexed(vms, key = { _, vm -> vm.episode.id to forceRecomposeKey }) { index, vm ->
                 val velocityTracker = remember { VelocityTracker() }
                 val offsetX = remember { Animatable(0f) }
                 Box(modifier = Modifier.fillMaxWidth().pointerInput(Unit) {
-                    detectHorizontalDragGestures(onDragStart = { velocityTracker.resetTracking() },
+                    detectHorizontalDragGestures(
+                        onDragStart = { velocityTracker.resetTracking() },
                         onHorizontalDrag = { change, dragAmount ->
 //                            Logd(TAG, "onHorizontalDrag $dragAmount")
                             velocityTracker.addPosition(change.uptimeMillis, change.position)
@@ -1146,11 +1151,17 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                     Column {
                         var yOffset by remember { mutableFloatStateOf(0f) }
                         var draggedIndex by remember { mutableStateOf<Int?>(null) }
-                        MainRow(vm, index, isBeingDragged = draggedIndex == index, yOffset = if (draggedIndex == index) yOffset else 0f,
-                            onDragStart = { draggedIndex = index }, onDrag = { delta -> yOffset += delta },
+                        MainRow(
+                            vm,
+                            index,
+                            isBeingDragged = draggedIndex == index,
+                            yOffset = if (draggedIndex == index) yOffset else 0f,
+                            onDragStart = { draggedIndex = index },
+                            onDrag = { delta -> yOffset += delta },
                             onDragEnd = {
                                 draggedIndex?.let { startIndex ->
-                                    val newIndex = (startIndex + (yOffset / rowHeightPx).toInt()).coerceIn(0, vms.lastIndex)
+                                    val newIndex =
+                                        (startIndex + (yOffset / rowHeightPx).toInt()).coerceIn(0, vms.lastIndex)
                                     Logd(TAG, "onDragEnd draggedIndex: $draggedIndex newIndex: $newIndex")
                                     if (newIndex != startIndex) {
                                         dragCB?.invoke(startIndex, newIndex)

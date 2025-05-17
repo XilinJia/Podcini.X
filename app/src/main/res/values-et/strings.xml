@@ -230,7 +230,7 @@
 
 
 
-  <string name="no_subscriptions_label">Taskuhäälingu tellimiseks vajuta all plussmärgil.</string>
+
   <!--Preferences-->
   <string name="project_pref">Projekt</string>
   <string name="synchronization_pref">Sünkroonimine</string>

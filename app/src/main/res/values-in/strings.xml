@@ -330,7 +330,7 @@
     <string name="preset_already_exists">%1$.2fx sudah disimpan sebagai preset.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Episode ini tidak mempunyai catatan acara.</string>
-    <string name="no_subscriptions_label">Untuk berlangganan podcast, tekan ikon plus dibawah.</string>
+
     <!-- Preferences -->
     <string name="project_pref">Projek</string>
     <string name="synchronization_pref">Sinkronisasi</string>

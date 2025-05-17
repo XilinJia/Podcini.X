@@ -699,65 +699,59 @@ class PlaybackService : MediaLibraryService() {
     }
 
     enum class NotificationCustomButton(val customAction: String, val commandButton: CommandButton) {
-        SKIP(
-            customAction = CUSTOM_COMMAND_SKIP_ACTION_ID,
-            commandButton = CommandButton.Builder()
+        SKIP(customAction = CUSTOM_COMMAND_SKIP_ACTION_ID,
+            commandButton = CommandButton.Builder(CommandButton.ICON_UNDEFINED)
                 .setDisplayName("Skip")
                 .setSessionCommand(SessionCommand(CUSTOM_COMMAND_SKIP_ACTION_ID, Bundle()))
-                .setIconResId(R.drawable.ic_notification_skip)
+                .setCustomIconResId(R.drawable.ic_notification_skip)
                 .build(),
         ),
-        REWIND(
-            customAction = CUSTOM_COMMAND_REWIND_ACTION_ID,
-            commandButton = CommandButton.Builder()
+        REWIND(customAction = CUSTOM_COMMAND_REWIND_ACTION_ID,
+            commandButton = CommandButton.Builder(CommandButton.ICON_UNDEFINED)
                 .setDisplayName("Rewind")
                 .setSessionCommand(SessionCommand(CUSTOM_COMMAND_REWIND_ACTION_ID, Bundle()))
-                .setIconResId(R.drawable.ic_notification_fast_rewind)
+                .setCustomIconResId(R.drawable.ic_notification_fast_rewind)
                 .build(),
         ),
-        FORWARD(
-            customAction = CUSTOM_COMMAND_FORWARD_ACTION_ID,
-            commandButton = CommandButton.Builder()
+        FORWARD(customAction = CUSTOM_COMMAND_FORWARD_ACTION_ID,
+            commandButton = CommandButton.Builder(CommandButton.ICON_UNDEFINED)
                 .setDisplayName("Forward")
                 .setSessionCommand(SessionCommand(CUSTOM_COMMAND_FORWARD_ACTION_ID, Bundle()))
-                .setIconResId(R.drawable.ic_notification_fast_forward)
+                .setCustomIconResId(R.drawable.ic_notification_fast_forward)
+                .build(),
+        ),
+        RESTART(customAction = CUSTOM_COMMAND_RESTART_ACTION_ID,
+            commandButton = CommandButton.Builder(CommandButton.ICON_UNDEFINED)
+                .setDisplayName("Restart")
+                .setSessionCommand(SessionCommand(CUSTOM_COMMAND_RESTART_ACTION_ID, Bundle()))
+                .setCustomIconResId(R.drawable.baseline_skip_previous_24)
                 .build(),
         ),
     }
-    
+
     class CustomMediaNotificationProvider(context: Context) : DefaultMediaNotificationProvider(context) {
-        override fun addNotificationActions(mediaSession: MediaSession, mediaButtons: ImmutableList<CommandButton>,
-                                            builder: NotificationCompat.Builder, actionFactory: MediaNotification.ActionFactory): IntArray {
-            /* Retrieving notification default play/pause button from mediaButtons list. */
+        override fun addNotificationActions(mediaSession: MediaSession, mediaButtons: ImmutableList<CommandButton>, builder: NotificationCompat.Builder, actionFactory: MediaNotification.ActionFactory): IntArray {
             val defaultPlayPauseButton = mediaButtons.getOrNull(1)
-            val defaultRestartButton = mediaButtons.getOrNull(0)
-            val notificationMediaButtons = if (defaultPlayPauseButton != null) {
-                /* Overriding received mediaButtons list to ensure required buttons order: [rewind15, play/pause, forward15]. */
-                ImmutableList.builder<CommandButton>().apply {
-                    if (defaultRestartButton != null) add(defaultRestartButton)
-                    add(NotificationCustomButton.REWIND.commandButton)
-                    add(defaultPlayPauseButton)
-                    add(NotificationCustomButton.FORWARD.commandButton)
-                    if (getPref(AppPrefs.prefShowSkip, true)) add(NotificationCustomButton.SKIP.commandButton)
-                }.build()
-                /* Fallback option to handle nullability, in case retrieving default play/pause button fails for some reason (should never happen). */
-            } else mediaButtons
+            val notificationMediaButtons = ImmutableList.builder<CommandButton>().apply {
+                add(NotificationCustomButton.RESTART.commandButton)
+                add(NotificationCustomButton.REWIND.commandButton)
+                add(defaultPlayPauseButton)
+                add(NotificationCustomButton.FORWARD.commandButton)
+                if (getPref(AppPrefs.prefShowSkip, true)) add(NotificationCustomButton.SKIP.commandButton)
+            }.build()
             return super.addNotificationActions(mediaSession, notificationMediaButtons, builder, actionFactory)
         }
-        override fun getNotificationContentTitle(metadata: MediaMetadata): CharSequence {
-            return metadata.title ?: "No title"
-        }
-        override fun getNotificationContentText(metadata: MediaMetadata): CharSequence {
-            return metadata.subtitle ?: "No text"
-        }
+        override fun getNotificationContentTitle(metadata: MediaMetadata): CharSequence = metadata.title ?: "No title"
+        override fun getNotificationContentText(metadata: MediaMetadata): CharSequence = metadata.subtitle ?: "No text"
     }
 
     companion object {
         private val TAG: String = PlaybackService::class.simpleName ?: "Anonymous"
 
-        private const val CUSTOM_COMMAND_REWIND_ACTION_ID = "1_REWIND"
-        private const val CUSTOM_COMMAND_FORWARD_ACTION_ID = "2_FAST_FWD"
-        private const val CUSTOM_COMMAND_SKIP_ACTION_ID = "3_SKIP"
+        const val CUSTOM_COMMAND_SKIP_ACTION_ID = "ac.mdiq.podcini.SKIP"
+        const val CUSTOM_COMMAND_REWIND_ACTION_ID = "ac.mdiq.podcini.REWIND"
+        const val CUSTOM_COMMAND_FORWARD_ACTION_ID = "ac.mdiq.podcini.FORWARD"
+        const val CUSTOM_COMMAND_RESTART_ACTION_ID = "ac.mdiq.podcini.RESTART"
 
         const val ACTION_SHUTDOWN_PLAYBACK_SERVICE: String = "action.ac.mdiq.podcini.service.actionShutdownPlaybackService"
 

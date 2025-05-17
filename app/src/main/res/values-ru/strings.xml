@@ -345,7 +345,7 @@
     <string name="preset_already_exists">%1$.2fx такая заготовка уже есть.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Этот выпуск не содержит примечаний.</string>
-    <string name="no_subscriptions_label">Чтобы подписаться на подкаст, нажмите значок «плюс» внизу.</string>
+
     <!-- Preferences -->
     <string name="project_pref">Проект</string>
     <string name="synchronization_pref">Синхронизация</string>

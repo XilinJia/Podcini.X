@@ -337,7 +337,7 @@
     <string name="preset_already_exists">%1$.2fx já está definido como predefinição</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Este episódio não tem notas</string>
-    <string name="no_subscriptions_label">Para subscrever um podcast, prima no ícone +</string>
+
     <!-- Preferences -->
     <string name="project_pref">Projeto</string>
     <string name="synchronization_pref">Sincronização</string>

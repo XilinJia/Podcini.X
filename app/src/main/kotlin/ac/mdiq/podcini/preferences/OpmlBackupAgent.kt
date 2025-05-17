@@ -39,6 +39,7 @@ import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 import org.apache.commons.io.IOUtils
 import org.xmlpull.v1.XmlPullParserException
+import androidx.core.content.edit
 
 class OpmlBackupAgent : BackupAgentHelper() {
 
@@ -131,10 +132,9 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 if (linesRead > 0) {
                     Logd(TAG, "restoreEntity finally $feedCount")
                     val prefs = PreferenceManager.getDefaultSharedPreferences(mContext.applicationContext)
-                    with(prefs.edit()) {
+                    prefs.edit {
                         putBoolean(AppPrefs.prefOPMLRestore.name, true)
                         putInt(AppPrefs.prefOPMLFeedsToRestore.name, feedCount)
-                        apply()
                     }
                 }
                 IOUtils.closeQuietly(reader)

@@ -651,46 +651,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 //            memoryBuffer = CircularByteBuffer(memoryBufferSize)
 //        }
 
-//        fun createStaticPlayer(context: Context) {
-////            val loadControl = DefaultLoadControl.Builder()
-////            loadControl.setBufferDurationsMs(30000, 120000, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS, DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS)
-////            if (streaming == true) loadControl.setBackBuffer(streamingBackBufferSecs * 1000, true) else loadControl.setBackBuffer(rewindSecs * 1000 + 500, true)
-//            Logd(TAG, "createStaticPlayer reset back buffer for streaming == $streaming")
-//
-//            val audioOffloadPreferences = AudioOffloadPreferences.Builder()
-//                .setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED) // Add additional options as needed
-//                .setIsGaplessSupportRequired(true)
-//                .setIsSpeedChangeSupportRequired(true)
-//                .build()
-//            Logd(TAG, "createStaticPlayer creating exoPlayer_")
-//
-//            simpleCache = getCache(context)
-//
-//            // Initialize ExoPlayer
-////            val trackSelector = DefaultTrackSelector(context)
-//            trackSelector = DefaultTrackSelector(context)
-//            val defaultRenderersFactory = DefaultRenderersFactory(context)
-//            exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
-//                .setTrackSelector(trackSelector!!)
-//                .setSeekBackIncrementMs(rewindSecs * 1000L)
-//                .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
-//                .build()
-//
-//            exoPlayer?.setSeekParameters(SeekParameters.EXACT)
-//            exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters
-//                .buildUpon()
-//                .setAudioOffloadPreferences(audioOffloadPreferences)
-//                .build()
-//
-////            if (BuildConfig.DEBUG) exoPlayer!!.addAnalyticsListener(EventLogger())
-//
-//            Logd(TAG, "createStaticPlayer exoplayerListener == null: ${exoplayerListener == null}")
-//            if (exoplayerListener != null) {
-//                exoPlayer?.removeListener(exoplayerListener!!)
-//                exoPlayer?.addListener(exoplayerListener!!)
-//            }
-//        }
-
         private fun initLoudnessEnhancer(audioStreamId: Int) {
             runOnIOScope {
                 try {

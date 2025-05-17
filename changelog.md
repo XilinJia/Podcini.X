@@ -1,3 +1,10 @@
+# 8.16.4
+
+* fixed pull to refresh from empty space
+* fixed wrong behavior of choosing Unspecified in language box in Subscriptions screen
+* fixed useless notice in Subscriptions when the list is empty
+* various dependencies updates
+
 # 8.16.3
 
 * further enhancements in EpisodeVM for better monitoring of curEpisode

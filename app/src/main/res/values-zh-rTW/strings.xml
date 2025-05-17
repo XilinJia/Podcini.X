@@ -169,7 +169,7 @@
 
 
 
-  <string name="no_subscriptions_label">請按下方加號以訂閱 Podcast</string>
+
   <!--Preferences-->
   <string name="project_pref">專案</string>
   <string name="synchronization_pref">同步</string>

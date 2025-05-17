@@ -340,7 +340,7 @@
     <string name="preset_already_exists">%1$.2fx este deja o presetare salvată.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Acest episod nu are descriere.</string>
-    <string name="no_subscriptions_label">Pentru a vă abona la un podcast, apăsați pe butonul \"plus\" de mai jos.</string>
+
     <!-- Preferences -->
     <string name="project_pref">Proiect</string>
     <string name="synchronization_pref">Sincronizare</string>

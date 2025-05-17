@@ -335,7 +335,7 @@
     <string name="preset_already_exists">%1$.2fx is al opgeslagen als voorinstelling.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Deze aflevering bevat geen commentaar..</string>
-    <string name="no_subscriptions_label">Tik op het plus-pictogram om je te abonneren op een podcast.</string>
+
     <!-- Preferences -->
     <string name="project_pref">Project</string>
     <string name="synchronization_pref">Synchronisatie</string>

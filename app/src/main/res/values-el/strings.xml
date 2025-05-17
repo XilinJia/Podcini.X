@@ -335,7 +335,7 @@
     <string name="preset_already_exists">%1$.2fx έχει ήδη αποθηκευτεί ως προκαθορισμένο.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Αυτό το επεισόδιο δεν έχει shownotes.</string>
-    <string name="no_subscriptions_label">Για να εγγραφείτε σε ένα podcast, πατήστε το εικονίδιο συν παρακάτω.</string>
+
     <!-- Preferences -->
     <string name="project_pref">Έργο</string>
     <string name="synchronization_pref">Συγχρονισμός</string>

@@ -71,7 +71,7 @@ class PodciniApp : Application() {
 
     class ApplicationCallbacksImpl : ApplicationCallbacks {
         override fun getApplicationInstance(): Application {
-            return getInstance()
+            return getApp()
         }
     }
 
@@ -79,17 +79,17 @@ class PodciniApp : Application() {
         private const val PREF_HAS_QUERIED_SP_APPS = "prefSPAUtil.hasQueriedSPApps"
         private lateinit var singleton: PodciniApp
 
-        fun getInstance(): PodciniApp = singleton
+        fun getApp(): PodciniApp = singleton
 
         fun getAppContext(): Context = singleton.applicationContext
 
         @JvmStatic
         fun forceRestart() {
-            val intent = Intent(getInstance(), SplashActivity::class.java)
+            val intent = Intent(getApp(), SplashActivity::class.java)
             val cn: ComponentName? = intent.component
             val mainIntent: Intent = Intent.makeRestartActivityTask(cn)
             realm.close()
-            getInstance().startActivity(mainIntent)
+            getApp().startActivity(mainIntent)
             Runtime.getRuntime().exit(0)
         }
     }

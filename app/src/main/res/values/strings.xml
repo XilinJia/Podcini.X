@@ -446,7 +446,7 @@
 
     <!-- Empty list labels -->
     <string name="no_shownotes_label">This episode has no shownotes.</string>
-    <string name="no_subscriptions_label">To subscribe to a podcast, press the plus icon below.</string>
+
 
     <!-- Preferences -->
     <string name="project_pref">Project</string>

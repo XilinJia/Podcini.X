@@ -207,7 +207,7 @@
 
 
 
-  <string name="no_subscriptions_label">Jei norite prenumeruoti tinklalaidę, paspauskite žemiau esančią pliuso piktogramą.</string>
+
   <!--Preferences-->
   <string name="project_pref">Projektas</string>
   <string name="synchronization_pref">Sinchronizavimas</string>

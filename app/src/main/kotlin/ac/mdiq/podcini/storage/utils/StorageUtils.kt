@@ -215,16 +215,21 @@ object StorageUtils {
                 if (baseDir.isDirectory) {
                     val nomediaFile = baseDir.findFile(".nomedia")
                     if (nomediaFile == null) {
-                        baseDir.createFile("text/plain", ".nomedia")
-                        Logd(TAG, ".nomedia file created")
+                        try {
+                            baseDir.createFile("text/plain", ".nomedia")
+                            Logd(TAG, ".nomedia file created in $customMediaUriString")
+                        } catch (e: Throwable) {
+                            Logs(TAG, e, "Could not create .nomedia file in $customMediaUriString")
+                        }
                     }
                 }
             } else {
                 val f = File(getAppContext().getExternalFilesDir(null), ".nomedia")
                 if (!f.exists()) {
-                    try { f.createNewFile()
+                    try {
+                        f.createNewFile()
+                        Logd(TAG, ".nomedia file created")
                     } catch (e: IOException) { Logs(TAG, e, "Could not create .nomedia file") }
-                    Logd(TAG, ".nomedia file created")
                 }
             }
         }

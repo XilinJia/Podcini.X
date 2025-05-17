@@ -286,7 +286,7 @@
 
 
 
-  <string name="no_subscriptions_label">Para assinar um podcast, pressione o ícone de adição abaixo.</string>
+
   <!--Preferences-->
   <string name="project_pref">Projeto</string>
   <string name="synchronization_pref">Sincronização</string>

@@ -345,7 +345,7 @@
     <string name="preset_already_exists">%1$.2fx je již uloženo jako předvolba.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Tato epizoda neobsahuje žádné poznámky.</string>
-    <string name="no_subscriptions_label">Pro přihlášení odběru podcastu stiskněte ikonu plus níže.</string>
+
     <!-- Preferences -->
     <string name="project_pref">Projekt</string>
     <string name="synchronization_pref">Synchronizace</string>

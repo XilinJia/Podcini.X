@@ -417,7 +417,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
         fun languagesQS() : String {
             return when (langFilterIndex) {
                 0 ->  ""    // All languages
-                1 -> " language == '' OR language == nil "
+                1 -> " (language == '' OR language == nil) "
                 else -> {   // feeds associated with the chosen queue
                     val lang = languages[langFilterIndex]
                     " language == '$lang' "
@@ -933,7 +933,7 @@ fun SubscriptionsScreen() {
             }
         }
 
-        PullToRefreshBox(modifier = Modifier.fillMaxWidth(), isRefreshing = refreshing, indicator = {}, onRefresh = {
+        PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
             refreshing = true
             if (getPref(AppPrefs.prefSwipeToRefreshAll, true)) FeedUpdateManager.runOnceOrAsk(vm.context)
             refreshing = false
@@ -941,7 +941,7 @@ fun SubscriptionsScreen() {
             val context = LocalContext.current
             if (if (vm.useGrid == null) vm.useGridLayout else vm.useGrid!!) {
                 val lazyGridState = rememberLazyGridState()
-                LazyVerticalGrid(state = lazyGridState, columns = GridCells.Adaptive(80.dp),
+                LazyVerticalGrid(state = lazyGridState, columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
                     items(vm.feedListFiltered.size, key = {index -> vm.feedListFiltered[index].id}) { index ->
@@ -1017,7 +1017,7 @@ fun SubscriptionsScreen() {
                 }
             } else {
                 val lazyListState = rememberLazyListState()
-                LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     itemsIndexed(vm.feedListFiltered, key = { _, feed -> feed.id}) { index, feed ->
                         var isSelected by remember { mutableStateOf(false) }
                         LaunchedEffect(key1 = vm.selectMode, key2 = selectedSize) {
@@ -1604,8 +1604,7 @@ fun SubscriptionsScreen() {
                     vm.loadSubscriptions(true)
                 }
             }
-            if (vm.noSubscription) Text(stringResource(R.string.no_subscriptions_label))
-            else LazyList()
+            LazyList()
         }
     }
 }

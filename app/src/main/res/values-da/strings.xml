@@ -335,7 +335,7 @@
     <string name="preset_already_exists">%1$.2fx er allerede gemt som en forudindstilling.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Dette afsnit har ingen beskrivelse.</string>
-    <string name="no_subscriptions_label">For at abonnere på en podcast, klik plus ikonet nedenfor</string>
+
     <!-- Preferences -->
     <string name="project_pref">Projekt</string>
     <string name="synchronization_pref">Synkronisering</string>

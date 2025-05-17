@@ -330,7 +330,7 @@
     <string name="preset_already_exists">%1$.2fx is already saved as a preset.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">This episode has no shownotes.</string>
-    <string name="no_subscriptions_label">To subscribe to a podcast, press the plus icon below.</string>
+
     <!-- Preferences -->
     <string name="project_pref">Project</string>
     <string name="synchronization_pref">Synchronization</string>
