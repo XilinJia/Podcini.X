@@ -45,7 +45,6 @@ import androidx.work.WorkerParameters
 import java.io.File
 import java.io.IOException
 import java.util.Date
-import java.util.concurrent.Callable
 import javax.xml.parsers.ParserConfigurationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -169,7 +168,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         if (nextPage) builder.source = feed.nextPageLink
         val request = builder.build()
         val downloader = DefaultDownloaderFactory().create(request) ?: throw Exception("Unable to create downloader")
-        downloader.call()
+        downloader.run()
         if (!downloader.result.isSuccessful) {
             if (downloader.cancelled || downloader.result.reason == DownloadError.ERROR_DOWNLOAD_CANCELLED) {
                 Logd(TAG, "feed refresh cancelled, likely due to feed not changed: ${feed.title}")
@@ -200,7 +199,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         }
     }
 
-    class FeedParserTask(private val request: DownloadRequest) : Callable<FeedHandlerResult?> {
+    class FeedParserTask(private val request: DownloadRequest) {
         val TAG = "FeedParserTask"
 
         var downloadStatus: DownloadResult
@@ -212,7 +211,7 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
             downloadStatus = DownloadResult(request.title?:"", 0L, request.feedfileType, false,
                 DownloadError.ERROR_REQUEST_ERROR, Date(), "Unknown error: Status not set")
         }
-        override fun call(): FeedHandlerResult? {
+        suspend fun run(): FeedHandlerResult? {
             Logd(TAG, "in FeedParserTask call()")
             val feed = Feed(request.source, request.lastModified)
             feed.fileUrl = request.destination
@@ -233,27 +232,27 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
                 if (feed.imageUrl.isNullOrEmpty()) feed.imageUrl = Feed.PREFIX_GENERATIVE_COVER + feed.downloadUrl
             } catch (e: SAXException) {
                 isSuccessful = false
-                Logs(TAG, e)
+                Logs(TAG, e, "SAXException")
                 reason = DownloadError.ERROR_PARSER_EXCEPTION
                 reasonDetailed = e.message
             } catch (e: IOException) {
                 isSuccessful = false
-                Logs(TAG, e)
-                reason = DownloadError.ERROR_PARSER_EXCEPTION
+                Logs(TAG, e, "IOException")
+                reason = DownloadError.ERROR_IO_ERROR
                 reasonDetailed = e.message
             } catch (e: ParserConfigurationException) {
                 isSuccessful = false
-                Logs(TAG, e)
+                Logs(TAG, e, "ParserConfigurationException")
                 reason = DownloadError.ERROR_PARSER_EXCEPTION
                 reasonDetailed = e.message
             } catch (e: FeedHandler.UnsupportedFeedtypeException) {
-                Logs(TAG, e)
+                Logs(TAG, e, "UnsupportedFeedtypeException")
                 isSuccessful = false
                 reason = DownloadError.ERROR_UNSUPPORTED_TYPE
                 if ("html".equals(e.rootElement, ignoreCase = true)) reason = DownloadError.ERROR_UNSUPPORTED_TYPE_HTML
                 reasonDetailed = e.message
             } catch (e: InvalidFeedException) {
-                Logs(TAG, e)
+                Logs(TAG, e, "InvalidFeedException")
                 isSuccessful = false
                 reason = DownloadError.ERROR_PARSER_EXCEPTION
                 reasonDetailed = e.message
@@ -300,18 +299,19 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
         val redirectUrl: String
             get() = feedHandlerResult?.redirectUrl?:""
 
-        fun run(): Boolean {
-            feedHandlerResult = task.call()
+        suspend fun run(): Boolean {
+            feedHandlerResult = task.run()
             if (!task.isSuccessful) return false
-            Feeds.updateFeedFull(context, feedHandlerResult!!.feed, false)
+            Feeds.updateFeedFull(context, feedHandlerResult!!.feed, removeUnlistedItems = false)
             return true
         }
 
         suspend fun runSimple(): Boolean {
-            feedHandlerResult = task.call()
+            feedHandlerResult = task.run()
             if (!task.isSuccessful) return false
             Feeds.updateFeedSimple(feedHandlerResult!!.feed)
             return true
         }
     }
+
 }

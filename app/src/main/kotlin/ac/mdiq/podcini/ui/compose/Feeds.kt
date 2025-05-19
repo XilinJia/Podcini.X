@@ -710,7 +710,7 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
                                     val element = readElements[i]
                                     val feed = Feed(element.xmlUrl, null, if (element.text != null) element.text else "Unknown podcast")
                                     feed.episodes.clear()
-                                    updateFeedFull(context, feed, false)
+                                    updateFeedFull(context, feed, removeUnlistedItems = false)
                                 }
                                 runOnce(context)
                             }

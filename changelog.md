@@ -1,3 +1,15 @@
+# 8.17.0
+
+* on Android 13 and above, app language can be set from System's App language settings
+* when playing an episode
+	* duplicate item is set to Ignored even if it was previously set to Later, Soon, Again
+	* current episode is set to Ignored if a duplicate item was previously set to Forever, Skipped, Played, Passed, Ignored
+* TTS is initialized upon first use in FeedDetails screen
+* enabled "Refresh complete podcast" menuitem in FeedDetails for all podcast, and amended updateFeedFull
+	* more properties of existing episodes are updated
+	* existing duplicates are cleared, keeping rated, or last played, or last updated, while keeping comments
+* removed Java Callable classes
+
 # 8.16.4
 
 * fixed pull to refresh from empty space

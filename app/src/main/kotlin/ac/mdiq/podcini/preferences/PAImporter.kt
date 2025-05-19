@@ -211,7 +211,7 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                     item.feedId = null
                     item.feed = feed
                 }
-                updateFeedFull(activity, feed, removeUnlistedItems = false, overwriteOld = true)
+                updateFeedFull(activity, feed, removeUnlistedItems = false, overwriteStates = true)
             }
         }
     }

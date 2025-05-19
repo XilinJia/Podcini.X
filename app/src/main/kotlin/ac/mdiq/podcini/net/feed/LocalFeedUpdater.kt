@@ -96,7 +96,7 @@ object LocalFeedUpdater {
         feed.autoDownload = false
         feed.description = context.getString(R.string.local_feed_description)
         feed.author = context.getString(R.string.local_folder)
-        Feeds.updateFeedFull(context, feed, true)
+        Feeds.updateFeedFull(context, feed, removeUnlistedItems = true)
     }
 
     /**

@@ -168,7 +168,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             return withContext(Dispatchers.Main) { ForegroundInfo(R.id.notification_downloading, generateProgressNotification()) }
         }
 
-        private fun performDownload(request: DownloadRequest): Result {
+        private suspend fun performDownload(request: DownloadRequest): Result {
             Logd(TAG, "starting performDownload: ${request.destination}")
             if (request.destination.isNullOrBlank()) {
                 Loge(TAG, "performDownload request.destination is null or blank")
@@ -182,7 +182,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 return Result.failure()
             }
 
-            try { downloader!!.call()
+            try { downloader!!.run()
             } catch (e: Exception) {
                 Logs(TAG, e, "failed performDownload exception on downloader!!.call()")
                 LogsAndStats.addDownloadStatus(downloader!!.result)

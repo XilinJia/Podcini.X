@@ -26,13 +26,14 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.MediaType
-import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.AudioMediaTools
+import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.MediaType
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.ui.screens.FEObj
+import ac.mdiq.podcini.ui.screens.TTSObj
+import ac.mdiq.podcini.ui.screens.TTSObj.ensureTTS
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils
@@ -342,6 +343,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
         processing = 1
         item = upsertBlk(item) { it.setPlayState(EpisodeState.BUILDING) }
         EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
+        ensureTTS(context)
         runOnIOScope {
             if (item.transcript == null) {
                 val url = item.link!!
@@ -355,13 +357,13 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
             processing = 1
             EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
             if (!readerText.isNullOrEmpty()) {
-                while (!FEObj.ttsReady) runBlocking { delay(100) }
+                while (!TTSObj.ttsReady) runBlocking { delay(100) }
                 processing = 15
                 EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
-                while (FEObj.ttsWorking) runBlocking { delay(100) }
-                FEObj.ttsWorking = true
+                while (TTSObj.ttsWorking) runBlocking { delay(100) }
+                TTSObj.ttsWorking = true
                 if (item.feed?.language != null) {
-                    val result = FEObj.tts?.setLanguage(Locale(item.feed!!.language!!))
+                    val result = TTSObj.tts?.setLanguage(Locale(item.feed!!.language!!))
                     if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
 //                        Loge(TAG, "TTS language not supported ${item.feed!!.language} $result")
                         withContext(Dispatchers.Main) {
@@ -372,7 +374,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
 
                 var j = 0
                 val mediaFile = File(item.getMediafilePath(), item.getMediafilename())
-                FEObj.tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                TTSObj.tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {
                         Logd(TAG, "onStart $utteranceId")
                     }
@@ -403,7 +405,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                     try {
                         val tempFile = File.createTempFile("tts_temp_${i}_", ".wav")
                         parts.add(tempFile.absolutePath)
-                        status = FEObj.tts?.synthesizeToFile(chunk, null, tempFile, tempFile.absolutePath) ?: 0
+                        status = TTSObj.tts?.synthesizeToFile(chunk, null, tempFile, tempFile.absolutePath) ?: 0
                         Logd(TAG, "status: $status chunk: ${chunk.substring(0, min(80, chunk.length))}")
                         if (status == TextToSpeech.ERROR) {
                             Loge(TAG, "Error generating audio file ${tempFile.absolutePath}")
@@ -442,7 +444,7 @@ class TTSActionButton(item: Episode) : EpisodeActionButton(item, R.string.TTS_la
                     val f = File(p)
                     f.delete()
                 }
-                FEObj.ttsWorking = false
+                TTSObj.ttsWorking = false
             } else Loge(TAG, context.getString(R.string.episode_has_no_content))
 
             item = upsertBlk(item) { it.setPlayState(EpisodeState.UNPLAYED) }

@@ -333,8 +333,6 @@ fun QueuesScreen() {
     val context = LocalContext.current
     val vm = remember { QueuesVM(context, scope) }
 
-//        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -347,9 +345,6 @@ fun QueuesScreen() {
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActionsBin)
                     vm.loadCurQueue(true)
-                }
-                Lifecycle.Event.ON_START -> {
-                    vm.procFlowEvents()
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     vm.browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
                     vm.browserFuture.addListener({
@@ -358,12 +353,22 @@ fun QueuesScreen() {
                         mediaBrowser?.subscribe("CurQueue", null)
                     }, MoreExecutors.directExecutor())
                 }
+                Lifecycle.Event.ON_START -> {
+                    vm.procFlowEvents()
+//                    val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
+//                    vm.browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
+//                    vm.browserFuture.addListener({
+//                        // here we can get the root of media items tree or we can get also the children if it is an album for example.
+//                        mediaBrowser = vm.browserFuture.get()
+//                        mediaBrowser?.subscribe("CurQueue", null)
+//                    }, MoreExecutors.directExecutor())
+                }
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {
                     vm.cancelFlowEvents()
-                    mediaBrowser?.unsubscribe("CurQueue")
-                    mediaBrowser = null
-                    MediaBrowser.releaseFuture(vm.browserFuture)
+//                    mediaBrowser?.unsubscribe("CurQueue")
+//                    mediaBrowser = null
+//                    MediaBrowser.releaseFuture(vm.browserFuture)
                 }
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
@@ -371,6 +376,9 @@ fun QueuesScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            mediaBrowser?.unsubscribe("CurQueue")
+            mediaBrowser = null
+            MediaBrowser.releaseFuture(vm.browserFuture)
             vm.queueItems.clear()
             vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -394,12 +402,12 @@ fun QueuesScreen() {
 
     var showTopSpinner by remember { mutableStateOf(!vm.showBin) }
     var title by remember { mutableStateOf(if (vm.showBin) curQueue.name + " Bin" else "") }
-
     fun refreshQueueOrBin() {
         showTopSpinner = !vm.showBin
         title = if (vm.showBin) curQueue.name + " Bin" else ""
         vm.loadCurQueue(false)
     }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
@@ -599,7 +607,7 @@ fun QueuesScreen() {
 //    }
 
     BackHandler(enabled = vm.showBin || vm.showFeeds) {
-        Logd(TAG, "BackHandler ${vm.showBin} ${vm.showFeeds}")
+        Logt(TAG, "BackHandler ${vm.showBin} ${vm.showFeeds}")
         if (vm.showBin) {
             vm.showBin = false
             refreshQueueOrBin()

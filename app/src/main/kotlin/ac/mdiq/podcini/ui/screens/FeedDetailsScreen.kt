@@ -139,7 +139,6 @@ import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import java.util.Date
 import java.util.concurrent.ExecutionException
-import java.util.concurrent.Semaphore
 
 
 class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
@@ -172,7 +171,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
     internal var layoutModeIndex by mutableIntStateOf(LayoutMode.Normal.ordinal)
 
-    private var onInit: Boolean = true
+//    private var onInit: Boolean = true
     private var filterJob: Job? = null
 
     internal var isCallable by mutableStateOf(false)
@@ -287,28 +286,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                             vms.clear()
                             buildMoreItems()
                         }
-                        if (onInit) {
-                            var hasNonMediaItems = false
-                            // TODO: ensure
-                            for (item in episodes) {
-                                if (item.downloadUrl.isNullOrBlank()) {
-                                    hasNonMediaItems = true
-                                    Logt(TAG, "item downloadUrl is null or blank: ${item.title}")
-                                    break
-                                }
-                            }
-                            if (hasNonMediaItems) {
-                                lcScope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        if (!FEObj.ttsReady) {
-                                            initializeTTS(context)
-                                            semaphore.acquire()
-                                        }
-                                    }
-                                }
-                            }
-                            onInit = false
-                        }
                     }
                     feed_
                 }
@@ -333,20 +310,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         if (nextItems.isNotEmpty()) vms.addAll(nextItems)
     }
-    private val semaphore = Semaphore(0)
-    private fun initializeTTS(context: Context) {
-        Logd(TAG, "starting TTS")
-        if (FEObj.tts == null) {
-            FEObj.tts = TextToSpeech(context) { status: Int ->
-                if (status == TextToSpeech.SUCCESS) {
-                    FEObj.ttsReady = true
-                    semaphore.release()
-                    Logt(TAG, "TTS init success")
-                } else Loge(TAG, context.getString(R.string.tts_init_failed))
-            }
-        }
-    }
-
     internal fun filterLongClick() {
         if (feed == null) return
         enableFilter = !enableFilter
@@ -386,7 +349,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                     val documentFile = DocumentFile.fromTreeUri(context, uri)
                     requireNotNull(documentFile) { "Unable to retrieve document tree" }
                     feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
-                    if (feed != null) updateFeedFull(context, feed!!, true)
+                    if (feed != null) updateFeedFull(context, feed!!, removeUnlistedItems = true)
                 }
                 withContext(Dispatchers.Main) { Logt(TAG, context.getString(R.string.OK)) }
             } catch (e: Throwable) { withContext(Dispatchers.Main) { Loge(TAG, e.localizedMessage?:"No message") } }
@@ -438,11 +401,11 @@ fun FeedDetailsScreen() {
             vm.feed = null
             vm.episodes.clear()
             vm.vms.clear()
-            FEObj.tts?.stop()
-            FEObj.tts?.shutdown()
-            FEObj.ttsWorking = false
-            FEObj.ttsReady = false
-            FEObj.tts = null
+            TTSObj.tts?.stop()
+            TTSObj.tts?.shutdown()
+            TTSObj.ttsWorking = false
+            TTSObj.ttsReady = false
+            TTSObj.tts = null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -610,7 +573,7 @@ fun FeedDetailsScreen() {
                             FeedUpdateManager.runOnceOrAsk(context, vm.feed)
                             expanded = false
                         })
-                        if (vm.feed?.isPaged == true) DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
                             runOnIOScope {
                                 try {
                                     if (vm.feed != null) {
@@ -618,7 +581,7 @@ fun FeedDetailsScreen() {
                                             it.nextPageLink = it.downloadUrl
                                             it.pageNr = 0
                                         }
-                                        runOnce(context, feed_)
+                                        runOnce(context, feed_, fullUpdate = true)
                                     }
                                 } catch (e: ExecutionException) { throw RuntimeException(e) } catch (e: InterruptedException) { throw RuntimeException(e) }
                             }
@@ -786,8 +749,20 @@ private val TAG = Screens.FeedDetails.name
 const val ARGUMENT_FEED_ID = "argument.ac.mdiq.podcini.feed_id"
 private const val KEY_UP_ARROW = "up_arrow"
 
-object FEObj {
+object TTSObj {
     var tts: TextToSpeech? = null
     var ttsReady = false
     var ttsWorking = false
+
+    fun ensureTTS(context: Context) {
+        if (!ttsReady && tts == null) CoroutineScope(Dispatchers.Default).launch {
+            Logd(TAG, "starting TTS")
+            tts = TextToSpeech(context) { status: Int ->
+                if (status == TextToSpeech.SUCCESS) {
+                    ttsReady = true
+                    Logt(TAG, "TTS init success")
+                } else Loge(TAG, context.getString(R.string.tts_init_failed))
+            }
+        }
+    }
 }

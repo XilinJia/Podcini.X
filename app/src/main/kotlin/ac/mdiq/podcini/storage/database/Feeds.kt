@@ -9,9 +9,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesSync
 import ac.mdiq.podcini.storage.database.Feeds.EpisodeAssistant.searchEpisodeByIdentifyingValue
 import ac.mdiq.podcini.storage.database.Feeds.EpisodeDuplicateGuesser.canonicalizeTitle
-import ac.mdiq.podcini.storage.database.Feeds.EpisodeDuplicateGuesser.datesLookSimilar
-import ac.mdiq.podcini.storage.database.Feeds.EpisodeDuplicateGuesser.durationsLookSimilar
-import ac.mdiq.podcini.storage.database.Feeds.EpisodeDuplicateGuesser.mimeTypeLooksSimilar
 import ac.mdiq.podcini.storage.database.LogsAndStats.addDownloadStatus
 import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesQuiet
@@ -28,6 +25,7 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.model.Feed.Companion.newId
 import ac.mdiq.podcini.storage.utils.MediaType
 import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.StorageUtils.feedfilePath
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -58,6 +56,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ExecutionException
 import kotlin.math.abs
+import kotlin.text.startsWith
 
 object Feeds {
     private val TAG: String = Feeds::class.simpleName ?: "Anonymous"
@@ -238,7 +237,7 @@ object Feeds {
      * @return The updated Feed from the database if it already existed, or the new Feed from the parameters otherwise.
      */
     @Synchronized
-    fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteOld: Boolean = false): Feed? {
+    fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false): Feed? {
         Logd(TAG, "updateFeedFull called")
 //        showStackTrace()
         var resultFeed: Feed?
@@ -265,7 +264,7 @@ object Feeds {
         Logd(TAG, "Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
         newFeed.episodes.sortWith(EpisodePubdateComparator())
         if (newFeed.pageNr == savedFeed.pageNr) {
-            if (overwriteOld) savedFeed.updateFromOther(newFeed, true)
+            if (overwriteStates) savedFeed.updateFromOther(newFeed, true)
             else if (savedFeed.differentFrom(newFeed)) {
                 Logd(TAG, "Feed has updated attribute values. Updating old feed's attributes")
                 savedFeed.updateFromOther(newFeed)
@@ -279,42 +278,37 @@ object Feeds {
         var idLong = newId()
         Logd(TAG, "updateFeed building savedFeedAssistant")
         val savedFeedAssistant = FeedAssistant(savedFeed)
-
         // Look for new or updated Items
         for (idx in newFeed.episodes.indices) {
             val episode = newFeed.episodes[idx]
-            var oldItem = savedFeedAssistant.getEpisodeByIdentifyingValue(episode)
-            if (!newFeed.isLocalFeed && oldItem == null) {
-                oldItem = savedFeedAssistant.guessDuplicate(episode)
-                if (oldItem != null) {
-                    Logd(TAG, "Repaired duplicate: $oldItem, $episode")
-                    addDownloadStatus(DownloadResult(savedFeed.id,
-                        episode.title ?: "", DownloadError.ERROR_PARSER_EXCEPTION_DUPLICATE, false,
-                        """
-                                The podcast host changed the ID of an existing episode instead of just updating the episode itself. Podcini still refreshed the feed and attempted to repair it.
-                                
-                                Original episode:
-                                ${EpisodeAssistant.duplicateEpisodeDetails(oldItem)}
-                                
-                                Now the feed contains:
-                                ${EpisodeAssistant.duplicateEpisodeDetails(episode)}
-                                """.trimIndent()))
-                    oldItem.identifier = episode.identifier
-                    // queue for syncing with server
-                    if (isProviderConnected && oldItem.isPlayed()) {
-                        val durs = oldItem.duration / 1000
-                        val action = EpisodeAction.Builder(oldItem, EpisodeAction.PLAY)
-                            .currentTimestamp()
-                            .started(durs)
-                            .position(durs)
-                            .total(durs)
-                            .build()
-                        SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, action)
-                    }
+            var oldItems = savedFeedAssistant.guessDuplicate(episode)
+            if (!newFeed.isLocalFeed && !oldItems.isNullOrEmpty()) {
+                Logd(TAG, "Repaired duplicate: $oldItems, $episode")
+                addDownloadStatus(DownloadResult(savedFeed.id, episode.title ?: "", DownloadError.ERROR_PARSER_EXCEPTION_DUPLICATE, false,
+                    """
+                        The podcast host changed the ID of an existing episode instead of just updating the episode itself. Podcini still refreshed the feed and attempted to repair it.
+                        
+                        Original episode:
+                        ${EpisodeAssistant.duplicateEpisodeDetails(oldItems[0])}
+                        
+                        Now the feed contains:
+                        ${EpisodeAssistant.duplicateEpisodeDetails(episode)}
+                    """.trimIndent()))
+                oldItems[0].identifier = episode.identifier
+                // queue for syncing with server
+                if (isProviderConnected && oldItems[0].isPlayed()) {
+                    val durs = oldItems[0].duration / 1000
+                    val action = EpisodeAction.Builder(oldItems[0], EpisodeAction.PLAY)
+                        .currentTimestamp()
+                        .started(durs)
+                        .position(durs)
+                        .total(durs)
+                        .build()
+                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, action)
                 }
             }
 
-            if (oldItem != null) oldItem.updateFromOther(episode, overwriteOld)
+            if (!oldItems.isNullOrEmpty()) oldItems[0].updateFromOther(episode, overwriteStates)
             else {
                 Logd(TAG, "Found new episode: ${episode.title}")
                 episode.feed = savedFeed
@@ -632,75 +626,106 @@ object Feeds {
 
     // savedFeedId == 0L means saved feed
     class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L) {
-        val map = mutableMapOf<String, Episode>()
+        val map = mutableMapOf<String, MutableList<Episode>>()
         val tag: String = if (savedFeedId == 0L) "Saved feed" else "New feed"
 
         init {
             val iterator = feed.episodes.iterator()
-             while (iterator.hasNext()) {
-                 val e = iterator.next()
-                 if (!e.identifier.isNullOrEmpty()) {
-                     if (map.containsKey(e.identifier!!)) {
-                         Logd(TAG, "FeedAssistant init $tag identifier duplicate: ${e.identifier} ${e.title}")
-                         if (savedFeedId > 0L) {
-                             addDownloadStatus(e, map[e.identifier!!]!!)
-                             iterator.remove()
-                         }
-                         continue
-                     }
-                     map[e.identifier!!] = e
-                 }
-                 val idv = e.identifyingValue
-                 if (idv != e.identifier && !idv.isNullOrEmpty()) {
-                     if (map.containsKey(idv)) {
-                         Logd(TAG, "FeedAssistant init $tag identifyingValue duplicate: $idv ${e.title}")
-                         if (savedFeedId > 0L) {
-                             addDownloadStatus(e, map[idv]!!)
-                             iterator.remove()
-                         }
-                         continue
-                     }
-                     map[idv] = e
-                 }
-                 val url = e.downloadUrl
-                 if (url != idv && !url.isNullOrEmpty()) {
-                     if (map.containsKey(url)) {
-                         Logd(TAG, "FeedAssistant init $tag url duplicate: $url ${e.title}")
-                         if (savedFeedId > 0L) {
-                             addDownloadStatus(e, map[url]!!)
-                             iterator.remove()
-                         }
-                         continue
-                     }
-                     map[url] = e
-                 }
-                 val title = canonicalizeTitle(e.title)
-                 if (title != idv && title.isNotEmpty()) {
-                     if (map.containsKey(title)) {
-                         val episode = map[title]
-                         if (episode != null) {
-                             if (datesLookSimilar(episode, e) && durationsLookSimilar(episode, e) && mimeTypeLooksSimilar(episode, e)) {
-                                 Logd(TAG, "FeedAssistant init $tag title duplicate: $title ${e.title}")
-                                 if (savedFeedId > 0L) {
-                                     addDownloadStatus(e, episode)
-                                     iterator.remove()
-                                 }
-                                 continue
-                             }
-                         }
-                     }
-//                     TODO: does it mean there are duplicate titles?
-                     map[title] = e
-                 }
-             }
+            while (iterator.hasNext()) {
+                val e = iterator.next()
+                if (!e.identifier.isNullOrEmpty()) {
+                    if (map.containsKey(e.identifier!!)) {
+                        Logd(TAG, "FeedAssistant init $tag identifier duplicate: ${e.identifier} ${e.title}")
+                        if (savedFeedId > 0L) {
+//                             addDownloadStatus(e, map[e.identifier!!]!!)
+                            iterator.remove()
+                        }
+                        map[e.identifier!!]!!.add(e)
+                    } else map[e.identifier!!] = mutableListOf(e)
+                }
+                val idv = e.identifyingValue
+                if (idv != e.identifier && !idv.isNullOrEmpty()) {
+                    if (map.containsKey(idv)) {
+                        Logd(TAG, "FeedAssistant init $tag identifyingValue duplicate: $idv ${e.title}")
+                        if (savedFeedId > 0L) {
+//                             addDownloadStatus(e, map[idv]!!)
+                            iterator.remove()
+                        }
+                        map[idv]!!.add(e)
+                    } else map[idv] = mutableListOf(e)
+                }
+                val url = e.downloadUrl
+                if (url != idv && !url.isNullOrEmpty()) {
+                    if (map.containsKey(url)) {
+                        Logd(TAG, "FeedAssistant init $tag url duplicate: $url ${e.title}")
+                        if (savedFeedId > 0L) {
+//                             addDownloadStatus(e, map[url]!!)
+                            iterator.remove()
+                        }
+                        map[url]!!.add(e)
+                    } else map[url] = mutableListOf(e)
+                }
+                val title = canonicalizeTitle(e.title)
+                if (title != idv && title.isNotEmpty()) {
+                    if (map.containsKey(title)) {
+                        Logd(TAG, "FeedAssistant init $tag title duplicate: $title ${e.title}")
+                        if (savedFeedId > 0L) {
+//                             addDownloadStatus(e, map[url]!!)
+                            iterator.remove()
+                        }
+                    } else map[title] = mutableListOf(e)
+                }
+            }
+            if (savedFeedId == 0L) {
+                suspend fun eraseEpisode(e: Episode) {
+                    feed.episodes.remove(e)
+                    realm.write {
+                        val e = query(Episode::class).query("id == $0", e.id).first().find()
+                        e?.let { delete(it) }
+                    }
+                }
+                for ((k, v) in map.entries) {
+                    if (v.size < 2) continue
+                    Logd(TAG, "FeedAssistant removing ${v.size-1} duplicates on $k")
+                    var episode = v[0]
+                    val ecs = v.sortedByDescending { it.comment.length }
+                    val comment = if (ecs[0].comment.isBlank()) "" else {
+                        var c = ecs[0].comment
+                        for (i in 1..ecs.size-1) if (ecs[i].comment.isNotBlank()) c += "\n" + ecs[i].comment
+                        c
+                    }
+                    val ers = v.sortedByDescending { it.rating }
+                    if (ers[0].rating > Rating.UNRATED.code) runOnIOScope {
+                        if (ers[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(ers[0]) { it.comment = comment }
+                        else episode = ers[0]
+                        for (i in 1..ers.size - 1) eraseEpisode(ers[i])
+                    } else {
+                        val eps = v.sortedByDescending { it.lastPlayedTime }
+                        if (eps[0].lastPlayedTime > 0L) {
+                            if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.comment = comment }
+                            else episode = eps[0]
+                            runOnIOScope { for (i in 1..eps.size - 1) eraseEpisode(eps[i]) }
+                        } else {
+                            val eps = v.sortedByDescending { it.pubDate }
+                            if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.comment = comment }
+                            else episode = eps[0]
+                            runOnIOScope { for (i in 1..eps.size - 1) eraseEpisode(eps[i]) }
+                        }
+                    }
+                    map[k] = mutableListOf(episode)
+                }
+            }
         }
-        fun addUrlToMap(episode: Episode) {
-            val url = episode.downloadUrl
-            if (url != episode.identifyingValue && !url.isNullOrEmpty() && !map.containsKey(url)) map[url] = episode
-        }
+        //        fun addUrlToMap(episode: Episode) {
+//            val url = episode.downloadUrl
+//            if (url != episode.identifyingValue && !url.isNullOrEmpty() && !map.containsKey(url)) map[url] = episode
+//        }
         fun addidvToMap(episode: Episode) {
             val idv = episode.identifyingValue
-            if (idv != episode.identifier && !idv.isNullOrEmpty()) map[idv] = episode
+            if (idv != episode.identifier && !idv.isNullOrEmpty()) {
+                if (map.containsKey(idv)) map[idv]!!.add(episode)
+                else map[idv] = mutableListOf(episode)
+            }
         }
         private fun addDownloadStatus(episode: Episode, possibleDuplicate: Episode) {
             addDownloadStatus(DownloadResult(savedFeedId, episode.title ?: "", DownloadError.ERROR_PARSER_EXCEPTION_DUPLICATE, false,
@@ -714,21 +739,23 @@ object Feeds {
                 ${EpisodeAssistant.duplicateEpisodeDetails(possibleDuplicate)}
                 """.trimIndent()))
         }
-        fun getEpisodeByIdentifyingValue(item: Episode): Episode? = map[item.identifyingValue]
-        fun guessDuplicate(item: Episode): Episode? {
-            var episode = map[item.identifier]
-            if (episode != null) return episode
+        fun getEpisodeByIdentifyingValue(item: Episode): List<Episode>? = map[item.identifyingValue]
+        fun guessDuplicate(item: Episode): List<Episode>? {
+            var episodes = map[item.identifier]
+            if (!episodes.isNullOrEmpty()) return episodes
             val url = item.downloadUrl
             if (!url.isNullOrEmpty()) {
-                episode = map[url]
-                if (episode != null) return episode
+                episodes = map[url]
+                if (!episodes.isNullOrEmpty()) return episodes
             }
             val title = canonicalizeTitle(item.title)
             if (title.isNotEmpty()) {
-                episode = map[title]
-                if (episode != null) {
-                    if (datesLookSimilar(episode, item) && durationsLookSimilar(episode, item) && mimeTypeLooksSimilar(episode, item)) return episode
-                }
+                episodes = map[title]
+                if (!episodes.isNullOrEmpty()) return episodes
+//                if (!episodes.isNullOrEmpty()) {
+//                    val e = episodes[0]
+//                    if (datesLookSimilar(e, item) && durationsLookSimilar(e, item) && mimeTypeLooksSimilar(e, item)) return e
+//                }
             }
             return null
         }

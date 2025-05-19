@@ -7,9 +7,8 @@ import android.content.Context
 import android.net.wifi.WifiManager
 import android.net.wifi.WifiManager.WifiLock
 import java.util.Date
-import java.util.concurrent.Callable
 
-abstract class Downloader(val downloadRequest: DownloadRequest) : Callable<Downloader> {
+abstract class Downloader(val downloadRequest: DownloadRequest) {
     @Volatile
     var isFinished: Boolean = false
         private set
@@ -26,13 +25,12 @@ abstract class Downloader(val downloadRequest: DownloadRequest) : Callable<Downl
     init {
         this.downloadRequest.setStatusMsg(R.string.download_pending)
         this.cancelled = false
-        this.result = DownloadResult(this.downloadRequest.title?:"", this.downloadRequest.feedfileId, this.downloadRequest.feedfileType,
-            false, null, Date(), "")
+        this.result = DownloadResult(this.downloadRequest.title?:"", this.downloadRequest.feedfileId, this.downloadRequest.feedfileType, false, null, Date(), "")
     }
 
     protected abstract fun download()
 
-    override fun call(): Downloader {
+    suspend fun run(): Downloader {
         val wifiManager = ClientConfig.applicationCallbacks?.getApplicationInstance()?.applicationContext?.getSystemService(Context.WIFI_SERVICE) as? WifiManager
         var wifiLock: WifiLock? = null
         if (wifiManager != null) {

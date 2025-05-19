@@ -56,7 +56,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 downloader = HttpDownloader(request)
-                downloader?.call()
+                downloader?.run()
                 val status = downloader?.result
                 when {
                     request.destination == null || status == null -> return@launch
@@ -150,7 +150,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             item.origFeeddownloadUrl = null
             item.origFeedTitle = null
         }
-        val fo = updateFeedFull(context, feed, false)
+        val fo = updateFeedFull(context, feed, removeUnlistedItems = false)
 //        if (fo?.downloadUrl != null || fo?.link != null) {
 //            val fLog = SubscriptionLog(fo.id, fo.title?:"", fo.downloadUrl?:"", fo.link?:"", SubscriptionLog.Type.Feed.name)
 //            upsertBlk(fLog) {}

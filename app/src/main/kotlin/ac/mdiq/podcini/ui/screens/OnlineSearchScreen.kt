@@ -266,7 +266,7 @@ fun OnlineSearchScreen() {
                     Logd(TAG, "addLocalFolderLauncher dirFeed episodes: ${dirFeed.episodes.size}")
 //                    dirFeed.episodes.clear()
                     dirFeed.sortOrder = EpisodeSortOrder.EPISODE_TITLE_A_Z
-                    val fromDatabase: Feed? = updateFeedFull(context, dirFeed, false)
+                    val fromDatabase: Feed? = updateFeedFull(context, dirFeed, removeUnlistedItems = false)
                     FeedUpdateManager.runOnce(context, fromDatabase)
                     Logd(TAG, "addLocalFolderLauncher fromDatabase episodes: ${fromDatabase?.episodes?.size}")
                     fromDatabase

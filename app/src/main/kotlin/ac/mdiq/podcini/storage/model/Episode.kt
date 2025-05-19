@@ -279,6 +279,7 @@ class Episode : RealmObject {
     }
 
     fun updateFromOther(other: Episode, includingState: Boolean = false) {
+        Logd(TAG, "updateFromOther ${other.viewCount} $title")
         if (other.imageUrl != null) this.imageUrl = other.imageUrl
         if (other.title != null) title = other.title
         if (other.description != null) description = other.description
@@ -298,6 +299,7 @@ class Episode : RealmObject {
             chapters.addAll(other.chapters)
         }
         if (other.podcastIndexChapterUrl != null) podcastIndexChapterUrl = other.podcastIndexChapterUrl
+        if (other.viewCount > 0) viewCount = other.viewCount
 
         if (includingState) {
             this.rating = other.rating

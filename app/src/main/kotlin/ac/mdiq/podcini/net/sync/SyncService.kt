@@ -129,7 +129,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
                 if (!containsUrl(localSubscriptions, downloadUrl) && !queuedRemovedFeeds.contains(downloadUrl)) {
                     val feed = Feed(downloadUrl, null, "Unknown podcast")
                     feed.episodes.clear()
-                    val newFeed = updateFeedFull(applicationContext, feed, false)
+                    val newFeed = updateFeedFull(applicationContext, feed, removeUnlistedItems = false)
                     runOnce(applicationContext, newFeed)
                 }
             }

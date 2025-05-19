@@ -268,10 +268,17 @@ object Episodes {
                     val comment = fullDateTimeString(localTime) + ":\nduplicate"
                     for (e in duplicates) {
                         if (e.id != media.id) {
-                            if (e.playState <= EpisodeState.AGAIN.code || e.playState in listOf(EpisodeState.LATER.code, EpisodeState.SOON.code)) {
-                                e.setPlayState(EpisodeState.IGNORED)
-                                e.comment += if (e.comment.isBlank()) comment else "\n" + comment
-                            } else Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
+                            when {
+                                e.playState <= EpisodeState.AGAIN.code -> {
+                                    e.setPlayState(EpisodeState.IGNORED)
+                                    e.comment += if (e.comment.isBlank()) comment else "\n" + comment
+                                }
+                                else -> {
+                                    media.setPlayState(EpisodeState.IGNORED)
+                                    media.comment += if (media.comment.isBlank()) comment else "\n" + comment
+                                    Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
+                                }
+                            }
                         }
                     }
                     for (e in duplicates) {
