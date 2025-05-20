@@ -118,11 +118,13 @@
     <string name="reset">Reset</string>
     <string name="global_default">Global default</string>
     <string name="url_label">URL</string>
+    <string name="last_full_update">Last full update</string>
     <string name="support_funding_label">Support</string>
     <string name="support_podcast">Support this podcast</string>
     <string name="error_label">Error</string>
     <string name="error_msg_prefix">An error occurred:</string>
     <string name="refresh_label">Refresh</string>
+    <string name="clean_up">Clean up</string>
     <string name="fetch_size">Fetch size</string>
     <string name="clear_cache">Clear froms cache</string>
     <string name="new_synth_label">New synthetic feed</string>

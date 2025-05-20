@@ -241,7 +241,6 @@ object Feeds {
         Logd(TAG, "updateFeedFull called")
 //        showStackTrace()
         var resultFeed: Feed?
-//        val unlistedItems: MutableList<Episode> = mutableListOf()
 
         Logd(TAG, "newFeed id: ${newFeed.id} episodes: ${newFeed.episodes.size}")
         // Look up feed in the feedslist
@@ -249,6 +248,8 @@ object Feeds {
         if (savedFeed == null) {
             Logd(TAG, "Found no existing Feed with title ${newFeed.title}. Adding as new one.")
             Logd(TAG, "newFeed.episodes: ${newFeed.episodes.size}")
+            newFeed.lastUpdateTime = System.currentTimeMillis()
+            newFeed.lastFullUpdateTime = System.currentTimeMillis()
             resultFeed = newFeed
             try {
                 addNewFeedsSync(context, newFeed)
@@ -283,17 +284,7 @@ object Feeds {
             val episode = newFeed.episodes[idx]
             var oldItems = savedFeedAssistant.guessDuplicate(episode)
             if (!newFeed.isLocalFeed && !oldItems.isNullOrEmpty()) {
-                Logd(TAG, "Repaired duplicate: $oldItems, $episode")
-                addDownloadStatus(DownloadResult(savedFeed.id, episode.title ?: "", DownloadError.ERROR_PARSER_EXCEPTION_DUPLICATE, false,
-                    """
-                        The podcast host changed the ID of an existing episode instead of just updating the episode itself. Podcini still refreshed the feed and attempted to repair it.
-                        
-                        Original episode:
-                        ${EpisodeAssistant.duplicateEpisodeDetails(oldItems[0])}
-                        
-                        Now the feed contains:
-                        ${EpisodeAssistant.duplicateEpisodeDetails(episode)}
-                    """.trimIndent()))
+//                Logd(TAG, "Update existing episode: ${episode.title}")
                 oldItems[0].identifier = episode.identifier
                 // queue for syncing with server
                 if (isProviderConnected && oldItems[0].isPlayed()) {
@@ -308,13 +299,15 @@ object Feeds {
                 }
             }
 
+            if (idx % 50 == 0) Logd(TAG, "updateFeedFull processing item $idx / ${newFeed.episodes.size} ")
+            
             if (!oldItems.isNullOrEmpty()) oldItems[0].updateFromOther(episode, overwriteStates)
             else {
-                Logd(TAG, "Found new episode: ${episode.title}")
+//                Logd(TAG, "Found new episode: ${episode.getPubDate()} ${episode.title}")
                 episode.feed = savedFeed
                 episode.id = idLong++
                 episode.feedId = savedFeed.id
-                if (!newFeed.isLocalFeed) runBlocking { episode.fetchMediaSize(false) }
+                if (!newFeed.isLocalFeed && !newFeed.prefStreamOverDownload) runBlocking { episode.fetchMediaSize(false) }
 
                 if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
                 if (idx >= savedFeed.episodes.size) savedFeed.episodes.add(episode)
@@ -353,6 +346,8 @@ object Feeds {
 
         // update attributes
         savedFeed.lastUpdate = newFeed.lastUpdate
+        savedFeed.lastUpdateTime = System.currentTimeMillis()
+        savedFeed.lastFullUpdateTime = System.currentTimeMillis()
         savedFeed.type = newFeed.type
         savedFeed.lastUpdateFailed = false
         savedFeed.totleDuration = 0
@@ -365,6 +360,14 @@ object Feeds {
         } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
         } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
         return resultFeed
+    }
+
+    fun cleanUp(feed: Feed) {
+        runOnIOScope {
+            val f = realm.copyFromRealm(feed)
+            FeedAssistant(f).clear()
+            upsert(f) {}
+        }
     }
 
     suspend fun updateFeedSimple(newFeed: Feed): Feed? {
@@ -398,7 +401,7 @@ object Feeds {
             episode.feed = savedFeed
             episode.id = idLong++
             episode.feedId = savedFeed.id
-            episode.fetchMediaSize(persist = false)
+            if (!newFeed.isLocalFeed && !newFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
             if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
             if (idx >= savedFeed.episodes.size) savedFeed.episodes.add(episode)
             else savedFeed.episodes.add(idx, episode)
@@ -415,6 +418,7 @@ object Feeds {
 
         // update attributes
         savedFeed.lastUpdate = newFeed.lastUpdate
+        savedFeed.lastUpdateTime = System.currentTimeMillis()
         savedFeed.type = newFeed.type
         savedFeed.lastUpdateFailed = false
         savedFeed.totleDuration = 0

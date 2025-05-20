@@ -274,8 +274,9 @@ object Episodes {
                                     e.comment += if (e.comment.isBlank()) comment else "\n" + comment
                                 }
                                 else -> {
-                                    media.setPlayState(EpisodeState.IGNORED)
-                                    media.comment += if (media.comment.isBlank()) comment else "\n" + comment
+                                    val media_ = findLatest(media)
+                                    media_?.setPlayState(EpisodeState.IGNORED)
+                                    media_?.comment += if (media_.comment.isBlank()) comment else "\n" + comment
                                     Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
                                 }
                             }

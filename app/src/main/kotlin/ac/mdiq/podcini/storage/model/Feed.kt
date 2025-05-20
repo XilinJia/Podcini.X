@@ -57,11 +57,12 @@ class Feed : RealmObject {
 
     var episodes: RealmList<Episode> = realmListOf()
 
-    // String that identifies the last update (adopted from Last-Modified or ETag header).
-    var lastUpdate: String? = null
-
     // recorded when an episode starts playing when FeedDetails is open
     var lastPlayed: Long = 0
+
+    var lastUpdateTime: Long = 0
+
+    var lastFullUpdateTime: Long = 0
 
     //Feed type, options are defined in [FeedType].
     var type: String? = null
@@ -86,6 +87,10 @@ class Feed : RealmObject {
      * that is saved in the database) this might be null while still being a paged feed.
      */
     var nextPageLink: String? = null
+
+
+    // String that identifies the last update (adopted from Last-Modified or ETag header).
+    var lastUpdate: String? = null
 
     var lastUpdateFailed = false
 

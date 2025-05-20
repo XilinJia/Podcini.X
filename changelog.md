@@ -1,3 +1,13 @@
+# 8.17.1
+
+* fixed bottom padding for Android 15
+* fixed crash when setting current episode to Ignored in case of duplicates found
+* disabled improper download error logs when doing full update on a feed
+* enhanced feed refresh by avoiding fetchMediaSize on feed preferring streaming
+* added "Clean up" menuitem in FeedDetails for cleaning duplicates
+* times of last refresh and last full refresh are recorded in Feed, initialized when subscribing to the feed
+* last full update date is shown in FeedDetails
+
 # 8.17.0
 
 * on Android 13 and above, app language can be set from System's App language settings
@@ -5,7 +15,7 @@
 	* duplicate item is set to Ignored even if it was previously set to Later, Soon, Again
 	* current episode is set to Ignored if a duplicate item was previously set to Forever, Skipped, Played, Passed, Ignored
 * TTS is initialized upon first use in FeedDetails screen
-* enabled "Refresh complete podcast" menuitem in FeedDetails for all podcast, and amended updateFeedFull
+* enabled "Refresh complete podcast" menuitem in FeedDetails for all podcast, and amended updateFeedFull (experimental: using much memory)
 	* more properties of existing episodes are updated
 	* existing duplicates are cleared, keeping rated, or last played, or last updated, while keeping comments
 * removed Java Callable classes

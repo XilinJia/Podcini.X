@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
+import ac.mdiq.podcini.storage.database.Feeds.cleanUp
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.updateFeedDownloadURL
 import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
@@ -50,6 +51,7 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import ac.mdiq.podcini.util.ShareUtils
 import android.content.ActivityNotFoundException
@@ -562,27 +564,29 @@ fun FeedDetailsScreen() {
                             showEditUrlSettingsDialog = true
                             expanded = false
                         })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
+                        if (vm.episodes.isNotEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
                             scope.launch {
                                 for (e in vm.episodes) e.fetchMediaSize(force = true)
 //                                vm.loadFeed(true)
                             }
                             expanded = false
                         })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
+                        if (vm.feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.clean_up)) }, onClick = {
+                            cleanUp(vm.feed!!)
+                            expanded = false
+                        })
+                        if (vm.feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
                             FeedUpdateManager.runOnceOrAsk(context, vm.feed)
                             expanded = false
                         })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
+                        if (vm.feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
                             runOnIOScope {
                                 try {
-                                    if (vm.feed != null) {
-                                        val feed_ = upsert(vm.feed!!) {
-                                            it.nextPageLink = it.downloadUrl
-                                            it.pageNr = 0
-                                        }
-                                        runOnce(context, feed_, fullUpdate = true)
+                                    val feed_ = upsert(vm.feed!!) {
+                                        it.nextPageLink = it.downloadUrl
+                                        it.pageNr = 0
                                     }
+                                    runOnce(context, feed_, fullUpdate = true)
                                 } catch (e: ExecutionException) { throw RuntimeException(e) } catch (e: InterruptedException) { throw RuntimeException(e) }
                             }
                             expanded = false
@@ -673,6 +677,7 @@ fun FeedDetailsScreen() {
                     setOnlineSearchTerms(CombinedSearcher::class.java, "${vm.txtvAuthor} podcasts")
                     mainNavController.navigate(Screens.SearchResults.name)
                 }) { Text(stringResource(R.string.feeds_related_to_author)) }
+                Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(Date(vm.feed?.lastFullUpdateTime?:0L))}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(text = vm.txtvUrl ?: "", color = textColor, modifier = Modifier.padding(bottom = 15.dp).combinedClickable(
                     onClick = { if (!vm.feed?.downloadUrl.isNullOrBlank()) IntentUtils.openInBrowser(context, vm.feed!!.downloadUrl!!) },

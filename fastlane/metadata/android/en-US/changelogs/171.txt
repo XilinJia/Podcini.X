@@ -1,0 +1,9 @@
+# 8.17.1
+
+* fixed bottom padding for Android 15
+* fixed crash when setting current episode to Ignored in case of duplicates found
+* disabled improper download error logs when doing full update on a feed
+* enhanced feed refresh by avoiding fetchMediaSize on feed preferring streaming
+* added "Clean up" menuitem in FeedDetails for cleaning duplicates
+* times of last refresh and last full refresh are recorded in Feed, initialized when subscribing to the feed
+* last full update date is shown in FeedDetails

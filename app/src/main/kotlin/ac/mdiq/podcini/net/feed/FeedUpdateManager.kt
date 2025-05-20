@@ -33,6 +33,7 @@ import androidx.work.OutOfQuotaPolicy
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
@@ -76,6 +77,7 @@ object FeedUpdateManager {
 
             val initialDelay = getInitialDelay(context)
             val workRequest: PeriodicWorkRequest = PeriodicWorkRequest.Builder(gearbox.feedUpdateWorkerClass(), updateInterval, TimeUnit.HOURS)
+                .setInputData(workDataOf(EXTRA_FULL_UPDATE to false))
                 .setConstraints(Builder()
                     .setRequiredNetworkType(if (mobileAllowFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED)
                     .build())
@@ -123,7 +125,7 @@ object FeedUpdateManager {
 
         val builder = Data.Builder()
         builder.putBoolean(EXTRA_EVEN_ON_MOBILE, true)
-        if (fullUpdate) builder.putBoolean(EXTRA_FULL_UPDATE, true)
+        builder.putBoolean(EXTRA_FULL_UPDATE, fullUpdate)
         if (feed != null) {
             builder.putLong(EXTRA_FEED_ID, feed.id)
             builder.putBoolean(EXTRA_NEXT_PAGE, nextPage)
