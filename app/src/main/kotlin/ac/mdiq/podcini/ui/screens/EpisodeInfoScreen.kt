@@ -102,6 +102,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -429,6 +430,7 @@ fun EpisodeInfoScreen() {
     fun MyTopAppBar() {
         val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
+        val buttonColor = Color(0xDDFFD700)
         TopAppBar(title = { Text("") },
             navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
             actions = {
@@ -448,7 +450,7 @@ fun EpisodeInfoScreen() {
                     if (url != null) IntentUtils.openInBrowser(context, url)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                     if (vm.episode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
                         val notes = vm.episode!!.description
                         if (!notes.isNullOrEmpty()) {

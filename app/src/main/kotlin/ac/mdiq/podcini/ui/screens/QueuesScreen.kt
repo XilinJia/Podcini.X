@@ -2,7 +2,8 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.net.feed.FeedUpdateManager
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
+import ac.mdiq.podcini.net.feed.FeedUpdaterBase.Companion.feedUpdating
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.mediaBrowser
@@ -21,10 +22,10 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
@@ -192,10 +193,10 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received sticky event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)
-                    is FlowEvent.FeedUpdatingEvent -> {
-                        infoTextUpdate = if (event.isRunning) "U" else ""
-                        infoBarText.value = "$listInfoText $infoTextUpdate"
-                    }
+//                    is FlowEvent.FeedUpdatingEvent -> {
+//                        infoTextUpdate = if (event.isRunning) "U" else ""
+//                        infoBarText.value = "$listInfoText $infoTextUpdate"
+//                    }
                     else -> {}
                 }
             }
@@ -414,6 +415,7 @@ fun QueuesScreen() {
         val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
         var showRename by remember { mutableStateOf(curQueue.name != "Default") }
+        val buttonColor = Color(0xDDFFD700)
         TopAppBar(title = {
             if (showTopSpinner) SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
                 Logd(TAG, "Queue selected: ${vm.queues[index].name}")
@@ -440,7 +442,7 @@ fun QueuesScreen() {
                     IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.bin_limit) + ": ${curQueue.binLimit}") }, onClick = {
                         showBinLimitDialog = true
                         expanded = false
@@ -471,7 +473,8 @@ fun QueuesScreen() {
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                            FeedUpdateManager.runOnceOrAsk(context)
+                            runOnceOrAsk(context)
+//                            gearbox.feedUpdater().startRefresh(context)
                             expanded = false
                         })
                         if (!isQueueKeepSorted) {
@@ -617,6 +620,8 @@ fun QueuesScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showBin) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                vm.infoTextUpdate = if (feedUpdating) "U" else ""
+                vm.infoBarText.value = "${vm.listInfoText} ${vm.infoTextUpdate}"
                 InforBar(vm.infoBarText, vm.swipeActionsBin)
                 EpisodeLazyColumn(context as MainActivity, vms = vm.vms, swipeActions = vm.swipeActionsBin)
             }

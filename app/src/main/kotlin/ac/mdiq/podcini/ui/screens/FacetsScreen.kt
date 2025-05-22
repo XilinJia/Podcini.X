@@ -48,6 +48,7 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.content.Context
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
@@ -554,6 +555,7 @@ fun FacetsScreen() {
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
         val textColor = MaterialTheme.colorScheme.onSurface
+        val buttonColor = Color(0xDDFFD700)
         TopAppBar(title = {
             SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
                 Logd(TAG, "Item selected: $index")
@@ -582,7 +584,7 @@ fun FacetsScreen() {
                     if (vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name) IconButton(onClick = { vm.showDatesFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
                     if (vm.spinnerTexts[vm.curIndex] in listOf(QuickAccess.History.name, QuickAccess.Downloaded.name, QuickAccess.New.name)) {
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                             if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name)
                                 DropdownMenuItem(text = { Text(stringResource(R.string.clear_history_label)) }, onClick = {
                                     vm.showClearHistoryDialog.value = true

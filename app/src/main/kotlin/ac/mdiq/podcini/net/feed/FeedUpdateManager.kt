@@ -62,7 +62,6 @@ object FeedUpdateManager {
      * Start / restart periodic auto feed refresh
      * @param context Context
      */
-    @JvmStatic
     fun restartUpdateAlarm(context: Context, replace: Boolean) {
         if (updateInterval == 0L) WorkManager.getInstance(context).cancelUniqueWork(feedUpdateWorkId)
         else {
@@ -76,7 +75,7 @@ object FeedUpdateManager {
             }
 
             val initialDelay = getInitialDelay(context)
-            val workRequest: PeriodicWorkRequest = PeriodicWorkRequest.Builder(gearbox.feedUpdateWorkerClass(), updateInterval, TimeUnit.HOURS)
+            val workRequest: PeriodicWorkRequest = PeriodicWorkRequest.Builder(FeedUpdateWorkerBase::class.java, updateInterval, TimeUnit.HOURS)
                 .setInputData(workDataOf(EXTRA_FULL_UPDATE to false))
                 .setConstraints(Builder()
                     .setRequiredNetworkType(if (mobileAllowFeedRefresh) NetworkType.CONNECTED else NetworkType.UNMETERED)
@@ -113,11 +112,9 @@ object FeedUpdateManager {
         return initialDelay
     }
 
-    @JvmStatic
-    @JvmOverloads
     fun runOnce(context: Context, feed: Feed? = null, nextPage: Boolean = false, fullUpdate: Boolean = false) {
         Logd(TAG, "runOnce feed: ${feed?.title}")
-        val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(gearbox.feedUpdateWorkerClass())
+        val workRequest: OneTimeWorkRequest.Builder = OneTimeWorkRequest.Builder(FeedUpdateWorkerBase::class.java)
             .setInitialDelay(0L, TimeUnit.MILLISECONDS)
             .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
             .addTag(WORK_TAG_FEED_UPDATE)
@@ -134,8 +131,6 @@ object FeedUpdateManager {
         WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(WORK_ID_FEED_UPDATE_MANUAL, ExistingWorkPolicy.REPLACE, workRequest.build())
     }
 
-    @JvmStatic
-    @JvmOverloads
     fun runOnceOrAsk(context: Context, feed: Feed? = null, fullUpdate: Boolean = false) {
         Logd(TAG, "Run auto update immediately in background.")
         when {

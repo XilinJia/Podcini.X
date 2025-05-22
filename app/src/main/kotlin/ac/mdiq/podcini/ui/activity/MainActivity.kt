@@ -71,9 +71,8 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Checkbox
@@ -90,7 +89,6 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -229,17 +227,8 @@ class MainActivity : BaseActivity() {
                 else lcScope?.launch { sheetState.bottomSheetState.partialExpand() }
             } else lcScope?.launch { sheetState.bottomSheetState.hide() }
         }
-//        val dynamicBottomPadding by remember { derivedStateOf {
-//            when (sheetState.bottomSheetState.currentValue) {
-//                SheetValue.Expanded -> 300.dp
-//                SheetValue.PartiallyExpanded -> 100.dp
-//                else -> 0.dp
-//            }
-//        } }
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
-//            val insets = WindowInsets.systemBars.asPaddingValues()
-//            val dynamicSheetHeight = insets.calculateBottomPadding()
-            val dynamicBottomPadding = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+            val dynamicBottomPadding = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
             Logd(TAG, "effectiveBottomPadding: $dynamicBottomPadding")
             BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicBottomPadding + 100.dp, sheetDragHandle = {}, topBar = {},
                 sheetSwipeEnabled = false, sheetShape = RectangleShape, sheetContent = { AudioPlayerScreen() }

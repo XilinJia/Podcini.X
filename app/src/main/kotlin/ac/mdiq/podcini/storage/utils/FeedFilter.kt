@@ -30,8 +30,8 @@ class FeedFilter(vararg properties_: String) : Serializable {
             properties.contains(States.custom_playSpeed.name) -> statements.add(" playSpeed != $SPEED_USE_GLOBAL ")
         }
         when {
-            properties.contains(States.has_skips.name) -> statements.add(" introSkip != 0 OR endingSkip != 0 ")
-            properties.contains(States.no_skips.name) -> statements.add(" introSkip == 0 AND endingSkip == 0 ")
+            properties.contains(States.has_skips.name) -> statements.add(" (introSkip != 0 OR endingSkip != 0) ")
+            properties.contains(States.no_skips.name) -> statements.add(" (introSkip == 0 AND endingSkip == 0) ")
         }
         when {
             properties.contains(States.has_comments.name) -> statements.add(" comment != '' ")

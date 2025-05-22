@@ -1,9 +1,9 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.net.feed.FeedUpdateManager
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
+import ac.mdiq.podcini.net.feed.FeedUpdaterBase.Companion.feedUpdating
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
@@ -16,10 +16,10 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.FeedFunding
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.actions.SwipeActions
@@ -154,7 +154,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var isFiltered by mutableStateOf(false)
 
     internal var listInfoText = ""
-    private var updateInfoText = ""
+    internal var updateInfoText = ""
     internal var infoBarText = mutableStateOf("")
     //        internal var displayUpArrow by mutableStateOf(false)
     private var headerCreated = false
@@ -184,8 +184,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     init {
         sortOrder = feed?.sortOrder ?: EpisodeSortOrder.DATE_NEW_OLD
         swipeActions = SwipeActions(context, TAG)
-//        leftActionState.value = swipeActions.actions.left[0]
-//        rightActionState.value = swipeActions.actions.right[0]
         layoutModeIndex = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
     }
     private var eventSink: Job? = null
@@ -212,7 +210,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received sticky event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.EpisodeDownloadEvent -> if (feedScreenMode == FeedScreenMode.List) onEpisodeDownloadEvent(event)
-                    is FlowEvent.FeedUpdatingEvent -> if (feedScreenMode == FeedScreenMode.List) onFeedUpdateRunningEvent(event)
+//                    is FlowEvent.FeedUpdatingEvent -> if (feedScreenMode == FeedScreenMode.List) onFeedUpdateRunningEvent(event)
                     else -> {}
                 }
             }
@@ -232,11 +230,11 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    private fun onFeedUpdateRunningEvent(event: FlowEvent.FeedUpdatingEvent) {
-        updateInfoText = if (event.isRunning) context.getString(R.string.refreshing_label) else ""
-        infoBarText.value = "$listInfoText $updateInfoText"
-        if (!event.isRunning) loadFeed(true)
-    }
+//    private fun onFeedUpdateRunningEvent(event: FlowEvent.FeedUpdatingEvent) {
+//        updateInfoText = if (event.isRunning) context.getString(R.string.refreshing_label) else ""
+//        infoBarText.value = "$listInfoText $updateInfoText"
+//        if (!event.isRunning) loadFeed(true)
+//    }
 
 //    private fun isFilteredOut(episode: Episode): Boolean {
 //        if (enableFilter && !feed?.filterString.isNullOrEmpty()) {
@@ -444,7 +442,8 @@ fun FeedDetailsScreen() {
                         try {
                             updateFeedDownloadURL(vm.feed?.downloadUrl ?: "", editedUrl)
                             vm.feed?.downloadUrl = editedUrl
-                            runOnce(context, vm.feed)
+//                            runOnce(context, vm.feed)
+                            gearbox.feedUpdater(vm.feed).startRefresh(context)
                         } catch (e: ExecutionException) { throw RuntimeException(e) } catch (e: InterruptedException) { throw RuntimeException(e) }
                         vm.feed?.downloadUrl = editedUrl
                         withContext(Dispatchers.Main) { vm.txtvUrl = vm.feed?.downloadUrl }
@@ -519,6 +518,7 @@ fun FeedDetailsScreen() {
         val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
         val textColor = MaterialTheme.colorScheme.onSurface
+        val buttonColor = Color(0xDDFFD700)
         TopAppBar(title = { Text("") },
             navigationIcon = if (displayUpArrow) {
                 { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
@@ -548,7 +548,7 @@ fun FeedDetailsScreen() {
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), contentDescription = "butShowSettings")}
                 if (vm.feed != null) {
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
                             ShareUtils.shareFeedLinkNew(context, vm.feed!!)
                             expanded = false
@@ -576,19 +576,22 @@ fun FeedDetailsScreen() {
                             expanded = false
                         })
                         if (vm.feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                            FeedUpdateManager.runOnceOrAsk(context, vm.feed)
+//                            runOnceOrAsk(context, vm.feed)
+                            gearbox.feedUpdater(vm.feed).startRefresh(context)
                             expanded = false
                         })
                         if (vm.feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                            runOnIOScope {
-                                try {
-                                    val feed_ = upsert(vm.feed!!) {
-                                        it.nextPageLink = it.downloadUrl
-                                        it.pageNr = 0
-                                    }
-                                    runOnce(context, feed_, fullUpdate = true)
-                                } catch (e: ExecutionException) { throw RuntimeException(e) } catch (e: InterruptedException) { throw RuntimeException(e) }
-                            }
+                            gearbox.feedUpdater(vm.feed, fullUpdate = true).startRefresh(context)
+//                            runOnIOScope {
+//                                try {
+////                                    val feed_ = upsert(vm.feed!!) {
+////                                        it.nextPageLink = it.downloadUrl
+////                                        it.pageNr = 0
+////                                    }
+////                                    runOnceOrAsk(context, vm.feed, fullUpdate = true)
+//                                    gearbox.feedUpdater(vm.feed, fullUpdate = true).doWork()
+//                                } catch (e: ExecutionException) { throw RuntimeException(e) } catch (e: InterruptedException) { throw RuntimeException(e) }
+//                            }
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
@@ -738,10 +741,12 @@ fun FeedDetailsScreen() {
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             FeedDetailsHeader()
             if (feedScreenMode == FeedScreenMode.List) {
+                vm.updateInfoText = if (feedUpdating) context.getString(R.string.refreshing_label) else ""
+                vm.infoBarText.value = "${vm.listInfoText} ${vm.updateInfoText}"
                 InforBar(vm.infoBarText, vm.swipeActions)
                 EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex,
                     buildMoreItems = { vm.buildMoreItems() },
-                    refreshCB = { FeedUpdateManager.runOnceOrAsk(context, vm.feed) },
+                    refreshCB = { gearbox.feedUpdater(vm.feed).startRefresh(context) },
                     swipeActions = vm.swipeActions,
                     actionButtonCB = { e, tag -> if (e.feed?.id == vm.feed?.id && tag in listOf("PlayActionButton", "StreamActionButton", "PlayLocalActionButton")) upsertBlk(vm.feed!!) { it.lastPlayed = Date().time } },
                 )

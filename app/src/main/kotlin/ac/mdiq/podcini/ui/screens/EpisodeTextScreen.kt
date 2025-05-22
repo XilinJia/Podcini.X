@@ -16,6 +16,7 @@ import android.speech.tts.TextToSpeech
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -43,6 +44,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ShareCompat
 import androidx.core.text.HtmlCompat
@@ -173,7 +175,8 @@ fun EpisodeTextScreen() {
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
         val context = LocalContext.current
-        TopAppBar(title = { Text("") }, 
+        val buttonColor = Color(0xDDFFD700)
+        TopAppBar(title = { Text("") },
             navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
             }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
             actions = {
@@ -205,7 +208,7 @@ fun EpisodeTextScreen() {
                     vm.prepareContent()
                 }) { Icon(imageVector = ImageVector.vectorResource(homeIconRes), contentDescription = "switch home") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                     if (vm.readMode && !vm.readerhtml.isNullOrEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
                         val notes = vm.readerhtml!!
                         val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()

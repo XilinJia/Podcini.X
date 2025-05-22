@@ -81,6 +81,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -381,6 +382,7 @@ class VideoplayerActivity : BaseActivity() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
+        val buttonColor = Color(0xDDFFD700)
         if (showAcrionBar) TopAppBar(title = {
             if (landscape) Column {
                 Text(text = episodeTitle, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -409,7 +411,7 @@ class VideoplayerActivity : BaseActivity() {
                 }
                 CastIconButton()
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
 //                     DropdownMenuItem(text = { Text(stringResource(R.string.home_label)) }, onClick = {
 //                         expanded = false
 //                    })

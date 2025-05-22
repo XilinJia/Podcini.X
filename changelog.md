@@ -1,3 +1,12 @@
+# 8.17.2
+
+* fixed again bottom padding for Android 15
+* enhanced feed refresh efficiency (full or simple) when there are many new episodes found
+* restructured feed refresh routines and replaced WorkManager with Coroutine for single feed refreshes
+* fixed some mal-functioning filters in Subscriptions screen
+* added border for DropdownMenu's
+* some dependencies update
+
 # 8.17.1
 
 * fixed bottom padding for Android 15

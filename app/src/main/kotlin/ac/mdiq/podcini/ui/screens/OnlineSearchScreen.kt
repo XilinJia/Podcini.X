@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.feed.searcher.ItunesPodcastSearcher
 import ac.mdiq.podcini.net.feed.searcher.ItunesTopListLoader
@@ -17,9 +16,9 @@ import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
@@ -81,6 +80,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -88,14 +88,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.core.content.edit
+import java.util.Locale
 
 
 class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
@@ -267,7 +266,8 @@ fun OnlineSearchScreen() {
 //                    dirFeed.episodes.clear()
                     dirFeed.sortOrder = EpisodeSortOrder.EPISODE_TITLE_A_Z
                     val fromDatabase: Feed? = updateFeedFull(context, dirFeed, removeUnlistedItems = false)
-                    FeedUpdateManager.runOnce(context, fromDatabase)
+//                    FeedUpdateManager.runOnce(context, fromDatabase)
+                    gearbox.feedUpdater(fromDatabase).startRefresh(context)
                     Logd(TAG, "addLocalFolderLauncher fromDatabase episodes: ${fromDatabase?.episodes?.size}")
                     fromDatabase
                 }

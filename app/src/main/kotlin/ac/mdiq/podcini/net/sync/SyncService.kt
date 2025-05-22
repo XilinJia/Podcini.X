@@ -1,8 +1,8 @@
 package ac.mdiq.podcini.net.sync
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.sync.LockingAsyncExecutor.executeLockedAsync
 import ac.mdiq.podcini.net.sync.SynchronizationCredentials.hosturl
 import ac.mdiq.podcini.net.sync.SynchronizationCredentials.password
@@ -29,9 +29,9 @@ import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.EpisodeFilter
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -130,7 +130,8 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
                     val feed = Feed(downloadUrl, null, "Unknown podcast")
                     feed.episodes.clear()
                     val newFeed = updateFeedFull(applicationContext, feed, removeUnlistedItems = false)
-                    runOnce(applicationContext, newFeed)
+//                    runOnce(applicationContext, newFeed)
+                    gearbox.feedUpdater(newFeed).startRefresh(applicationContext)
                 }
             }
 
@@ -147,7 +148,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             }
         }
 
-        if (queuedAddedFeeds.isNotEmpty() || queuedRemovedFeeds.size > 0) {
+        if (queuedAddedFeeds.isNotEmpty() || queuedRemovedFeeds.isNotEmpty()) {
             Logd(TAG, "Added: " + StringUtils.join(queuedAddedFeeds, ", "))
             Logd(TAG, "Removed: " + StringUtils.join(queuedRemovedFeeds, ", "))
 

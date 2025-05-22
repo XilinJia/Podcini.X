@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.gears
 
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
-import ac.mdiq.podcini.net.feed.FeedUpdateWorkerBase
+import ac.mdiq.podcini.net.feed.FeedUpdaterBase
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcher
@@ -16,10 +16,10 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.source.MediaSource
-import java.net.URL
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.net.URL
 
 open class GearBoxBase {
 
@@ -64,7 +64,9 @@ open class GearBoxBase {
 
     open fun getSearcher(): PodcastSearcher = CombinedSearcher()
 
-    open fun feedUpdateWorkerClass(): Class<out FeedUpdateWorkerBase> = FeedUpdateWorkerBase::class.java
+    open fun feedUpdater(feed: Feed? = null, fullUpdate: Boolean = false) : FeedUpdaterBase = FeedUpdaterBase(feed, fullUpdate)
+
+//    open fun feedUpdateWorkerClass(): Class<out FeedUpdateWorkerBase> = FeedUpdateWorkerBase::class.java
 
     open fun formFeedBuilder(url: String, feedSource: String, context: Context, showError: (String?, String) -> Unit): FeedBuilderBase {
         return FeedBuilderBase(context, showError)

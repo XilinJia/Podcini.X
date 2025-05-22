@@ -274,6 +274,7 @@ object Feeds {
             Logd(TAG, "New feed has a higher page number: ${newFeed.nextPageLink}")
             savedFeed.nextPageLink = newFeed.nextPageLink
         }
+        Logd(TAG, "savedFeed.isLocalFeed: ${savedFeed.isLocalFeed} savedFeed.prefStreamOverDownload: ${savedFeed.prefStreamOverDownload}")
         val priorMostRecent = savedFeed.mostRecentItem
         val priorMostRecentDate: Date? = priorMostRecent?.getPubDate()
         var idLong = newId()
@@ -300,19 +301,17 @@ object Feeds {
             }
 
             if (idx % 50 == 0) Logd(TAG, "updateFeedFull processing item $idx / ${newFeed.episodes.size} ")
-            
+
             if (!oldItems.isNullOrEmpty()) oldItems[0].updateFromOther(episode, overwriteStates)
             else {
 //                Logd(TAG, "Found new episode: ${episode.getPubDate()} ${episode.title}")
                 episode.feed = savedFeed
                 episode.id = idLong++
                 episode.feedId = savedFeed.id
-                if (!newFeed.isLocalFeed && !newFeed.prefStreamOverDownload) runBlocking { episode.fetchMediaSize(false) }
+                if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) runBlocking { episode.fetchMediaSize(false) }
 
                 if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
-                if (idx >= savedFeed.episodes.size) savedFeed.episodes.add(episode)
-                else savedFeed.episodes.add(idx, episode)
-
+                savedFeed.episodes.add(episode)
                 savedFeedAssistant.addidvToMap(episode)
 
                 val pubDate = episode.getPubDate()
@@ -401,10 +400,9 @@ object Feeds {
             episode.feed = savedFeed
             episode.id = idLong++
             episode.feedId = savedFeed.id
-            if (!newFeed.isLocalFeed && !newFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
+            if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
             if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
-            if (idx >= savedFeed.episodes.size) savedFeed.episodes.add(episode)
-            else savedFeed.episodes.add(idx, episode)
+            savedFeed.episodes.add(episode)
 
             if (priorMostRecentDate < pubDate) {
                 Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")

@@ -20,6 +20,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -45,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ShareCompat.IntentBuilder
@@ -108,11 +110,12 @@ class BugReportActivity : ComponentActivity() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-        TopAppBar(title = { Text(stringResource(R.string.bug_report_title)) }, 
+        val buttonColor = Color(0xDDFFD700)
+        TopAppBar(title = { Text(stringResource(R.string.bug_report_title)) },
             navigationIcon = { IconButton(onClick = { finish() } ) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
             actions = {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.export_logs_menu_title)) }, onClick = {
                         showConfirmExport.value = true
                         expanded = false

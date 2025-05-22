@@ -744,6 +744,7 @@ fun AudioPlayerScreen() {
     fun Toolbar() {
         var expanded by remember { mutableStateOf(false) }
         val textColor = MaterialTheme.colorScheme.onSurface
+        val buttonColor = Color(0xDDFFD700)
         val mediaType = curEpisode?.getMediaType()
         val notAudioOnly = curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY
         var showShareDialog by remember { mutableStateOf(false) }
@@ -791,7 +792,7 @@ fun AudioPlayerScreen() {
             })
             (context as? BaseActivity)?.CastIconButton()
             IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.clear_cache)) }, onClick = {
                     runOnIOScope {
                         if (vm.curItem != null) getCache(context).removeResource(vm.curItem!!.id.toString())

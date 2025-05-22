@@ -2,7 +2,8 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.feed.FeedUpdateManager
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
+import ac.mdiq.podcini.net.feed.FeedUpdaterBase.Companion.feedUpdating
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.DocumentFileExportWorker
@@ -18,16 +19,16 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.EpisodeFilter
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
-import ac.mdiq.podcini.storage.utils.FeedFilter
 import ac.mdiq.podcini.storage.model.PlayQueue
-import ac.mdiq.podcini.storage.utils.EpisodeState
-import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.EpisodeFilter
+import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.FeedFilter
+import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -140,26 +141,25 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.core.content.edit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import java.text.NumberFormat
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
-import androidx.core.content.edit
+import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     val prefs: SharedPreferences by lazy { context.getSharedPreferences("SubscriptionsFragmentPrefs", Context.MODE_PRIVATE) }
@@ -212,7 +212,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     internal val queueSpinnerTexts: MutableList<String> = mutableListOf("Any queue", "No queue")
 
     internal var isFiltered by mutableStateOf(false)
-    private var infoTextUpdate = ""
+    internal var infoTextUpdate = ""
 
     //    TODO: currently not used
     internal var displayedFolder by mutableStateOf("")
@@ -275,21 +275,21 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
             }
         }
-        if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.drop(1).collectLatest { event ->
-                Logd(TAG, "Received sticky event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.FeedUpdatingEvent -> {
-                        Logd(TAG, "FeedUpdateRunningEvent: ${event.isRunning} ${event.id}")
-                        infoTextUpdate = if (event.isRunning) " " + context.getString(R.string.refreshing_label) else ""
-                        txtvInformation = infoTextUpdate
-                        if (!event.isRunning && event.id != prevFeedUpdatingEvent?.id) loadSubscriptions(true)
-                        prevFeedUpdatingEvent = event
-                    }
-                    else -> {}
-                }
-            }
-        }
+//        if (eventStickySink == null) eventStickySink = lcScope.launch {
+//            EventFlow.stickyEvents.drop(1).collectLatest { event ->
+//                Logd(TAG, "Received sticky event: ${event.TAG}")
+//                when (event) {
+//                    is FlowEvent.FeedUpdatingEvent -> {
+//                        Logd(TAG, "FeedUpdateRunningEvent: ${event.isRunning} ${event.id}")
+//                        infoTextUpdate = if (event.isRunning) " " + context.getString(R.string.refreshing_label) else ""
+//                        txtvInformation = infoTextUpdate
+//                        if (!event.isRunning && event.id != prevFeedUpdatingEvent?.id) loadSubscriptions(true)
+//                        prevFeedUpdatingEvent = event
+//                    }
+//                    else -> {}
+//                }
+//            }
+//        }
     }
 
     private var loadingJob: Job? = null
@@ -651,6 +651,7 @@ fun SubscriptionsScreen() {
     @Composable
     fun MyTopAppBar(displayUpArrow: Boolean) {
         var expanded by remember { mutableStateOf(false) }
+        val buttonColor = Color(0xDDFFD700)
         TopAppBar(title = {
             if (vm.displayedFolder.isNotEmpty()) Text( vm.displayedFolder)
             else if (languages.size > 1) Spinner(items = vm.languages, selectedIndex = vm.langFilterIndex) { index: Int ->
@@ -667,13 +668,14 @@ fun SubscriptionsScreen() {
                 IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.isFiltered) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
                 IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                     DropdownMenuItem(text = { Text(stringResource(R.string.new_synth_label)) }, onClick = {
                         vm.showNewSynthetic = true
                         expanded = false
                     })
                     DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                        FeedUpdateManager.runOnceOrAsk(vm.context, fullUpdate = true)
+                        runOnceOrAsk(vm.context, fullUpdate = true)
+//                        gearbox.feedUpdater(fullUpdate = true).startRefresh(vm.context)
                         expanded = false
                     })
                     DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
@@ -691,6 +693,8 @@ fun SubscriptionsScreen() {
             val textColor = MaterialTheme.colorScheme.onSurface
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_info), contentDescription = "info", tint = textColor)
             Spacer(Modifier.weight(1f))
+            vm.infoTextUpdate = if (feedUpdating) " " + context.getString(R.string.refreshing_label) else ""
+            vm.txtvInformation = vm.infoTextUpdate
             Text(vm.txtvInformation, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable {} )
             Spacer(Modifier.weight(1f))
             Text(vm.feedCountState, color = textColor)
@@ -935,7 +939,10 @@ fun SubscriptionsScreen() {
 
         PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
             refreshing = true
-            if (getPref(AppPrefs.prefSwipeToRefreshAll, true)) FeedUpdateManager.runOnceOrAsk(vm.context)
+            if (getPref(AppPrefs.prefSwipeToRefreshAll, true)) {
+//                gearbox.feedUpdater().startRefresh(vm.context)
+                runOnceOrAsk(vm.context)
+            }
             refreshing = false
         }) {
             val context = LocalContext.current
@@ -1627,7 +1634,7 @@ private const val TAG = "SubscriptionsScreen"
 private const val KEY_UP_ARROW = "up_arrow"
 private const val ARGUMENT_FOLDER = "folder"
 
-private var prevFeedUpdatingEvent: FlowEvent.FeedUpdatingEvent? = null
+//private var prevFeedUpdatingEvent: FlowEvent.FeedUpdatingEvent? = null
 
 //fun newInstance(folderTitle: String?): SubscriptionsFragment {
 //    val fragment = SubscriptionsFragment()

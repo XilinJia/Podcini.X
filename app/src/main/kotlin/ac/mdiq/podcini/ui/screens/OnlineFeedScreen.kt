@@ -370,8 +370,6 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                 if (didPressSubscribe) {
                     didPressSubscribe = false
                     val feed1 = getFeed(feedId, true)?: return
-//                    if (feed1.preferences == null) feed1.preferences = FeedPreferences(feed1.id, false,
-//                        FeedPreferences.AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, "", "")
                     if (feedSource == "VistaGuide") {
                         feed1.prefStreamOverDownload = true
                         feed1.autoDownload = false

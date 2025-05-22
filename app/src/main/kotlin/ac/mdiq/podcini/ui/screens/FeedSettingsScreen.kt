@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
+import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
@@ -15,8 +15,8 @@ import ac.mdiq.podcini.storage.model.Feed.AutoDownloadPolicy
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
-import ac.mdiq.podcini.storage.utils.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.utils.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -390,7 +390,8 @@ fun FeedSettingsScreen() {
                                     it.username = newName
                                     it.password = newPW
                                 }
-                                runOnce(context, vm.feed)
+//                                runOnce(context, vm.feed)
+                                gearbox.feedUpdater(vm.feed).startRefresh(context)
                             }
                             onDismiss()
                         }
@@ -643,7 +644,7 @@ fun FeedSettingsScreen() {
             }
             var autoDownloadChecked by remember { mutableStateOf(vm.feed?.autoDownload == true) }
             var preferStreaming by remember { mutableStateOf(vm.feed?.prefStreamOverDownload == true) }
-            if (vm.feed?.type != Feed.FeedType.YOUTUBE.name) {
+            if (vm.feed?.type != Feed.FeedType.YOUTUBE.name || !preferStreaming) {
                 //                    prefer streaming
                 Column {
                     Row(Modifier.fillMaxWidth()) {

@@ -226,6 +226,7 @@ fun StatisticsScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
+        val buttonColor = Color(0xDDFFD700)
         TopAppBar(title = { Text("") },
             navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } },
             actions = {
@@ -236,7 +237,7 @@ fun StatisticsScreen() {
                     }
                 }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                     if (vm.selectedTabIndex.intValue == 0 || vm.selectedTabIndex.intValue == 1) DropdownMenuItem(text = { Text(stringResource(R.string.statistics_reset_data)) }, onClick = {
                         vm.showResetDialog.value = true
                         expanded = false

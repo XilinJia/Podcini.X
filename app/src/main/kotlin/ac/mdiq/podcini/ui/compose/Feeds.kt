@@ -2,7 +2,6 @@ package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.setCurTempSpeed
@@ -35,9 +34,9 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.Rating
-import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
@@ -133,16 +132,16 @@ import androidx.compose.ui.window.DialogWindowProvider
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Date
+import java.util.Locale
 import kotlin.math.round
 
 @Composable
@@ -712,7 +711,8 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
                                     feed.episodes.clear()
                                     updateFeedFull(context, feed, removeUnlistedItems = false)
                                 }
-                                runOnce(context)
+                                // TODO: seems not needed
+//                                runOnce(context)
                             }
                         }
                     } catch (e: Throwable) { Logs("OpmlImportSelectionDialog", e) }

@@ -2,7 +2,6 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedByTitleAndAuthor
 import ac.mdiq.podcini.storage.database.LogsAndStats.DownloadResultComparator
@@ -11,9 +10,9 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.Rating.Companion.fromCode
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.utils.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.DownloadActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
@@ -87,11 +86,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.xilinjia.krdb.query.Sort
-import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.Date
 
 
 class LogsVM(val context: Context, val lcScope: CoroutineScope) {
@@ -471,7 +470,8 @@ fun LogsScreen() {
                                             Loge(TAG, "Could not find feed for feed id: " + status.feedfileId)
                                             return@clickable
                                         }
-                                        FeedUpdateManager.runOnce(context, feed)
+//                                        FeedUpdateManager.runOnce(context, feed)
+                                        gearbox.feedUpdater(feed).startRefresh(context)
                                     }
                                     Episode.FEEDFILETYPE_FEEDMEDIA -> {
                                         showAction = false

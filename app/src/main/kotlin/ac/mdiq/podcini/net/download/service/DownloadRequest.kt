@@ -182,13 +182,9 @@ class DownloadRequest private constructor(
 
         @JvmField
         val CREATOR: Parcelable.Creator<DownloadRequest> = object : Parcelable.Creator<DownloadRequest> {
-            override fun createFromParcel(inVal: Parcel): DownloadRequest {
-                return DownloadRequest(inVal)
-            }
+            override fun createFromParcel(inVal: Parcel): DownloadRequest = DownloadRequest(inVal)
 
-            override fun newArray(size: Int): Array<DownloadRequest?> {
-                return arrayOfNulls(size)
-            }
+            override fun newArray(size: Int): Array<DownloadRequest?> = arrayOfNulls(size)
         }
     }
 }
