@@ -26,11 +26,8 @@ open class FeedUpdateWorkerBase(context: Context, params: WorkerParameters) : Co
     override suspend fun doWork(): Result {
         ClientConfigurator.initialize(applicationContext)
         val feedId = inputData.getLong(EXTRA_FEED_ID, -1L)
-        val updater = if (feedId == -1L) gearbox.feedUpdater()
-        else {
-            val feed = Feeds.getFeed(feedId) ?: return Result.success()
-            gearbox.feedUpdater(feed)
-        }
+        val feed = if (feedId > -1L) Feeds.getFeed(feedId) ?: return Result.failure() else null
+        val updater = gearbox.feedUpdater(feed)
         val ready = updater.prepare()
         if (!ready) return Result.failure()
 

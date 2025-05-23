@@ -1,3 +1,11 @@
+# 8.17.3
+
+* fixed space blocking when PlayUI is dismissed
+* better messaging of feed operations on status bar 
+* fixed current episode not properly set to Ignored if a duplicate item was previously set to Forever, Skipped, Played, Passed, Ignored
+* when removing not finished episode from queue, its status is set to Passed if it's not started playing otherwise Skipped
+* likely fixed crash when episode monitoring changes
+
 # 8.17.2
 
 * fixed again bottom padding for Android 15

@@ -213,7 +213,10 @@ object Queues {
         val almostEnded = hasAlmostEnded(item)
         if (almostEnded && item.playState < EpisodeState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(EpisodeState.PLAYED.code, item, resetMediaPosition = true, removeFromQueue = false)
         if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
-        if (item.playState < EpisodeState.SKIPPED.code && !stateToPreserve(item.playState)) item = setPlayStateSync(EpisodeState.SKIPPED.code, item, resetMediaPosition = false, removeFromQueue = false)
+        if (item.playState < EpisodeState.SKIPPED.code && !stateToPreserve(item.playState)) {
+            val statCode = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED.code else EpisodeState.PASSED.code
+            item = setPlayStateSync(statCode, item, resetMediaPosition = false, removeFromQueue = false)
+        }
         removeFromQueueSync(curQueue, item)
     }
 

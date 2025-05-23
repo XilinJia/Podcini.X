@@ -272,11 +272,14 @@ object Episodes {
                                 e.playState <= EpisodeState.AGAIN.code -> {
                                     e.setPlayState(EpisodeState.IGNORED)
                                     e.comment += if (e.comment.isBlank()) comment else "\n" + comment
+                                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(e))
                                 }
                                 else -> {
-                                    val media_ = findLatest(media)
-                                    media_?.setPlayState(EpisodeState.IGNORED)
-                                    media_?.comment += if (media_.comment.isBlank()) comment else "\n" + comment
+                                    findLatest(media)?.let {
+                                        it.setPlayState(EpisodeState.IGNORED)
+                                        it.comment += if (it.comment.isBlank()) comment else "\n" + comment
+                                        EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(it))
+                                    }
                                     Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
                                 }
                             }

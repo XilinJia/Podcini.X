@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
-import ac.mdiq.podcini.net.feed.FeedUpdaterBase.Companion.feedUpdating
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.mediaBrowser
@@ -13,6 +12,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithDownloadUrl
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
+import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.Queues.clearQueue
 import ac.mdiq.podcini.storage.database.Queues.isQueueKeepSorted
 import ac.mdiq.podcini.storage.database.Queues.moveInQueueSync
@@ -132,7 +132,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     internal var swipeActions: SwipeActions
     internal var swipeActionsBin: SwipeActions
 
-    internal var infoTextUpdate = ""
+//    internal var infoTextUpdate = ""
     internal var listInfoText = ""
     internal var infoBarText = mutableStateOf("")
 
@@ -256,7 +256,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         spinnerTexts.clear()
         spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
         listInfoText = buildListInfo(queueItems)
-        infoBarText.value = "$listInfoText $infoTextUpdate"
+        infoBarText.value = "$listInfoText $feedOperationText"
     }
 
     private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
@@ -296,7 +296,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             spinnerTexts.clear()
             spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
             listInfoText = buildListInfo(queueItems)
-            infoBarText.value = "$listInfoText $infoTextUpdate"
+            infoBarText.value = "$listInfoText $feedOperationText"
             loadItemsRunning = false
         }
     }
@@ -620,8 +620,8 @@ fun QueuesScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showBin) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                vm.infoTextUpdate = if (feedUpdating) "U" else ""
-                vm.infoBarText.value = "${vm.listInfoText} ${vm.infoTextUpdate}"
+//                vm.infoTextUpdate = if (feedUpdating) "U" else ""
+                vm.infoBarText.value = "${vm.listInfoText} $feedOperationText"
                 InforBar(vm.infoBarText, vm.swipeActionsBin)
                 EpisodeLazyColumn(context as MainActivity, vms = vm.vms, swipeActions = vm.swipeActionsBin)
             }

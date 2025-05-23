@@ -89,6 +89,7 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -227,19 +228,26 @@ class MainActivity : BaseActivity() {
                 else lcScope?.launch { sheetState.bottomSheetState.partialExpand() }
             } else lcScope?.launch { sheetState.bottomSheetState.hide() }
         }
+        val dynamicBottomPadding by remember { derivedStateOf {
+            when (sheetState.bottomSheetState.currentValue) {
+                SheetValue.Expanded -> 300.dp
+                SheetValue.PartiallyExpanded -> 100.dp
+                else -> 0.dp
+            }
+        } }
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
-            val dynamicBottomPadding = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
-            Logd(TAG, "effectiveBottomPadding: $dynamicBottomPadding")
-            BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicBottomPadding + 100.dp, sheetDragHandle = {}, topBar = {},
+            val dynamicSheetHeight = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
+            Logd(TAG, "effectiveBottomPadding: $dynamicSheetHeight")
+            BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicSheetHeight + 100.dp, sheetDragHandle = {}, topBar = {},
                 sheetSwipeEnabled = false, sheetShape = RectangleShape, sheetContent = { AudioPlayerScreen() }
             ) { paddingValues ->
                 Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize()
-//                    .padding(paddingValues)
                     .padding(top = paddingValues.calculateTopPadding(),
-                    start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
-                    end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
-                    bottom = paddingValues.calculateBottomPadding() - dynamicBottomPadding)
-                ) {
+                        start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
+                        end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
+//                    bottom = paddingValues.calculateBottomPadding() - dynamicBottomPadding
+                        bottom = dynamicBottomPadding
+                    )) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                     CompositionLocalProvider(LocalNavController provides navController) { Navigate(navController) }

@@ -18,6 +18,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Feeds
+import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.LogsAndStats
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.model.DownloadResult
@@ -37,9 +38,6 @@ import android.app.Notification
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -47,6 +45,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.xml.sax.SAXException
 import java.io.File
 import java.io.IOException
@@ -55,8 +54,8 @@ import javax.xml.parsers.ParserConfigurationException
 
 open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = false) {
     protected val TAG = "FeedUpdateBase"
-    val applicationContext = getAppContext()
-    private val notificationManager = NotificationManagerCompat.from(applicationContext)
+    protected val context = getAppContext()
+    private val notificationManager = NotificationManagerCompat.from(context)
 
     var feedsToUpdate: MutableList<Feed> = mutableListOf()
     val feedsToOnlyDownload: MutableList<Feed> = mutableListOf()
@@ -90,7 +89,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
     }
 
     fun prepare(): Boolean {
-        feedUpdating = true
+        feedOperationText = context.getString(R.string.preparing)
         if (feedId == -1L) { // Update all
             feedsToUpdate = Feeds.getFeedList().toMutableList()
             val itr = feedsToUpdate.iterator()
@@ -103,11 +102,11 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
                 }
                 if (!feed.isLocalFeed) allAreLocal = false
             }
-            feedsToUpdate.shuffle() // If the worker gets cancelled early, every feed has a chance to be updated
+//            feedsToUpdate.shuffle() // If the worker gets cancelled early, every feed has a chance to be updated
         } else {
             val feed = Feeds.getFeed(feedId)
             if (feed == null) {
-                feedUpdating = false
+                feedOperationText = ""
                 return false
             }
             Logd(TAG, "doWork updating single feed: ${feed.title} ${feed.downloadUrl}")
@@ -115,31 +114,34 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
             feedsToUpdate = mutableListOf(feed)
             force = true
         }
+        feedOperationText = ""
         return true
     }
 
     suspend fun doWork(): Boolean {
+        withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.refreshing_label) }
         refreshFeeds(feedsToUpdate, force)
         notificationManager.cancel(R.id.notification_updating_feeds)
+        withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.post_refreshing) }
         postWork()
         return true
     }
 
-    suspend fun postWork() {
+    private suspend fun postWork() {
         if (feedsToOnlyEnqueue.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyEnqueue)
         if (feedsToOnlyDownload.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyDownload)
         autoenqueue(feedsToUpdate.toList())
-        autodownload(applicationContext, feedsToUpdate.toList())
+        autodownload(context, feedsToUpdate.toList())
         feedsToUpdate.clear()
         feedsToOnlyEnqueue.clear()
         feedsToOnlyDownload.clear()
         Logd(TAG, "feedId: $feedId prefAutoUpdateStartTime: [${getPref(AppPrefs.prefAutoUpdateStartTime, ":")}]")
-        feedUpdating = false
+        withContext(Dispatchers.Main) { feedOperationText = "" }
     }
 
 //    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private suspend fun refreshFeeds(feedsToUpdate: MutableList<Feed>, force: Boolean) {
-        if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(applicationContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+        if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             Loge(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
             return
         }
@@ -151,7 +153,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
             try {
                 Logd(TAG, "updating local feed? ${feed.isLocalFeed} ${feed.title}")
                 when {
-                    feed.isLocalFeed -> LocalFeedUpdater.updateFeed(feed, applicationContext, null)
+                    feed.isLocalFeed -> LocalFeedUpdater.updateFeed(feed, context, null)
                     else -> refreshFeed(feed, force)
                 }
             } catch (e: Exception) {
@@ -186,7 +188,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
             LogsAndStats.addDownloadStatus(downloader.result)
             return
         }
-        val feedUpdateTask = FeedUpdateTask(applicationContext, request)
+        val feedUpdateTask = FeedUpdateTask(context, request)
         val success = if (fullUpdate) feedUpdateTask.run() else feedUpdateTask.runSimple()
         if (!success) {
             Logt(TAG, "feed update failed: unsuccessful: ${feed.title}")
@@ -319,8 +321,6 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
     }
 
     companion object {
-        var feedUpdating by mutableStateOf(false)
-
         fun createNotification(titles: List<String>?): Notification {
             val context = getAppContext()
             var contentText = ""

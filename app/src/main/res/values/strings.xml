@@ -130,7 +130,9 @@
     <string name="new_synth_label">New synthetic feed</string>
     <string name="new_synth_yt_label">New synthetic Youtube</string>
     <string name="toggle_grid_list">Toggle grid list</string>
+    <string name="preparing">Preparing</string>
     <string name="refreshing_label">Refreshing</string>
+    <string name="post_refreshing">Post refreshing</string>
     <string name="clear_new_label">Clear new</string>
     <string name="reconcile_label">Reconcile</string>
     <string name="chapters_label">Chapters</string>

@@ -3,11 +3,11 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
-import ac.mdiq.podcini.net.feed.FeedUpdaterBase.Companion.feedUpdating
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
-import ac.mdiq.podcini.storage.database.Feeds.cleanUp
+import ac.mdiq.podcini.storage.database.Feeds.FeedAssistant
+import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.updateFeedDownloadURL
 import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
@@ -154,7 +154,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var isFiltered by mutableStateOf(false)
 
     internal var listInfoText = ""
-    internal var updateInfoText = ""
+//    internal var updateInfoText = ""
     internal var infoBarText = mutableStateOf("")
     //        internal var displayUpArrow by mutableStateOf(false)
     private var headerCreated = false
@@ -297,7 +297,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                         filterButtonColor.value = if (enableFilter) if (isFiltered) Color.Green else Color.White else Color.Red
                         if (!headerCreated) headerCreated = true
                         listInfoText = buildListInfo(episodes)
-                        infoBarText.value = "$listInfoText $updateInfoText"
+                        infoBarText.value = "$listInfoText $feedOperationText"
                     }
                 }
             } catch (e: Throwable) {
@@ -565,14 +565,22 @@ fun FeedDetailsScreen() {
                             expanded = false
                         })
                         if (vm.episodes.isNotEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
+                            feedOperationText = context.getString(R.string.fetch_size)
                             scope.launch {
                                 for (e in vm.episodes) e.fetchMediaSize(force = true)
 //                                vm.loadFeed(true)
+                                withContext(Dispatchers.Main) { feedOperationText= "" }
                             }
                             expanded = false
                         })
                         if (vm.feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.clean_up)) }, onClick = {
-                            cleanUp(vm.feed!!)
+                            feedOperationText = context.getString(R.string.clean_up)
+                            runOnIOScope {
+                                val f = realm.copyFromRealm(vm.feed!!)
+                                FeedAssistant(f).clear()
+                                upsert(f) {}
+                                withContext(Dispatchers.Main) { feedOperationText= "" }
+                            }
                             expanded = false
                         })
                         if (vm.feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
@@ -741,8 +749,8 @@ fun FeedDetailsScreen() {
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             FeedDetailsHeader()
             if (feedScreenMode == FeedScreenMode.List) {
-                vm.updateInfoText = if (feedUpdating) context.getString(R.string.refreshing_label) else ""
-                vm.infoBarText.value = "${vm.listInfoText} ${vm.updateInfoText}"
+//                vm.updateInfoText = if (feedUpdating) context.getString(R.string.refreshing_label) else ""
+                vm.infoBarText.value = "${vm.listInfoText} $feedOperationText"
                 InforBar(vm.infoBarText, vm.swipeActions)
                 EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex,
                     buildMoreItems = { vm.buildMoreItems() },

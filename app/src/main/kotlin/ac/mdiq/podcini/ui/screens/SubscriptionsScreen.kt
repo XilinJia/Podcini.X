@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
-import ac.mdiq.podcini.net.feed.FeedUpdaterBase.Companion.feedUpdating
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.DocumentFileExportWorker
@@ -11,6 +10,7 @@ import ac.mdiq.podcini.preferences.ExportTypes
 import ac.mdiq.podcini.preferences.ExportWorker
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.storage.database.Feeds.compileLanguages
+import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.Feeds.getTags
 import ac.mdiq.podcini.storage.database.Feeds.languages
@@ -212,7 +212,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     internal val queueSpinnerTexts: MutableList<String> = mutableListOf("Any queue", "No queue")
 
     internal var isFiltered by mutableStateOf(false)
-    internal var infoTextUpdate = ""
+//    internal var infoTextUpdate = ""
 
     //    TODO: currently not used
     internal var displayedFolder by mutableStateOf("")
@@ -313,7 +313,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     feedListFiltered.addAll(feedList)
                     feedCountState = feedListFiltered.size.toString() + " / " + feedCount.toString()
                     isFiltered = feedsFilter.isNotEmpty()
-                    txtvInformation = infoTextUpdate
+                    txtvInformation = feedOperationText
                 }
             } catch (e: Throwable) { Logd(TAG, e.message ?: "No message") }
         }.apply { invokeOnCompletion { loadingJob = null } }
@@ -693,8 +693,8 @@ fun SubscriptionsScreen() {
             val textColor = MaterialTheme.colorScheme.onSurface
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_info), contentDescription = "info", tint = textColor)
             Spacer(Modifier.weight(1f))
-            vm.infoTextUpdate = if (feedUpdating) " " + context.getString(R.string.refreshing_label) else ""
-            vm.txtvInformation = vm.infoTextUpdate
+//            vm.infoTextUpdate = if (feedUpdating) " " + context.getString(R.string.refreshing_label) else ""
+            vm.txtvInformation = feedOperationText
             Text(vm.txtvInformation, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.clickable {} )
             Spacer(Modifier.weight(1f))
             Text(vm.feedCountState, color = textColor)

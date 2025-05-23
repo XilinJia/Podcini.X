@@ -33,7 +33,10 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import android.app.backup.BackupManager
 import android.content.Context
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.ext.asFlow
@@ -60,6 +63,8 @@ import kotlin.text.startsWith
 
 object Feeds {
     private val TAG: String = Feeds::class.simpleName ?: "Anonymous"
+    var feedOperationText by mutableStateOf("")
+
     private val tags = mutableStateListOf<String>()
     val languages = mutableStateListOf<String>()
 
@@ -359,14 +364,6 @@ object Feeds {
         } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
         } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
         return resultFeed
-    }
-
-    fun cleanUp(feed: Feed) {
-        runOnIOScope {
-            val f = realm.copyFromRealm(feed)
-            FeedAssistant(f).clear()
-            upsert(f) {}
-        }
     }
 
     suspend fun updateFeedSimple(newFeed: Feed): Feed? {
