@@ -366,7 +366,7 @@ fun QueuesScreen() {
                 }
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {
-                    vm.cancelFlowEvents()
+//                    vm.cancelFlowEvents()
 //                    mediaBrowser?.unsubscribe("CurQueue")
 //                    mediaBrowser = null
 //                    MediaBrowser.releaseFuture(vm.browserFuture)
@@ -377,6 +377,7 @@ fun QueuesScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            vm.cancelFlowEvents()
             mediaBrowser?.unsubscribe("CurQueue")
             mediaBrowser = null
             MediaBrowser.releaseFuture(vm.browserFuture)

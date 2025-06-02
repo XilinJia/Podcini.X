@@ -161,7 +161,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     init {
         episode = episodeOnDisplay
         hasRelations = !episode?.related.isNullOrEmpty()
-        inQueue = (episode!!.feed?.queue ?: curQueue).contains(episode!!)
+        inQueue = if (episode == null) false else (episode!!.feed?.queue ?: curQueue).contains(episode!!)
     }
 
     private var eventSink: Job?     = null
@@ -194,7 +194,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun monitor() {
-        subscribeEpisode(episode!!, MonitorEntity(TAG,
+        if (episode != null) subscribeEpisode(episode!!, MonitorEntity(TAG,
             onChanges = { e, fields ->
                 Logd(TAG, "monitor: ${e.title}")
                 withContext(Dispatchers.Main) {
@@ -247,7 +247,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         return when {
             InTheatre.isCurrentlyPlaying(episode) -> PauseActionButton(episode!!)
             episode?.feed != null && episode!!.feed!!.isLocalFeed -> PlayLocalActionButton(episode!!)
-            episode!!.downloaded -> PlayActionButton(episode!!)
+            episode?.downloaded == true -> PlayActionButton(episode!!)
             else -> StreamActionButton(episode!!)
         }
     }

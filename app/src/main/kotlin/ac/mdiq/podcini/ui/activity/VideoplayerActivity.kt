@@ -95,6 +95,7 @@ import androidx.core.view.WindowCompat.getInsetsController
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.media3.ui.PlayerView
@@ -126,9 +127,10 @@ class VideoplayerActivity : BaseActivity() {
 
     var showShareDialog by mutableStateOf(false)
 
+    @UnstableApi
     override fun onCreate(savedInstanceState: Bundle?) {
         setTheme(getNoTitleTheme(this))
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         var vmCode = 0
         if (curEpisode != null) {
             val media_ = curEpisode!!
@@ -174,7 +176,7 @@ class VideoplayerActivity : BaseActivity() {
                     if (landscape) Box(modifier = Modifier.fillMaxSize()) { VideoPlayer() }
                     else {
                         val textColor = MaterialTheme.colorScheme.onSurface
-                        Column(modifier = Modifier.fillMaxSize()) {
+                        Column(modifier = Modifier.padding(innerPadding).fillMaxSize()) {
                             Box(modifier = Modifier.fillMaxWidth().aspectRatio(16 / 9f)) { VideoPlayer() }
                             Text(curEpisode?.getEpisodeTitle() ?: "", color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(horizontal = 10.dp))
                             Text(curEpisode?.feed?.title ?: "", color = textColor, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(horizontal = 10.dp))
@@ -194,46 +196,68 @@ class VideoplayerActivity : BaseActivity() {
             VideoMode.WINDOW_VIEW -> showSystemUI()
             else -> {}
         }
-        val flags = window.attributes.flags
+        val flags = window?.attributes?.flags
         Logd(TAG, "Current Flags: $flags")
     }
 
     private fun showSystemUI() {
-        WindowCompat.setDecorFitsSystemWindows(window, true)
+        val win = window ?: return
+        WindowCompat.setDecorFitsSystemWindows(win, true)
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
-            window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-            window.decorView.apply { systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE }
-            val insetsController = getInsetsController(window, window.decorView)
+            win.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            win.decorView.apply { systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE }
+            val insetsController = getInsetsController(win, win.decorView)
             insetsController.isAppearanceLightStatusBars = isLightTheme(this)
         } else {
-            window.insetsController?.apply {
-                show(WindowInsetsCompat.Type.systemBars())
-                systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
-                if (isLightTheme(this@VideoplayerActivity)) {
-                    setSystemBarsAppearance(
-                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
-                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)
-                } else {
-                    setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)
+            val decorView = win.decorView
+            decorView.post {
+                WindowCompat.setDecorFitsSystemWindows(win, true)
+                win.insetsController?.apply {
+                    show(WindowInsetsCompat.Type.systemBars())
+                    systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+                    if (isLightTheme(this@VideoplayerActivity)) {
+                        setSystemBarsAppearance(
+                            WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+                            WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                        )
+                    } else {
+                        setSystemBarsAppearance(
+                            0,
+                            WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                        )
+                    }
                 }
             }
+//            win.insetsController?.apply {
+//                show(WindowInsetsCompat.Type.systemBars())
+//                systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
+//                if (isLightTheme(this@VideoplayerActivity)) {
+//                    setSystemBarsAppearance(
+//                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+//                        WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)
+//                } else {
+//                    setSystemBarsAppearance(0, WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS)
+//                }
+//            }
         }
     }
 
     fun hideSystemUI() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        WindowInsetsControllerCompat(window, window.decorView).hide(WindowInsetsCompat.Type.systemBars())
+        val win = window ?: return
+        WindowCompat.setDecorFitsSystemWindows(win, false)
+        WindowInsetsControllerCompat(win, win.decorView).hide(WindowInsetsCompat.Type.systemBars())
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
-            window.decorView.apply { systemUiVisibility = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN }
+            win.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
+            win.decorView.apply { systemUiVisibility = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_FULLSCREEN }
         } else {
-            window.insetsController?.apply {
+            win.insetsController?.apply {
                 hide(WindowInsetsCompat.Type.systemBars())
                 systemBarsBehavior = WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         }
     }
 
+    @androidx.annotation.OptIn(UnstableApi::class)
     @Composable
     fun VideoPlayer() {
         AndroidView(modifier = Modifier.fillMaxWidth(),
@@ -251,6 +275,7 @@ class VideoplayerActivity : BaseActivity() {
         )
     }
 
+    @UnstableApi
     @Composable
     fun MediaDetails() {
 //        val textColor = MaterialTheme.colorScheme.onSurface
@@ -271,6 +296,7 @@ class VideoplayerActivity : BaseActivity() {
         Logd(TAG, "onConfigurationChanged landscape: $landscape")
     }
 
+    @UnstableApi
     override fun onResume() {
         super.onResume()
         setForVideoMode()
@@ -285,10 +311,12 @@ class VideoplayerActivity : BaseActivity() {
     }
 
     override fun onDestroy() {
-        val insetsController = getInsetsController(window, window.decorView)
-        insetsController.show(WindowInsetsCompat.Type.statusBars())
-        insetsController.show(WindowInsetsCompat.Type.navigationBars())
-        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        window?.let {
+            val insetsController = getInsetsController(it, it.decorView)
+            insetsController.show(WindowInsetsCompat.Type.statusBars())
+            insetsController.show(WindowInsetsCompat.Type.navigationBars())
+            it.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         if (vCtrlFuture != null) MediaController.releaseFuture(vCtrlFuture!!)
         super.onDestroy()
     }
@@ -298,6 +326,7 @@ class VideoplayerActivity : BaseActivity() {
         if (!isInPictureInPictureMode) compatEnterPictureInPicture()
     }
 
+    @UnstableApi
     override fun onStart() {
         super.onStart()
         procFlowEvents()
@@ -315,6 +344,8 @@ class VideoplayerActivity : BaseActivity() {
     }
 
     private var loadItemsRunning = false
+
+    @UnstableApi
     private fun loadMediaInfo() {
         Logd(TAG, "loadMediaInfo called")
         if (curEpisode == null) return
@@ -523,6 +554,7 @@ class VideoplayerActivity : BaseActivity() {
         else false
     }
 
+    @UnstableApi
     @Composable
     fun PlaybackControlsDialog(onDismiss: ()-> Unit) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -547,6 +579,7 @@ class VideoplayerActivity : BaseActivity() {
 //        var media3Controller: MediaController? = null
 
         private val audioTracks: List<String>
+            @UnstableApi
             get() {
                 val tracks = mPlayer?.getAudioTracks()
                 if (tracks.isNullOrEmpty()) return emptyList()
@@ -554,6 +587,7 @@ class VideoplayerActivity : BaseActivity() {
             }
 
         private val selectedAudioTrack: Int
+            @UnstableApi
             get() = mPlayer?.getSelectedAudioTrack() ?: -1
 
         private fun getWebsiteLinkWithFallback(media: Episode?): String? {

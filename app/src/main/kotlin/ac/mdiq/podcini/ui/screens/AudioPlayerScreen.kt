@@ -22,6 +22,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.normalSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.simpleCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.TaskManager.Companion.isSleepTimerActive
@@ -794,13 +795,16 @@ fun AudioPlayerScreen() {
             IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
             DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.clear_cache)) }, onClick = {
+                    runOnIOScope { if (vm.curItem != null) getCache(context).removeResource(vm.curItem!!.id.toString()) }
+                    expanded = false
+                })
+                DropdownMenuItem(text = { Text(stringResource(R.string.clear_all_cache)) }, onClick = {
                     runOnIOScope {
-                        if (vm.curItem != null) getCache(context).removeResource(vm.curItem!!.id.toString())
-//                        val keys = cache.keys
-//                        keys.forEach {
-//                            Logd(TAG, "removing cache resource on key: $it")
-//                            cache.removeResource(it)
-//                        }
+                        val keys = simpleCache?.keys ?: return@runOnIOScope
+                        keys.forEach {
+                            Logd(TAG, "removing cache resource on key: $it")
+                            simpleCache!!.removeResource(it)
+                        }
                     }
                     expanded = false
                 })

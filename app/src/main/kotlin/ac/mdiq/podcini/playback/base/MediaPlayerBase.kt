@@ -883,6 +883,5 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 else -> Loge(TAG, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
             }
         }
-
     }
 }

@@ -5,6 +5,7 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Feeds.FeedAssistant
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
@@ -390,7 +391,7 @@ fun FeedDetailsScreen() {
                     vm.loadFeed()
                 }
                 Lifecycle.Event.ON_START -> vm.procFlowEvents()
-                Lifecycle.Event.ON_RESUME -> {}
+                Lifecycle.Event.ON_RESUME -> if (episodeChangedWhenScreenOff) vm.loadFeed()
                 Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
@@ -398,6 +399,7 @@ fun FeedDetailsScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+//            vm.cancelFlowEvents()
             vm.feed = null
             vm.episodes.clear()
             vm.vms.clear()
@@ -584,22 +586,11 @@ fun FeedDetailsScreen() {
                             expanded = false
                         })
                         if (vm.feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-//                            runOnceOrAsk(context, vm.feed)
                             gearbox.feedUpdater(vm.feed).startRefresh(context)
                             expanded = false
                         })
                         if (vm.feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
                             gearbox.feedUpdater(vm.feed, fullUpdate = true).startRefresh(context)
-//                            runOnIOScope {
-//                                try {
-////                                    val feed_ = upsert(vm.feed!!) {
-////                                        it.nextPageLink = it.downloadUrl
-////                                        it.pageNr = 0
-////                                    }
-////                                    runOnceOrAsk(context, vm.feed, fullUpdate = true)
-//                                    gearbox.feedUpdater(vm.feed, fullUpdate = true).doWork()
-//                                } catch (e: ExecutionException) { throw RuntimeException(e) } catch (e: InterruptedException) { throw RuntimeException(e) }
-//                            }
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
@@ -749,7 +740,6 @@ fun FeedDetailsScreen() {
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             FeedDetailsHeader()
             if (feedScreenMode == FeedScreenMode.List) {
-//                vm.updateInfoText = if (feedUpdating) context.getString(R.string.refreshing_label) else ""
                 vm.infoBarText.value = "${vm.listInfoText} $feedOperationText"
                 InforBar(vm.infoBarText, vm.swipeActions)
                 EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex,

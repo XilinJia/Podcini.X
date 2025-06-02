@@ -12,6 +12,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
 import ac.mdiq.podcini.playback.service.PlaybackService
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.Episodes.checkAndMarkDuplicates
 import ac.mdiq.podcini.storage.model.Episode
@@ -22,6 +23,7 @@ import android.content.Intent
 import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
+import kotlinx.coroutines.runBlocking
 
 
 class PlaybackStarter(private val context: Context, private val media: Episode) {
@@ -47,10 +49,12 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
     @OptIn(UnstableApi::class)
     fun start() {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
+        var media_ = media
         if (curEpisode?.id != media.id) {
-            setCurEpisode(media)
+            media_ = runBlocking { checkAndMarkDuplicates(media) }
+            episodeChangedWhenScreenOff = true
+            setCurEpisode(media_)
             clearCurTempSpeed()
-            checkAndMarkDuplicates(media)
         }
         Logd(TAG, "start: status: $status")
         aCtrlFuture?.let { future ->
@@ -59,7 +63,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
                 mPlayer?.isStreaming = shouldStreamThisTime
                 when (status) {
                     PlayerStatus.PLAYING -> playPause()
-                    PlayerStatus.PAUSED, PlayerStatus.PREPARED -> mPlayer?.prepareMedia(media, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                    PlayerStatus.PAUSED, PlayerStatus.PREPARED -> mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
                     PlayerStatus.STOPPED -> ContextCompat.startForegroundService(context, intent)
                     else -> mPlayer?.reinit()
                 }

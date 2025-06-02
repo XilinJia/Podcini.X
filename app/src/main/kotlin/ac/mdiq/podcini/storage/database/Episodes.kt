@@ -16,7 +16,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -43,12 +42,12 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.util.UnstableApi
 import io.github.xilinjia.krdb.ext.isManaged
-import java.io.File
-import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.util.Locale
 import kotlin.math.min
 
 object Episodes {
@@ -258,42 +257,43 @@ object Episodes {
         EventFlow.postEvent(FlowEvent.DownloadLogEvent())
     }
 
-    fun checkAndMarkDuplicates(media: Episode) {
-        runOnIOScope {
-            realm.write {
-                val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", media.title, media.downloadUrl).find()
-                if (duplicates.size > 1) {
-                    Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, setting to Ignored")
-                    val localTime = System.currentTimeMillis()
-                    val comment = fullDateTimeString(localTime) + ":\nduplicate"
-                    for (e in duplicates) {
-                        if (e.id != media.id) {
-                            when {
-                                e.playState <= EpisodeState.AGAIN.code -> {
-                                    e.setPlayState(EpisodeState.IGNORED)
-                                    e.comment += if (e.comment.isBlank()) comment else "\n" + comment
-                                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(e))
+    suspend fun checkAndMarkDuplicates(media_: Episode): Episode {
+        var media = media_
+        realm.write {
+            val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", media_.title, media_.downloadUrl).find()
+            if (duplicates.size > 1) {
+                Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, setting to Ignored")
+                val localTime = System.currentTimeMillis()
+                val comment = fullDateTimeString(localTime) + ":\nduplicate"
+                for (e in duplicates) {
+                    if (e.id != media_.id) {
+                        when {
+                            e.playState <= EpisodeState.AGAIN.code -> {
+                                e.setPlayState(EpisodeState.IGNORED)
+                                e.comment += if (e.comment.isBlank()) comment else "\n" + comment
+                                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(e))
+                            }
+                            else -> {
+                                findLatest(media_)?.let {
+                                    it.setPlayState(EpisodeState.IGNORED)
+                                    it.comment += if (it.comment.isBlank()) comment else "\n" + comment
+                                    media = it
+                                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(it))
                                 }
-                                else -> {
-                                    findLatest(media)?.let {
-                                        it.setPlayState(EpisodeState.IGNORED)
-                                        it.comment += if (it.comment.isBlank()) comment else "\n" + comment
-                                        EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(it))
-                                    }
-                                    Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
-                                }
+                                Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
                             }
                         }
                     }
-                    for (e in duplicates) {
-                        for (e1 in duplicates) {
-                            if (e.id == e1.id) continue
-                            e.related.add(e1)
-                        }
+                }
+                for (e in duplicates) {
+                    for (e1 in duplicates) {
+                        if (e.id == e1.id) continue
+                        e.related.add(e1)
                     }
                 }
             }
         }
+        return media
     }
 
     suspend fun setRating(episode: Episode, rating: Int): Episode {

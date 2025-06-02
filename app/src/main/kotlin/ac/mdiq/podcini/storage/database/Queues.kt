@@ -12,6 +12,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.writeMediaPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
 import ac.mdiq.podcini.playback.base.PlayerStatus
+import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
@@ -36,6 +37,7 @@ import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import java.util.Date
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.runBlocking
 import kotlin.random.Random
 
 object Queues {
@@ -385,7 +387,7 @@ object Queues {
             return null
         }
         Logd(TAG, "getNextInQueue curIndexInQueue: $curIndexInQueue ${eList.size}")
-        val nextItem = if (curIndexInQueue >= 0 && curIndexInQueue < eList.size) {
+        var nextItem = if (curIndexInQueue >= 0 && curIndexInQueue < eList.size) {
             when {
                 eList[curIndexInQueue].id != currentMedia?.id -> eList[curIndexInQueue]
                 eList.size == 1 -> return null
@@ -409,7 +411,8 @@ object Queues {
             writeNoMediaPlaying()
             return null
         }
-        checkAndMarkDuplicates(nextItem)
+        nextItem = runBlocking { checkAndMarkDuplicates(nextItem) }
+        episodeChangedWhenScreenOff = true
         return nextItem
     }
 

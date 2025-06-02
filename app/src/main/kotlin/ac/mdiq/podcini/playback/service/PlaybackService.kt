@@ -170,6 +170,16 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
+    private val screenStateReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            Logd(TAG, "screenStateReceiver onReceive called with action: ${intent.action}")
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> episodeChangedWhenScreenOff = false
+                Intent.ACTION_SCREEN_ON  -> {}
+            }
+        }
+    }
+
     val rootItem = MediaItem.Builder()
         .setMediaId("CurQueue")
         .setMediaMetadata(
@@ -765,6 +775,8 @@ class PlaybackService : MediaLibraryService() {
         @Volatile
         var isCasting: Boolean = false
             internal set
+
+        var episodeChangedWhenScreenOff: Boolean = false
 
         /**
          * Is true if the service was running, but paused due to headphone disconnect
