@@ -5,7 +5,6 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
-import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Feeds.FeedAssistant
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
@@ -391,15 +390,19 @@ fun FeedDetailsScreen() {
                     vm.loadFeed()
                 }
                 Lifecycle.Event.ON_START -> vm.procFlowEvents()
-                Lifecycle.Event.ON_RESUME -> if (episodeChangedWhenScreenOff) vm.loadFeed()
-                Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
+                Lifecycle.Event.ON_RESUME -> {
+//                    if (episodeChangedWhenScreenOff) vm.loadFeed()
+                }
+                Lifecycle.Event.ON_STOP -> {
+//                    vm.cancelFlowEvents()
+                }
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-//            vm.cancelFlowEvents()
+            vm.cancelFlowEvents()
             vm.feed = null
             vm.episodes.clear()
             vm.vms.clear()

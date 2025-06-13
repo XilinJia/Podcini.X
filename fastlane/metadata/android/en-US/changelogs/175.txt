@@ -1,0 +1,8 @@
+# 8.17.5
+
+* avoid auto fetch media size in EpisodeInfo when feed is set to prefer streaming
+* avoid reloading feed in FeedDetails screen when screen is back on
+* fixed crash when setting current episode to Ignored
+* avoid setting current episode to Ignored again if a duplicate item was previously set to Forever, Skipped, Played, Passed, Ignored
+* feed cleanup also delete loose duplicate episodes if any
+* updated some dependencies

@@ -257,9 +257,10 @@ object Episodes {
         EventFlow.postEvent(FlowEvent.DownloadLogEvent())
     }
 
-    suspend fun checkAndMarkDuplicates(media_: Episode): Episode {
+    fun checkAndMarkDuplicates(media_: Episode): Episode {
         var media = media_
-        realm.write {
+        var updated = false
+        realm.writeBlocking {
             val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", media_.title, media_.downloadUrl).find()
             if (duplicates.size > 1) {
                 Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, setting to Ignored")
@@ -273,11 +274,16 @@ object Episodes {
                                 e.comment += if (e.comment.isBlank()) comment else "\n" + comment
                                 EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(e))
                             }
+                            media_.playState == EpisodeState.IGNORED.code -> { }
                             else -> {
-                                findLatest(media_)?.let {
+                                val m = findLatest(media_)?.let {
                                     it.setPlayState(EpisodeState.IGNORED)
                                     it.comment += if (it.comment.isBlank()) comment else "\n" + comment
-                                    media = it
+                                    it
+                                }
+                                m?.let {
+//                                    media = it
+                                    updated = true
                                     EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(it))
                                 }
                                 Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
@@ -293,7 +299,7 @@ object Episodes {
                 }
             }
         }
-        return media
+        return if (updated) realm.query(Episode::class, "id == ${media.id}").first().find() ?: media else media
     }
 
     suspend fun setRating(episode: Episode, rating: Int): Episode {

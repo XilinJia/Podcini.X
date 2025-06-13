@@ -10,7 +10,7 @@ import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
-import ac.mdiq.podcini.storage.database.Feeds.compileEpisodesFeedIds
+import ac.mdiq.podcini.storage.database.Feeds.feedIdsOfAllEpisodes
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.RealmDB.realm
@@ -393,7 +393,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                     Logt(TAG, "reconcile deleted $size loose episodes")
                 }
             }
-            val ids = compileEpisodesFeedIds()
+            val ids = feedIdsOfAllEpisodes()
             for (id in ids) {
                 val f = getFeed(id)
                 if (f == null) {

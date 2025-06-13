@@ -234,7 +234,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
             isImageDownloadAllowed && !media.isSizeSetUnknown() -> {
                 txtvSize = "{faw_spinner}"
                 lcScope.launch {
-                    val sizeValue = episode?.fetchMediaSize() ?: 0L
+                    val sizeValue = if (episode?.feed?.prefStreamOverDownload == false) episode?.fetchMediaSize() ?: 0L else 0L
                     txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
                 }
             }

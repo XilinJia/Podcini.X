@@ -20,7 +20,6 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import android.content.Intent
-import androidx.annotation.OptIn
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.runBlocking
@@ -31,7 +30,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
 
     private var shouldStreamThisTime = false
     val intent: Intent
-        @OptIn(UnstableApi::class)
+        @UnstableApi
         get() {
             val launchIntent = Intent(context, PlaybackService::class.java)
             launchIntent.putExtra(EXTRA_ALLOW_STREAM_THIS_TIME, shouldStreamThisTime)
@@ -46,12 +45,12 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
         return this
     }
 
-    @OptIn(UnstableApi::class)
+    @UnstableApi
     fun start() {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
         var media_ = media
         if (curEpisode?.id != media.id) {
-            media_ = runBlocking { checkAndMarkDuplicates(media) }
+            media_ = checkAndMarkDuplicates(media)
             episodeChangedWhenScreenOff = true
             setCurEpisode(media_)
             clearCurTempSpeed()

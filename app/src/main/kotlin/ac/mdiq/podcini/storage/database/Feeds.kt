@@ -31,6 +31,7 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import android.app.backup.BackupManager
 import android.content.Context
 import androidx.compose.runtime.getValue
@@ -506,7 +507,7 @@ object Feeds {
         }
     }
 
-    suspend fun compileEpisodesFeedIds(): Set<Long> {
+    suspend fun feedIdsOfAllEpisodes(): Set<Long> {
         val changes = realm.query(Episode::class).asFlow().first { it is InitialResults }
         val idSet = when (changes) {
             is InitialResults -> changes.list.mapNotNull { it.feedId }.toSet()
@@ -629,6 +630,14 @@ object Feeds {
         val tag: String = if (savedFeedId == 0L) "Saved feed" else "New feed"
 
         init {
+            if (savedFeedId == 0L) {
+                val ids = feed.episodes.map { it.id }
+                val elLoose = realm.query(Episode::class).query("feedId == ${feed.id} AND (NOT (id IN $0))", ids).find()
+                if (elLoose.isNotEmpty()) {
+                    Logt(TAG, "Found ${elLoose.size} loose episodes")
+                    feed.episodes.addAll(elLoose)
+                }
+            }
             val iterator = feed.episodes.iterator()
             while (iterator.hasNext()) {
                 val e = iterator.next()
@@ -679,8 +688,9 @@ object Feeds {
                 suspend fun eraseEpisode(e: Episode) {
                     feed.episodes.remove(e)
                     realm.write {
-                        val e = query(Episode::class).query("id == $0", e.id).first().find()
-                        e?.let { delete(it) }
+                        findLatest(e)?.let { delete(it) }
+//                        val e = query(Episode::class).query("id == $0", e.id).first().find()
+//                        e?.let { delete(it) }
                     }
                 }
                 for ((k, v) in map.entries) {

@@ -411,7 +411,7 @@ object Queues {
             writeNoMediaPlaying()
             return null
         }
-        nextItem = runBlocking { checkAndMarkDuplicates(nextItem) }
+        nextItem = checkAndMarkDuplicates(nextItem)
         episodeChangedWhenScreenOff = true
         return nextItem
     }
