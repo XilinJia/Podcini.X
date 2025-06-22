@@ -16,7 +16,7 @@ import android.content.Intent
  * Receives intents from Podcini Single Purpose apps
  */
 class SPAReceiver : BroadcastReceiver() {
-     override fun onReceive(context: Context, intent: Intent) {
+    override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_SP_APPS_QUERY_FEEDS_REPSONSE) return
         Logd(TAG, "onReceive called with action: ${intent.action}")
 
@@ -37,7 +37,7 @@ class SPAReceiver : BroadcastReceiver() {
             feed.episodes.clear()
             updateFeedFull(context, feed, removeUnlistedItems = false)
         }
-         Logt(TAG, context.getString(R.string.sp_apps_importing_feeds_msg))
+        Logt(TAG, context.getString(R.string.sp_apps_importing_feeds_msg))
         runOnce(context)
     }
 

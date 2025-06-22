@@ -38,8 +38,7 @@ class ShareReceiverActivity : ComponentActivity() {
             return
         }
         if (!sharedUrl!!.startsWith("http")) {
-            val uri = sharedUrl!!.toUri()
-            val urlString = uri.getQueryParameter("url")
+            val urlString = sharedUrl!!.toUri().getQueryParameter("url")
             if (urlString != null) sharedUrl = URLDecoder.decode(urlString, "UTF-8")
         }
         Logd(TAG, "feedUrl: $sharedUrl")
@@ -76,24 +75,6 @@ class ShareReceiverActivity : ComponentActivity() {
         super.finish()
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
     }
-
-//    class UrlFetchWorker(appContext: Context, workerParams: WorkerParameters) : Worker(appContext, workerParams) {
-//        override fun doWork(): Result {
-//            val url = inputData.getString("shared_url") ?: return Result.failure()
-//
-//            // Fetch the content from URL using OkHttp or another HTTP client
-//            // Ensure you're on a background thread
-//
-//            return Result.success()
-//        }
-//    }
-
-//    // Schedule the worker
-//    val workRequest = OneTimeWorkRequestBuilder<UrlFetchWorker>()
-//        .setInputData(workDataOf("shared_url" to sharedUrl))
-//        .build()
-//
-//    WorkManager.getInstance(context).enqueue(workRequest)
 
     companion object {
         private val TAG: String = ShareReceiverActivity::class.simpleName ?: "Anonymous"

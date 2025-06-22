@@ -141,7 +141,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal val feedId: Long
         get() {
             if (feeds == null) return 0
-            for (f in feeds!!) if (f.downloadUrl == selectedDownloadUrl) return f.id
+            for (f in feeds!!) if (f.downloadUrl == selectedDownloadUrl || f.title == feed?.title) return f.id
             return 0
         }
 

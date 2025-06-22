@@ -79,7 +79,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     @Volatile
     private var videoSize: Pair<Int, Int>? = null
-    private var seekLatch: CountDownLatch? = null
+//    private var seekLatch: CountDownLatch? = null
 
     private var trackSelector: DefaultTrackSelector? = null
 
@@ -412,13 +412,13 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         when (status) {
             PlayerStatus.PLAYING, PlayerStatus.PAUSED, PlayerStatus.PREPARED -> {
                 Logd(TAG, "seekTo t: $t")
-                if (seekLatch != null && seekLatch!!.count > 0) try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
-                seekLatch = CountDownLatch(1)
+//                if (seekLatch != null && seekLatch!!.count > 0) try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
+//                seekLatch = CountDownLatch(1)
                 val statusBeforeSeeking = status
                 exoPlayer?.seekTo(t.toLong())
                 audioSeekCompleteListener?.invoke()
                 if (statusBeforeSeeking == PlayerStatus.PREPARED && curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(t) }
-                try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
+//                try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
             }
             PlayerStatus.INITIALIZED -> {
                 if (curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(t) }
@@ -567,7 +567,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             }
             audioSeekCompleteListener = {
                 Logd(TAG, "audioSeekCompleteListener $status ${exoPlayer?.isPlaying}")
-                seekLatch?.countDown()
+                curPosition = Episode.INVALID_TIME
+//                seekLatch?.countDown()
 //                if ((status == PlayerStatus.PLAYING && exoPlayer?.isPlaying != true) && curEpisode != null) onPlaybackStart(curEpisode!!, getPosition())
             }
             bufferingUpdateListener = { percent: Int ->

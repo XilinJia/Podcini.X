@@ -1,3 +1,11 @@
+# 8.17.6
+
+* Rewind and Forward buttons no longer block, allow consecutive presses
+* when opening an online feed, check existing feeds based on url and title
+* fixed a possible  null pointer issue in episodes list
+* fixed improper handling duplicates or possible crash when deleting duplicate episode
+* some Compose dependencies update
+
 # 8.17.5
 
 * avoid auto fetch media size in EpisodeInfo when feed is set to prefer streaming

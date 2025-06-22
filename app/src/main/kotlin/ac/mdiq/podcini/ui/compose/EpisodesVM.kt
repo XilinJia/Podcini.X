@@ -1080,9 +1080,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                     if (curVM?.episode?.id == curMediaId) {
                         runOnIOScope {
                             curVM?.updateVMFromDB()
-                            withContext(Dispatchers.Main) {
-                                curVM!!.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(curVM!!.episode) else curVM!!.actionButton.update(curVM!!.episode)
-                            }
+                            withContext(Dispatchers.Main) { curVM?.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(curVM!!.episode) else curVM!!.actionButton.update(curVM!!.episode) }
                         }
                     } else subscribeCurVM()
                 }

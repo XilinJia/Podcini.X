@@ -635,7 +635,8 @@ object Feeds {
                 val elLoose = realm.query(Episode::class).query("feedId == ${feed.id} AND (NOT (id IN $0))", ids).find()
                 if (elLoose.isNotEmpty()) {
                     Logt(TAG, "Found ${elLoose.size} loose episodes")
-                    feed.episodes.addAll(elLoose)
+                    elLoose.forEach { feed.episodes.add(realm.copyFromRealm(it)) }
+//                    feed.episodes.addAll(elLoose)
                 }
             }
             val iterator = feed.episodes.iterator()
@@ -688,9 +689,8 @@ object Feeds {
                 suspend fun eraseEpisode(e: Episode) {
                     feed.episodes.remove(e)
                     realm.write {
-                        findLatest(e)?.let { delete(it) }
-//                        val e = query(Episode::class).query("id == $0", e.id).first().find()
-//                        e?.let { delete(it) }
+//                        findLatest(e)?.let { delete(it) }
+                        query(Episode::class).query("id == $0", e.id).first().find()?.let { delete(it) }
                     }
                 }
                 for ((k, v) in map.entries) {
