@@ -1,3 +1,10 @@
+# 8.17.7
+
+* added likeCount parameter for episodes (where applicable)
+* Kotlin upped to 2.2.0
+* krdb upped to 3.2.8
+* updated gradle and some dependencies
+
 # 8.17.6
 
 * Rewind and Forward buttons no longer block, allow consecutive presses

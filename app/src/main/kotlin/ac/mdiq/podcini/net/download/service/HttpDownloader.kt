@@ -402,7 +402,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
         val firstUrl = responses[0]!!.request.url.toString()
         val secondUrl = responses[1]!!.request.url.toString()
         when {
-            firstCode == HttpURLConnection.HTTP_MOVED_PERM || firstCode == StatusLine.HTTP_PERM_REDIRECT -> {
+            firstCode == HttpURLConnection.HTTP_MOVED_PERM -> {
                 Logd(TAG, "Detected permanent redirect from " + downloadRequest.source + " to " + secondUrl)
                 permanentRedirectUrl = secondUrl
             }

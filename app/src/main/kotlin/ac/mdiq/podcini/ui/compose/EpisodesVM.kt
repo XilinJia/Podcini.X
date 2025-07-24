@@ -265,6 +265,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     var inProgressState by mutableStateOf(episode.isInProgress)
     var downloadState by mutableIntStateOf(if (episode.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal)
     var viewCount by mutableIntStateOf(episode.viewCount)
+    var likeCount by mutableIntStateOf(episode.likeCount)
     var actionButton by mutableStateOf(NullActionButton(episode).update(episode))
     var showAltActionsDialog by mutableStateOf(false)
     var dlPercent by mutableIntStateOf(0)
@@ -837,7 +838,8 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                     val dateSizeText = remember {
                         " · " + formatDateTimeFlex(vm.episode.getPubDate()) + " · " + getDurationStringLong(vm.durationState) +
                                 (if (vm.episode.size > 0) " · " + Formatter.formatShortFileSize(curContext, vm.episode.size) else "") +
-                                (if (vm.viewCount > 0) " · " + formatLargeInteger(vm.viewCount) else "")
+                                (if (vm.viewCount > 0) " · " + formatLargeInteger(vm.viewCount) else "") +
+                                (if (vm.likeCount > 0) " · " + formatLargeInteger(vm.likeCount) else "")
                     }
                     Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
@@ -857,9 +859,18 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                         Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        val dateSizeText = remember { formatDateTimeFlex(vm.episode.getPubDate()) + (if (vm.viewCount > 0) " · " + formatLargeInteger(vm.viewCount) else "") }
+                        val dateSizeText = remember { formatDateTimeFlex(vm.episode.getPubDate()) }
                         Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        if (vm.viewCount > 0) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_people_alt_24), tint = textColor, contentDescription = "people", modifier = Modifier.width(16.dp).height(16.dp))
+                        if (vm.viewCount > 0) {
+                            val viewText = remember { " · " + formatLargeInteger(vm.viewCount) }
+                            Text(viewText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_people_alt_24), tint = textColor, contentDescription = "people", modifier = Modifier.width(16.dp).height(16.dp))
+                        }
+                        if (vm.likeCount > 0) {
+                            val likeText = remember { " · " + formatLargeInteger(vm.likeCount) }
+                            Text(likeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_thumb_up_24), tint = textColor, contentDescription = "likes", modifier = Modifier.width(16.dp).height(16.dp))
+                        }
                     }
                 }
                 LayoutMode.FeedTitle.ordinal -> {

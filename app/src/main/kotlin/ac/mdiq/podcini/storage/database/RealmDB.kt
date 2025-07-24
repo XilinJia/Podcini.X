@@ -62,7 +62,7 @@ object RealmDB {
                 PAFeed::class,
             ))
             .name("Podcini.realm")
-            .schemaVersion(53)
+            .schemaVersion(54)
             .migration({ mContext ->
                 val oldRealm = mContext.oldRealm // old realm using the previous schema
                 val newRealm = mContext.newRealm // new realm using the new schema
@@ -402,7 +402,7 @@ object RealmDB {
     fun unsubscribeEpisode(episode: Episode, tag: String) {
         CoroutineScope(Dispatchers.IO).launch {
             subscriptionMutex.withLock {
-                var ms = idMonitorsMap[episode.id]
+                val ms = idMonitorsMap[episode.id]
                 if (ms != null) {
                     try {
                         ms.entities.removeIf { it.tag == tag }

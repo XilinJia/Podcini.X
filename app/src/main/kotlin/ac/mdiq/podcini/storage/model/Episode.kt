@@ -148,6 +148,8 @@ class Episode : RealmObject {
     // info from youtube
     var viewCount: Int = 0
 
+    var likeCount: Int = 0
+
     @Ignore
     var isSUPER: Boolean = (rating == Rating.SUPER.code)
         private set
@@ -300,6 +302,7 @@ class Episode : RealmObject {
         }
         if (other.podcastIndexChapterUrl != null) podcastIndexChapterUrl = other.podcastIndexChapterUrl
         if (other.viewCount > 0) viewCount = other.viewCount
+        if (other.likeCount > 0) likeCount = other.likeCount
 
         if (includingState) {
             this.rating = other.rating

@@ -19,9 +19,6 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
     VIEWS_LOW_HIGH(17, R.string.view_count, true),
     VIEWS_HIGH_LOW(18, R.string.view_count, true),
 
-    VIEWS_SPEED_LOW_HIGH(31, R.string.view_speed, true),
-    VIEWS_SPEED_HIGH_LOW(32, R.string.view_speed, true),
-
     PLAYED_DATE_OLD_NEW(11, R.string.last_played_date),
     PLAYED_DATE_NEW_OLD(12, R.string.last_played_date),
     COMPLETED_DATE_OLD_NEW(13, R.string.completed_date),
@@ -30,6 +27,12 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
     DOWNLOAD_DATE_NEW_OLD(16, R.string.download_date),
     COMMENT_DATE_OLD_NEW(19, R.string.last_comment_date),
     COMMENT_DATE_NEW_OLD(20, R.string.last_comment_date),
+
+    VIEWS_SPEED_LOW_HIGH(31, R.string.view_speed, true),
+    VIEWS_SPEED_HIGH_LOW(32, R.string.view_speed, true),
+
+    LIKES_LOW_HIGH(33, R.string.like_count, true),
+    LIKES_HIGH_LOW(34, R.string.like_count, true),
 
     EPISODE_FILENAME_A_Z(7, R.string.filename),
     EPISODE_FILENAME_Z_A(8, R.string.filename),
@@ -97,6 +100,8 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                 DOWNLOAD_DATE_NEW_OLD -> comparator = Comparator { f1: Episode?, f2: Episode? -> downloadDate(f2).compareTo(downloadDate(f1)) }
                 VIEWS_LOW_HIGH -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewCount(f1).compareTo(viewCount(f2)) }
                 VIEWS_HIGH_LOW -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewCount(f2).compareTo(viewCount(f1)) }
+                LIKES_LOW_HIGH -> comparator = Comparator { f1: Episode?, f2: Episode? -> likeCount(f1).compareTo(likeCount(f2)) }
+                LIKES_HIGH_LOW -> comparator = Comparator { f1: Episode?, f2: Episode? -> likeCount(f2).compareTo(likeCount(f1)) }
                 VIEWS_SPEED_LOW_HIGH -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewSpeed(f1).compareTo(viewSpeed(f2)) }
                 VIEWS_SPEED_HIGH_LOW -> comparator = Comparator { f1: Episode?, f2: Episode? -> viewSpeed(f2).compareTo(viewSpeed(f1)) }
                 COMMENT_DATE_OLD_NEW -> comparator = Comparator { f1: Episode?, f2: Episode? -> commentDate(f1).compareTo(commentDate(f2)) }
@@ -152,6 +157,8 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
         private fun feedTitle(item: Episode?): String = (item?.feed?.title ?: "").lowercase(Locale.getDefault())
 
         private fun viewCount(item: Episode?): Int = item?.viewCount ?: 0
+
+        private fun likeCount(item: Episode?): Int = item?.likeCount ?: 0
 
         // per minute
         private fun viewSpeed(item: Episode?): Double = 60000.0 * (item?.viewCount ?: 0) / (System.currentTimeMillis() - (item?.pubDate ?: 0L))
