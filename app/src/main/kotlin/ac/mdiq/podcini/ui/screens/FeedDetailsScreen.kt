@@ -20,6 +20,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.FeedFunding
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.actions.SwipeActions
@@ -160,6 +161,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     private var headerCreated = false
     internal var rating by mutableIntStateOf(Rating.UNRATED.code)
 
+    internal var score by mutableIntStateOf(-1000)
+
     internal val episodes = mutableStateListOf<Episode>()
     internal val vms = mutableStateListOf<EpisodeVM>()
 
@@ -173,7 +176,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
     internal var layoutModeIndex by mutableIntStateOf(LayoutMode.Normal.ordinal)
 
-//    private var onInit: Boolean = true
     private var filterJob: Job? = null
 
     internal var isCallable by mutableStateOf(false)
@@ -248,11 +250,26 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 //        return false
 //    }
 
+    private fun computeScore() {
+        if (!feed?.episodes.isNullOrEmpty()) {
+            var sumR = 0
+            var count = 0
+            for (e in feed!!.episodes) {
+                if (e.playState > EpisodeState.PROGRESS.code) {
+                    count++
+                    if (e.rating != Rating.UNRATED.code) sumR += e.rating
+                }
+            }
+            if (count > 0) score = 100 * sumR / count / Rating.SUPER.code
+        }
+    }
+
     private var loadJob: Job? = null
     internal fun loadFeed(force: Boolean = false) {
         if (feedScreenMode == FeedScreenMode.Info) {
             feed = realm.query(Feed::class).query("id == $0", feedOnDisplay.id).first().find()
             rating = feed?.rating ?: Rating.UNRATED.code
+            computeScore()
             return
         }
         Logd(TAG, "loadFeed called $feedID")
@@ -292,6 +309,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 withContext(Dispatchers.Main) {
                     Logd(TAG, "loadItems subscribe called ${feed?.title}")
                     rating = feed?.rating ?: Rating.UNRATED.code
+                    computeScore()
                     if (feed != null) {
                         isFiltered = !feed?.filterString.isNullOrEmpty() && feed!!.episodeFilter.propertySet.isNotEmpty()
                         filterButtonColor.value = if (enableFilter) if (isFiltered) Color.Green else Color.White else Color.Red
@@ -508,7 +526,9 @@ fun FeedDetailsScreen() {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         val ratingIconRes by remember { derivedStateOf { Rating.fromCode(vm.rating).res } }
                         IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(start = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                        Spacer(modifier = Modifier.weight(0.3f))
+                        Spacer(modifier = Modifier.weight(0.2f))
+                        if (vm.score > -1000) Text((vm.score).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        Spacer(modifier = Modifier.weight(0.1f))
                         if (feedScreenMode == FeedScreenMode.List) Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         else Text((vm.feed?.episodes?.size ?: 0).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     }

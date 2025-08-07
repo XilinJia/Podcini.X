@@ -24,8 +24,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 177
-        versionName "8.17.7"
+        versionCode 178
+        versionName "8.17.8"
 
         ndkVersion "27.0.12077973"
 
@@ -164,7 +164,7 @@ dependencies {
     implementation "androidx.compose.material3:material3:1.3.2"
     implementation "androidx.activity:activity-compose:1.10.1"
     implementation "androidx.constraintlayout:constraintlayout-compose:1.1.1"
-    implementation "androidx.navigation:navigation-compose:2.9.2"
+    implementation "androidx.navigation:navigation-compose:2.9.3"
 
     implementation "androidx.annotation:annotation:1.9.1"
     implementation "androidx.core:core-ktx:1.16.0"
@@ -174,13 +174,13 @@ dependencies {
     implementation "androidx.preference:preference-ktx:1.2.1"
     implementation "androidx.webkit:webkit:1.14.0"
     implementation "androidx.window:window:1.4.0"
-    implementation "androidx.work:work-runtime:2.10.2"
+    implementation "androidx.work:work-runtime:2.10.3"
 
-    implementation "androidx.media3:media3-exoplayer:1.7.1"
-    implementation "androidx.media3:media3-datasource-okhttp:1.7.1"
-    implementation "androidx.media3:media3-ui:1.7.1"
-    implementation "androidx.media3:media3-common:1.7.1"
-    implementation "androidx.media3:media3-session:1.7.1"
+    implementation "androidx.media3:media3-exoplayer:1.8.0"
+    implementation "androidx.media3:media3-datasource-okhttp:1.8.0"
+    implementation "androidx.media3:media3-ui:1.8.0"
+    implementation "androidx.media3:media3-common:1.8.0"
+    implementation "androidx.media3:media3-session:1.8.0"
 
     implementation "com.google.android.material:material:1.12.0"
 
@@ -188,7 +188,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs_nio:2.1.5"
-    implementation "io.github.xilinjia.krdb:library-base:3.2.7"
+    implementation "io.github.xilinjia.krdb:library-base:3.2.8"
 
     implementation "io.coil-kt:coil:2.7.0"
     implementation "io.coil-kt:coil-compose:2.7.0"
@@ -197,7 +197,7 @@ dependencies {
 
     implementation "org.jsoup:jsoup:1.21.1"
     implementation "com.squareup.okhttp3:okhttp:5.1.0"
-    implementation "com.squareup.okio:okio:3.15.0"
+    implementation "com.squareup.okio:okio:3.16.0"
     implementation "com.squareup.okhttp3:okhttp-urlconnection:5.1.0"
     implementation "net.dankito.readability4j:readability4j:1.0.8"
     implementation "com.github.ByteHamster:SearchPreference:v2.5.0"
