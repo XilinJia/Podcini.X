@@ -24,41 +24,6 @@ object ShareUtils {
         context.startActivity(intent)
     }
 
-//    fun shareFeedLink(context: Context, feed: Feed) {
-//        val text = """
-//             ${feed.title}
-//
-//             https://podcini.org/deeplink/subscribe/?url=${URLEncoder.encode(feed.download_url)}&title=${
-//            URLEncoder.encode(feed.title)
-//        }
-//             """.trimIndent()
-//        shareLink(context, text)
-//    }
-
-//    @JvmStatic
-//    fun shareFeedLink(context: Context, feed: Feed) {
-//        val text = """
-//             ${feed.title}
-//
-//             ${URLEncoder.encode(feed.downloadUrl)}&title=${URLEncoder.encode(feed.title)}
-//             """.trimIndent()
-//        shareLink(context, text)
-//    }
-
-    fun shareFeedLinkNew(context: Context, feed: Feed) {
-        shareLink(context, feed.downloadUrl?:"")
-    }
-
-    @JvmStatic
-    fun hasLinkToShare(item: Episode?): Boolean {
-        return item?.getLinkWithFallback() != null
-    }
-
-    @JvmStatic
-    fun shareMediaDownloadLink(context: Context, media: Episode) {
-        if (!media.downloadUrl.isNullOrEmpty()) shareLink(context, media.downloadUrl!!)
-    }
-
     @JvmStatic
     fun shareFeedItemLinkWithDownloadLink(context: Context, item: Episode, withPosition: Boolean) {
         var text: String? = item.feed?.title + ": " + item.title
@@ -72,7 +37,7 @@ object ShareUtils {
             text += getDurationStringLong(pos)
         }
 
-        if (hasLinkToShare(item)) {
+        if (item.getLinkWithFallback() != null) {
             text += """
                 
                 

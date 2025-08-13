@@ -47,6 +47,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Date
 import java.util.Locale
 import kotlin.math.min
 
@@ -106,6 +107,22 @@ object Episodes {
         val media = realm.query(Episode::class).query("id == $0", mediaId).first().find()
         if (!copy) return media
         return if (media != null) realm.copyFromRealm(media) else null
+    }
+
+    /**
+     * Loads the playback history from the database. A FeedItem is in the playback history if playback of the correpsonding episode
+     * has been played ot completed at least once.
+     * @param limit The maximum number of episodes to return.
+     * @return The playback history. The FeedItems are sorted by their media's playbackCompletionDate in descending order.
+     */
+    fun getHistory(offset: Int, limit: Int, feedId: Long = 0L, start: Long = 0L, end: Long = Date().time,
+                           sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_NEW_OLD): List<Episode> {
+        Logd(TAG, "getHistory() called")
+        val qStr = (if (feedId > 0L) "feedId == $feedId AND " else "") + "((playbackCompletionTime > 0) OR (lastPlayedTime > $start AND lastPlayedTime <= $end))"
+        var episodes = realm.query(Episode::class).query(qStr).find().toMutableList()
+        getPermutor(sortOrder).reorder(episodes)
+        if (offset > 0 && episodes.size > offset) episodes = episodes.subList(offset, min(episodes.size, offset+limit))
+        return episodes
     }
 
     suspend fun deleteEpisodesWarnLocalRepeat(context: Context, items: Iterable<Episode>) {

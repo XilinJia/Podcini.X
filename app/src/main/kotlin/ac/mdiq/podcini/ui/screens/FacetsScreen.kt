@@ -8,6 +8,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
+import ac.mdiq.podcini.storage.database.Episodes.getHistory
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
 import ac.mdiq.podcini.storage.database.Feeds.feedIdsOfAllEpisodes
@@ -18,10 +19,9 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.EpisodeFilter
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.StorageUtils.customMediaUriString
 import ac.mdiq.podcini.ui.actions.DeleteActionButton
@@ -117,7 +117,6 @@ import java.io.File
 import java.net.URLDecoder
 import java.text.NumberFormat
 import java.util.Date
-import kotlin.math.min
 
 class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var displayUpArrow = false
@@ -245,7 +244,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                         QuickAccess.Repeats.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.again.name, EpisodeFilter.States.forever.name), episodesSortOrder, false)
                         QuickAccess.Liked.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.good.name, EpisodeFilter.States.superb.name), episodesSortOrder, false)
                         QuickAccess.Commented.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.has_comments.name), episodesSortOrder, false)
-                        QuickAccess.History.name -> getHistory(0, Int.MAX_VALUE, sortOrder = episodesSortOrder).toMutableList()
+                        QuickAccess.History.name -> getHistory(0, Int.MAX_VALUE).toMutableList()
                         QuickAccess.Downloaded.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(prefFilterDownloads), episodesSortOrder, false)
                         QuickAccess.All.name -> getEpisodes(0, Int.MAX_VALUE, filter, episodesSortOrder, false)
                         else -> getEpisodes(0, Int.MAX_VALUE, filter, episodesSortOrder, false)
@@ -264,23 +263,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun buildMoreItems() {
         val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], tag) }
         if (nextItems.isNotEmpty()) vms.addAll(nextItems)
-    }
-
-    /**
-     * Loads the playback history from the database. A FeedItem is in the playback history if playback of the correpsonding episode
-     * has been played ot completed at least once.
-     * @param limit The maximum number of episodes to return.
-     * @return The playback history. The FeedItems are sorted by their media's playbackCompletionDate in descending order.
-     */
-    private fun getHistory(offset: Int, limit: Int, start: Long = 0L, end: Long = Date().time,
-                   sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_NEW_OLD): List<Episode> {
-        Logd(TAG, "getHistory() called")
-        val medias = realm.query(Episode::class).query("(playbackCompletionTime > 0) OR (lastPlayedTime > $0 AND lastPlayedTime <= $1)", start, end).find()
-        var episodes: MutableList<Episode> = mutableListOf()
-        for (m in medias) episodes.add(m)
-        getPermutor(sortOrder).reorder(episodes)
-        if (offset > 0 && episodes.size > offset) episodes = episodes.subList(offset, min(episodes.size, offset+limit))
-        return episodes
     }
 
     fun updateToolbar() {

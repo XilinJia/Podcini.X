@@ -21,6 +21,7 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.ShareUtils
+import ac.mdiq.podcini.util.ShareUtils.shareLink
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
@@ -127,7 +128,10 @@ fun ShareDialog(item: Episode, act: Activity, onDismissRequest: () -> Unit) {
             TextButton(onClick = {
                 when (position) {
                     1 -> ShareUtils.shareFeedItemLinkWithDownloadLink(ctx, item, isChecked)
-                    2 -> ShareUtils.shareMediaDownloadLink(ctx, item)
+                    2 -> {
+                        if (!item.downloadUrl.isNullOrEmpty()) shareLink(ctx, item.downloadUrl!!)
+                        else Logt(TAG, "Episode download url is not valid, ignored.")
+                    }
                     3 -> ShareUtils.shareFeedItemFile(ctx, item)
                 }
                 prefs.edit {

@@ -5,6 +5,8 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
+import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.storage.database.Episodes.getHistory
 import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
 import ac.mdiq.podcini.storage.database.Feeds.FeedAssistant
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
@@ -54,7 +56,7 @@ import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
-import ac.mdiq.podcini.util.ShareUtils
+import ac.mdiq.podcini.util.ShareUtils.shareLink
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -150,8 +152,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var feedID: Long = 0
     internal var feed by mutableStateOf<Feed?>(null)
 
-//    internal var screenMode by mutableStateOf<ScreenMode>(ScreenMode.List)
-
     internal var isFiltered by mutableStateOf(false)
 
     internal var listInfoText = ""
@@ -168,6 +168,9 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var enableFilter: Boolean = true
     internal var filterButtonColor = mutableStateOf(Color.White)
+
+    internal var showHistory by mutableStateOf(false)
+    private var historyJob: Job? = null
 
     internal var showRemoveFeedDialog by mutableStateOf(false)
     internal var showFilterDialog by mutableStateOf(false)
@@ -358,6 +361,32 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         }.apply { invokeOnCompletion { filterJob = null } }
     }
 
+    internal fun toggleHistory() {
+        if (feed == null) return
+        showHistory = !showHistory
+        if (historyJob != null) {
+            Logd(TAG, "showHistoryClick cancelling job")
+            historyJob?.cancel()
+            vms.clear()
+        }
+        historyJob = lcScope.launch {
+            val eListTmp = mutableListOf<Episode>()
+            withContext(Dispatchers.IO) {
+                if (!showHistory) {
+                    val episodes_ = realm.query(Episode::class).query("feedId == ${feed!!.id}").query(feed!!.episodeFilter.queryString()).find()
+                    eListTmp.addAll(episodes_)
+                    getPermutor(fromCode(feed?.sortOrderCode ?: 0)).reorder(eListTmp)
+                } else eListTmp.addAll(getHistory(0, Int.MAX_VALUE, feed!!.id).toMutableList())
+            }
+            withContext(Dispatchers.Main) {
+                episodes.clear()
+                episodes.addAll(eListTmp)
+                vms.clear()
+                for (e in eListTmp) vms.add(EpisodeVM(e, TAG))
+            }
+        }.apply { invokeOnCompletion { historyJob = null } }
+    }
+
     internal fun addLocalFolderResult(uri: Uri?) {
         if (uri == null) return
         CoroutineScope(Dispatchers.IO).launch {
@@ -526,9 +555,9 @@ fun FeedDetailsScreen() {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         val ratingIconRes by remember { derivedStateOf { Rating.fromCode(vm.rating).res } }
                         IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(start = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                        Spacer(modifier = Modifier.weight(0.2f))
-                        if (vm.score > -1000) Text((vm.score).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         Spacer(modifier = Modifier.weight(0.1f))
+                        if (vm.score > -1000) Text((vm.score).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        Spacer(modifier = Modifier.weight(0.2f))
                         if (feedScreenMode == FeedScreenMode.List) Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         else Text((vm.feed?.episodes?.size ?: 0).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     }
@@ -551,20 +580,23 @@ fun FeedDetailsScreen() {
                 { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }
             },
             actions = {
-                IconButton(onClick = {
-                    mainNavController.navigate(Screens.Queues.name)
-                    isBSExpanded = false
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
-                if (vm.feed != null) IconButton(onClick = {
-                    setSearchTerms(feed = vm.feed)
-                    mainNavController.navigate(Screens.Search.name)
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                if (!vm.feed?.link.isNullOrBlank() && vm.isCallable) IconButton(onClick = { IntentUtils.openInBrowser(context, vm.feed!!.link!!) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
-                if (feedScreenMode == FeedScreenMode.List) {
+                if (feedScreenMode == FeedScreenMode.List && !vm.showHistory) {
                     IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "butFilter",
                         modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(onClick = { if (vm.enableFilter && vm.feed != null) vm.showFilterDialog = true }, onLongClick = { vm.filterLongClick() }))
                 }
+                val histColor by remember(vm.showHistory) { derivedStateOf { if (!vm.showHistory) textColor else Color.Red } }
+                if (feedScreenMode == FeedScreenMode.List && vm.feed != null) IconButton(onClick = { vm.toggleHistory() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
+                IconButton(onClick = {
+                    val q = vm.feed?.queue
+                    if (q != null && q != curQueue) curQueue = q
+                    mainNavController.navigate(Screens.Queues.name)
+                    isBSExpanded = false
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
+                IconButton(onClick = {
+                    setSearchTerms(feed = vm.feed)
+                    mainNavController.navigate(Screens.Search.name)
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = {
                     if (vm.feed != null) {
                         feedOnDisplay = vm.feed!!
@@ -574,8 +606,12 @@ fun FeedDetailsScreen() {
                 if (vm.feed != null) {
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                     DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                        DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
-                            ShareUtils.shareFeedLinkNew(context, vm.feed!!)
+                        if (!vm.feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
+                            shareLink(context, vm.feed?.downloadUrl?:"")
+                            expanded = false
+                        })
+                        if (!vm.feed?.link.isNullOrBlank() && vm.isCallable) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
+                            IntentUtils.openInBrowser(context, vm.feed!!.link!!)
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.rename_feed_label)) }, onClick = {

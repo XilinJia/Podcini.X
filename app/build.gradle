@@ -24,8 +24,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 178
-        versionName "8.17.8"
+        versionCode 179
+        versionName "8.17.9"
 
         ndkVersion "27.0.12077973"
 
@@ -176,11 +176,11 @@ dependencies {
     implementation "androidx.window:window:1.4.0"
     implementation "androidx.work:work-runtime:2.10.3"
 
-    implementation "androidx.media3:media3-exoplayer:1.8.0"
-    implementation "androidx.media3:media3-datasource-okhttp:1.8.0"
-    implementation "androidx.media3:media3-ui:1.8.0"
-    implementation "androidx.media3:media3-common:1.8.0"
-    implementation "androidx.media3:media3-session:1.8.0"
+    implementation "androidx.media3:media3-exoplayer:1.7.1"
+    implementation "androidx.media3:media3-datasource-okhttp:1.7.1"
+    implementation "androidx.media3:media3-ui:1.7.1"
+    implementation "androidx.media3:media3-common:1.7.1"
+    implementation "androidx.media3:media3-session:1.7.1"
 
     implementation "com.google.android.material:material:1.12.0"
 
