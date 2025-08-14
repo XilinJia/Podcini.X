@@ -67,7 +67,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -119,8 +118,6 @@ import java.text.NumberFormat
 import java.util.Date
 
 class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
-    internal var displayUpArrow = false
-
     internal var infoBarText = mutableStateOf("")
     var swipeActions: SwipeActions = SwipeActions(context, TAG)
 
@@ -548,11 +545,7 @@ fun FacetsScreen() {
                 vm.loadItems()
             }
         },
-            navigationIcon = if (vm.displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
-            } else {
-                { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }
-            },
+            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } },
             actions = {
                 Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                     val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }

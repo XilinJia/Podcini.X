@@ -53,7 +53,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
@@ -98,7 +97,6 @@ class LogsVM(val context: Context, val lcScope: CoroutineScope) {
     internal val subscriptionLogs = mutableStateListOf<SubscriptionLog>()
     internal val downloadLogs = mutableStateListOf<DownloadResult>()
     internal var title by mutableStateOf("Session")
-    internal var displayUpArrow = false
     internal var showDeleteConfirmDialog = mutableStateOf(false)
 
     internal fun clearAllLogs() {
@@ -491,12 +489,7 @@ fun LogsScreen() {
     @Composable
      fun MyTopAppBar() {
         TopAppBar(title = { Text(vm.title) }, 
-            navigationIcon = if (vm.displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-                }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
-            } else {
-                { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer") } }
-            },
+            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer") } },
             actions = {
                 if (vm.title != "Session") IconButton(onClick = {
                     vm.clearAllLogs()

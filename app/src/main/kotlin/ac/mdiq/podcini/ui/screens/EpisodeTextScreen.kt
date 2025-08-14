@@ -142,11 +142,6 @@ fun EpisodeTextScreen() {
     val context = LocalContext.current
     val vm = remember(episodeOnDisplay.id) { EpisodeTextVM(context, scope) }
 
-//        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
-//        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
-//        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
-
-//    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {

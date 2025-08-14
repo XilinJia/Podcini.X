@@ -605,11 +605,6 @@ fun SubscriptionsScreen() {
     val context = LocalContext.current
     val vm = remember { SubscriptionsVM(context, scope) }
 
-//        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
-//        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
-//        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
-
-    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -649,7 +644,7 @@ fun SubscriptionsScreen() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun MyTopAppBar(displayUpArrow: Boolean) {
+    fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
         val buttonColor = Color(0xDDFFD700)
         TopAppBar(title = {
@@ -658,11 +653,7 @@ fun SubscriptionsScreen() {
                 vm.langFilterIndex = index
                 vm.loadSubscriptions(true)
             } },
-            navigationIcon = if (displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
-            } else {
-                { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } }
-            },
+            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } },
             actions = {
                 IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.isFiltered) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
@@ -1597,7 +1588,7 @@ fun SubscriptionsScreen() {
     if (vm.showFilterDialog) FilterDialog(FeedFilter(vm.feedsFilter)) { vm.showFilterDialog = false }
     if (vm.showSortDialog) SortDialog { vm.showSortDialog = false }
     if (vm.showNewSynthetic) RenameOrCreateSyntheticFeed { vm.showNewSynthetic = false }
-    Scaffold(topBar = { MyTopAppBar(displayUpArrow) }) { innerPadding ->
+    Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             InforBar()
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 20.dp, end = 20.dp)) {
@@ -1631,16 +1622,5 @@ enum class FeedDateSortIndex(val res: Int) {
 
 private const val TAG = "SubscriptionsScreen"
 
-private const val KEY_UP_ARROW = "up_arrow"
-private const val ARGUMENT_FOLDER = "folder"
-
 //private var prevFeedUpdatingEvent: FlowEvent.FeedUpdatingEvent? = null
-
-//fun newInstance(folderTitle: String?): SubscriptionsFragment {
-//    val fragment = SubscriptionsFragment()
-//    val args = Bundle()
-//    args.putString(ARGUMENT_FOLDER, folderTitle)
-//    fragment.arguments = args
-//    return fragment
-//}
 

@@ -68,7 +68,6 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -143,13 +142,10 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     internal var curIndex by mutableIntStateOf(0)
     internal var queues: List<PlayQueue>
 
-    internal var displayUpArrow = false
     internal val queueItems = mutableListOf<Episode>()
     internal val vms = mutableStateListOf<EpisodeVM>()
     internal var feedsAssociated = listOf<Feed>()
 
-    internal var showBin by mutableStateOf(false)
-    internal var showFeeds by mutableStateOf(false)
     internal var dragDropEnabled by mutableStateOf(!(isQueueKeepSorted || isQueueLocked))
     var showSortDialog by mutableStateOf(false)
     var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
@@ -402,11 +398,11 @@ fun QueuesScreen() {
             dismissButton = { TextButton(onClick = { showBinLimitDialog = false }) { Text(stringResource(R.string.cancel_label)) } } )
     }
 
-    var showTopSpinner by remember { mutableStateOf(!vm.showBin) }
-    var title by remember { mutableStateOf(if (vm.showBin) curQueue.name + " Bin" else "") }
+    var showTopSpinner by remember { mutableStateOf(!showBin) }
+    var title by remember { mutableStateOf(if (showBin) curQueue.name + " Bin" else "") }
     fun refreshQueueOrBin() {
-        showTopSpinner = !vm.showBin
-        title = if (vm.showBin) curQueue.name + " Bin" else ""
+        showTopSpinner = !showBin
+        title = if (showBin) curQueue.name + " Bin" else ""
         vm.loadCurQueue(false)
     }
 
@@ -420,26 +416,24 @@ fun QueuesScreen() {
         TopAppBar(title = {
             if (showTopSpinner) SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
                 Logd(TAG, "Queue selected: ${vm.queues[index].name}")
+                showBin = false
+                showFeeds = false
                 val prevQueueSize = curQueue.size()
                 curQueue = upsertBlk(vm.queues[index]) { it.update() }
                 showRename = curQueue.name != "Default"
                 vm.loadCurQueue(true)
                 playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
             } else Text(title) },
-            navigationIcon = if (vm.displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
-            } else {
-                { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } }
-            },
+            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
             actions = {
-                val binIconRes by remember(vm.showBin) { derivedStateOf { if (vm.showBin) R.drawable.playlist_play else R.drawable.ic_history } }
-                val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
-                if (!vm.showFeeds) IconButton(onClick = {
-                    vm.showBin = !vm.showBin
+                val binIconRes by remember(showBin) { derivedStateOf { if (showBin) R.drawable.playlist_play else R.drawable.ic_history } }
+                val feedsIconRes by remember(showFeeds) { derivedStateOf { if (showFeeds) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
+                if (!showFeeds) IconButton(onClick = {
+                    showBin = !showBin
                     refreshQueueOrBin()
                 }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
-                if (!vm.showBin) {
-                    IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
+                if (!showBin) {
+                    IconButton(onClick = { showFeeds = !showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
                     IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
@@ -453,10 +447,10 @@ fun QueuesScreen() {
                             it.idsBinList.clear()
                             it.update()
                         }
-                        if (vm.showBin) vm.loadCurQueue(false)
+                        if (showBin) vm.loadCurQueue(false)
                         expanded = false
                     })
-                    if (!vm.showBin) {
+                    if (!showBin) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.sort)) }, onClick = {
                             vm.showSortDialog = true
                             expanded = false
@@ -601,25 +595,20 @@ fun QueuesScreen() {
         }
     }
 
-//    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
-//        return when (aboveOrBelow) {
-//            0 -> vm.queueItems
-//            -1 -> if (index < vm.queueItems.size) vm.queueItems.subList(0, index+1) else vm.queueItems
-//            1 -> if (index < vm.queueItems.size) vm.queueItems.subList(index, vm.queueItems.size) else vm.queueItems
-//            else -> listOf()
-//        }
-//    }
-
-    BackHandler(enabled = vm.showBin || vm.showFeeds) {
-        Logt(TAG, "BackHandler ${vm.showBin} ${vm.showFeeds}")
-        if (vm.showBin) {
-            vm.showBin = false
-            refreshQueueOrBin()
-        } else if (vm.showFeeds) vm.showFeeds = false
+    BackHandler(enabled = showBin || showFeeds) {
+        Logt(TAG, "BackHandler $showBin $showFeeds")
+        when {
+            showBin -> {
+                showBin = false
+                refreshQueueOrBin()
+            }
+            showFeeds -> showFeeds = false
+            else -> {}
+        }
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        if (vm.showBin) {
+        if (showBin) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
 //                vm.infoTextUpdate = if (feedUpdating) "U" else ""
                 vm.infoBarText.value = "${vm.listInfoText} $feedOperationText"
@@ -627,7 +616,7 @@ fun QueuesScreen() {
                 EpisodeLazyColumn(context as MainActivity, vms = vm.vms, swipeActions = vm.swipeActionsBin)
             }
         } else {
-            if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
+            if (showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
             else {
                 Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                     if (vm.showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, showKeepSorted = true, onDismissRequest = { vm.showSortDialog = false }) { sortOrder, keep ->
@@ -659,8 +648,9 @@ fun QueuesScreen() {
 
 private val TAG = Screens.Queues.name
 
-private const val KEY_UP_ARROW = "up_arrow"
-private const val PREFS = "QueueFragment"
+private var showBin by mutableStateOf(false)
+private var showFeeds by mutableStateOf(false)
+
 //private const val PREF_SHOW_LOCK_WARNING = "show_lock_warning"
 
 

@@ -348,12 +348,6 @@ fun SearchScreen() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val vm = remember { SearchVM(context, scope) }
-
-//        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
-//        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
-//        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
-
-//    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -542,7 +536,7 @@ fun SearchScreen() {
             when (selectedTabIndex.intValue) {
                 0 -> {
                     InforBar(vm.infoBarText, vm.swipeActions)
-                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions, )
+                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms, buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions)
                 }
                 1 -> FeedsColumn()
                 2 -> PAFeedsColumn()
@@ -564,8 +558,3 @@ enum class SearchBy(val nameRes: Int, var selected: Boolean = true) {
 //    }
 
 private const val TAG: String = "SearchScreen"
-
-private const val ARG_QUERY = "query"
-private const val ARG_FEED = "feed"
-private const val ARG_FEED_NAME = "feedName"
-private const val SEARCH_DEBOUNCE_INTERVAL = 1500

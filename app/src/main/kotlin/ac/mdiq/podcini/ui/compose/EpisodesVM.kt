@@ -980,7 +980,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
             val pos by remember(vm.episode.id) { derivedStateOf { vm.positionState } }
             val dur = remember(vm.episode.id) { vm.episode.duration }
             vm.prog = remember(vm.episode.id, pos) { if (dur > 0 && pos >= 0 && dur >= pos) 1f * pos / dur else 0f }
-            Logd(TAG, "$index vm.prog: ${vm.prog}")
+//            Logd(TAG, "$index vm.prog: ${vm.prog}")
             val durText = getDurationStringLong(dur)
             val posText = getDurationStringLong(pos)
             Row {

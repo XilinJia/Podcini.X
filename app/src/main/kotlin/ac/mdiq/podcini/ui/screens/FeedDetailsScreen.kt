@@ -20,7 +20,6 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.FeedFunding
@@ -64,6 +63,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.speech.tts.TextToSpeech
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.BorderStroke
@@ -85,7 +85,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -109,7 +108,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -157,20 +155,14 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var listInfoText = ""
 //    internal var updateInfoText = ""
     internal var infoBarText = mutableStateOf("")
-    //        internal var displayUpArrow by mutableStateOf(false)
     private var headerCreated = false
     internal var rating by mutableIntStateOf(Rating.UNRATED.code)
 
     internal var score by mutableIntStateOf(-1000)
+    internal var scoreCount by mutableIntStateOf(0)
 
     internal val episodes = mutableStateListOf<Episode>()
     internal val vms = mutableStateListOf<EpisodeVM>()
-
-    internal var enableFilter: Boolean = true
-    internal var filterButtonColor = mutableStateOf(Color.White)
-
-    internal var showHistory by mutableStateOf(false)
-    private var historyJob: Job? = null
 
     internal var showRemoveFeedDialog by mutableStateOf(false)
     internal var showFilterDialog by mutableStateOf(false)
@@ -178,8 +170,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var showSortDialog by mutableStateOf(false)
     internal var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
     internal var layoutModeIndex by mutableIntStateOf(LayoutMode.Normal.ordinal)
-
-    private var filterJob: Job? = null
+    private var reassembleJob: Job? = null
 
     internal var isCallable by mutableStateOf(false)
     internal var txtvAuthor by mutableStateOf("")
@@ -241,29 +232,45 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 //        if (!event.isRunning) loadFeed(true)
 //    }
 
-//    private fun isFilteredOut(episode: Episode): Boolean {
-//        if (enableFilter && !feed?.filterString.isNullOrEmpty()) {
-//            val episodes_ = realm.query(Episode::class).query("feedId == ${feed!!.id}").query(feed!!.episodeFilter.queryString()).find()
-//            if (!episodes_.contains(episode)) {
-//                episodes.remove(episode)
-//                return true
-//            }
-//            return false
-//        }
-//        return false
-//    }
-
     private fun computeScore() {
         if (!feed?.episodes.isNullOrEmpty()) {
-            var sumR = 0
-            var count = 0
+            var sumR = 0.0
+            scoreCount = 0
             for (e in feed!!.episodes) {
-                if (e.playState > EpisodeState.PROGRESS.code) {
-                    count++
+                if (e.playState >= EpisodeState.PROGRESS.code) {
+                    scoreCount++
                     if (e.rating != Rating.UNRATED.code) sumR += e.rating
+                    if (e.playState >= EpisodeState.SKIPPED.code) sumR += - 0.5 + 1.0 * e.playedDuration / e.duration
+                    else if (e.playState in listOf(EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)) sumR += 0.5
                 }
             }
-            if (count > 0) score = 100 * sumR / count / Rating.SUPER.code
+            score = if (scoreCount > 0) (100 * sumR / scoreCount / Rating.SUPER.code).toInt() else -1000
+        }
+    }
+
+    private suspend fun assembleList(feed_:Feed) {
+        val eListTmp = mutableListOf<Episode>()
+        when {
+            showHistory -> eListTmp.addAll(getHistory(0, Int.MAX_VALUE, feed!!.id))
+            enableFilter && feed_.filterString.isNotEmpty() -> {
+                val qstr = feed_.episodeFilter.queryString()
+                Logd(TAG, "episodeFilter: $qstr")
+                val episodes_ = realm.query(Episode::class).query("feedId == ${feed_.id} AND $qstr").find()
+                eListTmp.addAll(episodes_)
+            }
+            else -> eListTmp.addAll(feed_.episodes)
+        }
+        if (!showHistory) {
+            Logd(TAG, "loadItems eListTmp.size: ${eListTmp.size}")
+            sortOrder = feed_.sortOrder ?: EpisodeSortOrder.DATE_NEW_OLD
+            getPermutor(sortOrder).reorder(eListTmp)
+            Logd(TAG, "loadItems eListTmp.size1: ${eListTmp.size}")
+        }
+        withContext(Dispatchers.Main) {
+            episodes.clear()
+            episodes.addAll(eListTmp)
+            vms.clear()
+            buildMoreItems()
         }
     }
 
@@ -286,36 +293,16 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             try {
                 feed = withContext(Dispatchers.IO) {
                     val feed_ = getFeed(feedID)
-                    if (feed_ != null) {
-                        Logd(TAG, "loadItems feed_.episodes.size: ${feed_.episodes.size}")
-                        val eListTmp = mutableListOf<Episode>()
-                        if (enableFilter && feed_.filterString.isNotEmpty()) {
-                            val qstr = feed_.episodeFilter.queryString()
-                            Logd(TAG, "episodeFilter: $qstr")
-                            val episodes_ = realm.query(Episode::class).query("feedId == ${feed_.id} AND $qstr").find()
-                            eListTmp.addAll(episodes_)
-                        } else eListTmp.addAll(feed_.episodes)
-                        Logd(TAG, "loadItems eListTmp.size: ${eListTmp.size}")
-                        sortOrder = feed_.sortOrder ?: EpisodeSortOrder.DATE_NEW_OLD
-                        getPermutor(sortOrder).reorder(eListTmp)
-                        Logd(TAG, "loadItems eListTmp.size1: ${eListTmp.size}")
-                        episodes.clear()
-                        episodes.addAll(eListTmp)
-                        withContext(Dispatchers.Main) {
-                            layoutModeIndex = if (feed_.useWideLayout) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
-                            vms.clear()
-                            buildMoreItems()
-                        }
-                    }
+                    if (feed_ != null) assembleList(feed_)
                     feed_
                 }
                 withContext(Dispatchers.Main) {
+                    layoutModeIndex = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
                     Logd(TAG, "loadItems subscribe called ${feed?.title}")
                     rating = feed?.rating ?: Rating.UNRATED.code
                     computeScore()
                     if (feed != null) {
                         isFiltered = !feed?.filterString.isNullOrEmpty() && feed!!.episodeFilter.propertySet.isNotEmpty()
-                        filterButtonColor.value = if (enableFilter) if (isFiltered) Color.Green else Color.White else Color.Red
                         if (!headerCreated) headerCreated = true
                         listInfoText = buildListInfo(episodes)
                         infoBarText.value = "$listInfoText $feedOperationText"
@@ -331,60 +318,13 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         if (nextItems.isNotEmpty()) vms.addAll(nextItems)
     }
-    internal fun filterLongClick() {
-        if (feed == null) return
-        enableFilter = !enableFilter
-        if (filterJob != null) {
-            Logd(TAG, "filterLongClick cancelling job")
-            filterJob?.cancel()
+    internal fun reassembleList() {
+        if (reassembleJob != null) {
+            Logd(TAG, "reassembleList cancelling job")
+            reassembleJob?.cancel()
             vms.clear()
         }
-        filterJob = lcScope.launch {
-            val eListTmp = mutableListOf<Episode>()
-            withContext(Dispatchers.IO) {
-                if (enableFilter) {
-                    filterButtonColor.value = if (isFiltered) Color.Green else Color.White
-                    val episodes_ = realm.query(Episode::class).query("feedId == ${feed!!.id}").query(feed!!.episodeFilter.queryString()).find()
-                    eListTmp.addAll(episodes_)
-                } else {
-                    filterButtonColor.value = Color.Red
-                    eListTmp.addAll(feed!!.episodes)
-                }
-                getPermutor(fromCode(feed?.sortOrderCode ?: 0)).reorder(eListTmp)
-                episodes.clear()
-                episodes.addAll(eListTmp)
-            }
-            withContext(Dispatchers.Main) {
-                vms.clear()
-                for (e in eListTmp) vms.add(EpisodeVM(e, TAG))
-            }
-        }.apply { invokeOnCompletion { filterJob = null } }
-    }
-
-    internal fun toggleHistory() {
-        if (feed == null) return
-        showHistory = !showHistory
-        if (historyJob != null) {
-            Logd(TAG, "showHistoryClick cancelling job")
-            historyJob?.cancel()
-            vms.clear()
-        }
-        historyJob = lcScope.launch {
-            val eListTmp = mutableListOf<Episode>()
-            withContext(Dispatchers.IO) {
-                if (!showHistory) {
-                    val episodes_ = realm.query(Episode::class).query("feedId == ${feed!!.id}").query(feed!!.episodeFilter.queryString()).find()
-                    eListTmp.addAll(episodes_)
-                    getPermutor(fromCode(feed?.sortOrderCode ?: 0)).reorder(eListTmp)
-                } else eListTmp.addAll(getHistory(0, Int.MAX_VALUE, feed!!.id).toMutableList())
-            }
-            withContext(Dispatchers.Main) {
-                episodes.clear()
-                episodes.addAll(eListTmp)
-                vms.clear()
-                for (e in eListTmp) vms.add(EpisodeVM(e, TAG))
-            }
-        }.apply { invokeOnCompletion { historyJob = null } }
+        reassembleJob = lcScope.launch { assembleList(feed!!) }.apply { invokeOnCompletion { reassembleJob = null } }
     }
 
     internal fun addLocalFolderResult(uri: Uri?) {
@@ -418,7 +358,6 @@ fun FeedDetailsScreen() {
     val vm = remember(feedOnDisplay.id) { FeedDetailsVM(context, scope) }
 
     val addLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? -> vm.addLocalFolderResult(uri) }
-    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -556,7 +495,7 @@ fun FeedDetailsScreen() {
                         val ratingIconRes by remember { derivedStateOf { Rating.fromCode(vm.rating).res } }
                         IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(start = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer)) }
                         Spacer(modifier = Modifier.weight(0.1f))
-                        if (vm.score > -1000) Text((vm.score).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        if (vm.score > -1000) Text((vm.score).toString() + " (" + vm.scoreCount + ")", textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         Spacer(modifier = Modifier.weight(0.2f))
                         if (feedScreenMode == FeedScreenMode.List) Text(vm.episodes.size.toString() + " / " + vm.feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         else Text((vm.feed?.episodes?.size ?: 0).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
@@ -568,25 +507,32 @@ fun FeedDetailsScreen() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun MyTopAppBar(displayUpArrow: Boolean) {
+    fun MyTopAppBar() {
         val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
         TopAppBar(title = { Text("") },
-            navigationIcon = if (displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
-            } else {
-                { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }
-            },
+            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } },
             actions = {
-                if (feedScreenMode == FeedScreenMode.List && !vm.showHistory) {
+                if (feedScreenMode == FeedScreenMode.List && !showHistory) {
                     IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "butFilter",
-                        modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(onClick = { if (vm.enableFilter && vm.feed != null) vm.showFilterDialog = true }, onLongClick = { vm.filterLongClick() }))
+                    val filterButtonColor by remember { derivedStateOf { if (enableFilter) if (vm.isFiltered) Color.Green else textColor else Color.Red } }
+                    if (vm.feed != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = filterButtonColor, contentDescription = "butFilter",
+                        modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(
+                            onClick = { if (enableFilter) vm.showFilterDialog = true },
+                            onLongClick = {
+                                if (vm.isFiltered) {
+                                    enableFilter = !enableFilter
+                                    vm.reassembleList()
+                                }
+                            }))
                 }
-                val histColor by remember(vm.showHistory) { derivedStateOf { if (!vm.showHistory) textColor else Color.Red } }
-                if (feedScreenMode == FeedScreenMode.List && vm.feed != null) IconButton(onClick = { vm.toggleHistory() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
+                val histColor by remember(showHistory) { derivedStateOf { if (!showHistory) textColor else Color.Green } }
+                if (feedScreenMode == FeedScreenMode.List && vm.feed != null) IconButton(onClick = {
+                    showHistory = !showHistory
+                    vm.reassembleList()
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
                 IconButton(onClick = {
                     val q = vm.feed?.queue
                     if (q != null && q != curQueue) curQueue = q
@@ -785,17 +731,15 @@ fun FeedDetailsScreen() {
         }
     }
 
-//    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
-//        return when (aboveOrBelow) {
-//            0 -> vm.episodes
-//            -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
-//            1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
-//            else -> listOf()
-//        }
-//    }
+    BackHandler(enabled = showHistory || !enableFilter) {
+        Logt(TAG, "BackHandler ")
+        showHistory = false
+        enableFilter = true
+        vm.loadFeed()
+    }
 
     vm.swipeActions.ActionOptionsDialog()
-    Scaffold(topBar = { MyTopAppBar(displayUpArrow) }) { innerPadding ->
+    Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             FeedDetailsHeader()
             if (feedScreenMode == FeedScreenMode.List) {
@@ -813,9 +757,8 @@ fun FeedDetailsScreen() {
 }
 
 private val TAG = Screens.FeedDetails.name
-const val ARGUMENT_FEED_ID = "argument.ac.mdiq.podcini.feed_id"
-private const val KEY_UP_ARROW = "up_arrow"
-
+private var showHistory by mutableStateOf(false)
+private var enableFilter by mutableStateOf(true)
 object TTSObj {
     var tts: TextToSpeech? = null
     var ttsReady = false

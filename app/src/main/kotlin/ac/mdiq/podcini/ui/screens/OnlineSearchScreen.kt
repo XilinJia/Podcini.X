@@ -54,7 +54,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -101,7 +100,6 @@ class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
     val prefs: SharedPreferences by lazy { context.getSharedPreferences(ItunesTopListLoader.PREFS, Context.MODE_PRIVATE) }
 
     internal var mainAct: MainActivity? = null
-    internal var displayUpArrow = false
 
     internal var showError by mutableStateOf(false)
     internal var errorText by mutableStateOf("")
@@ -198,11 +196,6 @@ fun OnlineSearchScreen() {
     val context = LocalContext.current
     val vm = remember { OnlineSearchVM(context, scope) }
 
-//        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
-//        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
-//        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
-
-//    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -293,13 +286,7 @@ fun OnlineSearchScreen() {
                 mainNavController.navigate(Screens.SearchResults.name)
             }
         } },
-            navigationIcon = if (vm.displayUpArrow) {
-                { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-                }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
-            } else {
-                { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }
-            }
-        )
+            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
     }
 
     @Composable
@@ -373,7 +360,6 @@ class AddLocalFolder : ActivityResultContracts.OpenDocumentTree() {
 }
 
 private const val TAG = "OnlineSearchScreen"
-private const val KEY_UP_ARROW = "up_arrow"
 
 private const val NUM_SUGGESTIONS = 12
 

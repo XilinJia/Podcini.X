@@ -121,11 +121,6 @@ fun SearchResultsScreen() {
     val context = LocalContext.current
     val vm = remember { SearchResultsVM(context, scope) }
 
-//        val displayUpArrow by remember { derivedStateOf { navController.backQueue.size > 1 } }
-//        var upArrowVisible by rememberSaveable { mutableStateOf(displayUpArrow) }
-//        LaunchedEffect(navController.backQueue) { upArrowVisible = displayUpArrow }
-
-//    var displayUpArrow by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
