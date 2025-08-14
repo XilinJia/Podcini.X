@@ -1,0 +1,15 @@
+# 8.18.0
+
+* in Queues screen
+	* modes of "show bin" and "show feeds" remain after viewing episodes or feeds
+	* back press from Bin or Feeds on Queues screen return to queue view
+* in FeedDetails screen
+	* mode of "show history" remains after viewing episodes
+	* back press from history returns to normal view
+	* display of score is accompanied with a count (play state above Progress)
+	* score is further adjusted on each episode
+		* play state of Progress is included
+		* in the range of (-0.5, 0.5) based on played duration vs full duration if play state is Skipped, Played, Passed, or Ignored
+		* with an extra 0.5 if it's set as Again and Forever
+		* so score can be somewhat above 100 or below -100
+* some code cleaning
