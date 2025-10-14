@@ -1,3 +1,12 @@
+# 8.18.1
+
+* in episodes lists, when app returns to foreground, refresh played items
+* save current sort order in Queues and Facets screens
+* use new R8 proguard syntax
+* gradle to 9.1.0, ADP to 8.13.0
+* ndk upped to 29
+* large dependencies update
+
 # 8.18.0
 
 * in Queues screen

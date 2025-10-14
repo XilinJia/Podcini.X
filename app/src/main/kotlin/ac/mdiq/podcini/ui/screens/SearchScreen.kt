@@ -3,7 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
-import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithDownloadUrl
+import ac.mdiq.podcini.storage.database.Episodes.indexWithUrl
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -167,7 +167,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
 
     private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
         for (url in event.urls) {
-            val pos: Int = episodes.indexOfItemWithDownloadUrl(url)
+            val pos: Int = episodes.indexWithUrl(url)
             if (pos >= 0 && pos < vms.size) vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
         }
     }

@@ -7,7 +7,7 @@ import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.storage.database.Episodes.getHistory
-import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
+import ac.mdiq.podcini.storage.database.Episodes.vmIndexWithUrl
 import ac.mdiq.podcini.storage.database.Feeds.FeedAssistant
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
@@ -218,7 +218,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         if (feed == null || episodes.isEmpty()) return
         for (url in event.urls) {
 //            if (!event.isCompleted(url)) continue
-            val pos: Int = vms.indexOfItem(url)
+            val pos: Int = vms.vmIndexWithUrl(url)
             if (pos >= 0 && pos < vms.size) {
                 Logd(TAG, "onEpisodeDownloadEvent $pos ${event.map[url]?.state} ${episodes[pos].downloaded} ${episodes[pos].title}")
                 vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal

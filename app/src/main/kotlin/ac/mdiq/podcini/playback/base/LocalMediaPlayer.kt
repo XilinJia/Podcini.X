@@ -15,7 +15,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
-import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
+import ac.mdiq.podcini.storage.database.Episodes.indexWithId
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
 import ac.mdiq.podcini.storage.database.Queues.getNextInQueue
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
@@ -66,8 +66,6 @@ import androidx.media3.exoplayer.trackselection.ExoTrackSelection
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
 import java.io.IOException
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -278,7 +276,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         var item = playable
         if (item.playState < EpisodeState.PROGRESS.code) item = runBlocking { setPlayStateSync(EpisodeState.PROGRESS.code, item, false) }
         val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
-        curIndexInQueue = eList.indexOfItemWithId(item.id)
+        curIndexInQueue = eList.indexWithId(item.id)
         setCurEpisode(item)
         Logd(TAG, "prepareMedia eList: ${eList.size} curIndexInQueue: $curIndexInQueue")
 

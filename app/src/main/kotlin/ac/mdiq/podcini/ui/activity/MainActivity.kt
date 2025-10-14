@@ -173,6 +173,9 @@ class MainActivity : BaseActivity() {
 //        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
 
+        if (savedInstanceState != null) hasInitialized.value = savedInstanceState.getBoolean(INIT_KEY, false)
+        if (!hasInitialized.value) hasInitialized.value = true
+
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData(feedUpdateWorkId)
             .observe(this) { workInfos -> workInfos?.forEach { workInfo -> Logd(TAG, "FeedUpdateWork status: ${workInfo.state}") } }
 
@@ -337,6 +340,7 @@ class MainActivity : BaseActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(Extras.generated_view_id.name, View.generateViewId())
+        outState.putBoolean(INIT_KEY, hasInitialized.value)
     }
 
     override fun onDestroy() {
@@ -523,6 +527,9 @@ class MainActivity : BaseActivity() {
 
     companion object {
         private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"
+        private const val INIT_KEY = "app_init_state"
+
+        var hasInitialized = mutableStateOf(false)
 
         lateinit var mainNavController: NavHostController
         val LocalNavController = staticCompositionLocalOf<NavController> { error("NavController not provided") }

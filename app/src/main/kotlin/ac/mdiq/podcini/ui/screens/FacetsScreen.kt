@@ -9,8 +9,8 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.getHistory
-import ac.mdiq.podcini.storage.database.Episodes.indexOfItem
-import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
+import ac.mdiq.podcini.storage.database.Episodes.vmIndexWithUrl
+import ac.mdiq.podcini.storage.database.Episodes.indexWithId
 import ac.mdiq.podcini.storage.database.Feeds.feedIdsOfAllEpisodes
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
@@ -171,7 +171,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
         for (url in event.urls) {
 //            if (!event.isCompleted(url)) continue
-            val pos: Int = vms.indexOfItem(url)
+            val pos: Int = vms.vmIndexWithUrl(url)
             if (pos >= 0 && pos < vms.size) vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
         }
     }
@@ -449,7 +449,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
             val size: Int = event.episodes.size
             while (i < size) {
                 val item: Episode = event.episodes[i++]
-                val pos = episodes.indexOfItemWithId(item.id)
+                val pos = episodes.indexWithId(item.id)
                 if (pos >= 0) {
                     episodes.removeAt(pos)
                     if (pos < vms.size) vms.removeAt(pos)
@@ -469,7 +469,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
             val size: Int = event.episodes.size
             while (i < size) {
                 val item: Episode = event.episodes[i++]
-                val pos = episodes.indexOfItemWithId(item.id)
+                val pos = episodes.indexWithId(item.id)
                 if (pos >= 0) {
                     episodes.removeAt(pos)
                     if (pos < vms.size) vms.removeAt(pos)
@@ -521,7 +521,10 @@ fun FacetsScreen() {
     fun OpenDialogs() {
         if (vm.showFilterDialog) EpisodesFilterDialog(filter = filter, filtersDisabled = vm.filtersDisabled(),
             onDismissRequest = { vm.showFilterDialog = false }) { filter -> vm.onFilterChanged(filter) }
-        if (vm.showSortDialog) EpisodeSortDialog(initOrder = sortOrder, onDismissRequest = { vm.showSortDialog = false }) { order, _ -> vm.onSort(order) }
+        if (vm.showSortDialog) EpisodeSortDialog(initOrder = sortOrder, onDismissRequest = { vm.showSortDialog = false }) { order, _ ->
+            sortOrder = order
+            vm.onSort(order)
+        }
         vm.swipeActions.ActionOptionsDialog()
         ComfirmDialog(titleRes = R.string.clear_history_label, message = stringResource(R.string.clear_playback_history_msg), showDialog = vm.showClearHistoryDialog) { vm.clearHistory() }
         if (vm.showDatesFilter) DatesFilterDialog(oldestDate = 0L, onDismissRequest = { vm.showDatesFilter = false} ) { timeFilterFrom, timeFilterTo ->

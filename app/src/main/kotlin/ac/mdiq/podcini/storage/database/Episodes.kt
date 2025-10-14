@@ -345,13 +345,13 @@ object Episodes {
         return result
     }
 
-    fun List<Episode>.indexOfItemWithId(id: Long): Int = indexOfFirst { it.id == id }
+    fun List<Episode>.indexWithId(id: Long): Int = indexOfFirst { it.id == id }
 
-    fun List<EpisodeVM>.indexOfItem(id: Long): Int = indexOfFirst { it.episode.id == id }
+    fun List<EpisodeVM>.vmIndexWithId(id: Long): Int = indexOfFirst { it.episode.id == id }
 
-    fun List<Episode>.indexOfItemWithDownloadUrl(downloadUrl: String): Int = indexOfFirst { it.downloadUrl == downloadUrl }
+    fun List<Episode>.indexWithUrl(downloadUrl: String): Int = indexOfFirst { it.downloadUrl == downloadUrl }
 
-    fun List<EpisodeVM>.indexOfItem(downloadUrl: String): Int = indexOfFirst { it.episode.downloadUrl == downloadUrl }
+    fun List<EpisodeVM>.vmIndexWithUrl(downloadUrl: String): Int = indexOfFirst { it.episode.downloadUrl == downloadUrl }
 
     @JvmStatic
     fun hasAlmostEnded(media: Episode): Boolean = media.duration > 0 && media.position >= media.duration * smartMarkAsPlayedPercent * 0.01

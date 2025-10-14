@@ -14,7 +14,9 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.InTheatre.playedIds
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
+import ac.mdiq.podcini.playback.base.InTheatre.rememberPlayedIds
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.TimeLeftMode
@@ -23,6 +25,7 @@ import ac.mdiq.podcini.storage.database.Episodes
 import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.Episodes.deleteMediaSync
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
+import ac.mdiq.podcini.storage.database.Episodes.vmIndexWithId
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
 import ac.mdiq.podcini.storage.database.Feeds.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.Feeds.allowForAutoDelete
@@ -234,8 +237,8 @@ var showSwipeActionsDialog by mutableStateOf(false)
 fun InforBar(text: State<String>, swipeActions: SwipeActions) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
-    var leftAction = remember { mutableStateOf<SwipeAction>(NoAction()) }
-    var rightAction = remember { mutableStateOf<SwipeAction>(NoAction()) }
+    val leftAction = remember { mutableStateOf<SwipeAction>(NoAction()) }
+    val rightAction = remember { mutableStateOf<SwipeAction>(NoAction()) }
     fun refreshSwipeTelltale() {
         leftAction.value = swipeActions.actions.left[0]
         rightAction.value = swipeActions.actions.right[0]
@@ -585,7 +588,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
     var longPressIndex by remember { mutableIntStateOf(-1) }
-    val dls = remember { DownloadServiceInterface.impl }
+//    val dls = remember { DownloadServiceInterface.impl }
     val context = LocalContext.current
 
     fun multiSelectCB(index: Int, aboveOrBelow: Int): List<EpisodeVM> {
@@ -599,8 +602,8 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
 
     var leftSwipeCB: ((EpisodeVM)->Unit)? = null
     var rightSwipeCB: ((EpisodeVM)->Unit)? = null
-    var leftActionState = remember { mutableStateOf<SwipeAction>(NoAction()) }
-    var rightActionState = remember { mutableStateOf<SwipeAction>(NoAction()) }
+    val leftActionState = remember { mutableStateOf<SwipeAction>(NoAction()) }
+    val rightActionState = remember { mutableStateOf<SwipeAction>(NoAction()) }
     if (swipeActions != null) {
         leftActionState.value = swipeActions.actions.left[0]
         rightActionState.value = swipeActions.actions.right[0]
@@ -1036,8 +1039,8 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                         snapshotFlow { lazyListState.layoutInfo }
                             .filter { it.visibleItemsInfo.isNotEmpty() }
                             .first()
-                            .let {
-                                val visibleItems = it.visibleItemsInfo.mapNotNull { vms.getOrNull(it.index) }
+                            .let { it0 ->
+                                val visibleItems = it0.visibleItemsInfo.mapNotNull { vms.getOrNull(it.index) }
                                 val vm = visibleItems.find { it.episode.id == curMediaId }
                                 if (vm != null) {
                                     Logd(TAG, "subscribeCurVM start monitor ${vm.episode.title}")
@@ -1076,24 +1079,45 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
         val lifecycleOwner = LocalLifecycleOwner.current
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_START) {
-                    coroutineScope.launch {
-                        lazyListState.scrollToItem(
-                            lazyListState.firstVisibleItemIndex,
-                            lazyListState.firstVisibleItemScrollOffset
-                        )
-//                        forceRecomposeKey++
-                        Logd(TAG, "Screen on, triggered scroll for recomposition")
-                    }
-                }
-                if (event == Lifecycle.Event.ON_RESUME) {
-                    Logd(TAG, "DisposableEffect lifecycleOwner ${curVM?.episode?.id} $curMediaId")
-                    if (curVM?.episode?.id == curMediaId) {
-                        runOnIOScope {
-                            curVM?.updateVMFromDB()
-                            withContext(Dispatchers.Main) { curVM?.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(curVM!!.episode) else curVM!!.actionButton.update(curVM!!.episode) }
+                when (event) {
+                    Lifecycle.Event.ON_START -> {
+                        coroutineScope.launch {
+                            lazyListState.scrollToItem(
+                                lazyListState.firstVisibleItemIndex,
+                                lazyListState.firstVisibleItemScrollOffset
+                            )
+            //                        forceRecomposeKey++
+                            Logd(TAG, "Screen on, triggered scroll for recomposition")
                         }
-                    } else subscribeCurVM()
+                        rememberPlayedIds = false
+                        runOnIOScope {
+                            if (playedIds.isNotEmpty()) {
+                                val playedVMs = mutableListOf<EpisodeVM>()
+                                for (id in playedIds) {
+                                    val ind = vms.vmIndexWithId(id)
+                                    if (ind >= 0) playedVMs.add(vms[ind])
+                                }
+                                if (playedVMs.isNotEmpty()) {
+                                    for (vm in playedVMs) {
+                                        vm.updateVMFromDB()
+                                        withContext(Dispatchers.Main) { vm.actionButton.update(vm.episode) }
+                                    }
+                                }
+                                playedIds.clear()
+                            }
+                            if (curVM?.episode?.id == curMediaId) {
+                                curVM?.updateVMFromDB()
+                                withContext(Dispatchers.Main) { curVM?.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(curVM!!.episode) else curVM!!.actionButton.update(curVM!!.episode) }
+                            } else withContext(Dispatchers.Main) { subscribeCurVM() }
+                        }
+                    }
+//                    Lifecycle.Event.ON_RESUME -> {
+//                        Logd(TAG, "DisposableEffect lifecycleOwner ${curVM?.episode?.id} $curMediaId")
+//                    }
+                    Lifecycle.Event.ON_STOP -> {
+                        rememberPlayedIds = true
+                    }
+                    else -> {}
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)

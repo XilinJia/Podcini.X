@@ -53,6 +53,8 @@ object InTheatre {
         private set
 
     var curMediaId by mutableLongStateOf(-1L)
+    val playedIds = mutableListOf<Long>()
+    var rememberPlayedIds = false
 
     private var curStateMonitor: Job? = null
     var curState: CurrentState      // managed
@@ -142,6 +144,7 @@ object InTheatre {
                     }
                 ))
                 curMediaId = episode.id
+                if (rememberPlayedIds) playedIds.add(curMediaId)
             }
             else -> {
                 curEpisode = null

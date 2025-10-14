@@ -18,7 +18,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.database.Episodes.checkAndMarkDuplicates
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
-import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
+import ac.mdiq.podcini.storage.database.Episodes.indexWithId
 import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
 import ac.mdiq.podcini.storage.database.Episodes.stateToPreserve
 import ac.mdiq.podcini.storage.database.RealmDB.realm
@@ -37,7 +37,6 @@ import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import java.util.Date
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.runBlocking
 import kotlin.random.Random
 
 object Queues {
@@ -263,7 +262,7 @@ object Queues {
         val eList = episodes.toList()
         for (i in qItems.indices) {
             val episode = qItems[i]
-            if (eList.indexOfItemWithId(episode.id) >= 0) {
+            if (eList.indexWithId(episode.id) >= 0) {
                 Logd(TAG, "removing from queue: ${episode.id} ${episode.title}")
                 indicesToRemove.add(i)
                 if (queue.id == curQueue.id) events.add(FlowEvent.QueueEvent.removed(episode))

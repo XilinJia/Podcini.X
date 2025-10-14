@@ -10,8 +10,8 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackServic
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithDownloadUrl
-import ac.mdiq.podcini.storage.database.Episodes.indexOfItemWithId
+import ac.mdiq.podcini.storage.database.Episodes.indexWithUrl
+import ac.mdiq.podcini.storage.database.Episodes.indexWithId
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.Queues.clearQueue
 import ac.mdiq.podcini.storage.database.Queues.isQueueKeepSorted
@@ -161,6 +161,9 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
 
         swipeActions = SwipeActions(context, TAG)
         swipeActionsBin = SwipeActions(context, "$TAG.Bin")
+
+//        if (!hasInitialized.value) loadCurQueue(true)
+
     }
     private var eventSink: Job?     = null
     private var eventStickySink: Job? = null
@@ -225,7 +228,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
             FlowEvent.QueueEvent.Action.REMOVED, FlowEvent.QueueEvent.Action.IRREVERSIBLE_REMOVED -> {
                 if (event.episodes.isNotEmpty()) {
                     for (e in event.episodes) {
-                        val pos: Int = queueItems.indexOfItemWithId(e.id)
+                        val pos: Int = queueItems.indexWithId(e.id)
                         if (pos < 0) continue
                         Logd(TAG, "removing episode $pos ${queueItems[pos].title}")
                         if (pos < vms.size) {
@@ -260,7 +263,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         if (loadItemsRunning) return
         for (url in event.urls) {
 //            if (!event.isCompleted(url)) continue
-            val pos: Int = queueItems.indexOfItemWithDownloadUrl(url)
+            val pos: Int = queueItems.indexWithUrl(url)
             if (pos >= 0 && pos < vms.size) vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
         }
     }
@@ -621,6 +624,7 @@ fun QueuesScreen() {
                 Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                     if (vm.showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, showKeepSorted = true, onDismissRequest = { vm.showSortDialog = false }) { sortOrder, keep ->
                         if (sortOrder != EpisodeSortOrder.RANDOM && sortOrder != EpisodeSortOrder.RANDOM1) isQueueKeepSorted = keep
+                        vm.sortOrder = sortOrder
                         queueKeepSortedOrder = sortOrder
                         vm.reorderQueue(sortOrder, true)
                     }
