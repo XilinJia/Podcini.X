@@ -17,14 +17,18 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +42,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -171,10 +176,12 @@ fun EpisodeTextScreen() {
         var expanded by remember { mutableStateOf(false) }
         val context = LocalContext.current
         val buttonColor = Color(0xDDFFD700)
-        TopAppBar(title = { Text("") },
-            navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-            }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
-            actions = {
+        Box {
+            TopAppBar(title = { Text("") }, navigationIcon = {
+                IconButton(onClick = {
+                    if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
+                }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") }
+            }, actions = {
                 if (vm.readMode && vm.tts != null) {
                     val iconRes = if (vm.ttsPlaying) R.drawable.ic_pause else R.drawable.ic_play_24dp
                     IconButton(onClick = {
@@ -212,8 +219,9 @@ fun EpisodeTextScreen() {
                         expanded = false
                     })
                 }
-            }
-        )
+            })
+            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 
     fun Color.toHex(): String {

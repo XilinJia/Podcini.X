@@ -60,6 +60,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -68,9 +69,11 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -87,6 +90,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -538,18 +542,17 @@ fun FacetsScreen() {
         var expanded by remember { mutableStateOf(false) }
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
-        TopAppBar(title = {
-            SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
-                Logd(TAG, "Item selected: $index")
-                vm.curIndex = index
-                vm.tag = TAG+QuickAccess.entries[vm.curIndex]
-                putPref(AppPrefs.prefFacetsCurIndex, index)
-                vm.actionButtonToPass = if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name)  { it -> DeleteActionButton(it) } else null
-                vm.loadItems()
-            }
-        },
-            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } },
-            actions = {
+        Box {
+            TopAppBar(title = {
+                SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
+                    Logd(TAG, "Item selected: $index")
+                    vm.curIndex = index
+                    vm.tag = TAG + QuickAccess.entries[vm.curIndex]
+                    putPref(AppPrefs.prefFacetsCurIndex, index)
+                    vm.actionButtonToPass = if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name) { it -> DeleteActionButton(it) } else null
+                    vm.loadItems()
+                }
+            }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {
                 Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                     val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
                     IconButton(onClick = {
@@ -563,26 +566,24 @@ fun FacetsScreen() {
                     if (vm.spinnerTexts[vm.curIndex] in listOf(QuickAccess.History.name, QuickAccess.Downloaded.name, QuickAccess.New.name)) {
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                         DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                            if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name)
-                                DropdownMenuItem(text = { Text(stringResource(R.string.clear_history_label)) }, onClick = {
-                                    vm.showClearHistoryDialog.value = true
-                                    expanded = false
-                                })
-                            if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name)
-                                DropdownMenuItem(text = { Text(stringResource(R.string.reconcile_label)) }, onClick = {
-                                    vm.reconcile()
-                                    expanded = false
-                                })
-                            if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.New.name)
-                                DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
-                                    vm.clearNew()
-                                    expanded = false
-                                })
+                            if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name) DropdownMenuItem(text = { Text(stringResource(R.string.clear_history_label)) }, onClick = {
+                                vm.showClearHistoryDialog.value = true
+                                expanded = false
+                            })
+                            if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name) DropdownMenuItem(text = { Text(stringResource(R.string.reconcile_label)) }, onClick = {
+                                vm.reconcile()
+                                expanded = false
+                            })
+                            if (vm.vms.isNotEmpty() && vm.spinnerTexts[vm.curIndex] == QuickAccess.New.name) DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
+                                vm.clearNew()
+                                expanded = false
+                            })
                         }
                     }
                 }
-            }
-        )
+            })
+            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 
     @OptIn(ExperimentalFoundationApi::class)

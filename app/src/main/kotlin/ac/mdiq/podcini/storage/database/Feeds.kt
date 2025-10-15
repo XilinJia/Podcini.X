@@ -289,7 +289,7 @@ object Feeds {
         // Look for new or updated Items
         for (idx in newFeed.episodes.indices) {
             val episode = newFeed.episodes[idx]
-            var oldItems = savedFeedAssistant.guessDuplicate(episode)
+            val oldItems = savedFeedAssistant.guessDuplicate(episode)
             if (!newFeed.isLocalFeed && !oldItems.isNullOrEmpty()) {
 //                Logd(TAG, "Update existing episode: ${episode.title}")
                 oldItems[0].identifier = episode.identifier

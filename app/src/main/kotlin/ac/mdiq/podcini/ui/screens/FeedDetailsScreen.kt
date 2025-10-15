@@ -88,9 +88,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -512,21 +514,17 @@ fun FeedDetailsScreen() {
         var expanded by remember { mutableStateOf(false) }
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
-        TopAppBar(title = { Text("") },
-            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } },
-            actions = {
+        Box {
+            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }, actions = {
                 if (feedScreenMode == FeedScreenMode.List && !showHistory) {
                     IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
                     val filterButtonColor by remember { derivedStateOf { if (enableFilter) if (vm.isFiltered) Color.Green else textColor else Color.Red } }
-                    if (vm.feed != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = filterButtonColor, contentDescription = "butFilter",
-                        modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(
-                            onClick = { if (enableFilter) vm.showFilterDialog = true },
-                            onLongClick = {
-                                if (vm.isFiltered) {
-                                    enableFilter = !enableFilter
-                                    vm.reassembleList()
-                                }
-                            }))
+                    if (vm.feed != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = filterButtonColor, contentDescription = "butFilter", modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(onClick = { if (enableFilter) vm.showFilterDialog = true }, onLongClick = {
+                        if (vm.isFiltered) {
+                            enableFilter = !enableFilter
+                            vm.reassembleList()
+                        }
+                    }))
                 }
                 val histColor by remember(showHistory) { derivedStateOf { if (!showHistory) textColor else Color.Green } }
                 if (feedScreenMode == FeedScreenMode.List && vm.feed != null) IconButton(onClick = {
@@ -548,12 +546,12 @@ fun FeedDetailsScreen() {
                         feedOnDisplay = vm.feed!!
                         mainNavController.navigate(Screens.FeedSettings.name)
                     }
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), contentDescription = "butShowSettings")}
+                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), contentDescription = "butShowSettings") }
                 if (vm.feed != null) {
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                     DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                         if (!vm.feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
-                            shareLink(context, vm.feed?.downloadUrl?:"")
+                            shareLink(context, vm.feed?.downloadUrl ?: "")
                             expanded = false
                         })
                         if (!vm.feed?.link.isNullOrBlank() && vm.isCallable) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
@@ -574,9 +572,8 @@ fun FeedDetailsScreen() {
                         if (vm.episodes.isNotEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
                             feedOperationText = context.getString(R.string.fetch_size)
                             scope.launch {
-                                for (e in vm.episodes) e.fetchMediaSize(force = true)
-//                                vm.loadFeed(true)
-                                withContext(Dispatchers.Main) { feedOperationText= "" }
+                                for (e in vm.episodes) e.fetchMediaSize(force = true) //                                vm.loadFeed(true)
+                                withContext(Dispatchers.Main) { feedOperationText = "" }
                             }
                             expanded = false
                         })
@@ -586,7 +583,7 @@ fun FeedDetailsScreen() {
                                 val f = realm.copyFromRealm(vm.feed!!)
                                 FeedAssistant(f).clear()
                                 upsert(f) {}
-                                withContext(Dispatchers.Main) { feedOperationText= "" }
+                                withContext(Dispatchers.Main) { feedOperationText = "" }
                             }
                             expanded = false
                         })
@@ -604,8 +601,9 @@ fun FeedDetailsScreen() {
                         })
                     }
                 }
-            }
-        )
+            })
+            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 
     if (vm.showRemoveFeedDialog) RemoveFeedDialog(listOf(vm.feed!!), onDismissRequest = { vm.showRemoveFeedDialog = false }) {

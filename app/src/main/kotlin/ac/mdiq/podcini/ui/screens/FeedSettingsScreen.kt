@@ -33,6 +33,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -57,6 +58,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -226,17 +228,19 @@ fun FeedSettingsScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
      fun MyTopAppBar() {
-        TopAppBar( title = {
-            Column {
-                Text(text = stringResource(R.string.feed_settings_label), fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                if (!vm.feed?.title.isNullOrBlank()) Text(text = vm.feed!!.title!!, fontSize = 16.sp)
-            }
-        },
-            navigationIcon = { IconButton(onClick = {
-                if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-//            else onBackPressed()
-            }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
-        )
+        Box {
+            TopAppBar(title = {
+                Column {
+                    Text(text = stringResource(R.string.feed_settings_label), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    if (!vm.feed?.title.isNullOrBlank()) Text(text = vm.feed!!.title!!, fontSize = 16.sp)
+                }
+            }, navigationIcon = {
+                IconButton(onClick = {
+                    if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() //            else onBackPressed()
+                }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+            })
+            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 
     @Composable
@@ -895,7 +899,7 @@ fun FeedSettingsScreen() {
                                 val textColor = MaterialTheme.colorScheme.onSurface
                                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(stringResource(R.string.episode_filters_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
-                                    var termList = remember { if (inexcl == ADLIncExc.EXCLUDE) filter.excludeTerms.toMutableStateList() else filter.includeTerms.toMutableStateList() }
+                                    val termList = remember { if (inexcl == ADLIncExc.EXCLUDE) filter.excludeTerms.toMutableStateList() else filter.includeTerms.toMutableStateList() }
                                     var filterMinDuration by remember { mutableStateOf(filter.hasMinDurationFilter()) }
                                     var filterMaxDuration by remember { mutableStateOf(filter.hasMaxDurationFilter()) }
                                     var markPlayedChecked by remember { mutableStateOf(filter.markExcludedPlayed) }
@@ -980,8 +984,8 @@ fun FeedSettingsScreen() {
                                         Button(onClick = {
                                             if (inexcl == ADLIncExc.EXCLUDE) {
                                                 if (filtermodifier) {
-                                                    var minDuration = if (filterMinDuration) filterMinDurationMinutes.toInt() * 60 else -1
-                                                    var maxDuration = if (filterMaxDuration) filterMaxDurationMinutes.toInt() * 60 else -1
+                                                    val minDuration = if (filterMinDuration) filterMinDurationMinutes.toInt() * 60 else -1
+                                                    val maxDuration = if (filterMaxDuration) filterMaxDurationMinutes.toInt() * 60 else -1
                                                     val excludeFilter = toFilterString(termList)
                                                     onConfirmed(FeedAutoDownloadFilter(filter.includeFilterRaw, excludeFilter, minDuration, maxDuration, markPlayedChecked))
                                                 } else onConfirmed(FeedAutoDownloadFilter())

@@ -73,9 +73,11 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -416,19 +418,19 @@ fun QueuesScreen() {
         var expanded by remember { mutableStateOf(false) }
         var showRename by remember { mutableStateOf(curQueue.name != "Default") }
         val buttonColor = Color(0xDDFFD700)
-        TopAppBar(title = {
-            if (showTopSpinner) SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
-                Logd(TAG, "Queue selected: ${vm.queues[index].name}")
-                showBin = false
-                showFeeds = false
-                val prevQueueSize = curQueue.size()
-                curQueue = upsertBlk(vm.queues[index]) { it.update() }
-                showRename = curQueue.name != "Default"
-                vm.loadCurQueue(true)
-                playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
-            } else Text(title) },
-            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
-            actions = {
+        Box {
+            TopAppBar(title = {
+                if (showTopSpinner) SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
+                    Logd(TAG, "Queue selected: ${vm.queues[index].name}")
+                    showBin = false
+                    showFeeds = false
+                    val prevQueueSize = curQueue.size()
+                    curQueue = upsertBlk(vm.queues[index]) { it.update() }
+                    showRename = curQueue.name != "Default"
+                    vm.loadCurQueue(true)
+                    playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
+                } else Text(title)
+            }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } }, actions = {
                 val binIconRes by remember(showBin) { derivedStateOf { if (showBin) R.drawable.playlist_play else R.drawable.ic_history } }
                 val feedsIconRes by remember(showFeeds) { derivedStateOf { if (showFeeds) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
                 if (!showFeeds) IconButton(onClick = {
@@ -471,8 +473,7 @@ fun QueuesScreen() {
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                            runOnceOrAsk(context)
-//                            gearbox.feedUpdater().startRefresh(context)
+                            runOnceOrAsk(context) //                            gearbox.feedUpdater().startRefresh(context)
                             expanded = false
                         })
                         if (!isQueueKeepSorted) {
@@ -492,8 +493,9 @@ fun QueuesScreen() {
                         }
                     }
                 }
-            }
-        )
+            })
+            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 
     @Composable

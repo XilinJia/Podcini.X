@@ -1,3 +1,16 @@
+# 8.19.0
+
+* in Subscriptions screen
+	* languages, queues, and tags spinners are moved to the filter dialog
+	* info text is shown on the title bar
+	* InfoBar is removed
+* on filter dialogs (podcasts and episodes)
+	* rows are horizontally scrollable: some translated text can be too long
+	* amended some formats and colors
+* all top app bars have a bottom divider
+* in ShareReceiver, when the url is null or empty, only toast error message is shown, dialog is removed
+* minor Compose deprecations updates
+
 # 8.18.1
 
 * in episodes lists, when app returns to foreground, refresh played items

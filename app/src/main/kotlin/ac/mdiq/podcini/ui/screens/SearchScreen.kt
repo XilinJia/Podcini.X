@@ -1,5 +1,4 @@
 package ac.mdiq.podcini.ui.screens
-
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
@@ -8,8 +7,8 @@ import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
-import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.DurationConverter
+import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
@@ -55,9 +54,11 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -376,13 +377,16 @@ fun SearchScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        TopAppBar( title = { SearchBarRow(R.string.search_delimit, defaultText = vm.queryText) {
-            curSearchString = it
-            vm.queryText = it
-            vm.search(vm.queryText)
-        }},
-            navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }
-        )
+        Box {
+            TopAppBar(title = {
+                SearchBarRow(R.string.search_delimit, defaultText = vm.queryText) {
+                    curSearchString = it
+                    vm.queryText = it
+                    vm.search(vm.queryText)
+                }
+            }, navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
+            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 
     @Composable
@@ -526,6 +530,7 @@ fun SearchScreen() {
                 }
             )
             CriteriaList()
+            // TODO
             TabRow(modifier = Modifier.fillMaxWidth(), selectedTabIndex = selectedTabIndex.intValue, divider = {}, indicator = { tabPositions ->
                 Box(modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex.intValue]).height(4.dp).background(Color.Blue))
             }) {

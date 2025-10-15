@@ -94,6 +94,7 @@ import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.draggable
 import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -1267,13 +1268,13 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             val buttonColor = MaterialTheme.colorScheme.tertiary
-            val scrollState = rememberScrollState()
-            Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
+            val scrollStateV = rememberScrollState()
+            Column(Modifier.fillMaxSize().verticalScroll(scrollStateV)) {
                 var selectNone by remember { mutableStateOf(false) }
                 for (item in EpisodesFilterGroup.entries) {
                     if (item in filtersDisabled) continue
                     if (item.properties.size == 2) {
-                        Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
                             var selectedIndex by remember { mutableIntStateOf(-1) }
                             if (selectNone) selectedIndex = -1
                             LaunchedEffect(Unit) {
@@ -1281,9 +1282,8 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                 else if (item.properties[1].filterId in filter.propertySet) selectedIndex = 1
                             }
                             Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge , color = textColor, modifier = Modifier.padding(end = 10.dp))
-                            Spacer(Modifier.weight(0.3f))
-                            OutlinedButton(
-                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) textColor else Color.Green),
+                            Spacer(Modifier.width(40.dp))
+                            OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else Color.Green),
                                 onClick = {
                                     if (selectedIndex != 0) {
                                         selectNone = false
@@ -1298,9 +1298,8 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     onFilterChanged(filter)
                                 },
                             ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
-                            Spacer(Modifier.weight(0.1f))
-                            OutlinedButton(
-                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) textColor else Color.Green),
+                            Spacer(Modifier.width(20.dp))
+                            OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else Color.Green),
                                 onClick = {
                                     if (selectedIndex != 1) {
                                         selectNone = false
@@ -1314,7 +1313,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     onFilterChanged(filter)
                                 },
                             ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
-                            Spacer(Modifier.weight(0.5f))
+//                            Spacer(Modifier.weight(0.5f))
                         }
                     } else {
                         Column(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
@@ -1322,7 +1321,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                             var expandRow by remember { mutableStateOf(false) }
                             when (item) {
                                 EpisodesFilterGroup.DURATION -> {
-                                    Text(stringResource(item.nameRes) + ".. :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                    Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                     if (expandRow) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             var showIcon by remember { mutableStateOf(false) }
@@ -1349,7 +1348,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                                     if (floor.isNotBlank() || ceiling.isNotBlank()) {
                                                         val f = if (floor.isBlank() || floor.toIntOrNull() == null) 0 else floor.toInt()
                                                         val c = if (ceiling.isBlank() || ceiling.toIntOrNull() == null) Int.MAX_VALUE else ceiling.toInt()
-                                                        Logd("EpisodeFilterDialog", "f = $f c = $c")
+//                                                        Logd("EpisodeFilterDialog", "f = $f c = $c")
                                                         filter.durationFloor = f * 1000
                                                         filter.durationCeiling = if (c < Int.MAX_VALUE) c * 1000 else c
                                                     }
@@ -1359,7 +1358,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     }
                                 }
                                 EpisodesFilterGroup.TITLE_TEXT -> {
-                                    Text(stringResource(item.nameRes) + ".. :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                    Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                     if (expandRow) {
                                         var showIcon by remember { mutableStateOf(false) }
                                         var titleText by remember { mutableStateOf((filter.titleText)) }
@@ -1378,54 +1377,56 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     }
                                 }
                                 else -> {
-                                    Row {
-                                        Text(stringResource(item.nameRes) + ".. :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.clickable { expandRow = !expandRow })
-                                        var lowerSelected by remember { mutableStateOf(false) }
-                                        var higherSelected by remember { mutableStateOf(false) }
-                                        Spacer(Modifier.weight(1f))
-                                        if (expandRow) Text("<<<", color = if (lowerSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
-                                            val hIndex = selectedList.indexOfLast { it.value }
-                                            if (hIndex < 0) return@clickable
-                                            if (!lowerSelected) for (i in 0..hIndex) selectedList[i].value = true
-                                            else {
-                                                for (i in 0..hIndex) selectedList[i].value = false
-                                                selectedList[hIndex].value = true
-                                            }
-                                            lowerSelected = !lowerSelected
-                                            for (i in item.properties.indices) {
-                                                if (selectedList[i].value) filter.propertySet.add(item.properties[i].filterId)
-                                                else filter.propertySet.remove(item.properties[i].filterId)
-                                            }
-                                            onFilterChanged(filter)
-                                        })
-                                        Spacer(Modifier.weight(1f))
-                                        if (expandRow) Text("X", color = buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
-                                            lowerSelected = false
-                                            higherSelected = false
-                                            for (i in item.properties.indices) {
-                                                selectedList[i].value = false
-                                                filter.propertySet.remove(item.properties[i].filterId)
-                                            }
-                                            onFilterChanged(filter)
-                                        })
-                                        Spacer(Modifier.weight(1f))
-                                        if (expandRow) Text(">>>", color = if (higherSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
-                                            val lIndex = selectedList.indexOfFirst { it.value }
-                                            if (lIndex < 0) return@clickable
-                                            if (!higherSelected) {
-                                                for (i in lIndex..item.properties.size - 1) selectedList[i].value = true
-                                            } else {
-                                                for (i in lIndex..item.properties.size - 1) selectedList[i].value = false
-                                                selectedList[lIndex].value = true
-                                            }
-                                            higherSelected = !higherSelected
-                                            for (i in item.properties.indices) {
-                                                if (selectedList[i].value) filter.propertySet.add(item.properties[i].filterId)
-                                                else filter.propertySet.remove(item.properties[i].filterId)
-                                            }
-                                            onFilterChanged(filter)
-                                        })
-                                        Spacer(Modifier.weight(1f))
+                                    Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                                        Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                        if (expandRow) {
+                                            var lowerSelected by remember { mutableStateOf(false) }
+                                            var higherSelected by remember { mutableStateOf(false) }
+                                            Spacer(Modifier.width(40.dp))
+                                            Text("<<<", color = if (lowerSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
+                                                val hIndex = selectedList.indexOfLast { it.value }
+                                                if (hIndex < 0) return@clickable
+                                                if (!lowerSelected) for (i in 0..hIndex) selectedList[i].value = true
+                                                else {
+                                                    for (i in 0..hIndex) selectedList[i].value = false
+                                                    selectedList[hIndex].value = true
+                                                }
+                                                lowerSelected = !lowerSelected
+                                                for (i in item.properties.indices) {
+                                                    if (selectedList[i].value) filter.propertySet.add(item.properties[i].filterId)
+                                                    else filter.propertySet.remove(item.properties[i].filterId)
+                                                }
+                                                onFilterChanged(filter)
+                                            })
+                                            Spacer(Modifier.width(20.dp))
+                                            Text("X", color = buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
+                                                lowerSelected = false
+                                                higherSelected = false
+                                                for (i in item.properties.indices) {
+                                                    selectedList[i].value = false
+                                                    filter.propertySet.remove(item.properties[i].filterId)
+                                                }
+                                                onFilterChanged(filter)
+                                            })
+                                            Spacer(Modifier.width(20.dp))
+                                            Text(">>>", color = if (higherSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
+                                                val lIndex = selectedList.indexOfFirst { it.value }
+                                                if (lIndex < 0) return@clickable
+                                                if (!higherSelected) {
+                                                    for (i in lIndex..item.properties.size - 1) selectedList[i].value = true
+                                                } else {
+                                                    for (i in lIndex..item.properties.size - 1) selectedList[i].value = false
+                                                    selectedList[lIndex].value = true
+                                                }
+                                                higherSelected = !higherSelected
+                                                for (i in item.properties.indices) {
+                                                    if (selectedList[i].value) filter.propertySet.add(item.properties[i].filterId)
+                                                    else filter.propertySet.remove(item.properties[i].filterId)
+                                                }
+                                                onFilterChanged(filter)
+                                            })
+                                        //                                        Spacer(Modifier.weight(1f))
+                                        }
                                     }
                                 }
                             }
@@ -1434,9 +1435,8 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                 LaunchedEffect(Unit) {
                                     if (item.properties[index].filterId in filter.propertySet) selectedList[index].value = true
                                 }
-                                OutlinedButton(
-                                    modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
-                                    border = BorderStroke(2.dp, if (selectedList[index].value) Color.Green else textColor),
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
+                                    border = BorderStroke(2.dp, if (selectedList[index].value) Color.Green else buttonColor),
                                     onClick = {
                                         selectNone = false
                                         selectedList[index].value = !selectedList[index].value

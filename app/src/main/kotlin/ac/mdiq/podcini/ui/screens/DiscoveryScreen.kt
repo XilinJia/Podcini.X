@@ -138,17 +138,19 @@ fun DiscoveryScreen() {
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
         val buttonColor = Color(0xDDFFD700)
-        TopAppBar(title = { Text(stringResource(R.string.discover)) },
-            navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
-            }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
-            actions = {
+        Box {
+            TopAppBar(title = { Text(stringResource(R.string.discover)) }, navigationIcon = {
+                IconButton(onClick = {
+                    if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
+                }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") }
+            }, actions = {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                     var hideChecked by remember { mutableStateOf(vm.hidden) }
                     DropdownMenuItem(text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.discover_hide))
-                            Checkbox(checked = hideChecked, onCheckedChange = {  })
+                            Checkbox(checked = hideChecked, onCheckedChange = { })
                         }
                     }, onClick = {
                         hideChecked = !hideChecked
@@ -163,8 +165,9 @@ fun DiscoveryScreen() {
                         expanded = false
                     })
                 }
-            }
-        )
+            })
+            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 
     @Composable
@@ -195,7 +198,7 @@ fun DiscoveryScreen() {
             val filteredCountries = remember { countryNamesSort.toMutableStateList() }
             var expanded by remember { mutableStateOf(false) }
             ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
-                TextField(value = textInput, modifier = Modifier.fillMaxWidth().padding(20.dp).menuAnchor(MenuAnchorType.PrimaryNotEditable, false), readOnly = false,
+                TextField(value = textInput, modifier = Modifier.fillMaxWidth().padding(20.dp).menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, false), readOnly = false,
                     onValueChange = { input ->
                         textInput = input
                         if (textInput.length > 1) {

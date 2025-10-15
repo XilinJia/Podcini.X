@@ -1,10 +1,10 @@
 package ac.mdiq.podcini.ui.compose
 
-import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
 import ac.mdiq.podcini.preferences.ThemeSwitcher.readThemeValue
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
+import android.os.Build
 import android.util.TypedValue
 import androidx.annotation.AttrRes
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -13,9 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +58,12 @@ private val DarkColors = darkColorScheme().copy(
 
 @Composable
 fun CustomTheme(context: Context, content: @Composable () -> Unit) {
+    // TODO
+    val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val colorScheme = when {
+        dynamicColor -> dynamicLightColorScheme(LocalContext.current)
+        else -> lightColorScheme()
+    }
     val colors = when (readThemeValue(context)) {
         ThemePreference.LIGHT -> LightColors
         ThemePreference.DARK -> DarkColors

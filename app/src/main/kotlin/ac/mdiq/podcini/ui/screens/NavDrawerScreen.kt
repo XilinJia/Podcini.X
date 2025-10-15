@@ -11,11 +11,11 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeedCount
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.model.DownloadResult
-import ac.mdiq.podcini.storage.utils.EpisodeFilter.Companion.unfiltered
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.utils.EpisodeFilter.Companion.unfiltered
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.closeDrawer
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.drawerState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
@@ -62,8 +62,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -90,7 +91,7 @@ val defaultScreen: String
         val isValid = try {
             Screens.valueOf(value)
             true
-        } catch (e: Throwable) { false }
+        } catch (_: Throwable) { false }
         if (value.isBlank() || !isValid) value = Screens.Subscriptions.name
         if (value == AppPreferences.DefaultPages.Remember.name) {
             value = getPref(AppPrefs.prefLastScreen, "")
@@ -201,9 +202,11 @@ fun NavDrawerScreen() {
         }
     }
 
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-    val drawerWidth = screenWidth * 0.7f
+//    val configuration = LocalConfiguration.current
+    val windowSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
+    val windowWidthDp = with(density) { windowSize.width.toDp() }
+    val drawerWidth = windowWidthDp * 0.7f
 
     Box(Modifier.width(drawerWidth).fillMaxHeight()) {
         Scaffold { innerPadding ->

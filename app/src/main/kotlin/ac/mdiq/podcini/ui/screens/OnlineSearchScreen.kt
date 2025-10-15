@@ -38,7 +38,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.net.Uri
-import android.util.DisplayMetrics
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -57,7 +56,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -76,8 +77,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
 import androidx.documentfile.provider.DocumentFile
@@ -195,6 +199,8 @@ fun OnlineSearchScreen() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val vm = remember { OnlineSearchVM(context, scope) }
+    val windowSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -202,9 +208,8 @@ fun OnlineSearchScreen() {
                 Lifecycle.Event.ON_CREATE -> {
                     vm.mainAct = context as? MainActivity
                     Logd(TAG, "fragment onCreateView")
-                    val displayMetrics: DisplayMetrics = context.resources.displayMetrics
-                    val screenWidthDp: Float = displayMetrics.widthPixels / displayMetrics.density
-                    if (screenWidthDp > 600) vm.numColumns = 6
+                    val windowWidthDp: Dp = with(density) { windowSize.width.toDp() }
+                    if (windowWidthDp > 600.dp) vm.numColumns = 6
 
                     // Fill with dummy elements to have a fixed height and
                     // prevent the UI elements below from jumping on slow connections
@@ -278,15 +283,19 @@ fun OnlineSearchScreen() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
      fun MyTopAppBar() {
-        TopAppBar( title = { SearchBarRow(R.string.search_podcast_hint, "") { queryText ->
-            if (queryText.isBlank()) return@SearchBarRow
-            if (queryText.matches("http[s]?://.*".toRegex())) vm.addUrl(queryText)
-            else {
-                setOnlineSearchTerms(CombinedSearcher::class.java, queryText)
-                mainNavController.navigate(Screens.SearchResults.name)
-            }
-        } },
-            navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
+        Box {
+            TopAppBar(title = {
+                SearchBarRow(R.string.search_podcast_hint, "") { queryText ->
+                    if (queryText.isBlank()) return@SearchBarRow
+                    if (queryText.matches("http[s]?://.*".toRegex())) vm.addUrl(queryText)
+                    else {
+                        setOnlineSearchTerms(CombinedSearcher::class.java, queryText)
+                        mainNavController.navigate(Screens.SearchResults.name)
+                    }
+                }
+            }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
+            HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 
     @Composable

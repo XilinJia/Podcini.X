@@ -99,7 +99,7 @@ fun ShareDialog(item: Episode, act: Activity, onDismissRequest: () -> Unit) {
 
     var position by remember { mutableIntStateOf(type) }
     var isChecked by remember { mutableStateOf(false) }
-    var ctx = LocalContext.current
+    val ctx = LocalContext.current
 
     AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
