@@ -22,7 +22,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
-import kotlinx.coroutines.runBlocking
 
 
 class PlaybackStarter(private val context: Context, private val media: Episode) {

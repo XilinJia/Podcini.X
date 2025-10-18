@@ -4,22 +4,18 @@
     <string name="feed_update_receiver_name">Aktualizovať odbery</string>
     <string name="feeds">Feeds</string>
 
-    <string name="feeds_label">Podcasty</string>
     <string name="statistics_label">Štatistiky</string>
     <string name="add_feed_label">Pridať podcast</string>
     <string name="online_episodes_label">Online episodes</string>
     <string name="episodes_label">Epizódy</string>
-    <string name="home_label">Domov</string>
     <string name="queue_label">Poradie</string>
     <string name="settings_label">Nastavenia</string>
     <string name="downloads_label">Sťahovanie</string>
     <string name="logs_label">Logs</string>
     <string name="subscriptions_label">Odbery</string>
-    <string name="unsubscribed_label">Unsubscribed</string>
     <string name="cancel_download_label">Zrušiť sťahovanie</string>
     <string name="playback_history_label">História prehrávania</string>
     <string name="months_statistics_label">Months</string>
-    <string name="years_statistics_label">Roky</string>
     <string name="notification_pref_fragment">Oznámenia</string>
     <string name="current_episode">Current</string>
     <string name="current_podcast">Podcast</string>
@@ -28,40 +24,27 @@
     <string name="app_action_not_found">„%1$s“ nebol nájdený</string>
     <!-- SwipeActions -->
     <string name="swipeactions_label">Potiahnutia</string>
-    <string name="swipeactions_summary">Zvoľte akcie po potiahnutí epizódy v zozname</string>
     <string name="swipe_right">Potiahnutie doprava</string>
     <string name="swipe_left">Potiahnutie doľava</string>
-    <string name="individual_subscription">Individuálny odber</string>
     <string name="subscription">Subscription</string>
     <!-- Statistics fragment -->
-    <string name="statistics_include_marked">Zahrnúť trvanie epizód, ktoré sú len označené ako hrané</string>
     <string name="statistics_speed_not_counted">Poznámka: Rýchlosť prehrávania sa nikdy neberie do úvahy.</string>
     <string name="statistics_start_month">Start month</string>
     <string name="statistics_end_month">End month</string>
     <string name="statistics_month_year">Format: MM/YYYY</string>
-    <string name="statistics_from">Od</string>
-    <string name="statistics_to">Do</string>
     <string name="statistics_today">Dnes</string>
     <string name="statistics_filter_all_time">Celý čas</string>
-    <string name="statistics_filter_past_year">Posledný rok</string>
     <string name="statistics_reset_data">Vynulovať štatistiky</string>
     <string name="statistics_reset_data_msg">Táto operácia vymaže časovú históriu prehrávania všetkých epizód. Ste si istý že chcete vykonať túto akciu\?</string>
-    <string name="statistics_counting_range">Prehrané medzi %1$s a %2$s</string>
-    <string name="statistics_counting_total">Prehrané celkom</string>
     <string name="web_content_not_available">Web content is not available</string>
     <string name="language_not_supported_by_tts">The language is not supported by TTS</string>
     <string name="tts_init_failed">TTS init failed</string>
-    <string name="tts_not_available">TTS engine not available</string>
     <string name="episode_has_no_content">Episode has not content</string>
     <string name="unrestricted_background_permission_text">In order to successfully play a list of episodes in the background, Podcini needs Permission for Unrestricted Background Activity. Note on some brands, there are sustomized settings for this, please ensure to set them accordingly.</string>
     <string name="notification_permission_text">Since Android 13, top level notification is needed for normal refresh and playback. You may disallow notifications of sub-catergories at your wish.</string>
-    <string name="notification_permission_denied">Odmietli ste povolenie.</string>
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">Celková veľkosť epizód na zariadení</string>
     <!-- Main activity -->
-    <string name="drawer_open">Otvoriť menu</string>
-    <string name="drawer_close">Zatvoriť menu</string>
-    <string name="drawer_preferences">Nastavenie navigačného panela</string>
     <!-- Bug report activity -->
     <string name="log_file_share_exception">Žiadne kompatibilné aplikácie</string>
     <string name="export_logs_menu_title">Exportovať podrobné záznamy</string>
@@ -71,9 +54,6 @@
     <string name="copy_url_label">Kopírovať odkaz</string>
     <string name="share_url_label">Zdielať odkaz</string>
     <string name="go_to_position_label">Skočiť na túto pozíciu</string>
-    <string name="show_shared_logs_label">Show shared logs</string>
-    <string name="show_subscription_logs_label">Show subscription logs</string>
-    <string name="show_download_logs_label">Show download logs</string>
     <!-- Playback history -->
     <string name="clear_history_label">Vymazať históriu</string>
     <string name="clear_playback_history_msg">Toto vymaže celú históriu prehrávania. Ste si istý, že chcete pokračovať\?</string>
@@ -93,7 +73,6 @@
     <string name="error_msg_prefix">Vyskytla sa chyba:</string>
     <string name="refresh_label">Obnoviť</string>
     <string name="new_synth_label">New synthetic feed</string>
-    <string name="new_synth_yt_label">New synthetic Youtube</string>
     <string name="toggle_grid_list">Toggle grid list</string>
     <string name="refreshing_label">Refreshing</string>
     <string name="clear_new_label">Clear new</string>
@@ -125,7 +104,6 @@
     <string name="replace">Replace</string>
     <string name="feed_auto_dleq_newer">Newest unplayed</string>
     <string name="feed_auto_dleq_older">Oldest unplayed</string>
-    <string name="feed_auto_dleq_soon">Marked as Soon</string>
     <string name="put_in_queue_label">Add to queue…</string>
     <string name="remove_from_other_queues">Remove from other queues</string>
     <string name="create_synthetic_first_note">You need to create some synthetic feeds first</string>
@@ -134,27 +112,12 @@
     <string name="episode_cleanup_never">Nikdy</string>
     <string name="episode_cleanup_except_favorite">Ak nie je medzi obľúbenými</string>
     <string name="episode_cleanup_not_in_queue">Ak nie je v poradí</string>
-    <string name="episode_cleanup_after_listening">Po dokončení</string>
-    <plurals name="episode_cleanup_hours_after_listening">
-        <item quantity="one">1 hodinu po dokončení</item>
-        <item quantity="few">%d hodiny po dokončení</item>
-        <item quantity="many">%d hodín po dokončení</item>
-        <item quantity="other">%d hodín po dokončení </item>
-    </plurals>
-    <plurals name="episode_cleanup_days_after_listening">
-        <item quantity="one">1 deň po dokončení</item>
-        <item quantity="few">%d dni po dokončení</item>
-        <item quantity="many">%d dní po dokončení</item>
-        <item quantity="other">%d dní po dokončení</item>
-    </plurals>
     <!-- Actions on feeds -->
     <string name="max_episodes_cache">Max episodes allowed</string>
     <string name="new_namee">New name</string>
     <string name="feed_settings_label">Nastavenia podcastu</string>
-    <string name="switch_queue_label">Choose active queue</string>
     <string name="rename_feed_label">Premenovať podcast</string>
     <string name="remove_feed_label">Odstrániť podcast</string>
-    <string name="init_tts">Start TTS</string>
     <string name="share_label">Zdieľanie</string>
     <string name="share_file_label">Zdielať súbor</string>
     <string name="share_notes_label">Share notes</string>
@@ -165,12 +128,9 @@
     <string name="not_erase_message">Only episodes from synthetic feeds can be erased.</string>
     <string name="reason_to_delete_msg">For future reference, you can record a reason here:</string>
     <string name="load_complete_feed">Obnoviť celý podcast</string>
-    <string name="multi_select">Viacnásobný výber</string>
-    <string name="filtered_label">Filtrované</string>
     <string name="progressing_label">Processing</string>
     <string name="open_podcast">Otvoriť podcast</string>
     <string name="open">Open</string>
-    <string name="please_wait_for_data">Počkajte, kým sa dáta načítajú</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d odber aktualizovaný.</item>
         <item quantity="few">%d odbery aktualizované.</item>
@@ -178,7 +138,6 @@
         <item quantity="other">%d odberov aktualizovaných.</item>
     </plurals>
     <string name="edit_tags">Upraviť štítky</string>
-    <string name="add_tag">Pridať štítok</string>
     <string name="confirm_delete_logs_label">Confirm delete logs here</string>
     <string name="confirm_delete_logs_message">This will delete all the logs seen here from the database and can not be undone. Are you sure?</string>
     <string name="confirm_mobile_feed_refresh_dialog_message">Obnovovanie podcastov pri mobilnom pripojení je vypnuté v nastaveniach.\n\nChcete ich obnoviť aj tak\?</string>
@@ -196,25 +155,16 @@
     <string name="delete_failed_simple">Unable to delete file.</string>
     <string name="delete_local_failed">Súbor sa nepodarilo zmazať. Skúste znova pripojiť lokálny priečinok z obrazovky s informáciami o podcaste.</string>
     <string name="delete_episode_label">Zmazať epizódu</string>
-    <string name="show_hidden">Show hidden</string>
     <string name="no_action_label">No action</string>
     <string name="my_opinion_label">My opinion</string>
     <string name="add_opinion_label">Add opinion</string>
     <string name="cancelled_on_label">Cancelled on</string>
     <string name="choose_tab">Choose a tab in the channel</string>
     <string name="set_play_state_label">Set played state</string>
-    <string name="play_this_to_seek_position">Preskočenie na určitú pozíciu funguje len pri prehrávaní epizódy.</string>
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Shelve to synthetic</string>
     <string name="add_to_queue_label">Pridať do poradia</string>
     <string name="remove_from_queue_label">Odstrániť z poradia</string>
-    <plurals name="removed_from_queue_batch_label">
-        <item quantity="one">%d epizóda bola odstránená z poradia</item>
-        <item quantity="few">%d epizódy boli odstránené z poradia</item>
-        <item quantity="many">%d epizód bolo odstránených z poradia</item>
-        <item quantity="other">%d epizód bolo odstránených z poradia</item>
-    </plurals>
-    <string name="show_video_label">Play video</string>
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
     <string name="audio">Audio</string>
@@ -243,7 +193,6 @@
     <string name="forever">Forever</string>
     <string name="ignored">Ignored</string>
     <string name="visit_website_label">Navštíviť webovú stránku</string>
-    <string name="skip_episode_label">Preskočiť epizódu</string>
     <string name="delete_local_feed_warning_body">Mazanie odstráni epizódu z Podcini a zmaže mediálny súbor z úložiska vášho zariadenia. Nedá sa znova stiahnuť cez Podcini.</string>
     <string name="share_existing">existing</string>
     <!-- Download messages and labels -->
@@ -304,14 +253,12 @@
     <string name="no_media_playing_label">Neprebieha žiadne prehrávanie</string>
     <string name="unknown_media_key">Podcini - Neznámy kľúč médií: %1$d</string>
     <string name="error_file_not_found">Súbor nenájdený</string>
-    <string name="no_media_label">Položka neobsahuje mediálny súbor</string>
     <!-- Queue operations -->
     <string name="lock_queue">Zamknúť poradie</string>
     <string name="queue_locked">Poradie zamknuté</string>
     <string name="queue_unlocked">Poradie odomknuté</string>
 
     <!--    <string name="switch_queue">Switch active queue</string>-->
-    <string name="open_queue">Open queue</string>
     <string name="checkbox_do_not_show_again">Znovu nezobrazovať</string>
     <string name="clear_queue_label">Vyprázdniť poradie</string>
     <string name="clear_bin_label">Clear bin</string>
@@ -319,7 +266,6 @@
     <string name="sort">Zoradiť</string>
     <string name="rename">Rename</string>
     <string name="add_queue">Add queue</string>
-    <string name="keep_sorted">Udržať zoradené</string>
     <string name="publish_date">Publish date</string>
     <string name="download_date">Download date</string>
     <string name="view_count">View count</string>
@@ -330,7 +276,6 @@
     <string name="completed_date">Completed date</string>
     <string name="duration">Trvanie</string>
     <string name="spent">Spent</string>
-    <string name="hours">hours</string>
     <string name="episode_title">Názov epizódy</string>
     <string name="feed_title">Názov podcastu</string>
     <string name="show_criteria">Show criteria</string>
@@ -340,9 +285,7 @@
     <string name="smart_shuffle">Inteligentné miešanie</string>
     <string name="size">Veľkosť</string>
     <string name="clear_queue_confirmation_msg">Potvrďte prosím, že chcete vyčistiť toto poradie a VŠETKY v ňom obsiahnuté epizódy</string>
-    <string name="show_bin_label">Show bin</string>
     <!--  Variable Speed -->
-    <string name="preset_already_exists">%1$.2fx je už uložené ako predvoľba.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Táto epizóda neobsahuje žiadne poznámky.</string>
 
@@ -355,7 +298,6 @@
     <string name="automation">Automatizácia</string>
     <string name="download_pref_details">Podrobnosti</string>
     <string name="import_export_pref">Import/Export</string>
-    <string name="import_export_search_keywords">zálohovanie, obnovenie</string>
     <string name="pref_auto_backup_title">Auto backup</string>
     <string name="pref_auto_backup_sum">Automatically back up DB and preferences at a specified interval into a selected folder.</string>
     <string name="pref_auto_backup_interval">Backup interval</string>
@@ -369,9 +311,6 @@
     <string name="interruptions">Prerušenia</string>
     <string name="playback_control">Ovládanie prehrávania</string>
     <string name="reassign_hardware_buttons">Zmeniť priradenie hardvérových tlačidiel</string>
-    <string name="preference_search_hint">Hľadať…</string>
-    <string name="preference_search_no_results">Žiadne výsledky</string>
-    <string name="preference_search_clear_history">Vymazať históriu</string>
     <string name="pref_episode_cleanup_title">Vyčistiť epizódy</string>
     <string name="pref_episode_cleanup_summary">Epizódy, ktoré by malo byť možné zmazať, pokiaľ bude funkcia automatického sťahovania potrebovať miesto pre nové epizódy</string>
     <string name="pref_pauseOnDisconnect_sum">Pri odpojení slúchadiel alebo bluetooth pripojení pozastaviť prehrávanie.</string>
@@ -386,7 +325,6 @@
     <string name="button_action_skip_episode">Preskočiť epizódu</string>
     <string name="button_action_restart_episode">Znovu spustiť epizódu</string>
     <string name="pref_followQueue_sum">Po prehraní položky z poradia automaticky prejsť na dalšiu</string>
-    <string name="pref_pick_custom_media_dir">Specify a custom folder</string>
     <string name="pref_custom_media_dir_title">Use custom media folder</string>
     <string name="pref_custom_media_dir_sum">Choose a custom folder for downloaded media. You can always reset. A restart is needed.</string>
     <string name="pref_custom_media_dir_sum1">Custom media folder is set. Want to change?</string>
@@ -437,16 +375,8 @@
     <string name="user_interface_sum">Vzhľad, odbery, zamknutá obrazovka</string>
     <string name="pref_black_theme_title">Úplne čierna</string>
     <string name="pref_black_theme_message">Pre tmavý motív použiť úplne čiernu</string>
-    <string name="pref_tinted_theme_title">Dynamické farby</string>
-    <string name="pref_tinted_theme_message">Prispôsobiť farby aplikácie podľa tapety</string>
-    <string name="pref_nav_drawer_items_title">Zmeniť navigačný panel</string>
-    <string name="pref_nav_drawer_items_sum">Upraviť zobrazenie položiek v navigačnom paneli</string>
-    <string name="pref_nav_drawer_feed_order_title">Nastaviť poradie odberov</string>
-    <string name="pref_nav_drawer_feed_order_sum">Upraviť poradie vašich odberov</string>
     <string name="pref_automatic_download_title">Automatické sťahovanie</string>
     <string name="pref_automatic_download_sum">Nastavenie automatického sťahovania epizód</string>
-    <string name="pref_autodl_wifi_filter_title">Zapnúť Wi-Fi filter</string>
-    <string name="pref_autodl_wifi_filter_sum">Povoliť automatické sťahovanie iba pomocou vybraných Wi-Fi sietí.</string>
     <string name="pref_automatic_download_on_battery_title">Sťahovať keď neprebieha nabíjanie</string>
     <string name="pref_automatic_download_on_battery_sum">Povoliť automatické sťahovanie aj keď nie je batéria nabíjaná</string>
     <string name="pref_episode_cache_title">Vyrovnávacia pamäť epizód</string>
@@ -460,12 +390,10 @@
     <string name="pref_theme_title_automatic">Automaticky</string>
     <string name="pref_theme_title_light">Svetlá</string>
     <string name="pref_theme_title_dark">Tmavá</string>
-    <string name="pref_episode_cache_unlimited">Bez obmedzenia</string>
     <string name="pref_playback_speed_sum">Upraviť predvybrané možnosti pre prehrávanie zvuku rôznymi rýchlosťami</string>
     <string name="pref_feed_playback_speed_sum">Rýchlosť, ktorá bude použitá pri začatí prehrávania epizód tohoto podcastu</string>
     <string name="pref_feed_skip">Automatické preskočenie</string>
     <string name="pref_feed_skip_sum">Preskočiť úvodné a záverečné reči.</string>
-    <string name="associated">Associated</string>
     <string name="pref_feed_audio_type">Audio type</string>
     <string name="pref_feed_audio_type_sum">Either Speech, Music or Movie for improved processing.</string>
     <string name="pref_feed_audio_quality">Audio quality</string>
@@ -474,8 +402,6 @@
     <string name="pref_feed_video_quality_sum">Global equals low quality, Quality setting here takes precedence over the setting of prefLowQualityMedia for metered network.</string>
     <string name="pref_feed_associated_queue">Associated queue</string>
     <string name="pref_feed_associated_queue_sum">The queue to which epiosdes in the feed will added by default</string>
-    <string name="pref_feed_skip_ending">Preskočit posledných</string>
-    <string name="pref_feed_skip_intro">Preskočiť prvých</string>
     <string name="pref_feed_skip_ending_toast">Posledných %d sekúnd bolo preskočených</string>
     <string name="pref_feed_skip_intro_toast">Prvých %d sekúnd bolo preskočených</string>
 
@@ -490,9 +416,6 @@
     <string name="pref_rewind_sum">Upraviť o koľko sekúnd sa skočí späť při stlačení tlačidla pretočiť späť (RW).</string>
     <string name="pref_playback_video_mode">Video play mode</string>
     <string name="pref_playback_video_mode_sum">Choose how video episode is played by default</string>
-    <string name="pref_video_mode_full_screen">Full screen</string>
-    <string name="pref_video_mode_small_window">Small window</string>
-    <string name="pref_video_mode_audio_only">Audio only</string>
     <string name="pref_swipe_refresh_title">Swipe to refresh</string>
     <string name="pref_swipe_refresh_sum">Swipe down to refresh all subscriptions</string>
     <string name="pref_feedGridLayout_title">Subscriptions use grid layout </string>
@@ -503,9 +426,6 @@
 
     <string name="pref_show_notification_skip_title">Show skip on notification</string>
     <string name="pref_show_notification_skip_sum">Toggle the skip button on the notification panel</string>
-    <string name="pref_compact_notification_buttons_dialog_error_exact">You must select exactly %1$d items.</string>
-    <string name="pref_full_notification_buttons_title">Set notification buttons</string>
-    <string name="pref_full_notification_buttons_sum">Change the playback buttons on the playback notification.</string>
     <string name="pref_enqueue_location_title">Pozícia pridávania do poradia</string>
     <string name="pref_enqueue_location_sum">Pridávať epizódy na: %1$s</string>
     <string name="enqueue_location_back">Späť</string>
@@ -540,11 +460,6 @@
     <!-- About screen -->
     <string name="about_pref">O aplikácii</string>
     <string name="podcini_version">Verzia Podcini</string>
-    <string name="contributors">Prispievatelia</string>
-    <string name="contributors_summary">Každý môže pomôcť zlepšiť Podcini - programovaním, prekladmi alebo pomáhaním používateľom na našom fóre</string>
-    <string name="developers">Vývojári</string>
-    <string name="translators">Prekladatelia</string>
-    <string name="special_thanks">Špeciálne poďakovanie</string>
     <string name="online_help">Online home page</string>
     <string name="online_help_sum">Get more info online</string>
     <string name="privacy_policy">Zásady ochrany osobných údajov</string>
@@ -570,30 +485,14 @@
     <string name="sync_error_guest_not_respond">Guest not responding, giving up</string>
     <!-- import and export -->
     <string name="import_export_summary">Presunúť odbery a poradie na iné zariadenie</string>
-    <string name="preferences">Preferences</string>
-    <string name="media_files">Media files</string>
-    <string name="combos">Combos</string>
-    <string name="database">Databáza</string>
-    <string name="opml">OPML</string>
-    <string name="html">HTML</string>
-    <string name="progress">Progress</string>
     <string name="html_export_summary">Ukázať svoje odbery priateľovi</string>
     <string name="opml_export_summary">Preniesť svoje odbery do inej podcastovej aplikácie</string>
     <string name="opml_import_summary">Importovať svoje odbery z inej podcastovej aplikácie</string>
-    <string name="preferences_export_summary">Export Podcini preferences</string>
-    <string name="preferences_import_summary">Import Podcini preferences</string>
-    <string name="media_files_export_summary">Export Podcini media files</string>
-    <string name="media_files_import_summary">Import Podcini media files</string>
     <string name="combo_export_summary">Export selectably the database, preferences, media files.</string>
     <string name="combo_import_summary">Import selectably the database, preferences, media files.</string>
-    <string name="database_export_summary">Preniesť odbery, počúvané epizódy a poradie do Podciniu v inom zariadení</string>
-    <string name="database_import_summary">Importovať databázu Podcini z iného zariadenia</string>
     <string name="opml_import_label">Import OPML</string>
     <string name="opml_add_podcast_label">Importovať zoznam podcastov (OPML)</string>
     <string name="opml_reader_error">Pri načítaní súboru OPML sa vyskytla chyba:</string>
-    <string name="opml_import_error_no_file">Nie je zvolený žiadny súbor!</string>
-    <string name="select_all_label">Označiť všetko</string>
-    <string name="deselect_all_label">Zrušiť označenie</string>
     <string name="progress_export_label">Episodes progress export</string>
     <string name="progress_import_label">Episodes progress import</string>
     <string name="progress_export_summary">Transfer Podcini episodes history to a different install of Podcini. Note this is not necessary if you can transfer the DB.</string>
@@ -601,14 +500,8 @@
     <string name="progress_import_warning">Importing episodes progress will replace all of your current playing history. You should export your current progress as a backup. Do you want to replace\? If yes, in the next screen, choose the desired .json file. The process can take a couple minutes depending on size. Once completed, a popup of either success or failure will be shown.</string>
     <string name="opml_export_label">Exportovať ako OPML</string>
     <string name="html_export_label">Exportovať ako HTML</string>
-    <string name="media_files_export_label">Media files export</string>
-    <string name="media_files_import_label">Media files import</string>
     <string name="import_SQLite_message">Imported subscriptions together with episodes and play history will be added to existing DB. If confirmed, choose a previously exported sqlite database.\"</string>
     <string name="combo_import_warning">Importing any of the chosen items will replace those in your current storage. If confirmed, choose a previously exported directory with name containing \"Podcini-Backups\"</string>
-    <string name="preferences_export_label">Preferences export</string>
-    <string name="preferences_import_label">Preferences import</string>
-    <string name="preferences_import_warning">Importing preferences will replace all of your current preferences. If confirmed, choose a previously exported directory with name containing \"Podcini-Prefs\"</string>
-    <string name="media_files_import_notice">Choose a previously exported directory with name containing \"Podcini-MediaFiles\"</string>
     <string name="combo_export_label">Combo export</string>
     <string name="combo_import_label">Combo import</string>
     <string name="import_AP_label">Import AntennaPod database</string>
@@ -618,16 +511,10 @@
     <string name="import_PA_directory_label">Import directory</string>
     <string name="import_PA_directory_message">Import a podcasts direcory for offline search. \"</string>
     <string name="import_PA_message">If confirmed, choose a previously exported backup archive from Podcast Addict app.\"</string>
-    <string name="database_export_label">Export databázy</string>
-    <string name="database_import_label">Import databázy</string>
-    <string name="realm_database_import_label">Realm database import</string>
-    <string name="database_import_warning">Import databázy prepíše všetky vaše aktuálne odbery a históriu prehrávania. Aktuálnu databázu by ste mali exportovať ako zálohu. Chcete ju prepísať\?</string>
     <string name="import_directory_toast">Only accepting directory name including: </string>
     <string name="import_file_type_toast">Only accepting file extension: </string>
-    <string name="please_wait">Prosím čakajte…</string>
     <string name="import_export_error_label">Chyba exportu</string>
     <string name="export_success_title">Export bol úspešný</string>
-    <string name="opml_import_ask_read_permission">Na načítanie súboru OPML je potrebný prístup k externému úložisku</string>
     <string name="successful_import_label">Import úspešný</string>
     <string name="import_ok">Reštartujte Podcini stlačením tlačidla OK</string>
     <string name="favorites_export_label">Export obľúbených položiek</string>
@@ -639,12 +526,10 @@
     <string name="disable_sleeptimer_label">Zakázať časovač vypnutia</string>
     <string name="extend_sleep_timer_label">+%d min</string>
     <string name="end_episode">To end of episode</string>
-    <string name="sleep_timer_always">Vždy</string>
     <string name="sleep_timer_label">Časovač vypnutia</string>
     <string name="time_dialog_invalid_input">Vstup je neplatný, čas musí byť celé číslo</string>
     <string name="shake_to_reset_label">Resetovať potrasením</string>
     <string name="timer_vibration_label">Pred koncom krátko vibrovať</string>
-    <string name="time_seconds">sekundy</string>
     <string name="time_minutes">minúty</string>
     <string name="time_hours">hodiny</string>
     <plurals name="time_minutes_quantified">
@@ -666,22 +551,17 @@
         <item quantity="other">%d dní</item>
     </plurals>
     <string name="auto_enable_label">Po stlačení tlačidla prehrávania automaticky aktivovať časovač vypnutia</string>
-    <string name="auto_enable_label_with_times" formatted="false">Po stlačení tlačidla prehrávania medzi %s a %s automaticky aktivovať časovač vypnutia</string>
-    <string name="auto_enable_change_times">Zmeniť časový rozsah</string>
-    <string name="sleep_timer_enabled_label">Časovač vypnutia povolený</string>
     <!-- Synchronisation -->
     <string name="wifi_sync">Sync with device on Wifi</string>
     <string name="wifi_sync_summary_unchoosen">You can connect two devices on the same wifi network to synchronize your episodes play states</string>
     <string name="synchronization_choose_title">Vyberte si poskytovateľa synchronizácie</string>
     <string name="synchronization_summary_unchoosen">Môžete si vybrať viacerých poskytovateľov na synchronizáciu vašich odberov a stavu prehratia epizódy</string>
     <string name="dialog_choose_sync_service_title">Vyberte si poskytovateľa synchronizácie</string>
-    <string name="gpodnet_description">Gpodder.net je open-source služba na synchronizáciu podcastov, ktorú si môžete nainštalovať na váš vlastný server. Gpodder.net je samostatný projekt a nezávisí na projekte Podcini.</string>
     <string name="synchronization_summary_nextcloud">Gpoddersync je open-source Nexcloud-ová aplikácia, ktorú si viete ľahko nainštalovať na Váš vlastný server. Aplikácia je nezávislá od projektu Podcini.</string>
     <string name="synchronization_host_explanation">Môžete si vybrať svoj vlastný server na synchronizáciu. Keď budete mať identifikovaný preferovaný server na synchronizáciu, tak prosím napíšte jeho adresu sem.</string>
     <string name="synchronization_host_address_label">Host address</string>
     <string name="synchronization_host_port_label">Host port</string>
     <string name="synchronization_host_label">Adresa servera</string>
-    <string name="server">Server</string>
     <string name="guest_butLabel">As guest</string>
     <string name="host_butLabel">As host</string>
     <string name="proceed_to_login_butLabel">Pokračujte na prihlásenie</string>
@@ -691,18 +571,8 @@
     <string name="connect_to_peer">Connect to peer</string>
     <string name="host_or_guest">Make yourself a Host or Guest first</string>
     <string name="gpodnetauth_login_butLabel">Prihlásiť sa</string>
-    <string name="synchronization_credentials_explanation">Prosím, poskytnite poverenia Vášho účtu na synchronizačnom serveri.</string>
-    <string name="gpodnetauth_encryption_warning">Heslo a údaje nie sú šifrované!</string>
     <string name="username_label">Používateľské meno</string>
     <string name="password_label">Heslo</string>
-    <string name="synchronization_login_butLabel">Prihlásiť sa</string>
-    <string name="synchronization_selectDevice_explanation">Prosím, vyberte zariadenie, ktoré Ste vytvorili na synchronizačnom serveri alebo vytvorte nové.</string>
-
-
-
-
-
-
 
 
     <string name="synchronization_sync_changes_title">Synchronizovať teraz</string>
@@ -710,40 +580,21 @@
     <string name="synchronization_full_sync_title">Vynútiť plnú synchronizáciu</string>
     <string name="synchronization_force_sync_summary">Znovu synchronizovať všetky odbery a stavy epizód</string>
     <string name="synchronization_logout">Odhlásiť</string>
-    <string name="synchronization_login_status"><![CDATA[Prihlásený ako <i>%1$s</i> na <i>%2$s</i>. <br/><br/>Môžete si vybrať Vášho poskytovateľa synchronizácie opäť keď sa odhlásite]]></string>
     <string name="pref_synchronization_logout_toast">Odhlásenie bolo úspešné</string>
     <string name="gpodnetsync_error_title">chyba synchronizácie s gpodder.net</string>
     <string name="gpodnetsync_error_descr">Počas synchronizácie sa vyskytla chyba:\u0020</string>
     <string name="gpodnetsync_pref_report_successful">Úspešné</string>
     <string name="gpodnetsync_pref_report_failed">Nepodarilo sa</string>
-    <string name="gpodnetsync_username_characters_error">Používateľské mená môžu obsahovať iba písmena, číslice, spojovníky a podčiarkovníky.</string>
     <!-- Directory chooser -->
-    <string name="choose_data_directory">Zvoľte priečinok s údajmi</string>
-    <string name="choose_data_directory_message">Zvoľte koreňový priečinok s údajmi. Podcini vytvorí príslušné podadresáre.</string>
-    <string name="choose_data_directory_available_space">%1$s z %2$s voľných</string>
-    <string name="pref_pausePlaybackForFocusLoss_sum">Keď chce iná aplikácia prehrávať zvuky, namiesto zníženia hlasitosti pozastavte prehrávanie</string>
-    <string name="pref_pausePlaybackForFocusLoss_title">Pozastaviť kvôli prerušeniam</string>
     <!-- Online feed view -->
     <string name="subscribe_label">Prihlásiť sa na odber</string>
-    <string name="preview_episode">Ukážka</string>
     <!-- Content descriptions for image buttons -->
-    <string name="toolbar_back_button_content_description">Späť</string>
-    <string name="rewind_label">Pretočiť</string>
-    <string name="fast_forward_label">Rýchlo vpred</string>
-    <string name="toggle_video_views">Toggle video views</string>
-    <string name="increase_speed">Zvýšiť rýchlosť</string>
-    <string name="decrease_speed">Znížiť rýchlosť</string>
     <string name="status_downloading_label">Epizóda sa sťahuje</string>
-    <string name="load_next_page_label">Načítať ďalšiu stránku</string>
-    <string name="position">Pozícia: %1$s</string>
-    <string name="next_chapter">Nasledujúca kapitola</string>
-    <string name="add_preset">Pridať predvoľbu</string>
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Overenie</string>
     <string name="authentication_descr">Zmeniť svoje používateľské meno a heslo pre tento podcast a jeho epizódy.</string>
     <string name="feed_tags_label">Štítky</string>
     <string name="feed_tags_summary">Zmeňte si štítky tohto podcastu aby sa pomohlo usporiadaniu Vašich odberov</string>
-    <string name="feed_folders_include_root">Zobraziť tento podcast v hlavnom zozname</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Len všeobecné štítky zo všetkých označených odberov sú zobrazené. Ostatné štítky ostávajú nezmenené.</string>
     <string name="auto_download_settings_label">Nastavenia automatického sťahovania</string>
     <string name="episode_filters_label">Filter epizód</string>
@@ -774,8 +625,6 @@
     <string name="feeds_related_to_author">Feeds likely related to the author »</string>
     <string name="edit_url_menu">Upraviť URL adresu informačného kanála</string>
     <string name="edit_url_confirmation_msg">Zmena RSS adresy môže ľahko pokaziť štádium prehrávania a zoznam epizód podcastu. NEdoporučujeme ju meniť a ani NEbudeme poskytovať podporu v prípade, že sa niečo pokazí. Zmeny sa nedajú vrátiť. Pokazený odber sa NEDÁ opraviť jednoduchým prepísaním adresy späť. Doporučujeme vytvorenie zálohy pred pokračovaním.</string>
-    <string name="edit_fast_forward_speed">Edit fast forward speed</string>
-    <string name="edit_fallback_speed">Edit fallback speed</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Imporovať odbery z jednoúčelových aplikácií…</string>
     <!-- Add podcast fragment -->
@@ -784,9 +633,7 @@
     <string name="search_itunes_label">Hľadať v Apple Podcasts</string>
     <string name="search_podcastindex_label">Hľadať na Podcast index</string>
 
-    <string name="gpodnet_search_hint">Prehľadať gpodder.net</string>
     <string name="advanced">Pokročilé</string>
-    <string name="add_podcast_by_url">Pridať podcast pomocou RSS adresy</string>
     <string name="discover">Prehľadávať</string>
     <string name="discover_hide">Skryť</string>
     <string name="discover_is_hidden">Vybrali ste skryť návrhy.</string>
@@ -802,10 +649,8 @@
     <string name="reconnect_local_folder_warning">V prípade zamietnutia povolenia môžete toto použiť na opätovné pripojenie k presne rovnakému priečinku. Nevyberajte iný priečinok.</string>
     <string name="local_feed_description">Tento virtuálny podcast bol vytvorený pridaním priečinka do programu Podcini.</string>
     <string name="unable_to_start_system_file_manager">Nie je možné spustiť systémového správcu súborov</string>
-    <string name="filter">Filter</string>
     <string name="downloaded_label">Stiahnuté</string>
     <string name="auto_downloadable_label">Auto downloadable</string>
-    <string name="has_media">Obsahuje médiá</string>
     <string name="has_chapters">Has chapters</string>
     <string name="filename">File name</string>
     <string name="play_speed">Play speed</string>
@@ -862,9 +707,6 @@
     <string name="notification_channel_sync_error">Synchronizácia zlyhala</string>
     <string name="notification_channel_sync_error_description">Zobrazí sa, ak synchronizácia s gpodderom zlyhá.</string>
     <!-- Widget settings -->
-    <string name="widget_settings">Nastavenia miniaplikácie</string>
-    <string name="widget_create_button">Vytvoriť miniaplikáciu</string>
-    <string name="widget_opacity">Nepriehľadnosť</string>
     <!-- On-Demand configuration -->
     <string name="on_demand_config_setting_changed">Nastavenie bolo úspešne aktualizované.</string>
     <string name="on_demand_config_stream_text">Zdá sa, že veľa streamujete. Chcete, aby zoznamy epizód zobrazovali tlačidlá pre streamovanie\?</string>
@@ -872,7 +714,4 @@
     <string name="shortcut_subscription_label">Skratka odberu</string>
     <string name="shortcut_select_subscription">Vyberte odber</string>
     <string name="add_shortcut">Pridať skratku</string>
-    <string name="Episode">Episode</string>
-    <string name="Podcast">Podcast</string>
-    <string name="All">All</string>
 </resources>

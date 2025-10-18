@@ -4,22 +4,18 @@
     <string name="feed_update_receiver_name">Päivitä tilaukset</string>
     <string name="feeds">Syötteet</string>
 
-    <string name="feeds_label">Podcastit</string>
     <string name="statistics_label">Tilastot</string>
     <string name="add_feed_label">Lisää podcast</string>
     <string name="online_episodes_label">Paikalliset jaksot</string>
     <string name="episodes_label">Jaksot</string>
-    <string name="home_label">Koti</string>
     <string name="queue_label">Jono</string>
     <string name="settings_label">Asetukset</string>
     <string name="downloads_label">Lataukset</string>
     <string name="logs_label">Lokit</string>
     <string name="subscriptions_label">Tilaukset</string>
-    <string name="unsubscribed_label">Tilaus Peruutettu</string>
     <string name="cancel_download_label">Peruuta lataus</string>
     <string name="playback_history_label">Toistohistoria</string>
     <string name="months_statistics_label">Kuukaudet</string>
-    <string name="years_statistics_label">Vuosia</string>
     <string name="notification_pref_fragment">Ilmoitukset</string>
     <string name="current_episode">Nykyinen</string>
     <string name="current_podcast">Podcast</string>
@@ -28,40 +24,27 @@
     <string name="app_action_not_found">Toimintoa \"%1$s\" ei löytynyt</string>
     <!-- SwipeActions -->
     <string name="swipeactions_label">Pyyhkäisytoiminnot</string>
-    <string name="swipeactions_summary">Valitse toiminto, kun jaksoa pyyhkäistään listalla</string>
     <string name="swipe_right">Pyyhkäisy oikealle</string>
     <string name="swipe_left">Pyyhkäisy vasemmalle</string>
-    <string name="individual_subscription">Yksittäinen tilaus</string>
     <string name="subscription">Tilaus</string>
     <!-- Statistics fragment -->
-    <string name="statistics_include_marked">Sisällytä kesto jaksoista, jotka ovat vain merkattu toistetuiksi</string>
     <string name="statistics_speed_not_counted">Huomio: toistonopeutta ei lasketa mukaan.</string>
     <string name="statistics_start_month">Kuukauden alku</string>
     <string name="statistics_end_month">Kuukauden loppu</string>
     <string name="statistics_month_year">Muoto: KK/VVVV</string>
-    <string name="statistics_from">Keneltä</string>
-    <string name="statistics_to">Kenelle</string>
     <string name="statistics_today">Tänään</string>
     <string name="statistics_filter_all_time">Kaikki</string>
-    <string name="statistics_filter_past_year">Viimeisin vuosi</string>
     <string name="statistics_reset_data">Nollaa tilastotiedot</string>
     <string name="statistics_reset_data_msg">Tämä poistaa kaikkien jaksojen toiston keston historian. Haluatko varmasti jatkaa\?</string>
-    <string name="statistics_counting_range">Toistettu %1$s ja %2$s välillä</string>
-    <string name="statistics_counting_total">Toistettu yhteensä</string>
     <string name="web_content_not_available">Verkon sisältö ei ole käytettävissä</string>
     <string name="language_not_supported_by_tts">TTS ei tue kieltä</string>
     <string name="tts_init_failed">TTS init epäonnistui</string>
-    <string name="tts_not_available">TTS-moottori ei ole käytettävissä</string>
     <string name="episode_has_no_content">Jaksolla ei ole sisältöä</string>
     <string name="unrestricted_background_permission_text">Jotta voitaisiin onnistuneesti toistaa taustan jaksojen luettelo, Podcini tarvitsee käyttöoikeuden rajoittamattomaan taustatoimintoon. Huomaa joistakin tuotemerkeistä, on olemassa muokatut asetukset tähän, varmista, että määritä ne vastaavasti.</string>
     <string name="notification_permission_text">Koska Android 13:n huipputason ilmoitus tarvitaan normaalia päivitystä ja toistoa varten. Voit hylätä haluamasi korjauksen ilmoitukset.</string>
-    <string name="notification_permission_denied">Et antanut lupaa.</string>
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">Laitteella olevien jaksojen koko yhteensä</string>
     <!-- Main activity -->
-    <string name="drawer_open">Avaa menu</string>
-    <string name="drawer_close">Sulje menu</string>
-    <string name="drawer_preferences">Hyllyasetukset</string>
     <!-- Bug report activity -->
     <string name="log_file_share_exception">Yhteensopivia sovelluksia ei löytynyt</string>
     <string name="export_logs_menu_title">Vie yksityiskohtaiset lokit</string>
@@ -71,9 +54,6 @@
     <string name="copy_url_label">Kopioi URL</string>
     <string name="share_url_label">Jaa URL</string>
     <string name="go_to_position_label">Mene tähän aikamerkkiin</string>
-    <string name="show_shared_logs_label">Näytä jaetut lokit</string>
-    <string name="show_subscription_logs_label">Näytä tilauslokit</string>
-    <string name="show_download_logs_label">Näytä latauslokit</string>
     <!-- Playback history -->
     <string name="clear_history_label">Tyhjennä historia</string>
     <string name="clear_playback_history_msg">Tämä tyhjentää koko toistohistorian. Oletko varma, että haluat jatkaa\?</string>
@@ -93,7 +73,6 @@
     <string name="error_msg_prefix">Tapahtui virhe:</string>
     <string name="refresh_label">Päivitä</string>
     <string name="new_synth_label">Uusi synteettinen rehu</string>
-    <string name="new_synth_yt_label">Uusi synteettinen Youtube</string>
     <string name="toggle_grid_list">Vaihda ruudukon listaa</string>
     <string name="refreshing_label">Päivitetään</string>
     <string name="clear_new_label">Tyhjennä uusi</string>
@@ -125,7 +104,6 @@
     <string name="replace">Korvaa</string>
     <string name="feed_auto_dleq_newer">Uusimmat soittamattomat</string>
     <string name="feed_auto_dleq_older">Vanhin soittamaton</string>
-    <string name="feed_auto_dleq_soon">Merkitse pian</string>
     <string name="put_in_queue_label">Lisää jonoon…</string>
     <string name="remove_from_other_queues">Poista muista jonoista</string>
     <string name="create_synthetic_first_note">Sinun täytyy luoda ensin synteettisiä syötteitä</string>
@@ -134,23 +112,12 @@
     <string name="episode_cleanup_never">Ei koskaan</string>
     <string name="episode_cleanup_except_favorite">Kun ei ole suosikeissa</string>
     <string name="episode_cleanup_not_in_queue">Kun ei ole jonossa</string>
-    <string name="episode_cleanup_after_listening">Lopetuksen jälkeen</string>
-    <plurals name="episode_cleanup_hours_after_listening">
-        <item quantity="one">1 tunti viimeistelyn jälkeen</item>
-        <item quantity="other">%d tuntia lopetuksen jälkeen</item>
-    </plurals>
-    <plurals name="episode_cleanup_days_after_listening">
-        <item quantity="one">1 päivä lataamisen jälkeen</item>
-        <item quantity="other">%d päivää lataamisen jälkeen</item>
-    </plurals>
     <!-- Actions on feeds -->
     <string name="max_episodes_cache">Jaksojen enimmäismäärä sallittu</string>
     <string name="new_namee">Uusi nimi</string>
     <string name="feed_settings_label">Podcastin asetukset</string>
-    <string name="switch_queue_label">Valitse aktiivinen jono</string>
     <string name="rename_feed_label">Uudelleennimeä podcast </string>
     <string name="remove_feed_label">Poista podcast</string>
-    <string name="init_tts">Käynnistä TTS</string>
     <string name="share_label">Jaa</string>
     <string name="share_file_label">Jaa tietodosto</string>
     <string name="share_notes_label">Jaa muistiinpanot</string>
@@ -161,18 +128,14 @@
     <string name="not_erase_message">Vain synteettisten rehujen jaksot voidaan poistaa.</string>
     <string name="reason_to_delete_msg">Tulevaisuuden viitteeksi voit tallentaa syyn täältä:</string>
     <string name="load_complete_feed">Päivitä podcast</string>
-    <string name="multi_select">Monivalinta</string>
-    <string name="filtered_label">Suodatettu</string>
     <string name="progressing_label">Käsitellään</string>
     <string name="open_podcast">Avaa podcast</string>
     <string name="open">Avaa</string>
-    <string name="please_wait_for_data">Odota kunnes tiedot ovat ladattu</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d tilaus päivitetty.</item>
         <item quantity="other">%d tilausta päivitetty.</item>
     </plurals>
     <string name="edit_tags">Muokkaa tunnisteita</string>
-    <string name="add_tag">Lisää tunniste</string>
     <string name="confirm_delete_logs_label">Vahvista lokien poistaminen täältä</string>
     <string name="confirm_delete_logs_message">Tämä poistaa kaikki täällä näkyvät lokit tietokannasta ja sitä ei voi peruuttaa. Oletko varma?</string>
     <string name="confirm_mobile_feed_refresh_dialog_message">Podcastien päivittäminen mobiilidatayhteydellä on poistettu käytöstä asetuksissa.\n\nHaluatko silti päivittää\?</string>
@@ -190,23 +153,16 @@
     <string name="delete_failed_simple">Tiedostoa ei voi poistaa.</string>
     <string name="delete_local_failed">Tiedostoa ei voi poistaa. Yritä yhdistää paikallinen kansio uudelleen podcast-info -näytöstä.</string>
     <string name="delete_episode_label">Poista jakso</string>
-    <string name="show_hidden">Näytä piilotettu</string>
     <string name="no_action_label">Ei toimintoa</string>
     <string name="my_opinion_label">Oma mielipiteeni</string>
     <string name="add_opinion_label">Lisää lausunto</string>
     <string name="cancelled_on_label">Peruutettu päälle</string>
     <string name="choose_tab">Valitse välilehti kanavalta</string>
     <string name="set_play_state_label">Aseta toistetun tilan</string>
-    <string name="play_this_to_seek_position">Jaksoa pitää toistaa siirtyäksesi kohtiin</string>
     <string name="combo_action">Combo toiminto</string>
     <string name="shelve_label">Hyvitä synteettiseksi</string>
     <string name="add_to_queue_label">Lisää jonoon</string>
     <string name="remove_from_queue_label">Poista jonosta</string>
-    <plurals name="removed_from_queue_batch_label">
-        <item quantity="one">%d jakso poistettu jonosta.</item>
-        <item quantity="other">%d jaksoa poistettu jonosta.</item>
-    </plurals>
-    <string name="show_video_label">Toista video</string>
     <string name="media_type">Median tyyppi</string>
     <string name="unknown">Tuntematon</string>
     <string name="audio">Ääni</string>
@@ -235,7 +191,6 @@
     <string name="forever">Ikuisesti</string>
     <string name="ignored">Ohitettu</string>
     <string name="visit_website_label">Vieraile verkkosivustolla</string>
-    <string name="skip_episode_label">Ohita jakso</string>
     <string name="delete_local_feed_warning_body">Varoitus: poistat paikallisia jaksoja. Se poistaa mediatiedostoja laitteestasi. Sitä ei voi ladata uudelleen Podsinin kautta. Jatketaanko?</string>
     <string name="share_existing">olemassa</string>
     <!-- Download messages and labels -->
@@ -294,14 +249,12 @@
     <string name="no_media_playing_label">Mediaa ei toisteta</string>
     <string name="unknown_media_key">Podcini - Tuntematon media-avain: %1$d</string>
     <string name="error_file_not_found">Tiedostoa ei löytynyt</string>
-    <string name="no_media_label">Kohde ei sisällä mediatiedostoa</string>
     <!-- Queue operations -->
     <string name="lock_queue">Lukitse jono</string>
     <string name="queue_locked">Jono lukittu</string>
     <string name="queue_unlocked">Jono avattu</string>
 
     <!--    <string name="switch_queue">Switch active queue</string>-->
-    <string name="open_queue">Avaa jono</string>
     <string name="checkbox_do_not_show_again">Älä näytä uudestaan</string>
     <string name="clear_queue_label">Tyhjennä jono</string>
     <string name="clear_bin_label">Tyhjennä bin</string>
@@ -309,7 +262,6 @@
     <string name="sort">Lajittele</string>
     <string name="rename">Uudelleennimeä</string>
     <string name="add_queue">Lisää jono</string>
-    <string name="keep_sorted">Pidä lajiteltuna</string>
     <string name="publish_date">Julkaise päivämäärä</string>
     <string name="download_date">Latauksen päivämäärä</string>
     <string name="view_count">Näytä määrä</string>
@@ -320,7 +272,6 @@
     <string name="completed_date">Suoritettu päivämäärä</string>
     <string name="duration">Kesto</string>
     <string name="spent">Käytetty</string>
-    <string name="hours">tuntia</string>
     <string name="episode_title">Jakson otsikko</string>
     <string name="feed_title">Podcastin otsikko</string>
     <string name="show_criteria">Näytä kriteerit</string>
@@ -330,9 +281,7 @@
     <string name="smart_shuffle">Älykäs sekoitus</string>
     <string name="size">Koko</string>
     <string name="clear_queue_confirmation_msg">Vahvista, että haluat tyhjentää jonon KAIKISTA jaksoista</string>
-    <string name="show_bin_label">Näytä bin</string>
     <!--  Variable Speed -->
-    <string name="preset_already_exists">%1$.2fx on jo tallennettu esiasetuksena.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Jaksolla ei ole jaksomuistiota</string>
 
@@ -345,7 +294,6 @@
     <string name="automation">Automaatio</string>
     <string name="download_pref_details">Tietoja</string>
     <string name="import_export_pref">Tuo/Vie</string>
-    <string name="import_export_search_keywords">varmuuskopiointi, palautus</string>
     <string name="pref_auto_backup_title">Automaattinen varmuuskopiointi</string>
     <string name="pref_auto_backup_sum">Varmuuskopioi tietokanta ja asetukset automaattisesti määritetyllä aikavälillä valittuun kansioon.</string>
     <string name="pref_auto_backup_interval">Varmuuskopioinnin aikaväli</string>
@@ -359,9 +307,6 @@
     <string name="interruptions">Keskeytykset</string>
     <string name="playback_control">Toistonhallinta</string>
     <string name="reassign_hardware_buttons">Uudelleenmääritä laitteiden painikkeet</string>
-    <string name="preference_search_hint">Hae…</string>
-    <string name="preference_search_no_results">Ei tuloksia</string>
-    <string name="preference_search_clear_history">Tyhjennä historia</string>
     <string name="pref_episode_cleanup_title">Jakson siivous</string>
     <string name="pref_episode_cleanup_summary">Jaksot, jotka voidaan poistaa, jos automaattinen lataus tarvitsee tilaa uusille jaksoille</string>
     <string name="pref_pauseOnDisconnect_sum">Pysäytä toisto, kun kuuloke- tai bluetooth-yhteys katkaistaan</string>
@@ -376,7 +321,6 @@
     <string name="button_action_skip_episode">Ohita jakso</string>
     <string name="button_action_restart_episode">Aloita jakso alusta</string>
     <string name="pref_followQueue_sum">Hyppää seuraavaan jonossa kun toisto valmistuu</string>
-    <string name="pref_pick_custom_media_dir">Määritä oma kansio</string>
     <string name="pref_custom_media_dir_title">Käytä mukautettua mediakansiota</string>
     <string name="pref_custom_media_dir_sum">Valitse mukautettu kansio ladattua mediaa varten. Voit aina nollata. Uudelleenkäynnistys tarvitaan.</string>
     <string name="pref_custom_media_dir_sum1">Mukautettu mediakansio on asetettu. Haluatko muuttaa?</string>
@@ -427,16 +371,8 @@
     <string name="user_interface_sum">Ulkoasu, tilaukset, ruudun lukitus</string>
     <string name="pref_black_theme_title">Täysi musta</string>
     <string name="pref_black_theme_message">Käytä täyttä mustaa tummaan teemaan</string>
-    <string name="pref_tinted_theme_title">Dynaamiset värit</string>
-    <string name="pref_tinted_theme_message">Mukauta sovelluksen värit taustakuvaan perustuen</string>
-    <string name="pref_nav_drawer_items_title">Navigointivalikon kohteet</string>
-    <string name="pref_nav_drawer_items_sum">Muuta mitkä kohteet näkyvät navigointivalikossa</string>
-    <string name="pref_nav_drawer_feed_order_title">Aseta tilausten järjestys</string>
-    <string name="pref_nav_drawer_feed_order_sum">Vaihda tilauksiesi järjestystä</string>
     <string name="pref_automatic_download_title">Automaattinen lataus</string>
     <string name="pref_automatic_download_sum">Määritä jaksojen automaattinen lataus</string>
-    <string name="pref_autodl_wifi_filter_title">Aseta Wi-Fi-suodatin</string>
-    <string name="pref_autodl_wifi_filter_sum">Salli automaattiset lataukset vain sallittujen Wi-Fi-verkkojen kautta.</string>
     <string name="pref_automatic_download_on_battery_title">Lataa, kun akkua ei ladata</string>
     <string name="pref_automatic_download_on_battery_sum">Salli automaattiset lataukset, kun akku ei ole latautumassa</string>
     <string name="pref_episode_cache_title">Jaksovälimuisti</string>
@@ -450,12 +386,10 @@
     <string name="pref_theme_title_automatic">Automaattinen</string>
     <string name="pref_theme_title_light">Vaalea</string>
     <string name="pref_theme_title_dark">Tumma</string>
-    <string name="pref_episode_cache_unlimited">Ei rajoitettu</string>
     <string name="pref_playback_speed_sum">Mukauta muuttuvanopeuksisen toiston käytettävissä olevia nopeuksia </string>
     <string name="pref_feed_playback_speed_sum">Tämän podcastin jaksoja toistamaan aloitettaessa käytettävä nopeus</string>
     <string name="pref_feed_skip">Automaattinen ohitus</string>
     <string name="pref_feed_skip_sum">Ohita esittelyt ja loppukiitokset.</string>
-    <string name="associated">Liitetty</string>
     <string name="pref_feed_audio_type">Äänen tyyppi</string>
     <string name="pref_feed_audio_type_sum">Joko puhe, musiikki tai elokuva parantaakseen käsittelyä.</string>
     <string name="pref_feed_audio_quality">Äänen laatu</string>
@@ -464,8 +398,6 @@
     <string name="pref_feed_video_quality_sum">Maailmanlaajuisesti heikkolaatuinen laatu-asetus on tässä etusijalla verrattuna prefLowQualityMedian asettamiseen mitattuun verkkoon.</string>
     <string name="pref_feed_associated_queue">Liitetty jono</string>
     <string name="pref_feed_associated_queue_sum">The queue, which epiosdes in the feed will added by default</string>
-    <string name="pref_feed_skip_ending">Ohita lopusta</string>
-    <string name="pref_feed_skip_intro">Ohita alusta</string>
     <string name="pref_feed_skip_ending_toast">Ohitettiin viimeiset %d sekuntia</string>
     <string name="pref_feed_skip_intro_toast">Ohitettiin ensimmäiset %d sekuntia</string>
 
@@ -480,9 +412,6 @@
     <string name="pref_rewind_sum">Mukauta sekunnit jonka verran hypätään takaisin kun painat taakse kelaus -painiketta.</string>
     <string name="pref_playback_video_mode">Videon toistotila</string>
     <string name="pref_playback_video_mode_sum">Valitse, miten video episodi toistetaan oletuksena</string>
-    <string name="pref_video_mode_full_screen">Koko näyttö</string>
-    <string name="pref_video_mode_small_window">Pieni ikkuna</string>
-    <string name="pref_video_mode_audio_only">Vain ääni</string>
     <string name="pref_swipe_refresh_title">Pyyhkäise päivittääksesi</string>
     <string name="pref_swipe_refresh_sum">Pyyhkäise alas päivittääksesi kaikki tilaukset</string>
     <string name="pref_feedGridLayout_title">Tilaukset käyttävät ruudukon asettelua </string>
@@ -493,9 +422,6 @@
 
     <string name="pref_show_notification_skip_title">Näytä ohitus ilmoituksessa</string>
     <string name="pref_show_notification_skip_sum">Vaihda ilmoituspaneelin ohituspainikkeen tilaa</string>
-    <string name="pref_compact_notification_buttons_dialog_error_exact">Sinun on valittava täsmälleen %1$d tuotetta.</string>
-    <string name="pref_full_notification_buttons_title">Aseta ilmoituspainikkeet</string>
-    <string name="pref_full_notification_buttons_sum">Vaihda toiston painikkeita soiton ilmoituksessa.</string>
     <string name="pref_enqueue_location_title">Jonoon lisäyksen paikka</string>
     <string name="pref_enqueue_location_sum">Lisää jaksot kohteeseen%1$s: </string>
     <string name="enqueue_location_back">Perään</string>
@@ -530,11 +456,6 @@
     <!-- About screen -->
     <string name="about_pref">Tietoja</string>
     <string name="podcini_version">Podcini versio</string>
-    <string name="contributors">Osallistujat</string>
-    <string name="contributors_summary">Kuka tahansa voi auttaa tekemään Podciniista paremman - koodilla, käännöksillä, tai avustamalla käyttäjiä foorumilla</string>
-    <string name="developers">Kehittäjät</string>
-    <string name="translators">Kääntäjät</string>
-    <string name="special_thanks">Erityiskiitokset</string>
     <string name="online_help">Online kotisivu</string>
     <string name="online_help_sum">Hanki lisätietoja verkosta</string>
     <string name="privacy_policy">Tietosuojakäytäntö</string>
@@ -560,30 +481,14 @@
     <string name="sync_error_guest_not_respond">Vieras ei vastannut, luopui</string>
     <!-- import and export -->
     <string name="import_export_summary">Siirrä tilaukset ja jono toiselle laitteelle</string>
-    <string name="preferences">Asetukset</string>
-    <string name="media_files">Median tiedostot</string>
-    <string name="combos">Kombot</string>
-    <string name="database">Tietokanta</string>
-    <string name="opml">OPML</string>
-    <string name="html">HTML</string>
-    <string name="progress">Edistyminen</string>
     <string name="html_export_summary">Näytä tilauksesi ystävälle</string>
     <string name="opml_export_summary">Siirrä tilauksesi toiseen podcast-sovellukseen</string>
     <string name="opml_import_summary">Tuo tilauksesi toisesta podcast-sovelluksesta</string>
-    <string name="preferences_export_summary">Vie Podcini-asetukset</string>
-    <string name="preferences_import_summary">Tuo Podcini-asetukset</string>
-    <string name="media_files_export_summary">Vie Podcinin mediatiedostot</string>
-    <string name="media_files_import_summary">Tuo Podcinin mediatiedostoja</string>
     <string name="combo_export_summary">Vie valittavasti tietokanta, asetukset, mediatiedostot.</string>
     <string name="combo_import_summary">Tuo valikoivasti tietokanta, asetukset, mediatiedostot.</string>
-    <string name="database_export_summary">Siirrä tilaukset, kuunnellut jaksot ja jono toisella laitteella olevaan Podciniiin</string>
-    <string name="database_import_summary">Tuo Podcini-tietokanta toiselta laitteelta</string>
     <string name="opml_import_label">OPML-tuonti</string>
     <string name="opml_add_podcast_label">Tuo podcastien lista (OPML)</string>
     <string name="opml_reader_error">Virhe lukiessa OPML dokumenttia:</string>
-    <string name="opml_import_error_no_file">Ei tiedostoa valittuna!</string>
-    <string name="select_all_label">Valitse kaikki</string>
-    <string name="deselect_all_label">Poista valinta kaikista</string>
     <string name="progress_export_label">Jaksojen viennin edistyminen</string>
     <string name="progress_import_label">Jaksojen edistymisen tuonti</string>
     <string name="progress_export_summary">Siirrä Podcini jaksot historiaa eri asentaa Podcini. Huomaa, että tämä ei ole tarpeen, jos voit siirtää DB.</string>
@@ -591,14 +496,8 @@
     <string name="progress_import_warning">Edistymisen tuominen korvaa kaikki nykyiset soittohistoriasi. Sinun pitäisi viedä nykyinen edistyminen varmuuskopiona. Haluatko korvata \? Jos kyllä, seuraavassa näytössä, valitse haluamasi . poika tiedosto. Prosessi voi kestää pari minuuttia koosta riippuen. Kun valmis, ponnahdusikkuna joko menestystä tai epäonnistumista näytetään.</string>
     <string name="opml_export_label">OPML vienti</string>
     <string name="html_export_label">HTML vienti</string>
-    <string name="media_files_export_label">Mediatiedostojen vienti</string>
-    <string name="media_files_import_label">Mediatiedostojen tuonti</string>
     <string name="import_SQLite_message">Tuodut tilaukset yhdessä jaksojen ja soittohistorian kanssa lisätään olemassa olevaan tietokantaan. Jos se vahvistetaan, valitse aiemmin viety sqlite tietokanta.\"</string>
     <string name="combo_import_warning">Valittujen kohteiden tuonti korvaa nykyisen tallennustilan kohteet. Jos se on vahvistettu, valitse aiemmin viety hakemisto, jossa on nimi \"Podcini-Backups\"</string>
-    <string name="preferences_export_label">Asetusten vienti</string>
-    <string name="preferences_import_label">Asetusten tuonti</string>
-    <string name="preferences_import_warning">Asetusten tuonti korvaa kaikki nykyiset asetukset. Jos ne vahvistetaan, valitse aiemmin viety hakemisto, jossa on nimi \"Podcini-Prefs\"</string>
-    <string name="media_files_import_notice">Valitse aiemmin viety kansio, jonka nimi sisältää \"Podcini-MediaFiles\"</string>
     <string name="combo_export_label">Combon vienti</string>
     <string name="combo_import_label">Combon tuonti</string>
     <string name="import_AP_label">Tuo AntennaPod-tietokanta</string>
@@ -608,16 +507,10 @@
     <string name="import_PA_directory_label">Tuo kansio</string>
     <string name="import_PA_directory_message">Tuo podcastien suunta offline-hakua varten. \"</string>
     <string name="import_PA_message">Jos vahvistettu, valitse aiemmin viety varmuuskopioarkisto Podcast Addict -sovelluksesta.\"</string>
-    <string name="database_export_label">Tietokannan vienti</string>
-    <string name="database_import_label">Tietokannan tuonti</string>
-    <string name="realm_database_import_label">Valtakuntatietokannan tuonti</string>
-    <string name="database_import_warning">Tietokannan tuonti korvaa kaikki nykyiset tilauksesi ja toistohistoriasi. Vie nykyinen tietokanta halutessasi varmuuskopioksi ennen jatkamista. Haluatko korvata\?</string>
     <string name="import_directory_toast">Hyväksytään vain hakemiston nimi, mukaan lukien: </string>
     <string name="import_file_type_toast">Hyväksytään vain tiedostopääte: </string>
-    <string name="please_wait">Ole hyvä ja odota…</string>
     <string name="import_export_error_label">Vientivirhe</string>
     <string name="export_success_title">Vienti onnistunut</string>
-    <string name="opml_import_ask_read_permission">Pääsy ulkoiseen solvellukseen tarvitaan OPML tiedoston lukemiseen</string>
     <string name="successful_import_label">Tuonti onnistui</string>
     <string name="import_ok">Valitse OK käynnistääksesi Podciniin uudelleen</string>
     <string name="favorites_export_label">Suosikkien vienti</string>
@@ -629,12 +522,10 @@
     <string name="disable_sleeptimer_label">Lopeta uniajastin</string>
     <string name="extend_sleep_timer_label">+%d min</string>
     <string name="end_episode">Päättyen jaksoon</string>
-    <string name="sleep_timer_always">Aina</string>
     <string name="sleep_timer_label">Uniajastin</string>
     <string name="time_dialog_invalid_input">Väärä syöte. Ajan tulee olla numero</string>
     <string name="shake_to_reset_label">Ravista nollataksesi</string>
     <string name="timer_vibration_label">Värise ennen loppua</string>
-    <string name="time_seconds">sekuntia</string>
     <string name="time_minutes">minuuttia</string>
     <string name="time_hours">tuntia</string>
     <plurals name="time_minutes_quantified">
@@ -650,22 +541,17 @@
         <item quantity="other">%d päivää</item>
     </plurals>
     <string name="auto_enable_label">Aktivoi nukkumisajastin automaattisesti kun painat toistoa</string>
-    <string name="auto_enable_label_with_times" formatted="false">Aktivoi nukkumisajastin automaattisesti painettaessa toistoa välillä %s ja %s</string>
-    <string name="auto_enable_change_times">Muuta aikaväliä</string>
-    <string name="sleep_timer_enabled_label">Uniajastin asetettu</string>
     <!-- Synchronisation -->
     <string name="wifi_sync">Synkronoi laitteen kanssa WiFissä</string>
     <string name="wifi_sync_summary_unchoosen">Voit yhdistää kaksi samaa wifi-verkkoa olevaa laitetta synkronoidaksesi jaksot toisista tiloistasi</string>
     <string name="synchronization_choose_title">Valitse synkronointipalveluntarjoaja</string>
     <string name="synchronization_summary_unchoosen">Voit valita useista palveluntarjoajista, joiden kanssa voit synkronoida tilauksesi ja jaksojen toistotilan</string>
     <string name="dialog_choose_sync_service_title">Valitse synkronointipalveluntarjoaja</string>
-    <string name="gpodnet_description">Gpodder.net on avoimen lähdekoodin podcast-synkronointipalvelu, jonka voit asentaa omalle palvelimellesi. Gpodder.net on riippumaton Podcini-projektista.</string>
     <string name="synchronization_summary_nextcloud">Gpoddersync on avoimen lähdekoodin Nextcloud-sovellus, jonka voit helposti asentaa omalle palvelimellesi. Sovellus on riippumaton Podcini-projektista.</string>
     <string name="synchronization_host_explanation">Voit valita oman synkronointipalvelimesi. Kun olet tunnistanut mieluisen synkronointipalvelimesi, anna sen osoite tässä.</string>
     <string name="synchronization_host_address_label">Isäntähenkilön osoite</string>
     <string name="synchronization_host_port_label">Isäntä portti</string>
     <string name="synchronization_host_label">Palvelimen osoite</string>
-    <string name="server">Palvelin</string>
     <string name="guest_butLabel">Vieraana</string>
     <string name="host_butLabel">Isäntänä</string>
     <string name="proceed_to_login_butLabel">Jatka kirjautumaan</string>
@@ -675,18 +561,8 @@
     <string name="connect_to_peer">Yhdistä vertaisverkkoon</string>
     <string name="host_or_guest">Tee itsestäsi isäntä tai Vieras ensin</string>
     <string name="gpodnetauth_login_butLabel">Sisäänkirjautuminen</string>
-    <string name="synchronization_credentials_explanation">Anna synkronointipalvelimen tilisi kirjautumistiedot.</string>
-    <string name="gpodnetauth_encryption_warning">Salasanaa ja tietoja ei salata!</string>
     <string name="username_label">Käyttäjätunnus</string>
     <string name="password_label">Salasana</string>
-    <string name="synchronization_login_butLabel">Kirjaudu</string>
-    <string name="synchronization_selectDevice_explanation">Valitse laite, jonka loit synkronointipalvelimella, tai luo uusi.</string>
-
-
-
-
-
-
 
 
     <string name="synchronization_sync_changes_title">Synkronoi nyt</string>
@@ -694,40 +570,21 @@
     <string name="synchronization_full_sync_title">Pakota täysi synkronointi</string>
     <string name="synchronization_force_sync_summary">Uudelleensynkronoi kaikki tilaukset ja jaksojen tilat</string>
     <string name="synchronization_logout">Kirjaudu ulos</string>
-    <string name="synchronization_login_status"><![CDATA[Kirjauduttu sisään <i>%1$s</i> kohteessa <i>%2$s</i>. <br/><br/>Voit valita synkronointipalveluntarjoajan uudelleen kirjauduttuasi ulos]]></string>
     <string name="pref_synchronization_logout_toast">Uloskirjautuminen onnistui</string>
     <string name="gpodnetsync_error_title">gpodder.net synkrointivirhe</string>
     <string name="gpodnetsync_error_descr">Synkronointivirhe:\u0020</string>
     <string name="gpodnetsync_pref_report_successful">Onnistui</string>
     <string name="gpodnetsync_pref_report_failed">Epäonnistui</string>
-    <string name="gpodnetsync_username_characters_error">Käyttäjätunnukset saavat sisältää vain kirjaimia, numeroita, viivoja ja aliviivoja.</string>
     <!-- Directory chooser -->
-    <string name="choose_data_directory">Valitse datahakemisto</string>
-    <string name="choose_data_directory_message">Valitse datahakemiston juuri. Podcini luo tarvittavat alihakemistot</string>
-    <string name="choose_data_directory_available_space">%1$s / %2$s vapaana</string>
-    <string name="pref_pausePlaybackForFocusLoss_sum">Pysäytä toisto äänenvoimakkuuden hiljentämisen sijasta, kun toinen sovellus haluaa soittaa ääniä.</string>
-    <string name="pref_pausePlaybackForFocusLoss_title">Pysäytä keskeytyksiin</string>
     <!-- Online feed view -->
     <string name="subscribe_label">Tilaa</string>
-    <string name="preview_episode">Näyte</string>
     <!-- Content descriptions for image buttons -->
-    <string name="toolbar_back_button_content_description">Takaisin</string>
-    <string name="rewind_label">Kelaa takaisin</string>
-    <string name="fast_forward_label">Hyppää eteen</string>
-    <string name="toggle_video_views">Vaihda videonäkymien tilaa</string>
-    <string name="increase_speed">Nopeuta</string>
-    <string name="decrease_speed">Hidasta</string>
     <string name="status_downloading_label">Jaksoa ladataan</string>
-    <string name="load_next_page_label">Lataa seuraava sivu</string>
-    <string name="position">Kohta: %1$s</string>
-    <string name="next_chapter">Seuraava kappale</string>
-    <string name="add_preset">Lisää esiasetus</string>
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Autentikaatio</string>
     <string name="authentication_descr">Vaihda käyttäjätunnus ja salasana tälle podcastille ja sen jaksoille.</string>
     <string name="feed_tags_label">Tunnisteet</string>
     <string name="feed_tags_summary">Muokkaa tämän podcastin tunnisteita tilaustesi järjestelemisen avuksi.</string>
-    <string name="feed_folders_include_root">Näytä tämä podcast päälistassa</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Vain kaikissa valituissa tilauksissa esiintyvät tunnisteet näytetään. Muita tunnisteita ei muuteta.</string>
     <string name="auto_download_settings_label">Automaattisen latauksen asetukset</string>
     <string name="episode_filters_label">Jaksosuodin</string>
@@ -758,8 +615,6 @@
     <string name="feeds_related_to_author">Syötteet, jotka todennäköisesti liittyvät tekijään »</string>
     <string name="edit_url_menu">Muokkaa syötteen URLia</string>
     <string name="edit_url_confirmation_msg">Syötteen osoitteen muokkaaminen voi helposti sotkea podcastin toistotilan ja jaksolistaukset. Sen muokkaamista EI suositella, EIKÄ tukea tarjota mikäli jokin menee vikaan. Tätä ei saa tekemättömäksi. Sotkeutunutta tilausta EI voi korjata yksinkertaisesti vaihtamalla osoite takaisin. Varmuuskopion ottaminen ennen jatkamista on suositeltavaa.</string>
-    <string name="edit_fast_forward_speed">Muokkaa nopeaa etenemisnopeutta</string>
-    <string name="edit_fallback_speed">Muokkaa varastonopeutta</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Tuodaan tilauksia sovelluksista</string>
     <!-- Add podcast fragment -->
@@ -768,9 +623,7 @@
     <string name="search_itunes_label">Etsi Apple Podcasteja</string>
     <string name="search_podcastindex_label">Hae Podcastin Hakemistosta</string>
 
-    <string name="gpodnet_search_hint">Etsi gpodder.net</string>
     <string name="advanced">Edistyneet</string>
-    <string name="add_podcast_by_url">Lisää Podcast RSS-osoitteesta</string>
     <string name="discover">Löydä</string>
     <string name="discover_hide">Piilota</string>
     <string name="discover_is_hidden">Valitsit piilottaa ehdotukset.</string>
@@ -786,10 +639,8 @@
     <string name="reconnect_local_folder_warning">Jos lupa evätään, voit käyttää tätä yhteyden muodostamiseen uudelleen täsmälleen samaan kansioon. Älä valitse toista kansiota.</string>
     <string name="local_feed_description">Tämä virtuaalinen podcast luotiin lisäämällä kansio Podciniiin.</string>
     <string name="unable_to_start_system_file_manager">Järjestelmän tiedostonhallintaa ei voi käynnistää</string>
-    <string name="filter">Suodin</string>
     <string name="downloaded_label">Ladattu</string>
     <string name="auto_downloadable_label">Automaattinen ladattavissa</string>
-    <string name="has_media">On media</string>
     <string name="has_chapters">On lukuja</string>
     <string name="filename">Tiedoston nimi</string>
     <string name="play_speed">Toista nopeus</string>
@@ -846,9 +697,6 @@
     <string name="notification_channel_sync_error">Synkronointi epäonnistui</string>
     <string name="notification_channel_sync_error_description">Näytetään, kun gpodder-synkronointi epäonnistuu.</string>
     <!-- Widget settings -->
-    <string name="widget_settings">Widget-asetukset</string>
-    <string name="widget_create_button">Luo widget</string>
-    <string name="widget_opacity">Läpikuultamattomuus</string>
     <!-- On-Demand configuration -->
     <string name="on_demand_config_setting_changed">Asetuksen päivitys onnistui.</string>
     <string name="on_demand_config_stream_text">Näyttää siltä, että suoratoistat paljon. Haluatko, että jaksoluetteloissa näytetään suoratoistopainikkeet\?</string>
@@ -856,7 +704,4 @@
     <string name="shortcut_subscription_label">Tilauksen pikakuvake</string>
     <string name="shortcut_select_subscription">Valitse tilaus</string>
     <string name="add_shortcut">Lisää pikakuvake</string>
-    <string name="Episode">Jakso</string>
-    <string name="Podcast">Podcast</string>
-    <string name="All">Kaikki</string>
 </resources>

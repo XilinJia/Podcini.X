@@ -1137,28 +1137,28 @@ fun SubscriptionsScreen() {
                 Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
                     val scrollStateH = rememberScrollState()
                     Row(Modifier.fillMaxWidth().horizontalScroll(scrollStateH)) {
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Title.ordinal) textColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Title.ordinal) buttonColor else Color.Green),
                             onClick = {
                                 if (vm.sortIndex == FeedSortIndex.Title.ordinal) vm.titleAscending = !vm.titleAscending
                                 vm.sortIndex = FeedSortIndex.Title.ordinal
                                 fetchAndSortRoutine()
                             }
                         ) { Text(text = stringResource(FeedSortIndex.Title.res) + if (vm.titleAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Date.ordinal) textColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Date.ordinal) buttonColor else Color.Green),
                             onClick = {
                                 if (vm.sortIndex == FeedSortIndex.Date.ordinal) vm.dateAscending = !vm.dateAscending
                                 vm.sortIndex = FeedSortIndex.Date.ordinal
                                 fetchAndSortRoutine()
                             }
                         ) { Text(text = stringResource(FeedSortIndex.Date.res) + if (vm.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Time.ordinal) textColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Time.ordinal) buttonColor else Color.Green),
                             onClick = {
                                 if (vm.sortIndex == FeedSortIndex.Time.ordinal) vm.timeAscending = !vm.timeAscending
                                 vm.sortIndex = FeedSortIndex.Time.ordinal
                                 fetchAndSortRoutine()
                             }
                         ) { Text(text = stringResource(FeedSortIndex.Time.res) + if (vm.timeAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Count.ordinal) textColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Count.ordinal) buttonColor else Color.Green),
                             onClick = {
                                 if (vm.sortIndex == FeedSortIndex.Count.ordinal) vm.countAscending = !vm.countAscending
                                 vm.sortIndex = FeedSortIndex.Count.ordinal
@@ -1169,28 +1169,28 @@ fun SubscriptionsScreen() {
                     HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                     if (vm.sortIndex == FeedSortIndex.Date.ordinal) {
                         Row {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Played.ordinal) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Played.ordinal) buttonColor else Color.Green),
                                 onClick = {
                                     vm.dateSortIndex = FeedDateSortIndex.Played.ordinal
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(FeedDateSortIndex.Played.res)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) buttonColor else Color.Green),
                                 onClick = {
                                     vm.dateSortIndex = FeedDateSortIndex.Downloaded.ordinal
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(FeedDateSortIndex.Downloaded.res)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Commented.ordinal) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Commented.ordinal) buttonColor else Color.Green),
                                 onClick = {
                                     vm.dateSortIndex = FeedDateSortIndex.Commented.ordinal
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(FeedDateSortIndex.Commented.res)) }
                         }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Publish.ordinal) textColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Publish.ordinal) buttonColor else Color.Green),
                             onClick = {
                                 vm.dateSortIndex = FeedDateSortIndex.Publish.ordinal
                                 fetchAndSortRoutine()
@@ -1198,14 +1198,14 @@ fun SubscriptionsScreen() {
                         ) { Text(stringResource(FeedDateSortIndex.Publish.res)) }
                     } else if (vm.sortIndex == FeedSortIndex.Time.ordinal) {
                         Row {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 1) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 1) buttonColor else Color.Green),
                                 onClick = {
                                     vm.timeSortIndex = 1
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(R.string.min_duration)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 2) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 2) buttonColor else Color.Green),
                                 onClick = {
                                     vm.timeSortIndex = 2
                                     fetchAndSortRoutine()
@@ -1213,14 +1213,14 @@ fun SubscriptionsScreen() {
                             ) { Text(stringResource(R.string.max_duration)) }
                         }
                         Row {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 0) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 0) buttonColor else Color.Green),
                                 onClick = {
                                     vm.timeSortIndex = 0
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(R.string.total_duration)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 3) textColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 3) buttonColor else Color.Green),
                                 onClick = {
                                     vm.timeSortIndex = 3
                                     fetchAndSortRoutine()
@@ -1237,8 +1237,7 @@ fun SubscriptionsScreen() {
                                 if (selectNone) vm.downlaodedSortIndex = -1
                                 Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                 Spacer(Modifier.weight(0.3f))
-                                OutlinedButton(
-                                    modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.downlaodedSortIndex != 0) textColor else Color.Green),
+                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.downlaodedSortIndex != 0) buttonColor else Color.Green),
                                     onClick = {
                                         if (vm.downlaodedSortIndex != 0) {
                                             selectNone = false
@@ -1248,8 +1247,7 @@ fun SubscriptionsScreen() {
                                     },
                                 ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                 Spacer(Modifier.weight(0.1f))
-                                OutlinedButton(
-                                    modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.downlaodedSortIndex != 1) textColor else Color.Green),
+                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.downlaodedSortIndex != 1) buttonColor else Color.Green),
                                     onClick = {
                                         if (vm.downlaodedSortIndex != 1) {
                                             selectNone = false
@@ -1266,8 +1264,7 @@ fun SubscriptionsScreen() {
                                 if (selectNone) vm.commentedSortIndex = -1
                                 Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                 Spacer(Modifier.weight(0.3f))
-                                OutlinedButton(
-                                    modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.commentedSortIndex != 0) textColor else Color.Green),
+                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.commentedSortIndex != 0) buttonColor else Color.Green),
                                     onClick = {
                                         if (vm.commentedSortIndex != 0) {
                                             selectNone = false
@@ -1277,8 +1274,7 @@ fun SubscriptionsScreen() {
                                     },
                                 ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                 Spacer(Modifier.weight(0.1f))
-                                OutlinedButton(
-                                    modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.commentedSortIndex != 1) textColor else Color.Green),
+                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.commentedSortIndex != 1) buttonColor else Color.Green),
                                     onClick = {
                                         if (vm.commentedSortIndex != 1) {
                                             selectNone = false
@@ -1342,9 +1338,7 @@ fun SubscriptionsScreen() {
                                 LaunchedEffect(Unit) {
 //                                if (filter != null && item.values[index].filterId in filter.properties) selectedList[index].value = true
                                 }
-                                OutlinedButton(
-                                    modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
-                                    border = BorderStroke(2.dp, if (vm.episodeStateSort[index].value) Color.Green else textColor),
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (vm.episodeStateSort[index].value) Color.Green else buttonColor),
                                     onClick = {
                                         selectNone = false
                                         vm.episodeStateSort[index].value = !vm.episodeStateSort[index].value
@@ -1402,9 +1396,7 @@ fun SubscriptionsScreen() {
                             }
                             if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size) { index ->
                                 if (selectNone) vm.ratingSort[index].value = false
-                                OutlinedButton(
-                                    modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
-                                    border = BorderStroke(2.dp, if (vm.ratingSort[index].value) Color.Green else textColor),
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (vm.ratingSort[index].value) Color.Green else buttonColor),
                                     onClick = {
                                         selectNone = false
                                         vm.ratingSort[index].value = !vm.ratingSort[index].value
@@ -1466,10 +1458,8 @@ fun SubscriptionsScreen() {
                                         }
                                     }
                                     Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.padding(end = 10.dp))
-                                    Spacer(Modifier.width(40.dp))
-                                    OutlinedButton(
-                                        modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp),
-                                        border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else Color.Green),
+                                    Spacer(Modifier.width(30.dp))
+                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else Color.Green),
                                         onClick = {
                                             if (selectedIndex != 0) {
                                                 selectNone = false
@@ -1484,9 +1474,7 @@ fun SubscriptionsScreen() {
                                         },
                                     ) { Text(text = stringResource(item.values[0].displayName), color = textColor) }
                                     Spacer(Modifier.width(20.dp))
-                                    OutlinedButton(
-                                        modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp),
-                                        border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else Color.Green),
+                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else Color.Green),
                                         onClick = {
                                             if (selectedIndex != 1) {
                                                 selectNone = false
@@ -1511,7 +1499,7 @@ fun SubscriptionsScreen() {
                                         if (expandRow) {
                                             var lowerSelected by remember { mutableStateOf(false) }
                                             var higherSelected by remember { mutableStateOf(false) }
-                                            Spacer(Modifier.width(40.dp))
+                                            Spacer(Modifier.width(30.dp))
                                             Text("<<<", color = if (lowerSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge,
                                                 modifier = Modifier.clickable {
                                                     val hIndex = selectedList.indexOfLast { it.value }

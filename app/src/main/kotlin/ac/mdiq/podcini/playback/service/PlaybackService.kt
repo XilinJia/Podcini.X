@@ -4,7 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.utils.NetworkUtils.isStreamingAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowStreaming
 import ac.mdiq.podcini.playback.PlaybackStarter
-import ac.mdiq.podcini.playback.base.*
+import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
@@ -12,9 +12,11 @@ import ac.mdiq.podcini.playback.base.InTheatre.loadPlayableFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.monitorState
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
+import ac.mdiq.podcini.playback.base.LocalMediaPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.isStreaming
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.streaming
+import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.EXTRA_ALLOW_STREAM_ALWAYS
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.EXTRA_ALLOW_STREAM_THIS_TIME
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.buildMediaItem
@@ -23,6 +25,8 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.releaseCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.showStreamingNotAllowedDialog
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
+import ac.mdiq.podcini.playback.base.PlayerStatus
+import ac.mdiq.podcini.playback.base.TaskManager
 import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
 import ac.mdiq.podcini.playback.cast.CastMediaPlayer
 import ac.mdiq.podcini.playback.cast.CastStateListener
@@ -33,11 +37,14 @@ import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
-import ac.mdiq.podcini.storage.model.*
 import ac.mdiq.podcini.storage.utils.MediaType
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
-import ac.mdiq.podcini.util.*
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
@@ -46,11 +53,18 @@ import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.bluetooth.BluetoothA2dp
-import android.content.*
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
 import android.content.Intent.EXTRA_KEY_EVENT
+import android.content.IntentFilter
 import android.media.AudioManager
-import android.os.*
+import android.os.Build
 import android.os.Build.VERSION_CODES
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.Vibrator
 import android.view.KeyEvent
 import android.view.KeyEvent.KEYCODE_MEDIA_STOP
 import android.view.ViewConfiguration
@@ -63,13 +77,25 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_IDLE
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.session.*
+import androidx.media3.session.CommandButton
+import androidx.media3.session.DefaultMediaNotificationProvider
+import androidx.media3.session.LibraryResult
+import androidx.media3.session.MediaBrowser
+import androidx.media3.session.MediaLibraryService
+import androidx.media3.session.MediaNotification
+import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import androidx.work.impl.utils.futures.SettableFuture
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.min
 
 @UnstableApi
@@ -173,7 +199,7 @@ class PlaybackService : MediaLibraryService() {
     private val screenStateReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             Logd(TAG, "screenStateReceiver onReceive called with action: ${intent.action}")
-            when (intent?.action) {
+            when (intent.action) {
                 Intent.ACTION_SCREEN_OFF -> episodeChangedWhenScreenOff = false
                 Intent.ACTION_SCREEN_ON  -> {}
             }
@@ -745,7 +771,7 @@ class PlaybackService : MediaLibraryService() {
             val notificationMediaButtons = ImmutableList.builder<CommandButton>().apply {
                 add(NotificationCustomButton.RESTART.commandButton)
                 add(NotificationCustomButton.REWIND.commandButton)
-                add(defaultPlayPauseButton)
+                if (defaultPlayPauseButton != null) add(defaultPlayPauseButton)
                 add(NotificationCustomButton.FORWARD.commandButton)
                 if (getPref(AppPrefs.prefShowSkip, true)) add(NotificationCustomButton.SKIP.commandButton)
             }.build()

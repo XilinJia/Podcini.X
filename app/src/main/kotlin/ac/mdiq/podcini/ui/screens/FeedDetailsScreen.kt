@@ -224,6 +224,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             if (pos >= 0 && pos < vms.size) {
                 Logd(TAG, "onEpisodeDownloadEvent $pos ${event.map[url]?.state} ${episodes[pos].downloaded} ${episodes[pos].title}")
                 vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
+                if (event.map[url]?.state == DownloadStatus.State.COMPLETED.ordinal) upsertBlk(vms[pos].episode) { it.downloaded = true }
             }
         }
     }

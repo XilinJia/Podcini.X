@@ -16,7 +16,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
-import ac.mdiq.podcini.ui.actions.NullZapActionButton
+import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
@@ -275,7 +275,7 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
     }
     AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(5.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
         text = { EpisodeLazyColumn(LocalContext.current, vms = vmsr, layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
-            actionButton_ = { NullZapActionButton(it) },
+            actionButton_ = { EpisodeActionButton(it) },
             actionButtonCB = {e1, _ ->
                 runOnIOScope {
                     realm.write {

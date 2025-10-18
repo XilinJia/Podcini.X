@@ -267,6 +267,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
 //            if (!event.isCompleted(url)) continue
             val pos: Int = queueItems.indexWithUrl(url)
             if (pos >= 0 && pos < vms.size) vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
+            if (event.map[url]?.state == DownloadStatus.State.COMPLETED.ordinal) upsertBlk(vms[pos].episode) { it.downloaded = true }
         }
     }
 

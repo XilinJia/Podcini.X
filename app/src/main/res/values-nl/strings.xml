@@ -4,22 +4,18 @@
     <string name="feed_update_receiver_name">Abonnementen bijwerken</string>
     <string name="feeds">Feeds</string>
 
-    <string name="feeds_label">Podcasts</string>
     <string name="statistics_label">Statistieken</string>
     <string name="add_feed_label">Podcast toevoegen</string>
     <string name="online_episodes_label">Online afleveringen</string>
     <string name="episodes_label">Afleveringen</string>
-    <string name="home_label">Startpagina</string>
     <string name="queue_label">Wachtrij</string>
     <string name="settings_label">Instellingen</string>
     <string name="downloads_label">downloads</string>
     <string name="logs_label">Logboeken</string>
     <string name="subscriptions_label">Abonnementen</string>
-    <string name="unsubscribed_label">Uitgeschreven</string>
     <string name="cancel_download_label">Download afbreken</string>
     <string name="playback_history_label">Afspeelgeschiedenis</string>
     <string name="months_statistics_label">maanden</string>
-    <string name="years_statistics_label">Jaren</string>
     <string name="notification_pref_fragment">Meldingen</string>
     <string name="current_episode">Stroom</string>
     <string name="current_podcast">Potcast</string>
@@ -28,40 +24,27 @@
     <string name="app_action_not_found">\'%1$s\' is niet aangetroffen</string>
     <!-- SwipeActions -->
     <string name="swipeactions_label">Veegacties</string>
-    <string name="swipeactions_summary">Kies wat er gebeurt als je een aflevering in een lijst veegt</string>
     <string name="swipe_right">Naar rechts vegen</string>
     <string name="swipe_left">Naar links vegen</string>
-    <string name="individual_subscription">Abonnement</string>
     <string name="subscription">Abonnement</string>
     <!-- Statistics fragment -->
-    <string name="statistics_include_marked">Duur van onlangs beluisterde afleveringen meetellen</string>
     <string name="statistics_speed_not_counted">Let op: er wordt geen rekening gehouden met de afspeelsnelheid.</string>
     <string name="statistics_start_month">Start maand</string>
     <string name="statistics_end_month">Eind maand</string>
     <string name="statistics_month_year">Formaat: MM/JJJJ</string>
-    <string name="statistics_from">Van</string>
-    <string name="statistics_to">Naar</string>
     <string name="statistics_today">Vandaag</string>
     <string name="statistics_filter_all_time">Alles</string>
-    <string name="statistics_filter_past_year">Afgelopen jaar</string>
     <string name="statistics_reset_data">Statistieken op nul zetten</string>
     <string name="statistics_reset_data_msg">Dit wist alle luistertijden van alle afleveringen. Doorgaan\?</string>
-    <string name="statistics_counting_range">Beluisterd tussen %1$s en %2$s</string>
-    <string name="statistics_counting_total">In totaal beluisterd</string>
     <string name="web_content_not_available">Webcontent is niet beschikbaar</string>
     <string name="language_not_supported_by_tts">De taal wordt niet ondersteund door TTS</string>
     <string name="tts_init_failed">TTS init mislukt</string>
-    <string name="tts_not_available">TTS engine niet beschikbaar</string>
     <string name="episode_has_no_content">Aflevering heeft geen inhoud</string>
     <string name="unrestricted_background_permission_text">Om een lijst van afleveringen op de achtergrond af te spelen heeft Podcini toestemming nodig voor onbeperkte achtergrondactiviteit. Opmerking op sommige merken, er zijn sustomized instellingen hiervoor, zorg er alstublieft voor dat je ze als zodanig instelt.</string>
     <string name="notification_permission_text">Sinds Android 13 is de top level notificatie nodig voor normaal verversen en afspelen. Je mag subcatergories niet toestaan op je eigen wens.</string>
-    <string name="notification_permission_denied">Toestemming geweigerd</string>
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">Totaalgrootte van lokale afleveringen</string>
     <!-- Main activity -->
-    <string name="drawer_open">Menu openen</string>
-    <string name="drawer_close">Menu sluiten</string>
-    <string name="drawer_preferences">Menu instellen</string>
     <!-- Bug report activity -->
     <string name="log_file_share_exception">Geen compatibele apps aangetroffen</string>
     <string name="export_logs_menu_title">Uitgebreide logboeken exporteren</string>
@@ -71,9 +54,6 @@
     <string name="copy_url_label">URL kopiëren</string>
     <string name="share_url_label">URL delen</string>
     <string name="go_to_position_label">Ga naar deze positie</string>
-    <string name="show_shared_logs_label">Toon gedeelde logs</string>
-    <string name="show_subscription_logs_label">Toon abonnementenlogs</string>
-    <string name="show_download_logs_label">Download logs weergeven</string>
     <!-- Playback history -->
     <string name="clear_history_label">Geschiedenis wissen</string>
     <string name="clear_playback_history_msg">Hierdoor wordt alle geschiedenis gewist. Weet je zeker dat je wilt doorgaan\?</string>
@@ -93,7 +73,6 @@
     <string name="error_msg_prefix">Er is een fout opgetreden:</string>
     <string name="refresh_label">Verversen</string>
     <string name="new_synth_label">Nieuwe synthetische feed</string>
-    <string name="new_synth_yt_label">Nieuwe synthetische Youtube</string>
     <string name="toggle_grid_list">Toggle rasterlijst</string>
     <string name="refreshing_label">Verversen</string>
     <string name="clear_new_label">Nieuwe wissen</string>
@@ -125,7 +104,6 @@
     <string name="replace">Vervangen</string>
     <string name="feed_auto_dleq_newer">Nieuwste niet afgespeeld</string>
     <string name="feed_auto_dleq_older">Oudste niet afgespeeld</string>
-    <string name="feed_auto_dleq_soon">Gemarkeerd als binnenkort</string>
     <string name="put_in_queue_label">Toevoegen aan wachtrij…</string>
     <string name="remove_from_other_queues">Verwijderen uit andere wachtrijen</string>
     <string name="create_synthetic_first_note">U moet eerst wat synthetische feeds maken</string>
@@ -134,23 +112,12 @@
     <string name="episode_cleanup_never">Nooit</string>
     <string name="episode_cleanup_except_favorite">Indien niet favoriet</string>
     <string name="episode_cleanup_not_in_queue">Indien niet in wachtrij</string>
-    <string name="episode_cleanup_after_listening">Als aflevering is beluisterd</string>
-    <plurals name="episode_cleanup_hours_after_listening">
-        <item quantity="one">1 uur na afronden</item>
-        <item quantity="other">%d uur na beluisteren</item>
-    </plurals>
-    <plurals name="episode_cleanup_days_after_listening">
-        <item quantity="one">1 dag na afronden</item>
-        <item quantity="other">%d dagen na beluisteren</item>
-    </plurals>
     <!-- Actions on feeds -->
     <string name="max_episodes_cache">Max afleveringen toegestaan</string>
     <string name="new_namee">Nieuwe naam</string>
     <string name="feed_settings_label">Podcastinstellingen</string>
-    <string name="switch_queue_label">Kies actieve wachtrij</string>
     <string name="rename_feed_label">Podcastnaam wijzigen</string>
     <string name="remove_feed_label">Podcast verwijderen</string>
-    <string name="init_tts">TTS starten</string>
     <string name="share_label">Delen</string>
     <string name="share_file_label">Bestand delen</string>
     <string name="share_notes_label">Notities delen</string>
@@ -161,18 +128,14 @@
     <string name="not_erase_message">Alleen afleveringen van synthetische feeds kunnen worden gewist.</string>
     <string name="reason_to_delete_msg">Voor toekomstige referenties kunt u hier een reden opnemen:</string>
     <string name="load_complete_feed">Volledige podcast vernieuwen</string>
-    <string name="multi_select">Meerdere selecteren</string>
-    <string name="filtered_label">Gefilterd</string>
     <string name="progressing_label">Verwerken</string>
     <string name="open_podcast">Podcast openen</string>
     <string name="open">Open</string>
-    <string name="please_wait_for_data">Wacht tot de gegevens geladen zijn</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d aflevering bijgewerkt.</item>
         <item quantity="other">%d abonnementen bijgewerkt.</item>
     </plurals>
     <string name="edit_tags">Labels bewerken</string>
-    <string name="add_tag">Label toekennen</string>
     <string name="confirm_delete_logs_label">Bevestig verwijderen logs</string>
     <string name="confirm_delete_logs_message">Dit verwijdert alle logs die hier gezien worden uit de database en kan niet ongedaan gemaakt worden. Weet je het zeker?</string>
     <string name="confirm_mobile_feed_refresh_dialog_message">Het vernieuwen van de podcasts via mobiel internet is uitgeschakeld in de instellingen.\n\nWeet je zeker dat je wilt vernieuwen\?</string>
@@ -190,23 +153,16 @@
     <string name="delete_failed_simple">Kan bestand niet verwijderen.</string>
     <string name="delete_local_failed">Kan bestand niet verwijderen. Probeer de lokale map opnieuw te verbinden via het podcast info scherm.</string>
     <string name="delete_episode_label">Aflevering verwijderen</string>
-    <string name="show_hidden">Verborgen tonen</string>
     <string name="no_action_label">Geen actie</string>
     <string name="my_opinion_label">Mijn mening</string>
     <string name="add_opinion_label">Voeg mening toe</string>
     <string name="cancelled_on_label">Geannuleerd op</string>
     <string name="choose_tab">Kies een tabblad in het kanaal</string>
     <string name="set_play_state_label">Gespeelde status instellen</string>
-    <string name="play_this_to_seek_position">Speel de aflevering af om naar posities te springen</string>
     <string name="combo_action">Combo actie</string>
     <string name="shelve_label">Schelp om samen te voegen</string>
     <string name="add_to_queue_label">Toevoegen aan wachtrij</string>
     <string name="remove_from_queue_label">Verwijderen uit wachtrij</string>
-    <plurals name="removed_from_queue_batch_label">
-        <item quantity="one">%d aflevering verwijderd uit de wachtrij.</item>
-        <item quantity="other">%d afleveringen verwijderd uit de wachtrij.</item>
-    </plurals>
-    <string name="show_video_label">Video afspelen</string>
     <string name="media_type">Media type</string>
     <string name="unknown">onbekend</string>
     <string name="audio">Geluid</string>
@@ -235,7 +191,6 @@
     <string name="forever">Voor altijd</string>
     <string name="ignored">Genegeerd</string>
     <string name="visit_website_label">Website bezoeken</string>
-    <string name="skip_episode_label">Aflevering overslaan</string>
     <string name="delete_local_feed_warning_body">Waarschuwing: u verwijdert lokale afleveringen. Dit zal de mediabestanden verwijderen uit de opslag van uw apparaat. Het kan niet opnieuw via Podcini worden gedownload. Doorgaan?</string>
     <string name="share_existing">bestaande</string>
     <!-- Download messages and labels -->
@@ -294,14 +249,12 @@
     <string name="no_media_playing_label">Er wordt geen media afgespeeld</string>
     <string name="unknown_media_key">Podcini - onbekende mediasleutel: %1$d</string>
     <string name="error_file_not_found">Bestand niet aangetroffen</string>
-    <string name="no_media_label">Het item bevat geen mediabestand</string>
     <!-- Queue operations -->
     <string name="lock_queue">Wachtrij vergrendelen</string>
     <string name="queue_locked">Wachtrij vergrendeld</string>
     <string name="queue_unlocked">Wachtrij ontgrendeld</string>
 
     <!--    <string name="switch_queue">Switch active queue</string>-->
-    <string name="open_queue">Open wachtrij</string>
     <string name="checkbox_do_not_show_again">Niet opnieuw tonen</string>
     <string name="clear_queue_label">Wachtrij leegmaken</string>
     <string name="clear_bin_label">Verwijder bak</string>
@@ -309,7 +262,6 @@
     <string name="sort">Sorteren</string>
     <string name="rename">Hernoem</string>
     <string name="add_queue">Wachtrij toevoegen</string>
-    <string name="keep_sorted">Gesorteerd houden</string>
     <string name="publish_date">Publicatie datum</string>
     <string name="download_date">Download datum</string>
     <string name="view_count">Aantal keer bekeken</string>
@@ -320,7 +272,6 @@
     <string name="completed_date">Voltooide datum</string>
     <string name="duration">Duur</string>
     <string name="spent">Uitgegeven</string>
-    <string name="hours">Uren</string>
     <string name="episode_title">Titel van de aflevering</string>
     <string name="feed_title">Podcast-titel</string>
     <string name="show_criteria">Toon criteria</string>
@@ -330,9 +281,7 @@
     <string name="smart_shuffle">Slim willekeurig afspelen</string>
     <string name="size">Grootte</string>
     <string name="clear_queue_confirmation_msg">ALLE afleveringen in de wachtrij  verwijderen\?</string>
-    <string name="show_bin_label">Bin tonen</string>
     <!--  Variable Speed -->
-    <string name="preset_already_exists">%1$.2fx is al opgeslagen als voorinstelling.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Deze aflevering bevat geen commentaar..</string>
 
@@ -345,7 +294,6 @@
     <string name="automation">Automatische acties</string>
     <string name="download_pref_details">Beschrijving</string>
     <string name="import_export_pref">Importeren/Exporteren</string>
-    <string name="import_export_search_keywords">back-up, herstel</string>
     <string name="pref_auto_backup_title">Automatische back-up</string>
     <string name="pref_auto_backup_sum">Automatisch een back-up maken van DB en voorkeuren van een specifiek interval in een geselecteerde map.</string>
     <string name="pref_auto_backup_interval">Back-up interval</string>
@@ -359,9 +307,6 @@
     <string name="interruptions">Onderbrekingen</string>
     <string name="playback_control">Afspeelbediening</string>
     <string name="reassign_hardware_buttons">Hardwareknoppen opnieuw toewijzen</string>
-    <string name="preference_search_hint">Zoeken…</string>
-    <string name="preference_search_no_results">Geen resultaten</string>
-    <string name="preference_search_clear_history">Geschiedenis wissen</string>
     <string name="pref_episode_cleanup_title">Afleveringen opruimen</string>
     <string name="pref_episode_cleanup_summary">Hier instellen wanneer afleveringen mogen worden verwijderd, in het geval \'Automatisch downloaden\' ruimte nodig heeft voor nieuwe afleveringen</string>
     <string name="pref_pauseOnDisconnect_sum">Afspelen pauzeren wanneer hoofdtelefoon of bluetooth zijn losgekoppeld</string>
@@ -376,7 +321,6 @@
     <string name="button_action_skip_episode">Aflevering overslaan</string>
     <string name="button_action_restart_episode">Afleveringen herstarten</string>
     <string name="pref_followQueue_sum">Als afspelen is voltooid naar volgend item in de wachtrij gaan</string>
-    <string name="pref_pick_custom_media_dir">Specificeer een aangepaste map</string>
     <string name="pref_custom_media_dir_title">Aangepaste mediamap gebruiken</string>
     <string name="pref_custom_media_dir_sum">Kies een aangepaste map voor gedownloade media. U kunt altijd opnieuw instellen. Een herstart is nodig.</string>
     <string name="pref_custom_media_dir_sum1">Aangepaste mediamap is ingesteld. Wilt u wijzigen?</string>
@@ -427,16 +371,8 @@
     <string name="user_interface_sum">Uiterlijk, abonnementen, vergrendelscherm</string>
     <string name="pref_black_theme_title">Echt zwart</string>
     <string name="pref_black_theme_message">Gebruik echt zwart voor het donkere thema</string>
-    <string name="pref_tinted_theme_title">Dynamische kleuren</string>
-    <string name="pref_tinted_theme_message">Gebruik kleuren op basis van de achtergrondafbeelding</string>
-    <string name="pref_nav_drawer_items_title">Instellen van navigatiebalk items</string>
-    <string name="pref_nav_drawer_items_sum">Wijzigen welke items worden weergegeven in de navigatiebalk</string>
-    <string name="pref_nav_drawer_feed_order_title">Stel de abonnementvolgorde in door</string>
-    <string name="pref_nav_drawer_feed_order_sum">De volgorde van de abonnementen wijzigen</string>
     <string name="pref_automatic_download_title">Automatisch downloaden</string>
     <string name="pref_automatic_download_sum">Configureer de automatische download van afleveringen</string>
-    <string name="pref_autodl_wifi_filter_title">Wifi-filter inschakelen</string>
-    <string name="pref_autodl_wifi_filter_sum">Automatisch downloaden alleen toestaan via gekozen wifi-netwerken.</string>
     <string name="pref_automatic_download_on_battery_title">Downloaden als toestel niet oplaadt</string>
     <string name="pref_automatic_download_on_battery_sum">Sta automatisch downloaden toe wanneer toestel niet oplaadt</string>
     <string name="pref_episode_cache_title">Aflevering cache</string>
@@ -450,12 +386,10 @@
     <string name="pref_theme_title_automatic">Automatisch</string>
     <string name="pref_theme_title_light">Licht</string>
     <string name="pref_theme_title_dark">Donker</string>
-    <string name="pref_episode_cache_unlimited">Onbeperkt</string>
     <string name="pref_playback_speed_sum">De snelheden aanpassen die beschikbaar zijn voor afspelen met variabele snelheid</string>
     <string name="pref_feed_playback_speed_sum">De te gebruiken snelheid bij het afspelen van afleveringen in deze podcast</string>
     <string name="pref_feed_skip">Automatisch overslaan</string>
     <string name="pref_feed_skip_sum">Sla introducties en aftitelingen over.</string>
-    <string name="associated">Gekoppeld</string>
     <string name="pref_feed_audio_type">Type audio</string>
     <string name="pref_feed_audio_type_sum">Speech, muziek of film voor een betere verwerking.</string>
     <string name="pref_feed_audio_quality">Kwaliteit van audio</string>
@@ -464,8 +398,6 @@
     <string name="pref_feed_video_quality_sum">Globale gelijk aan lage kwaliteit, kwaliteitsinstelling hier heeft voorrang op de instelling van prefLowQualityMedia voor gemeten netwerk.</string>
     <string name="pref_feed_associated_queue">Gekoppelde wachtrij</string>
     <string name="pref_feed_associated_queue_sum">De wachtrij waaraan epiosdes in de feed standaard worden toegevoegd</string>
-    <string name="pref_feed_skip_ending">Laatste overslaan</string>
-    <string name="pref_feed_skip_intro">Eerste overslaan</string>
     <string name="pref_feed_skip_ending_toast">Laatste %d seconden overgeslagen</string>
     <string name="pref_feed_skip_intro_toast">Eerste %d seconden overgeslagen</string>
 
@@ -480,9 +412,6 @@
     <string name="pref_rewind_sum">Stel het aantal seconden terugspoelen in per klik op de snel terug knop</string>
     <string name="pref_playback_video_mode">Video afspeel modus</string>
     <string name="pref_playback_video_mode_sum">Kies hoe videoaflevering standaard wordt afgespeeld</string>
-    <string name="pref_video_mode_full_screen">Volledig scherm</string>
-    <string name="pref_video_mode_small_window">Klein venster</string>
-    <string name="pref_video_mode_audio_only">Alleen audio</string>
     <string name="pref_swipe_refresh_title">Veeg om te vernieuwen</string>
     <string name="pref_swipe_refresh_sum">Veeg omlaag om alle abonnementen te vernieuwen</string>
     <string name="pref_feedGridLayout_title">Abonnementen gebruiken raster-lay-out </string>
@@ -493,9 +422,6 @@
 
     <string name="pref_show_notification_skip_title">Toon melding overslaan</string>
     <string name="pref_show_notification_skip_sum">Schakel de overslagknop in het notificatiepaneel in</string>
-    <string name="pref_compact_notification_buttons_dialog_error_exact">Je moet precies %1$d items selecteren.</string>
-    <string name="pref_full_notification_buttons_title">Meldingsknoppen instellen</string>
-    <string name="pref_full_notification_buttons_sum">Verander de knoppen voor het afspelen van de afspeelmelding.</string>
     <string name="pref_enqueue_location_title">Wachtrij locatie</string>
     <string name="pref_enqueue_location_sum">Afleveringen toevoegen: %1$s</string>
     <string name="enqueue_location_back">als laatste</string>
@@ -530,11 +456,6 @@
     <!-- About screen -->
     <string name="about_pref">Over Podcini</string>
     <string name="podcini_version">Podcini-versie</string>
-    <string name="contributors">Bijdragers</string>
-    <string name="contributors_summary">Iedereen kan helpen Podcini te verbeteren middels programmeren, vertalen of het helpen van gebruikers op het forum</string>
-    <string name="developers">Ontwikkelaars</string>
-    <string name="translators">Vertalers</string>
-    <string name="special_thanks">Met dank aan</string>
     <string name="online_help">Online startpagina</string>
     <string name="online_help_sum">Verkrijg meer online informatie</string>
     <string name="privacy_policy">Privacybeleid</string>
@@ -560,30 +481,14 @@
     <string name="sync_error_guest_not_respond">Gast reageert niet, geef het op</string>
     <!-- import and export -->
     <string name="import_export_summary">Abonnementen en wachtrij naar een ander toestel verplaatsen</string>
-    <string name="preferences">named@@0</string>
-    <string name="media_files">Media bestanden</string>
-    <string name="combos">Combo\'s</string>
-    <string name="database">Database</string>
-    <string name="opml">OPML</string>
-    <string name="html">HTML</string>
-    <string name="progress">Vooruitgang</string>
     <string name="html_export_summary">Abonnementen delen met een ander</string>
     <string name="opml_export_summary">Abonnementen overzetten naar een andere podcast-app</string>
     <string name="opml_import_summary">Abonnementen importeren uit andere podcast-app</string>
-    <string name="preferences_export_summary">Podcini voorkeuren exporteren</string>
-    <string name="preferences_import_summary">Podcini voorkeuren importeren</string>
-    <string name="media_files_export_summary">Exporteer Podcini mediabestanden</string>
-    <string name="media_files_import_summary">Importeer Podcini mediabestanden</string>
     <string name="combo_export_summary">Exporteer selectief de database, voorkeuren, mediabestanden.</string>
     <string name="combo_import_summary">Importeer selectief de database, voorkeuren, mediabestanden.</string>
-    <string name="database_export_summary">Abonnementen, beluisterde afleveringen en wachtrij overzetten naar Podcini op een ander toestel</string>
-    <string name="database_import_summary">Podcini database van een ander toestel importeren</string>
     <string name="opml_import_label">OPML importeren</string>
     <string name="opml_add_podcast_label">Podcastlijst (opml) importeren</string>
     <string name="opml_reader_error">Er is iets misgegaan tijdens het lezen van het OPML-bestand:</string>
-    <string name="opml_import_error_no_file">Geen bestand gekozen!</string>
-    <string name="select_all_label">Alles selecteren</string>
-    <string name="deselect_all_label">Alles de-selecteren</string>
     <string name="progress_export_label">Afleveringen voortgang exporteren</string>
     <string name="progress_import_label">Afleveringen voortgang import</string>
     <string name="progress_export_summary">Verplaats de afleveringen van Podcini naar een andere installatie van de Podcini. Dit is niet nodig als je de DB kunt overdragen.</string>
@@ -591,14 +496,8 @@
     <string name="progress_import_warning">Het importeren van afleveringen voortgang zal al je huidige speelgeschiedenis vervangen. U moet uw huidige voortgang exporteren in een back-up. Wilt u deze vervangen? Zo ja, kies dan op het volgende scherm. zoon-bestand. Het proces kan een paar minuten duren, afhankelijk van de grootte. Eenmaal voltooid, wordt een pop-up van succes of mislukking getoond.</string>
     <string name="opml_export_label">OPML exporteren</string>
     <string name="html_export_label">HTML exporteren</string>
-    <string name="media_files_export_label">Mediabestanden exporteren</string>
-    <string name="media_files_import_label">Mediabestanden importeren</string>
     <string name="import_SQLite_message">Geïmporteerde abonnementen worden samen met afleveringen en afspeelgeschiedenis toegevoegd aan de bestaande DB. Indien bevestigd, kies een eerder geëxporteerde SQL-database.\"</string>
     <string name="combo_import_warning">Het importeren van een van de gekozen items vervangt die in uw huidige opslag. Indien bevestigd kiest u een eerder geëxporteerde map met naam \"Podcini-Backups\"</string>
-    <string name="preferences_export_label">Voorkeuren exporteren</string>
-    <string name="preferences_import_label">Voorkeuren importeren</string>
-    <string name="preferences_import_warning">Het importeren van voorkeuren zal al uw huidige voorkeuren vervangen. Kies indien bevestigd, een eerder geëxporteerde map met naam \"Podcini-Prefs\"</string>
-    <string name="media_files_import_notice">Kies een eerder geëxporteerde map met naam \"Podcini-MediaFiles\"</string>
     <string name="combo_export_label">Combo exporteren</string>
     <string name="combo_import_label">Combo importeren</string>
     <string name="import_AP_label">AntennaPod database importeren</string>
@@ -608,16 +507,10 @@
     <string name="import_PA_directory_label">Importeer map</string>
     <string name="import_PA_directory_message">Importeer een podcasts direcory voor offline zoeken. \"</string>
     <string name="import_PA_message">Indien bevestigd, kies een eerder geëxporteerd back-up archief uit Podcast Addict app.\"</string>
-    <string name="database_export_label">Database exporteren</string>
-    <string name="database_import_label">Database importeren</string>
-    <string name="realm_database_import_label">Realm database importeren</string>
-    <string name="database_import_warning">Bij het importeren van een database worden alle huidige abonnementen en de afspeelgeschiedenis vervangen. Exporteer ter back-up de huidige database. Doorgaan\?</string>
     <string name="import_directory_toast">Alleen de mapnaam accepteren, inclusief: </string>
     <string name="import_file_type_toast">Alleen bestandsextensie accepteren: </string>
-    <string name="please_wait">Even geduld…</string>
     <string name="import_export_error_label">Exportfout</string>
     <string name="export_success_title">Geëxporteerd</string>
-    <string name="opml_import_ask_read_permission">Toegang tot externe locaties is nodig om het OPML-bestand te kunnen lezen</string>
     <string name="successful_import_label">Importeren voltooid</string>
     <string name="import_ok">Druk op \'OK\' om Podcini opnieuw te starten.</string>
     <string name="favorites_export_label">Favorieten exporteren</string>
@@ -629,12 +522,10 @@
     <string name="disable_sleeptimer_label">Slaaptimer uitschakelen</string>
     <string name="extend_sleep_timer_label">+%d min.</string>
     <string name="end_episode">Tot einde van aflevering</string>
-    <string name="sleep_timer_always">altijd</string>
     <string name="sleep_timer_label">Slaaptimer</string>
     <string name="time_dialog_invalid_input">Ongeldige invoer; de tijd moet een geheel getal zijn</string>
     <string name="shake_to_reset_label">Schudden om opnieuw in te stellen</string>
     <string name="timer_vibration_label">Vlak voor afloop trillen</string>
-    <string name="time_seconds">seconden</string>
     <string name="time_minutes">minuten</string>
     <string name="time_hours">uur</string>
     <plurals name="time_minutes_quantified">
@@ -650,22 +541,17 @@
         <item quantity="other">%d dagen</item>
     </plurals>
     <string name="auto_enable_label">Automatisch de slaap timer activeren bij het indrukken van afspelen</string>
-    <string name="auto_enable_label_with_times" formatted="false">Automatisch de slaap timer activeren bij afspelen tussen %s en %s</string>
-    <string name="auto_enable_change_times">Tijdsbereik wijzigen</string>
-    <string name="sleep_timer_enabled_label">Slaaptimer ingeschakeld</string>
     <!-- Synchronisation -->
     <string name="wifi_sync">Synchroniseer met apparaat op Wifi</string>
     <string name="wifi_sync_summary_unchoosen">Je kunt twee apparaten op hetzelfde wifi-netwerk verbinden om je afleveringen te synchroniseren</string>
     <string name="synchronization_choose_title">Kies een synchronisatiedienst</string>
     <string name="synchronization_summary_unchoosen">Er is keuze uit meerdere aanbieders om de abonnementen en aflevering-stand mee te synchroniseren</string>
     <string name="dialog_choose_sync_service_title">Kies een synchronisatiedienst</string>
-    <string name="gpodnet_description">Gpodder.net is een opensource-podcastsynchronisatiedienst die je op je eigen server kunt installeren. Let op: Gpodder.net is niet verbonden aan het Podcini-project.</string>
     <string name="synchronization_summary_nextcloud">Gpoddersync kan als open source Nextcloud-app op een eigen server geïnstalleerd worden. De app is niet betrokken bij het Podcini-project.</string>
     <string name="synchronization_host_explanation">Je kunt je eigen synchronisatieserver kiezen. Als je voorkeur voor een bepaalde server hebt, voer dan hier het adres ervan in.</string>
     <string name="synchronization_host_address_label">Host adres</string>
     <string name="synchronization_host_port_label">Poort host</string>
     <string name="synchronization_host_label">Serveradres</string>
-    <string name="server">Server</string>
     <string name="guest_butLabel">Als gast</string>
     <string name="host_butLabel">Als host</string>
     <string name="proceed_to_login_butLabel">Doorgaan met inloggen</string>
@@ -675,18 +561,8 @@
     <string name="connect_to_peer">Verbinding maken met peer</string>
     <string name="host_or_guest">Maak jezelf eerst een host of gast</string>
     <string name="gpodnetauth_login_butLabel">Inloggen</string>
-    <string name="synchronization_credentials_explanation">Voer de inloggegevens van je serveraccount in.</string>
-    <string name="gpodnetauth_encryption_warning">Het wachtwoord en de gegevens zijn onversleuteld!</string>
     <string name="username_label">Gebruikersnaam</string>
     <string name="password_label">Wachtwoord</string>
-    <string name="synchronization_login_butLabel">Inloggen</string>
-    <string name="synchronization_selectDevice_explanation">Kies het op de server toegevoegde apparaat of voeg een nieuw apparaat toe.</string>
-
-
-
-
-
-
 
 
     <string name="synchronization_sync_changes_title">Nu synchroniseren</string>
@@ -694,40 +570,21 @@
     <string name="synchronization_full_sync_title">Volledige synchronisatie afdwingen</string>
     <string name="synchronization_force_sync_summary">Alle abonnementen en afspeelstatussen opnieuw synchroniseren</string>
     <string name="synchronization_logout">Uitloggen</string>
-    <string name="synchronization_login_status"><![CDATA[IngeLogd( als <i>%1$s</i> op <i>%2$s</i>. <br/><br/>Na uitloggen is het weer mogelijk een synchronisatie provider te kiezen]]></string>
     <string name="pref_synchronization_logout_toast">Uitloggen geslaagd</string>
     <string name="gpodnetsync_error_title">gpodder.net - synchronisatiefout</string>
     <string name="gpodnetsync_error_descr">Er is een fout opgetreden tijdens het synchroniseren:\u0020</string>
     <string name="gpodnetsync_pref_report_successful">Voltooid</string>
     <string name="gpodnetsync_pref_report_failed">Mislukt</string>
-    <string name="gpodnetsync_username_characters_error">Gebruikersnamen mogen alleen letters, cijfers en (onderliggende) streepjes bevatten.</string>
     <!-- Directory chooser -->
-    <string name="choose_data_directory">Gegevensmap kiezen</string>
-    <string name="choose_data_directory_message">Kies de hoofdmap voor gegevens. Podcini zal de benodigde submappen aanmaken.</string>
-    <string name="choose_data_directory_available_space">%1$s van %2$s beschikbaar</string>
-    <string name="pref_pausePlaybackForFocusLoss_sum">Onderbreek het afspelen in plaats van het volume te verlagen wanneer een andere app geluiden wil afspelen</string>
-    <string name="pref_pausePlaybackForFocusLoss_title">Pauze voor onderbrekingen</string>
     <!-- Online feed view -->
     <string name="subscribe_label">Abonneren</string>
-    <string name="preview_episode">Voorvertoning</string>
     <!-- Content descriptions for image buttons -->
-    <string name="toolbar_back_button_content_description">Terug</string>
-    <string name="rewind_label">Terugspoelen</string>
-    <string name="fast_forward_label">Vooruitspoelen</string>
-    <string name="toggle_video_views">Video weergaven in-/uitschakelen</string>
-    <string name="increase_speed">Verhoog snelheid</string>
-    <string name="decrease_speed">Verlaag snelheid</string>
     <string name="status_downloading_label">Aflevering wordt gedownload</string>
-    <string name="load_next_page_label">Volgende pagina laden</string>
-    <string name="position">Positie: %1$s</string>
-    <string name="next_chapter">Volgend hoofdstuk</string>
-    <string name="add_preset">Voorinstelling toevoegen</string>
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Authenticatie</string>
     <string name="authentication_descr">Gebruikersnaam en wachtwoord wijzigen voor deze podcast en bijbehorende afleveringen.</string>
     <string name="feed_tags_label">Labels</string>
     <string name="feed_tags_summary">Wijzig de labels van deze podcast om abonnementen te organiseren</string>
-    <string name="feed_folders_include_root">Toon deze podcast in de hoofdlijst</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Er worden alleen algemene labels getoond. Andere labels worden niet aangepast.</string>
     <string name="auto_download_settings_label">Automatische download instellingen</string>
     <string name="episode_filters_label">Aflevering filter</string>
@@ -758,8 +615,6 @@
     <string name="feeds_related_to_author">Hoogstwaarschijnlijk gerelateerd aan de auteur »</string>
     <string name="edit_url_menu">Feed-url bewerken</string>
     <string name="edit_url_confirmation_msg">Let op: door het aanpassen van het rss-adres kan de afspeelstatus en afleveringenlijst worden vergeten. We raden NIET aan om dit te doen en bieden GEEN ondersteuning als er iets misgaat. Deze actie is tevens onomkeerbaar, dus het oorspronkelijke adres kan niet worden hersteld. Maak van tevoren een reservekopie.</string>
-    <string name="edit_fast_forward_speed">Bewerk snelle vooruit snelheid</string>
-    <string name="edit_fallback_speed">Wijzig fallback snelheid</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Bezig met importeren van abonnementen uit eenmalige apps…</string>
     <!-- Add podcast fragment -->
@@ -768,9 +623,7 @@
     <string name="search_itunes_label">Zoek Apple Podcast</string>
     <string name="search_podcastindex_label">Zoek Podcast Index</string>
 
-    <string name="gpodnet_search_hint">gpodder.net doorzoeken</string>
     <string name="advanced">Geavanceerd</string>
-    <string name="add_podcast_by_url">Podcast toevoegen middels RSS link</string>
     <string name="discover">Ontdekken</string>
     <string name="discover_hide">Verbergen</string>
     <string name="discover_is_hidden">Je kiest er voor aanbevelingen te verbergen.</string>
@@ -786,10 +639,8 @@
     <string name="reconnect_local_folder_warning">Als je geen rechten hebt, gebruik dan dit om de map opnieuw te koppelen. Kies geen andere map.</string>
     <string name="local_feed_description">De virtuele podcast is aangemaakt door een aan Podcini toegevoegde map.</string>
     <string name="unable_to_start_system_file_manager">Kan systeembestandsbeheer niet openen</string>
-    <string name="filter">Filteren</string>
     <string name="downloaded_label">Gedownload</string>
     <string name="auto_downloadable_label">Automatisch downloadbaar</string>
-    <string name="has_media">Bevat media</string>
     <string name="has_chapters">Heeft hoofdstukken</string>
     <string name="filename">Bestandsnaam is vereist</string>
     <string name="play_speed">Speel snelheid</string>
@@ -846,9 +697,6 @@
     <string name="notification_channel_sync_error">Synchronisatie mislukt</string>
     <string name="notification_channel_sync_error_description">Worden getoond als gpodder-synchronisatie mislukt.</string>
     <!-- Widget settings -->
-    <string name="widget_settings">Widgetinstellingen</string>
-    <string name="widget_create_button">Widget maken</string>
-    <string name="widget_opacity">Doorzichtigheid</string>
     <!-- On-Demand configuration -->
     <string name="on_demand_config_setting_changed">De instelling is aangepast.</string>
     <string name="on_demand_config_stream_text">Het lijkt er op dat je vaak streamt. Wil je streamknoppen tonen in de lijst met afleveringen\?</string>
@@ -856,7 +704,4 @@
     <string name="shortcut_subscription_label">Abonnementssnelkoppeling</string>
     <string name="shortcut_select_subscription">Kies een abonnement</string>
     <string name="add_shortcut">Snelkoppeling toevoegen</string>
-    <string name="Episode">Aflevering</string>
-    <string name="Podcast">Potcast</string>
-    <string name="All">Allemaal</string>
 </resources>

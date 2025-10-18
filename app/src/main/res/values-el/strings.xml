@@ -4,22 +4,18 @@
     <string name="feed_update_receiver_name">Ενημέρωση συνδρομών</string>
     <string name="feeds">Ροές</string>
 
-    <string name="feeds_label">Podcasts</string>
     <string name="statistics_label">Στατιστικά</string>
     <string name="add_feed_label">Προσθήκη podcast</string>
     <string name="online_episodes_label">Διαδικτυακά επεισόδια</string>
     <string name="episodes_label">Επεισόδια</string>
-    <string name="home_label">Αρχική</string>
     <string name="queue_label">Ουρές</string>
     <string name="settings_label">Ρυθμίσεις</string>
     <string name="downloads_label">Λήψεις</string>
     <string name="logs_label">Καταγραφή</string>
     <string name="subscriptions_label">Συνδρομές</string>
-    <string name="unsubscribed_label">Διαγραφήκατε</string>
     <string name="cancel_download_label">Ακύρωση λήψης</string>
     <string name="playback_history_label">Ιστορικό</string>
     <string name="months_statistics_label">Μήνες</string>
-    <string name="years_statistics_label">Χρόνια</string>
     <string name="notification_pref_fragment">Ειδοποιήσεις</string>
     <string name="current_episode">Τρέχων</string>
     <string name="current_podcast">Podcast</string>
@@ -28,40 +24,27 @@
     <string name="app_action_not_found">\"%1$s\" δεν βρέθηκε</string>
     <!-- SwipeActions -->
     <string name="swipeactions_label">Ενέργειες ολίσθησης</string>
-    <string name="swipeactions_summary">Επιλέξτε τι θα συμβεί όταν σύρετε ένα επεισόδιο σε μια λίστα</string>
     <string name="swipe_right">Σύρετε δεξιά</string>
     <string name="swipe_left">Σύρετε αριστερά</string>
-    <string name="individual_subscription">Συνδρομή</string>
     <string name="subscription">Συνδρομή</string>
     <!-- Statistics fragment -->
-    <string name="statistics_include_marked">Συμπεριλάβετε τη διάρκεια των επεισοδίων που έχουν μόλις επισημανθεί ως παιγμένα</string>
     <string name="statistics_speed_not_counted">Προσοχή: Η ταχύτητα αναπαραγωγής δεν λαμβάνεται ποτέ υπόψη.</string>
     <string name="statistics_start_month">Μήνας έναρξης</string>
     <string name="statistics_end_month">Μήνας τέλους</string>
     <string name="statistics_month_year">Μορφή: ΜΜ/ΕΕΕΕ</string>
-    <string name="statistics_from">Από</string>
-    <string name="statistics_to">Προς</string>
     <string name="statistics_today">Σήμερα</string>
     <string name="statistics_filter_all_time">Όλη την ώρα</string>
-    <string name="statistics_filter_past_year">Τελευταίο έτος</string>
     <string name="statistics_reset_data">Επαναφορά στατιστικών δεδομένων</string>
     <string name="statistics_reset_data_msg">Αυτό θα διαγράψει το ιστορικό της διάρκειας που παίζεται για όλα τα επεισόδια. Είστε σίγουροι ότι θέλετε να συνεχίσετε\?</string>
-    <string name="statistics_counting_range">Έπαιξε μεταξύ %1$s και %2$s</string>
-    <string name="statistics_counting_total">Έπαιξε συνολικά</string>
     <string name="web_content_not_available">Το περιεχόμενο Web δεν είναι διαθέσιμο</string>
     <string name="language_not_supported_by_tts">Η γλώσσα δεν υποστηρίζεται από το TTS</string>
     <string name="tts_init_failed">TTS init απέτυχε</string>
-    <string name="tts_not_available">Η μηχανή TTS δεν είναι διαθέσιμη</string>
     <string name="episode_has_no_content">Το επεισόδιο δεν έχει περιεχόμενο</string>
     <string name="unrestricted_background_permission_text">Για να παίξει με επιτυχία μια λίστα με επεισόδια στο παρασκήνιο, Podcini χρειάζεται Άδεια για απεριόριστη δραστηριότητα φόντου. Σημείωση σχετικά με ορισμένες μάρκες, υπάρχουν ανασηλωμένες ρυθμίσεις για αυτό, παρακαλώ βεβαιωθείτε για να τις ρυθμίσετε αναλόγως.</string>
     <string name="notification_permission_text">Από το Android 13, απαιτείται ειδοποίηση ανωτάτου επιπέδου για κανονική ανανέωση και αναπαραγωγή. Μπορείτε να απαγορεύσετε τις ειδοποιήσεις των υπο-catergories σύμφωνα με την επιθυμία σας.</string>
-    <string name="notification_permission_denied">Αρνηθήκατε την άδεια.</string>
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">Συνολικό μέγεθος επεισοδίων στη συσκευή</string>
     <!-- Main activity -->
-    <string name="drawer_open">Άνοιγμα μενού</string>
-    <string name="drawer_close">Κλείσιμο μενού</string>
-    <string name="drawer_preferences">Προτιμήσεις συρταριού</string>
     <!-- Bug report activity -->
     <string name="log_file_share_exception">Δεν βρέθηκαν συμβατές εφαρμογές</string>
     <string name="export_logs_menu_title">Εξαγωγή λεπτομερών αρχείων καταγραφής</string>
@@ -71,9 +54,6 @@
     <string name="copy_url_label">Αντιγραφή URL</string>
     <string name="share_url_label">Κοινοποίηση URL</string>
     <string name="go_to_position_label">Μετάβαση σε αυτή τη θέση</string>
-    <string name="show_shared_logs_label">Εμφάνιση κοινόχρηστων αρχείων καταγραφής</string>
-    <string name="show_subscription_logs_label">Εμφάνιση αρχείων καταγραφής συνδρομής</string>
-    <string name="show_download_logs_label">Εμφάνιση αρχείων καταγραφής λήψεων</string>
     <!-- Playback history -->
     <string name="clear_history_label">Εκκαθάριση ιστορικού</string>
     <string name="clear_playback_history_msg">Αυτό θα καθαρίσει ολόκληρο το ιστορικό αναπαραγωγής. Είστε σίγουροι ότι θέλετε να προχωρήσετε\?</string>
@@ -93,7 +73,6 @@
     <string name="error_msg_prefix">Παρουσιάστηκε σφάλμα:</string>
     <string name="refresh_label">Ανανέωση</string>
     <string name="new_synth_label">Νέα συνθετική τροφοδοσία</string>
-    <string name="new_synth_yt_label">Νέο συνθετικό Youtube</string>
     <string name="toggle_grid_list">Εναλλαγή λίστας πλέγματος</string>
     <string name="refreshing_label">Ανανέωση</string>
     <string name="clear_new_label">Εκκαθάριση νέου</string>
@@ -125,7 +104,6 @@
     <string name="replace">Αντικατάσταση</string>
     <string name="feed_auto_dleq_newer">Νεότερα μη παιγμένα</string>
     <string name="feed_auto_dleq_older">Παλαιότερα δεν παιχτηκαν</string>
-    <string name="feed_auto_dleq_soon">Επισήμανση ως Σύντομα</string>
     <string name="put_in_queue_label">Add to queue…</string>
     <string name="remove_from_other_queues">Αφαίρεση από άλλες ουρές</string>
     <string name="create_synthetic_first_note">Θα πρέπει πρώτα να δημιουργήσετε κάποιες συνθετικές ροές</string>
@@ -134,23 +112,12 @@
     <string name="episode_cleanup_never">Ποτέ</string>
     <string name="episode_cleanup_except_favorite">Όταν δεν είναι αγαπημένο</string>
     <string name="episode_cleanup_not_in_queue">Όταν δεν βρίσκεται στην ουρά</string>
-    <string name="episode_cleanup_after_listening">Μετά την ολοκλήρωση</string>
-    <plurals name="episode_cleanup_hours_after_listening">
-        <item quantity="one">1 ώρα μετά το τέλος</item>
-        <item quantity="other">%d ώρες μετά το τέλος</item>
-    </plurals>
-    <plurals name="episode_cleanup_days_after_listening">
-        <item quantity="one">1 ημέρα μετά το τέλος</item>
-        <item quantity="other">%d ημέρες μετά την ολοκλήρωση</item>
-    </plurals>
     <!-- Actions on feeds -->
     <string name="max_episodes_cache">Επιτρέπονται μέγιστα επεισόδια</string>
     <string name="new_namee">Νέο όνομα</string>
     <string name="feed_settings_label">Ρυθμίσεις Podcast</string>
-    <string name="switch_queue_label">Επιλέξτε ενεργή ουρά</string>
     <string name="rename_feed_label">Μετονομασία podcast</string>
     <string name="remove_feed_label">Αφαίρεση podcast</string>
-    <string name="init_tts">Έναρξη TTS</string>
     <string name="share_label">Κοινοποίηση</string>
     <string name="share_file_label">Κοινή χρήση αρχείου</string>
     <string name="share_notes_label">Κοινή χρήση σημειώσεων</string>
@@ -161,18 +128,14 @@
     <string name="not_erase_message">Μόνο επεισόδια από συνθετικές ζωοτροφές μπορούν να διαγραφούν.</string>
     <string name="reason_to_delete_msg">Για μελλοντική αναφορά, μπορείτε να καταγράψετε έναν λόγο εδώ:</string>
     <string name="load_complete_feed">Ανανέωση πλήρους podcast</string>
-    <string name="multi_select">Πολλαπλή επιλογή</string>
-    <string name="filtered_label">Φιλτραρισμένο</string>
     <string name="progressing_label">Επεξεργασία</string>
     <string name="open_podcast">Άνοιγμα podcast</string>
     <string name="open">Άνοιγμα</string>
-    <string name="please_wait_for_data">Παρακαλώ περιμένετε μέχρι να φορτωθούν τα δεδομένα</string>
     <plurals name="updated_feeds_batch_label">
         <item quantity="one">%d η συνδρομή ενημερώθηκε.</item>
         <item quantity="other">Οι συνδρομές %d ενημερώθηκαν.</item>
     </plurals>
     <string name="edit_tags">Επεξεργασία ετικετών</string>
-    <string name="add_tag">Προσθήκη ετικέτας</string>
     <string name="confirm_delete_logs_label">Επιβεβαίωση διαγραφής αρχείων καταγραφής εδώ</string>
     <string name="confirm_delete_logs_message">Αυτό θα διαγράψει όλα τα αρχεία καταγραφής που εμφανίζονται εδώ από τη βάση δεδομένων και δεν μπορεί να αναιρεθεί. Είστε σίγουροι?</string>
     <string name="confirm_mobile_feed_refresh_dialog_message">Ανανέωση podcast μέσω σύνδεσης δεδομένων κινητής τηλεφωνίας είναι απενεργοποιημένη στις ρυθμίσεις.\n\nΘέλετε να ανανεώσετε ούτως ή άλλως\?</string>
@@ -190,23 +153,16 @@
     <string name="delete_failed_simple">Αδυναμία διαγραφής αρχείου.</string>
     <string name="delete_local_failed">Δεν είναι δυνατή η διαγραφή αρχείου. Προσπαθήστε να επανασυνδέσετε τον τοπικό φάκελο από την οθόνη πληροφοριών podcast</string>
     <string name="delete_episode_label">Διαγραφή επεισοδίων πολυμέσων</string>
-    <string name="show_hidden">Εμφάνιση κρυφών</string>
     <string name="no_action_label">Καμία ενέργεια</string>
     <string name="my_opinion_label">Η γνώμη μου</string>
     <string name="add_opinion_label">Προσθήκη γνώμης</string>
     <string name="cancelled_on_label">Ακυρώθηκε στις</string>
     <string name="choose_tab">Επιλέξτε μια καρτέλα στο κανάλι</string>
     <string name="set_play_state_label">Ορισμός κατάστασης αναπαραγωγής</string>
-    <string name="play_this_to_seek_position">Για να μεταβείτε σε θέσεις, θα πρέπει να παίξετε το επεισόδιο</string>
     <string name="combo_action">Combo δράση</string>
     <string name="shelve_label">Ράφι σε συνθετικό</string>
     <string name="add_to_queue_label">Προσθήκη στην ενεργή ουρά</string>
     <string name="remove_from_queue_label">Αφαίρεση από την ενεργή ουρά</string>
-    <plurals name="removed_from_queue_batch_label">
-        <item quantity="one">Το επεισόδιο %d αφαιρέθηκε από την ουρά.</item>
-        <item quantity="other">%d επεισόδια αφαιρέθηκαν από την ουρά.</item>
-    </plurals>
-    <string name="show_video_label">Αναπαραγωγή βίντεο</string>
     <string name="media_type">Τύπος πολυμέσων</string>
     <string name="unknown">Άγνωστο</string>
     <string name="audio">Ήχος</string>
@@ -235,7 +191,6 @@
     <string name="forever">Πάντα</string>
     <string name="ignored">Αγνοήθηκε</string>
     <string name="visit_website_label">Επισκεφθείτε την ιστοσελίδα</string>
-    <string name="skip_episode_label">Παράλειψη επεισοδίου</string>
     <string name="delete_local_feed_warning_body">Προειδοποίηση: διαγράφετε τοπικά επεισόδια. Θα διαγράψει τα αρχεία πολυμέσων από τον αποθηκευτικό χώρο της συσκευής σας. Δεν μπορεί να γίνει ξανά λήψη μέσω του Podcini. Συνέχεια?</string>
     <string name="share_existing">υπάρχον</string>
     <!-- Download messages and labels -->
@@ -294,14 +249,12 @@
     <string name="no_media_playing_label">Δεν υπάρχει αναπαραγωγή πολυμέσων</string>
     <string name="unknown_media_key">Podcini - Άγνωστο κλειδί πολυμέσων: %1$d</string>
     <string name="error_file_not_found">Το αρχείο δεν βρέθηκε</string>
-    <string name="no_media_label">Το στοιχείο δεν περιέχει αρχείο πολυμέσων</string>
     <!-- Queue operations -->
     <string name="lock_queue">Κλείδωμα ουράς</string>
     <string name="queue_locked">Η ουρά κλειδώθηκε</string>
     <string name="queue_unlocked">Η ουρά ξεκλειδώθηκε</string>
 
     <!--    <string name="switch_queue">Switch active queue</string>-->
-    <string name="open_queue">Άνοιγμα ουράς</string>
     <string name="checkbox_do_not_show_again">Να μην εμφανιστεί ξανά</string>
     <string name="clear_queue_label">Εκκαθάριση ουράς</string>
     <string name="clear_bin_label">Καθαρισμός κάδου</string>
@@ -309,7 +262,6 @@
     <string name="sort">Ταξινόμηση</string>
     <string name="rename">Μετονομασία</string>
     <string name="add_queue">Προσθήκη ουράς</string>
-    <string name="keep_sorted">Διατήρηση ταξινομημένων</string>
     <string name="publish_date">Ημερομηνία δημοσίευσης</string>
     <string name="download_date">Ημερομηνία λήψης</string>
     <string name="view_count">Προβολή αριθμού</string>
@@ -320,7 +272,6 @@
     <string name="completed_date">Ημερομηνία ολοκλήρωσης</string>
     <string name="duration">Διάρκεια</string>
     <string name="spent">Δαπανήθηκε</string>
-    <string name="hours">ώρες</string>
     <string name="episode_title">Τίτλος επεισοδίου</string>
     <string name="feed_title">Τίτλος Podcast</string>
     <string name="show_criteria">Εμφάνιση κριτηρίων</string>
@@ -330,9 +281,7 @@
     <string name="smart_shuffle">Έξυπνο ανακάτεμα</string>
     <string name="size">Μέγεθος</string>
     <string name="clear_queue_confirmation_msg">Παρακαλώ επιβεβαιώστε ότι θέλετε να καθαρίσετε την ουρά όλων των επεισοδίων σε αυτό</string>
-    <string name="show_bin_label">Εμφάνιση κάδου</string>
     <!--  Variable Speed -->
-    <string name="preset_already_exists">%1$.2fx έχει ήδη αποθηκευτεί ως προκαθορισμένο.</string>
     <!-- Empty list labels -->
     <string name="no_shownotes_label">Αυτό το επεισόδιο δεν έχει shownotes.</string>
 
@@ -345,7 +294,6 @@
     <string name="automation">Αυτοματισμός</string>
     <string name="download_pref_details">Λεπτομέρειες</string>
     <string name="import_export_pref">Εισαγωγή/Εξαγωγή</string>
-    <string name="import_export_search_keywords">δημιουργία αντιγράφων ασφαλείας, επαναφορά</string>
     <string name="pref_auto_backup_title">Αυτόματο αντίγραφο ασφαλείας</string>
     <string name="pref_auto_backup_sum">Αυτόματη δημιουργία αντιγράφων ασφαλείας της Βάσης Δεδομένων και προτιμήσεις σε ένα καθορισμένο χρονικό διάστημα σε έναν επιλεγμένο φάκελο.</string>
     <string name="pref_auto_backup_interval">Διάστημα αντιγράφου ασφαλείας</string>
@@ -359,9 +307,6 @@
     <string name="interruptions">Διακοπές</string>
     <string name="playback_control">Έλεγχος αναπαραγωγής</string>
     <string name="reassign_hardware_buttons">Επανεκχώρηση φυσικών πλήκτρων</string>
-    <string name="preference_search_hint">Search…</string>
-    <string name="preference_search_no_results">Κανένα αποτέλεσμα</string>
-    <string name="preference_search_clear_history">Εκκαθάριση ιστορικού</string>
     <string name="pref_episode_cleanup_title">Εκκαθάριση επεισοδίων</string>
     <string name="pref_episode_cleanup_summary">Επεισόδια που θα πρέπει να είναι επιλέξιμες για αφαίρεση αν Auto Download χρειάζεται χώρο για νέα επεισόδια</string>
     <string name="pref_pauseOnDisconnect_sum">Παύση της αναπαραγωγής όταν τα ακουστικά ή το bluetooth αποσυνδέονται</string>
@@ -376,7 +321,6 @@
     <string name="button_action_skip_episode">Παράλειψη επεισοδίου</string>
     <string name="button_action_restart_episode">Επανεκκίνηση επεισοδίου</string>
     <string name="pref_followQueue_sum">Μετάβαση στο επόμενο στοιχείο ουράς όταν ολοκληρωθεί η αναπαραγωγή</string>
-    <string name="pref_pick_custom_media_dir">Καθορίστε έναν προσαρμοσμένο φάκελο</string>
     <string name="pref_custom_media_dir_title">Χρήση προσαρμοσμένου φακέλου πολυμέσων</string>
     <string name="pref_custom_media_dir_sum">Επιλέξτε έναν προσαρμοσμένο φάκελο για τα ληφθέντα μέσα. Μπορείτε πάντα να επαναφέρετε. Απαιτείται επανεκκίνηση.</string>
     <string name="pref_custom_media_dir_sum1">Ο προσαρμοσμένος φάκελος πολυμέσων έχει οριστεί. Θέλετε να αλλάξετε?</string>
@@ -427,16 +371,8 @@
     <string name="user_interface_sum">Εμφάνιση, συνδρομές, οθόνη κλειδώματος</string>
     <string name="pref_black_theme_title">Πλήρες μαύρο</string>
     <string name="pref_black_theme_message">Χρήση πλήρους μαύρου για το σκούρο θέμα</string>
-    <string name="pref_tinted_theme_title">Δυναμικά χρώματα</string>
-    <string name="pref_tinted_theme_message">Προσαρμογή χρωμάτων εφαρμογών με βάση την ταπετσαρία</string>
-    <string name="pref_nav_drawer_items_title">Ορισμός στοιχείων συρταριού πλοήγησης</string>
-    <string name="pref_nav_drawer_items_sum">Αλλαγή των στοιχείων που εμφανίζονται στο συρτάρι πλοήγησης</string>
-    <string name="pref_nav_drawer_feed_order_title">Ορισμός παραγγελίας συνδρομής κατά</string>
-    <string name="pref_nav_drawer_feed_order_sum">Αλλάξτε τη σειρά των συνδρομών σας</string>
     <string name="pref_automatic_download_title">Αυτόματη λήψη</string>
     <string name="pref_automatic_download_sum">Ρυθμίστε την αυτόματη λήψη των επεισοδίων</string>
-    <string name="pref_autodl_wifi_filter_title">Ενεργοποίηση φίλτρου Wi-Fi</string>
-    <string name="pref_autodl_wifi_filter_sum">Να επιτρέπεται η αυτόματη λήψη μόνο για επιλεγμένα δίκτυα Wi-Fi.</string>
     <string name="pref_automatic_download_on_battery_title">Λήψη κατά τη μη φόρτιση</string>
     <string name="pref_automatic_download_on_battery_sum">Να επιτρέπεται η αυτόματη λήψη όταν η μπαταρία δεν φορτίζει</string>
     <string name="pref_episode_cache_title">Cache επεισοδίου</string>
@@ -450,12 +386,10 @@
     <string name="pref_theme_title_automatic">Αυτόματο</string>
     <string name="pref_theme_title_light">Φωτεινό</string>
     <string name="pref_theme_title_dark">Σκοτεινό</string>
-    <string name="pref_episode_cache_unlimited">Απεριόριστο</string>
     <string name="pref_playback_speed_sum">Προσαρμόστε τις διαθέσιμες ταχύτητες για αναπαραγωγή μεταβλητής ταχύτητας</string>
     <string name="pref_feed_playback_speed_sum">Η ταχύτητα που θα χρησιμοποιηθεί κατά την εκκίνηση αναπαραγωγής ήχου για επεισόδια σε αυτό το podcast</string>
     <string name="pref_feed_skip">Αυτόματη παράλειψη</string>
     <string name="pref_feed_skip_sum">Παράλειψη εισαγωγών και τερματισμού πιστώσεων.</string>
-    <string name="associated">Συσχετισμένο</string>
     <string name="pref_feed_audio_type">Τύπος ήχου</string>
     <string name="pref_feed_audio_type_sum">Ομιλία, Μουσική ή Ταινία για βελτιωμένη επεξεργασία.</string>
     <string name="pref_feed_audio_quality">Ποιότητα ήχου</string>
@@ -464,8 +398,6 @@
     <string name="pref_feed_video_quality_sum">Παγκόσμια ισούται με χαμηλή ποιότητα, η ρύθμιση ποιότητας εδώ προηγείται της ρύθμισης του prefLowQualityMedia για μετρημένο δίκτυο.</string>
     <string name="pref_feed_associated_queue">Συσχετισμένη ουρά</string>
     <string name="pref_feed_associated_queue_sum">Η ουρά στην οποία θα προστεθούν τα επιθέματα στην τροφοδοσία από προεπιλογή</string>
-    <string name="pref_feed_skip_ending">Παράλειψη τελευταίου</string>
-    <string name="pref_feed_skip_intro">Παράλειψη πρώτα</string>
     <string name="pref_feed_skip_ending_toast">Παράλειψη των τελευταίων %d δευτερολέπτων</string>
     <string name="pref_feed_skip_intro_toast">Παράλειψη των πρώτων %d δευτερολέπτων</string>
 
@@ -480,9 +412,6 @@
     <string name="pref_rewind_sum">Προσαρμόστε τον αριθμό των δευτερολέπτων για να πηδήξετε προς τα πίσω όταν πατηθεί το κουμπί rewind</string>
     <string name="pref_playback_video_mode">Λειτουργία αναπαραγωγής βίντεο</string>
     <string name="pref_playback_video_mode_sum">Επιλέξτε τον τρόπο αναπαραγωγής του επεισοδίου βίντεο από προεπιλογή</string>
-    <string name="pref_video_mode_full_screen">Πλήρης οθόνη</string>
-    <string name="pref_video_mode_small_window">Μικρό παράθυρο</string>
-    <string name="pref_video_mode_audio_only">Μόνο ήχος</string>
     <string name="pref_swipe_refresh_title">Σύρετε για ανανέωση</string>
     <string name="pref_swipe_refresh_sum">Σύρετε προς τα κάτω για ανανέωση όλων των συνδρομών</string>
     <string name="pref_feedGridLayout_title">Οι συνδρομές χρησιμοποιούν διάταξη πλέγματος </string>
@@ -493,9 +422,6 @@
 
     <string name="pref_show_notification_skip_title">Εμφάνιση παράλειψης κατά την ειδοποίηση</string>
     <string name="pref_show_notification_skip_sum">Εναλλαγή κουμπιού παράλειψης στον πίνακα ειδοποιήσεων</string>
-    <string name="pref_compact_notification_buttons_dialog_error_exact">Πρέπει να επιλέξετε ακριβώς %1$d αντικείμενα.</string>
-    <string name="pref_full_notification_buttons_title">Ορισμός πλήκτρων ειδοποίησης</string>
-    <string name="pref_full_notification_buttons_sum">Αλλάξτε τα κουμπιά αναπαραγωγής στην ειδοποίηση αναπαραγωγής.</string>
     <string name="pref_enqueue_location_title">Τοποθεσία στην ουρά</string>
     <string name="pref_enqueue_location_sum">Προσθήκη επεισοδίων στο: %1$s</string>
     <string name="enqueue_location_back">Πίσω</string>
@@ -530,11 +456,6 @@
     <!-- About screen -->
     <string name="about_pref">Σχετικά</string>
     <string name="podcini_version">Έκδοση Podcini</string>
-    <string name="contributors">Συντελεστές</string>
-    <string name="contributors_summary">Ο καθένας μπορεί να βοηθήσει να γίνει το Podcini καλύτερο - με κώδικα, μεταφράσεις ή βοηθώντας τους χρήστες στο φόρουμ μας</string>
-    <string name="developers">Προγραμματιστές</string>
-    <string name="translators">Μεταφραστές</string>
-    <string name="special_thanks">Ιδιαίτερες ευχαριστίες</string>
     <string name="online_help">Αρχική σελίδα στο διαδίκτυο</string>
     <string name="online_help_sum">Περισσότερες πληροφορίες online</string>
     <string name="privacy_policy">Πολιτική απορρήτου</string>
@@ -560,30 +481,14 @@
     <string name="sync_error_guest_not_respond">Επισκέπτης δεν ανταποκρίνεται, εγκαταλείψει</string>
     <!-- import and export -->
     <string name="import_export_summary">Μετακίνηση συνδρομών και ουράς σε άλλη συσκευή</string>
-    <string name="preferences">Ρυθμίσεις</string>
-    <string name="media_files">Αρχεία πολυμέσων</string>
-    <string name="combos">Combos</string>
-    <string name="database">Βάση Δεδομένων</string>
-    <string name="opml">OPML</string>
-    <string name="html">HTML</string>
-    <string name="progress">Πρόοδος</string>
     <string name="html_export_summary">Εμφάνιση των συνδρομών σας σε έναν φίλο</string>
     <string name="opml_export_summary">Μεταφέρετε τις συνδρομές σας σε άλλη εφαρμογή podcast</string>
     <string name="opml_import_summary">Εισαγάγετε τις συνδρομές σας από άλλη εφαρμογή podcast</string>
-    <string name="preferences_export_summary">Εξαγωγή προτιμήσεων Podcini</string>
-    <string name="preferences_import_summary">Εισαγωγή προτιμήσεων Podcini</string>
-    <string name="media_files_export_summary">Εξαγωγή αρχείων πολυμέσων Podcini</string>
-    <string name="media_files_import_summary">Εισαγωγή αρχείων πολυμέσων Podcini</string>
     <string name="combo_export_summary">Εξαγωγή επιλεκτικά της βάσης δεδομένων, προτιμήσεις, αρχεία πολυμέσων.</string>
     <string name="combo_import_summary">Εισαγωγή επιλεκτικά της βάσης δεδομένων, προτιμήσεις, αρχεία πολυμέσων.</string>
-    <string name="database_export_summary">Μεταφορά συνδρομών, ακούστηκαν επεισόδια και ουρά για Podcini σε άλλη συσκευή</string>
-    <string name="database_import_summary">Εισαγωγή βάσης δεδομένων Podcini από άλλη συσκευή</string>
     <string name="opml_import_label">Εισαγωγή OPML</string>
     <string name="opml_add_podcast_label">Εισαγωγή λίστας podcast (OPML)</string>
     <string name="opml_reader_error">Παρουσιάστηκε σφάλμα κατά την ανάγνωση του αρχείου. Βεβαιωθείτε ότι έχετε επιλέξει ένα αρχείο OPML και ότι το αρχείο είναι έγκυρο.</string>
-    <string name="opml_import_error_no_file">Δεν επιλέχθηκε αρχείο!</string>
-    <string name="select_all_label">Επιλογή όλων</string>
-    <string name="deselect_all_label">Αποεπιλογή όλων</string>
     <string name="progress_export_label">Εξαγωγές προόδου επεισοδίων</string>
     <string name="progress_import_label">Επεισόδια εισαγωγής προόδου</string>
     <string name="progress_export_summary">Μεταφορά Podcini Ιστορία επεισόδια σε μια διαφορετική εγκατάσταση του Podcini. Σημειώστε ότι αυτό δεν είναι απαραίτητο αν μπορείτε να μεταφέρετε το DB.</string>
@@ -591,14 +496,8 @@
     <string name="progress_import_warning">Η εισαγωγή προόδου επεισοδίων θα αντικαταστήσει όλο το τρέχον ιστορικό παιχνιδιού. Θα πρέπει να εξαγάγετε την τρέχουσα πρόοδο σας ως ένα αντίγραφο ασφαλείας. Θέλετε να αντικαταστήσετε\? Αν ναι, στην επόμενη οθόνη, επιλέξτε το επιθυμητό. Αρχείο γιου. Η διαδικασία μπορεί να διαρκέσει μερικά λεπτά ανάλογα με το μέγεθος. Μόλις ολοκληρωθεί, θα εμφανιστεί ένα αναδυόμενο παράθυρο είτε της επιτυχίας είτε της αποτυχίας.</string>
     <string name="opml_export_label">Εξαγωγή OPML</string>
     <string name="html_export_label">Εξαγωγή HTML</string>
-    <string name="media_files_export_label">Εξαγωγή αρχείων πολυμέσων</string>
-    <string name="media_files_import_label">Εισαγωγή αρχείων πολυμέσων</string>
     <string name="import_SQLite_message">Εισαγόμενες συνδρομές μαζί με επεισόδια και ιστορικό παιχνιδιού θα προστεθούν στην υπάρχουσα DB. Εάν επιβεβαιωθεί, επιλέξτε μια προηγουμένως εξαγόμενη βάση δεδομένων sqlite.\"</string>
     <string name="combo_import_warning">Η εισαγωγή οποιουδήποτε από τα επιλεγμένα στοιχεία θα αντικαταστήσει αυτά στον τρέχοντα χώρο αποθήκευσης. Αν επιβεβαιωθεί, επιλέξτε έναν φάκελο που είχε εξαχθεί προηγουμένως με όνομα που περιέχει το \"Podcini- Backups\"</string>
-    <string name="preferences_export_label">Εξαγωγή προτιμήσεων</string>
-    <string name="preferences_import_label">Προτιμήσεις εισαγωγής</string>
-    <string name="preferences_import_warning">Η εισαγωγή προτιμήσεων θα αντικαταστήσει όλες τις τρέχουσες προτιμήσεις. Αν επιβεβαιωθεί, επιλέξτε έναν φάκελο που είχε εξαχθεί προηγουμένως με όνομα που περιέχει \"Podcini-Prefs\"</string>
-    <string name="media_files_import_notice">Επιλέξτε έναν φάκελο που είχε εξαχθεί προηγουμένως με όνομα που περιέχει το \"Podcini-MediaFiles\"</string>
     <string name="combo_export_label">Εξαγωγή Combo</string>
     <string name="combo_import_label">Εισαγωγή Combo</string>
     <string name="import_AP_label">Εισαγωγή βάσης δεδομένων AntennaPod</string>
@@ -608,16 +507,10 @@
     <string name="import_PA_directory_label">Εισαγωγή καταλόγου</string>
     <string name="import_PA_directory_message">Εισαγωγή μιας κατεύθυνσης podcast για αναζήτηση εκτός σύνδεσης. \"</string>
     <string name="import_PA_message">Αν επιβεβαιωθεί, επιλέξτε ένα αρχείο αντιγράφων ασφαλείας που είχε εξαχθεί προηγουμένως από την εφαρμογή Podcast Addict.\"</string>
-    <string name="database_export_label">Εξαγωγή βάσης δεδομένων</string>
-    <string name="database_import_label">Εισαγωγή βάσης δεδομένων</string>
-    <string name="realm_database_import_label">Εισαγωγή βάσης δεδομένων Realm</string>
-    <string name="database_import_warning">Η εισαγωγή μιας βάσης δεδομένων θα αντικαταστήσει όλες τις τρέχουσες συνδρομές σας και το ιστορικό αναπαραγωγής. Θα πρέπει να εξαγάγετε την τρέχουσα βάση δεδομένων σας ως αντίγραφο ασφαλείας. Θέλετε να αντικαταστήσετε\? Αν ναι, στην επόμενη οθόνη, επιλέξτε ένα αρχείο με επέκταση .realm</string>
     <string name="import_directory_toast">Αποδοχή μόνο ονόματος καταλόγου που περιλαμβάνει: </string>
     <string name="import_file_type_toast">Αποδοχή μόνο επέκτασης αρχείου: </string>
-    <string name="please_wait">Please wait&#8230;</string>
     <string name="import_export_error_label">Σφάλμα εισαγωγής/εξαγωγής</string>
     <string name="export_success_title">Επιτυχής εξαγωγή</string>
-    <string name="opml_import_ask_read_permission">Απαιτείται πρόσβαση στον εξωτερικό χώρο αποθήκευσης για την ανάγνωση του αρχείου OPML</string>
     <string name="successful_import_label">Επιτυχής εισαγωγή</string>
     <string name="import_ok">Παρακαλώ πατήστε OK για να επανεκκινήσετε το Podcini</string>
     <string name="favorites_export_label">Εξαγωγή αγαπημένων</string>
@@ -629,12 +522,10 @@
     <string name="disable_sleeptimer_label">Απενεργοποίηση χρονομέτρου ύπνου</string>
     <string name="extend_sleep_timer_label">+%d λεπτά</string>
     <string name="end_episode">Μέχρι το τέλος του επεισοδίου</string>
-    <string name="sleep_timer_always">Πάντα</string>
     <string name="sleep_timer_label">Χρονοδιακόπτης ύπνου</string>
     <string name="time_dialog_invalid_input">Μη έγκυρη είσοδος, ο χρόνος πρέπει να είναι θετικός ακέραιος</string>
     <string name="shake_to_reset_label">Ανακινήστε για επαναφορά</string>
     <string name="timer_vibration_label">Δόνηση λίγο πριν το τέλος</string>
-    <string name="time_seconds">δευτερόλεπτα</string>
     <string name="time_minutes">λεπτά</string>
     <string name="time_hours">ώρες</string>
     <plurals name="time_minutes_quantified">
@@ -650,22 +541,17 @@
         <item quantity="other">%d ημέρες</item>
     </plurals>
     <string name="auto_enable_label">Αυτόματη ενεργοποίηση του χρονοδιακόπτη ύπνου κατά το πάτημα αναπαραγωγής</string>
-    <string name="auto_enable_label_with_times" formatted="false">Αυτόματη ενεργοποίηση του χρονοδιακόπτη ύπνου όταν πατήσετε το παιχνίδι μεταξύ %s και %s</string>
-    <string name="auto_enable_change_times">Αλλαγή χρονικού εύρους</string>
-    <string name="sleep_timer_enabled_label">Ενεργοποίηση χρονοδιακόπτη ύπνου</string>
     <!-- Synchronisation -->
     <string name="wifi_sync">Συγχρονισμός με συσκευή στο Wifi</string>
     <string name="wifi_sync_summary_unchoosen">Μπορείτε να συνδέσετε δύο συσκευές στο ίδιο δίκτυο wifi για να συγχρονίσετε τις καταστάσεις παιχνιδιού επεισοδίων</string>
     <string name="synchronization_choose_title">Επιλέξτε πάροχο συγχρονισμού</string>
     <string name="synchronization_summary_unchoosen">Μπορείτε να επιλέξετε από πολλούς παρόχους για να συγχρονίσετε τις συνδρομές σας και την κατάσταση παιχνιδιού επεισοδίων με</string>
     <string name="dialog_choose_sync_service_title">Επιλέξτε πάροχο συγχρονισμού</string>
-    <string name="gpodnet_description">Το Gpodder.net είναι μια υπηρεσία συγχρονισμού podcast ανοιχτού κώδικα που μπορείτε να εγκαταστήσετε στον δικό σας διακομιστή. Το Gpodder.net είναι ανεξάρτητο από το έργο Podcini.</string>
     <string name="synchronization_summary_nextcloud">Το Gpoddersync είναι μια ανοιχτού κώδικα εφαρμογή Nextcloud που μπορείτε εύκολα να εγκαταστήσετε στον δικό σας διακομιστή. Η εφαρμογή είναι ανεξάρτητη από το έργο Podcini.</string>
     <string name="synchronization_host_explanation">Μπορείτε να επιλέξετε το δικό σας διακομιστή για συγχρονισμό. Όταν έχετε εντοπίσει τον προτιμώμενο διακομιστή συγχρονισμού, παρακαλώ εισάγετε τη διεύθυνσή του εδώ.</string>
     <string name="synchronization_host_address_label">Διεύθυνση κεντρικού υπολογιστή</string>
     <string name="synchronization_host_port_label">Θύρα κεντρικού υπολογιστή</string>
     <string name="synchronization_host_label">Διεύθυνση διακομιστή</string>
-    <string name="server">Διακομιστής</string>
     <string name="guest_butLabel">Ως επισκέπτης</string>
     <string name="host_butLabel">Ως οικοδεσπότης</string>
     <string name="proceed_to_login_butLabel">Συνεχίστε να συνδεθείτε</string>
@@ -675,18 +561,8 @@
     <string name="connect_to_peer">Συνδεθείτε με τον υπολογιστή</string>
     <string name="host_or_guest">Κάνε τον εαυτό σου έναν οικοδεσπότη ή έναν επισκέπτη πρώτα</string>
     <string name="gpodnetauth_login_butLabel">Είσοδος</string>
-    <string name="synchronization_credentials_explanation">Παρακαλώ δώστε τα διαπιστευτήρια του λογαριασμού σας στο διακομιστή συγχρονισμού.</string>
-    <string name="gpodnetauth_encryption_warning">Ο κωδικός πρόσβασης και τα δεδομένα δεν είναι κρυπτογραφημένα!</string>
     <string name="username_label">Όνομα Χρήστη</string>
     <string name="password_label">Κωδικός</string>
-    <string name="synchronization_login_butLabel">Σύνδεση</string>
-    <string name="synchronization_selectDevice_explanation">Παρακαλώ επιλέξτε τη συσκευή που δημιουργήσατε στο διακομιστή συγχρονισμού ή δημιουργήστε ένα νέο.</string>
-
-
-
-
-
-
 
 
     <string name="synchronization_sync_changes_title">Συγχρονισμός τώρα</string>
@@ -694,40 +570,21 @@
     <string name="synchronization_full_sync_title">Εξαναγκασμός πλήρους συγχρονισμού</string>
     <string name="synchronization_force_sync_summary">Επανασυγχρονισμός όλων των συνδρομών και καταστάσεων επεισοδίων</string>
     <string name="synchronization_logout">Αποσύνδεση</string>
-    <string name="synchronization_login_status"><![CDATA[Logged in as <i>%1$s</i> on <i>%2$s</i>. <br/><br/>You can choose your synchronization provider again once you have logged out]]></string>
     <string name="pref_synchronization_logout_toast">Η αποσύνδεση ήταν επιτυχής</string>
     <string name="gpodnetsync_error_title">σφάλμα συγχρονισμού gpodder.net</string>
     <string name="gpodnetsync_error_descr">Παρουσιάστηκε σφάλμα κατά τον συγχρονισμό:\u0020</string>
     <string name="gpodnetsync_pref_report_successful">Επιτυχής</string>
     <string name="gpodnetsync_pref_report_failed">Απέτυχε</string>
-    <string name="gpodnetsync_username_characters_error">Τα ονόματα χρηστών μπορούν να περιέχουν μόνο γράμματα, ψηφία, παύλες και κάτω παύλες.</string>
     <!-- Directory chooser -->
-    <string name="choose_data_directory">Επιλογή φακέλου δεδομένων</string>
-    <string name="choose_data_directory_message">Παρακαλώ επιλέξτε τη βάση του φακέλου δεδομένων σας. Podcini θα δημιουργήσει τους κατάλληλους υποκαταλόγους.</string>
-    <string name="choose_data_directory_available_space">%1$s από %2$s δωρεάν</string>
-    <string name="pref_pausePlaybackForFocusLoss_sum">Παύση της αναπαραγωγής αντί μείωσης της έντασης όταν μια άλλη εφαρμογή θέλει να παίξει ήχους</string>
-    <string name="pref_pausePlaybackForFocusLoss_title">Παύση για διακοπές</string>
     <!-- Online feed view -->
     <string name="subscribe_label">Εγγραφή</string>
-    <string name="preview_episode">Προεπισκόπηση</string>
     <!-- Content descriptions for image buttons -->
-    <string name="toolbar_back_button_content_description">Πίσω</string>
-    <string name="rewind_label">Rewind</string>
-    <string name="fast_forward_label">Γρήγορη προώθηση</string>
-    <string name="toggle_video_views">Εναλλαγή προβολών βίντεο</string>
-    <string name="increase_speed">Αύξηση ταχύτητας</string>
-    <string name="decrease_speed">Μείωση ταχύτητας</string>
     <string name="status_downloading_label">Γίνεται λήψη του επεισοδίου</string>
-    <string name="load_next_page_label">Φόρτωση επόμενης σελίδας</string>
-    <string name="position">Θέση: %1$s</string>
-    <string name="next_chapter">Επόμενο κεφάλαιο</string>
-    <string name="add_preset">Προσθήκη προεπιλογής</string>
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Ταυτοποίηση</string>
     <string name="authentication_descr">Αλλάξτε το όνομα χρήστη και τον κωδικό πρόσβασης για αυτό το podcast και τα επεισόδιά του.</string>
     <string name="feed_tags_label">Ετικέτες</string>
     <string name="feed_tags_summary">Αλλάξτε τις ετικέτες αυτού του podcast για να οργανώσετε τις συνδρομές σας</string>
-    <string name="feed_folders_include_root">Εμφάνιση αυτού του podcast στην κύρια λίστα</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Εμφανίζονται μόνο κοινές ετικέτες από όλες τις επιλεγμένες συνδρομές. Άλλες ετικέτες παραμένουν ανεπηρέαστες.</string>
     <string name="auto_download_settings_label">Ρυθμίσεις αυτόματης λήψης</string>
     <string name="episode_filters_label">Φίλτρο επεισοδίων</string>
@@ -758,8 +615,6 @@
     <string name="feeds_related_to_author">Ροές πιθανόν να σχετίζονται με τον συγγραφέα »</string>
     <string name="edit_url_menu">Επεξεργασία URL ροής</string>
     <string name="edit_url_confirmation_msg">Η αλλαγή της διεύθυνσης RSS μπορεί εύκολα να σπάσει την κατάσταση αναπαραγωγής και τις καταχωρήσεις επεισοδίων του podcast. ΔΕΝ προτείνουμε την αλλαγή του και ΔΕΝ θα παράσχουμε υποστήριξη αν κάτι πάει στραβά. Αυτό δεν μπορεί να αναιρεθεί. Η σπασμένη συνδρομή ΔΕΝ μπορεί να επισκευαστεί αλλάζοντας απλά τη διεύθυνση πίσω. Σας συνιστούμε να δημιουργήσετε ένα αντίγραφο ασφαλείας πριν συνεχίσετε.</string>
-    <string name="edit_fast_forward_speed">Επεξεργασία γρήγορης μπροστινής ταχύτητας</string>
-    <string name="edit_fallback_speed">Επεξεργασία εναλλακτικής ταχύτητας</string>
     <!-- PodciniSP -->
     <string name="sp_apps_importing_feeds_msg">Εισαγωγή συνδρομών από εφαρμογές μιας χρήσης&#8230;</string>
     <!-- Add podcast fragment -->
@@ -768,9 +623,7 @@
     <string name="search_itunes_label">Αναζήτηση Στο Apple Podcast</string>
     <string name="search_podcastindex_label">Αναζήτηση Ευρετηρίου Εκπομπής Pod</string>
 
-    <string name="gpodnet_search_hint">Αναζήτηση στο gpodder.net</string>
     <string name="advanced">Προχωρημένα</string>
-    <string name="add_podcast_by_url">Προσθήκη Podcast από τη διεύθυνση RSS</string>
     <string name="discover">Ανακαλύψτε</string>
     <string name="discover_hide">Απόκρυψη</string>
     <string name="discover_is_hidden">Επιλέξατε να αποκρύψετε προτάσεις.</string>
@@ -786,10 +639,8 @@
     <string name="reconnect_local_folder_warning">Σε περίπτωση άρνησης άδειας, μπορείτε να χρησιμοποιήσετε αυτό για να επανασυνδεθείτε στον ίδιο ακριβώς φάκελο. Μην επιλέξετε άλλο φάκελο.</string>
     <string name="local_feed_description">Αυτό το εικονικό podcast δημιουργήθηκε με την προσθήκη ενός φακέλου στο Podcini.</string>
     <string name="unable_to_start_system_file_manager">Δεν είναι δυνατή η εκκίνηση του διαχειριστή αρχείων συστήματος</string>
-    <string name="filter">Φίλτρο</string>
     <string name="downloaded_label">Λήφθηκε</string>
     <string name="auto_downloadable_label">Αυτόματη λήψη</string>
-    <string name="has_media">Έχει πολυμέσα</string>
     <string name="has_chapters">Έχει κεφάλαια</string>
     <string name="filename">Όνομα αρχείου</string>
     <string name="play_speed">Ταχύτητα παιχνιδιού</string>
@@ -846,9 +697,6 @@
     <string name="notification_channel_sync_error">Ο συγχρονισμός απέτυχε</string>
     <string name="notification_channel_sync_error_description">Εμφανίζεται όταν ο συγχρονισμός gpodder αποτυγχάνει.</string>
     <!-- Widget settings -->
-    <string name="widget_settings">Ρυθμίσεις widget</string>
-    <string name="widget_create_button">Δημιουργία widget</string>
-    <string name="widget_opacity">Αδιαφάνεια</string>
     <!-- On-Demand configuration -->
     <string name="on_demand_config_setting_changed">Η ρύθμιση ενημερώθηκε επιτυχώς.</string>
     <string name="on_demand_config_stream_text">Φαίνεται ότι μπορείτε να κάνετε stream πολλά. Θέλετε οι λίστες επεισοδίων να εμφανίζουν τα κουμπιά ροής\?</string>
@@ -856,7 +704,4 @@
     <string name="shortcut_subscription_label">Συντόμευση συνδρομής</string>
     <string name="shortcut_select_subscription">Επιλογή συνδρομής</string>
     <string name="add_shortcut">Προσθήκη συντόμευσης</string>
-    <string name="Episode">Επεισόδιο</string>
-    <string name="Podcast">Podcast</string>
-    <string name="All">Όλα</string>
 </resources>

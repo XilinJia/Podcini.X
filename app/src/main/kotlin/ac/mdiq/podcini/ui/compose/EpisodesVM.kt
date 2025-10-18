@@ -55,9 +55,8 @@ import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
+import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
-import ac.mdiq.podcini.ui.actions.NullActionButton
-import ac.mdiq.podcini.ui.actions.PauseActionButton
 import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
@@ -270,7 +269,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     var downloadState by mutableIntStateOf(if (episode.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal)
     var viewCount by mutableIntStateOf(episode.viewCount)
     var likeCount by mutableIntStateOf(episode.likeCount)
-    var actionButton by mutableStateOf(NullActionButton(episode).update(episode))
+    var actionButton by mutableStateOf(EpisodeActionButton(episode))
     var showAltActionsDialog by mutableStateOf(false)
     var dlPercent by mutableIntStateOf(0)
     var isSelected by mutableStateOf(false)
@@ -287,7 +286,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
         if (episode.id == e.id) {
             episode = e
             withContext(Dispatchers.Main) {
-                Logd(TAG, "updateVM fields: ${fa.joinToString()} ${e.position}")
+                Logd(TAG, "updateVM fields: ${fa.joinToString()} ${e.position} ${e.downloaded}")
                 playedState = e.playState
                 ratingState = e.rating
                 downloadState = if (e.downloaded) DownloadStatus.State.COMPLETED.ordinal else DownloadStatus.State.UNKNOWN.ordinal
@@ -938,39 +937,44 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                         LaunchedEffect(playerStat) {
                             if (vm.episode.id == curMediaId) {
                                 Logd(TAG, "LaunchedEffect playerStat")
-                                vm.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(vm.episode) else vm.actionButton.update(vm.episode)
+                                if (playerStat == PLAYER_STATUS_PLAYING) vm.actionButton.type = ButtonTypes.PAUSE
+                                else vm.actionButton.update(vm.episode)
                             }
                         }
+                        LaunchedEffect(vm.downloadState) {
+                            Logd(TAG, "LaunchedEffect downloadState")
+                            vm.actionButton.update(vm.episode)
+                        }
+
                     } else LaunchedEffect(Unit) { vm.actionButton = actionButton_(vm.episode) }
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd).pointerInput(Unit) {
                         detectTapGestures(
                             onLongPress = { vms[index].showAltActionsDialog = true },
                             onTap = {
-                                val newButton = vm.actionButton.onClick(activity)
+                                vm.actionButton.onClick(activity)
                                 Logd(TAG, "onTap vm.actionButton: ${vm.actionButton.TAG}")
-                                if (vm.actionButton.TAG == "DownloadActionButton") {
+                                if (vm.actionButton.type == ButtonTypes.CANCEL) {
                                     // TODO: better be able to pull the info deom somewhere
-                                    runOnIOScope {
-                                        repeat(10) { attempt ->
+                                    coroutineScope.launch {
+                                        while (true) {
                                             delay(1000)
                                             vm.updateVMFromDB()
                                             Logd(TAG, "vm.downloadState: ${vm.downloadState}")
                                             if (vm.downloadState == DownloadStatus.State.COMPLETED.ordinal) {
-                                                vm.actionButton = vm.actionButton.update(vm.episode)
-                                                return@runOnIOScope
+                                                withContext(Dispatchers.Main) { vm.actionButton.update(vm.episode) }
+                                                return@launch
                                             }
                                         }
                                     }
                                 }
                                 actionButtonCB?.invoke(vm.episode, vm.actionButton.TAG)
-                                vm.actionButton = newButton
                             }) }) {
                         val res by remember { derivedStateOf { vm.actionButton.drawable } }
                         Icon(imageVector = ImageVector.vectorResource(res), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
                         if (isDownloading() && vm.dlPercent >= 0) CircularProgressIndicator(progress = { 0.01f * vm.dlPercent }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                         if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing }, strokeWidth = 4.dp, color = buttonColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                     }
-                    if (vm.showAltActionsDialog) vm.actionButton.AltActionsDialog(activity, onDismiss = { vm.showAltActionsDialog = false }, cb = { vm.actionButton = it })
+                    if (vm.showAltActionsDialog) vm.actionButton.AltActionsDialog(activity, onDismiss = { vm.showAltActionsDialog = false })
                 }
             }
         }
@@ -978,7 +982,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
 
     @Composable
     fun ProgressRow(vm: EpisodeVM, index: Int) {
-        Logd(TAG, "ProgressRow vm.inProgressState: ${vm.inProgressState} ${InTheatre.isCurMedia(vm.episode)} ${vm.episode.title}")
+//        Logd(TAG, "ProgressRow vm.inProgressState: ${vm.inProgressState} ${InTheatre.isCurMedia(vm.episode)} ${vm.episode.title}")
         if (vm.inProgressState || InTheatre.isCurMedia(vm.episode)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             val pos by remember(vm.episode.id) { derivedStateOf { vm.positionState } }
@@ -1032,7 +1036,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                 Logd(TAG, "subscribeCurVM ${curVM?.episode?.id} $curMediaId")
                 if (curVM != null) {
                     unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
-                    curVM!!.actionButton = curVM!!.actionButton.update(curVM!!.episode)
+                    curVM!!.actionButton.update(curVM!!.episode)
                     curVM = null
                 }
                 if (curMediaId > 0) {
@@ -1047,7 +1051,8 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                                     Logd(TAG, "subscribeCurVM start monitor ${vm.episode.title}")
                                     subscribeEpisode(vm.episode, MonitorEntity(vm.tag, onChanges = { e, fields -> vm.updateVM(e, fields) }))
                                     curVM = vm
-                                    curVM!!.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(curVM!!.episode) else curVM!!.actionButton.update(curVM!!.episode)
+                                    if (playerStat == PLAYER_STATUS_PLAYING) curVM!!.actionButton.type = ButtonTypes.PAUSE
+                                    else curVM!!.actionButton.update(curVM!!.episode)
                                 }
                             }
                     }
@@ -1108,7 +1113,10 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                             }
                             if (curVM?.episode?.id == curMediaId) {
                                 curVM?.updateVMFromDB()
-                                withContext(Dispatchers.Main) { curVM?.actionButton = if (playerStat == PLAYER_STATUS_PLAYING) PauseActionButton(curVM!!.episode) else curVM!!.actionButton.update(curVM!!.episode) }
+                                withContext(Dispatchers.Main) {
+                                    if (playerStat == PLAYER_STATUS_PLAYING) curVM!!.actionButton.type = ButtonTypes.PAUSE
+                                    else curVM!!.actionButton.update(curVM!!.episode)
+                                }
                             } else withContext(Dispatchers.Main) { subscribeCurVM() }
                         }
                     }
@@ -1133,7 +1141,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                 Logd(TAG, "vms is empty, performing cleanup")
                 if (curVM != null) {
                     unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
-                    curVM!!.actionButton = curVM!!.actionButton.update(curVM!!.episode)
+                    curVM!!.actionButton.update(curVM!!.episode)
                     curVM = null
                 }
             }
@@ -1144,7 +1152,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                 Logd(TAG, "DisposableEffect onDispose")
                 if (curVM != null) {
                     unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
-                    curVM!!.actionButton = curVM!!.actionButton.update(curVM!!.episode)
+                    curVM!!.actionButton.update(curVM!!.episode)
                     curVM = null
                 }
             }
@@ -1282,7 +1290,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                 else if (item.properties[1].filterId in filter.propertySet) selectedIndex = 1
                             }
                             Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge , color = textColor, modifier = Modifier.padding(end = 10.dp))
-                            Spacer(Modifier.width(40.dp))
+                            Spacer(Modifier.width(30.dp))
                             OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else Color.Green),
                                 onClick = {
                                     if (selectedIndex != 0) {
@@ -1382,7 +1390,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                         if (expandRow) {
                                             var lowerSelected by remember { mutableStateOf(false) }
                                             var higherSelected by remember { mutableStateOf(false) }
-                                            Spacer(Modifier.width(40.dp))
+                                            Spacer(Modifier.width(30.dp))
                                             Text("<<<", color = if (lowerSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
                                                 val hIndex = selectedList.indexOfLast { it.value }
                                                 if (hIndex < 0) return@clickable
@@ -1435,8 +1443,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                 LaunchedEffect(Unit) {
                                     if (item.properties[index].filterId in filter.propertySet) selectedList[index].value = true
                                 }
-                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(),
-                                    border = BorderStroke(2.dp, if (selectedList[index].value) Color.Green else buttonColor),
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) Color.Green else buttonColor),
                                     onClick = {
                                         selectNone = false
                                         selectedList[index].value = !selectedList[index].value
@@ -1476,6 +1483,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
 @Composable
 fun EpisodeSortDialog(initOrder: EpisodeSortOrder, showKeepSorted: Boolean = false, onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder, Boolean) -> Unit) {
     val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || gearbox.SupportExtraSort()) } }
+    val buttonColor = MaterialTheme.colorScheme.tertiary
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
@@ -1488,7 +1496,7 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder, showKeepSorted: Boolean = fal
             Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).verticalScroll(scrollState)) {
                 NonlazyGrid(columns = 2, itemCount = orderList.size) { index ->
                     var dir by remember { mutableStateOf(if (sortIndex == index) initOrder.ordinal % 2 == 0 else true) }
-                    OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) textColor else Color.Green),
+                    OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) buttonColor else Color.Green),
                         onClick = {
                             if (sortIndex == index) dir = !dir
                             sortIndex = index

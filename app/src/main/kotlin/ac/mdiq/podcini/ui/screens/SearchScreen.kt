@@ -4,6 +4,7 @@ import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.storage.database.Episodes.indexWithUrl
 import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
@@ -170,6 +171,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         for (url in event.urls) {
             val pos: Int = episodes.indexWithUrl(url)
             if (pos >= 0 && pos < vms.size) vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
+            if (event.map[url]?.state == DownloadStatus.State.COMPLETED.ordinal) upsertBlk(vms[pos].episode) { it.downloaded = true }
         }
     }
 

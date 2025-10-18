@@ -24,7 +24,7 @@ import ac.mdiq.podcini.storage.utils.EpisodeFilter
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.StorageUtils.customMediaUriString
-import ac.mdiq.podcini.ui.actions.DeleteActionButton
+import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
@@ -177,6 +177,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
 //            if (!event.isCompleted(url)) continue
             val pos: Int = vms.vmIndexWithUrl(url)
             if (pos >= 0 && pos < vms.size) vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
+            if (event.map[url]?.state == DownloadStatus.State.COMPLETED.ordinal) upsertBlk(vms[pos].episode) { it.downloaded = true }
         }
     }
 
@@ -549,7 +550,7 @@ fun FacetsScreen() {
                     vm.curIndex = index
                     vm.tag = TAG + QuickAccess.entries[vm.curIndex]
                     putPref(AppPrefs.prefFacetsCurIndex, index)
-                    vm.actionButtonToPass = if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name) { it -> DeleteActionButton(it) } else null
+                    vm.actionButtonToPass = if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name) { it -> EpisodeActionButton(it, ButtonTypes.DELETE) } else null
                     vm.loadItems()
                 }
             }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {

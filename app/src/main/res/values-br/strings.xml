@@ -2,12 +2,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
   <!--Activity and fragment titles-->
   <string name="feed_update_receiver_name">Hizivaat ar c\'houmanantoù</string>
-  <string name="feeds_label">Podskignadoù</string>
-  <string name="statistics_label">Stadegoù</string>
+    <string name="statistics_label">Stadegoù</string>
   <string name="add_feed_label">Ouzhpennañ ur podskignad</string>
   <string name="episodes_label">Rannoù</string>
-  <string name="home_label">Degemer</string>
-  <string name="queue_label">Lost</string>
+    <string name="queue_label">Lost</string>
 
 
   <string name="settings_label">Gwellvezioù</string>
@@ -20,49 +18,30 @@
   <string name="playback_history_label">Roll istor lenn</string>
 
 
-  <string name="years_statistics_label">Bloavezhioù</string>
-  <string name="notification_pref_fragment">Rebuzadurioù</string>
+    <string name="notification_pref_fragment">Rebuzadurioù</string>
 
   <!--Google Assistant-->
   <string name="app_action_not_found">N\'eo ket bet kavet \"%1$s\"</string>
   <!--SwipeActions-->
   <string name="swipeactions_label">Gweredoù ar rikladurioù</string>
-  <string name="swipeactions_summary">Dibab petra c\'hoarvez pa vez riklet ur rann er roll</string>
-  <string name="swipe_right">Riklañ a-zehou</string>
+    <string name="swipe_right">Riklañ a-zehou</string>
   <string name="swipe_left">Riklañ a-gleiz</string>
 
-  <string name="individual_subscription">Koumanant hinienel</string>
-  <!--Statistics fragment-->
-  <string name="statistics_include_marked">Ebarzhiñ padelezh ar rannoù merket evel lennet</string>
-  <string name="statistics_speed_not_counted">Evezhiadenn: tizh al lenn n\'eo morse kemeret e kont.</string>
-  <string name="statistics_from">A-berzh</string>
-  <string name="statistics_to">Da</string>
-  <string name="statistics_today">Hiziv</string>
+    <!--Statistics fragment-->
+    <string name="statistics_speed_not_counted">Evezhiadenn: tizh al lenn n\'eo morse kemeret e kont.</string>
+    <string name="statistics_today">Hiziv</string>
   <string name="statistics_filter_all_time">Bepred</string>
-  <string name="statistics_filter_past_year">Ar bloavezh tremenet</string>
-  <string name="statistics_reset_data">Adderaouekaat ar roadennoù stadegoù</string>
+    <string name="statistics_reset_data">Adderaouekaat ar roadennoù stadegoù</string>
   <string name="statistics_reset_data_msg">Dilemel a raio roll istor ar padelezh lennet evit an holl rannoù. Sur oc\'h e fell deoc\'h kenderc\'hel?</string>
-  <string name="statistics_counting_range">Lennet etre %1$s hag %2$s</string>
-  <string name="statistics_counting_total">Lennet en holl</string>
-  <!--Home fragment-->
-
-  <string name="notification_permission_denied">Nac’het ho peus an aotre.</string>
+    <!--Home fragment-->
 
 
-  <!--Download Statistics fragment-->
+    <!--Download Statistics fragment-->
   <string name="total_size_downloaded_podcasts">Ment ar rannoù war ar benveg:</string>
   <!--Main activity-->
-  <string name="drawer_open">Digeriñ al lañser</string>
-  <string name="drawer_close">Serriñ al lañser</string>
-  <string name="drawer_preferences">Gwellvezioù ar stalaf</string>
 
 
-
-
-
-
-
-  <!--Bug report activity-->
+    <!--Bug report activity-->
   <string name="log_file_share_exception">N\'eo ket bet kavet arloadoù keverlec\'h</string>
   <string name="export_logs_menu_title">Ezporzhiañ ar c\'herzhlevrioù dre ar munud</string>
   <string name="confirm_export_log_dialog_message">Titouroù kizidik evel roll ho koumanantoù a c\'hell bezañ er c\'herzhlevrioù</string>
@@ -101,24 +80,9 @@
   <string name="episode_cleanup_never">Morse</string>
   <string name="episode_cleanup_except_favorite">Pa n\'emañ ket er sinedoù</string>
   <string name="episode_cleanup_not_in_queue">Pa n\'emañ ket el lost</string>
-  <string name="episode_cleanup_after_listening">Goude bezañ echuet</string>
-  <plurals name="episode_cleanup_hours_after_listening">
-    <item quantity="one">%d eur goude bezañ selaouet</item>
-    <item quantity="two">%d eur goude bezañ selaouet</item>
-    <item quantity="few">%d eur goude bezañ selaouet</item>
-    <item quantity="many">%d eur goude bezañ selaouet</item>
-    <item quantity="other">%d eur goude bezañ selaouet</item>
-  </plurals>
-  <plurals name="episode_cleanup_days_after_listening">
-    <item quantity="one">%d devezh goude vefe echuet </item>
-    <item quantity="two">%d zevezh goude vefe echuet </item>
-    <item quantity="few">%d devezh goude vefe echuet </item>
-    <item quantity="many">%d a zevezhioù goude vefe echuet </item>
-    <item quantity="other">%d devezh goude vefe echuet </item>
-  </plurals>
 
 
-  <!--Actions on feeds-->
+    <!--Actions on feeds-->
 
 
 
@@ -133,13 +97,9 @@
 
 
   <string name="load_complete_feed">Hizivaat ar podskignad a-bezh</string>
-  <string name="multi_select">Diuzañ meur a elfenn</string>
 
 
-  <string name="filtered_label">Silet</string>
-  <string name="please_wait_for_data">Gortozit dibenn pellgargadur ar roadennoù</string>
-
-  <plurals name="updated_feeds_batch_label">
+    <plurals name="updated_feeds_batch_label">
     <item quantity="one">%d c\'houmanant a zo bet hizivaet.</item>
     <item quantity="two">%d goumanant a zo bet hizivaet.</item>
     <item quantity="few">%d a goumanantoù a zo bet hizivaet.</item>
@@ -147,9 +107,8 @@
     <item quantity="other">%d a goumanantoù a zo bet hizivaet.</item>
   </plurals>
   <string name="edit_tags">Kemmañ an tikedennoù</string>
-  <string name="add_tag">Ouzhpennañ un dikedenn</string>
 
-  <string name="confirm_mobile_feed_refresh_dialog_message">Ar fed freskaat ar podskignoù dre ar rouedad hezoug n\'eo ket bet aotred en arventennoù.\n\nC\'hoant o peus freskaat memestra ?</string>
+    <string name="confirm_mobile_feed_refresh_dialog_message">Ar fed freskaat ar podskignoù dre ar rouedad hezoug n\'eo ket bet aotred en arventennoù.\n\nC\'hoant o peus freskaat memestra ?</string>
   <!--actions on feeditems-->
   <string name="download_label">Pellgargañ</string>
   <string name="play_label">Lenn</string>
@@ -158,26 +117,11 @@
   <string name="delete_label">Dilemel</string>
 
 
-
-
-
-
-  <string name="play_this_to_seek_position">Evit kemmañ al lec\'hiadur e rankit lenn ar rann</string>
-
-
-  <string name="add_to_queue_label">Ouzhpennañ el lost</string>
+    <string name="add_to_queue_label">Ouzhpennañ el lost</string>
   <string name="remove_from_queue_label">Dilemel eus al lost</string>
-  <plurals name="removed_from_queue_batch_label">
-    <item quantity="one">%d rann tennet eus al lost</item>
-    <item quantity="two">%d rann tennet eus al lost</item>
-    <item quantity="few">%d rann tennet eus al lost</item>
-    <item quantity="many">%d rann tennet eus al lost</item>
-    <item quantity="other">%d rann tennet eus al lost</item>
-  </plurals>
-  <string name="visit_website_label">Gweladenniñ al lec\'hienn</string>
-  <string name="skip_episode_label">Tremen a rann</string>
+    <string name="visit_website_label">Gweladenniñ al lec\'hienn</string>
 
-  <!--Download messages and labels-->
+    <!--Download messages and labels-->
   <string name="download_successful">echuet</string>
   <string name="download_pending">Pellgargadur war c\'hortoz</string>
   <string name="download_running">O pellgargañ</string>
@@ -226,8 +170,7 @@
   <string name="no_media_playing_label">N\'eus netra o vezañ lennet</string>
   <string name="unknown_media_key">Podcini - stokell vedia dianav: %1$d</string>
   <string name="error_file_not_found">N\'eo ket bet kavet ar restr</string>
-  <string name="no_media_label">N\'eus restr media ebet gant an elfenn</string>
-  <!--Queue operations-->
+    <!--Queue operations-->
   <string name="queue_locked">Lost prennet</string>
   <string name="queue_unlocked">Lost dibrennet</string>
 
@@ -237,8 +180,7 @@
 
 
   <string name="sort">Rummañ</string>
-  <string name="keep_sorted">Mirout an urzh</string>
-  <string name="date">Deiziad</string>
+    <string name="date">Deiziad</string>
   <string name="duration">Padelezh</string>
   <string name="episode_title">Titl ar rann</string>
   <string name="feed_title">Titl ar podskignad</string>
@@ -247,8 +189,7 @@
 
   <!--Variable Speed-->
 
-  <string name="preset_already_exists">%1$.2fx a zo ur rakreolamant saveteet dija.</string>
-  <!--Empty list labels-->
+    <!--Empty list labels-->
 
 
   <string name="no_shownotes_label">N\'eus notenn ebet evit ar rann-mañ.</string>
@@ -269,16 +210,12 @@
   <string name="automation">Emgefreekañ</string>
   <string name="download_pref_details">Munudoù</string>
   <string name="import_export_pref">Enporzhiadur / Ezporzhiadur</string>
-  <string name="import_export_search_keywords">gwarediñ, assav</string>
-  <string name="appearance">Neuz</string>
+    <string name="appearance">Neuz</string>
   <string name="external_elements">Elfennoù diavaez</string>
   <string name="interruptions"> Diskrogoù</string>
   <string name="playback_control">Reoliadurioù lenn</string>
   <string name="reassign_hardware_buttons">Asinañ en-dro afelloù fizikel</string>
-  <string name="preference_search_hint">Klask…</string>
-  <string name="preference_search_no_results">Disoc\'h ebet</string>
-  <string name="preference_search_clear_history">Skarzhañ ar roll istor</string>
-  <string name="pref_episode_cleanup_summary">Ar rannoù a c\'hallfe bezañ dilamet ma vez ezhomm muioc\'h a egor dieub gant ar pellgargañ emgefreek.</string>
+    <string name="pref_episode_cleanup_summary">Ar rannoù a c\'hallfe bezañ dilamet ma vez ezhomm muioc\'h a egor dieub gant ar pellgargañ emgefreek.</string>
   <string name="pref_pauseOnDisconnect_sum">Paouez gant al lenn pa vez diluget selaouelloù pe bluetooth</string>
   <string name="pref_unpauseOnHeadsetReconnect_sum">Kenderc\'hel al lenn pa vez adluget ar selaouelloù</string>
   <string name="pref_unpauseOnBluetoothReconnect_sum">Adstagañ gant al lenn pa vez adkennasket ar bluetooth</string>
@@ -301,25 +238,18 @@
   <string name="pref_mobileUpdate_auto_download">Pellgargañ emgefreek</string>
   <string name="pref_mobileUpdate_episode_download">Pellgargañ ar rann</string>
   <string name="pref_mobileUpdate_streaming">Streaming</string>
-  <string name="pref_tinted_theme_message">Azasaat livioù an arload diouzh an drekleur</string>
-  <string name="pref_nav_drawer_feed_order_sum">Kemmañ urzh ar c\'houmanantoù</string>
 
-  <string name="pref_autodl_wifi_filter_title">Gweredekaat ar sil Wi-Fi</string>
-  <string name="pref_autodl_wifi_filter_sum">Aotren ar pellgargañ emgefreek war ar rouedadoù Wi-Fi diuzet nemetken.</string>
-  <string name="pref_automatic_download_on_battery_title">Pellgargañ pa ne vez ket o kargañ</string>
+    <string name="pref_automatic_download_on_battery_title">Pellgargañ pa ne vez ket o kargañ</string>
   <string name="pref_automatic_download_on_battery_sum">Aotren ar pellgargañ emgefreek pa ne vez ket ar benveg o kargañ</string>
 
   <string name="pref_episode_cover_summary">Ober gant golo ar rann e listennoù pa vez dioutañ. Mard eo digevasket e vo graet gant golo ar podskignad.</string>
 
   <string name="pref_theme_title_light">Sklaer</string>
   <string name="pref_theme_title_dark">Teñval</string>
-  <string name="pref_episode_cache_unlimited">Divevenn</string>
-  <string name="pref_playback_speed_sum">Dibab an tizhioù a c\'haller dibab pa vez lennet ar son</string>
+    <string name="pref_playback_speed_sum">Dibab an tizhioù a c\'haller dibab pa vez lennet ar son</string>
   <string name="pref_feed_playback_speed_sum">Tizh dre ziouer ar rannoù</string>
   <string name="pref_feed_skip_sum">Tremen penn-kentañ ha dibenn ar rannoù</string>
-  <string name="pref_feed_skip_ending">Tremen an dibenn</string>
-  <string name="pref_feed_skip_intro">Tremen ar penn-kentañ</string>
-  <string name="pref_feed_skip_ending_toast">Tremenet an %d eilenn diwezhañ</string>
+    <string name="pref_feed_skip_ending_toast">Tremenet an %d eilenn diwezhañ</string>
   <string name="pref_feed_skip_intro_toast">Tremenet an %d eilenn kentañ</string>
 
 
@@ -357,12 +287,7 @@
   <!--About screen-->
   <string name="about_pref">A-zivout</string>
   <string name="podcini_version">Handelv Podcini</string>
-  <string name="contributors">Kendaolerien</string>
-  <string name="contributors_summary">An holl a c\'hall skoazellañ da wellaat Podcini - en ur c\'houleviñ, en ur dreiñ pe en ur sikour an implijerien en hor forom</string>
-  <string name="developers">Diorroerien</string>
-  <string name="translators">Troerien</string>
-  <string name="special_thanks">Trugarekadennoù ispisial</string>
-  <string name="privacy_policy">Reolenn a-fet buhez prevez</string>
+    <string name="privacy_policy">Reolenn a-fet buhez prevez</string>
   <string name="licenses">Lañvazioù</string>
   <string name="licenses_summary">Podcini a ra gant meziantoù all</string>
   <!--Search-->
@@ -381,30 +306,17 @@
   <string name="sync_status_error">C\'hwitadenn en ur c\'houbredañ</string>
   <!--import and export-->
   <string name="import_export_summary">Dilec\'hiañ ar c\'houmanantoù ha lakaat e lost ur benveg all</string>
-  <string name="database">Stlennvon</string>
-  <string name="opml">OPML</string>
-  <string name="html">HTML</string>
-  <string name="html_export_summary">Diskouez ho koumanantoù d\'ur v⋅mignon⋅ez</string>
+    <string name="html_export_summary">Diskouez ho koumanantoù d\'ur v⋅mignon⋅ez</string>
   <string name="opml_export_summary">Treuzkas ho koumanantoù d\'un arload podskignad all</string>
   <string name="opml_import_summary">Enporzhiañ ho koumanantoù adalek un arload podskignad all</string>
-  <string name="database_export_summary">Treuzkas ar c\'houmanantoù, ar rannoù lennet hag el lost da Podcini war ur benveg all</string>
-  <string name="database_import_summary">Enporzhiañ stlennvon Podcini adalek ur benveg all</string>
-  <string name="opml_import_label">Enporzhiañ ur restr OPML</string>
+    <string name="opml_import_label">Enporzhiañ ur restr OPML</string>
   <string name="opml_add_podcast_label">Enporzhiañ ul listenn podskignadoù (OPML)</string>
   <string name="opml_reader_error">Degouezhet ez eus bet ur fazi en ul lenn ar restr OPML</string>
-  <string name="opml_import_error_no_file">Restr ebet diuzet!</string>
-  <string name="select_all_label">Diuzañ an holl</string>
-  <string name="deselect_all_label">Na zibab netra</string>
-  <string name="opml_export_label">Ezporzhiañ en ur restr OPML</string>
+    <string name="opml_export_label">Ezporzhiañ en ur restr OPML</string>
   <string name="html_export_label">Ezporzh HTML</string>
-  <string name="database_export_label">Ezporzhiañ ar stlennvon</string>
-  <string name="database_import_label">Enporzhiañ ar stlennvon</string>
-  <string name="database_import_warning">Enporzhiañ ur stlennvon a amsavo ho holl goumanantoù ha roll istor lenn. Erbediñ a reomp ezporzhiañ ho stlennvon en a-raok. Fellout a ra deoc\'h enporzhiañ?</string>
-  <string name="please_wait">Gortozit un tamm…</string>
-  <string name="import_export_error_label">Fazi ezporzhiañ</string>
+    <string name="import_export_error_label">Fazi ezporzhiañ</string>
   <string name="export_success_title">Ezporzhiet gant berzh</string>
-  <string name="opml_import_ask_read_permission">Ret eo aotren haeziñ ar c\'hadaviñ diavaez evit lenn ar restr OPML</string>
-  <string name="successful_import_label">Enporzhiet gant berzh</string>
+    <string name="successful_import_label">Enporzhiet gant berzh</string>
   <string name="import_ok">Pouezit war OK evit adloc\'hañ Podcini</string>
 
   <string name="favorites_export_label">Ezporzhiañ ar sinedoù</string>
@@ -417,8 +329,7 @@
   <string name="time_dialog_invalid_input">Enankañ didalvoudek: ret eo d\'ar padelezh bezañ un niveren anterin</string>
   <string name="shake_to_reset_label">Hejañ evit adloc\'hañ</string>
   <string name="timer_vibration_label">Froumal a-raok paouez</string>
-  <string name="time_seconds">eilennoù</string>
-  <string name="time_minutes">munutennoù</string>
+    <string name="time_minutes">munutennoù</string>
   <string name="time_hours">eurioù</string>
   <plurals name="time_minutes_quantified">
     <item quantity="one">%d vunutenn</item>
@@ -434,65 +345,39 @@
     <item quantity="many">%d eur</item>
     <item quantity="other">%d eur</item>
   </plurals>
-  <string name="sleep_timer_enabled_label">Harzh emgefreek gweredekaet</string>
-  <!--Synchronisation-->
+    <!--Synchronisation-->
   <string name="synchronization_choose_title">Dibab ur pourchaser goubredañ</string>
   <string name="synchronization_summary_unchoosen">Gallout a rit dibab etre meur a bourvezer evit sikronaat ho koumanantoù ha stad lenn ho rannoù</string>
   <string name="dialog_choose_sync_service_title">Dibab ur pourchaser goubredañ</string>
-  <string name="gpodnet_description">Gpodder.net a zo ur servij mammenn digor evit sinkronaat podskignadoù a c\'hell bezañ staliet war ho servijer deoc\'h. Gpodder.net a zo dizalc\'h eus ar raktres Podcini.</string>
-  <string name="synchronization_summary_nextcloud">Gpoddersync a zo un arload mammenn digor evit Nextcloud a c\'hell bezañ staliet war ho servijer en un doare aes. An arload-mañ a zo distag eus ar raktres Podcini.</string>
+    <string name="synchronization_summary_nextcloud">Gpoddersync a zo un arload mammenn digor evit Nextcloud a c\'hell bezañ staliet war ho servijer en un doare aes. An arload-mañ a zo distag eus ar raktres Podcini.</string>
   <string name="synchronization_host_label">Chomlec\'h ar servijer</string>
   <string name="proceed_to_login_butLabel">Kenderc\'hel gant ar c\'hevreañ</string>
   <string name="synchronization_nextcloud_authenticate_browser">Roit aotre ar moned war ar merdeer web digoret ha deuit en-dro da Podcini.</string>
   <string name="gpodnetauth_login_butLabel">Kennaskañ</string>
-  <string name="gpodnetauth_encryption_warning">Ar ger-tremen hag ar roadennoù n\'int ket sifret!</string>
-  <string name="username_label">Anv implijer</string>
+    <string name="username_label">Anv implijer</string>
   <string name="password_label">Ger-tremen</string>
-  <string name="synchronization_login_butLabel">Kevreañ</string>
 
 
-
-
-
-
-
-
-  <string name="synchronization_sync_changes_title">Goubredañ bremañ</string>
+    <string name="synchronization_sync_changes_title">Goubredañ bremañ</string>
   <string name="synchronization_sync_summary">Goubredañ ar c\'houmanantoù hag ar c\'hemmoù e stad ar rannoù</string>
   <string name="synchronization_full_sync_title">Rediañ ur goubredañ klok</string>
   <string name="synchronization_force_sync_summary">Goubredañ en-dro an holl goumanantoù ha stad ar rannoù</string>
   <string name="synchronization_logout">Digennaskañ</string>
-  <string name="synchronization_login_status"><![CDATA[Kennasket evel <i>%1$s</i> war <i>%2$s</i>. <br/><br/>Ho pourchaser a c\'hellot dibab en-dro pa vioc\'h digennasket]]></string>
-  <string name="pref_synchronization_logout_toast">Digennasket gant berzh</string>
+    <string name="pref_synchronization_logout_toast">Digennasket gant berzh</string>
   <string name="gpodnetsync_error_title">fazi goubredañ gpodder.net</string>
   <string name="gpodnetsync_error_descr">Degouezhet ez eus bet ur fazi en ur c\'houbredañ:\u0020</string>
   <string name="gpodnetsync_pref_report_successful">Berzh</string>
   <string name="gpodnetsync_pref_report_failed">C\'hwitet</string>
-  <string name="gpodnetsync_username_characters_error">Gallout a rit lakaat lizherennoù, niveroù pe tiredoù en anv arveriad hepken.</string>
-  <!--Directory chooser-->
-  <string name="choose_data_directory_message">Dibabit an teuliad lec\'h ma vo enrollet ar roadennoù. Krouet e vo an is-teuliadoù rekiz gant Podcini.</string>
-  <string name="choose_data_directory_available_space">%1$s war %2$s dieub</string>
-  <string name="pref_pausePlaybackForFocusLoss_sum">Ehaniñ al lenn kentoc\'h eget izelaat ar son pa fell d\'un arload all ober sonioù</string>
-  <!--Online feed view-->
+    <!--Directory chooser-->
+    <!--Online feed view-->
   <string name="subscribe_label">Koumanantiñ</string>
 
-  <string name="preview_episode">Raklenn</string>
+    <!--Content descriptions for image buttons-->
 
-  <!--Content descriptions for image buttons-->
-  <string name="toolbar_back_button_content_description">Distreiñ</string>
-  <string name="rewind_label">Lamm war-gil</string>
-  <string name="fast_forward_label">Lamm en ar-raok</string>
-  <string name="increase_speed">Fonnusaat</string>
-  <string name="decrease_speed">Gorrekaat</string>
-
-  <string name="status_downloading_label">War bellgargañ emañ ar ran</string>
-  <string name="load_next_page_label">Kargañ ar bajenn da-heul</string>
-  <string name="position">Lec\'hiadur: %1$s</string>
+    <string name="status_downloading_label">War bellgargañ emañ ar ran</string>
 
 
-
-  <string name="next_chapter">Chabistr da heul</string>
-  <!--Feed settings/information screen-->
+    <!--Feed settings/information screen-->
   <string name="authentication_label">Dilesa</string>
   <string name="authentication_descr">Cheñch hoc\'h anv implijer hag ho ker-tremen evit ar podskignad-mañ hag e rannoù.</string>
   <string name="feed_tags_label">Tikedennoù</string>
@@ -515,10 +400,8 @@
   <!--Add podcast fragment-->
   <string name="search_podcast_hint">Klask ur podskignad…</string>
 
-  <string name="gpodnet_search_hint">Klask war gpodder.ner</string>
-  <string name="advanced">Araokaet</string>
-  <string name="add_podcast_by_url">Ouzhpennañ ur podskignad gant e chomlec\'h RSS</string>
-  <string name="discover">Dizoloeiñ</string>
+    <string name="advanced">Araokaet</string>
+    <string name="discover">Dizoloeiñ</string>
   <string name="discover_hide">Kuzhat</string>
   <string name="discover_is_hidden">Dibabed ho peus kuzhat an alioù.</string>
   <string name="discover_more">muioc\'h »</string>
@@ -532,20 +415,12 @@
   <string name="reconnect_local_folder_warning">Gallout a rit implijout an dra-se evit adkennaskañ ar memes teuliad pa vez nac\'het an aotre. Arabat dibab un teuliad all.</string>
   <string name="local_feed_description">Krouet eo bet ar podskignad galloudel-mañ en ur ouzhpennañ un teuliad da Podcini.</string>
   <string name="unable_to_start_system_file_manager">N\'haller ket loc\'hañ merour restroù ar reizhiad</string>
-  <string name="filter">Sil</string>
 
 
-  <string name="downloaded_label">Pellgarget</string>
+    <string name="downloaded_label">Pellgarget</string>
 
 
-
-  <string name="has_media">Gant ur media</string>
-
-
-
-
-
-  <!--Sort-->
+    <!--Sort-->
 
 
 
@@ -598,10 +473,7 @@
   <string name="notification_channel_sync_error_description">Diskouezet pa vez c\'hwitet en ur c\'houbredañ gant gpodder.</string>
 
   <!--Widget settings-->
-  <string name="widget_settings">Gwellvezioù ar widjet</string>
-  <string name="widget_create_button">Krouiñ ur widjet</string>
-  <string name="widget_opacity">Demerez</string>
-  <!--On-Demand configuration-->
+    <!--On-Demand configuration-->
   <string name="on_demand_config_setting_changed">Arventenn hizivaet</string>
   <string name="on_demand_config_stream_text">War a-seblant e lennit e streaming kalz. Fellout a ra deoc\'h e vefe diskouezet an afelloù lenn e streaming er roll?</string>
   <string name="on_demand_config_download_text">War a-seblant e pellgargit kalz. Fellout a ra deoc\'h e vefe diskouezet an afelloù pellgargañ er roll?</string>

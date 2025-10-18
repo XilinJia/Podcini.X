@@ -1,8 +1,7 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <resources xmlns:tools="http://schemas.android.com/tools">
   <!--Activity and fragment titles-->
-  <string name="feeds_label">Podcasts</string>
-  <string name="statistics_label">Estadístiques</string>
+    <string name="statistics_label">Estadístiques</string>
   <string name="episodes_label">Episodios</string>
   <string name="queue_label">Cola</string>
 
@@ -15,21 +14,15 @@
   <!--Google Assistant-->
   <string name="app_action_not_found">Nun s\'atopó «%1$s»</string>
   <!--SwipeActions-->
-  <string name="swipeactions_summary">Escueyi qué asocede al eslizar un episodiu que tea nuna llista</string>
-  <!--Statistics fragment-->
+    <!--Statistics fragment-->
   <string name="statistics_speed_not_counted">Avisu: la velocidá de reproducción enxamás se tien en cuenta.</string>
   <string name="statistics_reset_data">Reafitar les estadístiques</string>
   <!--Home fragment-->
   <!--Download Statistics fragment-->
   <!--Main activity-->
-  <string name="drawer_open">Abrir el menú</string>
-  <string name="drawer_close">Zarrar el menú</string>
 
 
-
-
-
-  <!--Bug report activity-->
+    <!--Bug report activity-->
   <string name="log_file_share_exception">Nun s\'atoparon aplicaciones compatibles</string>
   <string name="export_logs_menu_title">Esportar el rexistru detalláu</string>
   <!--Webview actions-->
@@ -58,18 +51,9 @@
   <string name="episode_cleanup_never">Enxamás</string>
   <string name="episode_cleanup_except_favorite">Al nun tar en Favoritos</string>
   <string name="episode_cleanup_not_in_queue">Al nun tar na cola</string>
-  <string name="episode_cleanup_after_listening">Dempués d\'acabar</string>
-  <plurals name="episode_cleanup_hours_after_listening">
-    <item quantity="one">1 hora dempués d\'acabar</item>
-    <item quantity="other">%d hores dempués d\'acabar</item>
-  </plurals>
-  <plurals name="episode_cleanup_days_after_listening">
-    <item quantity="one">1 día dempués d\'acabar</item>
-    <item quantity="other">%d díes dempués d\'acabar</item>
-  </plurals>
 
 
-  <!--Actions on feeds-->
+    <!--Actions on feeds-->
 
 
   <string name="feed_settings_label">Axustes del podcast</string>
@@ -77,11 +61,8 @@
   <string name="remove_feed_label">Quitar el podcast</string>
   <string name="share_label">Compartir</string>
 
-  <string name="multi_select">Esbilla múltiple</string>
 
-
-  <string name="please_wait_for_data">Espera hasta que carguen los datos</string>
-  <!--actions on feeditems-->
+    <!--actions on feeditems-->
   <string name="download_label">Baxar</string>
   <string name="play_label">Reproducir</string>
   <string name="pause_label">Posar</string>
@@ -89,14 +70,7 @@
   <string name="delete_label">Desaniciar</string>
 
 
-
-
-  <plurals name="removed_from_queue_batch_label">
-    <item quantity="one">Quitóse %d episodiu de la cola.</item>
-    <item quantity="other">Quitáronse %d episodios de la cola.</item>
-  </plurals>
-  <string name="skip_episode_label">Saltar l\'episodiu</string>
-  <!--Download messages and labels-->
+    <!--Download messages and labels-->
   <string name="download_error_details">Detalles</string>
   <string name="download_error_tap_for_details">Calca pa ver los detalles</string>
   <string name="download_error_device_not_found">Nun s\'atopó\'l preséu d\'almacenamientu</string>
@@ -120,8 +94,7 @@
 
 
   <string name="error_file_not_found">Nun s\'atopó\'l ficheru</string>
-  <string name="no_media_label">L\'elementu nun contién nengún ficheru multimedia</string>
-  <!--Queue operations-->
+    <!--Queue operations-->
   <string name="queue_locked">Bloquióse la cola</string>
   <string name="queue_unlocked">Desbloquióse la cola</string>
 
@@ -129,8 +102,7 @@
 
 
   <string name="sort">Ordenar</string>
-  <string name="keep_sorted">Caltener la clasificación</string>
-  <string name="date">Data</string>
+    <string name="date">Data</string>
   <string name="duration">Duración</string>
   <string name="random">Al debalu</string>
   <string name="clear_queue_confirmation_msg">Confirma que quies quitar de la cola TOLOS episodios qu\'heba</string>
@@ -157,10 +129,7 @@
   <string name="appearance">Aspeutu</string>
   <string name="external_elements">Elementos esternos</string>
   <string name="playback_control">Control de la reproducción</string>
-  <string name="preference_search_hint">Buscar…</string>
-  <string name="preference_search_no_results">Nun hai resultaos</string>
-  <string name="preference_search_clear_history">Llimpiar l\'historial</string>
-  <string name="pref_pauseOnDisconnect_sum">Posa la reproducción al desconectar los auriculares per cable o Bluetooth</string>
+    <string name="pref_pauseOnDisconnect_sum">Posa la reproducción al desconectar los auriculares per cable o Bluetooth</string>
   <string name="pref_unpauseOnHeadsetReconnect_sum">Sigue cola reproducción al volver conectar los auriculares</string>
   <string name="pref_unpauseOnBluetoothReconnect_sum">Sigue cola reproducción al volver empareyase per Bluetooth</string>
   <string name="pref_hardware_forward_button_summary">Personaliza\'l comportamientu del botón Alantre</string>
@@ -176,23 +145,17 @@
   <string name="pref_mobileUpdate_images">Portaes</string>
   <string name="pref_mobileUpdate_auto_download">Descarga automática</string>
   <string name="pref_mobileUpdate_episode_download">Descarga d\'episodios</string>
-  <string name="pref_nav_drawer_feed_order_sum">Camuda l\'orde de les soscripciones</string>
 
-  <string name="pref_autodl_wifi_filter_title">Activar la peñera de redes Wi-Fi</string>
-  <string name="pref_autodl_wifi_filter_sum">Namás permite la descarga automática nes redes Wi-Fi esbillaes.</string>
-  <string name="pref_automatic_download_on_battery_title">Baxar al nun tar cargando la batería</string>
+    <string name="pref_automatic_download_on_battery_title">Baxar al nun tar cargando la batería</string>
   <string name="pref_automatic_download_on_battery_sum">Permite la descarga automática cuando la batería nun tea cargando.</string>
 
   <string name="pref_episode_cover_summary">Nes llistes, úsase la portada de los episodios siempres que seya posible. Si nun se marca esta opción, l\'aplicación va usar siempres la portada de los podcasts.</string>
 
   <string name="pref_theme_title_light">Claridá</string>
   <string name="pref_theme_title_dark">Escuridá</string>
-  <string name="pref_episode_cache_unlimited">Ensin llende</string>
-  <string name="pref_feed_playback_speed_sum">La velocidá que s\'usa al aniciar la reproducción de los episodios d\'esti podcast</string>
+    <string name="pref_feed_playback_speed_sum">La velocidá que s\'usa al aniciar la reproducción de los episodios d\'esti podcast</string>
   <string name="pref_feed_skip_sum">Salta les introducciones y los creitos del final</string>
-  <string name="pref_feed_skip_ending">Saltar los caberos</string>
-  <string name="pref_feed_skip_intro">Saltar los primeros</string>
-  <string name="pref_feed_skip_ending_toast">Saltáronse los últimos %d segundos</string>
+    <string name="pref_feed_skip_ending_toast">Saltáronse los últimos %d segundos</string>
   <string name="pref_feed_skip_intro_toast">Saltáronse los primeros %d segundos</string>
   <string name="pref_fast_forward_sum">Personaliza\'l númberu de segundos que s\'avancen al calcar el botón d\'avance rápidu</string>
 
@@ -219,12 +182,7 @@
   <!--About screen-->
   <string name="about_pref">Tocante a</string>
   <string name="podcini_version">Versión d\'Podcini</string>
-  <string name="contributors">Collaboradores</string>
-  <string name="contributors_summary">Tol mundu pue ayudar a ameyorar Podcini con códigu, traducciones o echando un gabitu a los usuarios nel nuesu foru</string>
-  <string name="developers">Desendolcadores</string>
-  <string name="translators">Traductores</string>
-  <string name="special_thanks">Agradecimientu especial</string>
-  <string name="privacy_policy">Política de privacidá</string>
+    <string name="privacy_policy">Política de privacidá</string>
   <string name="licenses">Llicencies</string>
   <string name="licenses_summary">Podcini usa otros programes maraviyosos</string>
   <!--Search-->
@@ -237,22 +195,11 @@
   <string name="sync_status_success">La sincronización fízose correutamente</string>
   <!--import and export-->
   <string name="import_export_summary">Movi les soscripciones y la cola a otru preséu</string>
-  <string name="database">Base de datos</string>
-  <string name="opml">OPML</string>
-  <string name="html">HTML</string>
-  <string name="html_export_summary">Enseña les soscripciones a los collacios</string>
+    <string name="html_export_summary">Enseña les soscripciones a los collacios</string>
   <string name="opml_export_summary">Tresfier les soscripciones a otra aplicación de podcasts</string>
   <string name="opml_import_summary">Importa les soscripciones d\'otra aplicación de podcasts</string>
-  <string name="database_export_summary">Tresfier les soscripciones, los episodios sentíos y la cola al Podcini d\'otru preséu</string>
-  <string name="database_import_summary">Importa la base de datos del Podcini d\'otru preséu</string>
-  <string name="opml_add_podcast_label">Importar una llista de podcasts (OPML)</string>
-  <string name="select_all_label">Esbillar too</string>
-  <string name="deselect_all_label">Deseleicionar too</string>
-  <string name="database_export_label">Esportar la base de datos</string>
-  <string name="database_import_label">Importar una base de datos</string>
-  <string name="database_import_warning">La importación d\'una base de datos troca toles soscripciones actuales y l\'historial de reproducciones. Habríes esportar la base de datos actual como copia de seguranza. ¿Quies trocar?</string>
-  <string name="please_wait">Espera…</string>
-  <string name="export_success_title">La esportación fízose correutamente</string>
+    <string name="opml_add_podcast_label">Importar una llista de podcasts (OPML)</string>
+    <string name="export_success_title">La esportación fízose correutamente</string>
   <string name="successful_import_label">La importación fízose correutamente</string>
   <string name="import_ok">Primi «D\'acuerdu» pa reaniciar Podcini</string>
 
@@ -262,8 +209,7 @@
   <string name="set_sleeptimer_label">Afitar el temporizador</string>
   <string name="extend_sleep_timer_label">+%d min</string>
   <string name="sleep_timer_label">Temporizador</string>
-  <string name="time_seconds">segundos</string>
-  <string name="time_minutes">minutos</string>
+    <string name="time_minutes">minutos</string>
   <string name="time_hours">hores</string>
   <plurals name="time_minutes_quantified">
     <item quantity="one">1 minutu</item>
@@ -275,8 +221,7 @@
   </plurals>
   <!--Synchronisation-->
   <string name="gpodnetauth_login_butLabel">Aniciar sesión</string>
-  <string name="gpodnetauth_encryption_warning">¡Los datos y la contraseña nun tán cifraos!</string>
-  <string name="username_label">Nome d\'usuariu</string>
+    <string name="username_label">Nome d\'usuariu</string>
   <string name="password_label">Contraseña</string>
 
 
@@ -289,27 +234,15 @@
   <string name="gpodnetsync_error_descr">Asocedió un fallu demientres la sincronización:\u0020</string>
   <string name="gpodnetsync_pref_report_successful">Sincronización correuta</string>
   <string name="gpodnetsync_pref_report_failed">Sincronización fallida</string>
-  <string name="gpodnetsync_username_characters_error">Los nomes d\'usuariu namás puen contener lletres, díxitos, guiones y guiones baxos.</string>
-  <!--Directory chooser-->
-  <string name="choose_data_directory_message">Escueyi la carpeta de datos. Podcini va crear los sodireutorios afayadizos.</string>
-  <string name="pref_pausePlaybackForFocusLoss_sum">Posa la reproducción en cuentes de baxar el volume cuando otra aplicación quier reproducir soníos</string>
-  <!--Online feed view-->
+    <!--Directory chooser-->
+    <!--Online feed view-->
   <string name="subscribe_label">Soscribise</string>
 
-  <string name="preview_episode">Previsualizar</string>
+    <!--Content descriptions for image buttons-->
 
-  <!--Content descriptions for image buttons-->
-  <string name="rewind_label">Rebobinar</string>
-  <string name="fast_forward_label">Avance rápidu</string>
-  <string name="increase_speed">Amuentar la velocidá</string>
-  <string name="decrease_speed">Amenorgar la velocidá</string>
+    <string name="status_downloading_label">L\'episodiu ta baxando</string>
 
-  <string name="status_downloading_label">L\'episodiu ta baxando</string>
-  <string name="load_next_page_label">Cargar la páxina siguiente</string>
-  <string name="position">Posición: %1$s</string>
-
-  <string name="next_chapter">Capítulu siguiente</string>
-  <!--Feed settings/information screen-->
+    <!--Feed settings/information screen-->
   <string name="authentication_label">Autenticación</string>
   <string name="episode_filters_description">La llista de términos que s\'usa pa decidir si un episodiu habría incluyise o escluyise de la descarga automática</string>
   <string name="keep_updated_summary">Inclúi esti podcast al refrescar (automáticamente) tolos podcasts</string>
@@ -321,10 +254,8 @@
   <!--Add podcast fragment-->
   <string name="search_podcast_hint">Buscar podcasts…</string>
 
-  <string name="gpodnet_search_hint">Buscar en gpodder.net</string>
-  <string name="advanced">Avanzao</string>
-  <string name="add_podcast_by_url">Amestar un podcast pola direición RSS</string>
-  <string name="discover">Descubrición</string>
+    <string name="advanced">Avanzao</string>
+    <string name="discover">Descubrición</string>
   <string name="discover_hide">Anubrir</string>
   <string name="discover_is_hidden">Escoyesti anubrir les suxerencies.</string>
   <string name="discover_more">más »</string>
@@ -334,17 +265,11 @@
   <string name="local_folder">Carpeta llocal</string>
   <string name="local_feed_description">Esti podcast virtual creóse por amestar una carpeta a Podcini.</string>
   <string name="unable_to_start_system_file_manager">Nun ye posible aniciar el xestor de ficheros del sistema</string>
-  <string name="filter">Peñera</string>
 
-  <string name="downloaded_label">Baxó</string>
-
+    <string name="downloaded_label">Baxó</string>
 
 
-  <string name="has_media">Tien multimedia</string>
-
-
-
-  <!--Sort-->
+    <!--Sort-->
 
 
 
@@ -383,10 +308,7 @@
   <string name="notification_channel_sync_error_description">Apaez cuando falla la sincronización con gpodder.</string>
 
   <!--Widget settings-->
-  <string name="widget_settings">Axustes del widget</string>
-  <string name="widget_create_button">Crear el widget</string>
-  <string name="widget_opacity">Opacidá</string>
-  <!--On-Demand configuration-->
+    <!--On-Demand configuration-->
   <string name="on_demand_config_setting_changed">L\'axuste anovóse correutamente.</string>
   <string name="on_demand_config_download_text">Paez que baxes muncho. ¿Quies que les llistes d\'episodios amuesen los botones de descarga?</string>
 </resources>

@@ -1,0 +1,10 @@
+# 8.20.0
+
+* overhauled ActionButtons routines
+* in episodes lists
+	* ensured button update when download completes and when deleted
+	* re-enabled TTS button (somehow it was omitted) on episodes without proper download url
+* avoided ID3Reader throwing exception when tag header has unexpected characters (not sure why sometimes it happens), only showing error toast
+* minor spacing adjustment in filter dialogs
+* amended colors in sort dialogs
+* cleaned out unused resource files

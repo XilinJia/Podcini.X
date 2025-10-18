@@ -84,6 +84,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.content.edit
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.media3.common.util.UnstableApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Date
 
 abstract class SwipeAction {
@@ -316,7 +319,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 if (almostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
                 deleteEpisodesWarnLocalRepeat(context, listOf(item_))
                 vm.updateVMFromDB()
-                vm.actionButton = vm.actionButton.update(vm.episode)
+                withContext(Dispatchers.Main) { vm.actionButton.update(vm.episode) }
             }
         }
     }
@@ -330,7 +333,6 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
         override val iconRes:  Int = R.drawable.ic_star
         override val colorRes:  Int = R.attr.icon_yellow
-
 
         override fun performAction(vm: EpisodeVM) {
             super.performAction(vm)
@@ -501,9 +503,10 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
         override fun enabled(): Boolean = onEVM?.episode?.downloaded == false && onEVM?.episode?.feed != null && !onEVM!!.episode.feed!!.isLocalFeed
 
+        @UnstableApi
         override fun performAction(vm: EpisodeVM) {
             super.performAction(vm)
-            if (!vm.episode.downloaded && vm.episode.feed != null && !vm.episode.feed!!.isLocalFeed) DownloadActionButton(vm.episode).onClick(context)
+            if (!vm.episode.downloaded && vm.episode.feed != null && !vm.episode.feed!!.isLocalFeed) EpisodeActionButton(vm.episode, ButtonTypes.DOWNLOAD).onClick(context)
         }
     }
 

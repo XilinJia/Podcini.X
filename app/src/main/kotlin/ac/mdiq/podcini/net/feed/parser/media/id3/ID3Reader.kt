@@ -3,6 +3,7 @@ package ac.mdiq.podcini.net.feed.parser.media.id3
 import ac.mdiq.podcini.net.feed.parser.media.id3.model.FrameHeader
 import ac.mdiq.podcini.net.feed.parser.media.id3.model.TagHeader
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import org.apache.commons.io.IOUtils
 import org.apache.commons.io.input.CountingInputStream
@@ -23,7 +24,7 @@ open class ID3Reader(private val inputStream: CountingInputStream) {
 
     @Throws(IOException::class, ID3ReaderException::class)
     fun readInputStream() {
-        tagHeader = readTagHeader()
+        tagHeader = readTagHeader() ?: return
         val tagContentStartPosition = position
         while (position < tagContentStartPosition + tagHeader!!.size) {
             val frameHeader = readFrameHeader()
@@ -71,17 +72,16 @@ open class ID3Reader(private val inputStream: CountingInputStream) {
         return (firstByte.code shl 24) or (secondByte.code shl 16) or (thirdByte.code shl 8) or fourthByte.code
     }
 
-    @Throws(ID3ReaderException::class, IOException::class)
-    fun expectChar(expected: Char) {
+    fun expectChar(expected: Char): Boolean {
         val read = inputStream.read().toChar()
-        if (read != expected) throw ID3ReaderException("Expected $expected and got $read")
+//        if (read != expected) throw ID3ReaderException("Expected $expected and got $read")
+        if (read != expected) Loge("ID3Reader", "Expected $expected and got $read")
+        return read == expected
     }
 
     @Throws(ID3ReaderException::class, IOException::class)
-    fun readTagHeader(): TagHeader {
-        expectChar('I')
-        expectChar('D')
-        expectChar('3')
+    fun readTagHeader(): TagHeader? {
+        if (!expectChar('I') || !expectChar('D') || !expectChar('3')) return null
         val version = readShort()
         val flags = readByte()
         val size = unsynchsafe(readInt())

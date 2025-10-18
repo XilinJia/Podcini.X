@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <dimen name="additional_horizontal_spacing">0dp</dimen>
     <!--
         Overwrites FAB library.
         Increase FAB speed dial label's max width if the screen is wide enough

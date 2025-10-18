@@ -23,11 +23,8 @@ import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
+import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
-import ac.mdiq.podcini.ui.actions.PauseActionButton
-import ac.mdiq.podcini.ui.actions.PlayActionButton
-import ac.mdiq.podcini.ui.actions.PlayLocalActionButton
-import ac.mdiq.podcini.ui.actions.StreamActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
@@ -246,12 +243,14 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun getButton():  EpisodeActionButton {
-        return when {
-            InTheatre.isCurrentlyPlaying(episode) -> PauseActionButton(episode!!)
-            episode?.feed != null && episode!!.feed!!.isLocalFeed -> PlayLocalActionButton(episode!!)
-            episode?.downloaded == true -> PlayActionButton(episode!!)
-            else -> StreamActionButton(episode!!)
+        val button = EpisodeActionButton(episode!!)
+        button.type = when {
+            InTheatre.isCurrentlyPlaying(episode) -> ButtonTypes.PAUSE
+            episode?.feed != null && episode!!.feed!!.isLocalFeed -> ButtonTypes.PLAYLOCAL
+            episode?.downloaded == true -> ButtonTypes.PLAY
+            else -> ButtonTypes.STREAM
         }
+        return button
     }
 
     private fun updateButtons() {
@@ -475,7 +474,7 @@ fun EpisodeInfoScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         val buttonColor = MaterialTheme.colorScheme.tertiary
         var showAltActionsDialog by remember { mutableStateOf(false) }
-        if (showAltActionsDialog) vm.actionButton1?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false }, cb = { vm.actionButton1 = it })
+        if (showAltActionsDialog) vm.actionButton1?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
         LaunchedEffect(key1 = status) { vm.actionButton1 = vm.getButton() }
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
