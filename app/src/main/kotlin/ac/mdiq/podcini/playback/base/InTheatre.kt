@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.storage.database.Episodes.getEpisodeMedia
+import ac.mdiq.podcini.storage.database.Episodes.getEpisode
 import ac.mdiq.podcini.storage.database.RealmDB.MonitorEntity
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.subscribeEpisode
@@ -201,7 +201,7 @@ object InTheatre {
             if (type == PLAYABLE_TYPE_FEEDMEDIA) {
                 val mediaId = curState.curMediaId
                 Logd(TAG, "loadPlayableFromPreferences getting mediaId: $mediaId")
-                if (mediaId != 0L) setCurEpisode(getEpisodeMedia(mediaId))
+                if (mediaId != 0L) setCurEpisode(getEpisode(mediaId))
                 Logd(TAG, "loadPlayableFromPreferences: curMedia: ${curEpisode?.id}")
             } else Loge(TAG, "Could not restore EpisodeMedia object from preferences")
         }

@@ -290,7 +290,7 @@ fun OnlineSearchScreen() {
                     if (queryText.matches("http[s]?://.*".toRegex())) vm.addUrl(queryText)
                     else {
                         setOnlineSearchTerms(CombinedSearcher::class.java, queryText)
-                        mainNavController.navigate(Screens.SearchResults.name)
+                        mainNavController.navigate(Screens.OnlineResults.name)
                     }
                 }
             }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
@@ -348,11 +348,11 @@ fun OnlineSearchScreen() {
             gearbox.GearSearchText()
             Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 setOnlineSearchTerms(ItunesPodcastSearcher::class.java)
-                mainNavController.navigate(Screens.SearchResults.name)
+                mainNavController.navigate(Screens.OnlineResults.name)
             }))
             Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 setOnlineSearchTerms(PodcastIndexPodcastSearcher::class.java)
-                mainNavController.navigate(Screens.SearchResults.name)
+                mainNavController.navigate(Screens.OnlineResults.name)
             }))
             if (vm.showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { vm.showOpmlImportSelectionDialog = false }
             Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {

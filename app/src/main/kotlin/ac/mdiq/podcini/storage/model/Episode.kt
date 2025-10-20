@@ -806,7 +806,7 @@ class Episode : RealmObject {
             val request: Request = Builder().url(streamurl).build()
             val response = getHttpClient().newCall(request).execute()
             if (response.body == null) throw IOException("Body is null")
-            return CountingInputStream(BufferedInputStream(response.body!!.byteStream()))
+            return CountingInputStream(BufferedInputStream(response.body.byteStream()))
         }
     }
 

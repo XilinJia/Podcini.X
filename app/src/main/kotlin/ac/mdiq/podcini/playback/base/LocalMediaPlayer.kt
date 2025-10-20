@@ -274,7 +274,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
         var item = playable
-        if (item.playState < EpisodeState.PROGRESS.code) item = runBlocking { setPlayStateSync(EpisodeState.PROGRESS.code, item, false) }
+        if (item.playState < EpisodeState.PROGRESS.code) item = runBlocking { setPlayStateSync(EpisodeState.PROGRESS, item, false) }
         val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
         curIndexInQueue = eList.indexWithId(item.id)
         setCurEpisode(item)

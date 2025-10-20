@@ -2,14 +2,12 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.getHistory
-import ac.mdiq.podcini.storage.database.Episodes.vmIndexWithUrl
 import ac.mdiq.podcini.storage.database.Episodes.indexWithId
 import ac.mdiq.podcini.storage.database.Feeds.feedIdsOfAllEpisodes
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
@@ -112,7 +110,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
@@ -172,15 +169,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         filter = EpisodeFilter(prefFilterEpisodes)
     }
 
-    private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
-        for (url in event.urls) {
-//            if (!event.isCompleted(url)) continue
-            val pos: Int = vms.vmIndexWithUrl(url)
-            if (pos >= 0 && pos < vms.size) vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
-            if (event.map[url]?.state == DownloadStatus.State.COMPLETED.ordinal) upsertBlk(vms[pos].episode) { it.downloaded = true }
-        }
-    }
-
     private var eventSink: Job? = null
     private var eventStickySink: Job? = null
     private var eventKeySink: Job?     = null
@@ -204,22 +192,6 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                     is FlowEvent.FeedListEvent -> loadItems()
                     else -> {}
                 }
-            }
-        }
-        if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.drop(1).collectLatest { event ->
-                Logd(TAG, "Received sticky event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)
-//                    is FlowEvent.FeedUpdatingEvent -> onFeedUpdateRunningEvent(event)
-                    else -> {}
-                }
-            }
-        }
-        if (eventKeySink == null) eventKeySink = lcScope.launch {
-            EventFlow.keyEvents.collectLatest { event ->
-                Logd(TAG, "Received key event: $event, ignored")
-//                onKeyUp(event)
             }
         }
     }

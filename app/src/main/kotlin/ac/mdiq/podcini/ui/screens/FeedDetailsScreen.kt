@@ -2,12 +2,10 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.storage.database.Episodes.getHistory
-import ac.mdiq.podcini.storage.database.Episodes.vmIndexWithUrl
 import ac.mdiq.podcini.storage.database.Feeds.FeedAssistant
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
@@ -138,7 +136,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
@@ -203,37 +200,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
                 }
             }
         }
-        if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.drop(1).collectLatest { event ->
-                Logd(TAG, "Received sticky event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.EpisodeDownloadEvent -> if (feedScreenMode == FeedScreenMode.List) onEpisodeDownloadEvent(event)
-//                    is FlowEvent.FeedUpdatingEvent -> if (feedScreenMode == FeedScreenMode.List) onFeedUpdateRunningEvent(event)
-                    else -> {}
-                }
-            }
-        }
     }
-
-    private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
-//        Logd(TAG, "onEpisodeDownloadEvent() called with ${event.TAG}")
-        if (feed == null || episodes.isEmpty()) return
-        for (url in event.urls) {
-//            if (!event.isCompleted(url)) continue
-            val pos: Int = vms.vmIndexWithUrl(url)
-            if (pos >= 0 && pos < vms.size) {
-                Logd(TAG, "onEpisodeDownloadEvent $pos ${event.map[url]?.state} ${episodes[pos].downloaded} ${episodes[pos].title}")
-                vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
-                if (event.map[url]?.state == DownloadStatus.State.COMPLETED.ordinal) upsertBlk(vms[pos].episode) { it.downloaded = true }
-            }
-        }
-    }
-
-//    private fun onFeedUpdateRunningEvent(event: FlowEvent.FeedUpdatingEvent) {
-//        updateInfoText = if (event.isRunning) context.getString(R.string.refreshing_label) else ""
-//        infoBarText.value = "$listInfoText $updateInfoText"
-//        if (!event.isRunning) loadFeed(true)
-//    }
 
     private fun computeScore() {
         if (!feed?.episodes.isNullOrEmpty()) {
@@ -681,7 +648,7 @@ fun FeedDetailsScreen() {
             if (vm.feed?.isSynthetic() == false) {
                 TextButton(modifier = Modifier.padding(top = 10.dp), onClick = {
                     setOnlineSearchTerms(CombinedSearcher::class.java, "${vm.txtvAuthor} podcasts")
-                    mainNavController.navigate(Screens.SearchResults.name)
+                    mainNavController.navigate(Screens.OnlineResults.name)
                 }) { Text(stringResource(R.string.feeds_related_to_author)) }
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(Date(vm.feed?.lastFullUpdateTime?:0L))}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
@@ -716,8 +683,7 @@ fun FeedDetailsScreen() {
                         }
                         val str = StringBuilder()
                         for (funding in fundingList) {
-                            str.append(if (funding.content == null || funding.content!!.isEmpty()) context.resources.getString(
-                                R.string.support_podcast)
+                            str.append(if (funding.content == null || funding.content!!.isEmpty()) context.resources.getString(R.string.support_podcast)
                             else funding.content).append(" ").append(funding.url)
                             str.append("\n")
                         }

@@ -1,3 +1,21 @@
+# 8.21.0
+
+* changed feed auto-enqueue algorithm a bit: it checks in the associated queue (rather than all queues) for episodes of the feed. A bit behavior changes:
+	* when maximum number of episodes remain in the queue, even some have changed status (partially played for instance), no new episodes are added
+	* when some episodes are moved to another queue, then new episodes will be added
+	* this doesn't apply to Only New with Replace policy, which behaves as before: checks enqueued episodes in all queues only for InQueue status
+* enhanced download tasks observation
+	* added Incomplete status
+	* finished tasks are pruned from observations
+* in episodes lists
+	* download/cancel buttons are now handled more efficiently, eliminated list searches
+	* download progress is now shown on the cancel button
+* fixed tabs deprecation and horizontal scrolling in Search screen
+* when setting an episode to Played, Skipped, Passed, or Ignored, it's no longer auto-downloadable
+* likely fixed bottom sheet misbehavior (on startup or after keyboard dismissal)
+* in Queues screen, likely fixed back press not returning to Queues from bin
+* some code refactoring
+
 # 8.20.0
 
 * overhauled ActionButtons routines

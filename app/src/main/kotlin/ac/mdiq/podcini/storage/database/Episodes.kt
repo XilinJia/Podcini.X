@@ -102,11 +102,11 @@ object Episodes {
         return if (episode != null) realm.copyFromRealm(episode) else null
     }
 
-    fun getEpisodeMedia(mediaId: Long, copy: Boolean = true): Episode? {
-        Logd(TAG, "getEpisodeMedia called $mediaId")
-        val media = realm.query(Episode::class).query("id == $0", mediaId).first().find()
-        if (!copy) return media
-        return if (media != null) realm.copyFromRealm(media) else null
+    fun getEpisode(id: Long, copy: Boolean = true): Episode? {
+        Logd(TAG, "getEpisodeMedia called $id")
+        val episode = realm.query(Episode::class).query("id == $0", id).first().find()
+        if (!copy) return episode
+        return if (episode != null) realm.copyFromRealm(episode) else null
     }
 
     /**
@@ -274,26 +274,25 @@ object Episodes {
         EventFlow.postEvent(FlowEvent.DownloadLogEvent())
     }
 
-    fun checkAndMarkDuplicates(media_: Episode): Episode {
-        var media = media_
+    fun checkAndMarkDuplicates(episode: Episode): Episode {
         var updated = false
         realm.writeBlocking {
-            val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", media_.title, media_.downloadUrl).find()
+            val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", episode.title, episode.downloadUrl).find()
             if (duplicates.size > 1) {
                 Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, setting to Ignored")
                 val localTime = System.currentTimeMillis()
                 val comment = fullDateTimeString(localTime) + ":\nduplicate"
                 for (e in duplicates) {
-                    if (e.id != media_.id) {
+                    if (e.id != episode.id) {
                         when {
                             e.playState <= EpisodeState.AGAIN.code -> {
                                 e.setPlayState(EpisodeState.IGNORED)
                                 e.comment += if (e.comment.isBlank()) comment else "\n" + comment
                                 EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(e))
                             }
-                            media_.playState == EpisodeState.IGNORED.code -> { }
+                            episode.playState == EpisodeState.IGNORED.code -> { }
                             else -> {
-                                val m = findLatest(media_)?.let {
+                                val m = findLatest(episode)?.let {
                                     it.setPlayState(EpisodeState.IGNORED)
                                     it.comment += if (it.comment.isBlank()) comment else "\n" + comment
                                     it
@@ -316,30 +315,26 @@ object Episodes {
                 }
             }
         }
-        return if (updated) realm.query(Episode::class, "id == ${media.id}").first().find() ?: media else media
-    }
-
-    suspend fun setRating(episode: Episode, rating: Int): Episode {
-        Logd(TAG, "setRating called $rating")
-        return upsert(episode) { it.rating = rating }
+        return if (updated) realm.query(Episode::class, "id == ${episode.id}").first().find() ?: episode else episode
     }
 
     fun stateToPreserve(stat: Int): Boolean = stat in listOf(EpisodeState.SOON.code, EpisodeState.LATER.code, EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)
 
-    suspend fun setPlayStateSync(played: Int, episode: Episode, resetMediaPosition: Boolean, removeFromQueue: Boolean = true) : Episode {
-        Logd(TAG, "setPlayStateSync called played: $played resetMediaPosition: $resetMediaPosition ${episode.title}")
+    suspend fun setPlayStateSync(state: EpisodeState, episode: Episode, resetMediaPosition: Boolean, removeFromQueue: Boolean = true) : Episode {
+        Logd(TAG, "setPlayStateSync called played: $state resetMediaPosition: $resetMediaPosition ${episode.title}")
         var episode_ = episode
         if (!episode.isManaged()) episode_ = realm.query(Episode::class).query("id == $0", episode.id).first().find() ?: episode
         val result = upsert(episode_) {
-            if (played != EpisodeState.UNSPECIFIED.code) it.setPlayState(fromCode(played))
+            if (state != EpisodeState.UNSPECIFIED) it.setPlayState(state)
             else {
                 if (it.playState == EpisodeState.PLAYED.code) it.setPlayState(EpisodeState.UNPLAYED)
                 else it.setPlayState(EpisodeState.PLAYED)
             }
             if (resetMediaPosition || it.playState == EpisodeState.PLAYED.code || it.playState == EpisodeState.IGNORED.code) it.setPosition(0)
+            if (state in listOf(EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) it.isAutoDownloadEnabled = false
         }
         Logd(TAG, "setPlayStateSync played0: ${result.playState}")
-        if (removeFromQueue && played == EpisodeState.PLAYED.code && getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(result)
+        if (removeFromQueue && state == EpisodeState.PLAYED && getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(result)
         Logd(TAG, "setPlayStateSync played1: ${result.playState}")
 //        EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(result))
         return result

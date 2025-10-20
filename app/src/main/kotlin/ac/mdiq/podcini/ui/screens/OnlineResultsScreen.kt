@@ -61,7 +61,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class SearchResultsVM(val context: Context, val lcScope: CoroutineScope) {
+class OnlineResultsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var searchProvider: PodcastSearcher? = null
 
     internal val feedLogs = feedLogsMap!!
@@ -120,11 +120,11 @@ class SearchResultsVM(val context: Context, val lcScope: CoroutineScope) {
 }
 
 @Composable
-fun SearchResultsScreen() {
+fun OnlineResultsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val vm = remember { SearchResultsVM(context, scope) }
+    val vm = remember { OnlineResultsVM(context, scope) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->

@@ -1,10 +1,8 @@
 package ac.mdiq.podcini.ui.screens
+
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
-import ac.mdiq.podcini.storage.database.Episodes.indexWithUrl
 import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
@@ -36,6 +34,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -47,9 +46,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -65,8 +67,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -99,7 +99,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
@@ -155,23 +154,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                     else -> {}
                 }
             }
-        }
-        if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.drop(1).collectLatest { event ->
-                Logd(TAG, "Received sticky event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)
-                    else -> {}
-                }
-            }
-        }
-    }
-
-    private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
-        for (url in event.urls) {
-            val pos: Int = episodes.indexWithUrl(url)
-            if (pos >= 0 && pos < vms.size) vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
-            if (event.map[url]?.state == DownloadStatus.State.COMPLETED.ordinal) upsertBlk(vms[pos].episode) { it.downloaded = true }
         }
     }
 
@@ -341,7 +323,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
             return
         }
         setOnlineSearchTerms(CombinedSearcher::class.java, query)
-        mainNavController.navigate(Screens.SearchResults.name)
+        mainNavController.navigate(Screens.OnlineResults.name)
     }
 }
 
@@ -532,12 +514,17 @@ fun SearchScreen() {
                 }
             )
             CriteriaList()
-            // TODO
-            TabRow(modifier = Modifier.fillMaxWidth(), selectedTabIndex = selectedTabIndex.intValue, divider = {}, indicator = { tabPositions ->
-                Box(modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex.intValue]).height(4.dp).background(Color.Blue))
-            }) {
+            Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                 tabTitles.forEachIndexed { index, titleRes ->
-                    Tab(text = { Text(stringResource(titleRes)+"(${tabCounts[index]})") }, selected = selectedTabIndex.intValue == index, onClick = { selectedTabIndex.intValue = index })
+//                    Tab(text = { Text(stringResource(titleRes) + "(${tabCounts[index]})") }, selected = selectedTabIndex.intValue == index, onClick = { selectedTabIndex.intValue = index })
+                    Tab(modifier = Modifier.wrapContentWidth().padding(horizontal = 2.dp, vertical = 4.dp).background(shape = RoundedCornerShape(8.dp),
+                        color = if (selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }),
+                        selected = selectedTabIndex.intValue == index,
+                        onClick = { selectedTabIndex.intValue = index },
+                        text = { Text(text = stringResource(titleRes) + "(${tabCounts[index]})", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium,
+                            color = if (selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary else { MaterialTheme.colorScheme.onSurface }) }
+                    )
+
                 }
             }
             when (selectedTabIndex.intValue) {

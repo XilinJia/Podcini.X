@@ -26,16 +26,16 @@ abstract class DownloadServiceInterface {
     abstract fun cancelAll(context: Context)
 
     fun isDownloadingEpisode(url: String): Boolean {
-        return (currentDownloads.containsKey(url) && currentDownloads[url]!!.state != DownloadStatus.State.COMPLETED.ordinal)
+        return (currentDownloads.containsKey(url) && currentDownloads[url]!!.state < DownloadStatus.State.COMPLETED.ordinal)
     }
 
-    fun isEpisodeQueued(url: String): Boolean {
-        return (currentDownloads.containsKey(url) && currentDownloads[url]!!.state == DownloadStatus.State.QUEUED.ordinal)
-    }
-
-    fun getProgress(url: String): Int {
-        return if (isDownloadingEpisode(url)) currentDownloads[url]!!.progress else -1
-    }
+//    fun isEpisodeQueued(url: String): Boolean {
+//        return (currentDownloads.containsKey(url) && currentDownloads[url]!!.state == DownloadStatus.State.QUEUED.ordinal)
+//    }
+//
+//    fun getProgress(url: String): Int {
+//        return if (isDownloadingEpisode(url)) currentDownloads[url]!!.progress else -1
+//    }
 
     companion object {
         const val WORK_TAG: String = "episodeDownload"

@@ -89,6 +89,7 @@ sealed class FlowEvent {
 
     data class DownloadLogEvent(val dummy: Unit = Unit) : FlowEvent()
 
+    // TODO: this likely can be removed
     data class EpisodeDownloadEvent(val map: Map<String, DownloadStatus>) : FlowEvent() {
         val urls: Set<String>
             get() = map.keys

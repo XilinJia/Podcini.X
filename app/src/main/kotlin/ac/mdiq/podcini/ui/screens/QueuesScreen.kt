@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.service.PlaybackService
@@ -10,7 +9,6 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackServic
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.storage.database.Episodes.indexWithUrl
 import ac.mdiq.podcini.storage.database.Episodes.indexWithId
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.Queues.clearQueue
@@ -120,12 +118,13 @@ import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import kotlin.math.max
 
@@ -189,19 +188,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
                 }
             }
         }
-        if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.drop(1).collectLatest { event ->
-                Logd(TAG, "Received sticky event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)
-//                    is FlowEvent.FeedUpdatingEvent -> {
-//                        infoTextUpdate = if (event.isRunning) "U" else ""
-//                        infoBarText.value = "$listInfoText $infoTextUpdate"
-//                    }
-                    else -> {}
-                }
-            }
-        }
         if (eventKeySink == null) eventKeySink = lcScope.launch {
             EventFlow.keyEvents.collectLatest { event ->
                 Logd(TAG, "Received key event: $event, Ignored!")
@@ -260,17 +246,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         infoBarText.value = "$listInfoText $feedOperationText"
     }
 
-    private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
-//        Logd(TAG, "onEventMainThread() called with ${event.TAG}")
-        if (loadItemsRunning) return
-        for (url in event.urls) {
-//            if (!event.isCompleted(url)) continue
-            val pos: Int = queueItems.indexWithUrl(url)
-            if (pos >= 0 && pos < vms.size) vms[pos].downloadState = event.map[url]?.state ?: DownloadStatus.State.UNKNOWN.ordinal
-            if (event.map[url]?.state == DownloadStatus.State.COMPLETED.ordinal) upsertBlk(vms[pos].episode) { it.downloaded = true }
-        }
-    }
-
     private fun onFeedPrefsChanged(event: FlowEvent.FeedChangeEvent) {
         Logd(TAG,"speedPresetChanged called")
         for (item in queueItems) if (item.feed?.id == event.feed.id) item.feed = null
@@ -281,25 +256,29 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
         if (!loadItemsRunning) {
             loadItemsRunning = true
             Logd(TAG, "loadCurQueue() called ${curQueue.name}")
-            while (curQueue.name.isEmpty()) runBlocking { delay(100) }
-            feedsAssociated = realm.query(Feed::class).query("queueId == ${curQueue.id}").find()
-            queueItems.clear()
-            vms.clear()
-            if (showBin) queueItems.addAll(realm.query(Episode::class, "id IN $0", curQueue.idsBinList).find().sortedByDescending { curQueue.idsBinList.indexOf(it.id) })
-            else {
-                curQueue.episodes.clear()
-                queueItems.addAll(curQueue.episodes)
+            runOnIOScope {
+                while (curQueue.name.isEmpty()) runBlocking { delay(100) }
+                feedsAssociated = realm.query(Feed::class).query("queueId == ${curQueue.id}").find()
+                queueItems.clear()
+                if (showBin) queueItems.addAll(realm.query(Episode::class, "id IN $0", curQueue.idsBinList).find().sortedByDescending { curQueue.idsBinList.indexOf(it.id) })
+                else {
+                    curQueue.episodes.clear()
+                    queueItems.addAll(curQueue.episodes)
+                }
+                queues = realm.query(PlayQueue::class).find()
+                listInfoText = buildListInfo(queueItems)
+                withContext(Dispatchers.Main) {
+                    val tag = if (showBin) TAG + "bin" else TAG
+                    vms.clear()
+                    for (e in queueItems) vms.add(EpisodeVM(e, tag))
+                    Logd(TAG, "loadCurQueue() curQueue.episodes: ${curQueue.episodes.size}")
+                    curIndex = queues.indexOfFirst { it.id == curQueue.id }
+                    spinnerTexts.clear()
+                    spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
+                    infoBarText.value = "$listInfoText $feedOperationText"
+                    loadItemsRunning = false
+                }
             }
-            val tag = if (showBin) TAG+"bin" else TAG
-            for (e in queueItems) vms.add(EpisodeVM(e, tag))
-            Logd(TAG, "loadCurQueue() curQueue.episodes: ${curQueue.episodes.size}")
-            queues = realm.query(PlayQueue::class).find()
-            curIndex = queues.indexOfFirst { it.id == curQueue.id }
-            spinnerTexts.clear()
-            spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
-            listInfoText = buildListInfo(queueItems)
-            infoBarText.value = "$listInfoText $feedOperationText"
-            loadItemsRunning = false
         }
     }
     /**
@@ -311,7 +290,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun reorderQueue(sortOrder: EpisodeSortOrder?, broadcastUpdate: Boolean) : Job {
         Logd(TAG, "reorderQueue called")
         if (sortOrder == null) {
-            Logd(TAG, "reorderQueue() - sortOrder is null. Do nothing.")
+            Logt(TAG, "sortOrder is null. Do nothing.")
             return Job()
         }
         val permutor = getPermutor(sortOrder)
@@ -605,8 +584,11 @@ fun QueuesScreen() {
         Logt(TAG, "BackHandler $showBin $showFeeds")
         when {
             showBin -> {
-                showBin = false
-                refreshQueueOrBin()
+                scope.launch {
+                    showBin = false
+//                    delay(50)
+                    refreshQueueOrBin()
+                }
             }
             showFeeds -> showFeeds = false
             else -> {}

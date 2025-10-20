@@ -69,10 +69,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.core.text.HtmlCompat
 import androidx.media3.common.util.UnstableApi
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import net.dankito.readability4j.Readability4J
 import java.io.File
 import java.util.Locale
@@ -103,9 +101,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
     @UnstableApi
     fun onClick(context: Context) {
         when (type) {
-            ButtonTypes.WEBSITE -> {
-                if (!item.link.isNullOrEmpty()) IntentUtils.openInBrowser(context, item.link!!)
-            }
+            ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) IntentUtils.openInBrowser(context, item.link!!)
             ButtonTypes.CANCEL -> {
                 DownloadServiceInterface.impl?.cancel(context, item)
                 if (AppPreferences.isAutodownloadEnabled) {
@@ -183,14 +179,8 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                     cancelRes = R.string.cancel_label,
                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
-                    onConfirm = {
-                        DownloadServiceInterface.impl?.downloadNow(context, item, false)
-                        Logd(TAG, "downloading ${item.title}")
-                    },
-                    onNeutral = {
-                        DownloadServiceInterface.impl?.downloadNow(context, item, true)
-                        Logd(TAG, "downloading ${item.title}")
-                    })
+                    onConfirm = { DownloadServiceInterface.impl?.downloadNow(context, item, false) },
+                    onNeutral = { DownloadServiceInterface.impl?.downloadNow(context, item, true) })
             }
             ButtonTypes.TTS -> {
                 Logd("TTSActionButton", "onClick called")
@@ -224,31 +214,19 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                         TTSObj.ttsWorking = true
                         if (item.feed?.language != null) {
                             val result = TTSObj.tts?.setLanguage(Locale(item.feed!!.language!!))
-                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                                //                        Loge(TAG, "TTS language not supported ${item.feed!!.language} $result")
-                                withContext(Dispatchers.Main) {
-                                    Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " ${item.feed!!.language} $result")
-                                }
-                            }
+                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " ${item.feed!!.language} $result")
                         }
 
                         var j = 0
                         val mediaFile = File(item.getMediafilePath(), item.getMediafilename())
                         TTSObj.tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                            override fun onStart(utteranceId: String?) {
-                                Logd(TAG, "onStart $utteranceId")
-                            }
+                            override fun onStart(utteranceId: String?) {}
                             override fun onDone(utteranceId: String?) {
                                 j++
-                                Logd(TAG, "onDone ${mediaFile.length()} $utteranceId")
                             }
                             @Deprecated("Deprecated in Java")
-                            override fun onError(utteranceId: String) {
-                                Loge(TAG, "onError utterance error: $utteranceId $readerText")
-                            }
-                            override fun onError(utteranceId: String, errorCode: Int) {
-                                Loge(TAG, "onError1 utterance error: $utteranceId $errorCode $readerText")
-                            }
+                            override fun onError(utteranceId: String) {}    // deprecated but have to override
+                            override fun onError(utteranceId: String, errorCode: Int) {}
                         })
 
                         Logd(TAG, "readerText: ${readerText?.length}")
@@ -321,7 +299,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                 } else {
                     clearCurTempSpeed()
                     PlaybackStarter(context, item).start()
-                    if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code) item = runBlocking { setPlayStateSync(EpisodeState.PROGRESS.code, item, false) }
+                    if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code) item = runBlocking { setPlayStateSync(EpisodeState.PROGRESS, item, false) }
                 }
                 if (item.getMediaType() == MediaType.VIDEO) context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
                 type = ButtonTypes.PAUSE
@@ -370,6 +348,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                 }
             }
         }
+        Logd(TAG, "update type: $type")
     }
 
     @UnstableApi

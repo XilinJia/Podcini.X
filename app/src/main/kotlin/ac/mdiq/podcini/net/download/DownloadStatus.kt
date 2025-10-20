@@ -8,6 +8,7 @@ class DownloadStatus(
         UNKNOWN,
         QUEUED,
         RUNNING,
-        COMPLETED     // Both successful and not successful
+        COMPLETED,     // Both successful and not successful
+        INCOMPLETE
     }
 }

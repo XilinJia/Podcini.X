@@ -71,8 +71,10 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.union
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Checkbox
@@ -91,10 +93,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -110,9 +114,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
+import androidx.work.await
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -231,24 +237,33 @@ class MainActivity : BaseActivity() {
                 else lcScope?.launch { sheetState.bottomSheetState.partialExpand() }
             } else lcScope?.launch { sheetState.bottomSheetState.hide() }
         }
-        val dynamicBottomPadding by remember { derivedStateOf {
-            when (sheetState.bottomSheetState.currentValue) {
-                SheetValue.Expanded -> 300.dp
-                SheetValue.PartiallyExpanded -> 100.dp
-                else -> 0.dp
+
+        val sheetValueState = remember { mutableStateOf(sheetState.bottomSheetState.currentValue) }
+        LaunchedEffect(sheetState.bottomSheetState) {
+            snapshotFlow { sheetState.bottomSheetState.currentValue }
+                .collect { newValue -> sheetValueState.value = newValue }
+        }
+        val bottomInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
+        val bottomInsetPadding = bottomInsets.asPaddingValues().calculateBottomPadding()
+        val dynamicBottomPadding by remember {
+            derivedStateOf {
+                when (sheetValueState.value) {
+                    SheetValue.Expanded -> bottomInsetPadding + 300.dp
+                    SheetValue.PartiallyExpanded -> bottomInsetPadding + 100.dp
+                    else -> bottomInsetPadding
+                }
             }
-        } }
+        }
+//        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
-            val dynamicSheetHeight = WindowInsets.safeDrawing.asPaddingValues().calculateBottomPadding()
-            Logd(TAG, "effectiveBottomPadding: $dynamicSheetHeight")
-            BottomSheetScaffold(scaffoldState = sheetState, sheetPeekHeight = dynamicSheetHeight + 100.dp, sheetDragHandle = {}, topBar = {},
-                sheetSwipeEnabled = false, sheetShape = RectangleShape, sheetContent = { AudioPlayerScreen() }
+            BottomSheetScaffold(sheetContent = { AudioPlayerScreen() },
+                scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp,
+                sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}
             ) { paddingValues ->
                 Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize()
                     .padding(top = paddingValues.calculateTopPadding(),
                         start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
                         end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
-//                    bottom = paddingValues.calculateBottomPadding() - dynamicBottomPadding
                         bottom = dynamicBottomPadding
                     )) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
@@ -294,7 +309,7 @@ class MainActivity : BaseActivity() {
 
     private fun observeDownloads() {
         lifecycleScope.launch {
-            withContext(Dispatchers.IO) { WorkManager.getInstance(this@MainActivity).pruneWork().result.get() }
+            withContext(Dispatchers.IO) { WorkManager.getInstance(this@MainActivity).pruneWork().await() }
             WorkManager.getInstance(this@MainActivity)
                 .getWorkInfosByTagLiveData(DownloadServiceInterface.WORK_TAG)
                 .observe(this@MainActivity) { workInfos: List<WorkInfo> ->
@@ -302,37 +317,44 @@ class MainActivity : BaseActivity() {
                         hasDownloadObserverStarted = true
                         return@observe
                     }
-                    val updatedEpisodes: MutableMap<String, DownloadStatus> = mutableMapOf()
+                    Logd(TAG, "workInfos: ${workInfos.size}")
+                    downloadStates.clear()
+                    var hasFinished = false
                     for (workInfo in workInfos) {
                         var downloadUrl: String? = null
                         for (tag in workInfo.tags) {
                             if (tag.startsWith(DownloadServiceInterface.WORK_TAG_EPISODE_URL)) downloadUrl = tag.substring(DownloadServiceInterface.WORK_TAG_EPISODE_URL.length)
                         }
                         if (downloadUrl == null) continue
-//                        Logd(TAG, "workInfo.state: ${workInfo.state}")
-                        var status: Int
-                        status = when (workInfo.state) {
+                        Logd(TAG, "workInfo.state: ${workInfo.state} ${workInfo.state.isFinished}")
+                        var status: Int = when (workInfo.state) {
                             WorkInfo.State.RUNNING -> DownloadStatus.State.RUNNING.ordinal
                             WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> DownloadStatus.State.QUEUED.ordinal
                             WorkInfo.State.SUCCEEDED -> DownloadStatus.State.COMPLETED.ordinal
                             WorkInfo.State.FAILED -> {
                                 Loge(TAG, "download failed $downloadUrl")
-                                DownloadStatus.State.COMPLETED.ordinal
+                                DownloadStatus.State.INCOMPLETE.ordinal
                             }
                             WorkInfo.State.CANCELLED -> {
                                 Logt(TAG, "download cancelled $downloadUrl")
-                                DownloadStatus.State.COMPLETED.ordinal
+                                DownloadStatus.State.INCOMPLETE.ordinal
                             }
                         }
                         var progress = workInfo.progress.getInt(DownloadServiceInterface.WORK_DATA_PROGRESS, -1)
-                        if (progress == -1 && status != DownloadStatus.State.COMPLETED.ordinal) {
+                        if (progress == -1 && status < DownloadStatus.State.COMPLETED.ordinal) {
                             status = DownloadStatus.State.QUEUED.ordinal
                             progress = 0
                         }
-                        updatedEpisodes[downloadUrl] = DownloadStatus(status, progress)
+                        downloadStates[downloadUrl] = DownloadStatus(status, progress)
+                        Logd(TAG, "downloadStates: ${downloadStates.size}")
+                        if (workInfo.state.isFinished) hasFinished = true
                     }
-                    DownloadServiceInterface.impl?.setCurrentDownloads(updatedEpisodes)
-                    EventFlow.postStickyEvent(FlowEvent.EpisodeDownloadEvent(updatedEpisodes))
+                    DownloadServiceInterface.impl?.setCurrentDownloads(downloadStates)
+                    EventFlow.postStickyEvent(FlowEvent.EpisodeDownloadEvent(downloadStates))
+                    if (hasFinished) lifecycleScope.launch(Dispatchers.IO) {
+                        delay(2000)
+                        WorkManager.getInstance(this@MainActivity).pruneWork().await()
+                    }
                 }
         }
     }
@@ -450,7 +472,7 @@ class MainActivity : BaseActivity() {
             intent.hasExtra(Extras.search_string.name) -> {
                 val query = intent.getStringExtra(Extras.search_string.name)
                 setOnlineSearchTerms(CombinedSearcher::class.java, query)
-                mainNavController.navigate(Screens.SearchResults.name)
+                mainNavController.navigate(Screens.OnlineResults.name)
             }
 //            intent.hasExtra(MainActivityStarter.Extras.fragment_tag.name) -> {
 //                val tag = intent.getStringExtra(MainActivityStarter.Extras.fragment_tag.name)
@@ -530,6 +552,7 @@ class MainActivity : BaseActivity() {
         private const val INIT_KEY = "app_init_state"
 
         var hasInitialized = mutableStateOf(false)
+        val downloadStates = mutableStateMapOf<String, DownloadStatus>()
 
         lateinit var mainNavController: NavHostController
         val LocalNavController = staticCompositionLocalOf<NavController> { error("NavController not provided") }

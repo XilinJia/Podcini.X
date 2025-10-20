@@ -315,7 +315,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
             runOnIOScope {
                 val almostEnded = hasAlmostEnded(item_)
-                if (almostEnded && item_.playState < EpisodeState.PLAYED.code) item_ = setPlayStateSync(EpisodeState.PLAYED.code, item_, resetMediaPosition = true, removeFromQueue = false)
+                if (almostEnded && item_.playState < EpisodeState.PLAYED.code) item_ = setPlayStateSync(EpisodeState.PLAYED, item_, resetMediaPosition = true, removeFromQueue = false)
                 if (almostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
                 deleteEpisodesWarnLocalRepeat(context, listOf(item_))
                 vm.updateVMFromDB()

@@ -281,7 +281,7 @@ enum class Screens {
     OnlineFeed,
     OnlineEpisodes,
     Discovery,
-    SearchResults,
+    OnlineResults,
     Logs,
     Statistics
 }
@@ -307,7 +307,7 @@ private val navHostMap: MutableMap<Screens, @Composable ()->Unit> = mutableMapOf
     Screens.OnlineSearch to { OnlineSearchScreen() },
     Screens.Discovery to { DiscoveryScreen() },
     Screens.OnlineFeed to { OnlineFeedScreen() },
-    Screens.SearchResults to { SearchResultsScreen() },
+    Screens.OnlineResults to { OnlineResultsScreen() },
     Screens.Logs to { LogsScreen() },
     Screens.Statistics to { StatisticsScreen() }
 )
