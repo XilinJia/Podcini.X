@@ -583,7 +583,7 @@
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Autentisering</string>
     <string name="authentication_descr">Byt ditt användarnamn och lösenord för den här podcasten och dess episoder.</string>
-    <string name="feed_tags_label">Etiketter</string>
+    <string name="tags_label">Etiketter</string>
     <string name="feed_tags_summary">Ändra etiketterna för denna podcast för att organisera prenumerationerna</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Bara etiketter gemensamma med alla valda prenumerationer visas. Andra etiketter påverkas inte.</string>
     <string name="auto_download_settings_label">Inställningar för automatisk nedladdning</string>

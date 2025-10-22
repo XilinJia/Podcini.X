@@ -604,7 +604,7 @@
     <!-- Feed settings/information screen -->
     <string name="authentication_label">تسجيل الدخول</string>
     <string name="authentication_descr">غيّر اسم المستخدم وكلمة المرور لهذا البودكاست وحلقاته.</string>
-    <string name="feed_tags_label">العلامات</string>
+    <string name="tags_label">العلامات</string>
     <string name="feed_tags_summary">قم بتغيير العلامات الخاصة بهذا البودكاست للمساعدة في تنظيم اشتراكاتك</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} سيتم عرض العلامات المشتركة بين الاشتراكات المختارة فقط. لن يتم تعديل العلامات الأخرى</string>
     <string name="auto_download_settings_label">إعدادات التنزيل التلقائي</string>

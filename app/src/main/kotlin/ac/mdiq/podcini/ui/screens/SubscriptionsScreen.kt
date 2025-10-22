@@ -36,8 +36,8 @@ import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
+import ac.mdiq.podcini.ui.compose.SelectLowerAllUpper
 import ac.mdiq.podcini.ui.compose.SimpleSwitchDialog
-import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -129,6 +129,7 @@ import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -176,49 +177,48 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
             prefs.edit { putString("feedsFilter", filter) }
         }
 
-    private var _langFilterIndex: Int = -1
-    internal var langFilterIndex: Int
+    internal val languages: MutableList<String> = mutableListOf()
+    private var _langsSel: Set<String>? = null
+    var langsSel: Set<String>
         get() {
-            if (_langFilterIndex < 0) _langFilterIndex = prefs.getInt("tagFilterIndex", 0)
-            return _langFilterIndex
+            if (_langsSel == null) _langsSel = prefs.getStringSet("langsSel", emptySet())?: languages.toSet()
+            return _langsSel!!
         }
-        set(index) {
-            _langFilterIndex = index
-            prefs.edit { putInt("tagFilterIndex", index)}
-        }
-    private var _tagFilterIndex: Int = -1
-    internal var tagFilterIndex: Int
-        get() {
-            if (_tagFilterIndex < 0) _tagFilterIndex = prefs.getInt("tagFilterIndex", 0)
-            return _tagFilterIndex
-        }
-        set(index) {
-            _tagFilterIndex = index
-            prefs.edit { putInt("tagFilterIndex", index)}
-        }
-    private var _queueFilterIndex: Int = -1
-    internal var queueFilterIndex: Int
-        get() {
-            if (_queueFilterIndex < 0) _queueFilterIndex = prefs.getInt("queueFilterIndex", 0)
-            return _queueFilterIndex
-        }
-        set(index) {
-            _queueFilterIndex = index
-            prefs.edit { putInt("queueFilterIndex", index)}
+        set(valueSet) {
+            _langsSel = valueSet
+            prefs.edit { putStringSet("langsSel", valueSet) }
         }
 
-    internal val languages: MutableList<String> = mutableListOf()
     internal val tags = mutableStateListOf<String>()
+    private var _tagsSel: Set<String>? = null
+    var tagsSel: Set<String>
+        get() {
+            if (_tagsSel == null) _tagsSel = prefs.getStringSet("tagsSel", emptySet())?: tags.toSet()
+            return _tagsSel!!
+        }
+        set(valueSet) {
+            _tagsSel = valueSet
+            prefs.edit { putStringSet("tagsSel", valueSet) }
+        }
+
+    val queueNames = mutableStateListOf<String>()
     internal val queueIds: MutableList<Long> = mutableListOf()
-    internal val queueSpinnerTexts = mutableStateListOf("Any queue", "No queue")
+    private var _qSelIds: Set<String>? = null
+    var qSelIds: Set<Long>
+        get() {
+            if (_qSelIds == null) _qSelIds = prefs.getStringSet("qSelIds", emptySet()) ?: queueIds.map { it.toString() }.toSet()
+            return _qSelIds!!.mapNotNull { it.toLongOrNull() }.toSet()
+        }
+        set(valueSet) {
+            _qSelIds = valueSet.map { it.toString() }.toSet()
+            prefs.edit { putStringSet("qSelIds", _qSelIds) }
+        }
 
     internal var isFiltered by mutableStateOf(false)
-//    internal var infoTextUpdate = ""
 
     //    TODO: currently not used
     internal var displayedFolder by mutableStateOf("")
 
-//    internal var txtvInformation by mutableStateOf("")
     internal var feedCountState by mutableStateOf("")
     internal var feedSorted by mutableIntStateOf(0)
 
@@ -249,8 +249,6 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal fun resetTags() {
         tags.clear()
-        tags.add("All tags")
-        tags.add("Untagged")
         tags.addAll(getTags())
     }
 
@@ -268,29 +266,12 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.FeedListEvent -> loadSubscriptions(true)
-                    // TODO: is this needed
-//                    is FlowEvent.EpisodePlayedEvent -> loadSubscriptions(true)
                     is FlowEvent.FeedTagsChangedEvent -> loadSubscriptions(true)
                     is FlowEvent.FeedChangeEvent -> loadSubscriptions(true)
                     else -> {}
                 }
             }
         }
-//        if (eventStickySink == null) eventStickySink = lcScope.launch {
-//            EventFlow.stickyEvents.drop(1).collectLatest { event ->
-//                Logd(TAG, "Received sticky event: ${event.TAG}")
-//                when (event) {
-//                    is FlowEvent.FeedUpdatingEvent -> {
-//                        Logd(TAG, "FeedUpdateRunningEvent: ${event.isRunning} ${event.id}")
-//                        infoTextUpdate = if (event.isRunning) " " + context.getString(R.string.refreshing_label) else ""
-//                        txtvInformation = infoTextUpdate
-//                        if (!event.isRunning && event.id != prevFeedUpdatingEvent?.id) loadSubscriptions(true)
-//                        prevFeedUpdatingEvent = event
-//                    }
-//                    else -> {}
-//                }
-//            }
-//        }
     }
 
     private var loadingJob: Job? = null
@@ -313,8 +294,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
                     feedListFiltered.clear()
                     feedListFiltered.addAll(feedList)
                     feedCountState = feedListFiltered.size.toString() + " / " + feedCount.toString()
-                    isFiltered = feedsFilter.isNotEmpty()
-//                    txtvInformation = feedOperationText
+                    isFiltered = feedsFilter.isNotEmpty() || tagsSel.size != tags.size || langsSel.size != languages.size || qSelIds.size != queueIds.size
                 }
             } catch (e: Throwable) { Logd(TAG, e.message ?: "No message") }
         }.apply { invokeOnCompletion { loadingJob = null } }
@@ -394,36 +374,52 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun fetchAndSort(build: Boolean = true): List<Feed> {
-        fun tagsQS() : String {
-            return when (tagFilterIndex) {
-                0 ->  ""    // All feeds
-//            TODO: #root appears not used in RealmDB, is it a SQLite specialty
-                1 ->  " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
-                else -> {   // feeds with the chosen tag
-                    val tag = tags[tagFilterIndex]
-                    " ANY tags == '$tag' "
+        fun languagesQS() : String {
+            var q  = ""
+            when {
+                langsSel.isEmpty() -> q = " (language == '' OR language == nil) "
+                langsSel.size == languages.size -> q = ""
+                else -> {
+                    for (l in langsSel) {
+                        q += if (q.isEmpty()) " ( language == '$l' " else " OR language == '$l' "
+                    }
+                    if (q.isNotEmpty()) q += " ) "
                 }
             }
+            Logd(TAG, "languagesQS: $q")
+            return q
+        }
+        fun tagsQS() : String {
+            var q  = ""
+            when {
+                tagsSel.isEmpty() -> q = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
+                tagsSel.size == tags.size -> q = ""
+                else -> {
+                    for (t in tagsSel) {
+                        q += if (q.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
+                    }
+                    if (q.isNotEmpty()) q += " ) "
+                }
+            }
+            Logd(TAG, "tagsQS: $q")
+            return q
         }
         fun queuesQS() : String {
-            return when (queueFilterIndex) {
-                0 ->  ""    // All feeds
-                1 -> " queueId == -2 "
-                else -> {   // feeds associated with the chosen queue
-                    val qid = queueIds[queueFilterIndex-2]
-                    " queueId == '$qid' "
-                }
+            val qSelIds_ = qSelIds.toMutableSet()
+            if (qSelIds_.isEmpty()) qSelIds_.add(-2)
+            else {
+//                if ((queueIds - qSelIds_).isEmpty()) qSelIds_.add(-2)
+//                else qSelIds_.remove(-2)
+                if ((queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
+                else qSelIds_.remove(-2)
             }
-        }
-        fun languagesQS() : String {
-            return when (langFilterIndex) {
-                0 ->  ""    // All languages
-                1 -> " (language == '' OR language == nil) "
-                else -> {   // feeds associated with the chosen queue
-                    val lang = languages[langFilterIndex]
-                    " language == '$lang' "
-                }
+            var q  = ""
+            for (id in qSelIds_) {
+                q += if (q.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
             }
+            if (q.isNotEmpty()) q += " ) "
+            Logd(TAG, "queuesQS: $q")
+            return q
         }
         fun getFeedList(): MutableList<Feed> {
             var fQueryStr = FeedFilter(feedsFilter).queryString()
@@ -607,14 +603,13 @@ fun SubscriptionsScreen() {
     val vm = remember { SubscriptionsVM(context, scope) }
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
+    val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     compileLanguages()
-                    vm.languages.add("All langs")
-                    vm.languages.add("Unspecified")
                     vm.languages.addAll(languages.filter { it.isNotBlank() })
 
                     vm.getSortingPrefs()
@@ -622,7 +617,7 @@ fun SubscriptionsScreen() {
                     vm.resetTags()
                     val queues = realm.query(PlayQueue::class).find()
                     vm.queueIds.addAll(queues.map { it.id })
-                    vm.queueSpinnerTexts.addAll(queues.map { it.name })
+                    vm.queueNames.addAll(queues.map { it.name })
                     vm.feedCountState = vm.feedListFiltered.size.toString() + " / " + feedCount.toString()
                     vm.loadSubscriptions()
                 }
@@ -647,7 +642,6 @@ fun SubscriptionsScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-//        val buttonColor = Color(0xDDFFD700)
         Box {
             TopAppBar(title = {
                 Row {
@@ -659,7 +653,7 @@ fun SubscriptionsScreen() {
                 navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } },
                 actions = {
                     IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                    IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.isFiltered) Color.Green else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
+                    IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
                     IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                     DropdownMenu(expanded = expanded,
@@ -983,7 +977,7 @@ fun SubscriptionsScreen() {
                                         bottom.linkTo(parent.bottom)
                                         start.linkTo(parent.start)
                                     })
-                                Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,
+                                Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = buttonAltColor,
                                     modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
                                         end.linkTo(parent.end)
                                         top.linkTo(coverImage.top)
@@ -1137,28 +1131,28 @@ fun SubscriptionsScreen() {
                 Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
                     val scrollStateH = rememberScrollState()
                     Row(Modifier.fillMaxWidth().horizontalScroll(scrollStateH)) {
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Title.ordinal) buttonColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Title.ordinal) buttonColor else buttonAltColor),
                             onClick = {
                                 if (vm.sortIndex == FeedSortIndex.Title.ordinal) vm.titleAscending = !vm.titleAscending
                                 vm.sortIndex = FeedSortIndex.Title.ordinal
                                 fetchAndSortRoutine()
                             }
                         ) { Text(text = stringResource(FeedSortIndex.Title.res) + if (vm.titleAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Date.ordinal) buttonColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Date.ordinal) buttonColor else buttonAltColor),
                             onClick = {
                                 if (vm.sortIndex == FeedSortIndex.Date.ordinal) vm.dateAscending = !vm.dateAscending
                                 vm.sortIndex = FeedSortIndex.Date.ordinal
                                 fetchAndSortRoutine()
                             }
                         ) { Text(text = stringResource(FeedSortIndex.Date.res) + if (vm.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Time.ordinal) buttonColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Time.ordinal) buttonColor else buttonAltColor),
                             onClick = {
                                 if (vm.sortIndex == FeedSortIndex.Time.ordinal) vm.timeAscending = !vm.timeAscending
                                 vm.sortIndex = FeedSortIndex.Time.ordinal
                                 fetchAndSortRoutine()
                             }
                         ) { Text(text = stringResource(FeedSortIndex.Time.res) + if (vm.timeAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Count.ordinal) buttonColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.sortIndex != FeedSortIndex.Count.ordinal) buttonColor else buttonAltColor),
                             onClick = {
                                 if (vm.sortIndex == FeedSortIndex.Count.ordinal) vm.countAscending = !vm.countAscending
                                 vm.sortIndex = FeedSortIndex.Count.ordinal
@@ -1169,28 +1163,28 @@ fun SubscriptionsScreen() {
                     HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                     if (vm.sortIndex == FeedSortIndex.Date.ordinal) {
                         Row {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Played.ordinal) buttonColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Played.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
                                     vm.dateSortIndex = FeedDateSortIndex.Played.ordinal
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(FeedDateSortIndex.Played.res)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) buttonColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
                                     vm.dateSortIndex = FeedDateSortIndex.Downloaded.ordinal
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(FeedDateSortIndex.Downloaded.res)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Commented.ordinal) buttonColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Commented.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
                                     vm.dateSortIndex = FeedDateSortIndex.Commented.ordinal
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(FeedDateSortIndex.Commented.res)) }
                         }
-                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Publish.ordinal) buttonColor else Color.Green),
+                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.dateSortIndex != FeedDateSortIndex.Publish.ordinal) buttonColor else buttonAltColor),
                             onClick = {
                                 vm.dateSortIndex = FeedDateSortIndex.Publish.ordinal
                                 fetchAndSortRoutine()
@@ -1198,14 +1192,14 @@ fun SubscriptionsScreen() {
                         ) { Text(stringResource(FeedDateSortIndex.Publish.res)) }
                     } else if (vm.sortIndex == FeedSortIndex.Time.ordinal) {
                         Row {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 1) buttonColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 1) buttonColor else buttonAltColor),
                                 onClick = {
                                     vm.timeSortIndex = 1
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(R.string.min_duration)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 2) buttonColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 2) buttonColor else buttonAltColor),
                                 onClick = {
                                     vm.timeSortIndex = 2
                                     fetchAndSortRoutine()
@@ -1213,14 +1207,14 @@ fun SubscriptionsScreen() {
                             ) { Text(stringResource(R.string.max_duration)) }
                         }
                         Row {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 0) buttonColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 0) buttonColor else buttonAltColor),
                                 onClick = {
                                     vm.timeSortIndex = 0
                                     fetchAndSortRoutine()
                                 }
                             ) { Text(stringResource(R.string.total_duration)) }
                             Spacer(Modifier.weight(1f))
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 3) buttonColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.timeSortIndex != 3) buttonColor else buttonAltColor),
                                 onClick = {
                                     vm.timeSortIndex = 3
                                     fetchAndSortRoutine()
@@ -1237,7 +1231,7 @@ fun SubscriptionsScreen() {
                                 if (selectNone) vm.downlaodedSortIndex = -1
                                 Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                 Spacer(Modifier.weight(0.3f))
-                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.downlaodedSortIndex != 0) buttonColor else Color.Green),
+                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.downlaodedSortIndex != 0) buttonColor else buttonAltColor),
                                     onClick = {
                                         if (vm.downlaodedSortIndex != 0) {
                                             selectNone = false
@@ -1247,7 +1241,7 @@ fun SubscriptionsScreen() {
                                     },
                                 ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                 Spacer(Modifier.weight(0.1f))
-                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.downlaodedSortIndex != 1) buttonColor else Color.Green),
+                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.downlaodedSortIndex != 1) buttonColor else buttonAltColor),
                                     onClick = {
                                         if (vm.downlaodedSortIndex != 1) {
                                             selectNone = false
@@ -1264,7 +1258,7 @@ fun SubscriptionsScreen() {
                                 if (selectNone) vm.commentedSortIndex = -1
                                 Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                 Spacer(Modifier.weight(0.3f))
-                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.commentedSortIndex != 0) buttonColor else Color.Green),
+                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.commentedSortIndex != 0) buttonColor else buttonAltColor),
                                     onClick = {
                                         if (vm.commentedSortIndex != 0) {
                                             selectNone = false
@@ -1274,7 +1268,7 @@ fun SubscriptionsScreen() {
                                     },
                                 ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                 Spacer(Modifier.weight(0.1f))
-                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.commentedSortIndex != 1) buttonColor else Color.Green),
+                                OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.commentedSortIndex != 1) buttonColor else buttonAltColor),
                                     onClick = {
                                         if (vm.commentedSortIndex != 1) {
                                             selectNone = false
@@ -1293,52 +1287,52 @@ fun SubscriptionsScreen() {
                             Row {
                                 Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor,
                                     modifier = Modifier.clickable { expandRow = !expandRow })
-                                var lowerSelected by remember { mutableStateOf(false) }
-                                var higherSelected by remember { mutableStateOf(false) }
-                                Spacer(Modifier.weight(1f))
-                                if (expandRow) Text("<<<", color = if (lowerSelected) Color.Green else buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                    modifier = Modifier.clickable {
-                                        val hIndex = vm.episodeStateSort.indexOfLast { it.value }
-                                        if (hIndex < 0) return@clickable
-                                        if (!lowerSelected) {
-                                            for (i in 0..hIndex) vm.episodeStateSort[i].value = true
-                                        } else {
-                                            for (i in 0..hIndex) vm.episodeStateSort[i].value = false
-                                            vm.episodeStateSort[hIndex].value = true
-                                        }
-                                        lowerSelected = !lowerSelected
-                                        fetchAndSortRoutine()
-                                    })
-                                Spacer(Modifier.weight(1f))
-                                if (expandRow) Text("X", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                    modifier = Modifier.clickable {
-                                        lowerSelected = false
-                                        higherSelected = false
-                                        for (i in item.properties.indices) vm.episodeStateSort[i].value = false
-                                        fetchAndSortRoutine()
-                                    })
-                                Spacer(Modifier.weight(1f))
-                                if (expandRow) Text(">>>", color = if (higherSelected) Color.Green else buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                    modifier = Modifier.clickable {
-                                        val lIndex = vm.episodeStateSort.indexOfFirst { it.value }
-                                        if (lIndex < 0) return@clickable
-                                        if (!higherSelected) {
-                                            for (i in lIndex..<item.properties.size) vm.episodeStateSort[i].value = true
-                                        } else {
-                                            for (i in lIndex..<item.properties.size) vm.episodeStateSort[i].value = false
-                                            vm.episodeStateSort[lIndex].value = true
-                                        }
-                                        higherSelected = !higherSelected
-                                        fetchAndSortRoutine()
-                                    })
+                                if (expandRow) {
+                                    var lowerSelected by remember { mutableStateOf(false) }
+                                    var higherSelected by remember { mutableStateOf(false) }
+                                    Spacer(Modifier.weight(1f))
+                                    Text("<<<", color = if (lowerSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
+                                        modifier = Modifier.clickable {
+                                            val hIndex = vm.episodeStateSort.indexOfLast { it.value }
+                                            if (hIndex < 0) return@clickable
+                                            if (!lowerSelected) {
+                                                for (i in 0..hIndex) vm.episodeStateSort[i].value = true
+                                            } else {
+                                                for (i in 0..hIndex) vm.episodeStateSort[i].value = false
+                                                vm.episodeStateSort[hIndex].value = true
+                                            }
+                                            lowerSelected = !lowerSelected
+                                            fetchAndSortRoutine()
+                                        })
+                                    Spacer(Modifier.weight(1f))
+                                    Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
+                                        modifier = Modifier.clickable {
+                                            val selectAll = !(lowerSelected && higherSelected)
+                                            lowerSelected = selectAll
+                                            higherSelected = selectAll
+                                            for (i in item.properties.indices) vm.episodeStateSort[i].value = selectAll
+                                            fetchAndSortRoutine()
+                                        })
+                                    Spacer(Modifier.weight(1f))
+                                    Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
+                                        modifier = Modifier.clickable {
+                                            val lIndex = vm.episodeStateSort.indexOfFirst { it.value }
+                                            if (lIndex < 0) return@clickable
+                                            if (!higherSelected) {
+                                                for (i in lIndex..<item.properties.size) vm.episodeStateSort[i].value = true
+                                            } else {
+                                                for (i in lIndex..<item.properties.size) vm.episodeStateSort[i].value = false
+                                                vm.episodeStateSort[lIndex].value = true
+                                            }
+                                            higherSelected = !higherSelected
+                                            fetchAndSortRoutine()
+                                        })
+                                }
                                 Spacer(Modifier.weight(1f))
                             }
-                            if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size) { index ->
+                            if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                 if (selectNone) vm.episodeStateSort[index].value = false
-                                LaunchedEffect(Unit) {
-//                                if (filter != null && item.values[index].filterId in filter.properties) selectedList[index].value = true
-                                }
-                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (vm.episodeStateSort[index].value) Color.Green else buttonColor),
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (vm.episodeStateSort[index].value) buttonAltColor else buttonColor),
                                     onClick = {
                                         selectNone = false
                                         vm.episodeStateSort[index].value = !vm.episodeStateSort[index].value
@@ -1354,49 +1348,52 @@ fun SubscriptionsScreen() {
                             Row {
                                 Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor,
                                     modifier = Modifier.clickable { expandRow = !expandRow })
-                                var lowerSelected by remember { mutableStateOf(false) }
-                                var higherSelected by remember { mutableStateOf(false) }
-                                Spacer(Modifier.weight(1f))
-                                if (expandRow) Text("<<<", color = if (lowerSelected) Color.Green else buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                    modifier = Modifier.clickable {
-                                        val hIndex = vm.ratingSort.indexOfLast { it.value }
-                                        if (hIndex < 0) return@clickable
-                                        if (!lowerSelected) {
-                                            for (i in 0..hIndex) vm.ratingSort[i].value = true
-                                        } else {
-                                            for (i in 0..hIndex) vm.ratingSort[i].value = false
-                                            vm.ratingSort[hIndex].value = true
-                                        }
-                                        lowerSelected = !lowerSelected
-                                        fetchAndSortRoutine()
-                                    })
-                                Spacer(Modifier.weight(1f))
-                                if (expandRow) Text("X", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                    modifier = Modifier.clickable {
-                                        lowerSelected = false
-                                        higherSelected = false
-                                        for (i in item.properties.indices) vm.ratingSort[i].value = false
-                                        fetchAndSortRoutine()
-                                    })
-                                Spacer(Modifier.weight(1f))
-                                if (expandRow) Text(">>>", color = if (higherSelected) Color.Green else buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                    modifier = Modifier.clickable {
-                                        val lIndex = vm.ratingSort.indexOfFirst { it.value }
-                                        if (lIndex < 0) return@clickable
-                                        if (!higherSelected) {
-                                            for (i in lIndex..<item.properties.size) vm.ratingSort[i].value = true
-                                        } else {
-                                            for (i in lIndex..<item.properties.size) vm.ratingSort[i].value = false
-                                            vm.ratingSort[lIndex].value = true
-                                        }
-                                        higherSelected = !higherSelected
-                                        fetchAndSortRoutine()
-                                    })
+                                if (expandRow) {
+                                    var lowerSelected by remember { mutableStateOf(false) }
+                                    var higherSelected by remember { mutableStateOf(false) }
+                                    Spacer(Modifier.weight(1f))
+                                    Text("<<<", color = if (lowerSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
+                                        modifier = Modifier.clickable {
+                                            val hIndex = vm.ratingSort.indexOfLast { it.value }
+                                            if (hIndex < 0) return@clickable
+                                            if (!lowerSelected) {
+                                                for (i in 0..hIndex) vm.ratingSort[i].value = true
+                                            } else {
+                                                for (i in 0..hIndex) vm.ratingSort[i].value = false
+                                                vm.ratingSort[hIndex].value = true
+                                            }
+                                            lowerSelected = !lowerSelected
+                                            fetchAndSortRoutine()
+                                        })
+                                    Spacer(Modifier.weight(1f))
+                                    Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
+                                        modifier = Modifier.clickable {
+                                            val selectAll = !(lowerSelected && higherSelected)
+                                            lowerSelected = selectAll
+                                            higherSelected = selectAll
+                                            for (i in item.properties.indices) vm.ratingSort[i].value = selectAll
+                                            fetchAndSortRoutine()
+                                        })
+                                    Spacer(Modifier.weight(1f))
+                                    Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
+                                        modifier = Modifier.clickable {
+                                            val lIndex = vm.ratingSort.indexOfFirst { it.value }
+                                            if (lIndex < 0) return@clickable
+                                            if (!higherSelected) {
+                                                for (i in lIndex..<item.properties.size) vm.ratingSort[i].value = true
+                                            } else {
+                                                for (i in lIndex..<item.properties.size) vm.ratingSort[i].value = false
+                                                vm.ratingSort[lIndex].value = true
+                                            }
+                                            higherSelected = !higherSelected
+                                            fetchAndSortRoutine()
+                                        })
+                                }
                                 Spacer(Modifier.weight(1f))
                             }
-                            if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size) { index ->
+                            if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                 if (selectNone) vm.ratingSort[index].value = false
-                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (vm.ratingSort[index].value) Color.Green else buttonColor),
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (vm.ratingSort[index].value) buttonAltColor else buttonColor),
                                     onClick = {
                                         selectNone = false
                                         vm.ratingSort[index].value = !vm.ratingSort[index].value
@@ -1426,25 +1423,110 @@ fun SubscriptionsScreen() {
             Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
                 color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
                 Column(Modifier.fillMaxSize()) {
-                    if (languages.size > 1) Row(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 5.dp, bottom = 5.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Absolute.Center, verticalAlignment = Alignment.CenterVertically) {
-                        Spinner(items = vm.languages, selectedIndex = vm.langFilterIndex) { index: Int ->
-                            vm.langFilterIndex = index
-                            vm.loadSubscriptions(true)
-                        }
-                    }
-                    Row(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 5.dp, bottom = 5.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Absolute.Center, verticalAlignment = Alignment.CenterVertically) {
-                        Spinner(items = vm.queueSpinnerTexts, selectedIndex = vm.queueFilterIndex) { index: Int ->
-                            vm.queueFilterIndex = index
-                            vm.loadSubscriptions(true)
-                        }
-                        Spacer(Modifier.weight(1f))
-                        Spinner(items = vm.tags, selectedIndex = vm.tagFilterIndex) { index: Int ->
-                            vm.tagFilterIndex = index
-                            vm.loadSubscriptions(true)
-                        }
-                    }
                     val scrollStateV = rememberScrollState()
                     Column(Modifier.fillMaxSize().verticalScroll(scrollStateV)) {
+                        if (languages.size > 1) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                val selectedList = remember { MutableList(vm.languages.size) { mutableStateOf(false) } }
+                                var expandRow by remember { mutableStateOf(false) }
+                                Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                                    Text(stringResource(R.string.languages) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                    if (expandRow) {
+                                        val cb = {
+                                            val langsSel = mutableSetOf<String>()
+                                            for (i in vm.languages.indices) {
+                                                if (selectedList[i].value) langsSel.add(vm.languages[i])
+                                            }
+                                            vm.langsSel = langsSel
+                                            vm.loadSubscriptions(true)
+                                        }
+                                        SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
+                                    }
+                                }
+                                if (expandRow) NonlazyGrid(columns = 3, itemCount = vm.languages.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                    LaunchedEffect(Unit) {
+                                        if (vm.languages[index] in vm.langsSel) selectedList[index].value = true
+                                    }
+                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                        onClick = {
+                                            selectedList[index].value = !selectedList[index].value
+                                            val langsSel = vm.langsSel.toMutableSet()
+                                            if (selectedList[index].value) langsSel.add(vm.languages[index])
+                                            else langsSel.remove(vm.languages[index])
+                                            vm.langsSel = langsSel
+                                            vm.loadSubscriptions(true)
+                                        },
+                                    ) { Text(text = vm.languages[index], maxLines = 1, color = textColor) }
+                                }
+                            }
+                        }
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            val selectedList = remember { MutableList(vm.queueNames.size) { mutableStateOf(false) } }
+                            var expandRow by remember { mutableStateOf(false) }
+                            Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                                Text(stringResource(R.string.queue_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                if (expandRow) {
+                                    val cb = {
+                                        val qSelIds = mutableSetOf<Long>()
+                                        for (i in vm.queueNames.indices) {
+                                            if (selectedList[i].value) qSelIds.add(vm.queueIds[i])
+                                        }
+                                        vm.qSelIds = qSelIds
+                                        vm.loadSubscriptions(true)
+                                    }
+                                    SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
+                                }
+                            }
+                            if (expandRow) NonlazyGrid(columns = 3, itemCount = vm.queueNames.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                LaunchedEffect(Unit) {
+                                    if (vm.queueIds[index] in vm.qSelIds) selectedList[index].value = true
+                                }
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                    onClick = {
+                                        selectedList[index].value = !selectedList[index].value
+                                        val qSelIds = vm.qSelIds.toMutableSet()
+                                        if (selectedList[index].value) qSelIds.add(vm.queueIds[index])
+                                        else qSelIds.remove(vm.queueIds[index])
+                                        vm.qSelIds = qSelIds
+                                        vm.loadSubscriptions(true)
+                                    },
+                                ) { Text(text = vm.queueNames[index], maxLines = 1, color = textColor) }
+                            }
+                        }
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            val selectedList = remember { MutableList(vm.tags.size) { mutableStateOf(false) } }
+                            var expandRow by remember { mutableStateOf(false) }
+                            Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                                Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                if (expandRow) {
+                                    val cb = {
+                                        val tagsSel = mutableSetOf<String>()
+                                        for (i in vm.tags.indices) {
+                                            if (selectedList[i].value) tagsSel.add(vm.tags[i])
+                                        }
+                                        vm.tagsSel = tagsSel
+                                        vm.loadSubscriptions(true)
+                                    }
+                                    SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
+                                }
+                            }
+                            if (expandRow) NonlazyGrid(columns = 3, itemCount = vm.tags.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                LaunchedEffect(Unit) {
+                                    if (vm.tags[index] in vm.tagsSel) selectedList[index].value = true
+                                }
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                    onClick = {
+                                        selectedList[index].value = !selectedList[index].value
+                                        val tagsSel = vm.tagsSel.toMutableSet()
+                                        if (selectedList[index].value) tagsSel.add(vm.tags[index])
+                                        else tagsSel.remove(vm.tags[index])
+                                        vm.tagsSel = tagsSel
+                                        vm.loadSubscriptions(true)
+                                    },
+                                ) { Text(text = vm.tags[index], maxLines = 1, color = textColor) }
+                            }
+                        }
+
                         var selectNone by remember { mutableStateOf(false) }
                         for (item in FeedFilter.FeedFilterGroup.entries) {
                             if (item.values.size == 2) {
@@ -1459,7 +1541,7 @@ fun SubscriptionsScreen() {
                                     }
                                     Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                     Spacer(Modifier.width(30.dp))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else Color.Green),
+                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else buttonAltColor),
                                         onClick = {
                                             if (selectedIndex != 0) {
                                                 selectNone = false
@@ -1474,7 +1556,7 @@ fun SubscriptionsScreen() {
                                         },
                                     ) { Text(text = stringResource(item.values[0].displayName), color = textColor) }
                                     Spacer(Modifier.width(20.dp))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else Color.Green),
+                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else buttonAltColor),
                                         onClick = {
                                             if (selectedIndex != 1) {
                                                 selectNone = false
@@ -1497,64 +1579,22 @@ fun SubscriptionsScreen() {
                                     Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
                                         Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                         if (expandRow) {
-                                            var lowerSelected by remember { mutableStateOf(false) }
-                                            var higherSelected by remember { mutableStateOf(false) }
-                                            Spacer(Modifier.width(30.dp))
-                                            Text("<<<", color = if (lowerSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge,
-                                                modifier = Modifier.clickable {
-                                                    val hIndex = selectedList.indexOfLast { it.value }
-                                                    if (hIndex < 0) return@clickable
-                                                    if (!lowerSelected) {
-                                                        for (i in 0..hIndex) selectedList[i].value = true
-                                                    } else {
-                                                        for (i in 0..hIndex) selectedList[i].value = false
-                                                        selectedList[hIndex].value = true
-                                                    }
-                                                    lowerSelected = !lowerSelected
-                                                    for (i in item.values.indices) {
-                                                        if (selectedList[i].value) filterValues.add(item.values[i].filterId)
-                                                        else filterValues.remove(item.values[i].filterId)
-                                                    }
-                                                    onFilterChanged(filterValues)
-                                                })
-                                            Spacer(Modifier.width(20.dp))
-                                            Text("X", color = buttonColor, style = MaterialTheme.typography.titleLarge,
-                                                modifier = Modifier.clickable {
-                                                    lowerSelected = false
-                                                    higherSelected = false
-                                                    for (i in item.values.indices) {
-                                                        selectedList[i].value = false
-                                                        filterValues.remove(item.values[i].filterId)
-                                                    }
-                                                    onFilterChanged(filterValues)
-                                                })
-                                            Spacer(Modifier.width(20.dp))
-                                            Text(">>>", color = if (higherSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge,
-                                                modifier = Modifier.clickable {
-                                                    val lIndex = selectedList.indexOfFirst { it.value }
-                                                    if (lIndex < 0) return@clickable
-                                                    if (!higherSelected) {
-                                                        for (i in lIndex..<item.values.size) selectedList[i].value = true
-                                                    } else {
-                                                        for (i in lIndex..<item.values.size) selectedList[i].value = false
-                                                        selectedList[lIndex].value = true
-                                                    }
-                                                    higherSelected = !higherSelected
-                                                    for (i in item.values.indices) {
-                                                        if (selectedList[i].value) filterValues.add(item.values[i].filterId)
-                                                        else filterValues.remove(item.values[i].filterId)
-                                                    }
-                                                    onFilterChanged(filterValues)
-                                                })
-                                            //                                        Spacer(Modifier.weight(1f))
+                                            val cb = {
+                                                for (i in item.values.indices) {
+                                                    if (selectedList[i].value) filterValues.add(item.values[i].filterId)
+                                                    else filterValues.remove(item.values[i].filterId)
+                                                }
+                                                onFilterChanged(filterValues)
+                                            }
+                                            SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
                                     }
-                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = item.values.size) { index ->
+                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = item.values.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                         if (selectNone) selectedList[index].value = false
                                         LaunchedEffect(Unit) {
                                             if (filter != null && item.values[index].filterId in filter.properties) selectedList[index].value = true
                                         }
-                                        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) Color.Green else buttonColor),
+                                        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectNone = false
                                                 selectedList[index].value = !selectedList[index].value
@@ -1588,18 +1628,6 @@ fun SubscriptionsScreen() {
     if (vm.showNewSynthetic) RenameOrCreateSyntheticFeed { vm.showNewSynthetic = false }
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-//            InforBar()
-//            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 20.dp, end = 20.dp)) {
-//                Spinner(items = vm.queueSpinnerTexts, selectedIndex = vm.queueFilterIndex) { index: Int ->
-//                    vm.queueFilterIndex = index
-//                    vm.loadSubscriptions(true)
-//                }
-//                Spacer(Modifier.weight(1f))
-//                Spinner(items = vm.tags, selectedIndex = vm.tagFilterIndex) { index: Int ->
-//                    vm.tagFilterIndex = index
-//                    vm.loadSubscriptions(true)
-//                }
-//            }
             LazyList()
         }
     }

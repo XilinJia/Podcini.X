@@ -593,7 +593,7 @@
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Авторизация</string>
     <string name="authentication_descr">Изменить имя пользователя и пароль для этого подкаста и его выпусков.</string>
-    <string name="feed_tags_label">Метки</string>
+    <string name="tags_label">Метки</string>
     <string name="feed_tags_summary">Используйте метки, чтобы организовать ваши подписки.</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Отображаются только общие метки для всех выбранных подписок. Другие не затрагиваются.</string>
     <string name="auto_download_settings_label">Настройки автозагрузки</string>

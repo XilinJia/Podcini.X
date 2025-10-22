@@ -583,7 +583,7 @@
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Ταυτοποίηση</string>
     <string name="authentication_descr">Αλλάξτε το όνομα χρήστη και τον κωδικό πρόσβασης για αυτό το podcast και τα επεισόδιά του.</string>
-    <string name="feed_tags_label">Ετικέτες</string>
+    <string name="tags_label">Ετικέτες</string>
     <string name="feed_tags_summary">Αλλάξτε τις ετικέτες αυτού του podcast για να οργανώσετε τις συνδρομές σας</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Εμφανίζονται μόνο κοινές ετικέτες από όλες τις επιλεγμένες συνδρομές. Άλλες ετικέτες παραμένουν ανεπηρέαστες.</string>
     <string name="auto_download_settings_label">Ρυθμίσεις αυτόματης λήψης</string>

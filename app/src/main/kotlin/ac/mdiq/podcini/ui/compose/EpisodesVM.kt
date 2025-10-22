@@ -11,7 +11,6 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
-import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.playedIds
@@ -158,6 +157,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
@@ -591,6 +591,8 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     var longPressIndex by remember { mutableIntStateOf(-1) }
 //    val dls = remember { DownloadServiceInterface.impl }
     val context = LocalContext.current
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val buttonColor = MaterialTheme.colorScheme.tertiary
 
     fun multiSelectCB(index: Int, aboveOrBelow: Int): List<EpisodeVM> {
         return when (aboveOrBelow) {
@@ -800,7 +802,6 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     val titleMaxLines = if (layoutMode == LayoutMode.Normal.ordinal) if (showComment) 1 else 2 else 3
     @Composable
     fun TitleColumn(vm: EpisodeVM, index: Int, modifier: Modifier) {
-        val textColor = MaterialTheme.colorScheme.onSurface
         Column(modifier.padding(start = 6.dp, end = 6.dp).combinedClickable(
             onClick = {
                 Logd(TAG, "clicked: ${vm.episode.title}")
@@ -896,8 +897,6 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
 
     @Composable
     fun MainRow(vm: EpisodeVM, index: Int, isBeingDragged: Boolean, yOffset: Float, onDragStart: () -> Unit, onDrag: (Float) -> Unit, onDragEnd: () -> Unit) {
-        val textColor = MaterialTheme.colorScheme.onSurface
-        val buttonColor = MaterialTheme.colorScheme.tertiary
         val density = LocalDensity.current
         val imageWidth = if (layoutMode == LayoutMode.WideImage.ordinal) 150.dp else 56.dp
         val imageHeight = if (layoutMode == LayoutMode.WideImage.ordinal) 100.dp else 56.dp
@@ -933,11 +932,15 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                 if (showActionButtons) {
                     if (actionButton_ == null) {
                         LaunchedEffect(playerStat) {
+//                            if (vm.episode.id == curMediaId) {
+//                                Logd(TAG, "LaunchedEffect playerStat: $playerStat")
+//                                if (playerStat == PLAYER_STATUS_PLAYING) vm.actionButton.type = ButtonTypes.PAUSE
+//                                else vm.actionButton.update(vm.episode)
+//                            }
+                            Logd(TAG, "LaunchedEffect playerStat: $playerStat")
                             if (vm.episode.id == curMediaId) {
-                                Logd(TAG, "LaunchedEffect playerStat")
                                 if (playerStat == PLAYER_STATUS_PLAYING) vm.actionButton.type = ButtonTypes.PAUSE
-                                else vm.actionButton.update(vm.episode)
-                            }
+                            } else if (vm.actionButton.type == ButtonTypes.PAUSE) vm.actionButton.update(vm.episode)
                         }
                     } else LaunchedEffect(Unit) { vm.actionButton = actionButton_(vm.episode) }
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd).pointerInput(Unit) {
@@ -958,31 +961,12 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                                 else -> {}
                             }
                         }
-                        val res by remember { derivedStateOf { vm.actionButton.drawable } }
-                        Icon(imageVector = ImageVector.vectorResource(res), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
+//                        val res by remember { derivedStateOf { vm.actionButton.drawable } }
+                        Icon(imageVector = ImageVector.vectorResource(vm.actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
                         if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing }, strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                     }
                     if (vm.showAltActionsDialog) vm.actionButton.AltActionsDialog(activity, onDismiss = { vm.showAltActionsDialog = false })
                 }
-            }
-        }
-    }
-
-    @Composable
-    fun ProgressRow(vm: EpisodeVM, index: Int) {
-//        Logd(TAG, "ProgressRow vm.inProgressState: ${vm.inProgressState} ${InTheatre.isCurMedia(vm.episode)} ${vm.episode.title}")
-        if (vm.inProgressState || InTheatre.isCurMedia(vm.episode)) {
-            val textColor = MaterialTheme.colorScheme.onSurface
-            val pos by remember(vm.episode.id) { derivedStateOf { vm.positionState } }
-            val dur = remember(vm.episode.id) { vm.episode.duration }
-            vm.prog = remember(vm.episode.id, pos) { if (dur > 0 && pos >= 0 && dur >= pos) 1f * pos / dur else 0f }
-//            Logd(TAG, "$index vm.prog: ${vm.prog}")
-            val durText = getDurationStringLong(dur)
-            val posText = getDurationStringLong(pos)
-            Row {
-                Text(posText, color = textColor, style = MaterialTheme.typography.bodySmall)
-                LinearProgressIndicator(progress = { vm.prog }, modifier = Modifier.weight(1f).height(4.dp).align(Alignment.CenterVertically))
-                Text(durText, color = textColor, style = MaterialTheme.typography.bodySmall)
             }
         }
     }
@@ -1017,16 +1001,19 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
         }
         var curVM by remember { mutableStateOf<EpisodeVM?>(null) }
         var subscribeLock by remember { mutableStateOf(false) }
+        fun unsubscribeCurVM() {
+            if (curVM != null) {
+                unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
+                curVM!!.actionButton.update(curVM!!.episode)
+                curVM = null
+            }
+        }
         fun subscribeCurVM() {
             if (subscribeLock) return
             subscribeLock = true
             if (curVM?.episode?.id != curMediaId) {
-                Logd(TAG, "subscribeCurVM ${curVM?.episode?.id} $curMediaId")
-                if (curVM != null) {
-                    unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
-                    curVM!!.actionButton.update(curVM!!.episode)
-                    curVM = null
-                }
+                Logd(TAG, "subscribeCurVM curVM?.episode: ${curVM?.episode?.id} curMediaId: $curMediaId")
+                unsubscribeCurVM()
                 if (curMediaId > 0) {
                     coroutineScope.launch {
                         snapshotFlow { lazyListState.layoutInfo }
@@ -1050,8 +1037,9 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
         }
 
         val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
-        LaunchedEffect(curMediaId, vms) {
-            Logd(TAG, "LaunchedEffect curMediaId")
+        LaunchedEffect(curMediaId, vms.size, episodeSortOrder) {
+            Logd(TAG, "LaunchedEffect curMediaId vms")
+            unsubscribeCurVM()
             subscribeCurVM()
         }
 
@@ -1124,33 +1112,21 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
             }
         }
 
-        LaunchedEffect(vms) {
+        LaunchedEffect(vms.size) {
             if (vms.isEmpty()) {
                 Logd(TAG, "vms is empty, performing cleanup")
-                if (curVM != null) {
-                    unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
-                    curVM!!.actionButton.update(curVM!!.episode)
-                    curVM = null
-                }
+                unsubscribeCurVM()
             }
         }
 
         DisposableEffect(Unit) {
             onDispose {
                 Logd(TAG, "DisposableEffect onDispose")
-                if (curVM != null) {
-                    unsubscribeEpisode(curVM!!.episode,  curVM!!.tag)
-                    curVM!!.actionButton.update(curVM!!.episode)
-                    curVM = null
-                }
+                unsubscribeCurVM()
             }
         }
 
-        LazyColumn(
-            state = lazyListState,
-            modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vms, key = { _, vm -> vm.episode.id to forceRecomposeKey }) { index, vm ->
                 val velocityTracker = remember { VelocityTracker() }
                 val offsetX = remember { Animatable(0f) }
@@ -1181,17 +1157,14 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                     Column {
                         var yOffset by remember { mutableFloatStateOf(0f) }
                         var draggedIndex by remember { mutableStateOf<Int?>(null) }
-                        MainRow(
-                            vm,
-                            index,
+                        MainRow(vm, index,
                             isBeingDragged = draggedIndex == index,
                             yOffset = if (draggedIndex == index) yOffset else 0f,
                             onDragStart = { draggedIndex = index },
                             onDrag = { delta -> yOffset += delta },
                             onDragEnd = {
                                 draggedIndex?.let { startIndex ->
-                                    val newIndex =
-                                        (startIndex + (yOffset / rowHeightPx).toInt()).coerceIn(0, vms.lastIndex)
+                                    val newIndex = (startIndex + (yOffset / rowHeightPx).toInt()).coerceIn(0, vms.lastIndex)
                                     Logd(TAG, "onDragEnd draggedIndex: $draggedIndex newIndex: $newIndex")
                                     if (newIndex != startIndex) {
                                         dragCB?.invoke(startIndex, newIndex)
@@ -1202,14 +1175,25 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                                 draggedIndex = null
                                 yOffset = 0f
                             })
-                        if (showActionButtons) ProgressRow(vm, index)
+                        if (showActionButtons && (vm.inProgressState || curVM?.episode?.id == vm.episode.id)) {
+                            vm.prog = remember(vm.episode.id, vm.positionState) {
+                                val pos = vm.positionState
+                                val dur = vm.episode.duration
+                                if (dur > 0 && pos >= 0 && dur >= pos) 1f * pos / dur else 0f
+                            }
+                            val durText = getDurationStringLong(vm.episode.duration)
+                            val posText = getDurationStringLong(vm.positionState)
+                            Row {
+                                Text(posText, color = textColor, style = MaterialTheme.typography.bodySmall)
+                                LinearProgressIndicator(progress = { vm.prog }, modifier = Modifier.weight(1f).height(4.dp).align(Alignment.CenterVertically))
+                                Text(durText, color = textColor, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
                 }
             }
         }
-
         if (selectMode) {
-            val buttonColor = MaterialTheme.colorScheme.onTertiary
             Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.onTertiaryContainer),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(end = 10.dp)
@@ -1264,6 +1248,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             val buttonColor = MaterialTheme.colorScheme.tertiary
+            val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
             val scrollStateV = rememberScrollState()
             Column(Modifier.fillMaxSize().verticalScroll(scrollStateV)) {
                 var selectNone by remember { mutableStateOf(false) }
@@ -1279,7 +1264,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                             }
                             Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge , color = textColor, modifier = Modifier.padding(end = 10.dp))
                             Spacer(Modifier.width(30.dp))
-                            OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else buttonAltColor),
                                 onClick = {
                                     if (selectedIndex != 0) {
                                         selectNone = false
@@ -1295,7 +1280,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                 },
                             ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                             Spacer(Modifier.width(20.dp))
-                            OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else Color.Green),
+                            OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else buttonAltColor),
                                 onClick = {
                                     if (selectedIndex != 1) {
                                         selectNone = false
@@ -1373,56 +1358,19 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     }
                                 }
                                 else -> {
-                                    Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                                    Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
                                         Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                         if (expandRow) {
-                                            var lowerSelected by remember { mutableStateOf(false) }
-                                            var higherSelected by remember { mutableStateOf(false) }
-                                            Spacer(Modifier.width(30.dp))
-                                            Text("<<<", color = if (lowerSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
-                                                val hIndex = selectedList.indexOfLast { it.value }
-                                                if (hIndex < 0) return@clickable
-                                                if (!lowerSelected) for (i in 0..hIndex) selectedList[i].value = true
-                                                else {
-                                                    for (i in 0..hIndex) selectedList[i].value = false
-                                                    selectedList[hIndex].value = true
-                                                }
-                                                lowerSelected = !lowerSelected
+                                            val cb = {
                                                 for (i in item.properties.indices) {
                                                     if (selectedList[i].value) filter.propertySet.add(item.properties[i].filterId)
                                                     else filter.propertySet.remove(item.properties[i].filterId)
                                                 }
                                                 onFilterChanged(filter)
-                                            })
-                                            Spacer(Modifier.width(20.dp))
-                                            Text("X", color = buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
-                                                lowerSelected = false
-                                                higherSelected = false
-                                                for (i in item.properties.indices) {
-                                                    selectedList[i].value = false
-                                                    filter.propertySet.remove(item.properties[i].filterId)
-                                                }
-                                                onFilterChanged(filter)
-                                            })
-                                            Spacer(Modifier.width(20.dp))
-                                            Text(">>>", color = if (higherSelected) Color.Green else buttonColor, style = MaterialTheme.typography.titleLarge, modifier = Modifier.clickable {
-                                                val lIndex = selectedList.indexOfFirst { it.value }
-                                                if (lIndex < 0) return@clickable
-                                                if (!higherSelected) {
-                                                    for (i in lIndex..item.properties.size - 1) selectedList[i].value = true
-                                                } else {
-                                                    for (i in lIndex..item.properties.size - 1) selectedList[i].value = false
-                                                    selectedList[lIndex].value = true
-                                                }
-                                                higherSelected = !higherSelected
-                                                for (i in item.properties.indices) {
-                                                    if (selectedList[i].value) filter.propertySet.add(item.properties[i].filterId)
-                                                    else filter.propertySet.remove(item.properties[i].filterId)
-                                                }
-                                                onFilterChanged(filter)
-                                            })
-                                        //                                        Spacer(Modifier.weight(1f))
+                                            }
+                                            SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
+//                                        Spacer(Modifier.weight(1f))
                                     }
                                 }
                             }
@@ -1431,7 +1379,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                 LaunchedEffect(Unit) {
                                     if (item.properties[index].filterId in filter.propertySet) selectedList[index].value = true
                                 }
-                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) Color.Green else buttonColor),
+                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                     onClick = {
                                         selectNone = false
                                         selectedList[index].value = !selectedList[index].value
@@ -1468,10 +1416,13 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
     }
 }
 
+var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
+
 @Composable
 fun EpisodeSortDialog(initOrder: EpisodeSortOrder, showKeepSorted: Boolean = false, onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder, Boolean) -> Unit) {
     val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || gearbox.SupportExtraSort()) } }
     val buttonColor = MaterialTheme.colorScheme.tertiary
+    val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
@@ -1484,12 +1435,12 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder, showKeepSorted: Boolean = fal
             Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).verticalScroll(scrollState)) {
                 NonlazyGrid(columns = 2, itemCount = orderList.size) { index ->
                     var dir by remember { mutableStateOf(if (sortIndex == index) initOrder.ordinal % 2 == 0 else true) }
-                    OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) buttonColor else Color.Green),
+                    OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) buttonColor else buttonAltColor),
                         onClick = {
                             if (sortIndex == index) dir = !dir
                             sortIndex = index
-                            val sortOrder = EpisodeSortOrder.entries[2 * index + if (dir) 0 else 1]
-                            onSelectionChanged(sortOrder, keepSorted)
+                            episodeSortOrder = EpisodeSortOrder.entries[2 * index + if (dir) 0 else 1]
+                            onSelectionChanged(episodeSortOrder, keepSorted)
                         }
                     ) { Text(text = stringResource(orderList[index].res) + if (dir) "\u00A0▲" else "\u00A0▼", color = textColor) }
                 }

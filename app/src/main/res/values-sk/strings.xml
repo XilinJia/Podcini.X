@@ -593,7 +593,7 @@
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Overenie</string>
     <string name="authentication_descr">Zmeniť svoje používateľské meno a heslo pre tento podcast a jeho epizódy.</string>
-    <string name="feed_tags_label">Štítky</string>
+    <string name="tags_label">Štítky</string>
     <string name="feed_tags_summary">Zmeňte si štítky tohto podcastu aby sa pomohlo usporiadaniu Vašich odberov</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Len všeobecné štítky zo všetkých označených odberov sú zobrazené. Ostatné štítky ostávajú nezmenené.</string>
     <string name="auto_download_settings_label">Nastavenia automatického sťahovania</string>

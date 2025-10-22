@@ -89,16 +89,6 @@ sealed class FlowEvent {
 
     data class DownloadLogEvent(val dummy: Unit = Unit) : FlowEvent()
 
-    // TODO: this likely can be removed
-    data class EpisodeDownloadEvent(val map: Map<String, DownloadStatus>) : FlowEvent() {
-        val urls: Set<String>
-            get() = map.keys
-//        fun isCompleted(url: String): Boolean = map[url]?.state == DownloadStatus.State.COMPLETED.ordinal
-    }
-
-    //    TODO: need better handling at receving end
-//    data class EpisodePlayedEvent(val episode: Episode? = null) : FlowEvent()
-
     data class EpisodeEvent(val episodes: List<Episode>) : FlowEvent() {
         companion object {
             fun updated(vararg episodes: Episode): EpisodeEvent = EpisodeEvent(listOf(*episodes))

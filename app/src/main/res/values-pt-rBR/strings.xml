@@ -455,7 +455,7 @@
     <!--Feed settings/information screen-->
   <string name="authentication_label">Autenticação</string>
   <string name="authentication_descr">Altera seu nome de usuário e sua senha para este podcast e seus episódios.</string>
-  <string name="feed_tags_label">Etiquetas</string>
+  <string name="tags_label">Etiquetas</string>
   <string name="feed_tags_summary">Altere as etiquetas desse podcast para ajudar a organizar suas assinaturas</string>
   <string name="multi_feed_common_tags_info">{faw_info_circle} São mostradas apenas as etiquetas comuns às assinaturas selecionadas. As outras etiquetas não são afetadas.</string>
   <string name="auto_download_settings_label">Configurações do download automático</string>

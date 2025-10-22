@@ -86,6 +86,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -413,10 +414,7 @@ fun QueuesScreen() {
             }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } }, actions = {
                 val binIconRes by remember(showBin) { derivedStateOf { if (showBin) R.drawable.playlist_play else R.drawable.ic_history } }
                 val feedsIconRes by remember(showFeeds) { derivedStateOf { if (showFeeds) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
-                if (!showFeeds) IconButton(onClick = {
-                    showBin = !showBin
-                    refreshQueueOrBin()
-                }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
+                if (!showFeeds) IconButton(onClick = { showBin = !showBin }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
                 if (!showBin) {
                     IconButton(onClick = { showFeeds = !showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
                     IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
@@ -583,17 +581,13 @@ fun QueuesScreen() {
     BackHandler(enabled = showBin || showFeeds) {
         Logt(TAG, "BackHandler $showBin $showFeeds")
         when {
-            showBin -> {
-                scope.launch {
-                    showBin = false
-//                    delay(50)
-                    refreshQueueOrBin()
-                }
-            }
+            showBin -> showBin = false
             showFeeds -> showFeeds = false
             else -> {}
         }
     }
+
+    LaunchedEffect(showBin) { refreshQueueOrBin() }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (showBin) {

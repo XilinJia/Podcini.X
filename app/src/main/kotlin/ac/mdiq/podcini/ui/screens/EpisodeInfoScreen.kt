@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
@@ -26,6 +27,7 @@ import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
@@ -155,12 +157,13 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var webviewData by mutableStateOf("")
     internal var showHomeScreen by mutableStateOf(false)
-    internal var actionButton1 by mutableStateOf<EpisodeActionButton?>(null)
+    internal var actionButton by mutableStateOf<EpisodeActionButton?>(null)
 
     init {
         episode = episodeOnDisplay
         hasRelations = !episode?.related.isNullOrEmpty()
         inQueue = if (episode == null) false else (episode!!.feed?.queue ?: curQueue).contains(episode!!)
+        actionButton = EpisodeActionButton(episode!!)
     }
 
     private var eventSink: Job?     = null
@@ -177,15 +180,6 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
-                    else -> {}
-                }
-            }
-        }
-        if (eventStickySink == null) eventStickySink = lcScope.launch {
-            EventFlow.stickyEvents.drop(1).collectLatest { event ->
-                Logd(TAG, "Received event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.EpisodeDownloadEvent -> onEpisodeDownloadEvent(event)
                     else -> {}
                 }
             }
@@ -242,15 +236,13 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         updateButtons()
     }
 
-    internal fun getButton():  EpisodeActionButton {
-        val button = EpisodeActionButton(episode!!)
-        button.type = when {
+    internal fun setButton() {
+        actionButton?.type = when {
             InTheatre.isCurrentlyPlaying(episode) -> ButtonTypes.PAUSE
             episode?.feed != null && episode!!.feed!!.isLocalFeed -> ButtonTypes.PLAYLOCAL
             episode?.downloaded == true -> ButtonTypes.PLAY
             else -> ButtonTypes.STREAM
         }
-        return button
     }
 
     private fun updateButtons() {
@@ -262,7 +254,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         val media = episode!!
         hasMedia = true
         if (media.duration > 0) txtvDuration = DurationConverter.getDurationStringLong(media.duration)
-        actionButton1 = getButton()
+        setButton()
     }
 
     internal fun openPodcast() {
@@ -284,12 +276,6 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
             }
             i++
         }
-    }
-
-    private fun onEpisodeDownloadEvent(event: FlowEvent.EpisodeDownloadEvent) {
-        if (episode == null) return
-        if (!event.urls.contains(episode!!.downloadUrl)) return
-        if (itemLoaded) updateButtons()
     }
 
     private var loadItemsRunning = false
@@ -474,8 +460,8 @@ fun EpisodeInfoScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         val buttonColor = MaterialTheme.colorScheme.tertiary
         var showAltActionsDialog by remember { mutableStateOf(false) }
-        if (showAltActionsDialog) vm.actionButton1?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
-        LaunchedEffect(key1 = status) { vm.actionButton1 = vm.getButton() }
+        if (showAltActionsDialog) vm.actionButton?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
+        LaunchedEffect(key1 = status) { vm.setButton() }
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                 SelectionContainer { Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { vm.openPodcast() }) }
@@ -488,10 +474,17 @@ fun EpisodeInfoScreen() {
                         SelectionContainer { Text(vm.txtvTitle, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis) }
                         Text("${vm.txtvPublished} · ${vm.txtvDuration} · ${vm.txtvSize}", color = textColor, style = MaterialTheme.typography.bodyMedium)
                     }
-                    if (vm.actionButton1 != null) Icon(imageVector = ImageVector.vectorResource(vm.actionButton1!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).align(Alignment.BottomEnd).combinedClickable(
-                        onClick = { vm.actionButton1?.onClick(context) },
-                        onLongClick = { showAltActionsDialog = true }
-                    ))
+                    if (vm.actionButton != null && vm.episode != null) {
+                        val dlStats = downloadStates[vm.episode!!.downloadUrl]
+                        if (dlStats != null) {
+                            vm.actionButton!!.processing = dlStats.progress
+                            if (dlStats.state == DownloadStatus.State.COMPLETED.ordinal) vm.actionButton!!.type = ButtonTypes.PLAY
+                        }
+                        Icon(imageVector = ImageVector.vectorResource(vm.actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).align(Alignment.BottomEnd).combinedClickable(
+                            onClick = { vm.actionButton?.onClick(context) },
+                            onLongClick = { showAltActionsDialog = true }
+                        ))
+                    }
                 }
             }
             if (!vm.hasMedia) Text("noMediaLabel", color = textColor, style = MaterialTheme.typography.bodyMedium)

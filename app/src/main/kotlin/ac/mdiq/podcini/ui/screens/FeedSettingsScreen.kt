@@ -602,7 +602,7 @@ fun FeedSettingsScreen() {
                 Row(Modifier.fillMaxWidth()) {
                     Icon(ImageVector.vectorResource(id = R.drawable.ic_tag), "", tint = textColor)
                     Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = stringResource(R.string.feed_tags_label), style = CustomTextStyles.titleCustom, color = textColor,
+                    Text(text = stringResource(R.string.tags_label), style = CustomTextStyles.titleCustom, color = textColor,
                         modifier = Modifier.clickable(onClick = { showDialog = true }))
                 }
                 Text(text = stringResource(R.string.feed_tags_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)

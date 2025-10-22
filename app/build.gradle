@@ -26,8 +26,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 184
-        versionName "8.21.0"
+        versionCode 185
+        versionName "8.22.0"
 
         ndkVersion "29.0.14206865"
 
@@ -125,7 +125,8 @@ android {
 
     buildTypes {
         release {
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+//             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             resValue "string", "app_name", "Podcini.X"
             resValue "string", "provider_authority", "ac.mdiq.podcini.X.provider"
 //            vcsInfo.include false
@@ -166,8 +167,9 @@ android {
 dependencies {
     implementation platform('androidx.compose:compose-bom:2025.10.00')
     implementation "androidx.compose.material3:material3"
-    implementation 'androidx.compose.ui:ui'
     implementation "androidx.compose.material:material-icons-core"
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-graphics'
 
     implementation "androidx.activity:activity-compose:1.11.0"
     implementation "androidx.constraintlayout:constraintlayout-compose:1.1.1"
@@ -204,7 +206,7 @@ dependencies {
 
     implementation "org.jsoup:jsoup:1.21.2"
     implementation "com.squareup.okhttp3:okhttp:5.2.1"
-    implementation "com.squareup.okio:okio:3.16.1"
+    implementation "com.squareup.okio:okio:3.16.2"
     implementation "com.squareup.okhttp3:okhttp-urlconnection:5.2.1"
     implementation "net.dankito.readability4j:readability4j:1.0.8"
     implementation "com.github.ByteHamster:SearchPreference:v2.5.0"
@@ -218,7 +220,7 @@ dependencies {
     playImplementation "com.google.android.play:core-ktx:1.8.1"
     playImplementation "com.google.android.gms:play-services-base:18.9.0"
     playApi "androidx.mediarouter:mediarouter:1.8.1"
-    playApi "com.google.android.gms:play-services-cast-framework:22.1.0"
+    playApi "com.google.android.gms:play-services-cast-framework:22.2.0"
 }
 
 apply plugin: "io.github.xilinjia.krdb"

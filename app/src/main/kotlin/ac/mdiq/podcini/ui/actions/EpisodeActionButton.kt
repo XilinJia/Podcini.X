@@ -84,6 +84,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
     var type: ButtonTypes
         get() = _type.value
         set(value) {
+            Logd(TAG, "set ButtonTypes to $value")
             _type.value = value
             label = value.label
             drawable = value.drawable
@@ -348,7 +349,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                 }
             }
         }
-        Logd(TAG, "update type: $type")
+//        Logd(TAG, "update type: $type")
     }
 
     @UnstableApi

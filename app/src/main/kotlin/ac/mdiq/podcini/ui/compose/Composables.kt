@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -37,6 +39,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -53,6 +56,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
@@ -372,4 +376,57 @@ fun NumberEditor(initVal: Int, unit: String = "seconds", nz: Boolean = true, mod
                     }
                 }))
         })
+}
+
+@Composable
+fun SelectLowerAllUpper(selectedList: MutableList<MutableState<Boolean>>, lowerCB: (()->Unit)?, allCB: ()->Unit, upperCB: (()->Unit)?) {
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val buttonColor = MaterialTheme.colorScheme.tertiary
+    val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
+    var lowerSelected by remember { mutableStateOf(false) }
+    var higherSelected by remember { mutableStateOf(false) }
+    Spacer(Modifier.width(20.dp))
+    if (lowerCB != null) {
+        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (lowerSelected) buttonAltColor else buttonColor),
+            onClick = {
+                val hIndex = selectedList.indexOfLast { it.value }
+                if (hIndex < 0) return@OutlinedButton
+                if (!lowerSelected) {
+                    for (i in 0..hIndex) selectedList[i].value = true
+                } else {
+                    for (i in 0..hIndex) selectedList[i].value = false
+                    selectedList[hIndex].value = true
+                }
+                lowerSelected = !lowerSelected
+                lowerCB()
+            },
+        ) { Text(text = "<<<", maxLines = 1, color = textColor) }
+        Spacer(Modifier.width(20.dp))
+    }
+    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (lowerSelected && higherSelected) buttonAltColor else buttonColor),
+        onClick = {
+            val selectAll = !(lowerSelected && higherSelected)
+            lowerSelected = selectAll
+            higherSelected = selectAll
+            for (i in selectedList.indices) selectedList[i].value = selectAll
+            allCB()
+        },
+    ) { Text(text = "A", maxLines = 1, color = textColor) }
+    if (upperCB != null) {
+        Spacer(Modifier.width(20.dp))
+        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (higherSelected) buttonAltColor else buttonColor),
+            onClick = {
+                val lIndex = selectedList.indexOfFirst { it.value }
+                if (lIndex < 0) return@OutlinedButton
+                if (!higherSelected) {
+                    for (i in lIndex..<selectedList.size) selectedList[i].value = true
+                } else {
+                    for (i in lIndex..<selectedList.size) selectedList[i].value = false
+                    selectedList[lIndex].value = true
+                }
+                higherSelected = !higherSelected
+                upperCB()
+            },
+        ) { Text(text = ">>>", maxLines = 1, color = textColor) }
+    }
 }

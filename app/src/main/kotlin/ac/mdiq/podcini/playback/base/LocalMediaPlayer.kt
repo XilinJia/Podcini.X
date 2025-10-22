@@ -454,7 +454,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     override fun setVolume(volumeLeft: Float, volumeRight: Float) {
         var volumeLeft = volumeLeft
         var volumeRight = volumeRight
-        Logd(TAG, "setVolume: $volumeLeft $volumeRight")
+//        Logd(TAG, "setVolume: $volumeLeft $volumeRight")
         if (curEpisode != null) {
             val adaptionFactor = when {
                 curEpisode?.volumeAdaptionSetting != VolumeAdaptionSetting.OFF -> curEpisode!!.volumeAdaptionSetting.adaptionFactor
@@ -466,7 +466,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 volumeRight *= adaptionFactor
             }
         }
-        Logd(TAG, "setVolume 1: $volumeLeft $volumeRight")
+//        Logd(TAG, "setVolume 1: $volumeLeft $volumeRight")
         if (volumeLeft > 1) {
             exoPlayer?.volume = 1f
             loudnessEnhancer?.setEnabled(true)

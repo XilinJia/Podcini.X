@@ -2,8 +2,8 @@
 
 #-renamesourcefileattribute SourceFile
 -keepattributes Exceptions, SourceFile,LineNumberTable
--optimizations !code/allocation/variable
--optimizationpasses 5
+# -optimizations !code/allocation/variable
+# -optimizationpasses 5
 
 -keep class org.mozilla.javascript.** { *; }
 -keep class org.mozilla.classfile.ClassFileWriter

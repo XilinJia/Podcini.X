@@ -101,6 +101,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -113,6 +114,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -152,7 +154,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var isFiltered by mutableStateOf(false)
 
     internal var listInfoText = ""
-//    internal var updateInfoText = ""
     internal var infoBarText = mutableStateOf("")
     private var headerCreated = false
     internal var rating by mutableIntStateOf(Rating.UNRATED.code)
@@ -482,22 +483,23 @@ fun FeedDetailsScreen() {
         var expanded by remember { mutableStateOf(false) }
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
+        val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
         Box {
             TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }, actions = {
                 if (feedScreenMode == FeedScreenMode.List && !showHistory) {
                     IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
-                    val filterButtonColor by remember { derivedStateOf { if (enableFilter) if (vm.isFiltered) Color.Green else textColor else Color.Red } }
+                    val filterButtonColor by remember { derivedStateOf { if (enableFilter) if (vm.isFiltered) buttonAltColor else textColor else Color.Red } }
                     if (vm.feed != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = filterButtonColor, contentDescription = "butFilter", modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(onClick = { if (enableFilter) vm.showFilterDialog = true }, onLongClick = {
                         if (vm.isFiltered) {
                             enableFilter = !enableFilter
-                            vm.reassembleList()
+//                            vm.reassembleList()
                         }
                     }))
                 }
-                val histColor by remember(showHistory) { derivedStateOf { if (!showHistory) textColor else Color.Green } }
+                val histColor by remember(showHistory) { derivedStateOf { if (!showHistory) textColor else buttonAltColor } }
                 if (feedScreenMode == FeedScreenMode.List && vm.feed != null) IconButton(onClick = {
                     showHistory = !showHistory
-                    vm.reassembleList()
+//                    vm.reassembleList()
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
                 IconButton(onClick = {
                     val q = vm.feed?.queue
@@ -540,7 +542,8 @@ fun FeedDetailsScreen() {
                         if (vm.episodes.isNotEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
                             feedOperationText = context.getString(R.string.fetch_size)
                             scope.launch {
-                                for (e in vm.episodes) e.fetchMediaSize(force = true) //                                vm.loadFeed(true)
+                                for (e in vm.episodes) e.fetchMediaSize(force = true)
+                                //                                vm.loadFeed(true)
                                 withContext(Dispatchers.Main) { feedOperationText = "" }
                             }
                             expanded = false
@@ -700,8 +703,10 @@ fun FeedDetailsScreen() {
         Logt(TAG, "BackHandler ")
         showHistory = false
         enableFilter = true
-        vm.loadFeed()
+//        vm.loadFeed()
     }
+
+    LaunchedEffect(showHistory, enableFilter) { vm.reassembleList() }
 
     vm.swipeActions.ActionOptionsDialog()
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->

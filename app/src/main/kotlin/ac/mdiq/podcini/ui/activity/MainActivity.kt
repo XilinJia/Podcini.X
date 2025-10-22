@@ -174,9 +174,6 @@ class MainActivity : BaseActivity() {
 
         lifecycleScope.launch((Dispatchers.IO)) { compileTags() }
 
-//        if (savedInstanceState != null) ensureGeneratedViewIdGreaterThan(savedInstanceState.getInt(Extras.generated_view_id.name, 0))
-
-//        WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onCreate(savedInstanceState)
 
         if (savedInstanceState != null) hasInitialized.value = savedInstanceState.getBoolean(INIT_KEY, false)
@@ -350,7 +347,6 @@ class MainActivity : BaseActivity() {
                         if (workInfo.state.isFinished) hasFinished = true
                     }
                     DownloadServiceInterface.impl?.setCurrentDownloads(downloadStates)
-                    EventFlow.postStickyEvent(FlowEvent.EpisodeDownloadEvent(downloadStates))
                     if (hasFinished) lifecycleScope.launch(Dispatchers.IO) {
                         delay(2000)
                         WorkManager.getInstance(this@MainActivity).pruneWork().await()
@@ -369,17 +365,8 @@ class MainActivity : BaseActivity() {
         Logd(TAG, "onDestroy")
         WorkManager.getInstance(this).pruneWork()
         WorkManager.getInstance(applicationContext).pruneWork()
-//        realm.close()
-//        bottomSheet.removeBottomSheetCallback(bottomSheetCallback)
-//        if (drawerToggle != null) drawerLayout?.removeDrawerListener(drawerToggle!!)
-//        MediaController.releaseFuture(controllerFuture)
         super.onDestroy()
     }
-
-//    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-//        super.onRestoreInstanceState(savedInstanceState)
-////        if (bottomSheet.state == BottomSheetBehavior.STATE_EXPANDED) bottomSheetCallback.onSlide(dummyView, 1.0f)
-//    }
 
     public override fun onStart() {
         super.onStart()
@@ -449,12 +436,8 @@ class MainActivity : BaseActivity() {
         when {
             intent.hasExtra(Extras.fragment_feed_id.name) -> {
                 val feedId = intent.getLongExtra(Extras.fragment_feed_id.name, 0)
-//                val args = intent.getBundleExtra(MainActivityStarter.Extras.fragment_args.name)
                 Logd(TAG, "handleNavIntent: feedId: $feedId")
                 if (feedId > 0) {
-//                    val startedFromShare = intent.getBooleanExtra(Extras.started_from_share.name, false)
-//                    val addToBackStack = intent.getBooleanExtra(Extras.add_to_back_stack.name, false)
-//                    Logd(TAG, "handleNavIntent: startedFromShare: $startedFromShare addToBackStack: $addToBackStack")
                     feedOnDisplay = getFeed(feedId) ?: Feed()
                     feedScreenMode = FeedScreenMode.List
                     mainNavController.navigate(Screens.FeedDetails.name)
@@ -474,22 +457,11 @@ class MainActivity : BaseActivity() {
                 setOnlineSearchTerms(CombinedSearcher::class.java, query)
                 mainNavController.navigate(Screens.OnlineResults.name)
             }
-//            intent.hasExtra(MainActivityStarter.Extras.fragment_tag.name) -> {
-//                val tag = intent.getStringExtra(MainActivityStarter.Extras.fragment_tag.name)
-//                val args = intent.getBundleExtra(MainActivityStarter.Extras.fragment_args.name)
-//                if (tag != null) loadScreen(tag, args)
-//                collapseBottomSheet()
-////                bottomSheet.setState(BottomSheetBehavior.STATE_COLLAPSED)
-//            }
             intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> {
                 isBSExpanded = true
-//                bottomSheet.state = BottomSheetBehavior.STATE_EXPANDED
-//                bottomSheetCallback.onSlide(dummyView, 1.0f)
             }
             else -> handleDeeplink(intent.data)
         }
-//        if (intent.getBooleanExtra(MainActivityStarter.Extras.open_drawer.name, false)) drawerLayout?.open()
-//        if (intent.getBooleanExtra(MainActivityStarter.Extras.open_logs.name, false)) mainNavController.navigate(Screens.Logs.name)
         if (intent.getBooleanExtra(Extras.refresh_on_start.name, false)) runOnceOrAsk(this)
 
         // to avoid handling the intent twice when the configuration changes

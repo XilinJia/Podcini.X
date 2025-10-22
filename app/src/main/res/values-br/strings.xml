@@ -380,7 +380,7 @@
     <!--Feed settings/information screen-->
   <string name="authentication_label">Dilesa</string>
   <string name="authentication_descr">Cheñch hoc\'h anv implijer hag ho ker-tremen evit ar podskignad-mañ hag e rannoù.</string>
-  <string name="feed_tags_label">Tikedennoù</string>
+  <string name="tags_label">Tikedennoù</string>
   <string name="feed_tags_summary">Kemmañ tikedennoù ar podskignad-mañ evit sikour urzhiañ ho koumanantoù.</string>
   <string name="episode_filters_description">Roll an termenoù implijet evit dibab ma rank ur rann bezañ ebarzhet pe laosket a-gostez pa vez pellgarget ent emgefreek</string>
   <string name="exclude_terms">Skarzhañ kuit ar rannoù gant unan eus an termenoù amañ didan</string>

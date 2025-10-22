@@ -588,7 +588,7 @@
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Autentificare</string>
     <string name="authentication_descr">Schimbăți numele si parola pentru acest podcast și episoadele sale,</string>
-    <string name="feed_tags_label">Etichete</string>
+    <string name="tags_label">Etichete</string>
     <string name="feed_tags_summary">Schimbă etichetele acestui podcast pentru a putea organiza abonamentele dumneavoastră</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Doar etichetele comune din toate abonamentele selectate sunt arătate. Alte etichete rămân neafectate.</string>
     <string name="auto_download_settings_label">Descarcă automat setările</string>

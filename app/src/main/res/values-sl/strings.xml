@@ -593,7 +593,7 @@
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Preverjanje pristnosti (Avtentikacija)</string>
     <string name="authentication_descr">Spremenite svoje uporabniško ime in geslo za ta podcast in njegove epizode.</string>
-    <string name="feed_tags_label">Oznake</string>
+    <string name="tags_label">Oznake</string>
     <string name="feed_tags_summary">Change the tags of this podcast to help organize your subscriptions</string>
     <string name="multi_feed_common_tags_info">{faw_info_circle} Only common tags from all selected subscriptions are shown. Other tags stay unaffected.</string>
     <string name="auto_download_settings_label">Auto download settings</string>
