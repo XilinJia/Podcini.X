@@ -43,6 +43,7 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.Feed.Companion.duetime
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.utils.DurationConverter
@@ -186,6 +187,7 @@ import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import io.github.xilinjia.krdb.ext.realmListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -345,7 +347,7 @@ fun AddCommentDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, ignoreCB: ()->Unit) {
+fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, againCB: ()->Unit, ignoreCB: ()->Unit) {
     val context = LocalContext.current
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
@@ -353,43 +355,39 @@ fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, ign
                 for (state in EpisodeState.entries.reversed()) {
                     if (state.userSet) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
-                            if (state == EpisodeState.IGNORED) ignoreCB()
-                            else runOnIOScope {
-                                for (vm in selected) {
-                                    val hasAlmostEnded = hasAlmostEnded(vm.episode)
-                                    var item_ = setPlayStateSync(state, vm.episode, hasAlmostEnded, false)
-                                    when (state) {
-                                        EpisodeState.UNPLAYED -> {
-                                            if (isProviderConnected && item_.feed?.isLocalFeed != true) {
-                                                val actionNew: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.NEW).currentTimestamp().build()
-                                                SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, actionNew)
-                                            }
-                                        }
-                                        EpisodeState.PLAYED -> {
-                                            if (hasAlmostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
-                                            val shouldAutoDelete = if (item_.feed == null) false else allowForAutoDelete(item_.feed!!)
-//                                            item = item_
-                                            if (hasAlmostEnded && shouldAutoDelete) {
-                                                item_ = deleteMediaSync(context, item_)
-                                                if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(item_)
-                                            } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(item_)
-                                            if (item_.feed?.isLocalFeed != true && (isProviderConnected || wifiSyncEnabledKey)) {
-                                                // not all items have media, Gpodder only cares about those that do
-                                                if (isProviderConnected) {
-                                                    val actionPlay: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.PLAY)
-                                                        .currentTimestamp()
-                                                        .started(item_.duration / 1000)
-                                                        .position(item_.duration / 1000)
-                                                        .total(item_.duration / 1000)
-                                                        .build()
-                                                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, actionPlay)
+                            when (state) {
+                                EpisodeState.IGNORED -> ignoreCB()
+                                EpisodeState.AGAIN -> againCB()
+                                else -> runOnIOScope {
+                                    for (vm in selected) {
+                                        val hasAlmostEnded = hasAlmostEnded(vm.episode)
+                                        var item_ = setPlayStateSync(state, vm.episode, hasAlmostEnded, false)
+                                        when (state) {
+                                            EpisodeState.UNPLAYED -> {
+                                                if (isProviderConnected && item_.feed?.isLocalFeed != true) {
+                                                    val actionNew: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.NEW).currentTimestamp().build()
+                                                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, actionNew)
                                                 }
                                             }
+                                            EpisodeState.PLAYED -> {
+                                                if (hasAlmostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
+                                                val shouldAutoDelete = if (item_.feed == null) false else allowForAutoDelete(item_.feed!!) //                                            item = item_
+                                                if (hasAlmostEnded && shouldAutoDelete) {
+                                                    item_ = deleteMediaSync(context, item_)
+                                                    if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(item_)
+                                                } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(item_)
+                                                if (item_.feed?.isLocalFeed != true && (isProviderConnected || wifiSyncEnabledKey)) { // not all items have media, Gpodder only cares about those that do
+                                                    if (isProviderConnected) {
+                                                        val actionPlay: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.PLAY).currentTimestamp().started(item_.duration / 1000).position(item_.duration / 1000).total(item_.duration / 1000).build()
+                                                        SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, actionPlay)
+                                                    }
+                                                }
+                                            }
+                                            EpisodeState.QUEUE -> if (item_.feed?.queue != null) addToQueueSync(vm.episode, vm.episode.feed?.queue)
+                                            else -> {}
                                         }
-                                        EpisodeState.QUEUE -> if (item_.feed?.queue != null) addToQueueSync(vm.episode, vm.episode.feed?.queue)
-                                        else -> {}
+                                        vm.updateVMFromDB()
                                     }
-                                    vm.updateVMFromDB()
                                 }
                             }
                             onDismissRequest()
@@ -560,7 +558,43 @@ fun IgnoreEpisodesDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit
                                 }
                                 vm.updateVMFromDB()
                             }
-                        } catch (e: Throwable) { Logs("EraseEpisodesDialog", e) }
+                        } catch (e: Throwable) { Logs("IgnoreEpisodesDialog", e) }
+                    }
+                    onDismissRequest()
+                }) { Text(stringResource(R.string.confirm_label)) }
+            }
+        }
+    }
+}
+
+@Composable
+fun AgainEpisodesDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
+    val message = stringResource(R.string.repeat_episodes_msg)
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(message + ": ${selected.size}")
+                var intervals = if (selected.size == 1) selected[0].episode.feed?.repeatIntervals?.toList() else null
+                if (intervals.isNullOrEmpty()) intervals = listOf(60, 24, 30, 52)
+                val units = listOf(stringResource(R.string.time_minutes), stringResource(R.string.time_hours), stringResource(R.string.time_days), stringResource(R.string.time_weeks))
+                var dueTime = 0L
+                for (i in intervals.indices) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = i==2, onClick = { dueTime = duetime(intervals[i], i) })
+                        Text(intervals[i].toString() + " " + units[i])
+                    }
+                }
+                Button(onClick = {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            for (vm in selected) {
+                                val hasAlmostEnded = hasAlmostEnded(vm.episode)
+                                val item_ = setPlayStateSync(EpisodeState.AGAIN, vm.episode, hasAlmostEnded, false)
+                                Logd("AgainEpisodesDialog", "item_: ${item_.title} ${item_.playState}")
+                                upsert(item_) { it.repeatTime = dueTime }
+                                vm.updateVMFromDB()
+                            }
+                        } catch (e: Throwable) { Logs("AgainEpisodesDialog", e) }
                     }
                     onDismissRequest()
                 }) { Text(stringResource(R.string.confirm_label)) }
@@ -636,8 +670,9 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     if (showAddCommentDialog) AddCommentDialog(selected) { showAddCommentDialog = false }
 
     var showIgnoreDialog by remember { mutableStateOf(false) }
+    var showAgainDialog by remember { mutableStateOf(false) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
-    if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }) { showIgnoreDialog = true }
+    if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { showAgainDialog = true },{ showIgnoreDialog = true })
 
     var showPutToQueueDialog by remember { mutableStateOf(false) }
     if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
@@ -649,6 +684,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismissRequest = { showEraseDialog = false })
 
     if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismissRequest = { showIgnoreDialog = false })
+    if (showAgainDialog) AgainEpisodesDialog(selected, onDismissRequest = { showAgainDialog = false })
 
     @Composable
     fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
@@ -1416,10 +1452,10 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
     }
 }
 
-var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
+var episodeSortOrder by mutableStateOf<EpisodeSortOrder?>(null)
 
 @Composable
-fun EpisodeSortDialog(initOrder: EpisodeSortOrder, showKeepSorted: Boolean = false, onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder, Boolean) -> Unit) {
+fun EpisodeSortDialog(initOrder: EpisodeSortOrder?, showKeepSorted: Boolean = false, onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder, Boolean) -> Unit) {
     val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || gearbox.SupportExtraSort()) } }
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
@@ -1430,17 +1466,17 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder, showKeepSorted: Boolean = fal
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             val scrollState = rememberScrollState()
-            var sortIndex by remember { mutableIntStateOf(initOrder.ordinal/2) }
+            var sortIndex by remember { mutableIntStateOf(if (initOrder != null) initOrder.ordinal/2 else -1) }
             var keepSorted by remember { mutableStateOf(false) }
             Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).verticalScroll(scrollState)) {
                 NonlazyGrid(columns = 2, itemCount = orderList.size) { index ->
-                    var dir by remember { mutableStateOf(if (sortIndex == index) initOrder.ordinal % 2 == 0 else true) }
+                    var dir by remember { mutableStateOf(if (sortIndex == index) initOrder!!.ordinal % 2 == 0 else true) }
                     OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) buttonColor else buttonAltColor),
                         onClick = {
                             if (sortIndex == index) dir = !dir
                             sortIndex = index
                             episodeSortOrder = EpisodeSortOrder.entries[2 * index + if (dir) 0 else 1]
-                            onSelectionChanged(episodeSortOrder, keepSorted)
+                            onSelectionChanged(episodeSortOrder!!, keepSorted)
                         }
                     ) { Text(text = stringResource(orderList[index].res) + if (dir) "\u00A0▲" else "\u00A0▼", color = textColor) }
                 }

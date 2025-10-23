@@ -179,7 +179,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal val languages: MutableList<String> = mutableListOf()
     private var _langsSel: Set<String>? = null
-    var langsSel: Set<String>
+    internal var langsSel: Set<String>
         get() {
             if (_langsSel == null) _langsSel = prefs.getStringSet("langsSel", emptySet())?: languages.toSet()
             return _langsSel!!
@@ -191,7 +191,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal val tags = mutableStateListOf<String>()
     private var _tagsSel: Set<String>? = null
-    var tagsSel: Set<String>
+    internal var tagsSel: Set<String>
         get() {
             if (_tagsSel == null) _tagsSel = prefs.getStringSet("tagsSel", emptySet())?: tags.toSet()
             return _tagsSel!!
@@ -204,7 +204,7 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     val queueNames = mutableStateListOf<String>()
     internal val queueIds: MutableList<Long> = mutableListOf()
     private var _qSelIds: Set<String>? = null
-    var qSelIds: Set<Long>
+    internal var qSelIds: Set<Long>
         get() {
             if (_qSelIds == null) _qSelIds = prefs.getStringSet("qSelIds", emptySet()) ?: queueIds.map { it.toString() }.toSet()
             return _qSelIds!!.mapNotNull { it.toLongOrNull() }.toSet()
@@ -1493,37 +1493,39 @@ fun SubscriptionsScreen() {
                                 ) { Text(text = vm.queueNames[index], maxLines = 1, color = textColor) }
                             }
                         }
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            val selectedList = remember { MutableList(vm.tags.size) { mutableStateOf(false) } }
-                            var expandRow by remember { mutableStateOf(false) }
-                            Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                                Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
-                                if (expandRow) {
-                                    val cb = {
-                                        val tagsSel = mutableSetOf<String>()
-                                        for (i in vm.tags.indices) {
-                                            if (selectedList[i].value) tagsSel.add(vm.tags[i])
+                        if (vm.tags.isNotEmpty()) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                val selectedList = remember { MutableList(vm.tags.size) { mutableStateOf(false) } }
+                                var expandRow by remember { mutableStateOf(false) }
+                                Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                                    Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                    if (expandRow) {
+                                        val cb = {
+                                            val tagsSel = mutableSetOf<String>()
+                                            for (i in vm.tags.indices) {
+                                                if (selectedList[i].value) tagsSel.add(vm.tags[i])
+                                            }
+                                            vm.tagsSel = tagsSel
+                                            vm.loadSubscriptions(true)
                                         }
-                                        vm.tagsSel = tagsSel
-                                        vm.loadSubscriptions(true)
+                                        SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                     }
-                                    SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                 }
-                            }
-                            if (expandRow) NonlazyGrid(columns = 3, itemCount = vm.tags.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                LaunchedEffect(Unit) {
-                                    if (vm.tags[index] in vm.tagsSel) selectedList[index].value = true
+                                if (expandRow) NonlazyGrid(columns = 3, itemCount = vm.tags.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                    LaunchedEffect(Unit) {
+                                        if (vm.tags[index] in vm.tagsSel) selectedList[index].value = true
+                                    }
+                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                        onClick = {
+                                            selectedList[index].value = !selectedList[index].value
+                                            val tagsSel = vm.tagsSel.toMutableSet()
+                                            if (selectedList[index].value) tagsSel.add(vm.tags[index])
+                                            else tagsSel.remove(vm.tags[index])
+                                            vm.tagsSel = tagsSel
+                                            vm.loadSubscriptions(true)
+                                        },
+                                    ) { Text(text = vm.tags[index], maxLines = 1, color = textColor) }
                                 }
-                                OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
-                                    onClick = {
-                                        selectedList[index].value = !selectedList[index].value
-                                        val tagsSel = vm.tagsSel.toMutableSet()
-                                        if (selectedList[index].value) tagsSel.add(vm.tags[index])
-                                        else tagsSel.remove(vm.tags[index])
-                                        vm.tagsSel = tagsSel
-                                        vm.loadSubscriptions(true)
-                                    },
-                                ) { Text(text = vm.tags[index], maxLines = 1, color = textColor) }
                             }
                         }
 

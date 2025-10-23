@@ -40,6 +40,7 @@ import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
 import ac.mdiq.podcini.ui.compose.buildListInfo
+import ac.mdiq.podcini.ui.compose.episodeSortOrder
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
@@ -345,6 +346,7 @@ fun FeedDetailsScreen() {
                     saveLastNavScreen(TAG, vm.feedID.toString())
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     vm.loadFeed()
+                    episodeSortOrder = vm.sortOrder
                 }
                 Lifecycle.Event.ON_START -> vm.procFlowEvents()
                 Lifecycle.Event.ON_RESUME -> {
@@ -703,7 +705,6 @@ fun FeedDetailsScreen() {
         Logt(TAG, "BackHandler ")
         showHistory = false
         enableFilter = true
-//        vm.loadFeed()
     }
 
     LaunchedEffect(showHistory, enableFilter) { vm.reassembleList() }

@@ -177,6 +177,14 @@ object AutoDownloads {
                 Logd(TAG, "assembleFeedsCandidates ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")
                 Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${f.autoDLPolicy.name}")
                 val episodes = mutableListOf<Episode>()
+                if (true) {
+                    val queryStringAgain = "feedId == ${f.id} AND playState == ${EpisodeState.AGAIN.code} SORT(repeatTime)"
+                    val es = realm.query(Episode::class).query(queryStringAgain).find()
+                    Logd(TAG, "assembleFeedsCandidates queryStringAgain: [${es.size}] $queryStringAgain")
+                    val cTime = System.currentTimeMillis()
+                    for (e in es) if (cTime > e.repeatTime) episodes.add(e)
+                    allowedDLCount -= es.size
+                }
                 var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND downloaded == false"
                 if (allowedDLCount > 0 && f.autoDLSoon) {
                     val queryStringSoon = queryString + " AND playState == ${EpisodeState.SOON.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"

@@ -291,6 +291,8 @@ class Feed : RealmObject {
 
     var autoAddNewToQueue: Boolean = false
 
+    var repeatIntervals: RealmList<Int> = realmListOf(60, 24, 30, 52)     // minutes, hours, days, weeks
+
     @Ignore
     var episodeFilterADL: EpisodeFilter = EpisodeFilter()
         set(value) {
@@ -534,5 +536,16 @@ class Feed : RealmObject {
         val FeedAutoDeleteOptions = AutoDeleteAction.entries.map { it.tag }
 
         fun newId(): Long = Date().time * 100
+
+        fun duetime(n: Int, i: Int): Long {
+            return System.currentTimeMillis() + when (i) {
+                0 -> n * 60000
+                1 -> n * 3.6e6
+                2 -> n * 8.64e7
+                3 -> n * 6.048e8
+                else -> 0
+            }.toLong()
+        }
+
     }
 }

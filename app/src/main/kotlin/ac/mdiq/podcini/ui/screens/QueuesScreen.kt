@@ -35,6 +35,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.buildListInfo
+import ac.mdiq.podcini.ui.compose.episodeSortOrder
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
@@ -133,7 +134,6 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
     internal var swipeActions: SwipeActions
     internal var swipeActionsBin: SwipeActions
 
-//    internal var infoTextUpdate = ""
     internal var listInfoText = ""
     internal var infoBarText = mutableStateOf("")
 
@@ -150,7 +150,7 @@ class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var dragDropEnabled by mutableStateOf(!(isQueueKeepSorted || isQueueLocked))
     var showSortDialog by mutableStateOf(false)
-    var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
+    var sortOrder by mutableStateOf<EpisodeSortOrder?>(null)
 
     internal val showClearQueueDialog = mutableStateOf(false)
     internal val showRenameQueueDialog = mutableStateOf(false)
@@ -320,11 +320,13 @@ fun QueuesScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    if (isQueueKeepSorted) vm.sortOrder = queueKeepSortedOrder ?: EpisodeSortOrder.DATE_NEW_OLD
+                    if (isQueueKeepSorted) vm.sortOrder = queueKeepSortedOrder
 
                     vm.queueNames = vm.queues.map { it.name }.toMutableStateList()
                     vm.spinnerTexts.clear()
                     vm.spinnerTexts.addAll(vm.queues.map { "${it.name} : ${it.size()}" })
+                    episodeSortOrder = vm.sortOrder
+
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
                     lifecycleOwner.lifecycle.addObserver(vm.swipeActionsBin)
                     vm.loadCurQueue(true)
@@ -408,6 +410,8 @@ fun QueuesScreen() {
                     val prevQueueSize = curQueue.size()
                     curQueue = upsertBlk(vm.queues[index]) { it.update() }
                     showRename = curQueue.name != "Default"
+                    vm.sortOrder = if (isQueueKeepSorted) queueKeepSortedOrder else null
+                    episodeSortOrder = vm.sortOrder
                     vm.loadCurQueue(true)
                     playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
                 } else Text(title)
@@ -592,7 +596,6 @@ fun QueuesScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (showBin) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-//                vm.infoTextUpdate = if (feedUpdating) "U" else ""
                 vm.infoBarText.value = "${vm.listInfoText} $feedOperationText"
                 InforBar(vm.infoBarText, vm.swipeActionsBin)
                 EpisodeLazyColumn(context as MainActivity, vms = vm.vms, swipeActions = vm.swipeActionsBin)

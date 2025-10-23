@@ -37,6 +37,7 @@ import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
 import ac.mdiq.podcini.ui.compose.buildListInfo
+import ac.mdiq.podcini.ui.compose.episodeSortOrder
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
@@ -476,6 +477,7 @@ fun FacetsScreen() {
                     vm.curIndex = getPref(AppPrefs.prefFacetsCurIndex, 0)
                     vm.tag = TAG+QuickAccess.entries[vm.curIndex]
                     sortOrder = vm.episodesSortOrder
+                    episodeSortOrder = vm.episodesSortOrder
                     vm.updateToolbar()
                     vm.loadItems()
                 }
@@ -523,6 +525,7 @@ fun FacetsScreen() {
                     vm.tag = TAG + QuickAccess.entries[vm.curIndex]
                     putPref(AppPrefs.prefFacetsCurIndex, index)
                     vm.actionButtonToPass = if (vm.spinnerTexts[vm.curIndex] == QuickAccess.Downloaded.name) { it -> EpisodeActionButton(it, ButtonTypes.DELETE) } else null
+                    episodeSortOrder = vm.episodesSortOrder
                     vm.loadItems()
                 }
             }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {

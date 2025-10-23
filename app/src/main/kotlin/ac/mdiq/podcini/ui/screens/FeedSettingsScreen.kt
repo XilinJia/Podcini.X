@@ -100,6 +100,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import io.github.xilinjia.krdb.ext.realmListOf
+import io.github.xilinjia.krdb.ext.toRealmList
+import io.github.xilinjia.krdb.ext.toRealmSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
@@ -430,6 +433,33 @@ fun FeedSettingsScreen() {
         }
     }
 
+    @Composable
+    fun RepeatIntervalsDialog(onDismiss: () -> Unit) {
+        Dialog(onDismissRequest = onDismiss) {
+            Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    var intervals = remember { vm.feed?.repeatIntervals?.toMutableList() }
+                    if (intervals.isNullOrEmpty()) intervals = mutableListOf(60, 24, 30, 52)
+                    val units = listOf(stringResource(R.string.time_minutes), stringResource(R.string.time_hours), stringResource(R.string.time_days), stringResource(R.string.time_weeks))
+                    for (i in intervals.indices) {
+                        var inV by remember { mutableStateOf(intervals[i].toString()) }
+                        TextField(value = inV, onValueChange = {
+                            if (it.isEmpty() || it.toIntOrNull() != null) {
+                                inV = it
+                                if (it.isNotEmpty()) intervals[i] = it.toInt()
+                            }
+                        }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("in " + units[i]) })
+                    }
+                    Button(onClick = {
+                        upsertBlk(vm.feed!!) { it.repeatIntervals = intervals.toRealmList() }
+                        onDismiss()
+                    }) { Text(stringResource(R.string.confirm_label)) }
+                }
+            }
+        }
+    }
+
+
     val textColor = MaterialTheme.colorScheme.onSurface
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         val scrollState = rememberScrollState()
@@ -683,6 +713,17 @@ fun FeedSettingsScreen() {
                     Text(text = stringResource(R.string.pref_feed_skip), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                 }
                 Text(text = stringResource(R.string.pref_feed_skip_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+            //                    repeat intervals
+            Column {
+                Row(Modifier.fillMaxWidth()) {
+                    val showDialog = remember { mutableStateOf(false) }
+                    if (showDialog.value) RepeatIntervalsDialog(onDismiss = { showDialog.value = false })
+                    Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.pref_feed_intervals), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                }
+                Text(text = stringResource(R.string.pref_feed_intervals_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
             if (vm.feed?.type != Feed.FeedType.YOUTUBE.name) {
                 //                    auto delete

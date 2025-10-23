@@ -257,6 +257,7 @@ class Episode : RealmObject {
     @Ignore
     var effectMimeType = ""
 
+    var repeatTime: Long = 0L
     @Ignore
     var webviewData by mutableStateOf<String?>(null)
 

@@ -11,6 +11,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Episodes
+import ac.mdiq.podcini.storage.database.Episodes.isEpisodeDownloaded
 import ac.mdiq.podcini.storage.database.LogsAndStats
 import ac.mdiq.podcini.storage.database.Queues
 import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
@@ -83,6 +84,13 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             Loge(TAG, "downloadUrl is null or empty ${item.title}")
             return
         }
+        if (isEpisodeDownloaded(item)) {
+            if (getPref(AppPrefs.prefEnqueueDownloaded, false)) {
+                if (item.feed?.queue != null) runBlocking { Queues.addToQueueSync(item, item.feed?.queue) }
+            }
+            return
+        }
+
         Logd(TAG, "starting download")
         val workRequest: OneTimeWorkRequest.Builder = getRequest(item)
         workRequest.setConstraints(constraints)

@@ -171,6 +171,24 @@ object Episodes {
         if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(episode_)
     }
 
+    fun isEpisodeDownloaded(episode: Episode): Boolean {
+        val url = episode.fileUrl ?: return false
+        when {
+            url.startsWith("content://") -> { // Local feed or custom media folder
+                val documentFile = DocumentFile.fromSingleUri(context, url.toUri())
+                return documentFile != null && documentFile.exists()
+            }
+            else -> { // delete downloaded media file
+                val path = url.toUri().path
+                if (path != null) {
+                    val mediaFile = File(path)
+                    return mediaFile.exists()
+                }
+                return false
+            }
+        }
+    }
+
     @OptIn(UnstableApi::class)
     fun deleteMediaSync(context: Context, episode: Episode): Episode {
         Logd(TAG, String.format(Locale.US, "deleteMediaSync [id=%d, title=%s, downloaded=%s", episode.id, episode.getEpisodeTitle(), episode.downloaded))

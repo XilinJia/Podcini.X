@@ -27,6 +27,7 @@ import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
+import ac.mdiq.podcini.ui.compose.AgainEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShelveDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.Screens
@@ -187,7 +188,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override fun ActionOptions() {
             var showIgnoreDialog by remember { mutableStateOf(false) }
             if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEVM!!), onDismissRequest = { showIgnoreDialog = false })
-            if (showPlayStateDialog && onEVM != null) PlayStateDialog(listOf(onEVM!!), onDismissRequest = { showPlayStateDialog = false }) { showIgnoreDialog = true }
+            var showAgainDialog by remember { mutableStateOf(false) }
+            if (showAgainDialog) AgainEpisodesDialog(listOf(onEVM!!), onDismissRequest = { showAgainDialog = false })
+            if (showPlayStateDialog && onEVM != null) PlayStateDialog(listOf(onEVM!!), onDismissRequest = { showPlayStateDialog = false }, againCB = { showAgainDialog = true }, ignoreCB = { showIgnoreDialog = true })
         }
     }
 
