@@ -178,7 +178,7 @@ object AutoDownloads {
                 Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${f.autoDLPolicy.name}")
                 val episodes = mutableListOf<Episode>()
                 if (true) {
-                    val queryStringAgain = "feedId == ${f.id} AND playState == ${EpisodeState.AGAIN.code} SORT(repeatTime)"
+                    val queryStringAgain = "feedId == ${f.id} AND playState == ${EpisodeState.AGAIN.code} SORT(repeatTime ASC)"
                     val es = realm.query(Episode::class).query(queryStringAgain).find()
                     Logd(TAG, "assembleFeedsCandidates queryStringAgain: [${es.size}] $queryStringAgain")
                     val cTime = System.currentTimeMillis()
