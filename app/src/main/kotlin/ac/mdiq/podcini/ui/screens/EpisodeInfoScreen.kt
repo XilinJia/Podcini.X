@@ -39,7 +39,7 @@ import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
-import ac.mdiq.podcini.ui.compose.AgainEpisodesDialog
+import ac.mdiq.podcini.ui.compose.FutureStateDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
@@ -405,11 +405,11 @@ fun EpisodeInfoScreen() {
     if (showChaptersDialog && vm.episode != null) ChaptersDialog(media = vm.episode!!, onDismissRequest = {showChaptersDialog = false})
 
     var showIgnoreDialog by remember { mutableStateOf(false) }
-    var showAgainDialog by remember { mutableStateOf(false) }
+    var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
-    if (showPlayStateDialog) PlayStateDialog(listOf(EpisodeVM(vm.episode!!, TAG)), onDismissRequest = { showPlayStateDialog = false }, { showAgainDialog = true },{ showIgnoreDialog = true })
+    if (showPlayStateDialog) PlayStateDialog(listOf(EpisodeVM(vm.episode!!, TAG)), onDismissRequest = { showPlayStateDialog = false }, { futureState = it },{ showIgnoreDialog = true })
 
-    if (showAgainDialog) AgainEpisodesDialog(listOf(EpisodeVM(vm.episode!!, TAG)), onDismissRequest = { showAgainDialog = false })
+    if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(EpisodeVM(vm.episode!!, TAG)), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
     if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(EpisodeVM(vm.episode!!, TAG)), onDismissRequest = { showIgnoreDialog = false })
 
     if (vm.showShareDialog && vm.episode != null && vm.actMain != null) ShareDialog(vm.episode!!, vm.actMain) { vm.showShareDialog = false }

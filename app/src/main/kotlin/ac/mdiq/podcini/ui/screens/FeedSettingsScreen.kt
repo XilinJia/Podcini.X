@@ -12,7 +12,9 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.AutoDownloadPolicy
+import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
+import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.PlayQueue
@@ -100,9 +102,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.ext.toRealmList
-import io.github.xilinjia.krdb.ext.toRealmSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
@@ -439,8 +439,8 @@ fun FeedSettingsScreen() {
             Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     var intervals = remember { vm.feed?.repeatIntervals?.toMutableList() }
-                    if (intervals.isNullOrEmpty()) intervals = mutableListOf(60, 24, 30, 52)
-                    val units = listOf(stringResource(R.string.time_minutes), stringResource(R.string.time_hours), stringResource(R.string.time_days), stringResource(R.string.time_weeks))
+                    if (intervals.isNullOrEmpty()) intervals = DEFAULT_INTERVALS.toMutableList()
+                    val units = INTERVAL_UNITS.map { stringResource(it) }
                     for (i in intervals.indices) {
                         var inV by remember { mutableStateOf(intervals[i].toString()) }
                         TextField(value = inV, onValueChange = {

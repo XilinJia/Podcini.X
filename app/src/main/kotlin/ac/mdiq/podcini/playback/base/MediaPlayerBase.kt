@@ -405,7 +405,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 Logd(TAG, "onPostPlayback ended: $ended smartMarkAsPlayed: $smartMarkAsPlayed autoSkipped: $autoSkipped skipped: $skipped")
                 // only mark the item as played if we're not keeping it anyways
                 item = upsert(item) {
-                    if (it.playState < EpisodeState.AGAIN.code || it.playState in listOf(EpisodeState.SKIPPED.code, EpisodeState.PASSED.code, EpisodeState.IGNORED.code)) it.setPlayState(EpisodeState.PLAYED)
+                    if (it.playState !in listOf(EpisodeState.FOREVER.code, EpisodeState.PLAYED.code)) it.setPlayState(EpisodeState.PLAYED)
                     upsertDB(it, item.position)
                     it.startTime = 0
                     it.startPosition = if (completed) -1 else it.position

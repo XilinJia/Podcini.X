@@ -257,7 +257,15 @@ class Episode : RealmObject {
     @Ignore
     var effectMimeType = ""
 
+    @Ignore
+    var dueDate: Date? = null
+        get() = field ?: Date(repeatTime)
+        set(value) {
+            field = value?.clone() as? Date
+            this.repeatTime = value?.time ?: 0L
+        }
     var repeatTime: Long = 0L
+
     @Ignore
     var webviewData by mutableStateOf<String?>(null)
 

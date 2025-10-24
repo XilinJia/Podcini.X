@@ -43,6 +43,8 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
+import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.duetime
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.SubscriptionLog
@@ -187,7 +189,6 @@ import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import io.github.xilinjia.krdb.ext.realmListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
@@ -347,7 +348,7 @@ fun AddCommentDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, againCB: ()->Unit, ignoreCB: ()->Unit) {
+fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, futureCB: (EpisodeState)->Unit, ignoreCB: ()->Unit) {
     val context = LocalContext.current
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
@@ -357,7 +358,7 @@ fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, aga
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
                             when (state) {
                                 EpisodeState.IGNORED -> ignoreCB()
-                                EpisodeState.AGAIN -> againCB()
+                                EpisodeState.AGAIN, EpisodeState.LATER -> futureCB(state)
                                 else -> runOnIOScope {
                                     for (vm in selected) {
                                         val hasAlmostEnded = hasAlmostEnded(vm.episode)
@@ -568,29 +569,30 @@ fun IgnoreEpisodesDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit
 }
 
 @Composable
-fun AgainEpisodesDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
+fun FutureStateDialog(episodes: List<EpisodeVM>, state: EpisodeState, onDismissRequest: () -> Unit) {
     val message = stringResource(R.string.repeat_episodes_msg)
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(message + ": ${selected.size}")
-                var intervals = if (selected.size == 1) selected[0].episode.feed?.repeatIntervals?.toList() else null
-                if (intervals.isNullOrEmpty()) intervals = listOf(60, 24, 30, 52)
-                val units = listOf(stringResource(R.string.time_minutes), stringResource(R.string.time_hours), stringResource(R.string.time_days), stringResource(R.string.time_weeks))
-                var dueTime = 0L
+                Text(message + ": ${episodes.size}")
+                var intervals = remember { if (episodes.size == 1) episodes[0].episode.feed?.repeatIntervals?.toList() else null }
+                if (intervals.isNullOrEmpty()) intervals = DEFAULT_INTERVALS
+                val units = INTERVAL_UNITS.map { stringResource(it) }
+                var sel by remember { mutableIntStateOf(2) }
                 for (i in intervals.indices) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = i==2, onClick = { dueTime = duetime(intervals[i], i) })
+                        RadioButton(selected = i==sel, onClick = { sel = i })
                         Text(intervals[i].toString() + " " + units[i])
                     }
                 }
                 Button(onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
-                            for (vm in selected) {
+                            var dueTime = duetime(intervals[sel], sel)
+                            for (vm in episodes) {
                                 val hasAlmostEnded = hasAlmostEnded(vm.episode)
-                                val item_ = setPlayStateSync(EpisodeState.AGAIN, vm.episode, hasAlmostEnded, false)
-                                Logd("AgainEpisodesDialog", "item_: ${item_.title} ${item_.playState}")
+                                val item_ = setPlayStateSync(state, vm.episode, hasAlmostEnded, false)
+                                Logd("AgainEpisodesDialog", "item_: ${item_.title} ${item_.playState} ${Date(dueTime)}")
                                 upsert(item_) { it.repeatTime = dueTime }
                                 vm.updateVMFromDB()
                             }
@@ -670,9 +672,9 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     if (showAddCommentDialog) AddCommentDialog(selected) { showAddCommentDialog = false }
 
     var showIgnoreDialog by remember { mutableStateOf(false) }
-    var showAgainDialog by remember { mutableStateOf(false) }
+    var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
-    if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { showAgainDialog = true },{ showIgnoreDialog = true })
+    if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { futureState = it },{ showIgnoreDialog = true })
 
     var showPutToQueueDialog by remember { mutableStateOf(false) }
     if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
@@ -684,7 +686,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismissRequest = { showEraseDialog = false })
 
     if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismissRequest = { showIgnoreDialog = false })
-    if (showAgainDialog) AgainEpisodesDialog(selected, onDismissRequest = { showAgainDialog = false })
+    if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(selected, futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
 
     @Composable
     fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
@@ -920,13 +922,20 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                     else StatusRow()
                 }
             }
-            if (vm.playedState >= EpisodeState.SKIPPED.code) {
-                val playedText = if (vm.episode.lastPlayedTime > 0) "P:" + formatDateTimeFlex(vm.episode.lastPlayedDate) else ""
-                val completionText = if (vm.episode.playbackCompletionTime > 0) " · C:" + formatDateTimeFlex(vm.episode.playbackCompletionDate) else ""
-                val stateSetText = if (vm.episode.playStateSetTime > 0) " · S:" + formatDateTimeFlex(vm.episode.playStateSetDate) else ""
-                val durationText = if (vm.episode.playedDuration > 0) " · " + getDurationStringLong(vm.episode.playedDuration) else ""
-                val dateSizeText = remember { playedText + completionText + stateSetText + durationText }
-                Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            when (vm.playedState) {
+                 EpisodeState.AGAIN.code, EpisodeState.LATER.code -> {
+                    val dueText = remember { if (vm.episode.repeatTime > 0) "D:" + formatDateTimeFlex(vm.episode.dueDate) else "" }
+                    Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                EpisodeState.SKIPPED.code -> {
+                    val playedText = if (vm.episode.lastPlayedTime > 0) "P:" + formatDateTimeFlex(vm.episode.lastPlayedDate) else ""
+                    val completionText = if (vm.episode.playbackCompletionTime > 0) " · C:" + formatDateTimeFlex(vm.episode.playbackCompletionDate) else ""
+                    val stateSetText = if (vm.episode.playStateSetTime > 0) " · S:" + formatDateTimeFlex(vm.episode.playStateSetDate) else ""
+                    val durationText = if (vm.episode.playedDuration > 0) " · " + getDurationStringLong(vm.episode.playedDuration) else ""
+                    val dateSizeText = remember { playedText + completionText + stateSetText + durationText }
+                    Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                else -> {}
             }
         }
     }

@@ -4,23 +4,24 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.fromCode
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting.Companion.fromInteger
 import ac.mdiq.podcini.storage.utils.EpisodeFilter
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.fromCode
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.utils.FeedFunding
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
 import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting.Companion.fromInteger
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.C
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.ext.realmSetOf
+import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.RealmSet
@@ -291,7 +292,7 @@ class Feed : RealmObject {
 
     var autoAddNewToQueue: Boolean = false
 
-    var repeatIntervals: RealmList<Int> = realmListOf(60, 24, 30, 52)     // minutes, hours, days, weeks
+    var repeatIntervals: RealmList<Int> = DEFAULT_INTERVALS.toRealmList()     // minutes, hours, days, weeks
 
     @Ignore
     var episodeFilterADL: EpisodeFilter = EpisodeFilter()
@@ -532,6 +533,9 @@ class Feed : RealmObject {
         const val SPEED_USE_GLOBAL: Float = -1f
         const val TAG_ROOT: String = "#root"
         const val TAG_SEPARATOR: String = "\u001e"
+
+        val DEFAULT_INTERVALS = listOf(60, 24, 30, 52)
+        val INTERVAL_UNITS = listOf(R.string.time_minutes, R.string.time_hours, R.string.time_days, R.string.time_weeks)
 
         val FeedAutoDeleteOptions = AutoDeleteAction.entries.map { it.tag }
 

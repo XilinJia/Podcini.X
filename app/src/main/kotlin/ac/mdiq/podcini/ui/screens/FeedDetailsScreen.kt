@@ -707,7 +707,7 @@ fun FeedDetailsScreen() {
         enableFilter = true
     }
 
-    LaunchedEffect(showHistory, enableFilter) { vm.reassembleList() }
+    LaunchedEffect(showHistory, enableFilter) { if (feedScreenMode == FeedScreenMode.List) vm.reassembleList() }
 
     vm.swipeActions.ActionOptionsDialog()
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
