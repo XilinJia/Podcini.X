@@ -588,7 +588,7 @@ fun FutureStateDialog(episodes: List<EpisodeVM>, state: EpisodeState, onDismissR
                 Button(onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
-                            var dueTime = duetime(intervals[sel], sel)
+                            val dueTime = duetime(intervals[sel], sel)
                             for (vm in episodes) {
                                 val hasAlmostEnded = hasAlmostEnded(vm.episode)
                                 val item_ = setPlayStateSync(state, vm.episode, hasAlmostEnded, false)
@@ -618,7 +618,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       swipeActions: SwipeActions? = null,
                       refreshCB: (()->Unit)? = null,
-                      actionButton_: ((Episode)->EpisodeActionButton)? = null, actionButtonCB: ((Episode, String)->Unit)? = null) {
+                      actionButton_: ((Episode)->EpisodeActionButton)? = null, actionButtonCB: ((Episode, ButtonTypes)->Unit)? = null) {
     var selectMode by remember { mutableStateOf(false) }
     var selectedSize by remember { mutableIntStateOf(0) }
     val selected = remember { mutableStateListOf<EpisodeVM>() }
@@ -977,14 +977,10 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                 if (showActionButtons) {
                     if (actionButton_ == null) {
                         LaunchedEffect(playerStat) {
-//                            if (vm.episode.id == curMediaId) {
-//                                Logd(TAG, "LaunchedEffect playerStat: $playerStat")
-//                                if (playerStat == PLAYER_STATUS_PLAYING) vm.actionButton.type = ButtonTypes.PAUSE
-//                                else vm.actionButton.update(vm.episode)
-//                            }
                             Logd(TAG, "LaunchedEffect playerStat: $playerStat")
                             if (vm.episode.id == curMediaId) {
                                 if (playerStat == PLAYER_STATUS_PLAYING) vm.actionButton.type = ButtonTypes.PAUSE
+                                else vm.actionButton.update(vm.episode)
                             } else if (vm.actionButton.type == ButtonTypes.PAUSE) vm.actionButton.update(vm.episode)
                         }
                     } else LaunchedEffect(Unit) { vm.actionButton = actionButton_(vm.episode) }
@@ -992,21 +988,23 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                         detectTapGestures(
                             onLongPress = { vms[index].showAltActionsDialog = true },
                             onTap = {
+                                vm.actionButton.update(vm.episode)
                                 vm.actionButton.onClick(activity)
-                                Logd(TAG, "onTap vm.actionButton: ${vm.actionButton.TAG}")
-                                actionButtonCB?.invoke(vm.episode, vm.actionButton.TAG)
+                                actionButtonCB?.invoke(vm.episode, vm.actionButton.type)
                             }) }) {
                         val dlStats = downloadStates[vm.episode.downloadUrl]
                         if (dlStats != null) {
-//                            Logd(TAG, "${vm.episode.id} dlStats: ${dlStats.progress} ${dlStats.state}")
+                            //                            Logd(TAG, "${vm.episode.id} dlStats: ${dlStats.progress} ${dlStats.state}")
                             vm.actionButton.processing = dlStats.progress
                             when (dlStats.state) {
-                                DownloadStatus.State.COMPLETED.ordinal -> vm.actionButton.type = ButtonTypes.PLAY
+                                DownloadStatus.State.COMPLETED.ordinal -> {
+                                    runOnIOScope { vm.updateVMFromDB() }
+                                    vm.actionButton.type = ButtonTypes.PLAY
+                                }
                                 DownloadStatus.State.INCOMPLETE.ordinal -> vm.actionButton.type = ButtonTypes.DOWNLOAD
                                 else -> {}
                             }
                         }
-//                        val res by remember { derivedStateOf { vm.actionButton.drawable } }
                         Icon(imageVector = ImageVector.vectorResource(vm.actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
                         if (vm.actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * vm.actionButton.processing }, strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                     }

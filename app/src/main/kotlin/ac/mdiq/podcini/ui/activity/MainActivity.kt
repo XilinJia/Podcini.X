@@ -31,6 +31,7 @@ import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.NavDrawerScreen
 import ac.mdiq.podcini.ui.screens.Navigate
 import ac.mdiq.podcini.ui.screens.Screens
+import ac.mdiq.podcini.ui.screens.drawerState
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
@@ -49,7 +50,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
@@ -78,7 +78,6 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -87,6 +86,7 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetScaffoldState
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -251,7 +251,9 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-//        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
+        val drawerState_ = rememberDrawerState(DrawerValue.Closed)
+        drawerState = drawerState_
+        //        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
         ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
             BottomSheetScaffold(sheetContent = { AudioPlayerScreen() },
                 scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp,
@@ -265,7 +267,7 @@ class MainActivity : BaseActivity() {
                     )) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-                    CompositionLocalProvider(LocalNavController provides navController) { Navigate(navController) }
+                    CompositionLocalProvider(LocalNavController provides navController) { Navigate(navController, startScreen) }
                 }
             }
         }
@@ -323,7 +325,7 @@ class MainActivity : BaseActivity() {
                             if (tag.startsWith(DownloadServiceInterface.WORK_TAG_EPISODE_URL)) downloadUrl = tag.substring(DownloadServiceInterface.WORK_TAG_EPISODE_URL.length)
                         }
                         if (downloadUrl == null) continue
-                        Logd(TAG, "workInfo.state: ${workInfo.state} ${workInfo.state.isFinished}")
+                        Logd(TAG, "workInfo.state: ${workInfo.state} isFinished: ${workInfo.state.isFinished}")
                         var status: Int = when (workInfo.state) {
                             WorkInfo.State.RUNNING -> DownloadStatus.State.RUNNING.ordinal
                             WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> DownloadStatus.State.QUEUED.ordinal
@@ -344,6 +346,7 @@ class MainActivity : BaseActivity() {
                         }
                         downloadStates[downloadUrl] = DownloadStatus(status, progress)
                         Logd(TAG, "downloadStates: ${downloadStates.size}")
+                        Logd(TAG, "downloadStates[$downloadUrl]: ${downloadStates[downloadUrl]?.state}")
                         if (workInfo.state.isFinished) hasFinished = true
                     }
                     DownloadServiceInterface.impl?.setCurrentDownloads(downloadStates)
@@ -384,7 +387,7 @@ class MainActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         autoBackup(this)
-        handleNavIntent()
+//        handleNavIntent()
         RatingDialog.check()
         if (lastTheme != getNoTitleTheme(this)) {
             finish()
@@ -432,7 +435,7 @@ class MainActivity : BaseActivity() {
 
     private fun handleNavIntent() {
         Logd(TAG, "handleNavIntent()")
-        val intent = intent
+        startScreen = ""
         when {
             intent.hasExtra(Extras.fragment_feed_id.name) -> {
                 val feedId = intent.getLongExtra(Extras.fragment_feed_id.name, 0)
@@ -440,7 +443,7 @@ class MainActivity : BaseActivity() {
                 if (feedId > 0) {
                     feedOnDisplay = getFeed(feedId) ?: Feed()
                     feedScreenMode = FeedScreenMode.List
-                    mainNavController.navigate(Screens.FeedDetails.name)
+                    startScreen = Screens.FeedDetails.name
                 }
                 isBSExpanded = false
             }
@@ -449,23 +452,43 @@ class MainActivity : BaseActivity() {
                 val isShared = intent.getBooleanExtra(Extras.isShared.name, false)
                 if (feedurl != null) {
                     setOnlineFeedUrl(feedurl, shared = isShared)
-                    mainNavController.navigate(Screens.OnlineFeed.name)
+                    startScreen = Screens.OnlineFeed.name
                 }
             }
             intent.hasExtra(Extras.search_string.name) -> {
-                val query = intent.getStringExtra(Extras.search_string.name)
-                setOnlineSearchTerms(CombinedSearcher::class.java, query)
-                mainNavController.navigate(Screens.OnlineResults.name)
+                setOnlineSearchTerms(CombinedSearcher::class.java, intent.getStringExtra(Extras.search_string.name))
+                startScreen = Screens.OnlineResults.name
             }
-            intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> {
-                isBSExpanded = true
+            intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> isBSExpanded = true
+            else -> {
+                // deeplink
+                val uri = intent.data
+                if (uri?.path == null) return
+                Logd(TAG, "Handling deeplink: $uri")
+                when (uri.path) {
+                    "/deeplink/search" -> {
+                        val query = uri.getQueryParameter("query") ?: return
+                        setSearchTerms(query)
+                        startScreen = Screens.Search.name
+                    }
+                    "/deeplink/main" -> {
+                        val feature = uri.getQueryParameter("page") ?: return
+                        when (feature) {
+                            "EPISODES" -> startScreen = Screens.Facets.name
+                            "QUEUE" -> startScreen = Screens.Queues.name
+                            "SUBSCRIPTIONS" -> startScreen = Screens.Subscriptions.name
+                            "STATISTCS" -> startScreen = Screens.Statistics.name
+                            else -> Logt(TAG, getString(R.string.app_action_not_found) + feature)
+                        }
+                    }
+                    else -> {}
+                }
             }
-            else -> handleDeeplink(intent.data)
         }
         if (intent.getBooleanExtra(Extras.refresh_on_start.name, false)) runOnceOrAsk(this)
 
-        // to avoid handling the intent twice when the configuration changes
-        setIntent(Intent(this@MainActivity, MainActivity::class.java))
+        // to avoid handling the intent twice when the configuration changes    TODO: this is not a good way
+//        setIntent(Intent(this@MainActivity, MainActivity::class.java))
     }
 
     @SuppressLint("MissingSuperCall")
@@ -473,37 +496,6 @@ class MainActivity : BaseActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleNavIntent()
-    }
-
-    /**
-     * Handles the deep link incoming via App Actions.
-     * Performs an in-app search or opens the relevant feature of the app depending on the query
-     * @param uri incoming deep link
-     */
-    private fun handleDeeplink(uri: Uri?) {
-        if (uri?.path == null) return
-        Logd(TAG, "Handling deeplink: $uri")
-        when (uri.path) {
-            "/deeplink/search" -> {
-                val query = uri.getQueryParameter("query") ?: return
-                setSearchTerms(query)
-                mainNavController.navigate(Screens.Search.name)
-            }
-            "/deeplink/main" -> {
-                val feature = uri.getQueryParameter("page") ?: return
-                when (feature) {
-                    "EPISODES" -> mainNavController.navigate(Screens.Facets.name)
-                    "QUEUE" -> mainNavController.navigate(Screens.Queues.name)
-                    "SUBSCRIPTIONS" -> mainNavController.navigate(Screens.Subscriptions.name)
-                    "STATISTCS" -> mainNavController.navigate(Screens.Statistics.name)
-                    else -> {
-                        Logt(TAG, getString(R.string.app_action_not_found) + feature)
-                        return
-                    }
-                }
-            }
-            else -> {}
-        }
     }
 
     @Suppress("EnumEntryName")
@@ -526,19 +518,12 @@ class MainActivity : BaseActivity() {
         var hasInitialized = mutableStateOf(false)
         val downloadStates = mutableStateMapOf<String, DownloadStatus>()
 
+        var startScreen by mutableStateOf("")
+
         lateinit var mainNavController: NavHostController
         val LocalNavController = staticCompositionLocalOf<NavController> { error("NavController not provided") }
 
-        val drawerState = DrawerState(initialValue = DrawerValue.Closed)
         var lcScope: CoroutineScope? = null
-
-        fun openDrawer() {
-            lcScope?.launch { drawerState.open() }
-        }
-
-        fun closeDrawer() {
-            lcScope?.launch { drawerState.close() }
-        }
 
         var isBSExpanded by mutableStateOf(false)
 

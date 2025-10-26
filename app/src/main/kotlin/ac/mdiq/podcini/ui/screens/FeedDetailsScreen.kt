@@ -22,8 +22,8 @@ import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.FeedFunding
 import ac.mdiq.podcini.storage.utils.Rating
+import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
@@ -487,7 +487,7 @@ fun FeedDetailsScreen() {
         val buttonColor = Color(0xDDFFD700)
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
         Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }, actions = {
+            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }, actions = {
                 if (feedScreenMode == FeedScreenMode.List && !showHistory) {
                     IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
                     val filterButtonColor by remember { derivedStateOf { if (enableFilter) if (vm.isFiltered) buttonAltColor else textColor else Color.Red } }
@@ -579,9 +579,7 @@ fun FeedDetailsScreen() {
         }
     }
 
-    if (vm.showRemoveFeedDialog) RemoveFeedDialog(listOf(vm.feed!!), onDismissRequest = { vm.showRemoveFeedDialog = false }) {
-        mainNavController.navigate(defaultScreen)
-    }
+    if (vm.showRemoveFeedDialog) RemoveFeedDialog(listOf(vm.feed!!), onDismissRequest = { vm.showRemoveFeedDialog = false }) { mainNavController.navigate(defaultScreen) }
     if (vm.showFilterDialog) EpisodesFilterDialog(filter = vm.feed!!.episodeFilter, onDismissRequest = { vm.showFilterDialog = false }) { filter ->
         if (vm.feed != null) {
             Logd(TAG, "persist Episode Filter(): feedId = [${vm.feed?.id}], filterValues = [${filter.propertySet}]")
@@ -702,7 +700,7 @@ fun FeedDetailsScreen() {
     }
 
     BackHandler(enabled = showHistory || !enableFilter) {
-        Logt(TAG, "BackHandler ")
+//        Logt(TAG, "BackHandler ")
         showHistory = false
         enableFilter = true
     }
@@ -720,7 +718,7 @@ fun FeedDetailsScreen() {
                     buildMoreItems = { vm.buildMoreItems() },
                     refreshCB = { gearbox.feedUpdater(vm.feed).startRefresh(context) },
                     swipeActions = vm.swipeActions,
-                    actionButtonCB = { e, tag -> if (e.feed?.id == vm.feed?.id && tag in listOf("PlayActionButton", "StreamActionButton", "PlayLocalActionButton")) upsertBlk(vm.feed!!) { it.lastPlayed = Date().time } },
+                    actionButtonCB = { e, type -> if (e.feed?.id == vm.feed?.id && type == ButtonTypes.PAUSE) upsertBlk(vm.feed!!) { it.lastPlayed = Date().time } },
                 )
             } else DetailUI()
         }

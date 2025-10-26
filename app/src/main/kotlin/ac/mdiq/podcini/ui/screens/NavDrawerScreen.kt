@@ -16,11 +16,9 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.utils.EpisodeFilter.Companion.unfiltered
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.closeDrawer
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.drawerState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.lcScope
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.openDrawer
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -45,6 +43,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +52,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -108,7 +109,19 @@ val defaultScreen: String
 class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
     internal val feeds = mutableStateListOf<Feed>()
 
-    internal fun getRecentPodcasts() {
+    private fun getDatasetStats() {
+        Logd(TAG, "getNavDrawerData() called")
+        val numItems = getEpisodesCount(unfiltered())
+        feedCount = getFeedCount()
+        navMap[Screens.Queues.name]?.count = realm.query(PlayQueue::class).find().sumOf { it.size()}
+        navMap[Screens.Subscriptions.name]?.count = feedCount
+        navMap[Screens.Facets.name]?.count = numItems
+        navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +
+                realm.query(SubscriptionLog::class).count().find().toInt() +
+                realm.query(DownloadResult::class).count().find().toInt()
+    }
+
+    private fun getRecentPodcasts() {
         val feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(8).find()
         feeds.clear()
         feeds.addAll(feeds_)
@@ -133,9 +146,9 @@ fun NavDrawerScreen() {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> vm.getRecentPodcasts()
-                Lifecycle.Event.ON_START -> {}
-                Lifecycle.Event.ON_RESUME -> vm.loadData()
+                Lifecycle.Event.ON_CREATE -> { }
+                Lifecycle.Event.ON_START -> { }
+                Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
@@ -145,6 +158,11 @@ fun NavDrawerScreen() {
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
+    }
+
+    LaunchedEffect(drawerState.currentValue) {
+        Logd(TAG, "drawerState: ${drawerState.isOpen}")
+        if (drawerState.isOpen) vm.loadData()
     }
 
     fun loadScreen(tag: String?, args: Bundle?, popto: Boolean = false) {
@@ -313,8 +331,8 @@ private val navHostMap: MutableMap<Screens, @Composable ()->Unit> = mutableMapOf
 )
 
 @Composable
-fun Navigate(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = defaultScreen) {
+fun Navigate(navController: NavHostController, startDestination: String) {
+    NavHost(navController = navController, startDestination = startDestination.ifBlank { defaultScreen }) {
         for (nv in navHostMap.entries) composable(nv.key.name) { nv.value() }
     }
 }
@@ -328,20 +346,12 @@ fun saveLastNavScreen(tag: String?, arg: String? = null) {
     } else putPref(AppPrefs.prefLastScreenArg, arg ?:"")
 }
 
-/**
- * Returns data necessary for displaying the navigation drawer. This includes
- * the number of downloaded episodes, the number of episodes in the queue, the number of total episodes, and number of subscriptions
- */
-fun getDatasetStats() {
-    Logd(TAG, "getNavDrawerData() called")
-    val numItems = getEpisodesCount(unfiltered())
-    feedCount = getFeedCount()
-    navMap[Screens.Queues.name]?.count = realm.query(PlayQueue::class).find().sumOf { it.size()}
-    navMap[Screens.Subscriptions.name]?.count = feedCount
-    navMap[Screens.Facets.name]?.count = numItems
-    navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +
-            realm.query(SubscriptionLog::class).count().find().toInt() +
-            realm.query(DownloadResult::class).count().find().toInt()
+var drawerState by mutableStateOf(DrawerState(initialValue = DrawerValue.Closed))
+
+fun openDrawer() {
+    lcScope?.launch { drawerState.open() }
 }
 
-
+fun closeDrawer() {
+    lcScope?.launch { drawerState.close() }
+}

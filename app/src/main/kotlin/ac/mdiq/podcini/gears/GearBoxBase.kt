@@ -50,7 +50,7 @@ open class GearBoxBase {
     @Composable
     open fun GearSearchText() {}
 
-    open fun canHandleShared(url: URL): Boolean = false
+    open fun canHandleShared(urlString: String): Boolean = false
 
     open fun handleShared(log: ShareLog?, mediaCB: ()->Unit) {}
 

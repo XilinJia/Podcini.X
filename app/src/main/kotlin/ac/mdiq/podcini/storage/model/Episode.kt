@@ -589,7 +589,10 @@ class Episode : RealmObject {
     }
 
     fun fileExists(): Boolean {
-        if (fileUrl == null) return false
+        if (fileUrl == null) {
+            Loge(TAG, "fileUrl is null")
+            return false
+        }
         val fileuri = fileUrl!!.toUri()
         return when (fileuri.scheme) {
             "file" -> {

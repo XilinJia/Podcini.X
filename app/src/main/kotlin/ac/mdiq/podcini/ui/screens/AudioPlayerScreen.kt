@@ -904,6 +904,7 @@ fun AudioPlayerScreen() {
     }
 
     if (vm.showSpeedDialog) PlaybackSpeedFullDialog(settingCode = booleanArrayOf(true, true, true), indexDefault = 0, maxSpeed = 3f, onDismiss = {vm.showSpeedDialog = false})
+
     LaunchedEffect(key1 = curMediaId) {
         Logd(TAG, "LaunchedEffect curEpisode: ${curEpisode?.title}")
         vm.cleanedNotes = null

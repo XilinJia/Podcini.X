@@ -48,8 +48,11 @@ object AppPreferences {
     val videoPlayMode: Int
         get() = getPref(AppPrefs.prefVideoPlaybackMode, "1").toInt()
 
-    val isSkipSilence: Boolean
+    var isSkipSilence: Boolean
         get() = getPref(AppPrefs.prefSkipSilence, false)
+        set(value) {
+            putPref(AppPrefs.prefSkipSilence, value)
+        }
 
     val isAutodownloadEnabled: Boolean
         get() = getPref(AppPrefs.prefEnableAutoDl, false)

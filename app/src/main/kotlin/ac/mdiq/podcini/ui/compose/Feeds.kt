@@ -627,10 +627,11 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                 var showMore by remember { mutableStateOf(false) }
                 TextButton(onClick = { showMore = !showMore }) { Text("More>>", style = MaterialTheme.typography.headlineSmall) }
                 if (showMore) {
-                    var isSkipSilence by remember { mutableStateOf(false) }
+                    var isSkipSilence_ by remember { mutableStateOf(isSkipSilence) }
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = isSkipSilence, onCheckedChange = { isChecked ->
-                            isSkipSilence = isChecked
+                        Checkbox(checked = isSkipSilence_, onCheckedChange = { isChecked ->
+                            isSkipSilence_ = isChecked
+                            isSkipSilence = isSkipSilence_
                             mPlayer?.setPlaybackParams(mPlayer!!.getPlaybackSpeed(), isChecked)
                         })
                         Text(stringResource(R.string.pref_skip_silence_title))

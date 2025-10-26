@@ -179,12 +179,8 @@ object Episodes {
                 return documentFile != null && documentFile.exists()
             }
             else -> { // delete downloaded media file
-                val path = url.toUri().path
-                if (path != null) {
-                    val mediaFile = File(path)
-                    return mediaFile.exists()
-                }
-                return false
+                val path = url.toUri().path ?: return false
+                return File(path).exists()
             }
         }
     }

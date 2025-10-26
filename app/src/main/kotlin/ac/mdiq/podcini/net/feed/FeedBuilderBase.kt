@@ -35,14 +35,16 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
     fun buildPodcast(url: String, username: String?, password: String?, handleFeed: (Feed, Map<String, String>)->Unit) {
         when (val urlType = htmlOrXml(url)) {
             "HTML" -> {
-                val doc = Jsoup.connect(url).get()
-                val linkElements = doc.select("link[type=application/rss+xml]")
-//                TODO: should show all as options
-                for (element in linkElements) {
-                    val rssUrl = element.attr("href")
-                    Logd(TAG, "RSS URL: $rssUrl")
-                    buildPodcast(rssUrl, username, password) {feed, map -> handleFeed(feed, map) }
-                }
+                try {
+                    val doc = Jsoup.connect(url).get()
+                    val linkElements = doc.select("link[type=application/rss+xml]")
+                    //                TODO: should show all as options
+                    for (element in linkElements) {
+                        val rssUrl = element.attr("href")
+                        Logd(TAG, "RSS URL: $rssUrl")
+                        buildPodcast(rssUrl, username, password) { feed, map -> handleFeed(feed, map) }
+                    }
+                } catch (e: Throwable) { Loge(TAG, "buildPodcast error: ${e.message}")}
             }
             "XML" -> {}
             else -> {

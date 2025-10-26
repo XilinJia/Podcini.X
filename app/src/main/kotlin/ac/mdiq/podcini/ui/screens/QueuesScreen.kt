@@ -415,7 +415,7 @@ fun QueuesScreen() {
                     vm.loadCurQueue(true)
                     playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
                 } else Text(title)
-            }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } }, actions = {
+            }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } }, actions = {
                 val binIconRes by remember(showBin) { derivedStateOf { if (showBin) R.drawable.playlist_play else R.drawable.ic_history } }
                 val feedsIconRes by remember(showFeeds) { derivedStateOf { if (showFeeds) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
                 if (!showFeeds) IconButton(onClick = { showBin = !showBin }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
@@ -583,7 +583,7 @@ fun QueuesScreen() {
     }
 
     BackHandler(enabled = showBin || showFeeds) {
-        Logt(TAG, "BackHandler $showBin $showFeeds")
+//        Logt(TAG, "BackHandler $showBin $showFeeds")
         when {
             showBin -> showBin = false
             showFeeds -> showFeeds = false

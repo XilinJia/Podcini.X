@@ -473,7 +473,7 @@ fun OnlineFeedScreen() {
     @Composable
     fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { IconButton(onClick = { MainActivity.openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
+            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

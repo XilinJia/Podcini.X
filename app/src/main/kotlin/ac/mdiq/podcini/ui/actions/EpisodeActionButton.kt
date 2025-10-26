@@ -78,13 +78,13 @@ import kotlin.math.max
 import kotlin.math.min
 
 class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) {
-    val TAG = this::class.simpleName ?: "ItemActionButton"
+    private val TAG = this::class.simpleName ?: "ItemActionButton"
 
     private var _type = mutableStateOf(typeInit)
     var type: ButtonTypes
         get() = _type.value
         set(value) {
-            Logd(TAG, "set ButtonTypes to $value")
+//            Logd(TAG, "set ButtonTypes to $value")
             _type.value = value
             label = value.label
             drawable = value.drawable
