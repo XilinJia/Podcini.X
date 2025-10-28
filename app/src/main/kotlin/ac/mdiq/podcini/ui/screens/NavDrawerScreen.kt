@@ -16,9 +16,10 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.utils.EpisodeFilter.Companion.unfiltered
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.lcScope
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -74,10 +75,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import coil.compose.AsyncImage
+import io.github.xilinjia.krdb.query.RealmResults
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -109,38 +112,35 @@ val defaultScreen: String
 class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
     internal val feeds = mutableStateListOf<Feed>()
 
-    private fun getDatasetStats() {
-        Logd(TAG, "getNavDrawerData() called")
-        val numItems = getEpisodesCount(unfiltered())
-        feedCount = getFeedCount()
-        navMap[Screens.Queues.name]?.count = realm.query(PlayQueue::class).find().sumOf { it.size()}
-        navMap[Screens.Subscriptions.name]?.count = feedCount
-        navMap[Screens.Facets.name]?.count = numItems
-        navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +
-                realm.query(SubscriptionLog::class).count().find().toInt() +
-                realm.query(DownloadResult::class).count().find().toInt()
-    }
-
-    private fun getRecentPodcasts() {
-        val feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(8).find()
-        feeds.clear()
-        feeds.addAll(feeds_)
-    }
-
     fun loadData() {
         lcScope.launch {
-            withContext(Dispatchers.IO) { getDatasetStats() }
-            withContext(Dispatchers.Main) { getRecentPodcasts() }
+            var feeds_ = listOf<Feed>()
+            withContext(Dispatchers.IO) {
+                val numItems = getEpisodesCount(unfiltered())
+                feedCount = getFeedCount()
+                navMap[Screens.Queues.name]?.count = realm.query(PlayQueue::class).find().sumOf { it.size()}
+                navMap[Screens.Subscriptions.name]?.count = feedCount
+                navMap[Screens.Facets.name]?.count = numItems
+                navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +
+                        realm.query(SubscriptionLog::class).count().find().toInt() +
+                        realm.query(DownloadResult::class).count().find().toInt()
+                feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(8).find()
+            }
+            withContext(Dispatchers.Main) {
+                feeds.clear()
+                if (feeds_.isNotEmpty()) feeds.addAll(feeds_)
+            }
         }
     }
 }
 
 @Composable
-fun NavDrawerScreen() {
+fun NavDrawerScreen(navController: NavController) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val vm = remember { NavDrawerVM(context, scope) }
+    val textColor = MaterialTheme.colorScheme.onSurface
     var curruntRoute: String
 
     DisposableEffect(lifecycleOwner) {
@@ -167,12 +167,11 @@ fun NavDrawerScreen() {
 
     fun loadScreen(tag: String?, args: Bundle?, popto: Boolean = false) {
         var tag = tag
-//        val args = args
         Logd(TAG, "loadScreen(tag: $tag, args: $args, popto: $popto)")
         when (tag) {
             Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Facets.name, Screens.Statistics.name -> {
-                if (popto) mainNavController.navigate(tag) { popUpTo(0) { inclusive = true } }
-                else mainNavController.navigate(tag)
+                if (popto) navController.navigate(tag) { popUpTo(0) { inclusive = true } }
+                else navController.navigate(tag)
             }
             Screens.FeedDetails.name -> {
                 if (args == null) {
@@ -181,15 +180,15 @@ fun NavDrawerScreen() {
                         val feed = getFeed(feedId)
                         if (feed != null) {
                             feedOnDisplay = feed
-                            if (popto) mainNavController.navigate(tag) { popUpTo(0) { inclusive = true } }
-                            else mainNavController.navigate(tag)
+                            if (popto) navController.navigate(tag) { popUpTo(0) { inclusive = true } }
+                            else navController.navigate(tag)
                         }
-                    } else mainNavController.navigate(Screens.Subscriptions.name)
-                } else mainNavController.navigate(Screens.Subscriptions.name)
+                    } else navController.navigate(Screens.Subscriptions.name)
+                } else navController.navigate(Screens.Subscriptions.name)
             }
             else -> {
                 tag = Screens.Subscriptions.name
-                mainNavController.navigate(tag)
+                navController.navigate(tag)
             }
         }
         runOnIOScope { saveLastNavScreen(tag) }
@@ -199,14 +198,14 @@ fun NavDrawerScreen() {
         Logd(TAG, "BackHandler: $isBSExpanded")
         val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
         val defPage = defaultScreen
-        val currentDestination = mainNavController.currentDestination
+        val currentDestination = navController.currentDestination
         curruntRoute = currentDestination?.route ?: ""
         Logd(TAG, "BackHandler curruntRoute0: $curruntRoute")
         when {
             drawerState.isOpen -> closeDrawer()
             isBSExpanded -> isBSExpanded = false
-            mainNavController.previousBackStackEntry != null -> {
-                mainNavController.popBackStack()
+            navController.previousBackStackEntry != null -> {
+                navController.popBackStack()
                 curruntRoute = currentDestination?.route ?: ""
                 runOnIOScope { saveLastNavScreen(curruntRoute) }
                 Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")
@@ -230,10 +229,9 @@ fun NavDrawerScreen() {
         Scaffold { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).background(MaterialTheme.colorScheme.surface),
                 verticalArrangement = Arrangement.spacedBy(15.dp)) {
-                val textColor = MaterialTheme.colorScheme.onSurface
                 for (nav in navMap.entries) {
                     if (nav.value.show) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        mainNavController.navigate(nav.key) {
+                        navController.navigate(nav.key) {
                             if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
                             else popUpTo(nav.key) { inclusive = true }
                         }
@@ -252,7 +250,7 @@ fun NavDrawerScreen() {
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp).clickable {
                             feedOnDisplay = f
                             feedScreenMode = FeedScreenMode.List
-                            mainNavController.navigate(Screens.FeedDetails.name) { popUpTo(Screens.FeedDetails.name) { inclusive = true } }
+                            navController.navigate(Screens.FeedDetails.name) { popUpTo(Screens.FeedDetails.name) { inclusive = true } }
                             closeDrawer()
                             isBSExpanded = false
                         }) {
@@ -331,8 +329,8 @@ private val navHostMap: MutableMap<Screens, @Composable ()->Unit> = mutableMapOf
 )
 
 @Composable
-fun Navigate(navController: NavHostController, startDestination: String) {
-    NavHost(navController = navController, startDestination = startDestination.ifBlank { defaultScreen }) {
+fun Navigate(navController: NavHostController) {
+    NavHost(navController = navController, startDestination = defaultScreen) {
         for (nv in navHostMap.entries) composable(nv.key.name) { nv.value() }
     }
 }

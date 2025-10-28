@@ -27,8 +27,9 @@ import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -257,13 +258,6 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         setButton()
     }
 
-    internal fun openPodcast() {
-        if (episode?.feedId == null) return
-        feedOnDisplay = episode?.feed ?: Feed()
-        feedScreenMode = FeedScreenMode.List
-        mainNavController.navigate(Screens.FeedDetails.name)
-    }
-
     private fun onQueueEvent(event: FlowEvent.QueueEvent) {
         if (episode == null) return
         var i = 0
@@ -321,6 +315,7 @@ fun EpisodeInfoScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember(episodeOnDisplay.id) { EpisodeInfoVM(context, scope) }
 
     DisposableEffect(lifecycleOwner) {
@@ -421,7 +416,7 @@ fun EpisodeInfoScreen() {
         var expanded by remember { mutableStateOf(false) }
         val buttonColor = Color(0xDDFFD700)
         Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } }, actions = {
+            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } }, actions = {
                 IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(vm.isPlayed).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                 if (vm.episode != null) {
                     if (!vm.inQueue) IconButton(onClick = { runOnIOScope { addToQueueSync(vm.episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
@@ -431,7 +426,7 @@ fun EpisodeInfoScreen() {
                 if (!vm.episode?.link.isNullOrEmpty()) IconButton(onClick = {
                     vm.showHomeScreen = true
                     episodeOnDisplay = vm.episode!!
-                    mainNavController.navigate(Screens.EpisodeText.name)
+                    navController.navigate(Screens.EpisodeText.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
                 IconButton(onClick = {
                     val url = vm.episode?.getLinkWithFallback()
@@ -459,6 +454,13 @@ fun EpisodeInfoScreen() {
         }
     }
 
+    fun openPodcast() {
+        if (vm.episode?.feedId == null) return
+        feedOnDisplay = vm.episode?.feed ?: Feed()
+        feedScreenMode = FeedScreenMode.List
+        navController.navigate(Screens.FeedDetails.name)
+    }
+
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         val buttonColor = MaterialTheme.colorScheme.tertiary
         var showAltActionsDialog by remember { mutableStateOf(false) }
@@ -466,11 +468,11 @@ fun EpisodeInfoScreen() {
         LaunchedEffect(key1 = status) { vm.setButton() }
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                SelectionContainer { Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { vm.openPodcast() }) }
+                SelectionContainer { Text(vm.txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { openPodcast() }) }
             }
             Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 val imgLoc = vm.episode?.imageLocation()
-                AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { vm.openPodcast() }))
+                AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { openPodcast() }))
                 Box(Modifier.weight(1f).padding(start = 10.dp).height(80.dp)) {
                     Column {
                         SelectionContainer { Text(vm.txtvTitle, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis) }

@@ -10,7 +10,8 @@ import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
@@ -314,17 +315,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         Logd(TAG, "searchEpisodes queryString: $queryString")
         return realm.query(Episode::class).query(queryString).find()
     }
-
-    internal fun searchOnline() {
-        val query = queryText
-        if (query.matches("http[s]?://.*".toRegex())) {
-            setOnlineFeedUrl(query)
-            mainNavController.navigate(Screens.OnlineFeed.name)
-            return
-        }
-        setOnlineSearchTerms(CombinedSearcher::class.java, query)
-        mainNavController.navigate(Screens.OnlineResults.name)
-    }
 }
 
 @Composable
@@ -332,6 +322,7 @@ fun SearchScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember { SearchVM(context, scope) }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -368,7 +359,7 @@ fun SearchScreen() {
                     vm.queryText = it
                     vm.search(vm.queryText)
                 }
-            }, navigationIcon = { IconButton(onClick = { if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
+            }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -381,7 +372,16 @@ fun SearchScreen() {
             Row {
                 Button(onClick = {showGrid = !showGrid}) { Text(stringResource(R.string.show_criteria)) }
                 Spacer(Modifier.weight(1f))
-                Button(onClick = { vm.searchOnline() }) { Text(stringResource(R.string.search_online)) }
+                Button(onClick = {
+                    val query = vm.queryText
+                    if (query.matches("http[s]?://.*".toRegex())) {
+                        setOnlineFeedUrl(query)
+                        navController.navigate(Screens.OnlineFeed.name)
+                        return@Button
+                    }
+                    setOnlineSearchTerms(CombinedSearcher::class.java, query)
+                    navController.navigate(Screens.OnlineResults.name)
+                }) { Text(stringResource(R.string.search_online)) }
             }
             if (showGrid) NonlazyGrid(columns = 2, itemCount = SearchBy.entries.size) { index ->
                 val c = SearchBy.entries[index]
@@ -419,7 +419,7 @@ fun SearchScreen() {
                             if (!feed.isBuilding) {
                                 feedOnDisplay = feed
                                 feedScreenMode = FeedScreenMode.Info
-                                mainNavController.navigate(Screens.FeedDetails.name)
+                                navController.navigate(Screens.FeedDetails.name)
                             }
                         })
                     )
@@ -429,7 +429,7 @@ fun SearchScreen() {
                         if (!feed.isBuilding) {
                             feedOnDisplay = feed
                             feedScreenMode = FeedScreenMode.List
-                            mainNavController.navigate(Screens.FeedDetails.name)
+                            navController.navigate(Screens.FeedDetails.name)
                         }
                     })) {
                         Row {
@@ -475,7 +475,7 @@ fun SearchScreen() {
                             Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}] [$]")
                             if (feed.feedUrl.isNotBlank()) {
                                 setOnlineFeedUrl(feed.feedUrl)
-                                mainNavController.navigate(Screens.OnlineFeed.name)
+                                navController.navigate(Screens.OnlineFeed.name)
                             }
                         })
                     )
@@ -484,7 +484,7 @@ fun SearchScreen() {
                         Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}]")
                         if (feed.feedUrl.isNotBlank()) {
                             setOnlineFeedUrl(feed.feedUrl)
-                            mainNavController.navigate(Screens.OnlineFeed.name)
+                            navController.navigate(Screens.OnlineFeed.name)
                         }
                     })) {
                         Text(feed.name, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis,

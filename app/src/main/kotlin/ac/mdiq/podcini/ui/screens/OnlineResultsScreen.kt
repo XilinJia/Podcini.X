@@ -7,7 +7,8 @@ import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.ui.utils.onlineSearchText
@@ -124,6 +125,7 @@ fun OnlineResultsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember { OnlineResultsVM(context, scope) }
 
     DisposableEffect(lifecycleOwner) {
@@ -161,7 +163,7 @@ fun OnlineResultsScreen() {
         Box {
             TopAppBar(title = { SearchBarRow(R.string.search_podcast_hint, defaultText = onlineSearchText) { queryText -> vm.search(queryText) } }, navigationIcon = {
                 IconButton(onClick = {
-                    if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
+                    if (navController.previousBackStackEntry != null) navController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
             })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)

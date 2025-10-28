@@ -5,7 +5,8 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.searcher.ItunesTopListLoader
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.util.EventFlow
@@ -108,6 +109,7 @@ fun DiscoveryScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember { DiscoveryVM(context, scope) }
 
     DisposableEffect(lifecycleOwner) {
@@ -141,7 +143,7 @@ fun DiscoveryScreen() {
         Box {
             TopAppBar(title = { Text(stringResource(R.string.discover)) }, navigationIcon = {
                 IconButton(onClick = {
-                    if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
+                    if (navController.previousBackStackEntry != null) navController.popBackStack()
                 }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") }
             }, actions = {
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }

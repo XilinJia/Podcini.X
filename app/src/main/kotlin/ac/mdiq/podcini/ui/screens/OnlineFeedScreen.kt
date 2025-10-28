@@ -24,7 +24,8 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.utils.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeVM
@@ -388,6 +389,7 @@ fun OnlineFeedScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember { OnlineFeedVM(context, scope) }
 
     DisposableEffect(lifecycleOwner) {
@@ -443,7 +445,10 @@ fun OnlineFeedScreen() {
     }
 
     val textColor = MaterialTheme.colorScheme.onSurface
-    if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = { vm.showTabsDialog = false }) { feed, map -> vm.handleFeed(feed, map) }
+    if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = {
+        vm.showTabsDialog = false
+        navController.navigateUp()
+    }) { feed, map -> vm.handleFeed(feed, map) }
     val feedLogsMap_ = feedLogsMap!!
     if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
         title = { Text(stringResource(R.string.error_label)) },
@@ -512,7 +517,7 @@ fun OnlineFeedScreen() {
                             if (feed != null) {
                                 feedOnDisplay = feed
                                 feedScreenMode = FeedScreenMode.Info
-                                mainNavController.navigate(Screens.FeedDetails.name)
+                                navController.navigate(Screens.FeedDetails.name)
                             }
                         } else {
                             vm.enableSubscribe = false

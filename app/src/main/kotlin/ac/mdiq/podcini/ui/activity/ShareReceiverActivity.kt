@@ -63,7 +63,6 @@ class ShareReceiverActivity : ComponentActivity() {
         private val TAG: String = ShareReceiverActivity::class.simpleName ?: "Anonymous"
 
         const val ARG_FEEDURL: String = "arg.feedurl"
-        private const val RESULT_ERROR = 2
 
         fun receiveShared(sharedText: String, activity: ComponentActivity, finish: Boolean, mediaCB: ()->Unit) {
             val log = realm.query(ShareLog::class).query("url == $0", sharedText).first().find()
@@ -72,7 +71,7 @@ class ShareReceiverActivity : ComponentActivity() {
 //                sharedUrl.matches(Regex("^[^\\s<>/]+\$")) -> {
                 sharedText.matches(Regex("^[^<>/]+$")) -> {  // include spaces
                     if (log != null)  upsertBlk(log) {it.type = ShareLog.Type.Text.name }
-                    Logt(TAG, "Activity is started with text $sharedText")
+                    Logd(TAG, "Activity is started with text $sharedText")
                     val intent = MainActivity.showOnlineSearch(activity, sharedText)
                     activity.startActivity(intent)
                     if (finish) activity.finish()
@@ -82,7 +81,7 @@ class ShareReceiverActivity : ComponentActivity() {
 //              podcast or other?
                 else -> {
                     if (log != null) upsertBlk(log) { it.type = ShareLog.Type.Podcast.name }
-                    Logt(TAG, "Activity is started with url $sharedText")
+                    Logd(TAG, "Activity is started with url $sharedText")
                     val intent = MainActivity.showOnlineFeed(activity, sharedText, true)
                     activity.startActivity(intent)
                     if (finish) activity.finish()

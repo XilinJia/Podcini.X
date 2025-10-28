@@ -9,7 +9,8 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
@@ -200,6 +201,7 @@ fun StatisticsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember { StatisticsVM(context, scope) }
 
     DisposableEffect(lifecycleOwner) {
@@ -285,7 +287,7 @@ fun StatisticsScreen() {
                         contentScale = ContentScale.FillBounds, modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable(onClick = {
                             feedOnDisplay = feedStats.feed
                             feedScreenMode = FeedScreenMode.Info
-                            mainNavController.navigate(Screens.FeedDetails.name)
+                            navController.navigate(Screens.FeedDetails.name)
                         })
                     )
                     Column(modifier = Modifier.clickable(onClick = {
@@ -819,6 +821,7 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
 
 @Composable
 fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Long, showOpenFeed: Boolean = false, onDismissRequest: () -> Unit) {
+    val navController = LocalNavController.current
     var fStat by remember { mutableStateOf<FeedStatistics?>(null) }
     val vms = remember { mutableStateListOf<EpisodeVM>() }
     fun loadStatistics() {
@@ -872,7 +875,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
             val feed = getFeed(feedId)
             if (feed != null) {
                 feedOnDisplay = feed
-                mainNavController.navigate(Screens.FeedDetails.name)
+                navController.navigate(Screens.FeedDetails.name)
             }
             onDismissRequest()
         }) { Text(stringResource(R.string.open_podcast))} },

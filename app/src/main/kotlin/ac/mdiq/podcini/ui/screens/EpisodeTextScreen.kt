@@ -5,7 +5,8 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.util.Logd
@@ -145,6 +146,7 @@ fun EpisodeTextScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember(episodeOnDisplay.id) { EpisodeTextVM(context, scope) }
 
     DisposableEffect(lifecycleOwner) {
@@ -179,7 +181,7 @@ fun EpisodeTextScreen() {
         Box {
             TopAppBar(title = { Text("") }, navigationIcon = {
                 IconButton(onClick = {
-                    if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack()
+                    if (navController.previousBackStackEntry != null) navController.popBackStack()
                 }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") }
             }, actions = {
                 if (vm.readMode && vm.tts != null) {

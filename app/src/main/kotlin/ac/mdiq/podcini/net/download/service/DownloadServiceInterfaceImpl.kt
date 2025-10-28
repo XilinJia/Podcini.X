@@ -22,8 +22,6 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.storage.utils.ChapterUtils
 import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -49,11 +47,6 @@ import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import java.io.File
-import java.net.URI
-import java.util.Locale
-import java.util.concurrent.Future
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -63,6 +56,11 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.apache.commons.io.FileUtils
+import java.io.File
+import java.net.URI
+import java.util.Locale
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
 
 class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
@@ -239,7 +237,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             EventFlow.postEvent(FlowEvent.MessageEvent(
                 applicationContext.getString(if (retrying) R.string.download_error_retrying else R.string.download_error_not_retrying, episodeTitle),
                 { ctx: Context -> {
-                    mainNavController.navigate(Screens.Logs.name)
+//                    mainNavController.navigate(Screens.Logs.name)
                 } },
                 applicationContext.getString(R.string.download_error_details)))
         }

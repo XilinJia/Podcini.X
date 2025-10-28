@@ -53,8 +53,9 @@ import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.ui.activity.MainActivity
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
@@ -160,6 +161,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -447,7 +449,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun AudioPlayerScreen() {
+fun AudioPlayerScreen(navController: NavController) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -587,7 +589,7 @@ fun AudioPlayerScreen() {
                         if (curEpisode?.feed != null) {
                             feedOnDisplay = curEpisode!!.feed!!
                             feedScreenMode = FeedScreenMode.List
-                            mainNavController.navigate(Screens.FeedDetails.name)
+                            navController.navigate(Screens.FeedDetails.name)
                             isBSExpanded = false
                         }
                     }))
@@ -757,7 +759,7 @@ fun AudioPlayerScreen() {
                     if (curEpisode?.feed != null) {
                         feedOnDisplay = curEpisode!!.feed!!
                         feedScreenMode = FeedScreenMode.List
-                        mainNavController.navigate(Screens.FeedDetails.name)
+                        navController.navigate(Screens.FeedDetails.name)
                         isBSExpanded = false
                     }
                 })
@@ -765,7 +767,7 @@ fun AudioPlayerScreen() {
             Icon(imageVector = ImageVector.vectorResource(homeIcon), tint = textColor, contentDescription = "Home", modifier = Modifier.clickable {
                 if (vm.curItem != null) {
                     episodeOnDisplay = vm.curItem!!
-                    mainNavController.navigate(Screens.EpisodeInfo.name)
+                    navController.navigate(Screens.EpisodeInfo.name)
                     isBSExpanded = false
                 }
             })

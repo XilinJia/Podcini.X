@@ -20,7 +20,8 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.utils.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.Spinner
@@ -166,6 +167,7 @@ fun FeedSettingsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember(feedOnDisplay.id) { FeedSettingsVM(context, scope) }
 
     fun getVideoModePolicy() {
@@ -239,7 +241,8 @@ fun FeedSettingsScreen() {
                 }
             }, navigationIcon = {
                 IconButton(onClick = {
-                    if (mainNavController.previousBackStackEntry != null) mainNavController.popBackStack() //            else onBackPressed()
+                    if (navController.previousBackStackEntry != null) navController.popBackStack()
+                //            else onBackPressed()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
             })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)

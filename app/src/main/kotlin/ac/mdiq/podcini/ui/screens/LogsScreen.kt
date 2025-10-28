@@ -16,7 +16,8 @@ import ac.mdiq.podcini.storage.utils.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
@@ -162,6 +163,7 @@ fun LogsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember { LogsVM(context, scope) }
 
     DisposableEffect(lifecycleOwner) {
@@ -247,7 +249,7 @@ fun LogsScreen() {
                                 val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
                                 if (episode != null) {
                                     episodeOnDisplay = episode
-                                    mainNavController.navigate(Screens.EpisodeInfo.name)
+                                    navController.navigate(Screens.EpisodeInfo.name)
                                 } else hasError = true
                             }
                             ShareLog.Type.Podcast.name, "podcast" -> {
@@ -255,7 +257,7 @@ fun LogsScreen() {
                                 if (feed != null) {
                                     feedOnDisplay = feed
                                     feedScreenMode = FeedScreenMode.Info
-                                    mainNavController.navigate(Screens.FeedDetails.name)
+                                    navController.navigate(Screens.FeedDetails.name)
                                 }
                                 else hasError = true
                             }

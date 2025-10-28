@@ -24,8 +24,9 @@ import ac.mdiq.podcini.storage.utils.FeedFunding
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -327,6 +328,7 @@ fun FeedDetailsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember(feedOnDisplay.id) { FeedDetailsVM(context, scope) }
 
     val addLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? -> vm.addLocalFolderResult(uri) }
@@ -506,17 +508,17 @@ fun FeedDetailsScreen() {
                 IconButton(onClick = {
                     val q = vm.feed?.queue
                     if (q != null && q != curQueue) curQueue = q
-                    mainNavController.navigate(Screens.Queues.name)
+                    navController.navigate(Screens.Queues.name)
                     isBSExpanded = false
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
                 IconButton(onClick = {
                     setSearchTerms(feed = vm.feed)
-                    mainNavController.navigate(Screens.Search.name)
+                    navController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = {
                     if (vm.feed != null) {
                         feedOnDisplay = vm.feed!!
-                        mainNavController.navigate(Screens.FeedSettings.name)
+                        navController.navigate(Screens.FeedSettings.name)
                     }
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), contentDescription = "butShowSettings") }
                 if (vm.feed != null) {
@@ -579,7 +581,7 @@ fun FeedDetailsScreen() {
         }
     }
 
-    if (vm.showRemoveFeedDialog) RemoveFeedDialog(listOf(vm.feed!!), onDismissRequest = { vm.showRemoveFeedDialog = false }) { mainNavController.navigate(defaultScreen) }
+    if (vm.showRemoveFeedDialog) RemoveFeedDialog(listOf(vm.feed!!), onDismissRequest = { vm.showRemoveFeedDialog = false }) { navController.navigate(defaultScreen) }
     if (vm.showFilterDialog) EpisodesFilterDialog(filter = vm.feed!!.episodeFilter, onDismissRequest = { vm.showFilterDialog = false }) { filter ->
         if (vm.feed != null) {
             Logd(TAG, "persist Episode Filter(): feedId = [${vm.feed?.id}], filterValues = [${filter.propertySet}]")
@@ -646,12 +648,12 @@ fun FeedDetailsScreen() {
             Row {
                 TextButton({ showFeedStats = true }) { Text(stringResource(R.string.this_podcast)) }
                 Spacer(Modifier.width(20.dp))
-                TextButton({ mainNavController.navigate(Screens.Statistics.name) }) { Text(stringResource(R.string.all_podcasts)) }
+                TextButton({ navController.navigate(Screens.Statistics.name) }) { Text(stringResource(R.string.all_podcasts)) }
             }
             if (vm.feed?.isSynthetic() == false) {
                 TextButton(modifier = Modifier.padding(top = 10.dp), onClick = {
                     setOnlineSearchTerms(CombinedSearcher::class.java, "${vm.txtvAuthor} podcasts")
-                    mainNavController.navigate(Screens.OnlineResults.name)
+                    navController.navigate(Screens.OnlineResults.name)
                 }) { Text(stringResource(R.string.feeds_related_to_author)) }
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(Date(vm.feed?.lastFullUpdateTime?:0L))}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))

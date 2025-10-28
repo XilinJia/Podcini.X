@@ -37,7 +37,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.Rating
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -229,6 +229,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
 @Composable
 fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val showSubscribeDialog = remember { mutableStateOf(false) }
     @Composable
     fun confirmSubscribe(feed: PodcastSearchResult, showDialog: Boolean, onDismissRequest: () -> Unit) {
@@ -256,10 +257,10 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
                     val feed_ = getFeed(feed.feedId) ?: return@combinedClickable
                     feedOnDisplay = feed_
                     feedScreenMode = FeedScreenMode.List
-                    mainNavController.navigate(Screens.FeedDetails.name)
+                    navController.navigate(Screens.FeedDetails.name)
                 } else {
                     setOnlineFeedUrl(feed.feedUrl, source = feed.source)
-                    mainNavController.navigate(Screens.OnlineFeed.name)
+                    navController.navigate(Screens.OnlineFeed.name)
                 }
             }
         }, onLongClick = { showSubscribeDialog.value = true })) {

@@ -30,7 +30,8 @@ import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.FeedFilter
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
@@ -162,6 +163,7 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.sign
 
 class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     val prefs: SharedPreferences by lazy { context.getSharedPreferences("SubscriptionsFragmentPrefs", Context.MODE_PRIVATE) }
@@ -600,6 +602,7 @@ fun SubscriptionsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember { SubscriptionsVM(context, scope) }
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
@@ -652,7 +655,7 @@ fun SubscriptionsScreen() {
             },
                 navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } },
                 actions = {
-                    IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                    IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
                     IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
@@ -948,7 +951,7 @@ fun SubscriptionsScreen() {
                                     else {
                                         feedOnDisplay = feed
                                         feedScreenMode = FeedScreenMode.List
-                                        mainNavController.navigate(Screens.FeedDetails.name)
+                                        navController.navigate(Screens.FeedDetails.name)
                                     }
                                 }
                             }, onLongClick = {
@@ -1027,7 +1030,7 @@ fun SubscriptionsScreen() {
                                         else {
                                             feedOnDisplay = feed
                                             feedScreenMode = FeedScreenMode.Info
-                                            mainNavController.navigate(Screens.FeedDetails.name)
+                                            navController.navigate(Screens.FeedDetails.name)
                                         }
                                     }
                                 })
@@ -1039,7 +1042,7 @@ fun SubscriptionsScreen() {
                                     else {
                                         feedOnDisplay = feed
                                         feedScreenMode = FeedScreenMode.List
-                                        mainNavController.navigate(Screens.FeedDetails.name)
+                                        navController.navigate(Screens.FeedDetails.name)
                                     }
                                 }
                             }, onLongClick = {
@@ -1411,7 +1414,10 @@ fun SubscriptionsScreen() {
     @Composable
     fun FilterDialog(filter: FeedFilter? = null, onDismissRequest: () -> Unit) {
         val filterValues = remember { filter?.properties ?: mutableSetOf() }
-
+        var reset by remember { mutableIntStateOf(0) }
+        var langFull by remember { mutableStateOf(vm.langsSel.size == vm.languages.size) }
+        var tagsFull by remember { mutableStateOf(vm.tagsSel.size == vm.tags.size) }
+        var queuesFull by remember { mutableStateOf(vm.qSelIds.size == vm.queueNames.size) }
         fun onFilterChanged(newFilterValues: Set<String>) {
             vm.feedsFilter = StringUtils.join(newFilterValues, ",")
             Logd(TAG, "onFilterChanged: ${vm.feedsFilter}")
@@ -1428,9 +1434,15 @@ fun SubscriptionsScreen() {
                         if (languages.size > 1) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 val selectedList = remember { MutableList(vm.languages.size) { mutableStateOf(false) } }
+                                LaunchedEffect(reset) {
+                                    for (index in selectedList.indices) {
+                                        if (vm.languages[index] in vm.langsSel) selectedList[index].value = true
+                                        langFull = selectedList.count { it.value } == selectedList.size
+                                    }
+                                }
                                 var expandRow by remember { mutableStateOf(false) }
                                 Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                                    Text(stringResource(R.string.languages) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                    Text(stringResource(R.string.languages) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (langFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                     if (expandRow) {
                                         val cb = {
                                             val langsSel = mutableSetOf<String>()
@@ -1444,9 +1456,6 @@ fun SubscriptionsScreen() {
                                     }
                                 }
                                 if (expandRow) NonlazyGrid(columns = 3, itemCount = vm.languages.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                    LaunchedEffect(Unit) {
-                                        if (vm.languages[index] in vm.langsSel) selectedList[index].value = true
-                                    }
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                         onClick = {
                                             selectedList[index].value = !selectedList[index].value
@@ -1462,9 +1471,15 @@ fun SubscriptionsScreen() {
                         }
                         Column(modifier = Modifier.fillMaxWidth()) {
                             val selectedList = remember { MutableList(vm.queueNames.size) { mutableStateOf(false) } }
+                            LaunchedEffect(reset) {
+                                for (index in selectedList.indices) {
+                                    if (vm.queueIds[index] in vm.qSelIds) selectedList[index].value = true
+                                    queuesFull = selectedList.count { it.value } == selectedList.size
+                                }
+                            }
                             var expandRow by remember { mutableStateOf(false) }
                             Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                                Text(stringResource(R.string.queue_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                Text(stringResource(R.string.queue_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (queuesFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                 if (expandRow) {
                                     val cb = {
                                         val qSelIds = mutableSetOf<Long>()
@@ -1478,9 +1493,6 @@ fun SubscriptionsScreen() {
                                 }
                             }
                             if (expandRow) NonlazyGrid(columns = 3, itemCount = vm.queueNames.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                LaunchedEffect(Unit) {
-                                    if (vm.queueIds[index] in vm.qSelIds) selectedList[index].value = true
-                                }
                                 OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                     onClick = {
                                         selectedList[index].value = !selectedList[index].value
@@ -1496,9 +1508,15 @@ fun SubscriptionsScreen() {
                         if (vm.tags.isNotEmpty()) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 val selectedList = remember { MutableList(vm.tags.size) { mutableStateOf(false) } }
+                                LaunchedEffect(reset) {
+                                    for (index in selectedList.indices) {
+                                        if (vm.tags[index] in vm.tagsSel) selectedList[index].value = true
+                                        tagsFull = selectedList.count { it.value } == selectedList.size
+                                    }
+                                }
                                 var expandRow by remember { mutableStateOf(false) }
                                 Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                                    Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                    Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (tagsFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                     if (expandRow) {
                                         val cb = {
                                             val tagsSel = mutableSetOf<String>()
@@ -1512,9 +1530,6 @@ fun SubscriptionsScreen() {
                                     }
                                 }
                                 if (expandRow) NonlazyGrid(columns = 3, itemCount = vm.tags.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                    LaunchedEffect(Unit) {
-                                        if (vm.tags[index] in vm.tagsSel) selectedList[index].value = true
-                                    }
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                         onClick = {
                                             selectedList[index].value = !selectedList[index].value
@@ -1528,7 +1543,6 @@ fun SubscriptionsScreen() {
                                 }
                             }
                         }
-
                         var selectNone by remember { mutableStateOf(false) }
                         for (item in FeedFilter.FeedFilterGroup.entries) {
                             if (item.values.size == 2) {
@@ -1543,7 +1557,8 @@ fun SubscriptionsScreen() {
                                     }
                                     Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                     Spacer(Modifier.width(30.dp))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else buttonAltColor),
+                                    OutlinedButton(
+                                        modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 0) buttonColor else buttonAltColor),
                                         onClick = {
                                             if (selectedIndex != 0) {
                                                 selectNone = false
@@ -1558,7 +1573,8 @@ fun SubscriptionsScreen() {
                                         },
                                     ) { Text(text = stringResource(item.values[0].displayName), color = textColor) }
                                     Spacer(Modifier.width(20.dp))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else buttonAltColor),
+                                    OutlinedButton(
+                                        modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp), border = BorderStroke(2.dp, if (selectedIndex != 1) buttonColor else buttonAltColor),
                                         onClick = {
                                             if (selectedIndex != 1) {
                                                 selectNone = false
@@ -1571,21 +1587,32 @@ fun SubscriptionsScreen() {
                                             }
                                             onFilterChanged(filterValues)
                                         },
-                                    ) { Text(text = stringResource(item.values[1].displayName), color = textColor) }
-//                                    Spacer(Modifier.weight(0.5f))
+                                    ) { Text(text = stringResource(item.values[1].displayName), color = textColor) } //                                    Spacer(Modifier.weight(0.5f))
                                 }
                             } else {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     val selectedList = remember { MutableList(item.values.size) { mutableStateOf(false) } }
+                                    var allOrNone by remember { mutableStateOf(false) }
+                                    LaunchedEffect(reset) {
+                                        if (filter != null) {
+                                            for (index in selectedList.indices) {
+                                                if (item.values[index].filterId in filter.properties) selectedList[index].value = true
+                                            }
+                                            val c = selectedList.count { it.value }
+                                            allOrNone = c == 0 || c == item.values.size
+                                        } else allOrNone = true
+                                    }
                                     var expandRow by remember { mutableStateOf(false) }
                                     Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                                        Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = buttonColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                        Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (allOrNone) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                         if (expandRow) {
                                             val cb = {
                                                 for (i in item.values.indices) {
                                                     if (selectedList[i].value) filterValues.add(item.values[i].filterId)
                                                     else filterValues.remove(item.values[i].filterId)
                                                 }
+                                                val c = selectedList.count { it.value }
+                                                allOrNone = c == 0 || c == item.values.size
                                                 onFilterChanged(filterValues)
                                             }
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
@@ -1593,15 +1620,15 @@ fun SubscriptionsScreen() {
                                     }
                                     if (expandRow) NonlazyGrid(columns = 3, itemCount = item.values.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                         if (selectNone) selectedList[index].value = false
-                                        LaunchedEffect(Unit) {
-                                            if (filter != null && item.values[index].filterId in filter.properties) selectedList[index].value = true
-                                        }
-                                        OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                        OutlinedButton(
+                                            modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectNone = false
                                                 selectedList[index].value = !selectedList[index].value
                                                 if (selectedList[index].value) filterValues.add(item.values[index].filterId)
                                                 else filterValues.remove(item.values[index].filterId)
+                                                val c = selectedList.count { it.value }
+                                                allOrNone = c == 0 || c == item.values.size
                                                 onFilterChanged(filterValues)
                                             },
                                         ) { Text(text = stringResource(item.values[index].displayName), maxLines = 1, color = textColor) }
@@ -1612,7 +1639,11 @@ fun SubscriptionsScreen() {
                         Row(modifier = Modifier.fillMaxWidth()) {
                             Spacer(Modifier.weight(0.3f))
                             Button(onClick = {
+                                vm.tagsSel = vm.tags.toSet()
+                                vm.qSelIds = vm.queueIds.toSet()
+                                vm.langsSel = vm.languages.toSet()
                                 selectNone = true
+                                reset++
                                 onFilterChanged(setOf(""))
                             }) { Text(stringResource(R.string.reset)) }
                             Spacer(Modifier.weight(0.4f))

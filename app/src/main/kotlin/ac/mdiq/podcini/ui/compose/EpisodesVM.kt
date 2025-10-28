@@ -62,8 +62,8 @@ import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
 import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
@@ -627,6 +627,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     var longPressIndex by remember { mutableIntStateOf(-1) }
 //    val dls = remember { DownloadServiceInterface.impl }
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
 
@@ -846,7 +847,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                 if (selectMode) toggleSelected(vm)
                 else {
                     episodeOnDisplay = vm.episode
-                    mainNavController.navigate(Screens.EpisodeInfo.name)
+                    navController.navigate(Screens.EpisodeInfo.name)
                 }
             },
             onLongClick = {
@@ -963,11 +964,11 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                                 vm.episode.feed != null && vm.episode.feed?.isSynthetic() != true -> {
                                     feedOnDisplay = vm.episode.feed!!
                                     feedScreenMode = FeedScreenMode.Info
-                                    mainNavController.navigate(Screens.FeedDetails.name)
+                                    navController.navigate(Screens.FeedDetails.name)
                                 }
                                 else -> {
                                     episodeOnDisplay = vm.episode
-                                    mainNavController.navigate(Screens.EpisodeInfo.name)
+                                    navController.navigate(Screens.EpisodeInfo.name)
                                 }
                             }
                         }))
@@ -1287,8 +1288,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
-        Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+        Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             val buttonColor = MaterialTheme.colorScheme.tertiary
             val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
@@ -1413,7 +1413,6 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                             }
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
-//                                        Spacer(Modifier.weight(1f))
                                     }
                                 }
                             }

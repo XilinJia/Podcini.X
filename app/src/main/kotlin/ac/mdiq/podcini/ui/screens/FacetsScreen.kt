@@ -25,7 +25,7 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.customMediaUriString
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
@@ -467,6 +467,7 @@ fun FacetsScreen() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val vm = remember(episodeOnDisplay.id) {  FacetsVM(context, scope) }
+    val navController = LocalNavController.current
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -534,7 +535,7 @@ fun FacetsScreen() {
                         vm.showFeeds = !vm.showFeeds
                         if (vm.showFeeds) vm.loadAssociatedFeeds()
                     }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                    IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                    IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     IconButton(onClick = { vm.showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
                     if (vm.spinnerTexts[vm.curIndex] == QuickAccess.All.name) IconButton(onClick = { vm.showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "filter") }
                     if (vm.spinnerTexts[vm.curIndex] == QuickAccess.History.name) IconButton(onClick = { vm.showDatesFilter = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), contentDescription = "filter") }
@@ -586,7 +587,7 @@ fun FacetsScreen() {
                                 Logd(TAG, "clicked: ${feed.title}")
                                 feedOnDisplay = feed
                                 feedScreenMode = FeedScreenMode.List
-                                mainNavController.navigate(Screens.FeedDetails.name)
+                                navController.navigate(Screens.FeedDetails.name)
                             }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
                     Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,

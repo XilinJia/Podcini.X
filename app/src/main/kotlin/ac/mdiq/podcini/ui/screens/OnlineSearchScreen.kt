@@ -20,7 +20,8 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
@@ -187,10 +188,6 @@ class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
     }
-    internal fun addUrl(url: String) {
-        setOnlineFeedUrl(url)
-        mainNavController.navigate(Screens.OnlineFeed.name)
-    }
 }
 
 @Composable
@@ -198,6 +195,7 @@ fun OnlineSearchScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember { OnlineSearchVM(context, scope) }
     val windowSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
@@ -273,7 +271,7 @@ fun OnlineSearchScreen() {
                     if (feed != null) {
                         feedOnDisplay = feed
                         feedScreenMode = FeedScreenMode.List
-                        mainNavController.navigate(Screens.FeedDetails.name)
+                        navController.navigate(Screens.FeedDetails.name)
                     }
                 }
             } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
@@ -287,10 +285,12 @@ fun OnlineSearchScreen() {
             TopAppBar(title = {
                 SearchBarRow(R.string.search_podcast_hint, "") { queryText ->
                     if (queryText.isBlank()) return@SearchBarRow
-                    if (queryText.matches("http[s]?://.*".toRegex())) vm.addUrl(queryText)
-                    else {
+                    if (queryText.matches("http[s]?://.*".toRegex())) {
+                        setOnlineFeedUrl(queryText)
+                        navController.navigate(Screens.OnlineFeed.name)
+                    } else {
                         setOnlineSearchTerms(CombinedSearcher::class.java, queryText)
-                        mainNavController.navigate(Screens.OnlineResults.name)
+                        navController.navigate(Screens.OnlineResults.name)
                     }
                 }
             }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
@@ -307,7 +307,7 @@ fun OnlineSearchScreen() {
             Row(modifier = Modifier.padding(vertical = 10.dp)) {
                 Text(stringResource(R.string.discover), color = textColor, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
-                Text(stringResource(R.string.discover_more), color = actionColor, modifier = Modifier.clickable(onClick = { mainNavController.navigate(Screens.Discovery.name) }))
+                Text(stringResource(R.string.discover_more), color = actionColor, modifier = Modifier.clickable(onClick = { navController.navigate(Screens.Discovery.name) }))
             }
             Box(modifier = Modifier.fillMaxWidth()) {
                 if (vm.showGrid) NonlazyGrid(columns = vm.numColumns, itemCount = vm.searchResult.size, modifier = Modifier.fillMaxWidth()) { index ->
@@ -319,7 +319,7 @@ fun OnlineSearchScreen() {
                                 val podcast: PodcastSearchResult? = vm.searchResult[index]
                                 if (!podcast?.feedUrl.isNullOrEmpty()) {
                                     setOnlineFeedUrl(podcast.feedUrl)
-                                    mainNavController.navigate(Screens.OnlineFeed.name)
+                                    navController.navigate(Screens.OnlineFeed.name)
                                 }
                             }))
                 }
@@ -348,11 +348,11 @@ fun OnlineSearchScreen() {
             gearbox.GearSearchText()
             Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 setOnlineSearchTerms(ItunesPodcastSearcher::class.java)
-                mainNavController.navigate(Screens.OnlineResults.name)
+                navController.navigate(Screens.OnlineResults.name)
             }))
             Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 setOnlineSearchTerms(PodcastIndexPodcastSearcher::class.java)
-                mainNavController.navigate(Screens.OnlineResults.name)
+                navController.navigate(Screens.OnlineResults.name)
             }))
             if (vm.showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { vm.showOpmlImportSelectionDialog = false }
             Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {

@@ -1,3 +1,12 @@
+# 8.23.3
+
+* fixed issue of proper screen not opening when receiving shared text multiple times
+* in filter dialog of Subscriptions screen
+	* multi-select categories are colored according to selections
+	* reset button selects all of languages, tags and queues
+* OnlineFeed screen exits when ShowTabsDialog is dismissed
+* all screens now use LocalNavController
+
 # 8.23.2
 
 * on episodes lists, fixed action button not updated properly after download

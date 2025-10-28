@@ -27,7 +27,8 @@ import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
@@ -314,6 +315,7 @@ fun QueuesScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val navController = LocalNavController.current
     val vm = remember { QueuesVM(context, scope) }
 
     DisposableEffect(lifecycleOwner) {
@@ -421,7 +423,7 @@ fun QueuesScreen() {
                 if (!showFeeds) IconButton(onClick = { showBin = !showBin }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
                 if (!showBin) {
                     IconButton(onClick = { showFeeds = !showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                    IconButton(onClick = { mainNavController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                    IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
@@ -563,7 +565,7 @@ fun QueuesScreen() {
                                 Logd(TAG, "clicked: ${feed.title}")
                                 feedOnDisplay = feed
                                 feedScreenMode = FeedScreenMode.List
-                                mainNavController.navigate(Screens.FeedDetails.name)
+                                navController.navigate(Screens.FeedDetails.name)
                             }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
                     Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,

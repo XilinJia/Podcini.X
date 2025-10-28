@@ -110,7 +110,6 @@ import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -223,7 +222,6 @@ class MainActivity : BaseActivity() {
     fun MainActivityUI() {
         lcScope = rememberCoroutineScope()
         val navController = rememberNavController()
-        mainNavController = navController
         val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Hidden, skipHiddenState = false))
 
         if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
@@ -237,8 +235,7 @@ class MainActivity : BaseActivity() {
 
         val sheetValueState = remember { mutableStateOf(sheetState.bottomSheetState.currentValue) }
         LaunchedEffect(sheetState.bottomSheetState) {
-            snapshotFlow { sheetState.bottomSheetState.currentValue }
-                .collect { newValue -> sheetValueState.value = newValue }
+            snapshotFlow { sheetState.bottomSheetState.currentValue }.collect { newValue -> sheetValueState.value = newValue }
         }
         val bottomInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
         val bottomInsetPadding = bottomInsets.asPaddingValues().calculateBottomPadding()
@@ -254,8 +251,8 @@ class MainActivity : BaseActivity() {
         val drawerState_ = rememberDrawerState(DrawerValue.Closed)
         drawerState = drawerState_
         //        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
-        ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
-            BottomSheetScaffold(sheetContent = { AudioPlayerScreen() },
+        ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen(navController) }) {
+            BottomSheetScaffold(sheetContent = { AudioPlayerScreen(navController) },
                 scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp,
                 sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}
             ) { paddingValues ->
@@ -267,7 +264,13 @@ class MainActivity : BaseActivity() {
                     )) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-                    CompositionLocalProvider(LocalNavController provides navController) { Navigate(navController, startScreen) }
+                    LaunchedEffect(startScreen) {
+                        if (startScreen.isNotBlank()) {
+                            navController.navigate(startScreen)
+                            startScreen = ""
+                        }
+                    }
+                    CompositionLocalProvider(LocalNavController provides navController) { Navigate(navController) }
                 }
             }
         }
@@ -512,7 +515,7 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-        private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"
+//        private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"
         private const val INIT_KEY = "app_init_state"
 
         var hasInitialized = mutableStateOf(false)
@@ -520,7 +523,6 @@ class MainActivity : BaseActivity() {
 
         var startScreen by mutableStateOf("")
 
-        lateinit var mainNavController: NavHostController
         val LocalNavController = staticCompositionLocalOf<NavController> { error("NavController not provided") }
 
         var lcScope: CoroutineScope? = null

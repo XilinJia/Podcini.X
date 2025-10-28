@@ -17,7 +17,7 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.EpisodeState
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.mainNavController
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -400,6 +400,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
         @Composable
         override fun ActionOptions() {
+            val navController = LocalNavController.current
             if (showSearchDialog && onEVM?.episode?.title != null) {
                 var textFieldValue by remember { mutableStateOf(TextFieldValue(onEVM!!.episode.title!!)) }
                 val selectedText by remember(textFieldValue.selection) { mutableStateOf(
@@ -419,7 +420,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         if (selectedText.isNotEmpty()) {
                             Button(modifier = Modifier.padding(top = 8.dp), onClick = {
                                 setSearchTerms("$selectedText,")
-                                mainNavController.navigate(Screens.Search.name)
+                                navController.navigate(Screens.Search.name)
                             }) { Text(stringResource(R.string.search_label)) }
                         }
                     })
