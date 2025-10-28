@@ -515,7 +515,7 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-//        private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"
+        private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"
         private const val INIT_KEY = "app_init_state"
 
         var hasInitialized = mutableStateOf(false)
