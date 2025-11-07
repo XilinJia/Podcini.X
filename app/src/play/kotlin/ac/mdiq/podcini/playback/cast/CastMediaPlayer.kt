@@ -219,7 +219,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             var nextPlayable: Episode? = playable
             do {
                 prevPlayable = nextPlayable
-                nextPlayable = getNextInQueue(nextPlayable) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
+                nextPlayable = getNextInQueue(nextPlayable)
             } while (nextPlayable != null && nextPlayable.id != prevPlayable?.id && !isCastable(nextPlayable, castContext?.sessionManager?.currentCastSession))
             if (nextPlayable != null) prepareMedia(nextPlayable, streaming, startWhenPrepared, prepareImmediately, forceReset)
             return
@@ -361,7 +361,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         val currentMedia = curEpisode
         when {
             shouldContinue -> {
-                var nextMedia = getNextInQueue(currentMedia) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
+                var nextMedia = getNextInQueue(currentMedia)
                 val playNextEpisode = isPlaying && nextMedia != null
                 when {
                     playNextEpisode -> Logd(TAG, "Playback of next episode will start immediately.")
