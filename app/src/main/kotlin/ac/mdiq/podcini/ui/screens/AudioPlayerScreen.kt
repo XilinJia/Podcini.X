@@ -45,17 +45,15 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
-import ac.mdiq.podcini.storage.utils.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
+import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.utils.MediaType
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
-import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
-import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
-
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
@@ -67,11 +65,11 @@ import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
+import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
-import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.FlowEvent.BufferUpdateEvent
@@ -166,14 +164,14 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.common.util.concurrent.MoreExecutors
-import java.text.DecimalFormat
-import java.text.NumberFormat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.DecimalFormat
+import java.text.NumberFormat
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
@@ -457,6 +455,7 @@ fun AudioPlayerScreen(navController: NavController) {
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
+            Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     isBSExpanded = false

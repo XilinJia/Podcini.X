@@ -8,7 +8,7 @@
     <string name="add_feed_label">Προσθήκη podcast</string>
     <string name="online_episodes_label">Διαδικτυακά επεισόδια</string>
     <string name="episodes_label">Επεισόδια</string>
-    <string name="queue_label">Ουρές</string>
+
     <string name="settings_label">Ρυθμίσεις</string>
     <string name="downloads_label">Λήψεις</string>
     <string name="logs_label">Καταγραφή</string>
@@ -338,10 +338,10 @@
     <string name="pref_keeps_important_episodes_title">Διατήρηση σημαντικών επεισοδίων</string>
     <string name="playback_pref">Αναπαραγωγή</string>
     <string name="playback_pref_sum">Έλεγχος ακουστικών, Παράλειψη διαστήματος, Ουρά</string>
-    <string name="downloads_pref">Λήψεις</string>
+
     <string name="downloads_pref_sum">Χρονικό διάστημα ενημέρωσης, δεδομένα κινητής τηλεφωνίας, αυτόματη λήψη, αυτόματη διαγραφή</string>
     <string name="feed_refresh_title">Ανανέωση podcast</string>
-    <string name="feed_refresh_sum">Καθορίστε ένα διάστημα (σε ώρες, 0 σημαίνει ποτέ) στο οποίο Podcini ψάχνει για νέα επεισόδια αυτόματα.</string>
+
 
 
 

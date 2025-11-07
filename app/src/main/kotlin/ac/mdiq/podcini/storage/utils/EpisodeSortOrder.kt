@@ -66,7 +66,7 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
 
         fun fromCode(code: Int): EpisodeSortOrder = enumValues<EpisodeSortOrder>().firstOrNull { it.code == code } ?: EPISODE_TITLE_A_Z
 
-        fun toCodeString(sortOrder: EpisodeSortOrder): String? = sortOrder.code.toString()
+        fun toCodeString(sortOrder: EpisodeSortOrder): String = sortOrder.code.toString()
 
         fun valuesOf(stringValues: Array<String?>): Array<EpisodeSortOrder?> {
             val values = arrayOfNulls<EpisodeSortOrder>(stringValues.size)

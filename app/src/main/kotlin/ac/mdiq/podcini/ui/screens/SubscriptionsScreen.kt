@@ -31,7 +31,6 @@ import ac.mdiq.podcini.storage.utils.FeedFilter
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
-
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
@@ -163,10 +162,13 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.sign
 
 class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     val prefs: SharedPreferences by lazy { context.getSharedPreferences("SubscriptionsFragmentPrefs", Context.MODE_PRIVATE) }
+
+    init {
+        lcScope.launch(Dispatchers.IO) { prefs }
+    }
 
     private var _feedsFilter: String? = null
     internal var feedsFilter: String

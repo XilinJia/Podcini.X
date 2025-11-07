@@ -340,7 +340,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
             }
             EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(feedItem))
         } else Logd(TAG, "local is newer, no change")
-        return if (idRemove != null) Pair(idRemove!!, feedItem) else null
+        return if (idRemove != null) Pair(idRemove, feedItem) else null
     }
 
     override fun logout() {

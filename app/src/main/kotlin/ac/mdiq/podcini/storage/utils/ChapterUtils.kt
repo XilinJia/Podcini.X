@@ -33,7 +33,7 @@ object ChapterUtils {
         try {
             val request: Request = Builder().url(url).cacheControl(cacheControl).build()
             response = getHttpClient().newCall(request).execute()
-            if (response.isSuccessful && response.body != null) return parse(response.body!!.string())
+            if (response.isSuccessful && response.body != null) return parse(response.body.string())
         } catch (e: IOException) { Logs(TAG, e)
         } finally { response?.close() }
         return listOf()

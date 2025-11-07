@@ -51,7 +51,7 @@ class DownloadRequest private constructor(
         nullIfEmpty(inVal.readString()),
         nullIfEmpty(inVal.readString()),
         inVal.readByte() > 0,
-        inVal.readBundle(), // TODO: this may have problem
+        inVal.readBundle(DownloadRequest::class.java.classLoader),
         inVal.readByte() > 0)
 
     override fun describeContents(): Int = 0
@@ -75,24 +75,24 @@ class DownloadRequest private constructor(
         dest.writeByte(if (initiatedByUser) 1.toByte() else 0)
     }
 
-    override fun equals(o: Any?): Boolean {
-        if (this === o) return true
-        if (o !is DownloadRequest) return false
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is DownloadRequest) return false
 
-        if (if (lastModified != null) lastModified != o.lastModified else o.lastModified != null) return false
-        if (feedfileId != o.feedfileId) return false
-        if (feedfileType != o.feedfileType) return false
-        if (progressPercent != o.progressPercent) return false
-        if (size != o.size) return false
-        if (soFar != o.soFar) return false
-        if (statusMsg != o.statusMsg) return false
-        if (destination != o.destination) return false
-        if (if (password != null) password != o.password else o.password != null) return false
-        if (source != o.source) return false
-        if (if (title != null) title != o.title else o.title != null) return false
-        if (if (username != null) username != o.username else o.username != null) return false
-        if (mediaEnqueued != o.mediaEnqueued) return false
-        if (initiatedByUser != o.initiatedByUser) return false
+        if (if (lastModified != null) lastModified != other.lastModified else other.lastModified != null) return false
+        if (feedfileId != other.feedfileId) return false
+        if (feedfileType != other.feedfileType) return false
+        if (progressPercent != other.progressPercent) return false
+        if (size != other.size) return false
+        if (soFar != other.soFar) return false
+        if (statusMsg != other.statusMsg) return false
+        if (destination != other.destination) return false
+        if (if (password != null) password != other.password else other.password != null) return false
+        if (source != other.source) return false
+        if (if (title != null) title != other.title else other.title != null) return false
+        if (if (username != null) username != other.username else other.username != null) return false
+        if (mediaEnqueued != other.mediaEnqueued) return false
+        if (initiatedByUser != other.initiatedByUser) return false
         return true
     }
 

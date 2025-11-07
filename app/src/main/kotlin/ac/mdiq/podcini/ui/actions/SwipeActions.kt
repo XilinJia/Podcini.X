@@ -18,6 +18,7 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+import ac.mdiq.podcini.ui.compose.AlarmEpisodeDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -108,33 +109,22 @@ abstract class SwipeAction {
 
 class SwipeActions(private val context: Context, private val tag: String) : DefaultLifecycleObserver {
     val actionsList: List<SwipeAction> = listOf(
-        NoAction(), Combo(),
+        NoAction(),
+        Combo(),
         SetPlaybackState(),
-        AddToAssociatedQueue(), AddToActiveQueue(), PutToQueue(),
+        AddToAssociatedQueue(),
+        AddToActiveQueue(),
+        PutToQueue(),
         RemoveFromQueue(),
-        SetRating(), AddComment(),
+        SetRating(),
+        AddComment(),
         SearchSelected(),
         Download(),
-        Delete(), RemoveFromHistory(),
-        Shelve(), Erase())
-
-    enum class ActionTypes {
-        NO_ACTION,
-        COMBO,
-        RATING,
-        COMMENT,
-        SET_PLAY_STATE,
-        SEARCH_SELECTED,
-        ADD_TO_QUEUE,
-        ADD_TO_ASSOCIATED,
-        PUT_TO_QUEUE,
-        REMOVE_FROM_QUEUE,
-        START_DOWNLOAD,
-        DELETE,
-        REMOVE_FROM_HISTORY,
-        SHELVE,
-        ERASE
-    }
+        Delete(),
+        RemoveFromHistory(),
+        Shelve(),
+        Erase(),
+        Alarm())
 
     var actions by mutableStateOf(getPrefs(tag, ""))
 
@@ -170,10 +160,10 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class SetPlaybackState : SwipeAction() {
-        private var showPlayStateDialog by mutableStateOf(false)
+    class SetPlaybackState : SwipeAction() {
         override val id: String
-            get() = ActionTypes.SET_PLAY_STATE.name
+            get() = "SET_PLAY_STATE"
+        private var showPlayStateDialog by mutableStateOf(false)
         override val title: String
             get() = getAppContext().getString(R.string.set_play_state_label)
 
@@ -194,9 +184,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class AddToActiveQueue : SwipeAction() {
+    class AddToActiveQueue : SwipeAction() {
         override val id: String
-            get() = ActionTypes.ADD_TO_QUEUE.name
+            get() = "ADD_TO_QUEUE"
         override val title: String
             get() = getAppContext().getString(R.string.add_to_queue_label)
 
@@ -214,9 +204,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class AddToAssociatedQueue : SwipeAction() {
+    class AddToAssociatedQueue : SwipeAction() {
         override val id: String
-            get() = ActionTypes.ADD_TO_ASSOCIATED.name
+            get() = "ADD_TO_ASSOCIATED"
         override val title: String
             get() = getAppContext().getString(R.string.add_to_associated_queue)
 
@@ -234,10 +224,10 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class PutToQueue : SwipeAction() {
-        private var showPutToQueueDialog by mutableStateOf(false)
+    class PutToQueue : SwipeAction() {
         override val id: String
-            get() = ActionTypes.PUT_TO_QUEUE.name
+            get() = "PUT_TO_QUEUE"
+        private var showPutToQueueDialog by mutableStateOf(false)
         override val title: String
             get() = getAppContext().getString(R.string.put_in_queue_label)
 
@@ -255,15 +245,15 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class Combo : SwipeAction() {
-        var showDialog by mutableStateOf(false)
-        private var useAction by mutableStateOf<SwipeAction?>(null)
         override val id: String
-            get() = ActionTypes.COMBO.name
+            get() = "COMBO"
         override val title: String
             get() = getAppContext().getString(R.string.combo_action)
-
         override val iconRes:  Int = R.drawable.baseline_category_24
         override val colorRes:  Int = android.R.attr.colorAccent
+
+        var showDialog by mutableStateOf(false)
+        private var useAction by mutableStateOf<SwipeAction?>(null)
 
         override fun performAction(vm: EpisodeVM) {
             super.performAction(vm)
@@ -301,9 +291,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class Delete : SwipeAction() {
+    inner class Delete() : SwipeAction() {
         override val id: String
-            get() = ActionTypes.DELETE.name
+            get() = "DELETE"
         override val title: String
             get() = getAppContext().getString(R.string.delete_episode_label)
 
@@ -327,10 +317,10 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class SetRating : SwipeAction() {
-        private var showChooseRatingDialog by mutableStateOf(false)
+    class SetRating : SwipeAction() {
         override val id: String
-            get() = ActionTypes.RATING.name
+            get() = "RATING"
+        private var showChooseRatingDialog by mutableStateOf(false)
         override val title: String
             get() = getAppContext().getString(R.string.set_rating_label)
 
@@ -347,12 +337,12 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class AddComment : SwipeAction() {
+    class AddComment : SwipeAction() {
+        override val id: String
+            get() = "COMMENT"
         private var showEditComment by mutableStateOf(false)
         private var localTime by mutableLongStateOf(System.currentTimeMillis())
         private var editCommentText by mutableStateOf(TextFieldValue(""))
-        override val id: String
-            get() = ActionTypes.COMMENT.name
         override val title: String
             get() = getAppContext().getString(R.string.add_opinion_label)
 
@@ -376,18 +366,18 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                 it.comment = editCommentText.text
                                 it.commentTime = localTime
                             }
-//                            if (isCurMedia(onEpisode)) setCurEpisode(onEpisode!!)
-//                            onEpisode = null    // this is needed, otherwise the realm.query clause does not update onEpisode for some reason
+                            //                            if (isCurMedia(onEpisode)) setCurEpisode(onEpisode!!)
+                            //                            onEpisode = null    // this is needed, otherwise the realm.query clause does not update onEpisode for some reason
                         }
                     })
             }
         }
     }
 
-    inner class SearchSelected : SwipeAction() {
-        private var showSearchDialog by mutableStateOf(false)
+    class SearchSelected : SwipeAction() {
         override val id: String
-            get() = ActionTypes.SEARCH_SELECTED.name
+            get() = "SEARCH_SELECTED"
+        private var showSearchDialog by mutableStateOf(false)
         override val title: String
             get() = getAppContext().getString(R.string.search_selected)
 
@@ -430,7 +420,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
     class NoAction : SwipeAction() {
         override val id: String
-            get() = ActionTypes.NO_ACTION.name
+            get() = "NO_ACTION"
         override val title: String
             get() = getAppContext().getString(R.string.no_action_label)
 
@@ -440,11 +430,11 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override fun enabled(): Boolean = false
     }
 
-    inner class RemoveFromHistory : SwipeAction() {
+    inner class RemoveFromHistory() : SwipeAction() {
+        override val id: String
+            get() = "REMOVE_FROM_HISTORY"
         val TAG = this::class.simpleName ?: "Anonymous"
 
-        override val id: String
-            get() = ActionTypes.REMOVE_FROM_HISTORY.name
         override val title: String
             get() = getAppContext().getString(R.string.remove_history_label)
 
@@ -479,9 +469,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class RemoveFromQueue : SwipeAction() {
+    class RemoveFromQueue : SwipeAction() {
         override val id: String
-            get() = ActionTypes.REMOVE_FROM_QUEUE.name
+            get() = "REMOVE_FROM_QUEUE"
         override val title: String
             get() = getAppContext().getString(R.string.remove_from_queue_label)
 
@@ -496,9 +486,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class Download : SwipeAction() {
+    inner class Download() : SwipeAction() {
         override val id: String
-            get() = ActionTypes.START_DOWNLOAD.name
+            get() = "START_DOWNLOAD"
         override val title: String
             get() = getAppContext().getString(R.string.download_label)
 
@@ -514,10 +504,10 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class Shelve : SwipeAction() {
-        private var showShelveDialog by mutableStateOf(false)
+    class Shelve : SwipeAction() {
         override val id: String
-            get() = ActionTypes.SHELVE.name
+            get() = "SHELVE"
+        private var showShelveDialog by mutableStateOf(false)
         override val title: String
             get() = getAppContext().getString(R.string.shelve_label)
 
@@ -534,15 +524,15 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         }
     }
 
-    inner class Erase : SwipeAction() {
-        private var showEraseDialog by mutableStateOf(false)
+    class Erase : SwipeAction() {
         override val id: String
-            get() =  ActionTypes.ERASE.name
+            get() = "ERASE"
+        private var showEraseDialog by mutableStateOf(false)
         override val title: String
             get() = getAppContext().getString(R.string.erase_episodes_label)
 
-        override val iconRes:  Int = R.drawable.baseline_delete_forever_24
-        override val colorRes:  Int = R.attr.icon_gray
+        override val iconRes: Int = R.drawable.baseline_delete_forever_24
+        override val colorRes: Int = R.attr.icon_gray
 
         override fun enabled(): Boolean = onEVM?.episode?.feed?.isSynthetic() == true
 
@@ -550,9 +540,30 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             super.performAction(vm)
             showEraseDialog = true
         }
+
         @Composable
         override fun ActionOptions() {
             if (showEraseDialog && onEVM != null) EraseEpisodesDialog(listOf(onEVM!!), onEVM!!.episode.feed) { showEraseDialog = false }
+        }
+    }
+
+    class Alarm : SwipeAction() {
+        override val id: String
+            get() = "ALARM"
+        private var showAlarmDialog by mutableStateOf(false)
+        override val title: String
+            get() = getAppContext().getString(R.string.alarm_episodes_label)
+
+        override val iconRes:  Int = R.drawable.baseline_access_alarms_24
+        override val colorRes:  Int = R.attr.icon_red
+
+        override fun performAction(vm: EpisodeVM) {
+            super.performAction(vm)
+            showAlarmDialog = true
+        }
+        @Composable
+        override fun ActionOptions() {
+            if (showAlarmDialog && onEVM != null) AlarmEpisodeDialog(listOf(onEVM!!)) { showAlarmDialog = false }
         }
     }
 
@@ -562,9 +573,6 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         private const val KEY_PREFIX_NO_ACTION: String = "PrefNoSwipeAction"
 
         val prefs: SharedPreferences by lazy { getAppContext().getSharedPreferences(SWIPE_ACTIONS_PREF_NAME, Context.MODE_PRIVATE) }
-//        fun getSharedPrefs(context: Context) {
-//            if (prefs == null) prefs = getAppContext().getSharedPreferences(SWIPE_ACTIONS_PREF_NAME, Context.MODE_PRIVATE)
-//        }
 
         @Composable
         fun SwipeActionsSettingDialog(sa: SwipeActions, onDismissRequest: () -> Unit, callback: (RightLeftActions)->Unit) {

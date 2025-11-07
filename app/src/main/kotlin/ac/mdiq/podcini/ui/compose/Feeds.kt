@@ -686,14 +686,14 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
                     Text(text = "Select/Deselect All", modifier = Modifier.weight(1f))
                     Checkbox(checked = isSelectAllChecked, onCheckedChange = { isChecked ->
                         isSelectAllChecked = isChecked
-                        readElements.forEachIndexed { index, _ -> selectedItems.put(index, isChecked) }
+                        readElements.forEachIndexed { index, _ -> selectedItems[index] = isChecked }
                     })
                 }
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     itemsIndexed(readElements) { index, item ->
                         Row(modifier = Modifier.fillMaxWidth().padding(start = 8.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(text = item.text?:"", modifier = Modifier.weight(1f))
-                            Checkbox(checked = selectedItems[index] == true, onCheckedChange = { checked -> selectedItems.put(index, checked) })
+                            Checkbox(checked = selectedItems[index] == true, onCheckedChange = { checked -> selectedItems[index] = checked })
                         }
                     }
                 }

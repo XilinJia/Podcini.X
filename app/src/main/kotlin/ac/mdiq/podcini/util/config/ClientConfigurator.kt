@@ -12,6 +12,8 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences
 import ac.mdiq.podcini.preferences.UsageStatistics
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
+import ac.mdiq.podcini.storage.database.RealmDB.getRealmInstance
+import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
@@ -28,6 +30,8 @@ object ClientConfigurator {
         Logd("ClientConfigurator", "initialize")
 
         AppPreferences.init(context)
+        getRealmInstance()
+
         UsageStatistics.init(context)
         SslProviderInstaller.install(context)
         NetworkUtils.init(context)

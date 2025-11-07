@@ -8,7 +8,7 @@
     <string name="add_feed_label">Add podcast</string>
     <string name="online_episodes_label">Online episodes</string>
     <string name="episodes_label">Episodes</string>
-    <string name="queue_label">Queues</string>
+
     <string name="settings_label">Settings</string>
     <string name="downloads_label">Downloads</string>
     <string name="logs_label">Logs</string>
@@ -342,10 +342,10 @@
     <string name="pref_keeps_important_episodes_title">Keep important episodes</string>
     <string name="playback_pref">Playback</string>
     <string name="playback_pref_sum">Headphone controls, Skip intervals, Queue</string>
-    <string name="downloads_pref">Downloads</string>
+
     <string name="downloads_pref_sum">Update interval, Mobile data, Automatic download, Automatic deletion</string>
     <string name="feed_refresh_title">Refresh podcasts</string>
-    <string name="feed_refresh_sum">Specify an interval (in hours, 0 means never) at which Podcini looks for new episodes automatically.</string>
+
 
 
 

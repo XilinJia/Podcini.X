@@ -22,6 +22,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.storage.utils.ChapterUtils
 import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
+import ac.mdiq.podcini.storage.utils.StorageUtils.quietlyDeleteFile
 import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -55,7 +56,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.apache.commons.io.FileUtils
 import java.io.File
 import java.net.URI
 import java.util.Locale
@@ -153,11 +153,12 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 Logs(TAG, e)
                 result = Result.failure()
             } finally {
-                if (result == Result.failure() && downloader?.downloadRequest?.destination != null) FileUtils.deleteQuietly(File(downloader!!.downloadRequest.destination!!))
+                if (result == Result.failure() && downloader?.downloadRequest?.destination != null) quietlyDeleteFile(downloader!!.downloadRequest.destination!!.toUri())
                 downloader?.cancel()
             }
             progressUpdaterJob.cancel()
-            runBlocking { progressUpdaterJob.join() }
+//            runBlocking { progressUpdaterJob.join() }
+            progressUpdaterJob.join()
 
             synchronized(notificationProgress) {
                 notificationProgress.remove(media.getEpisodeTitle())
@@ -181,6 +182,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 return Result.failure()
             }
 
+            Logd(TAG, "request.destination: ${request.destination}")
             ensureMediaFileExists(request.destination.toUri())
             downloader = DefaultDownloaderFactory().create(request)
             if (downloader == null) {
@@ -188,7 +190,8 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 return Result.failure()
             }
 
-            try { downloader!!.run()
+            try {
+                downloader!!.run()
             } catch (e: Exception) {
                 Logs(TAG, e, "failed performDownload exception on downloader!!.call()")
                 LogsAndStats.addDownloadStatus(downloader!!.result)
@@ -206,7 +209,8 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             }
             if (status.reason == DownloadError.ERROR_HTTP_DATA_ERROR && status.reasonDetailed.toInt() == 416) {
                 Logd(TAG, "Requested invalid range, restarting download from the beginning")
-                if (downloader?.downloadRequest?.destination != null) FileUtils.deleteQuietly(File(downloader!!.downloadRequest.destination!!))
+                Logd(TAG, "${downloader?.downloadRequest?.destination}")
+                if (downloader?.downloadRequest?.destination != null) quietlyDeleteFile(downloader!!.downloadRequest.destination!!.toUri())
                 sendMessage(request.title?:"", false)
                 return retry3times()
             }
@@ -231,7 +235,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         private fun sendMessage(episodeTitle_: String, isImmediateFail: Boolean) {
             var episodeTitle = episodeTitle_
             val retrying = !isLastRunAttempt && !isImmediateFail
-            if (episodeTitle.length > 20) episodeTitle = episodeTitle.substring(0, 19) + "…"
+            if (episodeTitle.length > 20) episodeTitle = episodeTitle.take(19) + "…"
 
             // TODO: the action may need to be changed
             EventFlow.postEvent(FlowEvent.MessageEvent(
@@ -302,7 +306,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                             MediaMetadataRetrieverCompat().use { mmr ->
                                 mmr.setDataSource(context, it.fileUrl?.toUri())
                                 durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
-                                if (durationStr != null) it.duration = (durationStr!!.toInt())
+                                if (durationStr != null) it.duration = durationStr.toInt()
                             }
                         } catch (e: NumberFormatException) { Logs(TAG, e, "Invalid file duration: $durationStr")
                         } catch (e: Exception) {

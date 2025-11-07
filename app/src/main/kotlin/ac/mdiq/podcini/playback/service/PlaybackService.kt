@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.playback.service
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.utils.NetworkUtils.isStreamingAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowStreaming
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
@@ -11,7 +10,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.loadPlayableFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.monitorState
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.isStreaming
@@ -23,7 +21,6 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.buildMediaItem
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentMediaType
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.releaseCache
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.showStreamingNotAllowedDialog
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.TaskManager
@@ -68,7 +65,6 @@ import android.os.Vibrator
 import android.view.KeyEvent
 import android.view.KeyEvent.KEYCODE_MEDIA_STOP
 import android.view.ViewConfiguration
-import android.webkit.URLUtil
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
@@ -519,7 +515,7 @@ class PlaybackService : MediaLibraryService() {
                 val allowStreamThisTime = intent?.getBooleanExtra(EXTRA_ALLOW_STREAM_THIS_TIME, false) == true
                 val allowStreamAlways = intent?.getBooleanExtra(EXTRA_ALLOW_STREAM_ALWAYS, false) == true
                 if (allowStreamAlways) mobileAllowStreaming = true
-                startPlaying(allowStreamThisTime)
+                startPlaying(allowStreamThisTime || allowStreamAlways)
                 return START_STICKY
             }
             else -> Logd(TAG, "onStartCommand case when not (keycode != -1 and playable != null)")
@@ -627,13 +623,13 @@ class PlaybackService : MediaLibraryService() {
     private fun startPlaying(allowStreamThisTime: Boolean) {
         Logd(TAG, "startPlaying called allowStreamThisTime: $allowStreamThisTime")
         val media = curEpisode ?: return
-        val localFeed = URLUtil.isContentUrl(media.downloadUrl)
+//        val localFeed = URLUtil.isContentUrl(media.downloadUrl)
         streaming = isStreaming(media)
-        if (streaming!! && !localFeed && !isStreamingAllowed && !allowStreamThisTime) {
-            showStreamingNotAllowedDialog(this, PlaybackStarter(this, media).intent)
-            writeNoMediaPlaying()
-            return
-        }
+//        if (streaming!! && !localFeed && !isStreamingAllowed && !allowStreamThisTime) {
+//            showStreamingNotAllowedDialog(this, PlaybackStarter(this, media).intent)
+//            writeNoMediaPlaying()
+//            return
+//        }
         mPlayer?.prepareMedia(playable = media, streaming = streaming!!, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
     }
 

@@ -34,7 +34,7 @@ open class GearBoxBase {
 
     open fun isGearUrl(url: URL): Boolean = false
 
-    open fun SupportExtraSort(): Boolean = false
+    open fun supportExtraSort(): Boolean = false
 
     open fun cleanGearData() {}
     open fun buildWebviewData(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
@@ -50,9 +50,9 @@ open class GearBoxBase {
     @Composable
     open fun GearSearchText() {}
 
-    open fun canHandleShared(urlString: String): Boolean = false
+    open fun canHandleSharedMedia(urlString: String): Boolean = false
 
-    open fun handleShared(log: ShareLog?, mediaCB: ()->Unit) {}
+    open fun handleSharedMedia(log: ShareLog?, mediaCB: ()->Unit) {}
 
     open fun feedFilter(properties: HashSet<String>, statements: MutableList<String>) {}
 

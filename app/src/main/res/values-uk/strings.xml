@@ -8,7 +8,7 @@
     <string name="add_feed_label">Додати подкаст</string>
     <string name="online_episodes_label">Онлайн-епізоди</string>
     <string name="episodes_label">Епізоди</string>
-    <string name="queue_label">Черга</string>
+
     <string name="settings_label">Налаштування</string>
     <string name="downloads_label">Завантаження</string>
     <string name="logs_label">Логи</string>
@@ -342,10 +342,10 @@
     <string name="pref_keeps_important_episodes_title">Зберегти важливі серії</string>
     <string name="playback_pref">Відтворення</string>
     <string name="playback_pref_sum">Керування навушниками, Пропуск інтервалів, Черга</string>
-    <string name="downloads_pref">Завантаження</string>
+
     <string name="downloads_pref_sum">Інтервал оновлення, Мобільні дані, Автоматичне завантаження, Автоматичне видалення</string>
     <string name="feed_refresh_title">Оновити подкасти</string>
-    <string name="feed_refresh_sum">Вкажіть інтервал (в годинах, 0 - ніколи), при якій Подцині буде вишукувати нові епізоди автоматично.</string>
+
 
 
 

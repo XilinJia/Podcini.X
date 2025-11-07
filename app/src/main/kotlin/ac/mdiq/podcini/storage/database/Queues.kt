@@ -5,7 +5,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.automation.AutoDownloads.autodownloadForQueue
 import ac.mdiq.podcini.automation.AutoDownloads.autoenqueueForQueue
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
-import ac.mdiq.podcini.net.utils.NetworkUtils.isStreamingAllowed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
@@ -26,17 +25,17 @@ import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
-import java.util.Date
 import kotlinx.coroutines.Job
+import java.util.Date
 import kotlin.random.Random
 
 object Queues {
@@ -377,7 +376,7 @@ object Queues {
         }
     }
 
-    fun getNextInQueue(currentMedia: Episode?, streamNotifyCB: (Episode)->Unit): Episode? {
+    fun getNextInQueue(currentMedia: Episode?): Episode? {
         Logd(TAG, "getNextInQueue called currentMedia: ${currentMedia?.getEpisodeTitle()}")
         val eList = if (currentMedia?.feed?.queue == null) currentMedia?.feed?.getVirtualQueueItems() else curQueue.episodes
         if (eList.isNullOrEmpty()) {
@@ -404,12 +403,12 @@ object Queues {
             writeMediaPlaying(nextItem, PlayerStatus.STOPPED)
             return null
         }
-        if (!nextItem.localFileAvailable() && !isStreamingAllowed && nextItem.feed?.isLocalFeed != true) {
-            Logd(TAG, "getNextInQueue nextItem has no local file ${nextItem.title}")
-            streamNotifyCB(nextItem)
-            writeNoMediaPlaying()
-            return null
-        }
+//        if (!nextItem.localFileAvailable() && !isStreamingAllowed && nextItem.feed?.isLocalFeed != true) {
+//            Logd(TAG, "getNextInQueue nextItem has no local file ${nextItem.title}")
+//            streamNotifyCB(nextItem)
+//            writeNoMediaPlaying()
+//            return null
+//        }
         nextItem = checkAndMarkDuplicates(nextItem)
         episodeChangedWhenScreenOff = true
         return nextItem
@@ -431,7 +430,7 @@ object Queues {
                 // Simply returning 0 will reverse the order.
                 EnqueueLocation.FRONT -> getPositionOfFirstNonDownloadingItem(0, queueItems)
                 EnqueueLocation.AFTER_CURRENTLY_PLAYING -> getPositionOfFirstNonDownloadingItem(getCurrentlyPlayingPosition(queueItems, currentPlaying) + 1, queueItems)
-                EnqueueLocation.RANDOM -> Random.Default.nextInt(queueItems.size + 1)
+                EnqueueLocation.RANDOM -> Random.nextInt(queueItems.size + 1)
         //                else -> throw AssertionError("calcPosition() : unrecognized enqueueLocation option: $enqueueLocation")
             }
         }

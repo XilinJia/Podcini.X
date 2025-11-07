@@ -33,10 +33,8 @@ import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
-import ac.mdiq.podcini.storage.utils.MediaType
 import ac.mdiq.podcini.storage.utils.EpisodeState
-import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.storage.utils.MediaType
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.IntentUtils.sendLocalBroadcast
@@ -45,9 +43,6 @@ import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import android.annotation.SuppressLint
-import android.app.PendingIntent
-import android.app.PendingIntent.FLAG_IMMUTABLE
-import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -62,8 +57,10 @@ import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
@@ -88,8 +85,6 @@ import java.util.GregorianCalendar
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
-import androidx.core.net.toUri
-import androidx.media3.common.util.UnstableApi
 
 @UnstableApi
 abstract class MediaPlayerBase protected constructor(protected val context: Context) {
@@ -261,7 +256,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             val skipIntroMS = skipIntro * 1000
             if (skipIntro > 0 && playable.position < skipIntroMS) {
                 val duration = getDuration()
-                if (skipIntroMS < duration || duration <= 0) {
+                if (duration !in 1..skipIntroMS) {
                     Logd(TAG, "onPlaybackStart skipIntro ${playable.getEpisodeTitle()}")
                     seekTo(skipIntroMS)
                     Logt(TAG, context.getString(R.string.pref_feed_skip_intro_toast, skipIntro))
@@ -850,21 +845,21 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             return playbackSpeed
         }
 
-        fun showStreamingNotAllowedDialog(context: Context, originalIntent: Intent) {
-            val intentAllowThisTime = Intent(originalIntent).setAction(EXTRA_ALLOW_STREAM_THIS_TIME).putExtra(EXTRA_ALLOW_STREAM_THIS_TIME, true)
-            val pendingIntentAllowThisTime = PendingIntent.getForegroundService(context, R.id.pending_intent_allow_stream_this_time, intentAllowThisTime, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
-
-            val intentAlwaysAllow = Intent(intentAllowThisTime).setAction(EXTRA_ALLOW_STREAM_ALWAYS).putExtra(EXTRA_ALLOW_STREAM_ALWAYS, true)
-            val pendingIntentAlwaysAllow = PendingIntent.getForegroundService(context, R.id.pending_intent_allow_stream_always, intentAlwaysAllow, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
-
-            commonConfirm = CommonConfirmAttrib(title = context.getString(R.string.confirm_mobile_streaming_notification_title),
-                message = context.getString(R.string.confirm_mobile_streaming_notification_message),
-                confirmRes = R.string.confirm_mobile_streaming_button_always,
-                cancelRes = R.string.cancel_label,
-                neutralRes = R.string.confirm_mobile_streaming_button_once,
-                onConfirm = { try { pendingIntentAlwaysAllow.send() } catch (e: PendingIntent.CanceledException) { Loge(TAG, "Can't start service intent: ${e.message}") } },
-                onNeutral = { try { pendingIntentAllowThisTime.send() } catch (e: PendingIntent.CanceledException) { Loge(TAG, "Can't start service intent: ${e.message}") } })
-        }
+//        fun showStreamingNotAllowedDialog(context: Context, originalIntent: Intent) {
+//            val intentAllowThisTime = Intent(originalIntent).setAction(EXTRA_ALLOW_STREAM_THIS_TIME).putExtra(EXTRA_ALLOW_STREAM_THIS_TIME, true)
+//            val pendingIntentAllowThisTime = PendingIntent.getForegroundService(context, R.id.pending_intent_allow_stream_this_time, intentAllowThisTime, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
+//
+//            val intentAlwaysAllow = Intent(intentAllowThisTime).setAction(EXTRA_ALLOW_STREAM_ALWAYS).putExtra(EXTRA_ALLOW_STREAM_ALWAYS, true)
+//            val pendingIntentAlwaysAllow = PendingIntent.getForegroundService(context, R.id.pending_intent_allow_stream_always, intentAlwaysAllow, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
+//
+//            commonConfirm = CommonConfirmAttrib(title = context.getString(R.string.confirm_mobile_streaming_notification_title),
+//                message = context.getString(R.string.confirm_mobile_streaming_notification_message),
+//                confirmRes = R.string.confirm_mobile_streaming_button_always,
+//                cancelRes = R.string.cancel_label,
+//                neutralRes = R.string.confirm_mobile_streaming_button_once,
+//                onConfirm = { try { pendingIntentAlwaysAllow.send() } catch (e: PendingIntent.CanceledException) { Loge(TAG, "Can't start service intent: ${e.message}") } },
+//                onNeutral = { try { pendingIntentAllowThisTime.send() } catch (e: PendingIntent.CanceledException) { Loge(TAG, "Can't start service intent: ${e.message}") } })
+//        }
 
         fun playPause() {
             Logd(TAG, "playPause status: $status")

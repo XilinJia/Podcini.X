@@ -150,7 +150,8 @@ object Episodes {
             }
         }
 
-        while(waiting) runBlocking { delay(1000) }
+        while(waiting) runBlocking { delay(1000) }  // TODO: need to correct this runBlocking
+
         if (repeatItems.isNotEmpty()) {
             withContext(Dispatchers.Main) {
                 commonConfirm = CommonConfirmAttrib(

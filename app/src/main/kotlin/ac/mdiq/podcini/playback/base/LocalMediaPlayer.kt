@@ -3,7 +3,6 @@ package ac.mdiq.podcini.playback.base
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
-import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
@@ -21,8 +20,8 @@ import ac.mdiq.podcini.storage.database.Queues.getNextInQueue
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.MediaType
 import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.MediaType
 import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -65,12 +64,12 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector.SelectionOv
 import androidx.media3.exoplayer.trackselection.ExoTrackSelection
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
-import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import java.io.IOException
 
 @UnstableApi
 class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
@@ -602,7 +601,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             shouldContinue -> {
                 // Load next episode if previous episode was in the queue and if there is an episode in the queue left.
                 // Start playback immediately if continuous playback is enabled
-                val nextMedia = getNextInQueue(currentMedia) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
+                val nextMedia = getNextInQueue(currentMedia)
                 if (nextMedia == null) {
                     Logd(TAG, "nextMedia is null. call callback.onPlaybackEnded true")
                     onPlaybackEnded(true)

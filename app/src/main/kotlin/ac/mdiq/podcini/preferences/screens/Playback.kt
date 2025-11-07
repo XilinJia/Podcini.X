@@ -15,12 +15,15 @@ import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.streamingCacheSizeMB
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.storage.database.Queues.EnqueueLocation
+import ac.mdiq.podcini.ui.activity.PreferenceActivity
+import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
+import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.Logd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -58,7 +61,7 @@ enum class PrefHardwareForwardButton(val res: Int, val res1: Int) {
 }
 
 @Composable
-fun PlaybackPreferencesScreen() {
+fun PlaybackPreferencesScreen(activity: PreferenceActivity) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val scrollState = rememberScrollState()
 //    val context = LocalContext.current
@@ -192,7 +195,7 @@ fun PlaybackPreferencesScreen() {
             )
         }
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-        Text(stringResource(R.string.queue_label), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
+        Text(stringResource(R.string.queue_label) + "/" + stringResource(R.string.episodes_label), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
         TitleSummarySwitchPrefRow(R.string.pref_enqueue_downloaded_title, R.string.pref_enqueue_downloaded_summary, AppPrefs.prefEnqueueDownloaded)
         var showEnqueueLocationOptions by remember { mutableStateOf(false) }
         var tempLocationOption by remember { mutableStateOf(EnqueueLocation.BACK.name) }
@@ -223,5 +226,24 @@ fun PlaybackPreferencesScreen() {
         TitleSummarySwitchPrefRow(R.string.pref_followQueue_title, R.string.pref_followQueue_sum, AppPrefs.prefFollowQueue)
         TitleSummarySwitchPrefRow(R.string.pref_skip_keeps_episodes_title, R.string.pref_skip_keeps_episodes_sum, AppPrefs.prefSkipKeepsEpisode)
         TitleSummarySwitchPrefRow(R.string.pref_mark_played_removes_from_queue_title, R.string.pref_mark_played_removes_from_queue_sum, AppPrefs.prefRemoveFromQueueMarkedPlayed)
+
+        TitleSummarySwitchPrefRow(R.string.auto_delete, R.string.pref_auto_delete_sum, AppPrefs.prefAutoDelete)
+        var blockAutoDeleteLocal by remember { mutableStateOf(true) }
+        TitleSummarySwitchPrefRow(R.string.pref_auto_local_delete_title, R.string.pref_auto_local_delete_sum, AppPrefs.prefAutoDeleteLocal) {
+            if (blockAutoDeleteLocal && it) {
+                commonConfirm = CommonConfirmAttrib(
+                    title = "",
+                    message = activity.getString(R.string.pref_auto_local_delete_dialog_body),
+                    confirmRes = R.string.yes,
+                    cancelRes = R.string.cancel_label,
+                    onConfirm = {
+                        blockAutoDeleteLocal = false
+                        putPref(AppPrefs.prefAutoDeleteLocal, it)
+                        blockAutoDeleteLocal = true
+                    })
+            }
+        }
+        TitleSummarySwitchPrefRow(R.string.pref_keeps_important_episodes_title, R.string.pref_keeps_important_episodes_sum, AppPrefs.prefFavoriteKeepsEpisode)
+        TitleSummarySwitchPrefRow(R.string.pref_delete_removes_from_queue_title, R.string.pref_delete_removes_from_queue_sum, AppPrefs.prefDeleteRemovesFromQueue)
     }
 }

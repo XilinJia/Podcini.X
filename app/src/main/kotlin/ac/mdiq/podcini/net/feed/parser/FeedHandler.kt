@@ -489,31 +489,27 @@ class FeedHandler {
                     textElement = topElement as AtomText
                     textElement.setContent(content)
                 }
-                when {
-                    ID == top -> {
-                        when {
-                            FEED == second -> state.feed.identifier = contentRaw
-                            ENTRY == second && state.currentItem != null -> state.currentItem!!.identifier = contentRaw
+                when (top) {
+                    ID -> {
+                        when (second) {
+                            FEED -> state.feed.identifier = contentRaw
+                            ENTRY if state.currentItem != null -> state.currentItem!!.identifier = contentRaw
                         }
                     }
-                    TITLE == top && textElement != null -> {
-                        when {
-                            FEED == second -> state.feed.title = textElement.processedContent
-                            ENTRY == second && state.currentItem != null -> state.currentItem!!.title = textElement.processedContent
+                    TITLE if textElement != null -> {
+                        when (second) {
+                            FEED -> state.feed.title = textElement.processedContent
+                            ENTRY if state.currentItem != null -> state.currentItem!!.title = textElement.processedContent
                         }
                     }
-                    SUBTITLE == top && FEED == second && textElement != null -> state.feed.description = textElement.processedContent
-                    CONTENT == top && ENTRY == second && textElement != null && state.currentItem != null ->
-                        state.currentItem!!.setDescriptionIfLonger(textElement.processedContent)
-                    SUMMARY == top && ENTRY == second && textElement != null && state.currentItem != null ->
-                        state.currentItem!!.setDescriptionIfLonger(textElement.processedContent)
-                    UPDATED == top && ENTRY == second && state.currentItem != null && state.currentItem!!.pubDate == 0L ->
-                        state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.time ?: 0
-                    PUBLISHED == top && ENTRY == second && state.currentItem != null ->
-                        state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.time ?: 0
-                    IMAGE_LOGO == top && state.feed.imageUrl == null -> state.feed.imageUrl = content
-                    IMAGE_ICON == top -> state.feed.imageUrl = content
-                    AUTHOR_NAME == top && AUTHOR == second && state.currentItem == null -> {
+                    SUBTITLE if FEED == second && textElement != null -> state.feed.description = textElement.processedContent
+                    CONTENT if ENTRY == second && textElement != null && state.currentItem != null -> state.currentItem!!.setDescriptionIfLonger(textElement.processedContent)
+                    SUMMARY if ENTRY == second && textElement != null && state.currentItem != null -> state.currentItem!!.setDescriptionIfLonger(textElement.processedContent)
+                    UPDATED if ENTRY == second && state.currentItem != null && state.currentItem!!.pubDate == 0L -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.time ?: 0
+                    PUBLISHED if ENTRY == second && state.currentItem != null -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.time ?: 0
+                    IMAGE_LOGO if state.feed.imageUrl == null -> state.feed.imageUrl = content
+                    IMAGE_ICON -> state.feed.imageUrl = content
+                    AUTHOR_NAME if AUTHOR == second && state.currentItem == null -> {
                         val currentName = state.feed.author
                         if (currentName == null) state.feed.author = content
                         else state.feed.author = "$currentName, $content"
@@ -610,22 +606,22 @@ class FeedHandler {
             val content = state.contentBuf.toString()
             if (content.isEmpty()) return
 
-            when {
-                AUTHOR == localName && state.tagstack.size <= 3 -> state.feed.author = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                DURATION == localName -> try { state.tempObjects[DURATION] = inMillis(content).toInt() } catch (e: NumberFormatException) { Logs(NSTAG, e, String.format("Duration '%s' could not be parsed", content)) }
-                SUBTITLE == localName -> {
+            when (localName) {
+                AUTHOR if state.tagstack.size <= 3 -> state.feed.author = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                DURATION -> try { state.tempObjects[DURATION] = inMillis(content).toInt() } catch (e: NumberFormatException) { Logs(NSTAG, e, String.format("Duration '%s' could not be parsed", content)) }
+                SUBTITLE -> {
                     when {
                         state.currentItem != null && state.currentItem?.description.isNullOrEmpty() -> state.currentItem!!.setDescriptionIfLonger(content)
                         state.feed.description.isNullOrEmpty() -> state.feed.description = content
                     }
                 }
-                SUMMARY == localName -> {
+                SUMMARY -> {
                     when {
                         state.currentItem != null -> state.currentItem!!.setDescriptionIfLonger(content)
                         Rss20.CHANNEL == state.secondTag.name -> state.feed.description = content
                     }
                 }
-                NEW_FEED_URL == localName && content.trim { it <= ' ' }.startsWith("http") -> state.redirectUrl = content.trim { it <= ' ' }
+                NEW_FEED_URL if content.trim { it <= ' ' }.startsWith("http") -> state.redirectUrl = content.trim { it <= ' ' }
             }
         }
 
@@ -706,17 +702,16 @@ class FeedHandler {
                     val isDefault = "true" == defaultStr
                     var mimeType = getMimeType(attributes.getValue(MIME_TYPE), url)
 
-                    when {
-                        MEDIUM_AUDIO == medium -> {
+                    when (medium) {
+                        MEDIUM_AUDIO -> {
                             validTypeMedia = true
                             mimeType = "audio/*"
                         }
-                        MEDIUM_VIDEO == medium -> {
+                        MEDIUM_VIDEO -> {
                             validTypeMedia = true
                             mimeType = "video/*"
                         }
-                        MEDIUM_IMAGE == medium && (mimeType == null || (!mimeType.startsWith("audio/") && !mimeType.startsWith("video/"))) -> {
-                            // Apparently, some publishers explicitly specify the audio file as an image
+                        MEDIUM_IMAGE if (mimeType == null || (!mimeType.startsWith("audio/") && !mimeType.startsWith("video/"))) -> { // Apparently, some publishers explicitly specify the audio file as an image
                             validTypeImage = true
                             mimeType = "image/*"
                         }
@@ -840,21 +835,19 @@ class FeedHandler {
     class Rss20 : Namespace() {
         override fun handleElementStart(localName: String, state: HandlerState, attributes: Attributes): SyndElement {
 //        Logd(TAG, "handleElementStart $localName")
-            when {
-                ITEM == localName && CHANNEL == state.tagstack.lastElement()?.name -> {
+            when (localName) {
+                ITEM if CHANNEL == state.tagstack.lastElement()?.name -> {
                     state.currentItem = Episode()
-                    state.items.add(state.currentItem!!)
-//                state.currentItem!!.feed = state.feed
+                    state.items.add(state.currentItem!!) //                state.currentItem!!.feed = state.feed
                 }
-                ENCLOSURE == localName && ITEM == state.tagstack.peek()?.name -> {
+                ENCLOSURE if ITEM == state.tagstack.peek()?.name -> {
                     val url: String? = attributes.getValue(ENC_URL)
                     val mimeType: String? = getMimeType(attributes.getValue(ENC_TYPE), url)
                     val validUrl = !url.isNullOrBlank()
                     if (isMediaFile(mimeType) && validUrl) {
                         var size: Long = 0
                         try {
-                            size = attributes.getValue(ENC_LEN)?.toLong() ?: 0
-                            // less than 16kb is suspicious, check manually
+                            size = attributes.getValue(ENC_LEN)?.toLong() ?: 0 // less than 16kb is suspicious, check manually
                             if (size < 16384) size = 0
                         } catch (e: NumberFormatException) { Logs(TAG, e, "Length attribute could not be parsed.") }
                         state.currentItem?.fillMedia(url, size, mimeType)
@@ -898,24 +891,24 @@ class FeedHandler {
                         GUID == top && ITEM == second -> if (contentRaw.isNotEmpty() && state.currentItem != null) state.currentItem!!.identifier = contentRaw
                         TITLE == top -> {
                             val contentFromHtml = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                            when {
-                                ITEM == second && state.currentItem != null -> state.currentItem!!.title = contentFromHtml
-                                CHANNEL == second -> state.feed.title = contentFromHtml
+                            when (second) {
+                                ITEM if state.currentItem != null -> state.currentItem!!.title = contentFromHtml
+                                CHANNEL -> state.feed.title = contentFromHtml
                             }
                         }
                         LINK == top -> {
-                            when {
-                                CHANNEL == second -> state.feed.link = content
-                                ITEM == second && state.currentItem != null -> state.currentItem!!.link = content
+                            when (second) {
+                                CHANNEL -> state.feed.link = content
+                                ITEM if state.currentItem != null -> state.currentItem!!.link = content
                             }
                         }
                         PUBDATE == top && ITEM == second && state.currentItem != null -> state.currentItem!!.pubDate = parseOrNullIfFuture(content)?.time ?: 0
                         // prefer itunes:image
                         URL == top && IMAGE == second && CHANNEL == third -> if (state.feed.imageUrl == null) state.feed.imageUrl = content
                         DESCR == localName -> {
-                            when {
-                                CHANNEL == second -> state.feed.description = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                                ITEM == second && state.currentItem != null -> state.currentItem!!.setDescriptionIfLonger(content) // fromHtml here breaks \n when not html
+                            when (second) {
+                                CHANNEL -> state.feed.description = HtmlCompat.fromHtml(content, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                                ITEM if state.currentItem != null -> state.currentItem!!.setDescriptionIfLonger(content) // fromHtml here breaks \n when not html
                             }
                         }
                         LANGUAGE == localName -> state.feed.language = content.lowercase()
@@ -949,10 +942,9 @@ class FeedHandler {
         override fun handleElementStart(localName: String, state: HandlerState, attributes: Attributes): SyndElement {
             val currentItem = state.currentItem
             if (currentItem != null) {
-                when {
-                    localName == CHAPTERS -> currentItem.chapters.clear()
-                    localName == CHAPTER && !attributes.getValue(START).isNullOrEmpty() -> {
-                        // if the chapter's START is empty, we don't need to do anything
+                when (localName) {
+                    CHAPTERS -> currentItem.chapters.clear()
+                    CHAPTER if !attributes.getValue(START).isNullOrEmpty() -> { // if the chapter's START is empty, we don't need to do anything
                         try {
                             val start= parseTimeString(attributes.getValue(START))
                             val title: String? = attributes.getValue(TITLE)

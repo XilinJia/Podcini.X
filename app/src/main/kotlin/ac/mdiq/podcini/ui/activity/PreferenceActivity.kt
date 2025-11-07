@@ -10,8 +10,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.PreferenceUpgrader.getCopyrightNoticeText
 import ac.mdiq.podcini.preferences.PreferenceUpgrader.githubAddress
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
-import ac.mdiq.podcini.preferences.screens.AutoDownloadPreferencesScreen
-import ac.mdiq.podcini.preferences.screens.DownloadsPreferencesScreen
+import ac.mdiq.podcini.preferences.screens.NetworkAndDownloadsScreen
 import ac.mdiq.podcini.preferences.screens.ImportExportPreferencesScreen
 import ac.mdiq.podcini.preferences.screens.PlaybackPreferencesScreen
 import ac.mdiq.podcini.preferences.screens.SynchronizationPreferencesScreen
@@ -141,19 +140,16 @@ class PreferenceActivity : ComponentActivity() {
                             UserInterfacePreferencesScreen() }
                         composable(Screens.DownloadScreen.name) {
                             topAppBarTitle = stringResource(Screens.DownloadScreen.titleRes)
-                            DownloadsPreferencesScreen(this@PreferenceActivity, navController) }
+                            NetworkAndDownloadsScreen(this@PreferenceActivity, navController) }
                         composable(Screens.ImportExportScreen.name) {
                             topAppBarTitle = stringResource(Screens.ImportExportScreen.titleRes)
                             ImportExportPreferencesScreen(this@PreferenceActivity) }
-                        composable(Screens.AutoDownloadScreen.name) {
-                            topAppBarTitle = stringResource(Screens.AutoDownloadScreen.titleRes)
-                            AutoDownloadPreferencesScreen() }
                         composable(Screens.SynchronizationScreen.name) {
                             topAppBarTitle = stringResource(Screens.SynchronizationScreen.titleRes)
                             SynchronizationPreferencesScreen(this@PreferenceActivity) }
                         composable(Screens.PlaybackScreen.name) {
                             topAppBarTitle = stringResource(Screens.PlaybackScreen.titleRes)
-                            PlaybackPreferencesScreen() }
+                            PlaybackPreferencesScreen(this@PreferenceActivity) }
                         composable(Screens.NotificationScreen.name) {
                             topAppBarTitle = stringResource(Screens.NotificationScreen.titleRes)
                             NotificationPreferencesScreen() }
@@ -257,7 +253,7 @@ class PreferenceActivity : ComponentActivity() {
             }
             IconTitleSummaryScreenRow(R.drawable.ic_appearance, R.string.user_interface_label, R.string.user_interface_sum, Screens.InterfaceScreen.name)
             IconTitleSummaryScreenRow(R.drawable.ic_play_24dp, R.string.playback_pref, R.string.playback_pref_sum, Screens.PlaybackScreen.name)
-            IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.downloads_pref, R.string.downloads_pref_sum, Screens.DownloadScreen.name)
+            IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.network_downloads_pref, R.string.downloads_pref_sum, Screens.DownloadScreen.name)
             IconTitleSummaryScreenRow(R.drawable.ic_cloud, R.string.synchronization_pref, R.string.synchronization_sum, Screens.SynchronizationScreen.name)
             IconTitleSummaryScreenRow(R.drawable.ic_storage, R.string.import_export_pref, R.string.import_export_summary, Screens.ImportExportScreen.name)
             IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { navController.navigate(Screens.NotificationScreen.name) }
@@ -326,15 +322,6 @@ class PreferenceActivity : ComponentActivity() {
                 }
             }.invokeOnCompletion { throwable -> if (throwable!= null) Logs(TAG, throwable) }
         }
-//        fun showLicenseText(licenseTextFile: String) {
-//            try {
-//                val reader = BufferedReader(InputStreamReader(assets.open(licenseTextFile), "UTF-8"))
-//                val licenseText = StringBuilder()
-//                var line = ""
-//                while ((reader.readLine()?.also { line = it }) != null) licenseText.append(line).append("\n")
-//                MaterialAlertDialogBuilder(this@PreferenceActivity).setMessage(licenseText).show()
-//            } catch (e: IOException) { Logs(TAG, e) }
-//        }
         val lazyListState = rememberLazyListState()
         val textColor = MaterialTheme.colorScheme.onSurface
         val showLicense = remember { mutableStateOf(false) }
@@ -497,11 +484,10 @@ class PreferenceActivity : ComponentActivity() {
         Main(R.string.settings_label),
         InterfaceScreen(R.string.user_interface_label),
         PlaybackScreen(R.string.playback_pref),
-        DownloadScreen(R.string.downloads_pref),
+        DownloadScreen(R.string.network_downloads_pref),
         SynchronizationScreen(R.string.synchronization_pref),
         ImportExportScreen(R.string.import_export_pref),
         NotificationScreen(R.string.notification_pref_fragment),
-        AutoDownloadScreen(R.string.pref_automatic_download_title),
         AboutScreen(R.string.about_pref),
         LicensesScreen(R.string.licenses);
     }

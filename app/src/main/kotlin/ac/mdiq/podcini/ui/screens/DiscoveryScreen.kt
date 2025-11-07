@@ -47,6 +47,10 @@ import androidx.core.content.edit
 class DiscoveryVM(val context: Context, val lcScope: CoroutineScope) {
     internal val prefs: SharedPreferences by lazy { context.getSharedPreferences(ItunesTopListLoader.PREFS, Context.MODE_PRIVATE) }
 
+    init {
+        lcScope.launch(Dispatchers.IO) { prefs }
+    }
+
     internal var topList: List<PodcastSearchResult>? = listOf()
 
     internal var countryCode: String? = "US"

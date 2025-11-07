@@ -278,7 +278,7 @@ object PodciniHttpClient {
                 Logd(TAG, "Invalid credentials for '" + request.url + "'")
                 return response
             }
-            val username = userInfo.substring(0, userInfo.indexOf(':'))
+            val username = userInfo.substringBefore(':')
             val password = userInfo.substring(userInfo.indexOf(':') + 1)
 
             Logd(TAG, "Authorization failed, re-trying with ISO-8859-1 encoded credentials")

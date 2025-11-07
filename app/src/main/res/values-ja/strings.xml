@@ -8,7 +8,7 @@
     <string name="add_feed_label">ポッドキャストを追加</string>
     <string name="online_episodes_label">オンラインエピソード</string>
     <string name="episodes_label">エピソード</string>
-    <string name="queue_label">キュー</string>
+
     <string name="settings_label">設定</string>
     <string name="downloads_label">ダウンロード</string>
     <string name="logs_label">ログ</string>
@@ -338,10 +338,10 @@
     <string name="pref_keeps_important_episodes_title">重要なエピソードを保持</string>
     <string name="playback_pref">再生</string>
     <string name="playback_pref_sum">ヘッドフォン制御、スキップ間隔、キュー</string>
-    <string name="downloads_pref">ダウンロード</string>
+
     <string name="downloads_pref_sum">更新間隔、モバイルデータ、自動ダウンロード、自動削除</string>
     <string name="feed_refresh_title">ポッドキャストの更新</string>
-    <string name="feed_refresh_sum">Podciniが新しいエピソードを自動的に探す間隔(時間単位、0を意味しません)を指定します。</string>
+
 
 
 

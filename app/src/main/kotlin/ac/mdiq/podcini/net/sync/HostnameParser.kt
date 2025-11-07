@@ -30,13 +30,13 @@ class HostnameParser(hosturl: String?) {
             port = 443
         }
 
-        when {
-            scheme == null && port == 80 -> scheme = "http"
-            scheme == null -> scheme = "https" // assume https
+        when (scheme) {
+            null if port == 80 -> scheme = "http"
+            null -> scheme = "https" // assume https
         }
-        when {
-            scheme == "https" && port == -1 -> port = 443
-            scheme == "http" && port == -1 -> port = 80
+        when (scheme) {
+            "https" if port == -1 -> port = 443
+            "http" if port == -1 -> port = 80
         }
     }
 

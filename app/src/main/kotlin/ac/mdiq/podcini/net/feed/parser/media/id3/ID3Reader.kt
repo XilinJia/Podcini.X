@@ -28,7 +28,7 @@ open class ID3Reader(private val inputStream: CountingInputStream) {
         val tagContentStartPosition = position
         while (position < tagContentStartPosition + tagHeader!!.size) {
             val frameHeader = readFrameHeader()
-            if (frameHeader.id[0] < '0' || frameHeader.id[0] > 'z') {
+            if (frameHeader.id[0] !in '0'..'z') {
                 Logd(TAG, "Stopping because of invalid frame: $frameHeader")
                 return
             }

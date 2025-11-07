@@ -104,6 +104,10 @@ import java.util.Locale
 class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
     val prefs: SharedPreferences by lazy { context.getSharedPreferences(ItunesTopListLoader.PREFS, Context.MODE_PRIVATE) }
 
+    init {
+        lcScope.launch(Dispatchers.IO) { prefs }
+    }
+
     internal var mainAct: MainActivity? = null
 
     internal var showError by mutableStateOf(false)
@@ -316,8 +320,8 @@ fun OnlineSearchScreen() {
                         contentDescription = "imgvCover", modifier = Modifier.padding(top = 8.dp)
                             .clickable(onClick = {
                                 Logd(TAG, "icon clicked!")
-                                val podcast: PodcastSearchResult? = vm.searchResult[index]
-                                if (!podcast?.feedUrl.isNullOrEmpty()) {
+                                val podcast: PodcastSearchResult = vm.searchResult[index]
+                                if (!podcast.feedUrl.isNullOrEmpty()) {
                                     setOnlineFeedUrl(podcast.feedUrl)
                                     navController.navigate(Screens.OnlineFeed.name)
                                 }

@@ -5,10 +5,7 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
-import java.io.IOException
-import java.net.URI
-import java.net.URL
+import androidx.core.net.toUri
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -22,7 +19,9 @@ import okhttp3.Request.Builder
 import okhttp3.RequestBody
 import org.json.JSONException
 import org.json.JSONObject
-import androidx.core.net.toUri
+import java.io.IOException
+import java.net.URI
+import java.net.URL
 
 class NextcloudLoginFlow(
         private val httpClient: OkHttpClient,
@@ -126,7 +125,7 @@ class NextcloudLoginFlow(
             response.close()
             throw IOException("Return code " + response.code)
         }
-        val body = response.body ?: throw IOException("Empty response")
+        val body = response.body
         Logd(TAG, "doRequest body: $body ")
         return JSONObject(body.string())
     }

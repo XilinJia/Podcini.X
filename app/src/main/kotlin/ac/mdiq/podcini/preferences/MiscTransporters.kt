@@ -44,7 +44,7 @@ class EpisodeProgressReader {
     }
     private fun processEpisodeAction(action: EpisodeAction): Pair<Long, Episode>? {
         val guid = if (isValidGuid(action.guid)) action.guid else null
-        var feedItem = getEpisodeByGuidOrUrl(guid, action.episode?:"", false) ?: return null
+        var feedItem = getEpisodeByGuidOrUrl(guid, action.episode, false) ?: return null
         var idRemove = 0L
         feedItem = upsertBlk(feedItem) {
             it.startPosition = action.started * 1000

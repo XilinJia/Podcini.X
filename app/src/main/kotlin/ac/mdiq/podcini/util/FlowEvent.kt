@@ -1,17 +1,16 @@
 package ac.mdiq.podcini.util
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import android.content.Context
 import android.view.KeyEvent
-import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
+import java.util.Date
 import kotlin.math.abs
 import kotlin.math.max
 

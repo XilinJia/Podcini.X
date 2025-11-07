@@ -94,6 +94,7 @@ fun ShareDialog(item: Episode, act: Activity, onDismissRequest: () -> Unit) {
     val downloaded = remember { hasMedia && item.downloaded }
     val hasDownloadUrl = remember { hasMedia && item.downloadUrl != null }
 
+    // TODO: what's this
     var type = remember { prefs.getInt(PREF_SHARE_EPISODE_TYPE, 1) }
     if ((type == 2 && !hasDownloadUrl) || (type == 3 && !downloaded)) type = 1
 
@@ -153,14 +154,14 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
     val textColor = MaterialTheme.colorScheme.onSurface
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            Column(modifier = Modifier.Companion.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(stringResource(R.string.chapters_label))
                 var currentChapterIndex by remember { mutableIntStateOf(-1) }
-                LazyColumn(state = lazyListState, modifier = Modifier.Companion.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
+                LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(chapters.size, key = { index -> chapters[index].start }) { index ->
                         val ch = chapters[index]
-                        Row(verticalAlignment = Alignment.Companion.CenterVertically, modifier = Modifier.Companion.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
 //                            if (!ch.imageUrl.isNullOrEmpty()) {
 //                                val imgUrl = ch.imageUrl
 //                                AsyncImage(model = imgUrl, contentDescription = "imgvCover",
@@ -168,17 +169,17 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
 //                                    error = painterResource(R.mipmap.ic_launcher),
 //                                    modifier = Modifier.width(56.dp).height(56.dp))
 //                            }
-                            Column(modifier = Modifier.Companion.weight(1f)) {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text(getDurationStringLong(ch.start.toInt()), color = textColor)
-                                Text(ch.title ?: "No title", color = textColor, fontWeight = FontWeight.Companion.Bold)
+                                Text(ch.title ?: "No title", color = textColor, fontWeight = FontWeight.Bold)
 //                                Text(ch.link?: "")
                                 val duration = if (index + 1 < chapters.size) chapters[index + 1].start - ch.start
                                 else media.duration - ch.start
                                 Text(stringResource(R.string.chapter_duration0) + DurationConverter.getDurationStringLocalized(duration), color = textColor)
                             }
                             val playRes = if (index == currentChapterIndex) R.drawable.ic_replay else R.drawable.ic_play_48dp
-                            Icon(imageVector = ImageVector.Companion.vectorResource(playRes), tint = textColor, contentDescription = "play button",
-                                modifier = Modifier.Companion.width(28.dp).height(32.dp).clickable {
+                            Icon(imageVector = ImageVector.vectorResource(playRes), tint = textColor, contentDescription = "play button",
+                                modifier = Modifier.width(28.dp).height(32.dp).clickable {
                                     if (status != PlayerStatus.PLAYING) playPause()
                                     mPlayer?.seekTo(ch.start.toInt())
                                     currentChapterIndex = index

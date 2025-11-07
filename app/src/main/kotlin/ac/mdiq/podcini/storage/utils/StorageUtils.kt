@@ -11,22 +11,19 @@ import android.net.Uri
 import android.os.StatFs
 import android.os.storage.StorageManager
 import android.webkit.MimeTypeMap
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import org.apache.commons.lang3.ArrayUtils
+import org.apache.commons.lang3.StringUtils
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.io.UnsupportedEncodingException
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR
-import org.apache.commons.io.FilenameUtils.getBaseName
-import org.apache.commons.io.FilenameUtils.getExtension
-import org.apache.commons.lang3.ArrayUtils
-import org.apache.commons.lang3.StringUtils
-import androidx.core.net.toUri
 
 /**
  * Utility functions for handling storage errors
@@ -100,29 +97,29 @@ object StorageUtils {
     val feedfilePath: String
         get() = getDataFolder(FEED_DOWNLOADPATH).toString() + "/"
 
-    fun getDownloadFolder(): DocumentFile? {
-        val sharedPreferences = getAppContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-        val folderUriString = sharedPreferences.getString("custom_folder_uri", null)
-        return if (folderUriString != null) {
-            val folderUri = folderUriString.toUri()
-            DocumentFile.fromTreeUri(getAppContext(), folderUri)
-        } else null
-    }
+//    fun getDownloadFolder(): DocumentFile? {
+//        val sharedPreferences = getAppContext().getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+//        val folderUriString = sharedPreferences.getString("custom_folder_uri", null)
+//        return if (folderUriString != null) {
+//            val folderUri = folderUriString.toUri()
+//            DocumentFile.fromTreeUri(getAppContext(), folderUri)
+//        } else null
+//    }
 
-    fun findUnusedFile(dest: File): File? {
-        // find different name
-        var newDest: File? = null
-        for (i in 1 until Int.MAX_VALUE) {
-            val newName = (getBaseName(dest.name) + "-" + i + EXTENSION_SEPARATOR + getExtension(dest.name))
-            Logd(TAG, "Testing filename $newName")
-            newDest = File(dest.parent, newName)
-            if (!newDest.exists()) {
-                Logd(TAG, "File doesn't exist yet. Using $newName")
-                break
-            }
-        }
-        return newDest
-    }
+//    fun findUnusedFile(dest: File): File? {
+//        // find different name
+//        var newDest: File? = null
+//        for (i in 1 until Int.MAX_VALUE) {
+//            val newName = (getBaseName(dest.name) + "-" + i + EXTENSION_SEPARATOR + getExtension(dest.name))
+//            Logd(TAG, "Testing filename $newName")
+//            newDest = File(dest.parent, newName)
+//            if (!newDest.exists()) {
+//                Logd(TAG, "File doesn't exist yet. Using $newName")
+//                break
+//            }
+//        }
+//        return newDest
+//    }
 
     fun ensureMediaFileExists(destinationUri: Uri) {
         Logd(TAG, "destinationUri: $destinationUri ${destinationUri.scheme}")
@@ -145,6 +142,22 @@ object StorageUtils {
         }
     }
 
+    fun quietlyDeleteFile(uri: Uri) {
+        when(uri.scheme) {
+            "content" -> {
+                try {
+                    val documentFile = DocumentFile.fromSingleUri(getAppContext(), uri)
+                    documentFile?.delete()
+                } catch (e: Throwable) { Logs(TAG, e, "quietlyDeleteFile Unable to delete file") }
+            }
+            "file" -> {
+                try {
+                    val file = File(uri.path!!)
+                    file.delete()
+                } catch (e: Throwable) { Logs(TAG, e, "quietlyDeleteFile Unable to delete file") }
+            }
+        }
+    }
     fun getMimeType(fileName: String): String {
         val extension = fileName.substringAfterLast('.', "").lowercase()
         val mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
@@ -254,7 +267,7 @@ object StorageUtils {
                 for (i in 0 until length) sb.append(validChars[(Math.random() * validChars.size).toInt()])
                 sb.toString()
             }
-            filename.length >= MAX_FILENAME_LENGTH -> filename.substring(0, MAX_FILENAME_LENGTH - MD5_HEX_LENGTH - 1) + "_" + md5(filename)
+            filename.length >= MAX_FILENAME_LENGTH -> filename.take(MAX_FILENAME_LENGTH - MD5_HEX_LENGTH - 1) + "_" + md5(filename)
             else -> filename
         }
     }

@@ -45,24 +45,18 @@ object RealmDB {
 
     private val ioScope = CoroutineScope(Dispatchers.IO)
 
-    val realm: Realm
-
-    init {
-        Logd(TAG, "RealmDB init")
-        val config = RealmConfiguration.Builder(
-            schema = setOf(
-                Feed::class,
-                Episode::class,
-                CurrentState::class,
-                PlayQueue::class,
-                DownloadResult::class,
-                ShareLog::class,
-                SubscriptionLog::class,
-                Chapter::class,
-                PAFeed::class,
-            ))
-            .name("Podcini.realm")
-            .schemaVersion(55)
+    val config: RealmConfiguration by lazy {
+        RealmConfiguration.Builder(schema = setOf(
+            Feed::class,
+            Episode::class,
+            CurrentState::class,
+            PlayQueue::class,
+            DownloadResult::class,
+            ShareLog::class,
+            SubscriptionLog::class,
+            Chapter::class,
+            PAFeed::class,
+        )).name("Podcini.realm").schemaVersion(55)
             .migration({ mContext ->
                 val oldRealm = mContext.oldRealm // old realm using the previous schema
                 val newRealm = mContext.newRealm // new realm using the new schema
@@ -115,31 +109,25 @@ object RealmDB {
                 if (oldRealm.schemaVersion() < 37) {
                     Logd(TAG, "migrating DB from below 37")
                     mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
-                        newObject?.run {
-//                            Logd(TAG, "start: ${getNullableValue("title", String::class)}")
+                        newObject?.run { //                            Logd(TAG, "start: ${getNullableValue("title", String::class)}")
                             val media = oldObject.getObject(propertyName = "media")
                             if (media != null) {
                                 set("fileUrl", media.getNullableValue("fileUrl", String::class))
                                 set("downloadUrl", media.getNullableValue("downloadUrl", String::class))
-                                set("mimeType", media.getNullableValue("mimeType", String::class))
-//                                Logd(TAG, "after mimeType")
-                                set("downloaded", media.getValue("downloaded", Boolean::class))
-//                                Logd(TAG, "after downloaded")
+                                set("mimeType", media.getNullableValue("mimeType", String::class)) //                                Logd(TAG, "after mimeType")
+                                set("downloaded", media.getValue("downloaded", Boolean::class)) //                                Logd(TAG, "after downloaded")
                                 set("downloadTime", media.getValue("downloadTime", Long::class))
                                 set("duration", media.getValue("duration", Long::class))
                                 set("position", media.getValue("position", Long::class))
                                 set("lastPlayedTime", media.getValue("lastPlayedTime", Long::class))
-                                set("startPosition", media.getValue("startPosition", Long::class))
-//                                Logd(TAG, "after startPosition")
+                                set("startPosition", media.getValue("startPosition", Long::class)) //                                Logd(TAG, "after startPosition")
                                 set("playedDurationWhenStarted", media.getValue("playedDurationWhenStarted", Long::class))
                                 set("playedDuration", media.getValue("playedDuration", Long::class))
                                 set("timeSpentOnStart", media.getValue("timeSpentOnStart", Long::class))
-                                set("startTime", media.getValue("startTime", Long::class))
-//                                Logd(TAG, "after startTime")
+                                set("startTime", media.getValue("startTime", Long::class)) //                                Logd(TAG, "after startTime")
                                 set("timeSpent", media.getValue("timeSpent", Long::class))
                                 set("size", media.getValue("size", Long::class))
-                                set("playbackCompletionTime", media.getValue("playbackCompletionTime", Long::class))
-//                                Logd(TAG, "after all")
+                                set("playbackCompletionTime", media.getValue("playbackCompletionTime", Long::class)) //                                Logd(TAG, "after all")
                             }
                         }
                     }
@@ -153,37 +141,31 @@ object RealmDB {
                                 set("useWideLayout", pref.getValue("useWideLayout", Boolean::class))
                                 set("keepUpdated", pref.getValue("keepUpdated", Boolean::class))
                                 set("username", pref.getNullableValue("username", String::class))
-                                set("password", pref.getNullableValue("password", String::class))
-//                                Logd(TAG, "after password")
+                                set("password", pref.getNullableValue("password", String::class)) //                                Logd(TAG, "after password")
                                 set("videoMode", pref.getValue("videoMode", Long::class))
                                 set("playSpeed", pref.getValue("playSpeed", Float::class))
                                 set("introSkip", pref.getValue("introSkip", Long::class))
                                 set("endingSkip", pref.getValue("endingSkip", Long::class))
-                                set("autoDelete", pref.getValue("autoDelete", Long::class))
-//                                Logd(TAG, "after autoDelete")
+                                set("autoDelete", pref.getValue("autoDelete", Long::class)) //                                Logd(TAG, "after autoDelete")
                                 set("audioType", pref.getValue("audioType", Long::class))
                                 set("volumeAdaption", pref.getValue("volumeAdaption", Long::class))
                                 set("audioQuality", pref.getValue("audioQuality", Long::class))
                                 set("videoQuality", pref.getValue("videoQuality", Long::class))
                                 set("prefStreamOverDownload", pref.getValue("prefStreamOverDownload", Boolean::class))
-                                set("filterString", pref.getValue("filterString", String::class))
-//                                Logd(TAG, "after filterString")
+                                set("filterString", pref.getValue("filterString", String::class)) //                                Logd(TAG, "after filterString")
                                 set("sortOrderCode", pref.getValue("sortOrderCode", Long::class))
                                 val tagsSet = getValueSet<String>("tags")
                                 tagsSet.addAll(pref.getValueSet<String>("tags"))
                                 set("autoDownload", pref.getValue("autoDownload", Boolean::class))
-                                set("queueId", pref.getValue("queueId", Long::class))
-//                                Logd(TAG, "after queueId")
+                                set("queueId", pref.getValue("queueId", Long::class)) //                                Logd(TAG, "after queueId")
                                 set("autoAddNewToQueue", pref.getValue("autoAddNewToQueue", Boolean::class))
                                 set("autoDLInclude", pref.getNullableValue("autoDLInclude", String::class))
                                 set("autoDLExclude", pref.getNullableValue("autoDLExclude", String::class))
-                                set("autoDLMinDuration", pref.getValue("autoDLMinDuration", Long::class))
-//                                Logd(TAG, "after autoDLMinDuration")
+                                set("autoDLMinDuration", pref.getValue("autoDLMinDuration", Long::class)) //                                Logd(TAG, "after autoDLMinDuration")
                                 set("markExcludedPlayed", pref.getValue("markExcludedPlayed", Boolean::class))
                                 set("autoDLMaxEpisodes", pref.getValue("autoDLMaxEpisodes", Long::class))
                                 set("countingPlayed", pref.getValue("countingPlayed", Boolean::class))
-                                set("autoDLPolicyCode", pref.getValue("autoDLPolicyCode", Long::class))
-//                                Logd(TAG, "after all")
+                                set("autoDLPolicyCode", pref.getValue("autoDLPolicyCode", Long::class)) //                                Logd(TAG, "after all")
                             }
                         }
                     }
@@ -259,6 +241,13 @@ object RealmDB {
                     }
                 }
             }).build()
+    }
+
+    lateinit var realm: Realm
+        private set
+
+    fun getRealmInstance() {
+        if (::realm.isInitialized) return
         realm = Realm.open(config)
     }
 

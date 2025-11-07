@@ -3,7 +3,7 @@
   <!--Activity and fragment titles-->
     <string name="statistics_label">Estadístiques</string>
   <string name="episodes_label">Episodios</string>
-  <string name="queue_label">Cola</string>
+
 
   <string name="settings_label">Axustes</string>
   <string name="downloads_label">Descargues</string>

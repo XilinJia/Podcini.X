@@ -8,7 +8,7 @@
     <string name="add_feed_label">Adaugă podcast</string>
     <string name="online_episodes_label">Episoade online</string>
     <string name="episodes_label">Episoade</string>
-    <string name="queue_label">Coadă</string>
+
     <string name="settings_label">Setări</string>
     <string name="downloads_label">Descărcări</string>
     <string name="logs_label">Jurnale</string>
@@ -340,10 +340,10 @@
     <string name="pref_keeps_important_episodes_title">Păstrați episoade importante</string>
     <string name="playback_pref">Ascultare</string>
     <string name="playback_pref_sum">Controlul căștilor, Sari peste un interval de timp, Coadă</string>
-    <string name="downloads_pref">Descărcări</string>
+
     <string name="downloads_pref_sum">Interval actualizare, Date mobile, Descărcări automate, Ștergeri automate</string>
     <string name="feed_refresh_title">Reîmprospătează podcasturile</string>
-    <string name="feed_refresh_sum">Specificaţi un interval (în ore, 0 înseamnă niciodată) la care Podcini caută episoade noi în mod automat.</string>
+
 
 
 

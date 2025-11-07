@@ -8,7 +8,7 @@
     <string name="add_feed_label">Lägg till podcast</string>
     <string name="online_episodes_label">Avsnitt online</string>
     <string name="episodes_label">Episoder</string>
-    <string name="queue_label">Kö</string>
+
     <string name="settings_label">Inställningar</string>
     <string name="downloads_label">Nedladdningar</string>
     <string name="logs_label">Loggar</string>
@@ -338,10 +338,10 @@
     <string name="pref_keeps_important_episodes_title">Behåll viktiga avsnitt</string>
     <string name="playback_pref">Uppspelning</string>
     <string name="playback_pref_sum">Hörlurskontroller, Överhoppningsintervaller, Kö</string>
-    <string name="downloads_pref">Nedladdningar</string>
+
     <string name="downloads_pref_sum">Uppdateringsintervall, Mobildata, Automatisk nedladdning, Automatisk radering</string>
     <string name="feed_refresh_title">Uppdatera podcasts</string>
-    <string name="feed_refresh_sum">Ange ett intervall (i timmar, 0 betyder aldrig) där Podcini söker efter nya avsnitt automatiskt.</string>
+
 
 
 

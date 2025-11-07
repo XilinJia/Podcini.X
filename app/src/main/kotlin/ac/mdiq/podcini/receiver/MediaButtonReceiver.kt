@@ -3,7 +3,6 @@ package ac.mdiq.podcini.receiver
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.config.ClientConfigurator
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent

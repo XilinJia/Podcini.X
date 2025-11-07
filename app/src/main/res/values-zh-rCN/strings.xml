@@ -8,7 +8,7 @@
     <string name="add_feed_label">添加播客</string>
     <string name="online_episodes_label">在线剧集</string>
     <string name="episodes_label">剧集</string>
-    <string name="queue_label">队列</string>
+
     <string name="settings_label">设置</string>
     <string name="downloads_label">下载</string>
     <string name="logs_label">日志</string>
@@ -336,10 +336,10 @@
     <string name="pref_keeps_important_episodes_title">保留重要剧集</string>
     <string name="playback_pref">回放</string>
     <string name="playback_pref_sum">耳机控制, 跳过间隔, 队列</string>
-    <string name="downloads_pref">下载</string>
+
     <string name="downloads_pref_sum">更新间隔，移动数据，自动下载，自动删除</string>
     <string name="feed_refresh_title">刷新播客</string>
-    <string name="feed_refresh_sum">指定一个时间间隔(小时, 0 表示不会显示) 在 Podcini 自动查找新剧集。</string>
+
 
 
 

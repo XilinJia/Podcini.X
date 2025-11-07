@@ -46,11 +46,11 @@ object DateUtils {
             while (current < date.length && Character.isDigit(date[current])) current++
             // even more precise than microseconds: discard further decimal places
             date = when {
-                current - start >= 4 -> if (current < date.length - 1) date.substring(0, start + 4) + date.substring(current) else date.substring(0, start + 4)
+                current - start >= 4 -> if (current < date.length - 1) date.take(start + 4) + date.substring(current) else date.take(start + 4)
                 // less than 4 decimal places: pad to have a consistent format for the parser
                 current - start < 4 -> {
-                    if (current < date.length - 1) (date.substring(0, current) + StringUtils.repeat("0", 4 - (current - start)) + date.substring(current))
-                    else date.substring(0, current) + StringUtils.repeat("0", 4 - (current - start))
+                    if (current < date.length - 1) (date.take(current) + StringUtils.repeat("0", 4 - (current - start)) + date.substring(current))
+                    else date.take(current) + StringUtils.repeat("0", 4 - (current - start))
                 }
                 else -> ""
             }
@@ -103,7 +103,7 @@ object DateUtils {
         // if date string starts with a weekday, try parsing date string without it
         if (date.matches("^\\w+, .*$".toRegex())) return parse(date.substring(date.indexOf(',') + 1))
 
-        Logd(TAG, "Could not parse date string \"$input\" [$date]")
+        Logd(TAG, "Could not parse date string \"$input\" [$date], likely an ETag")
         return null
     }
 

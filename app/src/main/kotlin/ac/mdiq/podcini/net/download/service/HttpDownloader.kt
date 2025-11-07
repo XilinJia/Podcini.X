@@ -15,6 +15,12 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import androidx.core.net.toUri
+import okhttp3.CacheControl
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.ResponseBody
+import org.apache.commons.io.IOUtils
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.IOException
@@ -24,13 +30,6 @@ import java.net.HttpURLConnection
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.util.Locale
-import okhttp3.CacheControl
-import okhttp3.Protocol
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.ResponseBody
-import okhttp3.internal.http.StatusLine
-import org.apache.commons.io.IOUtils
 
 class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
@@ -102,7 +101,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                 }
                 else -> {
                     checkIfRedirect(response)
-                    connection = BufferedInputStream(responseBody!!.byteStream())
+                    connection = BufferedInputStream(responseBody.byteStream())
 
                     val contentRangeHeader = if (fileExists) response.header("Content-Range") else null
                     if (fileExists && response.code == HttpURLConnection.HTTP_PARTIAL && !contentRangeHeader.isNullOrEmpty()) {
@@ -255,7 +254,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                 }
                 else -> {
                     checkIfRedirect(response)
-                    connection = BufferedInputStream(responseBody!!.byteStream())
+                    connection = BufferedInputStream(responseBody.byteStream())
                     ensureMediaFileExists(destinationUri)
 
                     val buffer = ByteArray(BUFFER_SIZE)

@@ -96,11 +96,12 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
     var drawable by mutableIntStateOf(typeInit.drawable)
 
     init {
-        update(item)
+        if (type == ButtonTypes.NULL) update(item)
     }
 
     @UnstableApi
     fun onClick(context: Context) {
+        Logd(TAG, "onClick type: $type")
         when (type) {
             ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) IntentUtils.openInBrowser(context, item.link!!)
             ButtonTypes.CANCEL -> {
@@ -121,7 +122,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                 }
                 PlaybackStarter(context, item).start()
                 playVideoIfNeeded(context, item)
-                type = ButtonTypes.PAUSE
+//                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM -> {
                 fun stream() {
@@ -145,7 +146,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                     return
                 }
                 stream()
-                type = ButtonTypes.PAUSE
+//                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.DELETE -> {
                 runOnIOScope { deleteEpisodesWarnLocalRepeat(context, listOf(item)) }
@@ -245,7 +246,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                                 val tempFile = File.createTempFile("tts_temp_${i}_", ".wav")
                                 parts.add(tempFile.absolutePath)
                                 status = TTSObj.tts?.synthesizeToFile(chunk, null, tempFile, tempFile.absolutePath) ?: 0
-                                Logd(TAG, "status: $status chunk: ${chunk.substring(0, min(80, chunk.length))}")
+                                Logd(TAG, "status: $status chunk: ${chunk.take(min(80, chunk.length))}")
                                 if (status == TextToSpeech.ERROR) {
                                     Loge(TAG, "Error generating audio file ${tempFile.absolutePath}")
                                     break
@@ -303,7 +304,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                     if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code) item = runBlocking { setPlayStateSync(EpisodeState.PROGRESS, item, false) }
                 }
                 if (item.getMediaType() == MediaType.VIDEO) context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
-                type = ButtonTypes.PAUSE
+//                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             else -> {}
         }
@@ -358,10 +359,54 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
         Dialog(onDismissRequest = onDismiss) {
             Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                 Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = {
-                        onClick(context)
-                        onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(drawable), contentDescription = type.name) }
+                    Logd(TAG, "button label: $type")
+                    if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
+                        IconButton(onClick = {
+                            val btn = EpisodeActionButton(item, ButtonTypes.PLAY)
+                            btn.onClick(context)
+                            type = btn.type
+                            onDismiss()
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_play_24dp), contentDescription = "Play") }
+                    }
+                    if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
+                        IconButton(onClick = {
+                            val btn = EpisodeActionButton(item, ButtonTypes.STREAM)
+                            btn.onClick(context)
+                            type = btn.type
+                            onDismiss()
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_stream), contentDescription = "Stream") }
+                    }
+                    if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
+                        IconButton(onClick = {
+                            val btn = EpisodeActionButton(item, ButtonTypes.DOWNLOAD)
+                            btn.onClick(context)
+                            type = btn.type
+                            onDismiss()
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_download), contentDescription = "Download") }
+                    }
+                    if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
+                        IconButton(onClick = {
+                            val btn = EpisodeActionButton(item, ButtonTypes.DELETE)
+                            btn.onClick(context)
+                            type = btn.type
+                            onDismiss()
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "Delete") }
+                    }
+                    if (type != ButtonTypes.WEBSITE) {
+                        IconButton(onClick = {
+                            val btn = EpisodeActionButton(item, ButtonTypes.WEBSITE)
+                            btn.onClick(context)
+                            onDismiss()
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "Web") }
+                    }
+                    if (type != ButtonTypes.TTS) {
+                        IconButton(onClick = {
+                            val btn = EpisodeActionButton(item, ButtonTypes.TTS)
+                            btn.onClick(context)
+                            type = btn.type
+                            onDismiss()
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech), contentDescription = "TTS") }
+                    }
                 }
             }
         }

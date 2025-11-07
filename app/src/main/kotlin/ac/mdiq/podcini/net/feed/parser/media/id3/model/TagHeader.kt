@@ -7,6 +7,6 @@ class TagHeader(
         private val flags: Byte) : Header(id, size) {
 
     override fun toString(): String {
-        return ("TagHeader [version=" + version + ", flags=" + flags + ", id=" + id + ", size=" + size + "]")
+        return ("TagHeader [version=$version, flags=$flags, id=$id, size=$size]")
     }
 }

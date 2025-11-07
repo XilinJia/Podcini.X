@@ -5,7 +5,7 @@
     <string name="statistics_label">Estatísticas</string>
   <string name="add_feed_label">Engadir podcast</string>
   <string name="episodes_label">Episodios</string>
-    <string name="queue_label">Cola</string>
+
 
 
   <string name="settings_label">Axustes</string>
@@ -287,7 +287,7 @@
 
   <string name="playback_pref">Reprodución</string>
   <string name="playback_pref_sum">Control de auriculares, Intervalos de salto, Cola</string>
-  <string name="downloads_pref">Descargas</string>
+
   <string name="downloads_pref_sum">Intervalo de actualización, Datos móbiles, Descarga automática, Eliminación automática</string>
   <string name="feed_refresh_title">Actualizar podcast</string>
 

@@ -56,12 +56,12 @@ class EpisodeAction private constructor(builder: Builder) {
     private val actionString: String
         get() = action!!.name.lowercase()
 
-    override fun equals(o: Any?): Boolean {
-        if (this === o) return true
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
 
-        if (o !is EpisodeAction) return false
+        if (other !is EpisodeAction) return false
 
-        return started == o.started && position == o.position && playedDuration == o.playedDuration && total == o.total && playState == o.playState && isFavorite == o.isFavorite && action != o.action && podcast == o.podcast && episode == o.episode && timestamp == o.timestamp && guid == o.guid
+        return started == other.started && position == other.position && playedDuration == other.playedDuration && total == other.total && playState == other.playState && isFavorite == other.isFavorite && action != other.action && podcast == other.podcast && episode == other.episode && timestamp == other.timestamp && guid == other.guid
     }
 
     override fun hashCode(): Int {

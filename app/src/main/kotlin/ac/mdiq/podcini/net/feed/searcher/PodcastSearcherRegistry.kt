@@ -84,7 +84,7 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
             val client = PodciniHttpClient.getHttpClient()
             val response = client.newCall(buildAuthenticatedRequest(formattedUrl)).execute()
             if (response.isSuccessful) {
-                val resultString = response.body!!.string()
+                val resultString = response.body.string()
                 val result = JSONObject(resultString)
                 val j = result.getJSONArray("feeds")
 
@@ -171,7 +171,7 @@ class ItunesPodcastSearcher : PodcastSearcher {
             val response = client.newCall(httpReq.build()).execute()
 
             if (response.isSuccessful) {
-                val resultString = response.body!!.string()
+                val resultString = response.body.string()
                 val result = JSONObject(resultString)
                 val j = result.getJSONArray("results")
 
@@ -194,7 +194,7 @@ class ItunesPodcastSearcher : PodcastSearcher {
         val httpReq = Request.Builder().url(lookupUrl).build()
         val response = client.newCall(httpReq).execute()
         if (!response.isSuccessful) throw IOException(response.toString())
-        val resultString = response.body!!.string()
+        val resultString = response.body.string()
         val result = JSONObject(resultString)
         val results = result.getJSONArray("results").getJSONObject(0)
         val feedUrlName = "feedUrl"

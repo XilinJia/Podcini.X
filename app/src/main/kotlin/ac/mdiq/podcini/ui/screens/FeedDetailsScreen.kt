@@ -26,7 +26,6 @@ import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
-
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -150,6 +149,8 @@ import java.util.concurrent.ExecutionException
 class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var swipeActions: SwipeActions
 
+    var feedLoaded by mutableIntStateOf(0)
+
     internal var feedID: Long = 0
     internal var feed by mutableStateOf<Feed?>(null)
 
@@ -172,7 +173,6 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var showSortDialog by mutableStateOf(false)
     internal var sortOrder by mutableStateOf(EpisodeSortOrder.DATE_NEW_OLD)
     internal var layoutModeIndex by mutableIntStateOf(LayoutMode.Normal.ordinal)
-    private var reassembleJob: Job? = null
 
     internal var isCallable by mutableStateOf(false)
     internal var txtvAuthor by mutableStateOf("")
@@ -197,8 +197,8 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             EventFlow.events.collectLatest { event ->
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
-                    is FlowEvent.FeedChangeEvent -> if (feed?.id == event.feed.id) loadFeed(true)
-                    is FlowEvent.FeedListEvent -> if (feed != null && event.contains(feed!!)) loadFeed(true)
+                    is FlowEvent.FeedChangeEvent -> if (feed?.id == event.feed.id) loadFeed()
+                    is FlowEvent.FeedListEvent -> if (feed != null && event.contains(feed!!)) loadFeed()
                     else -> {}
                 }
             }
@@ -221,11 +221,12 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    private suspend fun assembleList(feed_:Feed) {
+    internal suspend fun assembleList(feed_:Feed?) {
+        if (feed_ == null) return
         val eListTmp = mutableListOf<Episode>()
         when {
             showHistory -> eListTmp.addAll(getHistory(0, Int.MAX_VALUE, feed!!.id))
-            enableFilter && feed_.filterString.isNotEmpty() -> {
+            enableFilter && feed_.filterString.isNotBlank() -> {
                 val qstr = feed_.episodeFilter.queryString()
                 Logd(TAG, "episodeFilter: $qstr")
                 val episodes_ = realm.query(Episode::class).query("feedId == ${feed_.id} AND $qstr").find()
@@ -240,6 +241,14 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             Logd(TAG, "loadItems eListTmp.size1: ${eListTmp.size}")
         }
         withContext(Dispatchers.Main) {
+            layoutModeIndex = if (feed_.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
+            Logd(TAG, "loadItems subscribe called ${feed_.title}")
+            rating = feed_.rating
+            computeScore()
+            isFiltered = feed_.filterString.isNotBlank() && feed_.episodeFilter.propertySet.isNotEmpty()
+            if (!headerCreated) headerCreated = true
+            listInfoText = buildListInfo(episodes)
+            infoBarText.value = "$listInfoText $feedOperationText"
             episodes.clear()
             episodes.addAll(eListTmp)
             vms.clear()
@@ -247,8 +256,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    private var loadJob: Job? = null
-    internal fun loadFeed(force: Boolean = false) {
+    internal fun loadFeed() {
         if (feedScreenMode == FeedScreenMode.Info) {
             feed = realm.query(Feed::class).query("id == $0", feedOnDisplay.id).first().find()
             rating = feed?.rating ?: Rating.UNRATED.code
@@ -256,50 +264,15 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             return
         }
         Logd(TAG, "loadFeed called $feedID")
-        if (loadJob != null) {
-            if (force) {
-                loadJob?.cancel()
-                vms.clear()
-            } else return
+        lcScope.launch(Dispatchers.IO) {
+            feed = getFeed(feedID)
+            if (feed != null) withContext(Dispatchers.Main) { feedLoaded++ }
         }
-        loadJob = lcScope.launch {
-            try {
-                feed = withContext(Dispatchers.IO) {
-                    val feed_ = getFeed(feedID)
-                    if (feed_ != null) assembleList(feed_)
-                    feed_
-                }
-                withContext(Dispatchers.Main) {
-                    layoutModeIndex = if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
-                    Logd(TAG, "loadItems subscribe called ${feed?.title}")
-                    rating = feed?.rating ?: Rating.UNRATED.code
-                    computeScore()
-                    if (feed != null) {
-                        isFiltered = !feed?.filterString.isNullOrEmpty() && feed!!.episodeFilter.propertySet.isNotEmpty()
-                        if (!headerCreated) headerCreated = true
-                        listInfoText = buildListInfo(episodes)
-                        infoBarText.value = "$listInfoText $feedOperationText"
-                    }
-                }
-            } catch (e: Throwable) {
-                feed = null
-                Logs(TAG, e)
-            }
-        }.apply { invokeOnCompletion { loadJob = null } }
     }
     fun buildMoreItems() {
-        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
-        if (nextItems.isNotEmpty()) vms.addAll(nextItems)
+        val moreVMs = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+        if (moreVMs.isNotEmpty()) vms.addAll(moreVMs)
     }
-    internal fun reassembleList() {
-        if (reassembleJob != null) {
-            Logd(TAG, "reassembleList cancelling job")
-            reassembleJob?.cancel()
-            vms.clear()
-        }
-        reassembleJob = lcScope.launch { assembleList(feed!!) }.apply { invokeOnCompletion { reassembleJob = null } }
-    }
-
     internal fun addLocalFolderResult(uri: Uri?) {
         if (uri == null) return
         CoroutineScope(Dispatchers.IO).launch {
@@ -334,7 +307,9 @@ fun FeedDetailsScreen() {
     val addLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? -> vm.addLocalFolderResult(uri) }
 
     DisposableEffect(lifecycleOwner) {
+        Logd(TAG, "in DisposableEffect")
         val observer = LifecycleEventObserver { _, event ->
+            Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     vm.feed = feedOnDisplay
@@ -363,6 +338,7 @@ fun FeedDetailsScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            Logd(TAG, "DisposableEffect onDispose")
             vm.cancelFlowEvents()
             vm.feed = null
             vm.episodes.clear()
@@ -460,7 +436,7 @@ fun FeedDetailsScreen() {
                     modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
                         if (vm.feed != null) {
                             feedScreenMode = if (feedScreenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info
-                            if (vm.episodes.isEmpty()) vm.loadFeed(true)
+                            if (vm.episodes.isEmpty()) vm.loadFeed()
                         }
                     }))
                 Column(modifier = Modifier.padding(start = 10.dp, top = 4.dp)) {
@@ -707,7 +683,19 @@ fun FeedDetailsScreen() {
         enableFilter = true
     }
 
-    LaunchedEffect(showHistory, enableFilter) { if (feedScreenMode == FeedScreenMode.List) vm.reassembleList() }
+    var reassembleJob: Job? = remember { null }
+    LaunchedEffect(showHistory, enableFilter, vm.feedLoaded) {
+        if (feedScreenMode == FeedScreenMode.List) {
+            if (reassembleJob != null) {
+                Logd(TAG, "reassembleList cancelling job")
+                reassembleJob?.cancel()
+                vm.vms.clear()
+            }
+            reassembleJob = scope.launch(Dispatchers.IO) {
+                vm.assembleList(vm.feed)
+            }.apply { invokeOnCompletion { reassembleJob = null } }
+        }
+    }
 
     vm.swipeActions.ActionOptionsDialog()
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
@@ -720,7 +708,10 @@ fun FeedDetailsScreen() {
                     buildMoreItems = { vm.buildMoreItems() },
                     refreshCB = { gearbox.feedUpdater(vm.feed).startRefresh(context) },
                     swipeActions = vm.swipeActions,
-                    actionButtonCB = { e, type -> if (e.feed?.id == vm.feed?.id && type == ButtonTypes.PAUSE) upsertBlk(vm.feed!!) { it.lastPlayed = Date().time } },
+                    actionButtonCB = { e, type ->
+                        Logd(TAG, "actionButtonCB type: $type")
+                        if (e.feed?.id == vm.feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) upsertBlk(vm.feed!!) { it.lastPlayed = Date().time }
+                    },
                 )
             } else DetailUI()
         }

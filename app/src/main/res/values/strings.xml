@@ -223,6 +223,7 @@
     <string name="pause_label">Pause</string>
     <string name="stream_label">Stream</string>
     <string name="erase_episodes_label">Erase episodes</string>
+    <string name="alarm_episodes_label">Play episodes at time</string>
     <string name="reserve_episodes_label">Reserve episodes</string>
     <string name="null_label">Null</string>
     <string name="null_zap_label">Null</string>
@@ -456,14 +457,17 @@
     <string name="pref_keeps_important_episodes_title">Keep important episodes</string>
     <string name="playback_pref">Playback</string>
     <string name="playback_pref_sum">Headphone controls, Skip intervals, Queue</string>
-    <string name="downloads_pref">Downloads</string>
+    <string name="network_downloads_pref">Network and Downloads</string>
     <string name="downloads_pref_sum">Update interval, Mobile data, Automatic download, Automatic deletion</string>
     <string name="feed_refresh_title">Refresh podcasts</string>
-    <string name="feed_refresh_sum">Specify an interval (in hours, 0 means never) at which Podcini looks for new episodes automatically.</string>
+    <string name="feed_refresh_sum">Specify an interval (in minutes, 0 means never) at which Podcini looks for new episodes automatically.</string>
     <string name="feed_refresh_start">Start</string>
     <string name="feed_refresh_start_sum">Set start hour (0-23) and minute (0-59) for the periodic refresh interval (exact time may be tempered by Android). Leaving the fields empty means the interval starts now.</string>
     <string name="feed_next_refresh_time">Next refresh time around:</string>
     <string name="before">before</string>
+
+    <string name="alarm_start_time">Alarm start time</string>
+    <string name="alarm_start_time_sum">Set start hour (0-23) and minute (0-59) for the episode to be played. Leaving the fields empty means the alarm is not set.</string>
 
     <string name="pref_followQueue_title">Continuous playback</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Headphones or Bluetooth disconnect</string>
@@ -874,6 +878,8 @@
 
     <string name="notification_channel_user_action">Action required</string>
     <string name="notification_channel_user_action_description">Shown if your action is required, for example if you need to enter a password.</string>
+    <string name="notification_channel_refreshing">Refreshing</string>
+    <string name="notification_channel_refreshing_description">Shown while updating feeds.</string>
     <string name="notification_channel_downloading">Downloading</string>
     <string name="notification_channel_downloading_description">Shown while currently downloading.</string>
     <string name="notification_channel_playing">Currently playing</string>

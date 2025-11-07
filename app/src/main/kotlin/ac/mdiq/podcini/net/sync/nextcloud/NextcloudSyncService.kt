@@ -104,7 +104,7 @@ class NextcloudSyncService(private val httpClient: OkHttpClient, baseHosturl: St
         val request: Request = Request.Builder().url(url.build()).header("Authorization", basic(username, password)).header("Accept", "application/json").method(method, body).build()
         val response = httpClient.newCall(request).execute()
         if (response.code != 200) throw IOException("Response code: " + response.code)
-        return response.body?.string()?:""
+        return response.body.string()
     }
 
     private fun makeUrl(path: String): HttpUrl.Builder {

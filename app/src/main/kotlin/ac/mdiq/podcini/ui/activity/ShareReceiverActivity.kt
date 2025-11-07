@@ -8,7 +8,6 @@ import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -77,7 +76,7 @@ class ShareReceiverActivity : ComponentActivity() {
                     if (finish) activity.finish()
                 }
                 // extension media
-                gearbox.canHandleShared(sharedText) -> gearbox.handleShared(log, mediaCB)
+                gearbox.canHandleSharedMedia(sharedText) -> gearbox.handleSharedMedia(log, mediaCB)
 //              podcast or other?
                 else -> {
                     if (log != null) upsertBlk(log) { it.type = ShareLog.Type.Podcast.name }

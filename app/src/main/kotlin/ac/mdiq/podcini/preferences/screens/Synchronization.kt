@@ -312,7 +312,7 @@ fun SynchronizationPreferencesScreen(activity: PreferenceActivity) {
 //            WifiAuthenticationFragment().show(activity.supportFragmentManager, WifiAuthenticationFragment.TAG)
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
-            var titleRes by remember { mutableStateOf(0) }
+            var titleRes by remember { mutableIntStateOf(0) }
             var summaryRes by remember { mutableIntStateOf(R.string.synchronization_summary_unchoosen) }
             var iconRes by remember { mutableIntStateOf(R.drawable.ic_notification_sync) }
             var onClick: (() -> Unit)? = null

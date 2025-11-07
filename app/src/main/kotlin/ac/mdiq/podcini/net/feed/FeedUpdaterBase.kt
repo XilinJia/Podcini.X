@@ -17,9 +17,11 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.database.Feeds
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.LogsAndStats
+import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
@@ -89,9 +91,15 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
     }
 
     fun prepare(): Boolean {
-        feedOperationText = context.getString(R.string.preparing)
+        scope.launch(Dispatchers.Main) { feedOperationText = context.getString(R.string.preparing) }
         if (feedId == -1L) { // Update all
-            feedsToUpdate = Feeds.getFeedList().toMutableList()
+            val feedIds = getPref(AppPrefs.feedIdsToRefresh, setOf<String>())
+            if (feedIds.isNotEmpty()) {
+                Logt(TAG, "Partial refresh of ${feedIds.size} feeds")
+                val idsList = feedIds.map { it.toLong() }
+                feedsToUpdate = realm.query(Feed::class, "id IN $0", idsList).find().toMutableList()
+            } else feedsToUpdate = Feeds.getFeedList().toMutableList()
+
             val itr = feedsToUpdate.iterator()
             while (itr.hasNext()) {
                 val feed = itr.next()
@@ -106,7 +114,8 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
         } else {
             val feed = Feeds.getFeed(feedId)
             if (feed == null) {
-                feedOperationText = ""
+                Loge(TAG, "feed is null for feedId $feedId. update abort")
+                scope.launch(Dispatchers.Main) { feedOperationText = "" }
                 return false
             }
             Logd(TAG, "doWork updating single feed: ${feed.title} ${feed.downloadUrl}")
@@ -114,7 +123,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
             feedsToUpdate = mutableListOf(feed)
             force = true
         }
-        feedOperationText = ""
+        scope.launch(Dispatchers.Main) { feedOperationText = "" }
         return true
     }
 
@@ -135,17 +144,17 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
         feedsToUpdate.clear()
         feedsToOnlyEnqueue.clear()
         feedsToOnlyDownload.clear()
-        Logd(TAG, "feedId: $feedId prefAutoUpdateStartTime: [${getPref(AppPrefs.prefAutoUpdateStartTime, ":")}]")
         withContext(Dispatchers.Main) { feedOperationText = "" }
     }
 
-//    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
+    //    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
     private suspend fun refreshFeeds(feedsToUpdate: MutableList<Feed>, force: Boolean) {
         if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             Loge(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
             return
         }
         val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()
+        val feedIdsToRefresh = feedsToUpdate.map { it.id.toString() }.toMutableList()
         var i = 0
         while (i < feedsToUpdate.size) {
             notificationManager.notify(R.id.notification_updating_feeds, createNotification(titles))
@@ -163,6 +172,8 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
                 LogsAndStats.addDownloadStatus(status)
             }
             titles.removeAt(0)
+            feedIdsToRefresh.removeAt(0)
+            putPref(AppPrefs.feedIdsToRefresh, feedIdsToRefresh.toSet())
         }
     }
 
@@ -329,7 +340,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
                 contentText = context.resources.getQuantityString(R.plurals.downloads_left, titles.size, titles.size)
                 bigText = titles.joinToString("\n") { "• $it" }
             }
-            return NotificationCompat.Builder(context, NotificationUtils.CHANNEL_ID.downloading.name)
+            return NotificationCompat.Builder(context, NotificationUtils.CHANNEL_ID.refreshing.name)
                 .setContentTitle(context.getString(R.string.download_notification_title_feeds))
                 .setContentText(contentText)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))

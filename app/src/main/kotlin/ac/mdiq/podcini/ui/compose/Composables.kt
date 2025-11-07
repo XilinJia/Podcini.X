@@ -202,7 +202,7 @@ fun LargeTextEditingDialog(textState: TextFieldValue, onTextChange: (TextFieldVa
 }
 
 @Composable
-fun NonlazyGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, content: @Composable() (Int) -> Unit) {
+fun NonlazyGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, content: @Composable (Int) -> Unit) {
     Column(modifier = modifier) {
         var rows = (itemCount / columns)
         if (itemCount.mod(columns) > 0) rows += 1

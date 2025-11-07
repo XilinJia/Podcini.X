@@ -445,10 +445,7 @@ fun OnlineFeedScreen() {
     }
 
     val textColor = MaterialTheme.colorScheme.onSurface
-    if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = {
-        vm.showTabsDialog = false
-        navController.navigateUp()
-    }) { feed, map -> vm.handleFeed(feed, map) }
+    if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = { vm.showTabsDialog = false }) { feed, map -> vm.handleFeed(feed, map) }
     val feedLogsMap_ = feedLogsMap!!
     if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
         title = { Text(stringResource(R.string.error_label)) },
@@ -537,10 +534,10 @@ fun OnlineFeedScreen() {
                         }
                     }) { Text(stringResource(vm.subButTextRes)) }
                     Spacer(modifier = Modifier.weight(0.1f))
-                    if (vm.showEpisodes) {
-                        Button(onClick = { vm.showEpisodes = false }) { Text(stringResource(R.string.feed)) }
-                    } else {
-                        if (vm.enableEpisodes && vm.feed != null) Button(onClick = { vm.showEpisodes() }) { Text(stringResource(R.string.episodes_label)) }
+                    when {
+                        vm.showEpisodes -> Button(onClick = { vm.showEpisodes = false }) { Text(stringResource(R.string.feed)) }
+                        vm.enableEpisodes && vm.feed != null -> Button(onClick = { vm.showEpisodes() }) { Text(stringResource(R.string.episodes_label)) }
+                        else -> {}
                     }
                     Spacer(modifier = Modifier.weight(0.2f))
                 }
@@ -576,10 +573,8 @@ fun OnlineFeedScreen() {
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
-                    Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
-                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
+                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
                     val sLog = remember { feedLogsMap_[vm.feed?.downloadUrl ?: ""] ?: feedLogsMap_[vm.feed?.title ?: ""] }
                     if (sLog != null) {
@@ -592,10 +587,8 @@ fun OnlineFeedScreen() {
                                 Text(stringResource(R.string.my_opinion_label), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom)
                                 Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null, modifier = Modifier.padding(start = 5.dp))
                             }
-                            Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                            Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                            Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                            Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                         }
                     }
                     Text(vm.feed?.mostRecentItem?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))

@@ -7,7 +7,7 @@
     <string name="add_feed_label">إضافة بودكاست</string>
     <string name="online_episodes_label">الحلقات عبر الإنترنت</string>
     <string name="episodes_label">الحلقات</string>
-    <string name="queue_label">لائحة الاستماع</string>
+
     <string name="settings_label">الإعدادات</string>
     <string name="downloads_label">التنزيلات</string>
     <string name="logs_label">السجلات</string>
@@ -347,10 +347,10 @@
     <string name="pref_keeps_important_episodes_title">الحفاظ على الحلقات المهمة</string>
     <string name="playback_pref">تشغيل</string>
     <string name="playback_pref_sum">تحكم سماعة الأذن, وقت التقدم, لائحة الاستماع</string>
-    <string name="downloads_pref">تنزيلات</string>
+
     <string name="downloads_pref_sum">الفترة الزمنية للتحديثات، بيانات الجوال، التنزيل التلقائي، الحذف التلقائي</string>
     <string name="feed_refresh_title">حدث البودكاستات</string>
-    <string name="feed_refresh_sum">حدد فاصل زمني (بالساعات، 0 تعني لا شيء) حيث يبحث بودتشيني عن حلقات جديدة تلقائياً.</string>
+
 
 
 

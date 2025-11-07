@@ -8,7 +8,7 @@
     <string name="add_feed_label">Añadir pódcast</string>
     <string name="online_episodes_label">Episodios en línea</string>
     <string name="episodes_label">Episodios</string>
-    <string name="queue_label">Cola</string>
+
     <string name="settings_label">Ajustes</string>
     <string name="downloads_label">Descargas</string>
     <string name="logs_label">Registros</string>
@@ -340,10 +340,10 @@
     <string name="pref_keeps_important_episodes_title">Mantener episodios importantes</string>
     <string name="playback_pref">Reproducción</string>
     <string name="playback_pref_sum">Control de auriculares, Saltar intervalos, Cola</string>
-    <string name="downloads_pref">Descargas</string>
+
     <string name="downloads_pref_sum">Intervalo de actualización, datos móviles, descargas automáticas, borrado automático</string>
     <string name="feed_refresh_title">Actualizar pódcasts</string>
-    <string name="feed_refresh_sum">Especifique un intervalo (en horas, 0 significa nunca) en el que Podcini busca automáticamente nuevos episodios.</string>
+
 
 
 

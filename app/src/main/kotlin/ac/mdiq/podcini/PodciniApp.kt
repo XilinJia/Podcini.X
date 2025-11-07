@@ -19,11 +19,14 @@ import android.content.Context
 import android.content.Intent
 import android.os.StrictMode
 import com.google.android.material.color.DynamicColors
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class PodciniApp : Application() {
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
     override fun onCreate() {
         super.onCreate()
         ClientConfig.USER_AGENT = "Podcini/" + BuildConfig.VERSION_NAME
@@ -34,13 +37,11 @@ class PodciniApp : Application() {
             StrictMode.setVmPolicy(builder.build())
         }
 
-        singleton = this
-        runBlocking {
-            withContext(Dispatchers.IO) {
-                ClientConfigurator.initialize(this@PodciniApp)
-                PreferenceUpgrader.checkUpgrades(this@PodciniApp)
-            }
-        }
+        podciniApp = this
+        ClientConfigurator.initialize(this@PodciniApp)
+
+        applicationScope.launch(Dispatchers.IO) { PreferenceUpgrader.checkUpgrades(this@PodciniApp) }
+
         gearbox.init()
         sendSPAppsQueryFeedsIntent(this)
         DynamicColors.applyToActivitiesIfAvailable(this)
@@ -77,11 +78,11 @@ class PodciniApp : Application() {
 
     companion object {
         private const val PREF_HAS_QUERIED_SP_APPS = "prefSPAUtil.hasQueriedSPApps"
-        private lateinit var singleton: PodciniApp
+        private lateinit var podciniApp: PodciniApp
 
-        fun getApp(): PodciniApp = singleton
+        fun getApp(): PodciniApp = podciniApp
 
-        fun getAppContext(): Context = singleton.applicationContext
+        fun getAppContext(): Context = podciniApp.applicationContext
 
         @JvmStatic
         fun forceRestart() {

@@ -36,7 +36,7 @@ class ItunesTopListLoader(private val context: Context) {
             .cacheControl(CacheControl.Builder().maxStale(1, TimeUnit.DAYS).build())
             .url(String.format(url, country))
         client.newCall(httpReq.build()).execute().use { response ->
-            if (response.isSuccessful) return response.body!!.string()
+            if (response.isSuccessful) return response.body.string()
             if (response.code == 400) throw IOException("iTunes does not have data for the selected country.")
             val prefix = context.getString(R.string.error_msg_prefix)
             throw IOException(prefix + response)

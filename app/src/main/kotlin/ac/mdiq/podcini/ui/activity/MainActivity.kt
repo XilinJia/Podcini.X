@@ -6,8 +6,8 @@ import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.feedUpdateWorkId
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.restartUpdateAlarm
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.scheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
@@ -20,6 +20,7 @@ import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.monitorFeedList
 import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
@@ -162,6 +163,10 @@ class MainActivity : BaseActivity() {
     public override fun onCreate(savedInstanceState: Bundle?) {
         lastTheme = getNoTitleTheme(this)
         setTheme(lastTheme)
+        lifecycleScope.launch(Dispatchers.IO) {
+            prefs
+            SwipeActions.prefs
+        }
 
         if (BuildConfig.DEBUG) {
             val builder = StrictMode.ThreadPolicy.Builder()
@@ -174,12 +179,17 @@ class MainActivity : BaseActivity() {
         lifecycleScope.launch((Dispatchers.IO)) { compileTags() }
 
         super.onCreate(savedInstanceState)
+        handleNavIntent()
 
         if (savedInstanceState != null) hasInitialized.value = savedInstanceState.getBoolean(INIT_KEY, false)
         if (!hasInitialized.value) hasInitialized.value = true
 
-        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData(feedUpdateWorkId)
-            .observe(this) { workInfos -> workInfos?.forEach { workInfo -> Logd(TAG, "FeedUpdateWork status: ${workInfo.state}") } }
+        // TODO: how to monitor WorkManager
+//        WorkManager.getInstance(applicationContext).getWorkInfosForUniqueWorkLiveData(feedUpdateOnceWorkId)
+//            .observe(this) { workInfos ->
+//                Logd(TAG, "workInfos: ${workInfos?.size}")
+//                workInfos?.forEach { workInfo -> Logd(TAG, "FeedUpdateWork status: ${workInfo.state}") }
+//            }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent { CustomTheme(this) { MainActivityUI() } }
@@ -192,9 +202,9 @@ class MainActivity : BaseActivity() {
         val lastScheduledVersion = prefs.getString(Extras.lastVersion.name, "0")
         if (currentVersion != lastScheduledVersion) {
             WorkManager.getInstance(applicationContext).cancelUniqueWork(feedUpdateWorkId)
-            restartUpdateAlarm(applicationContext, true)
+            scheduleUpdateTaskOnce(applicationContext, true)
             prefs.edit { putString(Extras.lastVersion.name, currentVersion) }
-        } else restartUpdateAlarm(applicationContext, false)
+        } else scheduleUpdateTaskOnce(applicationContext, false)
 
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
 
@@ -264,13 +274,20 @@ class MainActivity : BaseActivity() {
                     )) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-                    LaunchedEffect(startScreen) {
-                        if (startScreen.isNotBlank()) {
-                            navController.navigate(startScreen)
-                            startScreen = ""
-                        }
+                    CompositionLocalProvider(LocalNavController provides navController) {
+                        Navigate(navController, initScreen?:"")
+//                        initScreen = ""
                     }
-                    CompositionLocalProvider(LocalNavController provides navController) { Navigate(navController) }
+                }
+            }
+            LaunchedEffect(intendedScreen) {
+                Logd(TAG, "LaunchedEffect intendedScreen: $intendedScreen")
+                if (intendedScreen.isNotBlank()) {
+                    navController.navigate(intendedScreen) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    intendedScreen = ""
                 }
             }
         }
@@ -390,7 +407,6 @@ class MainActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         autoBackup(this)
-//        handleNavIntent()
         RatingDialog.check()
         if (lastTheme != getNoTitleTheme(this)) {
             finish()
@@ -438,7 +454,6 @@ class MainActivity : BaseActivity() {
 
     private fun handleNavIntent() {
         Logd(TAG, "handleNavIntent()")
-        startScreen = ""
         when {
             intent.hasExtra(Extras.fragment_feed_id.name) -> {
                 val feedId = intent.getLongExtra(Extras.fragment_feed_id.name, 0)
@@ -446,7 +461,7 @@ class MainActivity : BaseActivity() {
                 if (feedId > 0) {
                     feedOnDisplay = getFeed(feedId) ?: Feed()
                     feedScreenMode = FeedScreenMode.List
-                    startScreen = Screens.FeedDetails.name
+                    setIntentScreen(Screens.FeedDetails.name)
                 }
                 isBSExpanded = false
             }
@@ -455,12 +470,12 @@ class MainActivity : BaseActivity() {
                 val isShared = intent.getBooleanExtra(Extras.isShared.name, false)
                 if (feedurl != null) {
                     setOnlineFeedUrl(feedurl, shared = isShared)
-                    startScreen = Screens.OnlineFeed.name
+                    setIntentScreen(Screens.OnlineFeed.name)
                 }
             }
             intent.hasExtra(Extras.search_string.name) -> {
                 setOnlineSearchTerms(CombinedSearcher::class.java, intent.getStringExtra(Extras.search_string.name))
-                startScreen = Screens.OnlineResults.name
+                setIntentScreen(Screens.OnlineResults.name)
             }
             intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> isBSExpanded = true
             else -> {
@@ -472,15 +487,15 @@ class MainActivity : BaseActivity() {
                     "/deeplink/search" -> {
                         val query = uri.getQueryParameter("query") ?: return
                         setSearchTerms(query)
-                        startScreen = Screens.Search.name
+                        setIntentScreen(Screens.Search.name)
                     }
                     "/deeplink/main" -> {
                         val feature = uri.getQueryParameter("page") ?: return
                         when (feature) {
-                            "EPISODES" -> startScreen = Screens.Facets.name
-                            "QUEUE" -> startScreen = Screens.Queues.name
-                            "SUBSCRIPTIONS" -> startScreen = Screens.Subscriptions.name
-                            "STATISTCS" -> startScreen = Screens.Statistics.name
+                            "EPISODES" -> setIntentScreen(Screens.Facets.name)
+                            "QUEUE" -> setIntentScreen(Screens.Queues.name)
+                            "SUBSCRIPTIONS" -> setIntentScreen(Screens.Subscriptions.name)
+                            "STATISTCS" -> setIntentScreen(Screens.Statistics.name)
                             else -> Logt(TAG, getString(R.string.app_action_not_found) + feature)
                         }
                     }
@@ -515,13 +530,20 @@ class MainActivity : BaseActivity() {
     }
 
     companion object {
-        private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"
+       private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"  // have to keep, otherwise release build may fail?!
+
         private const val INIT_KEY = "app_init_state"
 
         var hasInitialized = mutableStateOf(false)
         val downloadStates = mutableStateMapOf<String, DownloadStatus>()
 
-        var startScreen by mutableStateOf("")
+        var initScreen by mutableStateOf<String?>(null)
+        var intendedScreen by mutableStateOf("")
+        fun setIntentScreen(screen: String) {
+            Logd(TAG, "setIntentScreen screen: $screen initScreen: $initScreen")
+            if (initScreen == null) initScreen = screen
+            else intendedScreen = screen
+        }
 
         val LocalNavController = staticCompositionLocalOf<NavController> { error("NavController not provided") }
 

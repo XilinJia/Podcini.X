@@ -101,7 +101,7 @@ object AppPreferences {
             putPref(AppPrefs.prefProxyType, config.type.name)
             if (config.host.isNullOrEmpty()) removePref(AppPrefs.prefProxyHost.name)
             else putPref(AppPrefs.prefProxyHost.name, config.host)
-            if (config.port <= 0 || config.port > 65535) removePref(AppPrefs.prefProxyPort.name)
+            if (config.port !in 1..65535) removePref(AppPrefs.prefProxyPort.name)
             else putPref(AppPrefs.prefProxyPort.name, config.port)
             if (config.username.isNullOrEmpty()) removePref(AppPrefs.prefProxyUser.name)
             else putPref(AppPrefs.prefProxyUser.name, config.username)
@@ -127,16 +127,14 @@ object AppPreferences {
     }
 
     inline fun <reified T> getPref(key: String, defaultValue: T): T {
-        val value = cachedPrefs[key]
-        return when (value) {
+        return when (val value = cachedPrefs[key]) {
             is T -> value
             else -> defaultValue
         }
     }
 
     inline fun <reified T> getPref(key: AppPrefs, hintValue: T, useHintValue: Boolean = false): T {
-        val value = cachedPrefs[key.name]
-        return when (value) {
+        return when (val value = cachedPrefs[key.name]) {
             is T -> value
             else -> {
                 if (useHintValue) hintValue
@@ -149,8 +147,7 @@ object AppPreferences {
     }
 
     inline fun <reified T> getPrefOrNull(key: AppPrefs, hintValue: T?): T? {
-        val value = cachedPrefs[key.name]
-        return when (value) {
+        return when (val value = cachedPrefs[key.name]) {
             is T -> value
             else -> {
                 when (key.default) {
@@ -264,8 +261,11 @@ object AppPreferences {
         // Network
         prefEnqueueDownloaded(true),
         prefEnqueueLocation(EnqueueLocation.BACK.name),
-        prefAutoUpdateStartTime(":"),
-        prefAutoUpdateInterval("12"),
+//        prefAutoUpdateStartTime(":"),
+//        prefAutoUpdateInterval("12"),
+
+        prefAutoUpdateIntervalMinutes("360"),
+
         prefLastFullUpdateTime(0L),
         prefMobileUpdateTypes(hashSetOf("images")),
         prefEpisodeCleanup(EpisodeCleanupOptions.Never.num.toString()),
@@ -275,6 +275,8 @@ object AppPreferences {
 
         prefAutoDLIncludeQueues(setOf<String>()),   // special
         prefAutoDLOnEmptyIncludeQueues(setOf<String>()),   // special
+
+        feedIdsToRefresh(setOf<String>()),
 
         prefProxyType(Proxy.Type.DIRECT.name),
         prefProxyHost(null),

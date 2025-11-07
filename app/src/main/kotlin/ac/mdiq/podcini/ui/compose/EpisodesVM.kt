@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.automation.AlarmHandler.playEpisodeAtTime
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
@@ -156,7 +157,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -205,6 +205,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -281,6 +282,7 @@ class EpisodeVM(var episode: Episode, val tag: String) {
     suspend fun updateVMFromDB() {
         val e = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return
         updateVM(e, arrayOf())
+        actionButton.update(e)
     }
 
     suspend fun updateVM(e: Episode,  fa: Array<String>) {
@@ -535,6 +537,60 @@ fun EraseEpisodesDialog(selected: List<EpisodeVM>, feed: Feed?, onDismissRequest
 }
 
 @Composable
+fun AlarmEpisodeDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
+    val context = LocalContext.current
+    val textColor = MaterialTheme.colorScheme.onSurface
+    var showIcon by remember { mutableStateOf(false) }
+    var startTime by remember { mutableStateOf("") }
+    val hm = remember { (if (startTime.contains(":")) startTime.split(":") else listOf("", "")).toMutableList() }
+    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+        title = { Text(stringResource(R.string.alarm_start_time), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    var hour by remember { mutableStateOf(hm[0]) }
+                    var minute by remember { mutableStateOf(hm[1]) }
+                    TextField(value = hour, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hour)") }, singleLine = true, modifier = Modifier.weight(0.4f), onValueChange = {
+                        if (it.isEmpty() || it.toIntOrNull() != null) {
+                            hour = it
+                            hm[0] = it
+                            showIcon = true
+                        }
+                    })
+                    TextField(value = minute, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(minute)") }, singleLine = true, modifier = Modifier.padding(start = 10.dp).weight(0.4f), onValueChange = {
+                        if (it.isEmpty() || it.toIntOrNull() != null) {
+                            minute = it
+                            hm[1] = it
+                            showIcon = true
+                        }
+                    })
+                }
+                Text(stringResource(R.string.alarm_start_time_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            if (showIcon) TextButton(onClick = {
+                if (hm[0].isNotBlank() || hm[1].isNotBlank()) {
+                    val hour = if (hm[0].isBlank()) 0 else (hm[0].toIntOrNull() ?: 0)
+                    val minute = if (hm[1].isBlank()) 0 else (hm[1].toIntOrNull() ?: 0)
+                    val targetTime = Calendar.getInstance().apply {
+                        set(Calendar.HOUR_OF_DAY, hour)
+                        set(Calendar.MINUTE, minute)
+                        set(Calendar.SECOND, 0)
+                    }
+                    val currentTime = Calendar.getInstance()
+                    if (targetTime.before(currentTime)) targetTime.add(Calendar.DAY_OF_MONTH, 1)
+                    Logd(TAG, "start time: $targetTime")
+                    playEpisodeAtTime(context, targetTime.timeInMillis, selected[0].episode)
+                }
+                onDismissRequest()
+            }) { Text(text = "OK") }
+        },
+        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+    )
+}
+
+@Composable
 fun IgnoreEpisodesDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
     val message = stringResource(R.string.ignore_episodes_confirmation_msg)
     val textColor = MaterialTheme.colorScheme.onSurface
@@ -611,7 +667,7 @@ enum class LayoutMode {
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
-fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed: Feed? = null, layoutMode: Int = LayoutMode.Normal.ordinal,
+fun EpisodeLazyColumn(activity: Context, vms: List<EpisodeVM>, feed: Feed? = null, layoutMode: Int = LayoutMode.Normal.ordinal,
                       showCoverImage: Boolean = true, forceFeedImage: Boolean = false,
                       showActionButtons: Boolean = true, showComment: Boolean = false,
                       buildMoreItems: (()->Unit) = {},
@@ -625,11 +681,12 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     val coroutineScope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
     var longPressIndex by remember { mutableIntStateOf(-1) }
-//    val dls = remember { DownloadServiceInterface.impl }
+    //    val dls = remember { DownloadServiceInterface.impl }
     val context = LocalContext.current
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
+    val localTime = System.currentTimeMillis()
 
     fun multiSelectCB(index: Int, aboveOrBelow: Int): List<EpisodeVM> {
         return when (aboveOrBelow) {
@@ -924,9 +981,12 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                 }
             }
             when (vm.playedState) {
-                 EpisodeState.AGAIN.code, EpisodeState.LATER.code -> {
+                EpisodeState.AGAIN.code, EpisodeState.LATER.code -> {
                     val dueText = remember { if (vm.episode.repeatTime > 0) "D:" + formatDateTimeFlex(vm.episode.dueDate) else "" }
-                    Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (dueText.isNotBlank()) {
+                        val bgColor = if (localTime > vm.episode.repeatTime) Color.Cyan else MaterialTheme.colorScheme.surface
+                        Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.background(bgColor))
+                    }
                 }
                 EpisodeState.SKIPPED.code -> {
                     val playedText = if (vm.episode.lastPlayedTime > 0) "P:" + formatDateTimeFlex(vm.episode.lastPlayedDate) else ""
@@ -989,18 +1049,19 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                         detectTapGestures(
                             onLongPress = { vms[index].showAltActionsDialog = true },
                             onTap = {
-                                vm.actionButton.update(vm.episode)
+                                val actType = vm.actionButton.type
+                                //                                vm.actionButton.update(vm.episode)
                                 vm.actionButton.onClick(activity)
-                                actionButtonCB?.invoke(vm.episode, vm.actionButton.type)
+                                actionButtonCB?.invoke(vm.episode, actType)
                             }) }) {
                         val dlStats = downloadStates[vm.episode.downloadUrl]
                         if (dlStats != null) {
-                            //                            Logd(TAG, "${vm.episode.id} dlStats: ${dlStats.progress} ${dlStats.state}")
+                            Logd(TAG, "${vm.episode.id} dlStats: ${dlStats.progress} ${dlStats.state}")
                             vm.actionButton.processing = dlStats.progress
                             when (dlStats.state) {
                                 DownloadStatus.State.COMPLETED.ordinal -> {
                                     runOnIOScope { vm.updateVMFromDB() }
-                                    vm.actionButton.type = ButtonTypes.PLAY
+                                    //                                    vm.actionButton.type = ButtonTypes.PLAY
                                 }
                                 DownloadStatus.State.INCOMPLETE.ordinal -> vm.actionButton.type = ButtonTypes.DOWNLOAD
                                 else -> {}
@@ -1020,7 +1081,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
     LaunchedEffect(lazyListState) {
         snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1 }
             .distinctUntilChanged()
-//            .debounce(300)
+            //            .debounce(300)
             .collect { lastVisibleIndex ->
                 if (lastVisibleIndex >= 0 && lastVisibleIndex >= vms.size - loadThreshold && !isLoading.value && !loadedIndices.contains(lastVisibleIndex)) {
                     loadedIndices.add(lastVisibleIndex)
@@ -1082,7 +1143,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
 
         val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
         LaunchedEffect(curMediaId, vms.size, episodeSortOrder) {
-            Logd(TAG, "LaunchedEffect curMediaId vms")
+            Logd(TAG, "LaunchedEffect curMediaId vms episodeSortOrder")
             unsubscribeCurVM()
             subscribeCurVM()
         }
@@ -1112,7 +1173,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                                 lazyListState.firstVisibleItemIndex,
                                 lazyListState.firstVisibleItemScrollOffset
                             )
-            //                        forceRecomposeKey++
+                            //                        forceRecomposeKey++
                             Logd(TAG, "Screen on, triggered scroll for recomposition")
                         }
                         rememberPlayedIds = false
@@ -1134,15 +1195,15 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                             if (curVM?.episode?.id == curMediaId) {
                                 curVM?.updateVMFromDB()
                                 withContext(Dispatchers.Main) {
-                                    if (playerStat == PLAYER_STATUS_PLAYING) curVM!!.actionButton.type = ButtonTypes.PAUSE
-                                    else curVM!!.actionButton.update(curVM!!.episode)
+                                    if (playerStat == PLAYER_STATUS_PLAYING) curVM?.actionButton?.type = ButtonTypes.PAUSE
+                                    else curVM?.actionButton?.update(curVM!!.episode)
                                 }
                             } else withContext(Dispatchers.Main) { subscribeCurVM() }
                         }
                     }
-//                    Lifecycle.Event.ON_RESUME -> {
-//                        Logd(TAG, "DisposableEffect lifecycleOwner ${curVM?.episode?.id} $curMediaId")
-//                    }
+                    //                    Lifecycle.Event.ON_RESUME -> {
+                    //                        Logd(TAG, "DisposableEffect lifecycleOwner ${curVM?.episode?.id} $curMediaId")
+                    //                    }
                     Lifecycle.Event.ON_STOP -> {
                         rememberPlayedIds = true
                     }
@@ -1151,7 +1212,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
             }
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose {
-                Logd(TAG, "DisposableEffect lifecycleOwner onDispose")
+                //                Logd(TAG, "DisposableEffect lifecycleOwner onDispose")
                 lifecycleOwner.lifecycle.removeObserver(observer)
             }
         }
@@ -1178,7 +1239,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                     detectHorizontalDragGestures(
                         onDragStart = { velocityTracker.resetTracking() },
                         onHorizontalDrag = { change, dragAmount ->
-//                            Logd(TAG, "onHorizontalDrag $dragAmount")
+                            //                            Logd(TAG, "onHorizontalDrag $dragAmount")
                             velocityTracker.addPosition(change.uptimeMillis, change.position)
                             coroutineScope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
                         },
@@ -1196,7 +1257,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                 }.offset { IntOffset(offsetX.value.roundToInt(), 0) }) {
                     LaunchedEffect(key1 = selectMode, key2 = selectedSize) {
                         vm.isSelected = selectMode && vm in selected
-//                        Logd(TAG, "LaunchedEffect $index ${vm.isSelected} ${selected.size}")
+                        //                        Logd(TAG, "LaunchedEffect $index ${vm.isSelected} ${selected.size}")
                     }
                     Column {
                         var yOffset by remember { mutableFloatStateOf(0f) }
@@ -1212,8 +1273,8 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
                                     Logd(TAG, "onDragEnd draggedIndex: $draggedIndex newIndex: $newIndex")
                                     if (newIndex != startIndex) {
                                         dragCB?.invoke(startIndex, newIndex)
-                                        val item = vms.removeAt(startIndex)
-                                        vms.add(newIndex, item)
+                                        //                                        val item = vms.removeAt(startIndex)
+                                        //                                        vms.add(newIndex, item)c
                                     }
                                 }
                                 draggedIndex = null
@@ -1284,7 +1345,7 @@ fun EpisodeLazyColumn(activity: Context, vms: SnapshotStateList<EpisodeVM>, feed
 @Composable
 fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<EpisodesFilterGroup> = mutableSetOf(),
                          onDismissRequest: () -> Unit, onFilterChanged: (EpisodeFilter) -> Unit) {
-//    val filterValuesSet = remember {  filter.propertySet ?: mutableSetOf() }
+    //    val filterValuesSet = remember {  filter.propertySet ?: mutableSetOf() }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
@@ -1337,7 +1398,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     onFilterChanged(filter)
                                 },
                             ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
-//                            Spacer(Modifier.weight(0.5f))
+                            //                            Spacer(Modifier.weight(0.5f))
                         }
                     } else {
                         Column(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
@@ -1372,7 +1433,7 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                                     if (floor.isNotBlank() || ceiling.isNotBlank()) {
                                                         val f = if (floor.isBlank() || floor.toIntOrNull() == null) 0 else floor.toInt()
                                                         val c = if (ceiling.isBlank() || ceiling.toIntOrNull() == null) Int.MAX_VALUE else ceiling.toInt()
-//                                                        Logd("EpisodeFilterDialog", "f = $f c = $c")
+                                                        //                                                        Logd("EpisodeFilterDialog", "f = $f c = $c")
                                                         filter.durationFloor = f * 1000
                                                         filter.durationCeiling = if (c < Int.MAX_VALUE) c * 1000 else c
                                                     }
@@ -1462,7 +1523,7 @@ var episodeSortOrder by mutableStateOf<EpisodeSortOrder?>(null)
 
 @Composable
 fun EpisodeSortDialog(initOrder: EpisodeSortOrder?, showKeepSorted: Boolean = false, onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder, Boolean) -> Unit) {
-    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || gearbox.SupportExtraSort()) } }
+    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || gearbox.supportExtraSort()) } }
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
@@ -1502,7 +1563,7 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
         fun formatMonthYear(input: String): String {
             val sanitized = input.replace(Regex("[^0-9/]"), "")
             return when {
-                sanitized.length > 7 -> sanitized.substring(0, 7)
+                sanitized.length > 7 -> sanitized.take(7)
                 else -> sanitized
             }
         }

@@ -614,7 +614,13 @@ fun QueuesScreen() {
                     }
                     InforBar(vm.infoBarText, vm.swipeActions)
                     EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
-                        isDraggable = vm.dragDropEnabled, dragCB = { iFrom, iTo -> runOnIOScope { moveInQueueSync(iFrom, iTo, true) } },
+                        isDraggable = vm.dragDropEnabled, dragCB = { iFrom, iTo ->
+                            runOnIOScope { moveInQueueSync(iFrom, iTo, true) }
+                            if (iFrom in vm.vms.indices && iTo in vm.vms.indices) {
+                                val item = vm.vms.removeAt(iFrom)
+                                vm.vms.add(iTo, item)
+                            }
+                        },
                         swipeActions = vm.swipeActions,
                     )
                 }

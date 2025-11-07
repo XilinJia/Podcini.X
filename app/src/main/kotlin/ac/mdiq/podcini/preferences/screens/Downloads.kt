@@ -8,7 +8,7 @@ import ac.mdiq.podcini.net.download.service.PodciniHttpClient.newBuilder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.reinit
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.getInitialDelay
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.nextRefreshTime
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.restartUpdateAlarm
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.scheduleUpdateTaskOnce
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
@@ -19,15 +19,13 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.utils.ProxyConfig
 import ac.mdiq.podcini.storage.utils.StorageUtils.deleteDirectoryRecursively
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
-import ac.mdiq.podcini.ui.activity.PreferenceActivity.Screens
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
-import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
-import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import android.app.Activity.RESULT_OK
@@ -49,12 +47,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -76,13 +72,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.navigation.NavController
-import java.io.IOException
-import java.net.InetSocketAddress
-import java.net.Proxy
-import java.net.SocketAddress
-import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -93,7 +85,11 @@ import okhttp3.Request
 import okhttp3.Request.Builder
 import okhttp3.Response
 import okhttp3.Route
-import androidx.core.net.toUri
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Proxy
+import java.net.SocketAddress
+import java.util.concurrent.TimeUnit
 
 @Suppress("EnumEntryName")
 enum class MobileUpdateOptions(val res: Int) {
@@ -106,7 +102,7 @@ enum class MobileUpdateOptions(val res: Int) {
 }
 
 @Composable
-fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavController) {
+fun NetworkAndDownloadsScreen(activity: PreferenceActivity, navController: NavController) {
     @Composable
     fun ProxyDialog(onDismissRequest: ()->Unit) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -162,7 +158,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
             return true
         }
         fun checkPort(): Boolean {
-            if (portValue < 0 || portValue > 65535) {
+            if (portValue !in 0..65535) {
                 portError = activity.getString(R.string.proxy_port_invalid_error)
                 return false
             }
@@ -227,36 +223,29 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                     if (typePos > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.host_label))
-                            TextField(value = host, label = { Text("www.example.com") },
-                                onValueChange = { host = it },
-                                isError = !checkHost(),
-                                modifier = Modifier.fillMaxWidth()
+                            TextField(value = host, label = { Text("www.example.com") }, isError = !checkHost(), modifier = Modifier.fillMaxWidth(),
+                                onValueChange = { host = it }
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.port_label))
-                            TextField(value = port, label = { Text("8080") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            TextField(value = port, label = { Text("8080") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), isError = !checkPort(), modifier = Modifier.fillMaxWidth(),
                                 onValueChange = {
                                     port = it
                                     portValue = it.toIntOrNull() ?: -1
-                                },
-                                isError = !checkPort(),
-                                modifier = Modifier.fillMaxWidth()
+                                }
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.username_label))
-                            TextField(value = username ?: "", label = { Text(stringResource(R.string.optional_hint)) },
-                                onValueChange = { username = it },
-                                modifier = Modifier.fillMaxWidth()
+                            TextField(value = username ?: "", label = { Text(stringResource(R.string.optional_hint)) }, modifier = Modifier.fillMaxWidth(),
+                                onValueChange = { username = it }
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(stringResource(R.string.password_label))
-                            TextField(value = password ?: "", label = { Text(stringResource(R.string.optional_hint)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                                onValueChange = { password = it },
-                                modifier = Modifier.fillMaxWidth()
+                            TextField(value = password ?: "", label = { Text(stringResource(R.string.optional_hint)) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password), modifier = Modifier.fillMaxWidth(),
+                                onValueChange = { password = it }
                             )
                         }
                     }
@@ -277,6 +266,10 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
             dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
         )
     }
+
+    val scrollState = rememberScrollState()
+    var showProxyDialog by remember { mutableStateOf(false) }
+    if (showProxyDialog) ProxyDialog {showProxyDialog = false }
 
     var useCustomMediaDir by remember { mutableStateOf(getPref(AppPrefs.prefUseCustomMediaFolder, false)) }
 
@@ -321,111 +314,122 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
         }
     }
 
-    var blockAutoDeleteLocal by remember { mutableStateOf(true) }
-    val scrollState = rememberScrollState()
-    var showProxyDialog by remember { mutableStateOf(false) }
-    if (showProxyDialog) ProxyDialog {showProxyDialog = false }
-
-//    val lastUpdateTime = remember { getPref(AppPrefs.prefLastFullUpdateTime, 0L) }
-    var refreshInterval by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateInterval, "12")) }
+    var refreshInterval by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateIntervalMinutes, "360")) }
     LaunchedEffect(Unit) {
         getInitialDelay(activity)
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
-        Text(stringResource(R.string.automation), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.feed_refresh_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                NumberEditor(refreshInterval.toInt(), "hours", nz = false, modifier = Modifier.weight(0.6f)) {
+                NumberEditor(refreshInterval.toInt(), stringResource(R.string.time_minutes), nz = false, modifier = Modifier.weight(0.6f)) {
                     refreshInterval = it.toString()
-                    putPref(AppPrefs.prefAutoUpdateInterval, refreshInterval)
-                    restartUpdateAlarm(activity.applicationContext, true)
+                    Logd("DownloadsSetting", "refreshInterval: $refreshInterval")
+                    putPref(AppPrefs.prefAutoUpdateIntervalMinutes, refreshInterval)
+                    scheduleUpdateTaskOnce(activity.applicationContext, replace = true)
                 }
-//                var showIcon by remember { mutableStateOf(false) }
-//                TextField(value = refreshInterval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hours)") },
-//                    singleLine = true, modifier = Modifier.weight(0.5f),
-//                    onValueChange = {
-//                        if (it.isEmpty() || it.toIntOrNull() != null) {
-//                            refreshInterval = it
-//                            showIcon = true
-//                        }
-//                    },
-//                    trailingIcon = {
-//                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-//                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-//                                if (refreshInterval.isEmpty()) refreshInterval = "0"
-//                                putPref(AppPrefs.prefAutoUpdateInterval, refreshInterval)
-//                                showIcon = false
-//                                restartUpdateAlarm(activity.applicationContext, true)
-//                            }))
-//                    })
             }
             Text(stringResource(R.string.feed_refresh_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
-            if (refreshInterval != "0") {
-                Text(stringResource(R.string.feed_next_refresh_time) + " " + nextRefreshTime, color = textColor, style = MaterialTheme.typography.bodySmall)
-                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-                    var startTime by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateStartTime, "")) }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.feed_refresh_start), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(0.4f))
-                        var showIcon by remember { mutableStateOf(false) }
-                        val hm = remember { (if (startTime.contains(":")) startTime.split(":") else listOf("", "")).toMutableList() }
-                        var hour by remember { mutableStateOf( hm[0]) }
-                        var minute by remember { mutableStateOf( hm[1]) }
-                        TextField(value = hour, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hour)") },
-                            singleLine = true, modifier = Modifier.weight(0.4f),
-                            onValueChange = {
-                                if (it.isEmpty() || it.toIntOrNull() != null) {
-                                    hour = it
-                                    hm[0] = it
-                                    showIcon = true
-                                }
-                            })
-                        TextField(value = minute, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(minute)") },
-                            singleLine = true, modifier = Modifier.padding(start = 10.dp).weight(0.4f),
-                            onValueChange = {
-                                if (it.isEmpty() || it.toIntOrNull() != null) {
-                                    minute = it
-                                    hm[1] = it
-                                    showIcon = true
-                                }
-                            })
-                        if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                var h = ""
-                                var m = ""
-                                if (hm[0].isNotBlank() || hm[1].isNotBlank()) {
-                                    h = hm[0].ifBlank { "0" }
-                                    m = hm[1].ifBlank { "0" }
-                                }
-                                putPref(AppPrefs.prefAutoUpdateStartTime, "$h:$m")
-                                showIcon = false
-                                restartUpdateAlarm(activity.applicationContext, true)
-                            }))
+            if (refreshInterval != "0") Text(stringResource(R.string.feed_next_refresh_time) + " " + nextRefreshTime, color = textColor, style = MaterialTheme.typography.bodySmall)
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
+        //        TitleSummaryActionColumn(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum) { navController.navigate(Screens.AutoDownloadScreen.name) }
+        var isEnabled by remember { mutableStateOf(getPref(AppPrefs.prefEnableAutoDl, false)) }
+        TitleSummarySwitchPrefRow(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum, AppPrefs.prefEnableAutoDl) {
+            isEnabled = it
+            putPref(AppPrefs.prefEnableAutoDl, it)
+        }
+        if (isEnabled) {
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.pref_episode_cache_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    var interval by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCacheSize, "25")) }
+                    NumberEditor(interval.toInt(), unit = "integer", nz = false, modifier = Modifier.weight(0.5f)) {
+                        interval = it.toString()
+                        putPref(AppPrefs.prefEpisodeCacheSize, interval)
                     }
-                    Text(stringResource(R.string.feed_refresh_start_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
                 }
+                Text(stringResource(R.string.pref_episode_cache_summary), color = textColor, style = MaterialTheme.typography.bodySmall)
             }
-        }
-        TitleSummaryActionColumn(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum) { navController.navigate(Screens.AutoDownloadScreen.name) }
-        TitleSummarySwitchPrefRow(R.string.auto_delete, R.string.pref_auto_delete_sum, AppPrefs.prefAutoDelete)
-        TitleSummarySwitchPrefRow(R.string.pref_auto_local_delete_title, R.string.pref_auto_local_delete_sum, AppPrefs.prefAutoDeleteLocal) {
-            if (blockAutoDeleteLocal && it) {
-                commonConfirm = CommonConfirmAttrib(
-                    title = "",
-                    message = activity.getString(R.string.pref_auto_local_delete_dialog_body),
-                    confirmRes = R.string.yes,
-                    cancelRes = R.string.cancel_label,
-                    onConfirm = {
-                        blockAutoDeleteLocal = false
-                        putPref(AppPrefs.prefAutoDeleteLocal, it)
-                        blockAutoDeleteLocal = true
-                    })
+            var showCleanupOptions by remember { mutableStateOf(false) }
+            TitleSummaryActionColumn(R.string.pref_episode_cleanup_title, R.string.pref_episode_cleanup_summary) { showCleanupOptions = true }
+            if (showCleanupOptions) {
+                var tempCleanupOption by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCleanup, "-1")) }
+                var interval by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCleanup, "-1")) }
+                if ((interval.toIntOrNull() ?: -1) > 0) tempCleanupOption = EpisodeCleanupOptions.LimitBy.num.toString()
+                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showCleanupOptions = false },
+                    title = { Text(stringResource(R.string.pref_episode_cleanup_title), style = CustomTextStyles.titleCustom) },
+                    text = {
+                        Column {
+                            EpisodeCleanupOptions.entries.forEach { option ->
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp)
+                                    .clickable { tempCleanupOption = option.num.toString() }) {
+                                    Checkbox(checked = tempCleanupOption == option.num.toString(), onCheckedChange = { tempCleanupOption = option.num.toString() })
+                                    Text(stringResource(option.res), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                            if (tempCleanupOption == EpisodeCleanupOptions.LimitBy.num.toString()) {
+                                NumberEditor(interval.toInt(), unit = "integer", modifier = Modifier.weight(0.6f)) { interval = it.toString() }
+                                //                                TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("integer") }, singleLine = true,
+                                //                                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) interval = it })
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            var num = if (tempCleanupOption == EpisodeCleanupOptions.LimitBy.num.toString()) interval else tempCleanupOption
+                            if (num.toIntOrNull() == null) num = EpisodeCleanupOptions.Never.num.toString()
+                            putPref(AppPrefs.prefEpisodeCleanup, num)
+                            showCleanupOptions = false
+                        }) { Text(text = "OK") }
+                    },
+                    dismissButton = { TextButton(onClick = { showCleanupOptions = false }) { Text(stringResource(R.string.cancel_label)) } }
+                )
             }
+            TitleSummarySwitchPrefRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, AppPrefs.prefEnableAutoDownloadOnBattery)
+            @Composable
+            fun IncludeQueueDialog(key: AppPrefs, defaultOn: Boolean, onDismiss: ()->Unit) {
+                val queues = remember { realm.query(PlayQueue::class).find() }
+                var selectedOptions by remember { mutableStateOf(getPref(key, queues.map { it.name }.toSet(), defaultOn)) }
+                fun updateSepections(option: PlayQueue) {
+                    selectedOptions = if (selectedOptions.contains(option.name)) selectedOptions - option.name else selectedOptions + option.name
+                }
+                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss,
+                    title = { Text(stringResource(R.string.pref_autodl_queues_title), style = CustomTextStyles.titleCustom) },
+                    text = {
+                        val scrollState = rememberScrollState()
+                        Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
+                            queues.forEach { option ->
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp).clickable { updateSepections(option) }) {
+                                    Checkbox(checked = selectedOptions.contains(option.name), onCheckedChange = { updateSepections(option) })
+                                    Text(option.name, modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            putPref(key, selectedOptions)
+                            onDismiss()
+                        }) { Text(text = "OK") }
+                    },
+                    dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
+                )
+            }
+
+            //            TitleSummarySwitchPrefRow(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum, AppPrefs.prefEnableAutoDLOnEmptyQueue)
+
+            var showEmptyQueueOptions by remember { mutableStateOf(false) }
+            TitleSummaryActionColumn(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum) { showEmptyQueueOptions = true }
+            if (showEmptyQueueOptions) IncludeQueueDialog(AppPrefs.prefAutoDLOnEmptyIncludeQueues, false) { showEmptyQueueOptions = false }
+            var showQueueOptions by remember { mutableStateOf(false) }
+
+            TitleSummaryActionColumn(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum) { showQueueOptions = true }
+            if (showQueueOptions) IncludeQueueDialog(AppPrefs.prefAutoDLIncludeQueues, true) { showQueueOptions = false }
         }
-        TitleSummarySwitchPrefRow(R.string.pref_keeps_important_episodes_title, R.string.pref_keeps_important_episodes_sum, AppPrefs.prefFavoriteKeepsEpisode)
-        TitleSummarySwitchPrefRow(R.string.pref_delete_removes_from_queue_title, R.string.pref_delete_removes_from_queue_sum, AppPrefs.prefDeleteRemovesFromQueue)
-        Text(stringResource(R.string.download_pref_details), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
+
         var showSetCustomFolderDialog by remember { mutableStateOf(false) }
         if (showSetCustomFolderDialog) {
             val sumTextRes = if (useCustomMediaDir) R.string.pref_custom_media_dir_sum1 else R.string.pref_custom_media_dir_sum
@@ -512,7 +516,7 @@ fun DownloadsPreferencesScreen(activity: PreferenceActivity, navController: NavC
                         putPref(AppPrefs.prefMobileUpdateTypes, tempSelectedOptions)
                         val optionsDiff = (tempSelectedOptions - initMobileOptions) + (initMobileOptions - tempSelectedOptions)
                         if (optionsDiff.contains(MobileUpdateOptions.feed_refresh.name) || optionsDiff.contains(MobileUpdateOptions.auto_download.name))
-                            restartUpdateAlarm(activity.applicationContext, true)
+                            scheduleUpdateTaskOnce(activity.applicationContext, replace = true)
                         showMeteredNetworkOptions = false
                     }) { Text(text = "OK") }
                 },
@@ -528,122 +532,4 @@ enum class EpisodeCleanupOptions(val res: Int, val num: Int) {
     Never(R.string.episode_cleanup_never, -2),
     NotInQueue(R.string.episode_cleanup_not_in_queue, -1),
     LimitBy(R.string.episode_cleanup_limit_by, 0)
-}
-
-@Composable
-fun AutoDownloadPreferencesScreen() {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val scrollState = rememberScrollState()
-    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
-        var isEnabled by remember { mutableStateOf(getPref(AppPrefs.prefEnableAutoDl, false)) }
-        TitleSummarySwitchPrefRow(R.string.pref_automatic_download_title, R.string.pref_automatic_download_sum, AppPrefs.prefEnableAutoDl) {
-            isEnabled = it
-            putPref(AppPrefs.prefEnableAutoDl, it)
-        }
-        if (isEnabled) {
-            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.pref_episode_cache_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    var interval by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCacheSize, "25")) }
-                    NumberEditor(interval.toInt(), unit = "integer", nz = false, modifier = Modifier.weight(0.5f)) {
-                        interval = it.toString()
-                        putPref(AppPrefs.prefEpisodeCacheSize, interval)
-                    }
-//                    var showIcon by remember { mutableStateOf(false) }
-//                    TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("integer") },
-//                        singleLine = true, modifier = Modifier.weight(0.5f),
-//                        onValueChange = {
-//                            if (it.isEmpty() || it.toIntOrNull() != null) {
-//                                interval = it
-//                                showIcon = true
-//                            }
-//                        },
-//                        trailingIcon = {
-//                            if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-//                                modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-//                                    if (interval.isEmpty()) interval = "0"
-//                                    putPref(AppPrefs.prefEpisodeCacheSize, interval)
-//                                    showIcon = false
-//                                }))
-//                        })
-                }
-                Text(stringResource(R.string.pref_episode_cache_summary), color = textColor, style = MaterialTheme.typography.bodySmall)
-            }
-            var showCleanupOptions by remember { mutableStateOf(false) }
-            TitleSummaryActionColumn(R.string.pref_episode_cleanup_title, R.string.pref_episode_cleanup_summary) { showCleanupOptions = true }
-            if (showCleanupOptions) {
-                var tempCleanupOption by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCleanup, "-1")) }
-                var interval by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCleanup, "-1")) }
-                if ((interval.toIntOrNull() ?: -1) > 0) tempCleanupOption = EpisodeCleanupOptions.LimitBy.num.toString()
-                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showCleanupOptions = false },
-                    title = { Text(stringResource(R.string.pref_episode_cleanup_title), style = CustomTextStyles.titleCustom) },
-                    text = {
-                        Column {
-                            EpisodeCleanupOptions.entries.forEach { option ->
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp)
-                                    .clickable { tempCleanupOption = option.num.toString() }) {
-                                    Checkbox(checked = tempCleanupOption == option.num.toString(), onCheckedChange = { tempCleanupOption = option.num.toString() })
-                                    Text(stringResource(option.res), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
-                            if (tempCleanupOption == EpisodeCleanupOptions.LimitBy.num.toString()) {
-                                NumberEditor(interval.toInt(), unit = "integer", modifier = Modifier.weight(0.6f)) { interval = it.toString() }
-//                                TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("integer") }, singleLine = true,
-//                                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) interval = it })
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            var num = if (tempCleanupOption == EpisodeCleanupOptions.LimitBy.num.toString()) interval else tempCleanupOption
-                            if (num.toIntOrNull() == null) num = EpisodeCleanupOptions.Never.num.toString()
-                            putPref(AppPrefs.prefEpisodeCleanup, num)
-                            showCleanupOptions = false
-                        }) { Text(text = "OK") }
-                    },
-                    dismissButton = { TextButton(onClick = { showCleanupOptions = false }) { Text(stringResource(R.string.cancel_label)) } }
-                )
-            }
-            TitleSummarySwitchPrefRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, AppPrefs.prefEnableAutoDownloadOnBattery)
-            @Composable
-            fun IncludeQueueDialog(key: AppPrefs, defaultOn: Boolean, onDismiss: ()->Unit) {
-                val queues = remember { realm.query(PlayQueue::class).find() }
-                var selectedOptions by remember { mutableStateOf(getPref(key, queues.map { it.name }.toSet(), defaultOn)) }
-                fun updateSepections(option: PlayQueue) {
-                    selectedOptions = if (selectedOptions.contains(option.name)) selectedOptions - option.name else selectedOptions + option.name
-                }
-                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss,
-                    title = { Text(stringResource(R.string.pref_autodl_queues_title), style = CustomTextStyles.titleCustom) },
-                    text = {
-                        val scrollState = rememberScrollState()
-                        Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
-                            queues.forEach { option ->
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp).clickable { updateSepections(option) }) {
-                                    Checkbox(checked = selectedOptions.contains(option.name), onCheckedChange = { updateSepections(option) })
-                                    Text(option.name, modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            putPref(key, selectedOptions)
-                            onDismiss()
-                        }) { Text(text = "OK") }
-                    },
-                    dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
-                )
-            }
-
-//            TitleSummarySwitchPrefRow(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum, AppPrefs.prefEnableAutoDLOnEmptyQueue)
-
-            var showEmptyQueueOptions by remember { mutableStateOf(false) }
-            TitleSummaryActionColumn(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum) { showEmptyQueueOptions = true }
-            if (showEmptyQueueOptions) IncludeQueueDialog(AppPrefs.prefAutoDLOnEmptyIncludeQueues, false) { showEmptyQueueOptions = false }
-            var showQueueOptions by remember { mutableStateOf(false) }
-
-            TitleSummaryActionColumn(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum) { showQueueOptions = true }
-            if (showQueueOptions) IncludeQueueDialog(AppPrefs.prefAutoDLIncludeQueues, true) { showQueueOptions = false }
-        }
-    }
 }

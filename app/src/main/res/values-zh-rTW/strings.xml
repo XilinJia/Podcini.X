@@ -3,7 +3,7 @@
   <!--Activity and fragment titles-->
     <string name="statistics_label">統計</string>
   <string name="episodes_label">單集</string>
-    <string name="queue_label">待播清單</string>
+
 
 
   <string name="settings_label">設定</string>

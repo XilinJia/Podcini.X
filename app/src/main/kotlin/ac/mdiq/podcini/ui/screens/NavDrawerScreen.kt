@@ -16,10 +16,8 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.utils.EpisodeFilter.Companion.unfiltered
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.lcScope
-
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -80,7 +78,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import coil.compose.AsyncImage
-import io.github.xilinjia.krdb.query.RealmResults
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -219,7 +216,6 @@ fun NavDrawerScreen(navController: NavController) {
         }
     }
 
-//    val configuration = LocalConfiguration.current
     val windowSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
     val windowWidthDp = with(density) { windowSize.width.toDp() }
@@ -329,8 +325,9 @@ private val navHostMap: MutableMap<Screens, @Composable ()->Unit> = mutableMapOf
 )
 
 @Composable
-fun Navigate(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = defaultScreen) {
+fun Navigate(navController: NavHostController, startScreen: String = "") {
+    Logd(TAG, "Navigate startScreen: $startScreen")
+    NavHost(navController = navController, startDestination = startScreen.ifBlank { defaultScreen }) {
         for (nv in navHostMap.entries) composable(nv.key.name) { nv.value() }
     }
 }

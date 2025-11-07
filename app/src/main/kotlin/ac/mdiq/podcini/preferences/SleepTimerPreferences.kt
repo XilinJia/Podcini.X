@@ -169,7 +169,7 @@ object SleepTimerPreferences {
                             Checkbox(checked = toEnd, onCheckedChange = { toEnd = it })
                             Text(stringResource(R.string.end_episode), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 10.dp))
                         }
-                        if (!toEnd) TextField(value = etxtTime, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number), label = { Text(stringResource(R.string.time_minutes)) }, singleLine = true,
+                        if (!toEnd) TextField(value = etxtTime, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.time_minutes)) }, singleLine = true,
                             onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) etxtTime = it })
                         Button(modifier = Modifier.fillMaxWidth(), onClick = {
                             if (!PlaybackService.isRunning) {
@@ -228,9 +228,9 @@ object SleepTimerPreferences {
                         var to by remember { mutableStateOf(autoEnableTo().toString()) }
                         Text(stringResource(R.string.auto_enable_sum), style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 10.dp))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp).fillMaxWidth()) {
-                            TextField(value = from, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number), label = { Text("From") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            TextField(value = from, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("From") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
                                 onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) from = it })
-                            TextField(value = to, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Companion.Number), label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
+                            TextField(value = to, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("To") }, singleLine = true, modifier = Modifier.weight(1f).padding(end = 8.dp),
                                 onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) to = it })
                             IconButton(onClick = {
                                 prefs!!.edit {

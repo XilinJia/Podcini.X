@@ -75,7 +75,8 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         try {
             activeSyncProvider.login()
             syncSubscriptions(activeSyncProvider)
-            runBlocking { waitForDownloadServiceCompleted() }
+//            runBlocking { waitForDownloadServiceCompleted() }
+            waitForDownloadServiceCompleted()
 
 //            sync Episode changes
 //            syncEpisodeActions(activeSyncProvider)

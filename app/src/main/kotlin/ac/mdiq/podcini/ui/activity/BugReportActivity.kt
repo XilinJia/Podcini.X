@@ -71,7 +71,7 @@ class BugReportActivity : ComponentActivity() {
 
         var stacktrace = "No crash report recorded"
         try {
-            val crashFile = CrashReportWriter.file
+            val crashFile = CrashReportWriter.crashLogFile
             if (crashFile.exists()) stacktrace = IOUtils.toString(FileInputStream(crashFile), Charset.forName("UTF-8"))
             else Logd(TAG, stacktrace)
         } catch (e: IOException) { Logs(TAG, e) }

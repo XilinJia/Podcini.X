@@ -24,12 +24,12 @@ class CrashReportWriter : Thread.UncaughtExceptionHandler {
         private val TAG: String = CrashReportWriter::class.simpleName ?: "Anonymous"
 
         @JvmStatic
-        val file: File
+        val crashLogFile: File
             get() = File(getDataFolder(null), "crash-report.log")
 
         @JvmStatic
         fun write(exception: Throwable) {
-            val path = file
+            val path = crashLogFile
             var out: PrintWriter? = null
             try {
                 out = PrintWriter(path, "UTF-8")

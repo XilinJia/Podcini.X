@@ -5,7 +5,7 @@
     <string name="statistics_label">Estatísticas</string>
   <string name="add_feed_label">Adicionar podcast</string>
   <string name="episodes_label">Episódios</string>
-    <string name="queue_label">Fila</string>
+
 
 
   <string name="settings_label">Configurações</string>
@@ -275,7 +275,7 @@
 
   <string name="playback_pref">Reprodução</string>
   <string name="playback_pref_sum">Controles de fone de ouvido, intervalos para saltar, Fila</string>
-  <string name="downloads_pref">Downloads</string>
+
   <string name="downloads_pref_sum">Intervalo de atualização, Dados móveis, Download automático, Exclusão automática</string>
   <string name="feed_refresh_title">Atualizar podcasts</string>
 

@@ -367,7 +367,7 @@ object Feeds {
         return resultFeed
     }
 
-    suspend fun updateFeedSimple(newFeed: Feed): Feed? {
+    suspend fun updateFeedSimple(newFeed: Feed): Feed {
         Logd(TAG, "updateFeedSimple called")
         val savedFeed = searchFeedByIdentifyingValueOrID(newFeed, true) ?: return newFeed
 
@@ -420,9 +420,8 @@ object Feeds {
         savedFeed.totleDuration = 0
         for (e in savedFeed.episodes) savedFeed.totleDuration += e.duration
 
-        val resultFeed = savedFeed
         try { upsert(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedSimple failed") } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedSimple failed") }
-        return resultFeed
+        return savedFeed
     }
 
     fun persistFeedLastUpdateFailed(feed: Feed, lastUpdateFailed: Boolean) : Job {
@@ -572,19 +571,18 @@ object Feeds {
         return feed
     }
 
-    private fun getMiscSyndicate(): Feed {
-        val feedId: Long = 11
-        var feed = getFeed(feedId, true)
-        if (feed != null) return feed
-
-        feed = createSynthetic(feedId, "Misc Syndicate")
-        feed.type = Feed.FeedType.RSS.name
-        upsertBlk(feed) {}
-        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
-        return feed
-    }
-
     fun addRemoteToMiscSyndicate(episode: Episode) {
+        fun getMiscSyndicate(): Feed {
+            val feedId: Long = 11
+            var feed = getFeed(feedId, true)
+            if (feed != null) return feed
+
+            feed = createSynthetic(feedId, "Misc Syndicate")
+            feed.type = Feed.FeedType.RSS.name
+            upsertBlk(feed) {}
+            EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
+            return feed
+        }
         val feed = getMiscSyndicate()
         Logd(TAG, "addToMiscSyndicate: feed: ${feed.title}")
         if (searchEpisodeByIdentifyingValue(feed.episodes, episode) != null) return
@@ -700,25 +698,25 @@ object Feeds {
                     val ecs = v.sortedByDescending { it.comment.length }
                     val comment = if (ecs[0].comment.isBlank()) "" else {
                         var c = ecs[0].comment
-                        for (i in 1..ecs.size-1) if (ecs[i].comment.isNotBlank()) c += "\n" + ecs[i].comment
+                        for (i in 1..<ecs.size) if (ecs[i].comment.isNotBlank()) c += "\n" + ecs[i].comment
                         c
                     }
                     val ers = v.sortedByDescending { it.rating }
                     if (ers[0].rating > Rating.UNRATED.code) runOnIOScope {
                         if (ers[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(ers[0]) { it.comment = comment }
                         else episode = ers[0]
-                        for (i in 1..ers.size - 1) eraseEpisode(ers[i])
+                        for (i in 1..<ers.size) eraseEpisode(ers[i])
                     } else {
                         val eps = v.sortedByDescending { it.lastPlayedTime }
                         if (eps[0].lastPlayedTime > 0L) {
                             if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.comment = comment }
                             else episode = eps[0]
-                            runOnIOScope { for (i in 1..eps.size - 1) eraseEpisode(eps[i]) }
+                            runOnIOScope { for (i in 1..<eps.size) eraseEpisode(eps[i]) }
                         } else {
                             val eps = v.sortedByDescending { it.pubDate }
                             if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.comment = comment }
                             else episode = eps[0]
-                            runOnIOScope { for (i in 1..eps.size - 1) eraseEpisode(eps[i]) }
+                            runOnIOScope { for (i in 1..<eps.size) eraseEpisode(eps[i]) }
                         }
                     }
                     map[k] = mutableListOf(episode)
@@ -827,8 +825,8 @@ object Feeds {
             var mimeType2 = media2.mimeType
             if (mimeType1 == null || mimeType2 == null) return true
             if (mimeType1.contains("/") && mimeType2.contains("/")) {
-                mimeType1 = mimeType1.substring(0, mimeType1.indexOf("/"))
-                mimeType2 = mimeType2.substring(0, mimeType2.indexOf("/"))
+                mimeType1 = mimeType1.substringBefore("/")
+                mimeType2 = mimeType2.substringBefore("/")
             }
             return (mimeType1 == mimeType2)
         }

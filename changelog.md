@@ -1,3 +1,46 @@
+# 8.24.0
+
+* amended app init mechanism, likely fixed various strange issues
+* fixed possible NullPointer in episodes lists on startup
+* use one time request to schedule feeds refresh, more flexible and hopefully more timely and more frequent
+	* Android may kill the refresh process if it takes over 10 minutes
+	* in case of errors (including being killed), retry is scheduled for maximum of 3 times at interval of a quarter of the refresh interval
+	* retry is only performed on feeds not refreshed previously
+* amended streaming on mobile confirmation mechanism
+	* it only appears when stream button on a list is clicked
+	* if Once is tapped, it starts streaming the current episode, and all applicable episodes (on a queue) without further confirmations
+* in Settings, renamed the Downloads screen to Network and Downloads, and shuffled some items with the Playback screen
+* in Settings->Downloads
+	* feeds refresh interval is now set in minutes (not hours)
+		* default to 360 minutes, sorry no migration
+		* not sure how frequent Android allows reliably (2 minute interval has been tested OK)
+		* it should be set longer than the refresh duration which can be a few minutes it you have many feeds and a slow network
+	* removed start time setting (on every interval setting, the schedule restarts)
+* in FeedDetails screen
+	* avoided possibly double assembling list
+	* likely fixed current playing progress not updating issue
+* in episodes lists, a past-due episode (Again or Later) is highlighted
+* added experimental feature of scheduling playing episodes
+	* in any episodes list, swipe action (also in the Combo) pop up setting for "Play episode at time"
+	* the episode will be played if media is ready or streamed
+	* multiple schedules are allowed
+	* start time is precise as set. note, after scheduling, the app should not be force-stopped, or battery-optimized
+	* currently:
+		* schedule is only for the next 24 hours
+		* there is no further control on it
+		* at the end of the episode, it may continue onto other episodes (depending on the feed or the queue)
+* restored alternative action buttons menu left out since 8.20.0
+* fixed failure downloading previously partially/fully downloaded media 
+* moved some disk access calls to IO dispatchers to speed up launches
+* ensured shared text starts the app in the right screen
+* ensures full updates action from Subscriptions menu (though not quite necessary)
+* made vms in EpisodeLazyColumn immutable
+* OnlineFeed screen not exits when ShowTabsDialog is dismissed
+* Kotlin upped to 2.2.20, krdb to 3.2.9
+* in build.gradle, replaced setting --no-version-vectors
+* some code refactoring and cleaning
+
+
 # 8.23.3
 
 * fixed issue of proper screen not opening when receiving shared text multiple times

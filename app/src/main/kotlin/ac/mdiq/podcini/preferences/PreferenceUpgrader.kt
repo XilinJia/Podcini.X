@@ -1,10 +1,10 @@
 package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.error.CrashReportWriter.Companion.file
+import ac.mdiq.podcini.util.error.CrashReportWriter.Companion.crashLogFile
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 
 object PreferenceUpgrader {
@@ -22,10 +22,10 @@ object PreferenceUpgrader {
         val newVersion = BuildConfig.VERSION_CODE
 
         if (oldVersion != newVersion) {
-            file.delete()
+            crashLogFile.delete()
 
             upgrade(oldVersion, context)
-            upgraderPrefs.edit().putInt(PREF_CONFIGURED_VERSION, newVersion).apply()
+            upgraderPrefs.edit { putInt(PREF_CONFIGURED_VERSION, newVersion) }
         }
     }
 
@@ -37,7 +37,6 @@ object PreferenceUpgrader {
     fun getCopyrightNoticeText(context: Context): String {
         var copyrightNoticeText = ""
         val packageHash = context.packageName.hashCode()
-        Logd("getCopyrightNoticeText", "packageName: ${context.packageName} ${packageHash} ${"ac.mdiq.podcini.X".hashCode()}")
         when {
             packageHash != 1329568237 && packageHash != -1967311086 -> {
                 copyrightNoticeText = ("This application is based on Podcini."

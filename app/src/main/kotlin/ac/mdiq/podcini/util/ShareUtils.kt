@@ -2,13 +2,11 @@ package ac.mdiq.podcini.util
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
 import android.content.Context
 import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.content.FileProvider
 import java.io.File
-import java.net.URLEncoder
 
 /** Utility methods for sharing data  */
 object ShareUtils {
