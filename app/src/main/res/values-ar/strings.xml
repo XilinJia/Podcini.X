@@ -612,7 +612,7 @@
     <string name="episode_inclusive_filters_label">الفلتر الشامل للحلقة</string>
     <string name="episode_exclusive_filters_label">فلتر الحلقة الحصري</string>
     <string name="episode_filters_description">قائمة الكلمات المستخدمة لتحديد ما إذا كان يجب تضمين حلقة أو استبعادها عند التنزيل التلقائي</string>
-    <string name="add_term">إضافة مصطلح</string>
+
     <string name="exclude_terms">استبعد الحلقات التي تحتوي على أي من المصطلحات أدناه</string>
     <string name="include_terms">اشمل الحلقات التي تحتوي على أي من المصطلحات أدناه</string>
 

@@ -586,7 +586,7 @@
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>
     <string name="episode_exclusive_filters_label">Episode exclusive filter</string>
     <string name="episode_filters_description">List of terms used to decide if an episode should be included or excluded when auto downloading</string>
-    <string name="add_term">Add term</string>
+
     <string name="exclude_terms">Exclude episodes containing any of the terms below</string>
     <string name="include_terms">Include only episodes containing any of the terms below</string>
 

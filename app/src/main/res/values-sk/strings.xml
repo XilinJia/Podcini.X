@@ -601,7 +601,7 @@
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>
     <string name="episode_exclusive_filters_label">Episode exclusive filter</string>
     <string name="episode_filters_description">Zoznam výrazov použitých na rozhodnutie, či má byť epizóda zahrnutá alebo vylúčená pri automatickom sťahovaní</string>
-    <string name="add_term">Pridať termín</string>
+
     <string name="exclude_terms">Vynechať epizódy, ktoré obsahujú hociktoré z nižšie uvedených termínov</string>
     <string name="include_terms">Zahrnúť epizódy, ktoré obsahujú hociktoré z nižšie uvedených termínov</string>
 

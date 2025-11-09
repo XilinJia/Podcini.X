@@ -591,7 +591,7 @@
     <string name="episode_inclusive_filters_label">Inklusive episod filter</string>
     <string name="episode_exclusive_filters_label">Exklusivt filter för episod</string>
     <string name="episode_filters_description">Lista av termer som används för att avgöra om en episod ingår eller ej vid automatisk nedladdning</string>
-    <string name="add_term">Lägg till term</string>
+
     <string name="exclude_terms">Exkludera episoder som innehåller något av termerna nedan</string>
     <string name="include_terms">Inkludera endast episoder som innehåller någon av termerna nedan</string>
 

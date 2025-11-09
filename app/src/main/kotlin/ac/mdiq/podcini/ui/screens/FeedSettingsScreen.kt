@@ -48,7 +48,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -56,6 +55,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -110,13 +110,17 @@ import kotlinx.coroutines.launch
 class FeedSettingsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var feed by mutableStateOf<Feed?>(feedOnDisplay)
 
+    var audioType by mutableStateOf(feed?.audioTypeSetting?.tag ?: Feed.AudioType.SPEECH.tag)
+
+    var audioQuality by mutableStateOf(feed?.audioQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag)
+    var videoQuality by mutableStateOf(feed?.videoQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag)
+
     internal var autoUpdate by mutableStateOf(feed?.keepUpdated == true)
 
     internal var autoDeleteSummaryResId by mutableIntStateOf(R.string.global_default)
     internal var curPrefQueue by mutableStateOf(feed?.queueTextExt ?: "Default")
     internal var autoDeletePolicy = AutoDeleteAction.GLOBAL.name
     internal var videoModeSummaryResId by mutableIntStateOf(R.string.global_default)
-    internal var videoMode = VideoMode.NONE.name
     internal var queues: List<PlayQueue>? = null
 
 //    internal var notificationPermissionDenied: Boolean = false
@@ -134,14 +138,49 @@ class FeedSettingsVM(val context: Context, val lcScope: CoroutineScope) {
                     is FlowEvent.FeedChangeEvent -> if (feed?.id == event.feed.id) {
                         feed = event.feed
                         feedOnDisplay = event.feed
+                        refresh()
                     }
                     else -> {}
                 }
             }
         }
     }
+    private fun getVideoModePolicy() {
+        when (feed?.videoModePolicy) {
+            VideoMode.NONE -> videoModeSummaryResId = R.string.global_default
+            VideoMode.WINDOW_VIEW -> videoModeSummaryResId = R.string.feed_video_mode_window
+            VideoMode.FULL_SCREEN_VIEW -> videoModeSummaryResId = R.string.feed_video_mode_fullscreen
+            VideoMode.AUDIO_ONLY -> videoModeSummaryResId = R.string.feed_video_mode_audioonly
+            else -> {}
+        }
+    }
+    private fun getAutoDeletePolicy() {
+        when (feed?.autoDeleteAction) {
+            AutoDeleteAction.GLOBAL -> {
+                autoDeleteSummaryResId = R.string.global_default
+                autoDeletePolicy = AutoDeleteAction.GLOBAL.tag
+            }
+            AutoDeleteAction.ALWAYS -> {
+                autoDeleteSummaryResId = R.string.feed_auto_download_always
+                autoDeletePolicy = AutoDeleteAction.ALWAYS.tag
+            }
+            AutoDeleteAction.NEVER -> {
+                autoDeleteSummaryResId = R.string.feed_auto_download_never
+                autoDeletePolicy = AutoDeleteAction.NEVER.tag
+            }
+            else -> {}
+        }
+    }
 
-//    init {
+    fun refresh() {
+        audioType = feed?.audioTypeSetting?.tag ?: Feed.AudioType.SPEECH.tag
+        audioQuality = feed?.audioQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag
+        videoQuality = feed?.videoQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag
+        getVideoModePolicy()
+        getAutoDeletePolicy()
+    }
+
+    //    init {
 //        feed = feedOnDisplay
 //    }
 }
@@ -168,60 +207,20 @@ fun FeedSettingsScreen() {
     val navController = LocalNavController.current
     val vm = remember(feedOnDisplay.id) { FeedSettingsVM(context, scope) }
 
-    fun getVideoModePolicy() {
-        when (vm.feed?.videoModePolicy) {
-            VideoMode.NONE -> {
-                vm.videoModeSummaryResId = R.string.global_default
-                vm.videoMode = VideoMode.NONE.tag
-            }
-            VideoMode.WINDOW_VIEW -> {
-                vm.videoModeSummaryResId = R.string.feed_video_mode_window
-                vm.videoMode = VideoMode.WINDOW_VIEW.tag
-            }
-            VideoMode.FULL_SCREEN_VIEW -> {
-                vm.videoModeSummaryResId = R.string.feed_video_mode_fullscreen
-                vm.videoMode = VideoMode.FULL_SCREEN_VIEW.tag
-            }
-            VideoMode.AUDIO_ONLY -> {
-                vm.videoModeSummaryResId = R.string.feed_video_mode_audioonly
-                vm.videoMode = VideoMode.AUDIO_ONLY.tag
-            }
-            else -> {}
-        }
-    }
-    fun getAutoDeletePolicy() {
-        when (vm.feed?.autoDeleteAction) {
-            AutoDeleteAction.GLOBAL -> {
-                vm.autoDeleteSummaryResId = R.string.global_default
-                vm.autoDeletePolicy = AutoDeleteAction.GLOBAL.tag
-            }
-            AutoDeleteAction.ALWAYS -> {
-                vm.autoDeleteSummaryResId = R.string.feed_auto_download_always
-                vm.autoDeletePolicy = AutoDeleteAction.ALWAYS.tag
-            }
-            AutoDeleteAction.NEVER -> {
-                vm.autoDeleteSummaryResId = R.string.feed_auto_download_never
-                vm.autoDeletePolicy = AutoDeleteAction.NEVER.tag
-            }
-            else -> {}
-        }
-    }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
+            Logd(TAG, "LifecycleEventObserver event: $event")
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-                    getVideoModePolicy()
-                    getAutoDeletePolicy()
-                }
+                Lifecycle.Event.ON_CREATE -> vm.refresh()
                 Lifecycle.Event.ON_START -> vm.procFlowEvents()
-                Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
+                Lifecycle.Event.ON_STOP -> {}
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            vm.cancelFlowEvents()
             vm.feed = null
             vm.queues = null
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -267,7 +266,6 @@ fun FeedSettingsScreen() {
                                             else -> AutoDeleteAction.GLOBAL
                                         }
                                         upsertBlk(vm.feed!!) { it.autoDeleteAction = action_ }
-                                        getAutoDeletePolicy()
                                         onDismissRequest()
                                     }
                                 }
@@ -413,9 +411,9 @@ fun FeedSettingsScreen() {
         Dialog(onDismissRequest = onDismiss) {
             Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    var intro by remember { mutableStateOf((vm.feed?.introSkip ?: 0)) }
+                    var intro by remember { mutableIntStateOf((vm.feed?.introSkip ?: 0)) }
                     NumberEditor(intro, label = stringResource(R.string.skip_first_hint), nz = false, instant = true, modifier = Modifier) { intro = it }
-                    var ending by remember { mutableStateOf((vm.feed?.endingSkip ?: 0)) }
+                    var ending by remember { mutableIntStateOf((vm.feed?.endingSkip ?: 0)) }
                     NumberEditor(ending, label = stringResource(R.string.skip_last_hint), nz = false, instant = true, modifier = Modifier) { ending = it }
                     Button(onClick = {
                         upsertBlk(vm.feed!!) {
@@ -477,18 +475,17 @@ fun FeedSettingsScreen() {
             }
             Column {
                 var showDialog by remember { mutableStateOf(false) }
-                var selectedOption by remember { mutableStateOf(vm.feed?.audioTypeSetting?.tag ?: Feed.AudioType.SPEECH.tag) }
-                if (showDialog) SetAudioType(selectedOption = selectedOption, onDismissRequest = { showDialog = false })
+                if (showDialog) SetAudioType(selectedOption = vm.audioType, onDismissRequest = { showDialog = false })
                 Row(Modifier.fillMaxWidth()) {
                     Icon(ImageVector.vectorResource(id = R.drawable.baseline_audiotrack_24), "", tint = textColor)
                     Spacer(modifier = Modifier.width(20.dp))
                     Text(text = stringResource(R.string.pref_feed_audio_type), style = CustomTextStyles.titleCustom, color = textColor,
                         modifier = Modifier.clickable(onClick = {
-                            selectedOption = vm.feed!!.audioTypeSetting.tag
+                            vm.audioType = vm.feed!!.audioTypeSetting.tag
                             showDialog = true
                         }))
                     Spacer(modifier = Modifier.width(30.dp))
-                    Text(selectedOption, style = MaterialTheme.typography.bodyMedium, color = textColor)
+                    Text(vm.audioType, style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
                 Text(text = stringResource(R.string.pref_feed_audio_type_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
@@ -499,7 +496,6 @@ fun FeedSettingsScreen() {
                         var showDialog by remember { mutableStateOf(false) }
                         if (showDialog) VideoModeDialog(initMode = vm.feed?.videoModePolicy, onDismissRequest = { showDialog = false }) { mode ->
                             upsertBlk(vm.feed!!) { it.videoModePolicy = mode }
-                            getVideoModePolicy()
                         }
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
@@ -513,18 +509,17 @@ fun FeedSettingsScreen() {
                 //                    audio quality
                 Column {
                     var showDialog by remember { mutableStateOf(false) }
-                    var selectedOption by remember { mutableStateOf(vm.feed?.audioQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag) }
-                    if (showDialog) SetAudioQuality(selectedOption = selectedOption, onDismissRequest = { showDialog = false })
+                    if (showDialog) SetAudioQuality(selectedOption = vm.audioQuality, onDismissRequest = { showDialog = false })
                     Row(Modifier.fillMaxWidth()) {
                         Icon(ImageVector.vectorResource(id = R.drawable.baseline_audiotrack_24), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
                         Text(text = stringResource(R.string.pref_feed_audio_quality), style = CustomTextStyles.titleCustom, color = textColor,
                             modifier = Modifier.clickable(onClick = {
-                                selectedOption = vm.feed!!.audioQualitySetting.tag
+                                vm.audioQuality = vm.feed!!.audioQualitySetting.tag
                                 showDialog = true
                             }))
                         Spacer(modifier = Modifier.width(30.dp))
-                        Text(selectedOption, style = MaterialTheme.typography.bodyMedium, color = textColor)
+                        Text(vm.audioQuality, style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
                     Text(text = stringResource(R.string.pref_feed_audio_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
@@ -532,18 +527,17 @@ fun FeedSettingsScreen() {
                     //                    video quality
                     Column {
                         var showDialog by remember { mutableStateOf(false) }
-                        var selectedOption by remember { mutableStateOf(vm.feed?.videoQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag) }
-                        if (showDialog) SetVideoQuality(selectedOption = selectedOption, onDismissRequest = { showDialog = false })
+                        if (showDialog) SetVideoQuality(selectedOption = vm.videoQuality, onDismissRequest = { showDialog = false })
                         Row(Modifier.fillMaxWidth()) {
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_videocam), "", tint = textColor)
                             Spacer(modifier = Modifier.width(20.dp))
                             Text(text = stringResource(R.string.pref_feed_video_quality), style = CustomTextStyles.titleCustom, color = textColor,
                                 modifier = Modifier.clickable(onClick = {
-                                    selectedOption = vm.feed!!.videoQualitySetting.tag
+                                    vm.videoQuality = vm.feed!!.videoQualitySetting.tag
                                     showDialog = true
                                 }))
                             Spacer(modifier = Modifier.width(30.dp))
-                            Text(selectedOption, style = MaterialTheme.typography.bodyMedium, color = textColor)
+                            Text(vm.videoQuality, style = MaterialTheme.typography.bodyMedium, color = textColor)
                         }
                         Text(text = stringResource(R.string.pref_feed_video_quality_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
@@ -575,6 +569,7 @@ fun FeedSettingsScreen() {
                                                 "None" -> {
                                                     upsertBlk(vm.feed!!) {
                                                         it.queueId = -2L
+                                                        it.autoDownload = false
                                                         it.autoEnqueue = false
                                                     }
                                                     vm.curPrefQueue = selected
@@ -938,22 +933,23 @@ fun FeedSettingsScreen() {
                                         }
                                     }
                                     var text by remember { mutableStateOf("") }
-                                    TextField(value = text, onValueChange = { newTerm -> text = newTerm },
-                                        placeholder = { Text(stringResource(R.string.add_term)) }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                                        keyboardActions = KeyboardActions(
-                                            onDone = {
-                                                if (text.isNotBlank()) {
-                                                    val newWord = text.replace("\"", "").trim { it <= ' ' }
-                                                    if (newWord.isNotBlank() && newWord !in termList) {
-                                                        termList.add(newWord)
-                                                        text = ""
-                                                    }
-                                                    filtermodifier = isFilterEnabled()
-                                                }
+                                    fun setText() {
+                                        if (text.isNotBlank()) {
+                                            val newWord = text.replace("\"", "").trim { it <= ' ' }
+                                            if (newWord.isNotBlank() && newWord !in termList) {
+                                                termList.add(newWord)
+                                                text = ""
                                             }
-                                        ),
-                                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold),
-                                        modifier = Modifier.fillMaxWidth()
+                                            filtermodifier = isFilterEnabled()
+                                        }
+                                    }
+                                    TextField(value = text, onValueChange = { newTerm -> text = newTerm },
+                                        placeholder = { Text(stringResource(R.string.add_term_hint)) }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                                        keyboardActions = KeyboardActions(onDone = { setText() }),
+                                        trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add term", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                                                setText()
+                                            })) },
+                                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyMedium.fontSize, fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth()
                                     )
                                     HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
                                     var filterMinDurationMinutes by remember { mutableIntStateOf((filter.minDurationFilter / 60)) }
@@ -983,13 +979,13 @@ fun FeedSettingsScreen() {
                                                 }
                                             }
                                         }
-                                    }
-                                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                        Checkbox(checked = markPlayedChecked, onCheckedChange = { isChecked ->
-                                            filtermodifier = isFilterEnabled()
-                                            markPlayedChecked = isChecked
-                                        })
-                                        Text(text = stringResource(R.string.mark_excluded_episodes_played), style = MaterialTheme.typography.bodyMedium.merge())
+                                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                            Checkbox(checked = markPlayedChecked, onCheckedChange = { isChecked ->
+                                                filtermodifier = isFilterEnabled()
+                                                markPlayedChecked = isChecked
+                                            })
+                                            Text(text = stringResource(R.string.mark_excluded_episodes_played), style = MaterialTheme.typography.bodyMedium.merge())
+                                        }
                                     }
                                     Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
                                         Button(onClick = {

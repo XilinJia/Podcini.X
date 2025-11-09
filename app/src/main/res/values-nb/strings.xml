@@ -465,7 +465,7 @@
   <string name="auto_download_settings_label">Innstillinger for automatisk nedlastning</string>
   <string name="episode_filters_label">Episodefiltrering</string>
   <string name="episode_filters_description">Nøkkelord som skal brukes for å avgjøre om en episode skal nedlastes automatisk eller ikke</string>
-  <string name="add_term">Legg til begrep</string>
+
   <string name="exclude_terms">Ekskluder episoder som inneholder noen av begrep nede</string>
   <string name="include_terms">Inkluderer bare episoder som inneholder noen av begrep nede</string>
 

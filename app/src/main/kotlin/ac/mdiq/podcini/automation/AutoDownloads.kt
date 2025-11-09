@@ -160,6 +160,7 @@ object AutoDownloads {
     }
 
     private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, onlyExisting: Boolean = false) {
+        val NM = 10
         val feeds = feeds_ ?: getFeedList()
         feeds.forEach { f ->
             Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocalFeed} ${f.title}")
@@ -196,6 +197,9 @@ object AutoDownloads {
                     }
                 }
                 if (allowedDLCount > 0 || f.autoDLPolicy.replace) {
+                    // TODO: might be better add filter query string
+//                    val filterQStr = f.autoDownloadFilter?.queryString() ?: ""
+//                    if (filterQStr.isNotBlank()) queryString += " AND $filterQStr "
                     when (f.autoDLPolicy) {
                         Feed.AutoDownloadPolicy.DISCRETION -> {}
                         Feed.AutoDownloadPolicy.ONLY_NEW -> {
@@ -217,7 +221,7 @@ object AutoDownloads {
                                         Logd(TAG, "assembleFeedsCandidates episodes: ${episodes.size}")
                                     }
                                 } else {
-                                    queryString += " AND playState == ${EpisodeState.NEW.code} SORT(pubDate DESC) LIMIT(${3 * allowedDLCount})"
+                                    queryString += " AND playState == ${EpisodeState.NEW.code} SORT(pubDate DESC) LIMIT(${NM * allowedDLCount})"
                                     val es = realm.query(Episode::class).query(queryString).find()
                                     Logd(TAG, "assembleFeedsCandidates Non-Replace queryString: [${es.size}] $queryString")
                                     if (es.isNotEmpty()) episodes.addAll(es)
@@ -225,13 +229,13 @@ object AutoDownloads {
                             }
                         }
                         Feed.AutoDownloadPolicy.NEWER -> {
-                            queryString += " AND playState <= ${EpisodeState.SOON.code} SORT(pubDate DESC) LIMIT(${3*allowedDLCount})"
+                            queryString += " AND playState <= ${EpisodeState.SOON.code} SORT(pubDate DESC) LIMIT(${NM * allowedDLCount})"
                             val es = realm.query(Episode::class).query(queryString).find()
                             Logd(TAG, "assembleFeedsCandidates Newer queryString: [${es.size}] $queryString")
                             if (es.isNotEmpty()) episodes.addAll(es)
                         }
                         Feed.AutoDownloadPolicy.OLDER -> {
-                            queryString += " AND playState <= ${EpisodeState.SOON.code} SORT(pubDate ASC) LIMIT(${3*allowedDLCount})"
+                            queryString += " AND playState <= ${EpisodeState.SOON.code} SORT(pubDate ASC) LIMIT(${NM * allowedDLCount})"
                             val es = realm.query(Episode::class).query(queryString).find()
                             Logd(TAG, "assembleFeedsCandidates Older queryString: [${es.size}] $queryString")
                             if (es.isNotEmpty()) episodes.addAll(es)

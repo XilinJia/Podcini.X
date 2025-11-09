@@ -77,15 +77,27 @@ class FeedAutoDownloadFilter(
         return false
     }
 
-    /**
-     * @return true if only include is set
-     */
-//    fun includeOnly(): Boolean = hasIncludeFilter() && !hasExcludeFilter()
+    fun queryString(): String {
+        if (includeTerms.isEmpty() && excludeTerms.isEmpty() && minDurationFilter <= 0 && maxDurationFilter <= 0) return ""
 
-    /**
-     * @return true if only exclude is set
-     */
-//    fun excludeOnly(): Boolean = hasExcludeFilter() && !hasIncludeFilter()
+        val sl = mutableListOf<String>()
+        if (hasMinDurationFilter()) sl.add(" duration >= ${minDurationFilter * 1000L} ")
+        if (hasMaxDurationFilter()) sl.add(" duration <= ${maxDurationFilter * 1000L} ")
+
+        for (term in excludeTerms) sl.add(" !(title contains[c] '${term.trim { it <= ' ' }.lowercase(Locale.getDefault())}') ")
+        for (term in includeTerms) sl.add(" title contains[c] '${term.trim { it <= ' ' }.lowercase(Locale.getDefault())}' ")
+
+        if (sl.isEmpty()) return ""
+
+        val sb = StringBuilder("( ")
+        for (i in sl.indices) {
+            if (i > 0) sb.append(" AND ")
+            sb.append(sl[i])
+        }
+        sb.append(" )")
+        return sb.toString()
+
+    }
 
     private fun hasIncludeFilter(): Boolean = !includeFilterRaw.isNullOrBlank()
 

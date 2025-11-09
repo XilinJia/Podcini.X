@@ -581,12 +581,20 @@ fun QueuesScreen() {
         }
     }
 
-    BackHandler(enabled = showBin || showFeeds) {
-//        Logt(TAG, "BackHandler $showBin $showFeeds")
+//    BackHandler(enabled = showBin || showFeeds) {
+////        Logt(TAG, "BackHandler $showBin $showFeeds")
+//        when {
+//            showBin -> showBin = false
+//            showFeeds -> showFeeds = false
+//            else -> {  }
+//        }
+//    }
+
+    BackHandler(enabled = true) {
         when {
             showBin -> showBin = false
             showFeeds -> showFeeds = false
-            else -> {}
+            else -> navController.popBackStack()
         }
     }
 

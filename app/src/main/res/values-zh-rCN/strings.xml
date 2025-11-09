@@ -586,7 +586,7 @@
     <string name="episode_inclusive_filters_label">剧集包含筛选器</string>
     <string name="episode_exclusive_filters_label">剧集专用过滤器</string>
     <string name="episode_filters_description">自动下载时用于决定是否包含剧集或排除的术语列表</string>
-    <string name="add_term">添加条目</string>
+
     <string name="exclude_terms">排除包含以下任何条款的剧集</string>
     <string name="include_terms">仅包括包含以下任何条款的剧集</string>
 

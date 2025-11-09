@@ -677,10 +677,18 @@ fun FeedDetailsScreen() {
         }
     }
 
-    BackHandler(enabled = showHistory || !enableFilter) {
-//        Logt(TAG, "BackHandler ")
-        showHistory = false
-        enableFilter = true
+//    BackHandler(enabled = showHistory || !enableFilter) {
+////        Logt(TAG, "BackHandler ")
+//        showHistory = false
+//        enableFilter = true
+//    }
+
+    BackHandler(enabled = true) {
+        when {
+            showHistory -> showHistory = false
+            !enableFilter -> enableFilter = true
+            else -> navController.popBackStack()
+        }
     }
 
     var reassembleJob: Job? = remember { null }

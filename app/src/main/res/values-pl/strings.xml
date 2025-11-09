@@ -603,7 +603,7 @@
     <string name="episode_inclusive_filters_label">Filtr wliczający odcinek</string>
     <string name="episode_exclusive_filters_label">Filtr ekskluzywny odcinka</string>
     <string name="episode_filters_description">Wykaz terminów używanych aby zdecydować, czy odcinek powinien być włączony lub wyłączony podczas automatycznego pobierania.</string>
-    <string name="add_term">Dodaj termin</string>
+
     <string name="exclude_terms">Wyklucz odcinki zawierające dowolne z poniższych wyrażeń</string>
     <string name="include_terms">Uwzględnij tylko odcinki zawierające dowolne z poniższych wyrażeń</string>
 

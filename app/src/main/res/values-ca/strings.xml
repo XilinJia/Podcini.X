@@ -469,7 +469,7 @@
   <string name="auto_download_settings_label">Descarregar les confguracions automàticament</string>
   <string name="episode_filters_label">Filtra els termes</string>
   <string name="episode_filters_description">Llistat de termes usats per decidir si un episodi s\'ha d\'incloure o excloure en descarregar automàticament</string>
-  <string name="add_term">Afegir terme</string>
+
   <string name="exclude_terms">Exclou només episodis que contenen els termes següents</string>
   <string name="include_terms">Inclou només episodis que contenen els termes següents</string>
 

@@ -500,7 +500,7 @@
   <string name="auto_download_settings_label">הגדרות הורדה אוטומטית</string>
   <string name="episode_filters_label">מסנן פרקים</string>
   <string name="episode_filters_description">רשימת המונחים בהם יעשה שימוש כדי להחליט אם להכליל או להחריג פרק כלשהו במהלך הורדה אוטומטית</string>
-  <string name="add_term">הוספת תקופה</string>
+
   <string name="exclude_terms">החרגת פרקים שמכילים ביטוי כלשהו מאלו שלהלן</string>
   <string name="include_terms">הכללת פרקים שמכילים ביטוי כלשהו מאלו שלהלן</string>
 

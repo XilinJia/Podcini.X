@@ -591,7 +591,7 @@
     <string name="episode_inclusive_filters_label">Jakso, mukaan lukien suodatin</string>
     <string name="episode_exclusive_filters_label">Jakson eksklusiivinen suodatin</string>
     <string name="episode_filters_description">Lista termeistä joilla valitaan jakso automaattiseen lataukseen</string>
-    <string name="add_term">Lisää termi</string>
+
     <string name="exclude_terms">Jätä ulkopuolelle jaksot, jotka sisältävät minkä tahansa allaolevista termeistä</string>
     <string name="include_terms">Sisällytä vain jaksot, jotka sisältävät minkä tahansa allaolevista termeistä</string>
 

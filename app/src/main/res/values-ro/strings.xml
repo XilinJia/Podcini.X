@@ -596,7 +596,7 @@
     <string name="episode_inclusive_filters_label">Filtru inclusiv episod</string>
     <string name="episode_exclusive_filters_label">Episod filtru exclusiv</string>
     <string name="episode_filters_description">Listă de termeni folosită pentru a decide dacă un episod va fi sau nu inclus când descărcarea automată este pornită</string>
-    <string name="add_term">Adaugă termen</string>
+
     <string name="exclude_terms">Exclude episoadele ce conțin termenii de mai jos</string>
     <string name="include_terms">Include numai episoade ce conțin oricare din termenii de mai jos</string>
 

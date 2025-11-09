@@ -586,7 +586,7 @@
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>
     <string name="episode_exclusive_filters_label">Episode exclusive filter</string>
     <string name="episode_filters_description">Daftar ketentuan yang digunakan untuk memutuskan jika episode sebuah episode harus disertakan atau dikecualikan ketika mengunduh otomatis</string>
-    <string name="add_term">Add term</string>
+
     <string name="exclude_terms">Kecualikan episode yang berisikan istilah yang ditentukan di bawah</string>
     <string name="include_terms">Masukkan hanya jika episode berisikan istilah yang ditentukan di bawah</string>
 

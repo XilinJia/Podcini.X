@@ -593,7 +593,7 @@
     <string name="episode_inclusive_filters_label">Filtro inclusivo de episodio</string>
     <string name="episode_exclusive_filters_label">Filtro exclusivo de episodios</string>
     <string name="episode_filters_description">Lista de términos usados para decidir si un episodio debe ser incluído o excluído de la descarga automática</string>
-    <string name="add_term">Añadir término</string>
+
     <string name="exclude_terms">Excluir episodios que contengan algunos de los términos siguientes</string>
     <string name="include_terms">Incluir solo episodios que contengan algunos de los términos siguientes</string>
 

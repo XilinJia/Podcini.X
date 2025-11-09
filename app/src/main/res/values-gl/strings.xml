@@ -496,7 +496,7 @@
   <string name="auto_download_settings_label">Axustes da descarga automática</string>
   <string name="episode_filters_label">Filtro para episodios</string>
   <string name="episode_filters_description">Lista dos termos utilizados para decidir se un episodio debe ser incluído ou excluído das descargas automáticas</string>
-  <string name="add_term">Engadir termo</string>
+
   <string name="exclude_terms">Excluír episodios que conteñen algún destes termos</string>
   <string name="include_terms">Incluír só episodios que conteñen algún destes termos</string>
 

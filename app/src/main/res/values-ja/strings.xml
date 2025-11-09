@@ -588,7 +588,7 @@
     <string name="episode_inclusive_filters_label">エピソードインクルーシブフィルター</string>
     <string name="episode_exclusive_filters_label">エピソード排他フィルター</string>
     <string name="episode_filters_description">自動ダウンロードのときに、エピソードを含めるか除外する必要があるかを決定するために使用される条件のリスト</string>
-    <string name="add_term">用語を追加</string>
+
     <string name="exclude_terms">以下の用語のいずれかを含むエピソードを除外する</string>
     <string name="include_terms">以下の用語のいずれかを含むエピソードのみを含める</string>
 

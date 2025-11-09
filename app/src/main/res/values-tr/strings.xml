@@ -717,7 +717,7 @@
     <string name="episode_inclusive_filters_label">Bölüm kapsayıcı filtresi</string>
     <string name="episode_exclusive_filters_label">Bölüm hariç tutma filtresi</string>
     <string name="episode_filters_description">Otomatik indirirken bir bölümün dahil edilip edilmeyeceğine veya hariç tutulacağına karar vermek için kullanılan terimler listesi</string>
-    <string name="add_term">Terim ekle</string>
+
     <string name="exclude_terms">Aşağıdaki terimlerden herhangi birini içeren bölümleri hariç tut</string>
     <string name="include_terms">Yalnızca aşağıdaki terimlerden herhangi birini içeren bölümleri dahil et</string>
 

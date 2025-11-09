@@ -601,7 +601,7 @@
     <string name="episode_inclusive_filters_label">Епізод включний фільтр</string>
     <string name="episode_exclusive_filters_label">Епізод ексклюзивний фільтр</string>
     <string name="episode_filters_description">Перелік термінів, що використовуються для вирішення чи слід завантажувати епізод автоматично</string>
-    <string name="add_term">Додати термін</string>
+
     <string name="exclude_terms">Виключити епізоди, що містять будь-яку з наведених нижче умов</string>
     <string name="include_terms">Включати лише епізоди, що містять будь-який з наведених нижче термінів</string>
 

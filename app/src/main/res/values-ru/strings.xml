@@ -601,7 +601,7 @@
     <string name="episode_inclusive_filters_label">Включенный фильтр эпизодов</string>
     <string name="episode_exclusive_filters_label">Эксклюзивный фильтр эпизодов</string>
     <string name="episode_filters_description">Перечень условий по включению или исключению выпуска из списков автоматической загрузки</string>
-    <string name="add_term">Добавить условие</string>
+
     <string name="exclude_terms">Исключить выпуски подпадающие под любое из условий</string>
     <string name="include_terms">Включать выпуски подпадающие под любое из условий</string>
 

@@ -591,7 +591,7 @@
     <string name="episode_inclusive_filters_label">Episode inklusivt filter</string>
     <string name="episode_exclusive_filters_label">Episode eksklusivt filter</string>
     <string name="episode_filters_description">Liste af ord, der bliver brugt til at beslutte, om et afsnit skal medtages eller udelades ved automatisk overførsel</string>
-    <string name="add_term">Tilføj etikette</string>
+
     <string name="exclude_terms">Medtag ikke afsnit, der indeholder en af følgende termer</string>
     <string name="include_terms">Medtag kun afsnit, der indeholder en af nedenstående termer</string>
 

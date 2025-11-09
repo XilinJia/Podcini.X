@@ -591,7 +591,7 @@
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>
     <string name="episode_exclusive_filters_label">Episode exclusive filter</string>
     <string name="episode_filters_description">لیست اصطلاحاتی که برای تصمیم گیری در مورد درج یا حذف یک قسمت هنگام بارگیری خودکار استفاده می شود</string>
-    <string name="add_term">افزودن عبارت</string>
+
     <string name="exclude_terms">قسمت های حاوی هر یک از عبارات زیر را حذف کنید</string>
     <string name="include_terms">فقط قسمت هایی را شامل هر یک از عبارات زیر را نگه دار</string>
 

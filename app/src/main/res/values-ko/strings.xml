@@ -586,7 +586,7 @@
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>
     <string name="episode_exclusive_filters_label">Episode exclusive filter</string>
     <string name="episode_filters_description">자동 다운로드를 할 때 에피소드가 포함되어야할지 제외되어야할지 결정하는 규칙의 목록</string>
-    <string name="add_term">단어 추가</string>
+
     <string name="exclude_terms">아래 단어가 포함된 에피소드 제외</string>
     <string name="include_terms">아래 단어가 포함된 에피소드만 포함</string>
 
