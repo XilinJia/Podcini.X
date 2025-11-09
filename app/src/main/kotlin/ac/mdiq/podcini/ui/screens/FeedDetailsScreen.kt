@@ -156,7 +156,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var isFiltered by mutableStateOf(false)
 
-    internal var listInfoText = ""
+    internal var listInfoText by mutableStateOf("")
     internal var infoBarText = mutableStateOf("")
     private var headerCreated = false
     internal var rating by mutableIntStateOf(Rating.UNRATED.code)
@@ -241,7 +241,7 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             Logd(TAG, "loadItems eListTmp.size1: ${eListTmp.size}")
         }
         withContext(Dispatchers.Main) {
-            layoutModeIndex = if (feed_.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
+            layoutModeIndex = if (feed_.useWideLayout) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
             Logd(TAG, "loadItems subscribe called ${feed_.title}")
             rating = feed_.rating
             computeScore()

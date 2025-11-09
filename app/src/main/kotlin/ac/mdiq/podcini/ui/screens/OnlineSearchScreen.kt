@@ -13,6 +13,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
+import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.RealmDB.realm
@@ -265,8 +266,8 @@ fun OnlineSearchScreen() {
                     Logd(TAG, "addLocalFolderLauncher dirFeed episodes: ${dirFeed.episodes.size}")
 //                    dirFeed.episodes.clear()
                     dirFeed.sortOrder = EpisodeSortOrder.EPISODE_TITLE_A_Z
-                    val fromDatabase: Feed? = updateFeedFull(context, dirFeed, removeUnlistedItems = false)
-//                    FeedUpdateManager.runOnce(context, fromDatabase)
+                    updateFeedFull(context, dirFeed, removeUnlistedItems = false)
+                    val fromDatabase: Feed? = getFeed(dirFeed.id)
                     gearbox.feedUpdater(fromDatabase).startRefresh(context)
                     Logd(TAG, "addLocalFolderLauncher fromDatabase episodes: ${fromDatabase?.episodes?.size}")
                     fromDatabase

@@ -1,3 +1,26 @@
+# 8.25.0
+
+* manual feed refresh by down swipe in Subscriptions screen will restart auto-refresh schedule
+* episodes filters added clipped, marked
+* in Facets screen, clipped or marked has a separate view
+* defined worthy episodes as:
+	* have comments but not Ignored, or
+	* Rating above Good, or
+	* set to Soon, Later, Again, Forever, or
+	* have recorded clips or audio marks
+* added limitEpisodesCount in feed settings (defaulted to 0: unlimited), if set above 0:
+	* on feed refresh (or full refresh), older episodes are erased
+	* worthy episodes are not counted and are kept
+	* when increased or reset to 0, feed full refresh (from menu on FeedDetails screen) will fill in additional older episodes
+* in OnlineFeed screen, added limitEpisodesCount box, and ensure limit count in subscribe routine
+* Erase episodes action (via swipe or multi-select) is enabled for normal feeds
+* when setting episodes play status to Again or Later, repeat intervals can be flexibly adjusted in the dialog
+* in Settings
+	* renamed "Network and Downloads" to Network
+	* moved Synchronization settings to Network
+* ensure to catch exception of invalid url's for safety
+* some code refactoring
+
 # 8.24.0
 
 * amended app init mechanism, likely fixed various strange issues

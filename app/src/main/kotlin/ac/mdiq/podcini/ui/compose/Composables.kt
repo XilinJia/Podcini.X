@@ -4,6 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.util.Logd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -353,29 +354,28 @@ fun SearchBarRow(hintTextRes: Int, defaultText: String, performSearch: (String) 
 }
 
 @Composable
-fun NumberEditor(initVal: Int, unit: String = "seconds", nz: Boolean = true, modifier: Modifier, cb: (Int)->Unit) {
-    var interval by remember { mutableStateOf(initVal.toString()) }
-    var showIcon by remember { mutableStateOf(false) }
-    TextField(value = interval, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(unit) }, singleLine = true, modifier = modifier,
+fun NumberEditor(initVal: Int, label: String = "seconds", nz: Boolean = true, instant: Boolean = false, modifier: Modifier, cb: (Int)->Unit) {
+    var inputVal by remember { mutableStateOf(initVal.toString()) }
+    var showSet by remember { mutableStateOf(false) }
+    fun set() {
+        if (nz) {
+            if (inputVal.isNotBlank()) {
+                cb(inputVal.toInt())
+                showSet = false
+            }
+        } else {
+            val v = if (inputVal.isNotBlank()) inputVal.toInt() else 0
+            cb(v)
+            showSet = false
+        }
+    }
+    TextField(value = inputVal, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(label) }, singleLine = true, modifier = modifier,
         onValueChange = {
-            if (it.isEmpty() || it.toIntOrNull() != null) interval = it
-            if (it.toIntOrNull() != null) showIcon = true
+            if (it.isEmpty() || it.toIntOrNull() != null) inputVal = it
+            if (it.toIntOrNull() != null) showSet = true
+            if (instant && showSet) set()
         },
-        trailingIcon = {
-            if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
-                modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                    if (nz) {
-                        if (interval.isNotBlank()) {
-                            cb(interval.toInt())
-                            showIcon = false
-                        }
-                    } else {
-                        val v = if (interval.isNotBlank()) interval.toInt() else 0
-                        cb(v)
-                        showIcon = false
-                    }
-                }))
-        })
+        trailingIcon = { if (!instant && showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = { set() })) })
 }
 
 @Composable

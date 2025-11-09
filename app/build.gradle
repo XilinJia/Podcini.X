@@ -26,8 +26,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 190
-        versionName "8.24.0"
+        versionCode 191
+        versionName "8.25.0"
 
         ndkVersion "29.0.14206865"
 
@@ -198,11 +198,11 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
 
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs_nio:2.1.5"
-    implementation "io.github.xilinjia.krdb:library-base:3.2.8"
+    implementation "io.github.xilinjia.krdb:library-base:3.2.9"
 
     implementation "io.coil-kt:coil:2.7.0"
     implementation "io.coil-kt:coil-compose:2.7.0"
-    implementation "commons-io:commons-io:2.20.0"
+    implementation "commons-io:commons-io:2.21.0"   // 20030203.000550 is not newer
     implementation "org.apache.commons:commons-lang3:3.19.0"
 
     implementation "org.jsoup:jsoup:1.21.2"

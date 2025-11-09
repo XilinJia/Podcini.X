@@ -534,7 +534,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes: Int = R.drawable.baseline_delete_forever_24
         override val colorRes: Int = R.attr.icon_gray
 
-        override fun enabled(): Boolean = onEVM?.episode?.feed?.isSynthetic() == true
+//        override fun enabled(): Boolean = onEVM?.episode?.feed?.isSynthetic() == true
 
         override fun performAction(vm: EpisodeVM) {
             super.performAction(vm)

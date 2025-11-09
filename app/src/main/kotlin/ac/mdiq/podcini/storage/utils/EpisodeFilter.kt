@@ -98,6 +98,16 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
             propertySet.contains(States.no_chapters.name) -> statements.add("chapters.@count == 0 ")
         }
 
+        when {
+            propertySet.contains(States.has_clips.name) -> statements.add("clips.@count > 0 ")
+            propertySet.contains(States.no_clips.name) -> statements.add("clips.@count == 0 ")
+        }
+
+        when {
+            propertySet.contains(States.has_marks.name) -> statements.add("marks.@count > 0 ")
+            propertySet.contains(States.no_marks.name) -> statements.add("marks.@count == 0 ")
+        }
+
         Logd("EpisodeFilter", "titleText: $titleText")
         if (titleText.isNotBlank()) {
             when {
@@ -172,6 +182,12 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
         has_comments,
         no_comments,
 
+        has_clips,
+        no_clips,
+
+        has_marks,
+        no_marks,
+
 //        queued,
 //        not_queued,
 
@@ -225,7 +241,12 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
             FilterProperties(R.string.ignored, States.ignored.name),
         ),
         OPINION(R.string.has_comments, FilterProperties(R.string.yes, States.has_comments.name), FilterProperties(R.string.no, States.no_comments.name),exclusive = true),
-//        MEDIA(R.string.has_media, ItemProperties(R.string.yes, States.has_media.name), ItemProperties(R.string.no, States.no_media.name)),
+
+        CLIPPED(R.string.has_clips, FilterProperties(R.string.yes, States.has_clips.name), FilterProperties(R.string.no, States.no_clips.name),exclusive = true),
+
+        MARKED(R.string.has_marks, FilterProperties(R.string.yes, States.has_marks.name), FilterProperties(R.string.no, States.no_marks.name),exclusive = true),
+
+        //        MEDIA(R.string.has_media, ItemProperties(R.string.yes, States.has_media.name), ItemProperties(R.string.no, States.no_media.name)),
         DOWNLOADED(R.string.downloaded_label, FilterProperties(R.string.yes, States.downloaded.name), FilterProperties(R.string.no, States.not_downloaded.name), exclusive = true),
 
         DURATION(R.string.duration,

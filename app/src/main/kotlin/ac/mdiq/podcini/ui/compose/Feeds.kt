@@ -32,10 +32,8 @@ import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
-import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog
-import ac.mdiq.podcini.storage.utils.EpisodeState
 import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
@@ -191,7 +189,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                             val preserveFeed = if (saveImportant) getPreserveSyndicate() else null
                             for (f in feeds) {
                                 if (saveImportant) {
-                                    val eList = realm.query(Episode::class).query("feedId == ${f.id} AND playState != ${EpisodeState.IGNORED.code} AND (rating >= ${Rating.GOOD.code} OR comment != '' OR playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code})").find()
+                                    val eList = f.getWorthyEpisodes()
                                     if (eList.isNotEmpty()) shelveToFeed(eList, preserveFeed!!)
                                 }
                                 if (!f.isSynthetic()) {

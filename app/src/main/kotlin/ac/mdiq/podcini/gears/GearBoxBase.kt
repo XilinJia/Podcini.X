@@ -50,6 +50,8 @@ open class GearBoxBase {
     @Composable
     open fun GearSearchText() {}
 
+    open fun isFeedAutoDownloadable(urlString: String): Boolean = true
+
     open fun canHandleSharedMedia(urlString: String): Boolean = false
 
     open fun handleSharedMedia(log: ShareLog?, mediaCB: ()->Unit) {}

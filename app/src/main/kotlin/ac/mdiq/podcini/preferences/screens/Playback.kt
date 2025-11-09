@@ -129,7 +129,7 @@ fun PlaybackPreferencesScreen(activity: PreferenceActivity) {
         if (prefStreaming) Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.pref_stream_cache), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                NumberEditor(streamingCacheSizeMB, unit = "MD", modifier = Modifier.weight(0.6f)) {
+                NumberEditor(streamingCacheSizeMB, label = "MD", modifier = Modifier.weight(0.6f)) {
                     streamingCacheSizeMB = it
                     forceRestart()
                 }

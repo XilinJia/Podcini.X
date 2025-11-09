@@ -147,13 +147,13 @@ object FeedUpdateManager {
             .build()
     }
 
-    fun scheduleUpdateTaskOnce(context: Context, replace: Boolean) {
+    fun scheduleUpdateTaskOnce(context: Context, replace: Boolean, force: Boolean = false) {
         Logd(TAG, "scheduleUpdateTaskOnce intervalInMillis: $intervalInMillis")
         if (BuildConfig.DEBUG) {
             val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(feedUpdateOnceWorkId).get()
             for (wi in workInfos) Logd(TAG, "workInfos: ${wi.id} ${wi.initialDelayMillis} ${wi.runAttemptCount} ${wi.state}")
         }
-        if (intervalInMillis == 0L) WorkManager.getInstance(context).cancelUniqueWork(feedUpdateOnceWorkId)
+        if (!force && intervalInMillis == 0L) WorkManager.getInstance(context).cancelUniqueWork(feedUpdateOnceWorkId)
         else {
             var policy = ExistingWorkPolicy.KEEP
             if (replace) {
@@ -183,7 +183,7 @@ object FeedUpdateManager {
     }
 
     fun getInitialDelay(context: Context, now: Boolean = false): Long {
-        var initialDelay = if (now) 0L else intervalInMillis
+        val initialDelay = if (now) 0L else intervalInMillis
         val lastUpdateTime = getPref(AppPrefs.prefLastFullUpdateTime, 0L)
         Logd(TAG, "lastUpdateTime: $lastUpdateTime updateInterval: $intervalInMillis")
         nextRefreshTime = if (lastUpdateTime == 0L) {
@@ -226,10 +226,10 @@ object FeedUpdateManager {
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
                     cancelRes = R.string.no,
                     neutralRes = R.string.confirm_mobile_streaming_button_always,
-                    onConfirm = { runOnce(context, feed)  },
+                    onConfirm = { runOnce(context, feed, fullUpdate = fullUpdate)  },
                     onNeutral = {
                         mobileAllowFeedRefresh = true
-                        runOnce(context, feed)
+                        runOnce(context, feed, fullUpdate = fullUpdate)
                     })
             }
         }

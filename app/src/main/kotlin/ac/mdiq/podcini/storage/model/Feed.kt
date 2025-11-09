@@ -40,7 +40,6 @@ class Feed : RealmObject {
     var fileUrl: String? = null
 
     var downloadUrl: String? = null
-//    var downloaded: Boolean = false
 
     var eigenTitle: String? = null  // title as defined by the feed.
 
@@ -57,6 +56,8 @@ class Feed : RealmObject {
     var imageUrl: String? = null
 
     var episodes: RealmList<Episode> = realmListOf()
+
+    var limitEpisodesCount: Int = 0
 
     // recorded when an episode starts playing when FeedDetails is open
     var lastPlayed: Long = 0
@@ -458,6 +459,33 @@ class Feed : RealmObject {
         val eList_ = realm.query(Episode::class, qString).query(episodeFilter.queryString()).find().toMutableList()
         if (sortOrder != null) getPermutor(sortOrder!!).reorder(eList_)
         return eList_
+    }
+
+    @Ignore
+    val isWorthyQuerryStr: String
+        get() = "(playState != ${EpisodeState.IGNORED.code} AND comment != '')" +
+                "OR rating >= ${Rating.GOOD.code}" +
+                "OR playState == ${EpisodeState.AGAIN.code}" +
+                "OR playState == ${EpisodeState.FOREVER.code}" +
+                "OR playState == ${EpisodeState.SOON.code}" +
+                "OR playState == ${EpisodeState.LATER.code}" +
+                "OR clips.@count > 0" +
+                "OR marks.@count > 0"
+
+    fun getWorthyEpisodes(): List<Episode> {
+        return realm.query(Episode::class).query("feedId == $id AND ($isWorthyQuerryStr)").find()
+    }
+
+    fun ordinariesCount(): Int {
+        return realm.query(Episode::class).query("feedId == $id AND !($isWorthyQuerryStr)").count().find().toInt()
+    }
+
+    suspend fun eraseEpisode(e: Episode) {
+        episodes.remove(e)
+        realm.write {
+            //                        findLatest(e)?.let { delete(it) }
+            query(Episode::class).query("id == $0", e.id).first().find()?.let { delete(it) }
+        }
     }
 
     fun getFeedfileName(): String {

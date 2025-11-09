@@ -218,6 +218,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                         QuickAccess.Repeats.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.again.name, EpisodeFilter.States.forever.name), episodesSortOrder, false)
                         QuickAccess.Liked.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.good.name, EpisodeFilter.States.superb.name), episodesSortOrder, false)
                         QuickAccess.Commented.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.has_comments.name), episodesSortOrder, false)
+                        QuickAccess.ClippedOrMarked.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.has_clips.name, EpisodeFilter.States.has_marks.name), episodesSortOrder, false)
                         QuickAccess.History.name -> getHistory(0, Int.MAX_VALUE).toMutableList()
                         QuickAccess.Downloaded.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(prefFilterDownloads), episodesSortOrder, false)
                         QuickAccess.All.name -> getEpisodes(0, Int.MAX_VALUE, filter, episodesSortOrder, false)
@@ -639,7 +640,7 @@ fun FacetsScreen() {
 
 
 enum class QuickAccess {
-    New, Planned, Repeats, Liked, Commented, Downloaded, History, All
+    New, Planned, Repeats, Liked, Commented, ClippedOrMarked, Downloaded, History, All
 }
 
 private val TAG = Screens.Facets.name

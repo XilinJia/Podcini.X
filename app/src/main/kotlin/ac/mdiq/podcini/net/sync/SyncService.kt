@@ -22,6 +22,7 @@ import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.Feeds.deleteFeedSync
+import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.Feeds.getFeedList
 import ac.mdiq.podcini.storage.database.Feeds.getFeedListDownloadUrls
 import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
@@ -130,9 +131,9 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
                 if (!containsUrl(localSubscriptions, downloadUrl) && !queuedRemovedFeeds.contains(downloadUrl)) {
                     val feed = Feed(downloadUrl, null, "Unknown podcast")
                     feed.episodes.clear()
-                    val newFeed = updateFeedFull(applicationContext, feed, removeUnlistedItems = false)
-//                    runOnce(applicationContext, newFeed)
-                    gearbox.feedUpdater(newFeed).startRefresh(applicationContext)
+                    updateFeedFull(applicationContext, feed, removeUnlistedItems = false)
+                    val f = getFeed(feed.id)
+                    gearbox.feedUpdater(f).startRefresh(applicationContext)
                 }
             }
 

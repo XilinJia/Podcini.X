@@ -28,12 +28,12 @@ import ac.mdiq.podcini.storage.utils.Rating
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
-
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
+import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.buildListInfo
 import ac.mdiq.podcini.ui.compose.episodeSortOrder
@@ -66,7 +66,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
@@ -105,7 +104,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -375,13 +373,12 @@ fun QueuesScreen() {
 
     var showBinLimitDialog by remember { mutableStateOf(false) }
     if (showBinLimitDialog) {
-        var limitString by remember { mutableStateOf((curQueue.binLimit).toString()) }
+        var limitString by remember { mutableStateOf((curQueue.binLimit)) }
         AlertDialog(modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showBinLimitDialog = false },
-            text = { TextField(value = limitString, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("bin limit") }, singleLine = true,
-                    onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) limitString = it }) },
+            text = { NumberEditor(limitString, stringResource(R.string.bin_limit), nz = true, instant = true, modifier = Modifier) { limitString = it } },
             confirmButton = {
                 TextButton(onClick = {
-                    curQueue = upsertBlk(curQueue) { it.binLimit = limitString.toInt() }
+                    curQueue = upsertBlk(curQueue) { it.binLimit = limitString }
                     showBinLimitDialog = false
                 }) { Text(stringResource(R.string.confirm_label)) }
             },
@@ -457,7 +454,7 @@ fun QueuesScreen() {
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                            runOnceOrAsk(context) //                            gearbox.feedUpdater().startRefresh(context)
+                            runOnceOrAsk(context)
                             expanded = false
                         })
                         if (!isQueueKeepSorted) {

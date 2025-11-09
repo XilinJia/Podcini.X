@@ -25,11 +25,11 @@ import ac.mdiq.podcini.storage.utils.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
-
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
+import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
@@ -133,6 +133,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal var showFeedDisplay by mutableStateOf(false)
     internal var showProgress by mutableStateOf(true)
     internal var autoDownloadChecked by mutableStateOf(false)
+    internal var limitEpisodesCount by mutableIntStateOf(0)
     internal var enableSubscribe by mutableStateOf(true)
     internal var enableEpisodes by mutableStateOf(true)
     internal var subButTextRes by mutableIntStateOf(R.string.subscribe_label)
@@ -289,6 +290,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
      * Called when feed parsed successfully.
      * This method is executed on the GUI thread.
      */
+    // TODO: what to do?
     private fun showFeedInformation(feed: Feed, alternateFeedUrls: Map<String, String>) {
         showProgress = false
         showFeedDisplay = true
@@ -520,6 +522,7 @@ fun OnlineFeedScreen() {
                             vm.enableSubscribe = false
                             vm.enableEpisodes = false
                             CoroutineScope(Dispatchers.IO).launch {
+                                if (vm.limitEpisodesCount > 0) vm.feed?.limitEpisodesCount = vm.limitEpisodesCount
                                 vm.feedBuilder.subscribe(vm.feed!!)
                                 if (vm.isShared) {
                                     val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
@@ -543,25 +546,21 @@ fun OnlineFeedScreen() {
                 }
             }
             if (vm.showEpisodes) {
-//                fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
-//                    return when (aboveOrBelow) {
-//                        0 -> vm.episodes
-//                        -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
-//                        1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
-//                        else -> listOf()
-//                    }
-//                }
                 InforBar(vm.infoBarText, vm.swipeActions)
                 EpisodeLazyColumn(context as MainActivity, vms = vm.vms, buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions)
             } else {
-                Column {
-//                    alternate_urls_spinner
-                    if (vm.feedSource != "VistaGuide" && isAutodownloadEnabled) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))) {
+//                    TODO: alternate_urls_spinner
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.limit_episodes_to), modifier = Modifier.weight(0.5f))
+                        NumberEditor(vm.limitEpisodesCount, label = "0 = unlimited", nz = false, instant = true, modifier = Modifier.weight(0.5f)) {
+                            Logd(TAG, "limitEpisodesCount: $it")
+                            vm.limitEpisodesCount = it
+                        }
+                    }
+                    if (gearbox.isFeedAutoDownloadable(vm.feedUrl) && isAutodownloadEnabled) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
-                        Text(text = stringResource(R.string.auto_download_label),
-                            style = MaterialTheme.typography.bodyMedium.merge(), color = textColor,
-                            modifier = Modifier.padding(start = 16.dp)
-                        )
+                        Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))
                     }
                 }
                 val scrollState = rememberScrollState()

@@ -10,10 +10,9 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.PreferenceUpgrader.getCopyrightNoticeText
 import ac.mdiq.podcini.preferences.PreferenceUpgrader.githubAddress
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
-import ac.mdiq.podcini.preferences.screens.NetworkAndDownloadsScreen
 import ac.mdiq.podcini.preferences.screens.ImportExportPreferencesScreen
+import ac.mdiq.podcini.preferences.screens.NetworkScreen
 import ac.mdiq.podcini.preferences.screens.PlaybackPreferencesScreen
-import ac.mdiq.podcini.preferences.screens.SynchronizationPreferencesScreen
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
@@ -140,13 +139,10 @@ class PreferenceActivity : ComponentActivity() {
                             UserInterfacePreferencesScreen() }
                         composable(Screens.DownloadScreen.name) {
                             topAppBarTitle = stringResource(Screens.DownloadScreen.titleRes)
-                            NetworkAndDownloadsScreen(this@PreferenceActivity, navController) }
+                            NetworkScreen(this@PreferenceActivity) }
                         composable(Screens.ImportExportScreen.name) {
                             topAppBarTitle = stringResource(Screens.ImportExportScreen.titleRes)
                             ImportExportPreferencesScreen(this@PreferenceActivity) }
-                        composable(Screens.SynchronizationScreen.name) {
-                            topAppBarTitle = stringResource(Screens.SynchronizationScreen.titleRes)
-                            SynchronizationPreferencesScreen(this@PreferenceActivity) }
                         composable(Screens.PlaybackScreen.name) {
                             topAppBarTitle = stringResource(Screens.PlaybackScreen.titleRes)
                             PlaybackPreferencesScreen(this@PreferenceActivity) }
@@ -253,8 +249,7 @@ class PreferenceActivity : ComponentActivity() {
             }
             IconTitleSummaryScreenRow(R.drawable.ic_appearance, R.string.user_interface_label, R.string.user_interface_sum, Screens.InterfaceScreen.name)
             IconTitleSummaryScreenRow(R.drawable.ic_play_24dp, R.string.playback_pref, R.string.playback_pref_sum, Screens.PlaybackScreen.name)
-            IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.network_downloads_pref, R.string.downloads_pref_sum, Screens.DownloadScreen.name)
-            IconTitleSummaryScreenRow(R.drawable.ic_cloud, R.string.synchronization_pref, R.string.synchronization_sum, Screens.SynchronizationScreen.name)
+            IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.network_pref, R.string.downloads_pref_sum, Screens.DownloadScreen.name)
             IconTitleSummaryScreenRow(R.drawable.ic_storage, R.string.import_export_pref, R.string.import_export_summary, Screens.ImportExportScreen.name)
             IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { navController.navigate(Screens.NotificationScreen.name) }
             TitleSummarySwitchPrefRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, AppPrefs.prefOPMLBackup) {
@@ -484,8 +479,7 @@ class PreferenceActivity : ComponentActivity() {
         Main(R.string.settings_label),
         InterfaceScreen(R.string.user_interface_label),
         PlaybackScreen(R.string.playback_pref),
-        DownloadScreen(R.string.network_downloads_pref),
-        SynchronizationScreen(R.string.synchronization_pref),
+        DownloadScreen(R.string.network_pref),
         ImportExportScreen(R.string.import_export_pref),
         NotificationScreen(R.string.notification_pref_fragment),
         AboutScreen(R.string.about_pref),

@@ -4,6 +4,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import android.annotation.SuppressLint
 import android.content.Context
@@ -137,7 +138,10 @@ object NetworkUtils {
     }
 
     suspend fun fetchHtmlSource(urlString: String): String = withContext(Dispatchers.IO) {
-        val url = URL(urlString)
+        val url = try { URL(urlString) } catch (e: MalformedURLException) {
+            Loge(TAG, "fetchHtmlSource urlString invalid: $urlString")
+            return@withContext ""
+        }
         val connection = url.openConnection()
         val inputStream = connection.getInputStream()
         val bufferedReader = BufferedReader(InputStreamReader(inputStream))

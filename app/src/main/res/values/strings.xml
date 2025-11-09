@@ -105,6 +105,7 @@
     <string name="error_label">Error</string>
     <string name="error_msg_prefix">An error occurred:</string>
     <string name="refresh_label">Refresh</string>
+    <string name="full_refresh_label">Refresh full</string>
     <string name="clean_up">Clean up</string>
     <string name="fetch_size">Fetch size</string>
     <string name="clear_cache">Clear from cache</string>
@@ -138,6 +139,12 @@
     <string name="auto_enqueue_sum">Enabling auto-enqueue adds qualified episodes to associated queue (on (auto-)refreshing).</string>
     <string name="auto_enqueue_sum1">Auto-enqueue requires associated queue not set to None.</string>
     <string name="auto_download_sum">Enabling auto-download downloads of qualified episodes and add them to associated queue (when it\'s not be set to None on (auto-)refreshing).</string>
+
+    <string name="limit_episodes_to">Limit episodes to</string>
+    <string name="limit_episodes_to_sum">Sugegst a maximum number of episodes to keep. When exceeded, older episodes are erased. Specially marked episodes will be kept.</string>
+    <string name="skip_first_hint">Skip first (seconds)</string>
+    <string name="skip_last_hint">Skip last (seconds)</string>
+
 
     <string name="auto_download_label">Include in auto downloads</string>
     <string name="auto_delete_episode">Auto delete episode</string>
@@ -457,7 +464,7 @@
     <string name="pref_keeps_important_episodes_title">Keep important episodes</string>
     <string name="playback_pref">Playback</string>
     <string name="playback_pref_sum">Headphone controls, Skip intervals, Queue</string>
-    <string name="network_downloads_pref">Network and Downloads</string>
+    <string name="network_pref">Network</string>
     <string name="downloads_pref_sum">Update interval, Mobile data, Automatic download, Automatic deletion</string>
     <string name="feed_refresh_title">Refresh podcasts</string>
     <string name="feed_refresh_sum">Specify an interval (in minutes, 0 means never) at which Podcini looks for new episodes automatically.</string>
@@ -679,6 +686,8 @@
     <string name="time_hours">hours</string>
     <string name="time_days">days</string>
     <string name="time_weeks">weeks</string>
+    <string name="floor_seconds">Floor(seconds)</string>
+    <string name="ceiling_seconds">Ceiling(seconds)</string>
 
     <plurals name="time_minutes_quantified">
         <item quantity="one">1 minute</item>
@@ -838,6 +847,8 @@
     <string name="rss">RSS</string>
     <string name="has_video">Has video</string>
     <string name="has_comments">Has commented</string>
+    <string name="has_clips">Has clips</string>
+    <string name="has_marks">Has marks</string>
 
     <string name="always">Always</string>
     <string name="never">Never</string>

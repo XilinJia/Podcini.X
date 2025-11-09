@@ -13,6 +13,7 @@ import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.error.DownloadErrorLabel.from
 import android.content.Context
+import io.github.xilinjia.krdb.ext.toRealmList
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -24,6 +25,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import java.net.MalformedURLException
 
 open class FeedBuilderBase(val context: Context, val showError: (String?, String)->Unit) {
     protected val TAG = "FeedBuilder"
@@ -126,7 +128,11 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
     }
 
     private fun htmlOrXml(url: String): String? {
-        val connection = URL(url).openConnection() as HttpURLConnection
+        val connection = try { URL(url).openConnection() as HttpURLConnection } catch (e: MalformedURLException) {
+            Loge(TAG, "htmlOrXml url not valid: $url")
+            showError(e.message, "")
+            return null
+        }
         var type: String? = null
         try { type = connection.contentType } catch (e: IOException) {
             Loge(TAG, "Error connecting to URL. ${e.message}")
@@ -144,6 +150,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
     fun subscribe(feed: Feed) {
         while (feed.isBuilding) runBlocking { delay(200) }
         feed.id = 0L
+        if (feed.limitEpisodesCount > 0) feed.episodes = feed.episodes.subList(0, feed.limitEpisodesCount).toRealmList()
         for (item in feed.episodes) {
             item.id = 0L
             item.feedId = null
@@ -152,12 +159,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             item.origFeeddownloadUrl = null
             item.origFeedTitle = null
         }
-        val fo = updateFeedFull(context, feed, removeUnlistedItems = false)
-//        if (fo?.downloadUrl != null || fo?.link != null) {
-//            val fLog = SubscriptionLog(fo.id, fo.title?:"", fo.downloadUrl?:"", fo.link?:"", SubscriptionLog.Type.Feed.name)
-//            upsertBlk(fLog) {}
-//        }
-        Logd(TAG, "fo.id: ${fo?.id} feed.id: ${feed.id}")
+        updateFeedFull(context, feed, removeUnlistedItems = false)
     }
 
     /**

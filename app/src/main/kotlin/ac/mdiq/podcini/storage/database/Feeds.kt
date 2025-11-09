@@ -243,10 +243,9 @@ object Feeds {
      * @return The updated Feed from the database if it already existed, or the new Feed from the parameters otherwise.
      */
     @Synchronized
-    fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false): Feed? {
+    fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false) {
         Logd(TAG, "updateFeedFull called")
 //        showStackTrace()
-        var resultFeed: Feed?
 
         Logd(TAG, "newFeed id: ${newFeed.id} episodes: ${newFeed.episodes.size}")
         // Look up feed in the feedslist
@@ -256,16 +255,15 @@ object Feeds {
             Logd(TAG, "newFeed.episodes: ${newFeed.episodes.size}")
             newFeed.lastUpdateTime = System.currentTimeMillis()
             newFeed.lastFullUpdateTime = System.currentTimeMillis()
-            resultFeed = newFeed
             try {
                 addNewFeedsSync(context, newFeed)
                 // Update with default values that are set in database
-                resultFeed = searchFeedByIdentifyingValueOrID(newFeed)
+                searchFeedByIdentifyingValueOrID(newFeed)
                 // TODO: This doesn't appear needed as unlistedItems is still empty
 //                if (removeUnlistedItems && unlistedItems.isNotEmpty()) runBlocking { deleteEpisodes(context, unlistedItems).join() }
             } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
             } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
-            return resultFeed
+            return
         }
 
         Logd(TAG, "Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
@@ -287,8 +285,11 @@ object Feeds {
         Logd(TAG, "updateFeed building savedFeedAssistant")
         val savedFeedAssistant = FeedAssistant(savedFeed)
         // Look for new or updated Items
+        val oldestDate = savedFeed.oldestItem?.pubDate ?: 0L
         for (idx in newFeed.episodes.indices) {
             val episode = newFeed.episodes[idx]
+            if (savedFeed.limitEpisodesCount > 0 && episode.pubDate < oldestDate) continue
+
             val oldItems = savedFeedAssistant.guessDuplicate(episode)
             if (!newFeed.isLocalFeed && !oldItems.isNullOrEmpty()) {
 //                Logd(TAG, "Update existing episode: ${episode.title}")
@@ -358,18 +359,18 @@ object Feeds {
         savedFeed.totleDuration = 0
         for (e in savedFeed.episodes) savedFeed.totleDuration += e.duration
 
-        resultFeed = savedFeed
         try {
             upsertBlk(savedFeed) {}
             if (removeUnlistedItems && unlistedItems.isNotEmpty()) deleteEpisodesSync(context, unlistedItems)
         } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
         } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
-        return resultFeed
+
+        runOnIOScope { trimEpisodes(savedFeed) }
     }
 
-    suspend fun updateFeedSimple(newFeed: Feed): Feed {
+    suspend fun updateFeedSimple(newFeed: Feed) {
         Logd(TAG, "updateFeedSimple called")
-        val savedFeed = searchFeedByIdentifyingValueOrID(newFeed, true) ?: return newFeed
+        val savedFeed = searchFeedByIdentifyingValueOrID(newFeed, true) ?: return
 
         Logd(TAG, "Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
         newFeed.episodes.sortWith(EpisodePubdateComparator())
@@ -421,7 +422,29 @@ object Feeds {
         for (e in savedFeed.episodes) savedFeed.totleDuration += e.duration
 
         try { upsert(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedSimple failed") } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedSimple failed") }
-        return savedFeed
+
+        trimEpisodes(savedFeed)
+    }
+
+    private suspend fun trimEpisodes(feed_: Feed) {
+        val feed = feed_
+        if (feed.limitEpisodesCount > 0) {
+            val n = feed.ordinariesCount()
+            if (n > feed.limitEpisodesCount + 5) {
+                val f = searchFeedByIdentifyingValueOrID(feed, true) ?: return
+                val episodes = realm.query(Episode::class).query("feedId == ${feed.id} SORT (pubDate ASC)").find()
+                var dc = n - f.limitEpisodesCount
+                var i = 0
+                while (dc > 0) {
+                    val e = episodes[i]
+                    if (!e.isWorthy) {
+                        f.eraseEpisode(e)
+                        dc--
+                    }
+                    i++
+                }
+            }
+        }
     }
 
     fun persistFeedLastUpdateFailed(feed: Feed, lastUpdateFailed: Boolean) : Job {
@@ -684,13 +707,6 @@ object Feeds {
                 }
             }
             if (savedFeedId == 0L) {
-                suspend fun eraseEpisode(e: Episode) {
-                    feed.episodes.remove(e)
-                    realm.write {
-//                        findLatest(e)?.let { delete(it) }
-                        query(Episode::class).query("id == $0", e.id).first().find()?.let { delete(it) }
-                    }
-                }
                 for ((k, v) in map.entries) {
                     if (v.size < 2) continue
                     Logd(TAG, "FeedAssistant removing ${v.size-1} duplicates on $k")
@@ -705,18 +721,18 @@ object Feeds {
                     if (ers[0].rating > Rating.UNRATED.code) runOnIOScope {
                         if (ers[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(ers[0]) { it.comment = comment }
                         else episode = ers[0]
-                        for (i in 1..<ers.size) eraseEpisode(ers[i])
+                        for (i in 1..<ers.size) feed.eraseEpisode(ers[i])
                     } else {
                         val eps = v.sortedByDescending { it.lastPlayedTime }
                         if (eps[0].lastPlayedTime > 0L) {
                             if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.comment = comment }
                             else episode = eps[0]
-                            runOnIOScope { for (i in 1..<eps.size) eraseEpisode(eps[i]) }
+                            runOnIOScope { for (i in 1..<eps.size) feed.eraseEpisode(eps[i]) }
                         } else {
                             val eps = v.sortedByDescending { it.pubDate }
                             if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.comment = comment }
                             else episode = eps[0]
-                            runOnIOScope { for (i in 1..<eps.size) eraseEpisode(eps[i]) }
+                            runOnIOScope { for (i in 1..<eps.size) feed.eraseEpisode(eps[i]) }
                         }
                     }
                     map[k] = mutableListOf(episode)

@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.scheduleUpdateTaskOnce
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.DocumentFileExportWorker
@@ -668,9 +669,8 @@ fun SubscriptionsScreen() {
                             vm.showNewSynthetic = true
                             expanded = false
                         })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
                             runOnceOrAsk(vm.context, fullUpdate = true)
-                            //                        gearbox.feedUpdater(fullUpdate = true).startRefresh(vm.context)
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
@@ -922,10 +922,7 @@ fun SubscriptionsScreen() {
 
         PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
             refreshing = true
-            if (getPref(AppPrefs.prefSwipeToRefreshAll, true)) {
-//                gearbox.feedUpdater().startRefresh(vm.context)
-                runOnceOrAsk(vm.context)
-            }
+            if (getPref(AppPrefs.prefSwipeToRefreshAll, true)) scheduleUpdateTaskOnce(vm.context, replace = true, force = true)
             refreshing = false
         }) {
             val context = LocalContext.current

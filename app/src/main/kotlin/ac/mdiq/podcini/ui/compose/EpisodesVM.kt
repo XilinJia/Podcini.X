@@ -73,6 +73,7 @@ import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
 import ac.mdiq.podcini.util.MiscFormatter.formatLargeInteger
@@ -200,6 +201,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.net.MalformedURLException
 import java.net.URL
 import java.time.Instant
 import java.time.LocalDate
@@ -548,22 +550,18 @@ fun AlarmEpisodeDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) 
         text = {
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    var hour by remember { mutableStateOf(hm[0]) }
-                    var minute by remember { mutableStateOf(hm[1]) }
-                    TextField(value = hour, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(hour)") }, singleLine = true, modifier = Modifier.weight(0.4f), onValueChange = {
-                        if (it.isEmpty() || it.toIntOrNull() != null) {
-                            hour = it
-                            hm[0] = it
-                            showIcon = true
-                        }
-                    })
-                    TextField(value = minute, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("(minute)") }, singleLine = true, modifier = Modifier.padding(start = 10.dp).weight(0.4f), onValueChange = {
-                        if (it.isEmpty() || it.toIntOrNull() != null) {
-                            minute = it
-                            hm[1] = it
-                            showIcon = true
-                        }
-                    })
+                    var hour by remember { mutableIntStateOf(hm[0].toIntOrNull() ?: 0) }
+                    var minute by remember { mutableIntStateOf(hm[1].toIntOrNull() ?: 0) }
+                    NumberEditor(hour, stringResource(R.string.time_hours), nz = true, instant = true, modifier = Modifier.weight(0.4f)) {
+                        hour = it
+                        hm[0] = it.toString()
+                        showIcon = true
+                    }
+                    NumberEditor(minute, stringResource(R.string.time_minutes), nz = true, instant = true,  modifier = Modifier.weight(0.4f)) {
+                        minute = it
+                        hm[1] = it.toString()
+                        showIcon = true
+                    }
                 }
                 Text(stringResource(R.string.alarm_start_time_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
             }
@@ -631,14 +629,14 @@ fun FutureStateDialog(episodes: List<EpisodeVM>, state: EpisodeState, onDismissR
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(message + ": ${episodes.size}")
-                var intervals = remember { if (episodes.size == 1) episodes[0].episode.feed?.repeatIntervals?.toList() else null }
-                if (intervals.isNullOrEmpty()) intervals = DEFAULT_INTERVALS
+                var intervals = remember { if (episodes.size == 1) episodes[0].episode.feed?.repeatIntervals?.toMutableList() else null }
+                if (intervals.isNullOrEmpty()) intervals = DEFAULT_INTERVALS.toMutableList()
                 val units = INTERVAL_UNITS.map { stringResource(it) }
                 var sel by remember { mutableIntStateOf(2) }
                 for (i in intervals.indices) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(selected = i==sel, onClick = { sel = i })
-                        Text(intervals[i].toString() + " " + units[i])
+                        NumberEditor(intervals[i], label = units[i], nz = false, instant = true, modifier = Modifier.width(150.dp)) { intervals[i] = it }
                     }
                 }
                 Button(onClick = {
@@ -859,9 +857,11 @@ fun EpisodeLazyColumn(activity: Context, vms: List<EpisodeVM>, feed: Feed? = nul
                     CoroutineScope(Dispatchers.IO).launch {
                         ytUrls.clear()
                         for (vm in selected) {
-                            val url = URL(vm.episode.downloadUrl ?: "")
-                            if (gearbox.isGearUrl(url)) ytUrls.add(vm.episode.downloadUrl!!)
-                            else addRemoteToMiscSyndicate(vm.episode)
+                            try {
+                                val url = URL(vm.episode.downloadUrl ?: "")
+                                if (gearbox.isGearUrl(url)) ytUrls.add(vm.episode.downloadUrl!!)
+                                else addRemoteToMiscSyndicate(vm.episode)
+                            } catch (e: MalformedURLException) { Loge(TAG, "episode downloadUrl not valid: ${vm.episode} : ${vm.episode.downloadUrl}") }
                         }
                         withContext(Dispatchers.Main) { showConfirmYoutubeDialog.value = ytUrls.isNotEmpty() }
                     }
@@ -870,7 +870,7 @@ fun EpisodeLazyColumn(activity: Context, vms: List<EpisodeVM>, feed: Feed? = nul
                     Text(stringResource(id = R.string.reserve_episodes_label))
                 }
             }
-        if (feed != null && feed.isSynthetic()) {
+        if (feed != null) {
             options.add {
                 Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     onSelected()
@@ -1410,33 +1410,22 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     if (expandRow) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             var showIcon by remember { mutableStateOf(false) }
-                                            var floor by remember { mutableStateOf((filter.durationFloor/1000).toString()) }
-                                            var ceiling by remember { mutableStateOf((filter.durationCeiling/1000).toString()) }
-                                            TextField(value = floor, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("Floor(seconds)") },
-                                                singleLine = true, modifier = Modifier.weight(0.4f),
-                                                onValueChange = {
-                                                    if (it.isEmpty() || it.toIntOrNull() != null) {
-                                                        floor = it
-                                                        showIcon = true
-                                                    }
-                                                })
-                                            TextField(value = ceiling, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("Ceiling(seconds)") },
-                                                singleLine = true, modifier = Modifier.padding(start = 10.dp).weight(0.4f),
-                                                onValueChange = {
-                                                    if (it.isEmpty() || it.toIntOrNull() != null) {
-                                                        ceiling = it
-                                                        showIcon = true
-                                                    }
-                                                })
+                                            var floor by remember { mutableStateOf((filter.durationFloor/1000)) }
+                                            var ceiling by remember { mutableStateOf((filter.durationCeiling/1000)) }
+                                            NumberEditor(floor, stringResource(R.string.floor_seconds), nz = true, instant = true, modifier = Modifier.weight(0.4f)) {
+                                                floor = it
+                                                showIcon = true
+                                            }
+                                            NumberEditor(ceiling, stringResource(R.string.ceiling_seconds), nz = true, instant = true, modifier = Modifier.weight(0.4f)) {
+                                                ceiling = it
+                                                showIcon = true
+                                            }
                                             if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon",
                                                 modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                                    if (floor.isNotBlank() || ceiling.isNotBlank()) {
-                                                        val f = if (floor.isBlank() || floor.toIntOrNull() == null) 0 else floor.toInt()
-                                                        val c = if (ceiling.isBlank() || ceiling.toIntOrNull() == null) Int.MAX_VALUE else ceiling.toInt()
-                                                        //                                                        Logd("EpisodeFilterDialog", "f = $f c = $c")
-                                                        filter.durationFloor = f * 1000
-                                                        filter.durationCeiling = if (c < Int.MAX_VALUE) c * 1000 else c
-                                                    }
+                                                    val f = floor
+                                                    val c = if (ceiling == 0) Int.MAX_VALUE else ceiling
+                                                    filter.durationFloor = f * 1000
+                                                    filter.durationCeiling = if (c < Int.MAX_VALUE) c * 1000 else c
                                                     showIcon = false
                                                 }))
                                         }

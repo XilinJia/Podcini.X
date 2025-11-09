@@ -183,8 +183,6 @@ class Episode : RealmObject {
     @Ignore
     val isRemote = mutableStateOf(false)
 
-    // from EpisodeMedia
-
     var fileUrl: String? = null
 
     var downloadUrl: String? = null
@@ -269,7 +267,16 @@ class Episode : RealmObject {
     @Ignore
     var webviewData by mutableStateOf<String?>(null)
 
-    // above from EpisodeMedia
+    @Ignore
+    val isWorthy: Boolean
+        get() = (playState != EpisodeState.IGNORED.code && comment != "")
+                || rating >= Rating.GOOD.code
+                || playState == EpisodeState.AGAIN.code
+                || playState == EpisodeState.FOREVER.code
+                || playState == EpisodeState.SOON.code
+                || playState == EpisodeState.LATER.code
+                || clips.isNotEmpty()
+                || marks.isNotEmpty()
 
     constructor() {
         this.playState = EpisodeState.NEW.code
@@ -654,7 +661,7 @@ class Episode : RealmObject {
         var baseFilename: String
         baseFilename = if (titleBaseFilename != "") titleBaseFilename else urlBaseFilename
         val filenameMaxLength = 220
-        if (baseFilename.length > filenameMaxLength) baseFilename = baseFilename.substring(0, filenameMaxLength)
+        if (baseFilename.length > filenameMaxLength) baseFilename = baseFilename.take(filenameMaxLength)
         return (baseFilename + EXTENSION_SEPARATOR + id + EXTENSION_SEPARATOR + getExtension(urlBaseFilename))
     }
 

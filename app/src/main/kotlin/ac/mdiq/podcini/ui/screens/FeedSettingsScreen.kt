@@ -21,8 +21,8 @@ import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.utils.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
-
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
@@ -48,9 +48,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -92,10 +92,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -400,7 +398,6 @@ fun FeedSettingsScreen() {
                                     it.username = newName
                                     it.password = newPW
                                 }
-//                                runOnce(context, vm.feed)
                                 gearbox.feedUpdater(vm.feed).startRefresh(context)
                             }
                             onDismiss()
@@ -416,20 +413,16 @@ fun FeedSettingsScreen() {
         Dialog(onDismissRequest = onDismiss) {
             Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    var intro by remember { mutableStateOf((vm.feed?.introSkip ?: 0).toString()) }
-                    TextField(value = intro, onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) intro = it },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("Skip first (seconds)") })
-                    var ending by remember { mutableStateOf((vm.feed?.endingSkip ?: 0).toString()) }
-                    TextField(value = ending, onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) ending = it  },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("Skip last (seconds)") })
+                    var intro by remember { mutableStateOf((vm.feed?.introSkip ?: 0)) }
+                    NumberEditor(intro, label = stringResource(R.string.skip_first_hint), nz = false, instant = true, modifier = Modifier) { intro = it }
+                    var ending by remember { mutableStateOf((vm.feed?.endingSkip ?: 0)) }
+                    NumberEditor(ending, label = stringResource(R.string.skip_last_hint), nz = false, instant = true, modifier = Modifier) { ending = it }
                     Button(onClick = {
-                        if (intro.isNotEmpty() || ending.isNotEmpty()) {
-                            upsertBlk(vm.feed!!) {
-                                it.introSkip = intro.toIntOrNull() ?: 0
-                                it.endingSkip = ending.toIntOrNull() ?: 0
-                            }
-                            onDismiss()
+                        upsertBlk(vm.feed!!) {
+                            it.introSkip = intro
+                            it.endingSkip = ending
                         }
+                        onDismiss()
                     }) { Text(stringResource(R.string.confirm_label)) }
                 }
             }
@@ -445,13 +438,7 @@ fun FeedSettingsScreen() {
                     if (intervals.isNullOrEmpty()) intervals = DEFAULT_INTERVALS.toMutableList()
                     val units = INTERVAL_UNITS.map { stringResource(it) }
                     for (i in intervals.indices) {
-                        var inV by remember { mutableStateOf(intervals[i].toString()) }
-                        TextField(value = inV, onValueChange = {
-                            if (it.isEmpty() || it.toIntOrNull() != null) {
-                                inV = it
-                                if (it.isNotEmpty()) intervals[i] = it.toInt()
-                            }
-                        }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text("in " + units[i]) })
+                        NumberEditor(intervals[i], label = "in " + units[i], nz = false, instant = true, modifier = Modifier) { intervals[i] = it }
                     }
                     Button(onClick = {
                         upsertBlk(vm.feed!!) { it.repeatIntervals = intervals.toRealmList() }
@@ -462,26 +449,31 @@ fun FeedSettingsScreen() {
         }
     }
 
+    @Composable
+    fun TitleSummarySwitch(titleRes: Int, summaryRes: Int, iconRes: Int, initVal: Boolean, cb: ((Boolean)->Unit)) {
+        val textColor = MaterialTheme.colorScheme.onSurface
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+                if (iconRes > 0) Icon(ImageVector.vectorResource(id = iconRes), "", tint = textColor)
+                Spacer(modifier = Modifier.width(20.dp))
+                Text(text = stringResource(titleRes), style = CustomTextStyles.titleCustom, color = textColor)
+                Spacer(modifier = Modifier.weight(1f))
+                var checked by remember { mutableStateOf(initVal) }
+                Switch(checked = checked, modifier = Modifier.height(24.dp), onCheckedChange = {
+                    checked = it
+                    cb.invoke(it)
+                })
+            }
+            Text(text = stringResource(summaryRes), style = MaterialTheme.typography.bodyMedium, color = textColor)
+        }
+    }
 
     val textColor = MaterialTheme.colorScheme.onSurface
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         val scrollState = rememberScrollState()
         Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 16.dp).verticalScroll(scrollState), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Column {
-                Row(Modifier.fillMaxWidth()) {
-                    Icon(ImageVector.vectorResource(id = R.drawable.rounded_responsive_layout_24), "", tint = textColor)
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Text(text = stringResource(R.string.use_wide_layout), style = CustomTextStyles.titleCustom, color = textColor)
-                    Spacer(modifier = Modifier.weight(1f))
-                    var checked by remember { mutableStateOf(vm.feed?.useWideLayout == true) }
-                    Switch(checked = checked, modifier = Modifier.height(24.dp),
-                        onCheckedChange = {
-                            checked = it
-                            upsertBlk(vm.feed!!) { f -> f.useWideLayout = checked }
-                        }
-                    )
-                }
-                Text(text = stringResource(R.string.use_wide_layout_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            TitleSummarySwitch(R.string.use_wide_layout, R.string.use_wide_layout_summary, R.drawable.rounded_responsive_layout_24, vm.feed?.useWideLayout == true) {
+                upsertBlk(vm.feed!!) { f -> f.useWideLayout = it }
             }
             Column {
                 var showDialog by remember { mutableStateOf(false) }
@@ -683,27 +675,16 @@ fun FeedSettingsScreen() {
             var preferStreaming by remember { mutableStateOf(vm.feed?.prefStreamOverDownload == true) }
             if (vm.feed?.type != Feed.FeedType.YOUTUBE.name || !preferStreaming) {
                 //                    prefer streaming
-                Column {
-                    Row(Modifier.fillMaxWidth()) {
-                        Icon(ImageVector.vectorResource(id = R.drawable.ic_stream), "", tint = textColor)
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.pref_stream_over_download_title), style = CustomTextStyles.titleCustom, color = textColor)
-                        Spacer(modifier = Modifier.weight(1f))
-                        Switch(checked = preferStreaming, modifier = Modifier.height(24.dp),
-                            onCheckedChange = {
-                                preferStreaming = it
-                                if (preferStreaming) {
-                                    prefStreamOverDownload = true
-                                    autoDownloadChecked = false
-                                }
-                                upsertBlk(vm.feed!!) { f ->
-                                    f.prefStreamOverDownload = preferStreaming
-                                    if (preferStreaming) f.autoDownload = false
-                                }
-                            }
-                        )
+                TitleSummarySwitch(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, R.drawable.ic_stream, preferStreaming) {
+                    preferStreaming = it
+                    if (preferStreaming) {
+                        prefStreamOverDownload = true
+                        autoDownloadChecked = false
                     }
-                    Text(text = stringResource(R.string.pref_stream_over_download_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                    upsertBlk(vm.feed!!) { f ->
+                        f.prefStreamOverDownload = preferStreaming
+                        if (preferStreaming) f.autoDownload = false
+                    }
                 }
             }
             //                    auto skip
@@ -722,7 +703,7 @@ fun FeedSettingsScreen() {
                 Row(Modifier.fillMaxWidth()) {
                     val showDialog = remember { mutableStateOf(false) }
                     if (showDialog.value) RepeatIntervalsDialog(onDismiss = { showDialog.value = false })
-                    Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "", tint = textColor)
+                    Icon(ImageVector.vectorResource(id = R.drawable.baseline_replay_24), "", tint = textColor)
                     Spacer(modifier = Modifier.width(20.dp))
                     Text(text = stringResource(R.string.pref_feed_intervals), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                 }
@@ -742,40 +723,30 @@ fun FeedSettingsScreen() {
                 }
             }
             if ((vm.feed?.id ?: 0) > MAX_SYNTHETIC_ID) {
-                //                    refresh
+                //                    max episodes
                 Column {
                     Row(Modifier.fillMaxWidth()) {
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.keep_updated), style = CustomTextStyles.titleCustom, color = textColor)
+                        Text(text = stringResource(R.string.limit_episodes_to), style = CustomTextStyles.titleCustom, color = textColor)
                         Spacer(modifier = Modifier.weight(1f))
-                        Switch(checked = vm.autoUpdate, modifier = Modifier.height(24.dp),
-                            onCheckedChange = {
-                                vm.autoUpdate = it
-                                upsertBlk(vm.feed!!) { f -> f.keepUpdated = vm.autoUpdate }
-                            }
-                        )
+                        NumberEditor(vm.feed!!.limitEpisodesCount, label = "0 = unlimited", nz = false, modifier = Modifier.width(150.dp)) {
+                            upsertBlk(vm.feed!!) { f -> f.limitEpisodesCount = it }
+                        }
                     }
-                    Text(text = stringResource(R.string.keep_updated_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                    Text(text = stringResource(R.string.limit_episodes_to_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+
+                //                    refresh
+                TitleSummarySwitch(R.string.keep_updated, R.string.keep_updated_summary, R.drawable.ic_refresh, vm.autoUpdate) {
+                    vm.autoUpdate = it
+                    upsertBlk(vm.feed!!) { f -> f.keepUpdated = vm.autoUpdate }
                 }
             }
             if (vm.curPrefQueue != "None") {
                 //                    auto add new to queue
-                Column {
-                    Row(Modifier.fillMaxWidth()) {
-                        Icon(ImageVector.vectorResource(id = androidx.media3.session.R.drawable.media3_icon_queue_add), "", tint = textColor)
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.audo_add_new_queue), style = CustomTextStyles.titleCustom, color = textColor)
-                        Spacer(modifier = Modifier.weight(1f))
-                        var checked by remember { mutableStateOf(vm.feed?.autoAddNewToQueue != false) }
-                        Switch(checked = checked, modifier = Modifier.height(24.dp),
-                            onCheckedChange = {
-                                checked = it
-                                upsertBlk(vm.feed!!) { f -> f.autoAddNewToQueue = checked }
-                            }
-                        )
-                    }
-                    Text(text = stringResource(R.string.audo_add_new_queue_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                TitleSummarySwitch(R.string.audo_add_new_queue, R.string.audo_add_new_queue_summary, androidx.media3.session.R.drawable.media3_icon_queue_add, vm.feed?.autoAddNewToQueue != false) {
+                    upsertBlk(vm.feed!!) { f -> f.autoAddNewToQueue = it }
                 }
             }
             var autoEnqueueChecked by remember { mutableStateOf(vm.feed?.autoEnqueue == true) }
@@ -820,14 +791,13 @@ fun FeedSettingsScreen() {
                 if (!isAutodownloadEnabled) Text(text = stringResource(R.string.auto_download_disabled_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
             if (autoDownloadChecked || autoEnqueueChecked) {
-                var newCache by remember { mutableStateOf((vm.feed?.autoDLMaxEpisodes ?: 3).toString()) }
+                var newCache by remember { mutableIntStateOf((vm.feed?.autoDLMaxEpisodes ?: 2)) }
                 @Composable
                 fun SetAutoDLEQCacheDialog(onDismiss: () -> Unit) {
                     Dialog(onDismissRequest = onDismiss) {
                         Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                TextField(value = newCache, onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) newCache = it },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.max_episodes_cache)) })
+                                NumberEditor(newCache, label = stringResource(R.string.max_episodes_cache), nz = false, instant = true, modifier = Modifier) { newCache = it }
                                 //                    counting played
                                 var countingPlayed by remember { mutableStateOf(vm.feed?.countingPlayed != false) }
                                 if (autoDownloadChecked) Column {
@@ -841,9 +811,9 @@ fun FeedSettingsScreen() {
                                     HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
                                 }
                                 Button(onClick = {
-                                    if (newCache.isNotEmpty()) {
+                                    if (newCache > 0) {
                                         upsertBlk(vm.feed!!) {
-                                            it.autoDLMaxEpisodes = newCache.toIntOrNull() ?: 3
+                                            it.autoDLMaxEpisodes = newCache
                                             if (autoDownloadChecked) it.countingPlayed = countingPlayed
                                         }
                                         onDismiss()
@@ -860,7 +830,7 @@ fun FeedSettingsScreen() {
                         if (showDialog.value) SetAutoDLEQCacheDialog(onDismiss = { showDialog.value = false })
                         Text(text = stringResource(R.string.pref_episode_cache_title), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                         Spacer(modifier = Modifier.width(30.dp))
-                        Text(newCache, style = MaterialTheme.typography.bodyMedium, color = textColor)
+                        Text(newCache.toString(), style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
                     Text(text = stringResource(R.string.pref_episode_cache_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
@@ -940,7 +910,6 @@ fun FeedSettingsScreen() {
                         }
                         Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = onDismiss) {
                             Surface(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                                val textColor = MaterialTheme.colorScheme.onSurface
                                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(stringResource(R.string.episode_filters_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                                     val termList = remember { if (inexcl == ADLIncExc.EXCLUDE) filter.excludeTerms.toMutableStateList() else filter.includeTerms.toMutableStateList() }
@@ -987,8 +956,8 @@ fun FeedSettingsScreen() {
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                     HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                                    var filterMinDurationMinutes by remember { mutableStateOf((filter.minDurationFilter / 60).toString()) }
-                                    var filterMaxDurationMinutes by remember { mutableStateOf((filter.maxDurationFilter / 60).toString()) }
+                                    var filterMinDurationMinutes by remember { mutableIntStateOf((filter.minDurationFilter / 60)) }
+                                    var filterMaxDurationMinutes by remember { mutableIntStateOf((filter.maxDurationFilter / 60)) }
                                     if (inexcl == ADLIncExc.EXCLUDE) {
                                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                             Checkbox(checked = filterMinDuration, onCheckedChange = { isChecked ->
@@ -997,10 +966,9 @@ fun FeedSettingsScreen() {
                                             })
                                             Text(text = stringResource(R.string.exclude_shorter_than), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                             if (filterMinDuration) {
-                                                BasicTextField(value = filterMinDurationMinutes, textStyle = TextStyle(fontSize = 16.sp, color = textColor),
-                                                    modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small),
-                                                    onValueChange = { it -> if (it.all { it.isDigit() }) filterMinDurationMinutes = it }, )
-                                                Text(stringResource(R.string.time_minutes), color = textColor)
+                                                NumberEditor(filterMinDurationMinutes, stringResource(R.string.time_minutes), nz = true, instant = true, modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)) {
+                                                    filterMinDurationMinutes = it
+                                                }
                                             }
                                         }
                                         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -1010,10 +978,9 @@ fun FeedSettingsScreen() {
                                             })
                                             Text(text = stringResource(R.string.exclude_longer_than), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                                             if (filterMaxDuration) {
-                                                BasicTextField(value = filterMaxDurationMinutes, onValueChange = { it -> if (it.all { it.isDigit() }) filterMaxDurationMinutes = it },
-                                                    textStyle = TextStyle(fontSize = 16.sp, color = textColor),
-                                                    modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
-                                                Text(stringResource(R.string.time_minutes), color = textColor)
+                                                NumberEditor(filterMaxDurationMinutes, stringResource(R.string.time_minutes), nz = true, instant = true, modifier = Modifier.width(50.dp).height(30.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)) {
+                                                    filterMaxDurationMinutes = it
+                                                }
                                             }
                                         }
                                     }
@@ -1028,8 +995,8 @@ fun FeedSettingsScreen() {
                                         Button(onClick = {
                                             if (inexcl == ADLIncExc.EXCLUDE) {
                                                 if (filtermodifier) {
-                                                    val minDuration = if (filterMinDuration) filterMinDurationMinutes.toInt() * 60 else -1
-                                                    val maxDuration = if (filterMaxDuration) filterMaxDurationMinutes.toInt() * 60 else -1
+                                                    val minDuration = if (filterMinDuration) filterMinDurationMinutes * 60 else -1
+                                                    val maxDuration = if (filterMaxDuration) filterMaxDurationMinutes * 60 else -1
                                                     val excludeFilter = toFilterString(termList)
                                                     onConfirmed(FeedAutoDownloadFilter(filter.includeFilterRaw, excludeFilter, minDuration, maxDuration, markPlayedChecked))
                                                 } else onConfirmed(FeedAutoDownloadFilter())
