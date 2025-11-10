@@ -5,6 +5,7 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.storage.database.Episodes.buildListInfo
 import ac.mdiq.podcini.storage.database.Episodes.getHistory
 import ac.mdiq.podcini.storage.database.Feeds.FeedAssistant
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
@@ -39,7 +40,6 @@ import ac.mdiq.podcini.ui.compose.LayoutMode
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
-import ac.mdiq.podcini.ui.compose.buildListInfo
 import ac.mdiq.podcini.ui.compose.episodeSortOrder
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
@@ -264,12 +264,11 @@ class FeedDetailsVM(val context: Context, val lcScope: CoroutineScope) {
             return
         }
         Logd(TAG, "loadFeed called $feedID")
-        lcScope.launch(Dispatchers.IO) {
-            feed = getFeed(feedID)
-            if (feed != null) withContext(Dispatchers.Main) { feedLoaded++ }
-        }
+        feed = getFeed(feedID)
+        if (feed != null) feedLoaded++
     }
     fun buildMoreItems() {
+        Logd(TAG, "buildMoreItems ${vms.size}")
         val moreVMs = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
         if (moreVMs.isNotEmpty()) vms.addAll(moreVMs)
     }
@@ -309,7 +308,7 @@ fun FeedDetailsScreen() {
     DisposableEffect(lifecycleOwner) {
         Logd(TAG, "in DisposableEffect")
         val observer = LifecycleEventObserver { _, event ->
-            Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
+            Logd(TAG, "DisposableEffect LifecycleEventObserver: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     vm.feed = feedOnDisplay
@@ -677,18 +676,10 @@ fun FeedDetailsScreen() {
         }
     }
 
-//    BackHandler(enabled = showHistory || !enableFilter) {
-////        Logt(TAG, "BackHandler ")
-//        showHistory = false
-//        enableFilter = true
-//    }
-
-    BackHandler(enabled = true) {
-        when {
-            showHistory -> showHistory = false
-            !enableFilter -> enableFilter = true
-            else -> navController.popBackStack()
-        }
+    BackHandler(enabled = showHistory || !enableFilter) {
+//        Logt(TAG, "BackHandler ")
+        showHistory = false
+        enableFilter = true
     }
 
     var reassembleJob: Job? = remember { null }

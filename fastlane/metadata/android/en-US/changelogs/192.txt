@@ -1,0 +1,7 @@
+# 8.25.1
+
+* in Queues and FeedDetails screens, back-press handling is reverted. no reliable solution now.
+* subscribe to episode monitor now overwrites existing
+* tuned Episodes lists routines, likely fixed issues of progress not updating properly
+* fixed possible IndexOutOfBoundsException when subscribing feed with a limit size
+* some code refactoring

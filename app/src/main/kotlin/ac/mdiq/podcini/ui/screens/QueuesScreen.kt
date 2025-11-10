@@ -9,6 +9,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackServic
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.storage.database.Episodes.buildListInfo
 import ac.mdiq.podcini.storage.database.Episodes.indexWithId
 import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
 import ac.mdiq.podcini.storage.database.Queues.clearQueue
@@ -35,7 +36,6 @@ import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
-import ac.mdiq.podcini.ui.compose.buildListInfo
 import ac.mdiq.podcini.ui.compose.episodeSortOrder
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
@@ -581,20 +581,12 @@ fun QueuesScreen() {
         }
     }
 
-//    BackHandler(enabled = showBin || showFeeds) {
-////        Logt(TAG, "BackHandler $showBin $showFeeds")
-//        when {
-//            showBin -> showBin = false
-//            showFeeds -> showFeeds = false
-//            else -> {  }
-//        }
-//    }
-
-    BackHandler(enabled = true) {
+    BackHandler(enabled = showBin || showFeeds) {
+//        Logt(TAG, "BackHandler $showBin $showFeeds")
         when {
             showBin -> showBin = false
             showFeeds -> showFeeds = false
-            else -> navController.popBackStack()
+            else -> {  }
         }
     }
 

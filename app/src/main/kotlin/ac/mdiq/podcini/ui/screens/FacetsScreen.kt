@@ -6,6 +6,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
+import ac.mdiq.podcini.storage.database.Episodes.buildListInfo
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
 import ac.mdiq.podcini.storage.database.Episodes.getHistory
 import ac.mdiq.podcini.storage.database.Episodes.indexWithId
@@ -35,7 +36,6 @@ import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
-import ac.mdiq.podcini.ui.compose.buildListInfo
 import ac.mdiq.podcini.ui.compose.episodeSortOrder
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
@@ -132,7 +132,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     var showSortDialog by mutableStateOf(false)
     internal var showDatesFilter by mutableStateOf(false)
 
-    internal var isFiltered by mutableStateOf(false)
+//    internal var isFiltered by mutableStateOf(false)
     internal var filterButtonColor = mutableStateOf(Color.White)
 
     var actionButtonToPass by mutableStateOf<((Episode) -> EpisodeActionButton)?>(null)
@@ -242,7 +242,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
 
     fun updateToolbar() {
         var info = buildListInfo(episodes)
-        isFiltered = filter.propertySet.isNotEmpty()
+        val isFiltered = filter.propertySet.isNotEmpty()
         filterButtonColor.value = if (isFiltered) Color.Green else Color.White
         if (spinnerTexts[curIndex] == QuickAccess.Downloaded.name && episodes.isNotEmpty()) {
             var sizeMB: Long = 0
@@ -606,14 +606,6 @@ fun FacetsScreen() {
             }
         }
     }
-//    fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
-//        return when (aboveOrBelow) {
-//            0 -> vm.episodes
-//            -1 -> if (index < vm.episodes.size) vm.episodes.subList(0, index+1) else vm.episodes
-//            1 -> if (index < vm.episodes.size) vm.episodes.subList(index, vm.episodes.size) else vm.episodes
-//            else -> listOf()
-//        }
-//    }
 
     OpenDialogs()
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
@@ -628,16 +620,6 @@ fun FacetsScreen() {
         }
     }
 }
-
-//    private fun onKeyUp(event: KeyEvent) {
-//        if (!isAdded || !isVisible || !isMenuVisible) return
-//        when (event.keyCode) {
-////            KeyEvent.KEYCODE_T -> recyclerView.smoothScrollToPosition(0)
-////            KeyEvent.KEYCODE_B -> recyclerView.smoothScrollToPosition(adapter.itemCount)
-//            else -> {}
-//        }
-//    }
-
 
 enum class QuickAccess {
     New, Planned, Repeats, Liked, Commented, ClippedOrMarked, Downloaded, History, All

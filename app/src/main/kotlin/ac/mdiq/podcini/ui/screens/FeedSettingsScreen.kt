@@ -145,7 +145,10 @@ class FeedSettingsVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
     }
-    private fun getVideoModePolicy() {
+    fun refresh() {
+        audioType = feed?.audioTypeSetting?.tag ?: Feed.AudioType.SPEECH.tag
+        audioQuality = feed?.audioQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag
+        videoQuality = feed?.videoQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag
         when (feed?.videoModePolicy) {
             VideoMode.NONE -> videoModeSummaryResId = R.string.global_default
             VideoMode.WINDOW_VIEW -> videoModeSummaryResId = R.string.feed_video_mode_window
@@ -153,8 +156,6 @@ class FeedSettingsVM(val context: Context, val lcScope: CoroutineScope) {
             VideoMode.AUDIO_ONLY -> videoModeSummaryResId = R.string.feed_video_mode_audioonly
             else -> {}
         }
-    }
-    private fun getAutoDeletePolicy() {
         when (feed?.autoDeleteAction) {
             AutoDeleteAction.GLOBAL -> {
                 autoDeleteSummaryResId = R.string.global_default
@@ -171,18 +172,6 @@ class FeedSettingsVM(val context: Context, val lcScope: CoroutineScope) {
             else -> {}
         }
     }
-
-    fun refresh() {
-        audioType = feed?.audioTypeSetting?.tag ?: Feed.AudioType.SPEECH.tag
-        audioQuality = feed?.audioQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag
-        videoQuality = feed?.videoQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag
-        getVideoModePolicy()
-        getAutoDeletePolicy()
-    }
-
-    //    init {
-//        feed = feedOnDisplay
-//    }
 }
 
 //private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->

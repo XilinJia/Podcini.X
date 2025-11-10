@@ -26,6 +26,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
 import java.net.MalformedURLException
+import kotlin.math.min
 
 open class FeedBuilderBase(val context: Context, val showError: (String?, String)->Unit) {
     protected val TAG = "FeedBuilder"
@@ -150,7 +151,10 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
     fun subscribe(feed: Feed) {
         while (feed.isBuilding) runBlocking { delay(200) }
         feed.id = 0L
-        if (feed.limitEpisodesCount > 0) feed.episodes = feed.episodes.subList(0, feed.limitEpisodesCount).toRealmList()
+        if (feed.limitEpisodesCount > 0) {
+            val sz = feed.episodes.size
+            if (sz > 0) feed.episodes = feed.episodes.subList(0, min(sz, feed.limitEpisodesCount)).toRealmList()
+        }
         for (item in feed.episodes) {
             item.id = 0L
             item.feedId = null

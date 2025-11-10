@@ -4,6 +4,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.Episodes.getEpisode
 import ac.mdiq.podcini.storage.database.RealmDB.MonitorEntity
 import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
 import ac.mdiq.podcini.storage.database.RealmDB.subscribeEpisode
 import ac.mdiq.podcini.storage.database.RealmDB.unsubscribeEpisode
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
@@ -130,19 +131,17 @@ object InTheatre {
             episode != null -> {
                 curEpisode = episode
                 Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")
-                subscribeEpisode(curEpisode!!, MonitorEntity(TAG,
-                    onChanges = { e, f ->
+                runOnIOScope {
+                    subscribeEpisode(curEpisode!!, MonitorEntity(TAG, onChanges = { e, f ->
                         if (e.id == curEpisode?.id) {
                             curEpisode = e
                             Logd(TAG, "setCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
                             onCurChangedUICB?.invoke(e, f)
                         }
-                    },
-                    onInit = { e ->
-//                        curEpisode = e
+                    }, onInit = { e -> //                        curEpisode = e
                         onCurInitUICB?.invoke(e)
-                    }
-                ))
+                    }))
+                }
                 curMediaId = episode.id
                 if (rememberPlayedIds) playedIds.add(curMediaId)
             }

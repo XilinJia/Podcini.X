@@ -381,23 +381,26 @@ object RealmDB {
         }
     }
 
-    fun subscribeEpisode(episode: Episode, entity: MonitorEntity) {
-        CoroutineScope(Dispatchers.IO).launch {
-            subscriptionMutex.withLock {
-                var ms = idMonitorsMap[episode.id]
-                if (ms == null) {
-                    ms = EpisodeMonitors()
-                    ms.entities.add(entity)
-                    ms.job = episodeMonitor(episode)
-                    idMonitorsMap[episode.id] = ms
-                } else {
-                    val e = ms.entities.firstOrNull { it.tag == entity.tag }
-                    if (e == null) ms.entities.add(entity)
-                }
-                Logd(TAG, "subscribeEpisode ${entity.tag} ${episode.id} ${episode.title}")
-                Logd(TAG, "subscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
-                for ((k, v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "subscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
+    fun hasSubscribed(episode: Episode, tag: String): Boolean {
+        var ms = idMonitorsMap[episode.id] ?: return false
+        return ms.entities.firstOrNull { it.tag == tag } != null
+    }
+
+    suspend fun subscribeEpisode(episode: Episode, entity: MonitorEntity) {
+        subscriptionMutex.withLock {
+            var ms = idMonitorsMap[episode.id]
+            if (ms == null) {
+                ms = EpisodeMonitors()
+                ms.entities.add(entity)
+                ms.job = episodeMonitor(episode)
+                idMonitorsMap[episode.id] = ms
+            } else {
+                ms.entities.removeIf { it.tag == entity.tag }
+                ms.entities.add(entity)
             }
+            Logd(TAG, "subscribeEpisode ${entity.tag} ${episode.id} ${episode.title}")
+            Logd(TAG, "subscribeEpisode idMonitorsMap: ${idMonitorsMap.size}")
+            for ((k, v) in idMonitorsMap.entries.toList()) for (e in v.entities) Logd(TAG, "subscribeEpisode idMonitorsMap $k tag: ${e.tag} job: ${v.job != null}")
         }
     }
 

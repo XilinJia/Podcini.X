@@ -187,9 +187,9 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
         }
     }
 
-    internal fun monitor() {
-        if (episode != null) subscribeEpisode(episode!!, MonitorEntity(TAG,
-            onChanges = { e, fields ->
+    internal suspend fun monitor() {
+        if (episode != null) {
+            subscribeEpisode(episode!!, MonitorEntity(TAG, onChanges = { e, fields ->
                 Logd(TAG, "monitor: ${e.title}")
                 withContext(Dispatchers.Main) {
                     Logd(TAG, "monitor: ${fields.joinToString()}")
@@ -211,6 +211,7 @@ class EpisodeInfoVM(val context: Context, val lcScope: CoroutineScope) {
                     Logd(TAG, "monitor: hasRelations: $hasRelations ${episode?.related?.size}")
                 }
             }))
+        }
     }
 
     internal fun updateAppearance() {
@@ -329,7 +330,7 @@ fun EpisodeInfoScreen() {
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.procFlowEvents()
-                    vm.monitor()
+                    scope.launch(Dispatchers.IO) { vm.monitor() }
                 }
                 Lifecycle.Event.ON_RESUME -> if (vm.itemLoaded) vm.updateAppearance()
                 Lifecycle.Event.ON_STOP -> {

@@ -11,14 +11,17 @@ import ac.mdiq.podcini.playback.Recorder.context
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.TimeLeftMode
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
 import ac.mdiq.podcini.storage.database.RealmDB.realm
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
 import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.utils.DurationConverter
 import ac.mdiq.podcini.storage.utils.EpisodeFilter
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
@@ -353,6 +356,26 @@ object Episodes {
         Logd(TAG, "setPlayStateSync played1: ${result.playState}")
 //        EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(result))
         return result
+    }
+
+    fun buildListInfo(episodes: List<Episode>): String {
+        var infoText = String.format(Locale.getDefault(), "%d", episodes.size)
+        if (episodes.isNotEmpty()) {
+            val useSpeed = getPref(AppPrefs.prefShowTimeLeft, 0) == TimeLeftMode.TimeLeftOnSpeed.ordinal
+            var timeLeft: Long = 0
+            for (item in episodes) {
+                var playbackSpeed = 1f
+                if (useSpeed) {
+                    playbackSpeed = getCurrentPlaybackSpeed(item)
+                    if (playbackSpeed <= 0) playbackSpeed = 1f
+                }
+                val itemTimeLeft: Long = (item.duration - item.position).toLong()
+                timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
+            }
+            infoText += if (useSpeed) " * "  else " • "
+            infoText += DurationConverter.getDurationStringShort(timeLeft, true)
+        }
+        return infoText
     }
 
     fun List<Episode>.indexWithId(id: Long): Int = indexOfFirst { it.id == id }

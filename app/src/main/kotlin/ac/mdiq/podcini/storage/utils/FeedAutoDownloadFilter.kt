@@ -96,7 +96,6 @@ class FeedAutoDownloadFilter(
         }
         sb.append(" )")
         return sb.toString()
-
     }
 
     private fun hasIncludeFilter(): Boolean = !includeFilterRaw.isNullOrBlank()
