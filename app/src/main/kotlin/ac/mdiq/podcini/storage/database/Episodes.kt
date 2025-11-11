@@ -47,6 +47,8 @@ import androidx.media3.common.util.UnstableApi
 import io.github.xilinjia.krdb.ext.isManaged
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -73,6 +75,13 @@ object Episodes {
         val size = episodes.size
         if (offset < size && offset + limit < size) episodes = episodes.subList(offset, min(size, offset + limit))
         return if (copy) realm.copyFromRealm(episodes) else episodes
+    }
+
+    fun getEpisodesAsFlow(filter: EpisodeFilter?, sortOrder: EpisodeSortOrder?): Flow<List<Episode>> {
+        val queryString = filter?.queryString()?:"id > 0"
+        Logd(TAG, "getEpisodesAsFlow called with: queryString: $queryString")
+        var episodes = realm.query(Episode::class).query(queryString).asFlow().map { it.list }
+        return episodes
     }
 
     fun getEpisodesCount(filter: EpisodeFilter?, feedId: Long = -1): Int {
@@ -305,14 +314,14 @@ object Episodes {
                         when {
                             e.playState <= EpisodeState.AGAIN.code -> {
                                 e.setPlayState(EpisodeState.IGNORED)
-                                e.comment += if (e.comment.isBlank()) comment else "\n" + comment
+                                e.addComment(comment)
                                 EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(e))
                             }
                             episode.playState == EpisodeState.IGNORED.code -> { }
                             else -> {
                                 val m = findLatest(episode)?.let {
                                     it.setPlayState(EpisodeState.IGNORED)
-                                    it.comment += if (it.comment.isBlank()) comment else "\n" + comment
+                                    it.addComment(comment)
                                     it
                                 }
                                 m?.let {

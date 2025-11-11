@@ -387,10 +387,9 @@ fun EpisodeInfoScreen() {
     if (showEditComment) LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false},
         onSave = {
             commentTextState = editCommentText
+            Logd(TAG, "onSave editCommentText [${editCommentText.text}]")
             if (vm.episode != null) upsertBlk(vm.episode!!) {
-                Logd(TAG, "onSave editCommentText [${editCommentText.text}]")
-                it.comment = editCommentText.text
-                it.commentTime = localTime
+                it.addComment(editCommentText.text)
             }
         })
 

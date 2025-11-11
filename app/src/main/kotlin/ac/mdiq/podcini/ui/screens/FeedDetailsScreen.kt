@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
@@ -705,7 +706,7 @@ fun FeedDetailsScreen() {
                 InforBar(vm.infoBarText, vm.swipeActions)
                 EpisodeLazyColumn(context, vms = vm.vms, feed = vm.feed, layoutMode = vm.layoutModeIndex,
                     buildMoreItems = { vm.buildMoreItems() },
-                    refreshCB = { gearbox.feedUpdater(vm.feed).startRefresh(context) },
+                    refreshCB = { runOnceOrAsk(vm.context, feed = vm.feed) },
                     swipeActions = vm.swipeActions,
                     actionButtonCB = { e, type ->
                         Logd(TAG, "actionButtonCB type: $type")

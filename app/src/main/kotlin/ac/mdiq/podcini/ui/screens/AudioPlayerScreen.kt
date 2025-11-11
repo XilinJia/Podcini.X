@@ -452,6 +452,8 @@ fun AudioPlayerScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val vm = remember { AudioPlayerVM(context, scope) }
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val buttonColor = Color(0xDDFFD700)
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -538,21 +540,17 @@ fun AudioPlayerScreen(navController: NavController) {
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun ControlUI() {
-        val textColor = MaterialTheme.colorScheme.onSurface
-        val buttonColor = Color(0xDDFFD700)
         val buttonColor1 = Color(0xEEAA7700)
-
         LaunchedEffect(key1 = playerStat) { vm.showPlayButton = playerStat != PLAYER_STATUS_PLAYING }
 
         @Composable
         fun SpeedometerWithArc(speed: Float, maxSpeed: Float, trackColor: Color, modifier: Modifier) {
-            val needleAngle = (speed / maxSpeed) * 270f - 225
+            val needleAngleRad = remember(speed) { Math.toRadians(((speed / maxSpeed) * 270f - 225).toDouble()) }
             Canvas(modifier = modifier) {
                 val radius = 1.3 * size.minDimension / 2
                 val strokeWidth = 6.dp.toPx()
                 val arcRect = Rect(left = strokeWidth / 2, top = strokeWidth / 2, right = size.width - strokeWidth / 2, bottom = size.height - strokeWidth / 2)
                 drawArc(color = trackColor, startAngle = 135f, sweepAngle = 270f, useCenter = false, style = Stroke(width = strokeWidth), topLeft = arcRect.topLeft, size = arcRect.size)
-                val needleAngleRad = Math.toRadians(needleAngle.toDouble())
                 val needleEnd = Offset(x = size.center.x + (radius * 0.7f * cos(needleAngleRad)).toFloat(), y = size.center.y + (radius * 0.7f * sin(needleAngleRad)).toFloat())
                 drawLine(color = Color.Red, start = size.center, end = needleEnd, strokeWidth = 4.dp.toPx(), cap = StrokeCap.Round)
                 drawCircle(color = Color.Cyan, center = size.center, radius = 3.dp.toPx())
@@ -564,34 +562,34 @@ fun AudioPlayerScreen(navController: NavController) {
                 if (curEpisode == null) return
                 if (playbackService == null) PlaybackStarter(context, curEpisode!!).start()
             }
-            AsyncImage(contentDescription = "imgvCover", model = ImageRequest.Builder(context).data(vm.imgLoc).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, buttonColor)).padding(start = 5.dp).combinedClickable(
-                    onClick = {
-                        Logd(TAG, "playerUi icon was clicked")
-                        if (!isBSExpanded) {
-                            val media = curEpisode
-                            if (media != null) {
-                                val mediaType = media.getMediaType()
-                                if (mediaType == MediaType.AUDIO || videoPlayMode == VideoMode.AUDIO_ONLY.code || videoMode == VideoMode.AUDIO_ONLY || (media.feed?.videoModePolicy == VideoMode.AUDIO_ONLY)) {
-                                    Logd(TAG, "popping as audio episode")
-                                    ensureService()
-                                    isBSExpanded = true
-                                } else {
-                                    Logd(TAG, "popping video context")
-                                    val intent = getPlayerActivityIntent(context, mediaType)
-                                    context.startActivity(intent)
-                                }
+            val img = remember(vm.imgLoc) { ImageRequest.Builder(context).data(vm.imgLoc).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+            AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, buttonColor)).padding(start = 5.dp).combinedClickable(
+                onClick = {
+                    Logd(TAG, "playerUi icon was clicked")
+                    if (!isBSExpanded) {
+                        val media = curEpisode
+                        if (media != null) {
+                            val mediaType = media.getMediaType()
+                            if (mediaType == MediaType.AUDIO || videoPlayMode == VideoMode.AUDIO_ONLY.code || videoMode == VideoMode.AUDIO_ONLY || (media.feed?.videoModePolicy == VideoMode.AUDIO_ONLY)) {
+                                Logd(TAG, "popping as audio episode")
+                                ensureService()
+                                isBSExpanded = true
+                            } else {
+                                Logd(TAG, "popping video context")
+                                val intent = getPlayerActivityIntent(context, mediaType)
+                                context.startActivity(intent)
                             }
-                        } else isBSExpanded = false
-                    },
-                    onLongClick = {
-                        if (curEpisode?.feed != null) {
-                            feedOnDisplay = curEpisode!!.feed!!
-                            feedScreenMode = FeedScreenMode.List
-                            navController.navigate(Screens.FeedDetails.name)
-                            isBSExpanded = false
                         }
-                    }))
+                    } else isBSExpanded = false
+                },
+                onLongClick = {
+                    if (curEpisode?.feed != null) {
+                        feedOnDisplay = curEpisode!!.feed!!
+                        feedScreenMode = FeedScreenMode.List
+                        navController.navigate(Screens.FeedDetails.name)
+                        isBSExpanded = false
+                    }
+                }))
             val buttonSize = 46.dp
             Spacer(Modifier.weight(0.1f))
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).clickable(onClick = { vm.showSpeedDialog = true })) {
@@ -673,7 +671,7 @@ fun AudioPlayerScreen(navController: NavController) {
                 onLongClick = { showSleepTimeDialog = true })) {
                 val fastForwardSecs by remember { mutableStateOf(NumberFormat.getInstance().format(AppPreferences.fastForwardSecs.toLong())) }
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_fast_forward), tint = buttonColor, contentDescription = "forward", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
-                val sleepRes = if (vm.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep
+                val sleepRes = remember(vm.sleepTimerActive) { if (vm.sleepTimerActive) R.drawable.ic_sleep_off else R.drawable.ic_sleep }
                 Icon(imageVector = ImageVector.vectorResource(sleepRes), tint = buttonColor1, contentDescription = "Sleep timer", modifier = Modifier.align(Alignment.Center))
                 Text(fastForwardSecs, color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
@@ -705,7 +703,6 @@ fun AudioPlayerScreen(navController: NavController) {
 
     @Composable
     fun ProgressBar() {
-        val textColor = MaterialTheme.colorScheme.onSurface
         Box(modifier = Modifier.fillMaxWidth()) {
             Slider(value = vm.sliderValue, valueRange = 0f..vm.duration.toFloat(),
                 colors = SliderDefaults.colors(activeTrackColor = MaterialTheme.colorScheme.tertiary),
@@ -732,7 +729,6 @@ fun AudioPlayerScreen(navController: NavController) {
 
     @Composable
     fun PlayerUI(modifier: Modifier) {
-        val textColor = MaterialTheme.colorScheme.onSurface
         Box(modifier = modifier.fillMaxWidth().height(100.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))) {
             Column {
                 Text(vm.titleText, maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
@@ -745,8 +741,6 @@ fun AudioPlayerScreen(navController: NavController) {
     @Composable
     fun Toolbar() {
         var expanded by remember { mutableStateOf(false) }
-        val textColor = MaterialTheme.colorScheme.onSurface
-        val buttonColor = Color(0xDDFFD700)
         val mediaType = curEpisode?.getMediaType()
         val notAudioOnly = curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY
         var showShareDialog by remember { mutableStateOf(false) }
@@ -822,7 +816,6 @@ fun AudioPlayerScreen(navController: NavController) {
 
         val scrollState = rememberScrollState()
         Column(modifier = modifier.fillMaxWidth().verticalScroll(scrollState)) {
-            val textColor = MaterialTheme.colorScheme.onSurface
             gearbox.PlayerDetailedGearPanel(vm)
             SelectionContainer { Text(vm.txtvPodcastTitle, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
@@ -888,8 +881,7 @@ fun AudioPlayerScreen(navController: NavController) {
                     vm.refreshChapterData(vm.displayedChapterIndex + 1)
                     mPlayer?.seekTo(vm.curItem!!.chapters[vm.displayedChapterIndex].start.toInt())
                 }
-                Row(modifier = Modifier.padding(start = 20.dp, end = 20.dp),
-                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier.padding(start = 20.dp, end = 20.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_prev), tint = textColor, contentDescription = "prev_chapter", modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { seekToPrevChapter() }))
                     Text("Ch " + vm.displayedChapterIndex.toString() + ": " + vm.curChapter?.title, color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp).clickable(onClick = { showChaptersDialog = true }))
                     if (vm.hasNextChapter) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_next), tint = textColor, contentDescription = "next_chapter", modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { seekToNextChapter() }))

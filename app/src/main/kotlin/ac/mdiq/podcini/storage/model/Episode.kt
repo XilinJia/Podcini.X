@@ -11,7 +11,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.Feeds.getFeed
 import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting.Companion.fromInteger
 import ac.mdiq.podcini.storage.utils.ChapterUtils.ChapterStartTimeComparator
 import ac.mdiq.podcini.storage.utils.ChapterUtils.loadChaptersFromUrl
 import ac.mdiq.podcini.storage.utils.ChapterUtils.merge
@@ -24,10 +23,12 @@ import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
 import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
 import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
 import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting.Companion.fromInteger
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -37,6 +38,7 @@ import android.webkit.URLUtil.guessFileName
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.ext.realmSetOf
@@ -46,13 +48,6 @@ import io.github.xilinjia.krdb.types.RealmSet
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.Index
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
-import java.io.BufferedInputStream
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileNotFoundException
-import java.io.IOException
-import java.io.InputStream
-import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Request
@@ -62,8 +57,14 @@ import org.apache.commons.io.FilenameUtils.getExtension
 import org.apache.commons.io.input.CountingInputStream
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileNotFoundException
+import java.io.IOException
+import java.io.InputStream
+import java.util.Date
 import kotlin.math.max
-import androidx.core.net.toUri
 
 class Episode : RealmObject {
     @PrimaryKey
@@ -155,7 +156,9 @@ class Episode : RealmObject {
         private set
 
     var comment: String = ""
+        private set
     var commentTime: Long = 0L
+        private set
 
     @Ignore
     val isNew: Boolean
@@ -389,6 +392,12 @@ class Episode : RealmObject {
             this.transcript == null -> this.transcript = newTranscript
             transcript!!.length < newTranscript.length -> this.transcript = newTranscript
         }
+    }
+
+    fun addComment(text: String) {
+        comment = if (comment.isBlank()) "" else (comment + "\n")
+        commentTime = System.currentTimeMillis()
+        comment += fullDateTimeString(commentTime) + ":\n" + text
     }
 
     /**

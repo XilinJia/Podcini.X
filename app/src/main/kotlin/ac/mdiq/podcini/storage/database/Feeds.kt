@@ -719,18 +719,18 @@ object Feeds {
                     }
                     val ers = v.sortedByDescending { it.rating }
                     if (ers[0].rating > Rating.UNRATED.code) runOnIOScope {
-                        if (ers[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(ers[0]) { it.comment = comment }
+                        if (ers[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(ers[0]) { it.addComment(comment) }
                         else episode = ers[0]
                         for (i in 1..<ers.size) feed.eraseEpisode(ers[i])
                     } else {
                         val eps = v.sortedByDescending { it.lastPlayedTime }
                         if (eps[0].lastPlayedTime > 0L) {
-                            if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.comment = comment }
+                            if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.addComment(comment) }
                             else episode = eps[0]
                             runOnIOScope { for (i in 1..<eps.size) feed.eraseEpisode(eps[i]) }
                         } else {
                             val eps = v.sortedByDescending { it.pubDate }
-                            if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.comment = comment }
+                            if (eps[0].id != ecs[0].id && comment.isNotEmpty()) episode = upsertBlk(eps[0]) { it.addComment(comment) }
                             else episode = eps[0]
                             runOnIOScope { for (i in 1..<eps.size) feed.eraseEpisode(eps[i]) }
                         }

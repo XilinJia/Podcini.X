@@ -138,7 +138,8 @@ object InTheatre {
                             Logd(TAG, "setCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
                             onCurChangedUICB?.invoke(e, f)
                         }
-                    }, onInit = { e -> //                        curEpisode = e
+                    }, onInit = { e ->
+                        //                        curEpisode = e
                         onCurInitUICB?.invoke(e)
                     }))
                 }

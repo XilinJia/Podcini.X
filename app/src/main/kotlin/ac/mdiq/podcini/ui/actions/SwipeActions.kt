@@ -360,16 +360,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override fun ActionOptions() {
             if (showEditComment) {
                 LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false },
-                    onSave = {
-                        if (onEVM != null) runOnIOScope {
-                            onEVM!!.episode = upsert(onEVM!!.episode) {
-                                it.comment = editCommentText.text
-                                it.commentTime = localTime
-                            }
-                            //                            if (isCurMedia(onEpisode)) setCurEpisode(onEpisode!!)
-                            //                            onEpisode = null    // this is needed, otherwise the realm.query clause does not update onEpisode for some reason
-                        }
-                    })
+                    onSave = { if (onEVM != null) runOnIOScope { onEVM!!.episode = upsert(onEVM!!.episode) { it.addComment(editCommentText.text) } } })
             }
         }
     }

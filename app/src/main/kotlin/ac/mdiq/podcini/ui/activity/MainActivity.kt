@@ -238,9 +238,9 @@ class MainActivity : BaseActivity() {
 
         LaunchedEffect(key1 = isBSExpanded, key2 = curMediaId) {
             if (curMediaId > 0) {
-                if (isBSExpanded) lcScope?.launch { sheetState.bottomSheetState.expand() }
-                else lcScope?.launch { sheetState.bottomSheetState.partialExpand() }
-            } else lcScope?.launch { sheetState.bottomSheetState.hide() }
+                if (isBSExpanded) sheetState.bottomSheetState.expand()
+                else sheetState.bottomSheetState.partialExpand()
+            } else sheetState.bottomSheetState.hide()
         }
 
         val sheetValueState = remember { mutableStateOf(sheetState.bottomSheetState.currentValue) }

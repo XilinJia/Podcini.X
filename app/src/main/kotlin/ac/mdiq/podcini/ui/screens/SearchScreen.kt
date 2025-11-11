@@ -408,12 +408,8 @@ fun SearchScreen() {
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.feeds, key = { _, feed -> feed.id }) { index, feed ->
                 Row(Modifier.background(MaterialTheme.colorScheme.surface)) {
-                    val imgLoc = remember(feed) { feed.imageUrl }
-                    AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
-                        .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                        contentDescription = "imgvCover",
-                        placeholder = painterResource(R.mipmap.ic_launcher),
-                        error = painterResource(R.mipmap.ic_launcher),
+                    val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                    AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
                         modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
                             Logd(TAG, "icon clicked!")
                             if (!feed.isBuilding) {
@@ -465,12 +461,8 @@ fun SearchScreen() {
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    val imgLoc = remember(feed) { feed.imageUrl }
-                    AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
-                        .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                        contentDescription = "imgvCover",
-                        placeholder = painterResource(R.mipmap.ic_launcher),
-                        error = painterResource(R.mipmap.ic_launcher),
+                    val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                    AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
                         modifier = Modifier.width(60.dp).height(60.dp).clickable(onClick = {
                             Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}] [$]")
                             if (feed.feedUrl.isNotBlank()) {

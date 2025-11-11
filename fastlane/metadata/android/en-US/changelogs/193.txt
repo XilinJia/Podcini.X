@@ -1,0 +1,11 @@
+# 8.25.2
+
+* in Subscriptions screen, when refreshing feeds, network permission and availability is checked and if failure, toasts are posted
+* for feeds refresh, network permission and availability checks are performed at the outmost routine
+	* if failure, retry is scheduled if periodic task, otherwise only post toasts
+* in FeedDetails screen, fixed the issue of feed refresh running twice on swipe (introduced in 8.25.1)
+* in EpisodeState, added ERROR, and set color on some states
+* Episodes lists shows play states in colors
+* in MediaPlayer, if setSource has an exception, the episode is set to ERROR, and exit promptly without calling the exoplayer
+* improved efficiency a bit
+* some code refactoring

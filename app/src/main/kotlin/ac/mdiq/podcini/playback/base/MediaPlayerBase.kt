@@ -135,6 +135,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     abstract fun getPlaybackSpeed(): Float
 
     open fun getDuration(): Int {
+//        showStackTrace()
         Logd(TAG, "getDuration on curEpisode: ${curEpisode?.title}")
         return curEpisode?.duration ?: Episode.INVALID_TIME
     }
@@ -176,14 +177,20 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         val user = feed?.username
         val password = feed?.password
         bitrate = 0
-        mediaSource = gearbox.formMediaSource(metadata, media, context)
-        if (mediaSource != null) {
-            Logd(TAG, "setDataSource1 setting for Podcast source")
-            mediaItem = mediaSource?.mediaItem
-            setSourceCredentials(user, password)
-        } else {
-            Logd(TAG, "setDataSource1 setting for Podcast source")
-            setDataSource(media, metadata, url,user, password)
+        try {
+            mediaSource = gearbox.formMediaSource(metadata, media, context)
+            if (mediaSource != null) {
+                Logd(TAG, "setDataSource1 setting for Podcast source")
+                mediaItem = mediaSource?.mediaItem
+                setSourceCredentials(user, password)
+            } else {
+                Logd(TAG, "setDataSource1 setting for Podcast source")
+                setDataSource(media, metadata, url, user, password)
+            }
+        } catch (e: Throwable) {
+            Loge(TAG, "setDataSource: ${e.message}")
+            upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
+            throw e
         }
     }
 

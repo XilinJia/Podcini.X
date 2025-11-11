@@ -396,14 +396,9 @@ fun AddCommentDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
     LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { onDismissRequest() },
         onSave = {
             runOnIOScope {
-                val localTime = System.currentTimeMillis()
                 for (vm in selected) {
-                    upsert(vm.episode) {
-                        Logd("AddCommentDialog", "onSave editCommentText [${editCommentText.text}]")
-                        val comment = fullDateTimeString(localTime) + ":\n" + editCommentText.text
-                        it.comment += if (it.comment.isBlank()) comment else "\n" + comment
-                        it.commentTime = localTime
-                    }
+                    Logd("AddCommentDialog", "onSave editCommentText [${editCommentText.text}]")
+                    upsert(vm.episode) { it.addComment(editCommentText.text) }
                     vm.updateVMFromDB()
                 }
             }
@@ -666,10 +661,7 @@ fun IgnoreEpisodesDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit
                                 val hasAlmostEnded = hasAlmostEnded(vm.episode)
                                 val item_ = setPlayStateSync(EpisodeState.IGNORED, vm.episode, hasAlmostEnded, false)
                                 Logd("IgnoreEpisodesDialog", "item_: ${item_.title} ${item_.playState}")
-                                upsert(item_) {
-                                    it.comment = if (item_.comment.isBlank()) "" else (item_.comment + "\n")
-                                    it.comment += localDateTimeString() + "\nReason to ignore:\n" + textState.text
-                                }
+                                upsert(item_) { it.addComment("Reason to ignore:\n${textState.text}") }
                                 vm.updateVMFromDB()
                             }
                         } catch (e: Throwable) { Logs("IgnoreEpisodesDialog", e) }

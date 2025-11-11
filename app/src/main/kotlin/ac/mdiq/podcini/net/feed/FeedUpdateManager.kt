@@ -65,6 +65,18 @@ open class FeedUpdateWorkerBase(context: Context, private val params: WorkerPara
 
         val isPeriodic = inputData.getBoolean(KEY_IS_PERIODIC, false)
         if (isPeriodic) putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
+        when {
+            !networkAvailable() -> {
+                EventFlow.postEvent(FlowEvent.MessageEvent(applicationContext.getString(R.string.download_error_no_connection)))
+                return if (isPeriodic) Result.retry() else Result.success()
+            }
+            !isFeedRefreshAllowed -> {
+                Logt(TAG, applicationContext.getString(if (isNetworkRestricted && isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message))
+                return if (isPeriodic) Result.retry() else Result.success()
+            }
+            else -> {}
+        }
+
         try {
             val fullUpdate = inputData.getBoolean(EXTRA_FULL_UPDATE, false)
 
@@ -147,6 +159,18 @@ object FeedUpdateManager {
             .build()
     }
 
+    fun getInitialDelay(context: Context, now: Boolean = false): Long {
+        val initialDelay = if (now) 0L else intervalInMillis
+        val lastUpdateTime = getPref(AppPrefs.prefLastFullUpdateTime, 0L)
+        Logd(TAG, "lastUpdateTime: $lastUpdateTime updateInterval: $intervalInMillis")
+        nextRefreshTime = if (lastUpdateTime == 0L) {
+            if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
+            else context.getString(R.string.before) + fullDateTimeString(Calendar.getInstance().timeInMillis + intervalInMillis)
+        } else fullDateTimeString(lastUpdateTime + intervalInMillis)
+
+        return initialDelay
+    }
+
     fun scheduleUpdateTaskOnce(context: Context, replace: Boolean, force: Boolean = false) {
         Logd(TAG, "scheduleUpdateTaskOnce intervalInMillis: $intervalInMillis")
         if (BuildConfig.DEBUG) {
@@ -182,16 +206,24 @@ object FeedUpdateManager {
         }
     }
 
-    fun getInitialDelay(context: Context, now: Boolean = false): Long {
-        val initialDelay = if (now) 0L else intervalInMillis
-        val lastUpdateTime = getPref(AppPrefs.prefLastFullUpdateTime, 0L)
-        Logd(TAG, "lastUpdateTime: $lastUpdateTime updateInterval: $intervalInMillis")
-        nextRefreshTime = if (lastUpdateTime == 0L) {
-            if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
-            else context.getString(R.string.before) + fullDateTimeString(Calendar.getInstance().timeInMillis + intervalInMillis)
-        } else fullDateTimeString(lastUpdateTime + intervalInMillis)
-
-        return initialDelay
+    fun checkAndscheduleUpdateTaskOnce(context: Context, replace: Boolean, force: Boolean = false) {
+        when {
+            !networkAvailable() -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
+            !isFeedRefreshAllowed -> {
+                commonConfirm = CommonConfirmAttrib(
+                    title = context.getString(R.string.feed_refresh_title),
+                    message = context.getString(if (isNetworkRestricted && isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
+                    confirmRes = R.string.confirm_mobile_streaming_button_once,
+                    cancelRes = R.string.no,
+                    neutralRes = R.string.confirm_mobile_streaming_button_always,
+                    onConfirm = { scheduleUpdateTaskOnce(context, replace = true, force = true) },
+                    onNeutral = {
+                        mobileAllowFeedRefresh = true
+                        scheduleUpdateTaskOnce(context, replace = true, force = true)
+                    })
+            }
+            else -> scheduleUpdateTaskOnce(context, replace = true, force = true)
+        }
     }
 
     fun runOnce(context: Context, feed: Feed? = null, nextPage: Boolean = false, fullUpdate: Boolean = false) {

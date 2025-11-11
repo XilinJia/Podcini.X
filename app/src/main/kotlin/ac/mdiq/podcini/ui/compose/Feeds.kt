@@ -266,8 +266,8 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
         Text(feed.title, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
         Row {
             Box(modifier = Modifier.width(56.dp).height(56.dp)) {
-                val imgLoc = remember(feed) { feed.imageUrl }
-                AsyncImage(model = ImageRequest.Builder(context).data(imgLoc).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
+                val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                 if (feed.feedId > 0 || log != null) {
                     Logd("OnlineFeedItem", "${feed.feedId} $log")
                     val alpha = 1.0f

@@ -2,8 +2,8 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndscheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.scheduleUpdateTaskOnce
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.DocumentFileExportWorker
@@ -922,15 +922,13 @@ fun SubscriptionsScreen() {
 
         PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
             refreshing = true
-            if (getPref(AppPrefs.prefSwipeToRefreshAll, true)) scheduleUpdateTaskOnce(vm.context, replace = true, force = true)
+            if (getPref(AppPrefs.prefSwipeToRefreshAll, true)) checkAndscheduleUpdateTaskOnce(vm.context, replace = true, force = true)
             refreshing = false
         }) {
             val context = LocalContext.current
             if (if (vm.useGrid == null) vm.useGridLayout else vm.useGrid!!) {
                 val lazyGridState = rememberLazyGridState()
-                LazyVerticalGrid(state = lazyGridState, columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
+                LazyVerticalGrid(state = lazyGridState, columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
                     items(vm.feedListFiltered.size, key = {index -> vm.feedListFiltered[index].id}) { index ->
                         val feed by remember { mutableStateOf(vm.feedListFiltered[index]) }
                         var isSelected by remember { mutableStateOf(false) }
@@ -970,11 +968,9 @@ fun SubscriptionsScreen() {
                             })) {
                             ConstraintLayout(Modifier.fillMaxSize()) {
                                 val (coverImage, episodeCount, rating, error) = createRefs()
-                                val imgLoc = remember(feed) { feed.imageUrl }
-                                AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
-                                    .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                                    contentDescription = "coverImage",
-                                    modifier = Modifier.fillMaxWidth().aspectRatio(1f).constrainAs(coverImage) {
+                                val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                                AsyncImage(model = img, contentDescription = "coverImage", modifier = Modifier.fillMaxWidth().aspectRatio(1f)
+                                    .constrainAs(coverImage) {
                                         top.linkTo(parent.top)
                                         bottom.linkTo(parent.bottom)
                                         start.linkTo(parent.start)
@@ -1016,12 +1012,8 @@ fun SubscriptionsScreen() {
                             Logd(TAG, "toggleSelected: selected: ${selected.size}")
                         }
                         Row(Modifier.background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
-                            val imgLoc = remember(feed) { feed.imageUrl }
-                            AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
-                                .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                                contentDescription = "imgvCover",
-                                placeholder = painterResource(R.mipmap.ic_launcher),
-                                error = painterResource(R.mipmap.ic_launcher),
+                            val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                            AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
                                 modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
                                     Logd(TAG, "icon clicked!")
                                     if (!feed.isBuilding) {

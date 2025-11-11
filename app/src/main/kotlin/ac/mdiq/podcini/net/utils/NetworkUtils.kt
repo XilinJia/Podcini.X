@@ -52,9 +52,7 @@ object NetworkUtils {
                     else mobileAllowAutoDownload
                 }
                 networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-                else -> {
-                    mobileAllowAutoDownload || networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
-                }
+                else -> mobileAllowAutoDownload || networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
             }
         }
 

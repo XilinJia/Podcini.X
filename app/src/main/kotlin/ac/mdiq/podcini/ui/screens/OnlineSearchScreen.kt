@@ -316,9 +316,8 @@ fun OnlineSearchScreen() {
             }
             Box(modifier = Modifier.fillMaxWidth()) {
                 if (vm.showGrid) NonlazyGrid(columns = vm.numColumns, itemCount = vm.searchResult.size, modifier = Modifier.fillMaxWidth()) { index ->
-                    AsyncImage(model = ImageRequest.Builder(context).data(vm.searchResult[index].imageUrl)
-                        .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                        contentDescription = "imgvCover", modifier = Modifier.padding(top = 8.dp)
+                    AsyncImage(model = ImageRequest.Builder(context).data(vm.searchResult[index].imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover",
+                        modifier = Modifier.padding(top = 8.dp)
                             .clickable(onClick = {
                                 Logd(TAG, "icon clicked!")
                                 val podcast: PodcastSearchResult = vm.searchResult[index]

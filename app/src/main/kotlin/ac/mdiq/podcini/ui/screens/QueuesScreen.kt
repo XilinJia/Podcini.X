@@ -549,21 +549,18 @@ fun QueuesScreen() {
                 val feed by remember { mutableStateOf(vm.feedsAssociated[index]) }
                 ConstraintLayout {
                     val (coverImage, episodeCount, rating, _) = createRefs()
-                    val imgLoc = remember(feed) { feed.imageUrl }
-                    AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
-                        .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                        contentDescription = "coverImage",
-                        modifier = Modifier.height(100.dp).aspectRatio(1f)
-                            .constrainAs(coverImage) {
-                                top.linkTo(parent.top)
-                                bottom.linkTo(parent.bottom)
-                                start.linkTo(parent.start)
-                            }.combinedClickable(onClick = {
-                                Logd(TAG, "clicked: ${feed.title}")
-                                feedOnDisplay = feed
-                                feedScreenMode = FeedScreenMode.List
-                                navController.navigate(Screens.FeedDetails.name)
-                            }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
+                    val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                    AsyncImage(model = img, contentDescription = "coverImage", modifier = Modifier.height(100.dp).aspectRatio(1f)
+                        .constrainAs(coverImage) {
+                            top.linkTo(parent.top)
+                            bottom.linkTo(parent.bottom)
+                            start.linkTo(parent.start)
+                        }.combinedClickable(onClick = {
+                            Logd(TAG, "clicked: ${feed.title}")
+                            feedOnDisplay = feed
+                            feedScreenMode = FeedScreenMode.List
+                            navController.navigate(Screens.FeedDetails.name)
+                        }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
                     Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,
                         modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {

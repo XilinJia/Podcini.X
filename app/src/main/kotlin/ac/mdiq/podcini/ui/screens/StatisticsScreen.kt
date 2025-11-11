@@ -283,10 +283,9 @@ fun StatisticsScreen() {
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(statisticsData.feedStats, key = { _, item -> item.feed.id }) { index, feedStats ->
                 Row(Modifier.background(MaterialTheme.colorScheme.surface).fillMaxWidth()) {
-                    val imgLoc = remember(feedStats) { feedStats.feed.imageUrl }
-                    AsyncImage(model = ImageRequest.Builder(context).data(imgLoc).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                        contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
-                        contentScale = ContentScale.FillBounds, modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable(onClick = {
+                    val img = remember(feedStats) { ImageRequest.Builder(context).data(feedStats.feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                    AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), contentScale = ContentScale.FillBounds,
+                        modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable(onClick = {
                             feedOnDisplay = feedStats.feed
                             feedScreenMode = FeedScreenMode.Info
                             navController.navigate(Screens.FeedDetails.name)

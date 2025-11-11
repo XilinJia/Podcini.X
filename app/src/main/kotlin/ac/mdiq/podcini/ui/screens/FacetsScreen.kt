@@ -8,6 +8,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.Episodes.buildListInfo
 import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
+import ac.mdiq.podcini.storage.database.Episodes.getEpisodesAsFlow
 import ac.mdiq.podcini.storage.database.Episodes.getHistory
 import ac.mdiq.podcini.storage.database.Episodes.indexWithId
 import ac.mdiq.podcini.storage.database.Feeds.feedIdsOfAllEpisodes
@@ -80,6 +81,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -222,6 +224,7 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
                         QuickAccess.History.name -> getHistory(0, Int.MAX_VALUE).toMutableList()
                         QuickAccess.Downloaded.name -> getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(prefFilterDownloads), episodesSortOrder, false)
                         QuickAccess.All.name -> getEpisodes(0, Int.MAX_VALUE, filter, episodesSortOrder, false)
+//                        QuickAccess.All.name -> getEpisodesAsFlow(filter, episodesSortOrder).collectAsState(initial = listOf())
                         else -> getEpisodes(0, Int.MAX_VALUE, filter, episodesSortOrder, false)
                     })
                 }
@@ -575,21 +578,18 @@ fun FacetsScreen() {
                 val feed by remember { mutableStateOf(vm.feedsAssociated[index]) }
                 ConstraintLayout {
                     val (coverImage, episodeCount, rating, _) = createRefs()
-                    val imgLoc = remember(feed) { feed.imageUrl }
-                    AsyncImage(model = ImageRequest.Builder(context).data(imgLoc)
-                        .memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(),
-                        contentDescription = "coverImage",
-                        modifier = Modifier.height(100.dp).aspectRatio(1f)
-                            .constrainAs(coverImage) {
-                                top.linkTo(parent.top)
-                                bottom.linkTo(parent.bottom)
-                                start.linkTo(parent.start)
-                            }.combinedClickable(onClick = {
-                                Logd(TAG, "clicked: ${feed.title}")
-                                feedOnDisplay = feed
-                                feedScreenMode = FeedScreenMode.List
-                                navController.navigate(Screens.FeedDetails.name)
-                            }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
+                    val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                    AsyncImage(model = img, contentDescription = "coverImage", modifier = Modifier.height(100.dp).aspectRatio(1f)
+                        .constrainAs(coverImage) {
+                            top.linkTo(parent.top)
+                            bottom.linkTo(parent.bottom)
+                            start.linkTo(parent.start)
+                        }.combinedClickable(onClick = {
+                            Logd(TAG, "clicked: ${feed.title}")
+                            feedOnDisplay = feed
+                            feedScreenMode = FeedScreenMode.List
+                            navController.navigate(Screens.FeedDetails.name)
+                        }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
                     Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,
                         modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {

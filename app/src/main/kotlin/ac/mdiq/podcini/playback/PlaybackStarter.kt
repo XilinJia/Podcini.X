@@ -57,7 +57,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
         Logd(TAG, "start: status: $status")
         aCtrlFuture?.let { future ->
             if (future.isDone && aController?.isConnected == true) {
-                Logd(TAG, "aController ready, play")
+                Logd(TAG, "aController ready, play, $status")
                 mPlayer?.isStreaming = shouldStreamThisTime
                 when (status) {
                     PlayerStatus.PLAYING -> playPause()
