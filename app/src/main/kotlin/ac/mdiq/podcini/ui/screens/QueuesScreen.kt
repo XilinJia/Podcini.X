@@ -9,34 +9,34 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackServic
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.storage.database.Episodes.buildListInfo
-import ac.mdiq.podcini.storage.database.Episodes.indexWithId
-import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
-import ac.mdiq.podcini.storage.database.Queues.clearQueue
-import ac.mdiq.podcini.storage.database.Queues.isQueueKeepSorted
-import ac.mdiq.podcini.storage.database.Queues.moveInQueueSync
-import ac.mdiq.podcini.storage.database.Queues.queueKeepSortedOrder
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.buildListInfo
+import ac.mdiq.podcini.storage.database.clearQueue
+import ac.mdiq.podcini.storage.database.feedOperationText
+import ac.mdiq.podcini.storage.database.moveInQueue
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.utils.Rating
+import ac.mdiq.podcini.storage.specs.EnqueueLocation
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
+import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
-import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
-import ac.mdiq.podcini.ui.compose.episodeSortOrder
+import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
+import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.EventFlow
@@ -44,23 +44,25 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logt
 import android.content.ComponentName
-import android.content.Context
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -88,6 +90,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -96,7 +99,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -104,6 +106,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
@@ -118,193 +121,26 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
-import kotlinx.coroutines.CoroutineScope
+import io.github.xilinjia.krdb.ext.query
+import io.github.xilinjia.krdb.notifications.ResultsChange
+import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 import kotlin.math.max
 
-class QueuesVM(val context: Context, val lcScope: CoroutineScope) {
-    internal var swipeActions: SwipeActions
-    internal var swipeActionsBin: SwipeActions
+private val TAG = Screens.Queues.name
 
-    internal var listInfoText = ""
-    internal var infoBarText = mutableStateOf("")
-
-    internal var isQueueLocked by mutableStateOf(getPref(AppPrefs.prefQueueLocked, true))
-
-    internal var queueNames = mutableStateListOf<String>()
-    internal val spinnerTexts = mutableStateListOf<String>()
-    internal var curIndex by mutableIntStateOf(0)
-    internal var queues: List<PlayQueue>
-
-    internal val queueItems = mutableListOf<Episode>()
-    internal val vms = mutableStateListOf<EpisodeVM>()
-    internal var feedsAssociated = listOf<Feed>()
-
-    internal var dragDropEnabled by mutableStateOf(!(isQueueKeepSorted || isQueueLocked))
-    var showSortDialog by mutableStateOf(false)
-    var sortOrder by mutableStateOf<EpisodeSortOrder?>(null)
-
-    internal val showClearQueueDialog = mutableStateOf(false)
-    internal val showRenameQueueDialog = mutableStateOf(false)
-    internal val showAddQueueDialog = mutableStateOf(false)
-
-    internal lateinit var browserFuture: ListenableFuture<MediaBrowser>
-
-    init {
-        queues = realm.query(PlayQueue::class).find()
-
-        swipeActions = SwipeActions(context, TAG)
-        swipeActionsBin = SwipeActions(context, "$TAG.Bin")
-
-//        if (!hasInitialized.value) loadCurQueue(true)
-
-    }
-    private var eventSink: Job?     = null
-    private var eventStickySink: Job? = null
-    private var eventKeySink: Job?     = null
-    internal fun cancelFlowEvents() {
-        eventSink?.cancel()
-        eventSink = null
-        eventStickySink?.cancel()
-        eventStickySink = null
-        eventKeySink?.cancel()
-        eventKeySink = null
-    }
-    internal fun procFlowEvents() {
-        if (eventSink == null) eventSink = lcScope.launch {
-            EventFlow.events.collectLatest { event ->
-                Logd(TAG, "Received event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.QueueEvent -> onQueueEvent(event)
-                    is FlowEvent.FeedChangeEvent -> onFeedPrefsChanged(event)
-                    else -> {}
-                }
-            }
-        }
-        if (eventKeySink == null) eventKeySink = lcScope.launch {
-            EventFlow.keyEvents.collectLatest { event ->
-                Logd(TAG, "Received key event: $event, Ignored!")
-//                onKeyUp(event)
-            }
-        }
-    }
-
-    @androidx.annotation.OptIn(UnstableApi::class)
-    private fun onQueueEvent(event: FlowEvent.QueueEvent) {
-        Logd(TAG, "onQueueEvent() called with ${event.action.name}")
-        if (showBin) return
-        when (event.action) {
-            FlowEvent.QueueEvent.Action.ADDED -> {
-                if (event.episodes.isNotEmpty() && !curQueue.contains(event.episodes[0])) {
-                    queueItems.addAll(event.episodes)
-                    for (e in event.episodes) vms.add(EpisodeVM(e, TAG))
-                }
-            }
-            FlowEvent.QueueEvent.Action.SET_QUEUE, FlowEvent.QueueEvent.Action.SORTED -> {
-                queueItems.clear()
-                queueItems.addAll(event.episodes)
-                vms.clear()
-                for (e in event.episodes) vms.add(EpisodeVM(e, TAG))
-            }
-            FlowEvent.QueueEvent.Action.REMOVED, FlowEvent.QueueEvent.Action.IRREVERSIBLE_REMOVED -> {
-                if (event.episodes.isNotEmpty()) {
-                    for (e in event.episodes) {
-                        val pos: Int = queueItems.indexWithId(e.id)
-                        if (pos < 0) continue
-                        Logd(TAG, "removing episode $pos ${queueItems[pos].title}")
-                        if (pos < vms.size) {
-                            Logd(TAG, "vms at $pos ${vms[pos].episode.title}")
-                            if (vms[pos].episode.id == e.id) vms.removeAt(pos)
-                        }
-                        queueItems.removeAt(pos)
-                    }
-                }
-            }
-            FlowEvent.QueueEvent.Action.SWITCH_QUEUE -> {
-                loadCurQueue(false)
-                playbackService?.notifyCurQueueItemsChanged(event.episodes.size)
-            }
-            FlowEvent.QueueEvent.Action.CLEARED -> {
-                queueItems.clear()
-                vms.clear()
-            }
-            FlowEvent.QueueEvent.Action.MOVED, FlowEvent.QueueEvent.Action.DELETED_MEDIA -> return
-        }
-        queues = realm.query(PlayQueue::class).find()
-        queueNames = queues.map { it.name }.toMutableStateList()
-        curIndex = queues.indexOfFirst { it.id == curQueue.id }
-        spinnerTexts.clear()
-        spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
-        listInfoText = buildListInfo(queueItems)
-        infoBarText.value = "$listInfoText $feedOperationText"
-    }
-
-    private fun onFeedPrefsChanged(event: FlowEvent.FeedChangeEvent) {
-        Logd(TAG,"speedPresetChanged called")
-        for (item in queueItems) if (item.feed?.id == event.feed.id) item.feed = null
-    }
-
-    private var loadItemsRunning = false
-    internal fun loadCurQueue(restoreScrollPosition: Boolean) {
-        if (!loadItemsRunning) {
-            loadItemsRunning = true
-            Logd(TAG, "loadCurQueue() called ${curQueue.name}")
-            runOnIOScope {
-                while (curQueue.name.isEmpty()) runBlocking { delay(100) }
-                feedsAssociated = realm.query(Feed::class).query("queueId == ${curQueue.id}").find()
-                queueItems.clear()
-                if (showBin) queueItems.addAll(realm.query(Episode::class, "id IN $0", curQueue.idsBinList).find().sortedByDescending { curQueue.idsBinList.indexOf(it.id) })
-                else {
-                    curQueue.episodes.clear()
-                    queueItems.addAll(curQueue.episodes)
-                }
-                queues = realm.query(PlayQueue::class).find()
-                listInfoText = buildListInfo(queueItems)
-                withContext(Dispatchers.Main) {
-                    val tag = if (showBin) TAG + "bin" else TAG
-                    vms.clear()
-                    for (e in queueItems) vms.add(EpisodeVM(e, tag))
-                    Logd(TAG, "loadCurQueue() curQueue.episodes: ${curQueue.episodes.size}")
-                    curIndex = queues.indexOfFirst { it.id == curQueue.id }
-                    spinnerTexts.clear()
-                    spinnerTexts.addAll(queues.map { "${it.name} : ${it.size()}" })
-                    infoBarText.value = "$listInfoText $feedOperationText"
-                    loadItemsRunning = false
-                }
-            }
-        }
-    }
-    /**
-     * Sort the episodes in the queue with the given the named sort order.
-     * @param broadcastUpdate `true` if this operation should trigger a
-     * QueueUpdateBroadcast. This option should be set to `false`
-     * if the caller wants to avoid unexpected updates of the GUI.
-     */
-    internal fun reorderQueue(sortOrder: EpisodeSortOrder?, broadcastUpdate: Boolean) : Job {
-        Logd(TAG, "reorderQueue called")
-        if (sortOrder == null) {
-            Logt(TAG, "sortOrder is null. Do nothing.")
-            return Job()
-        }
-        val permutor = getPermutor(sortOrder)
-        return runOnIOScope {
-            permutor.reorder(curQueue.episodes)
-            val episodes_ = curQueue.episodes.toMutableList()
-            curQueue = upsert(curQueue) {
-                it.episodeIds.clear()
-                for (e in episodes_) it.episodeIds.add(e.id)
-                it.update()
-            }
-            if (broadcastUpdate) EventFlow.postEvent(FlowEvent.QueueEvent.sorted(curQueue.episodes))
-        }
-    }
+enum class QueuesScreenMode {
+    Queue,
+    Bin,
+    Feed,
+    Settings
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -314,46 +150,61 @@ fun QueuesScreen() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val navController = LocalNavController.current
-    val vm = remember { QueuesVM(context, scope) }
+
+    var browserFuture: ListenableFuture<MediaBrowser>? = remember { null }
+
+    var screenMode by remember { mutableStateOf(QueuesScreenMode.Queue) }
+
+    val feedsAssociated = remember {  mutableStateListOf<Feed>() }
+
+    val swipeActions = remember { SwipeActions(context, TAG) }
+    val swipeActionsBin = remember { SwipeActions(context, "$TAG.Bin") }
+    var listInfoText by remember { mutableStateOf("") }
+    val infoBarText = remember { mutableStateOf("") }
+
+    var isQueueLocked by remember {  mutableStateOf(getPref(AppPrefs.prefQueueLocked, true)) }
+    var dragDropEnabled by remember { mutableStateOf(!(curQueue.keepSorted || isQueueLocked)) }
+
+    var sortOrder by remember { mutableStateOf<EpisodeSortOrder?>(null) }
+
+    var showSortDialog by remember { mutableStateOf(false) }
+    val showClearQueueDialog = remember { mutableStateOf(false) }
+    val showRenameQueueDialog = remember { mutableStateOf(false) }
+    val showAddQueueDialog = remember { mutableStateOf(false) }
+
+    var queuesFlow by remember { mutableStateOf<Flow<ResultsChange<PlayQueue>>>(emptyFlow()) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    if (isQueueKeepSorted) vm.sortOrder = queueKeepSortedOrder
+                    queuesFlow = realm.query<PlayQueue>().asFlow()
+                    lifecycleOwner.lifecycle.addObserver(swipeActions)
+                    lifecycleOwner.lifecycle.addObserver(swipeActionsBin)
+                    if (curQueue.keepSorted) sortOrder = curQueue.sortOrder
 
-                    vm.queueNames = vm.queues.map { it.name }.toMutableStateList()
-                    vm.spinnerTexts.clear()
-                    vm.spinnerTexts.addAll(vm.queues.map { "${it.name} : ${it.size()}" })
-                    episodeSortOrder = vm.sortOrder
-
-                    lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
-                    lifecycleOwner.lifecycle.addObserver(vm.swipeActionsBin)
-                    vm.loadCurQueue(true)
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-                    vm.browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
-                    vm.browserFuture.addListener({
+                    browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
+                    browserFuture.addListener({
                         // here we can get the root of media items tree or we can get also the children if it is an album for example.
-                        mediaBrowser = vm.browserFuture.get()
+                        mediaBrowser = browserFuture.get()
                         mediaBrowser?.subscribe("CurQueue", null)
                     }, MoreExecutors.directExecutor())
                 }
                 Lifecycle.Event.ON_START -> {
-                    vm.procFlowEvents()
-//                    val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-//                    vm.browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
-//                    vm.browserFuture.addListener({
-//                        // here we can get the root of media items tree or we can get also the children if it is an album for example.
-//                        mediaBrowser = vm.browserFuture.get()
-//                        mediaBrowser?.subscribe("CurQueue", null)
-//                    }, MoreExecutors.directExecutor())
+                    //                    val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
+                    //                    vm.browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
+                    //                    vm.browserFuture.addListener({
+                    //                        // here we can get the root of media items tree or we can get also the children if it is an album for example.
+                    //                        mediaBrowser = vm.browserFuture.get()
+                    //                        mediaBrowser?.subscribe("CurQueue", null)
+                    //                    }, MoreExecutors.directExecutor())
                 }
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {
-//                    vm.cancelFlowEvents()
-//                    mediaBrowser?.unsubscribe("CurQueue")
-//                    mediaBrowser = null
-//                    MediaBrowser.releaseFuture(vm.browserFuture)
+                    //                    mediaBrowser?.unsubscribe("CurQueue")
+                    //                    mediaBrowser = null
+                    //                    MediaBrowser.releaseFuture(vm.browserFuture)
                 }
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
@@ -361,36 +212,137 @@ fun QueuesScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            vm.cancelFlowEvents()
             mediaBrowser?.unsubscribe("CurQueue")
             mediaBrowser = null
-            MediaBrowser.releaseFuture(vm.browserFuture)
-            vm.queueItems.clear()
-            vm.vms.clear()
+            if (browserFuture != null) MediaBrowser.releaseFuture(browserFuture)
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    var showBinLimitDialog by remember { mutableStateOf(false) }
-    if (showBinLimitDialog) {
-        var limitString by remember { mutableStateOf((curQueue.binLimit)) }
-        AlertDialog(modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showBinLimitDialog = false },
-            text = { NumberEditor(limitString, stringResource(R.string.bin_limit), nz = true, instant = true, modifier = Modifier) { limitString = it } },
-            confirmButton = {
-                TextButton(onClick = {
-                    curQueue = upsertBlk(curQueue) { it.binLimit = limitString }
-                    showBinLimitDialog = false
-                }) { Text(stringResource(R.string.confirm_label)) }
-            },
-            dismissButton = { TextButton(onClick = { showBinLimitDialog = false }) { Text(stringResource(R.string.cancel_label)) } } )
+    BackHandler(enabled = screenMode != QueuesScreenMode.Queue) {
+        Logd(TAG, "BackHandler $screenMode")
+        screenMode = when(screenMode) {
+            QueuesScreenMode.Bin, QueuesScreenMode.Feed -> QueuesScreenMode.Queue
+            else -> QueuesScreenMode.Queue
+        }
     }
 
-    var showTopSpinner by remember { mutableStateOf(!showBin) }
-    var title by remember { mutableStateOf(if (showBin) curQueue.name + " Bin" else "") }
-    fun refreshQueueOrBin() {
-        showTopSpinner = !showBin
-        title = if (showBin) curQueue.name + " Bin" else ""
-        vm.loadCurQueue(false)
+    var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
+
+    var dragged by remember { mutableIntStateOf(0) }
+
+    var title by remember { mutableStateOf(if (screenMode == QueuesScreenMode.Bin) curQueue.name + " Bin" else "") }
+
+    LaunchedEffect(sortOrder, queuesFlow, screenMode, dragged) {
+        Logd(TAG, "LaunchedEffect(sortOrder, queuesFlow, screenMode, dragged)")
+        Logd(TAG, "screenMode: $screenMode sortOrder $sortOrder")
+        when (screenMode) {
+            QueuesScreenMode.Feed -> {
+                feedsAssociated.clear()
+                feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
+                Logd(TAG, "feedsAssociated: ${feedsAssociated.size} ${curQueue.id}")
+                title = ""
+            }
+            QueuesScreenMode.Bin -> {
+                episodesFlow = queuesFlow.mapNotNull { resultsChange -> resultsChange.list.firstOrNull { it.id == curQueue.id }?.idsBinList
+                }.flatMapLatest { ids ->
+                    realm.query(Episode::class, "id IN $0", ids).sort(Pair("timeOutQueue", Sort.DESCENDING)).asFlow()
+                }
+                title = curQueue.name + " Bin"
+            }
+            else -> {
+                episodesFlow = queuesFlow.mapNotNull { resultsChange -> resultsChange.list.firstOrNull { it.id == curQueue.id }?.episodeIds
+                }.flatMapLatest { ids ->
+                    realm.query(Episode::class).query("id IN $0", ids).sort(if (sortOrder != null) sortPairOf(sortOrder) else Pair("timeInQueue", Sort.ASCENDING)).asFlow()
+                }
+                title = ""
+            }
+        }
+    }
+
+    val queuesResults by queuesFlow.collectAsState(initial = null)
+    val queues = queuesResults?.list ?: emptyList()
+    val queueNames = remember(queues) { queues.map { it.name } }
+    val spinnerTexts = remember(queues) { queues.map { "${it.name} : ${it.size()}" } }
+    var curIndex by remember(queues, curQueue) {  mutableIntStateOf(queues.indexOfFirst { it.id == curQueue.id } ) }
+
+    fun reorderQueue(broadcastUpdate: Boolean) {
+        Logd(TAG, "reorderQueue called")
+        if (sortOrder == null) {
+            Logt(TAG, "sortOrder is null. Do nothing.")
+            return
+        }
+        runOnIOScope {
+            getPermutor(sortOrder!!).reorder(curQueue.episodes)
+            val episodes_ = curQueue.episodes.toMutableList()
+            curQueue = upsert(curQueue) {
+                it.episodeIds.clear()
+                for (e in episodes_) it.episodeIds.add(e.id)
+                it.update()
+            }
+            if (broadcastUpdate) EventFlow.postEvent(FlowEvent.QueueEvent.sorted(curQueue.episodes))
+        }
+    }
+
+    @Composable
+    fun OpenDialogs() {
+        @Composable
+        fun RenameQueueDialog(showDialog: Boolean, onDismiss: () -> Unit) {
+            if (showDialog) {
+                Dialog(onDismissRequest = onDismiss) {
+                    Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            var newName by remember { mutableStateOf(curQueue.name) }
+                            TextField(value = newName, onValueChange = { newName = it }, label = { Text("Rename (Unique name only)") })
+                            Button(onClick = {
+                                Logd(TAG, "RenameQueueDialog $newName")
+                                if (newName.isNotEmpty() && curQueue.name != newName && queueNames.indexOf(newName) < 0) {
+                                    curQueue = upsertBlk(curQueue) { it.name = newName }
+                                    onDismiss()
+                                }
+                            }) { Text(stringResource(R.string.confirm_label)) }
+                        }
+                    }
+                }
+            }
+        }
+
+        @Composable
+        fun AddQueueDialog(showDialog: Boolean, onDismiss: () -> Unit) {
+            if (showDialog) {
+                Dialog(onDismissRequest = onDismiss) {
+                    Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            var newName by remember { mutableStateOf("") }
+                            TextField(value = newName, onValueChange = { newName = it }, label = { Text("Add queue (Unique name only)") })
+                            Button(onClick = {
+                                if (newName.isNotEmpty() && queueNames.indexOf(newName) < 0) {
+                                    val newQueue = PlayQueue()
+                                    newQueue.id = queueNames.size.toLong()
+                                    newQueue.name = newName
+                                    upsertBlk(newQueue) {}
+                                    onDismiss()
+                                }
+                            }) { Text(stringResource(R.string.confirm_label)) }
+                        }
+                    }
+                }
+            }
+        }
+
+        ComfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = showClearQueueDialog) { clearQueue() }
+        RenameQueueDialog(showDialog = showRenameQueueDialog.value, onDismiss = { showRenameQueueDialog.value = false })
+        AddQueueDialog(showDialog = showAddQueueDialog.value, onDismiss = { showAddQueueDialog.value = false })
+
+        swipeActions.ActionOptionsDialog()
+        swipeActionsBin.ActionOptionsDialog()
+
+        if (showSortDialog) EpisodeSortDialog(initOrder = sortOrder, onDismissRequest = { showSortDialog = false },
+            includeConditionals = listOf(EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW, EpisodeSortOrder.TIME_IN_QUEUE_NEW_OLD)) { order ->
+            sortOrder = order
+            curQueue = upsertBlk(curQueue) { it.sortOrder = sortOrder ?: EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW }
+//            reorderQueue(true)
+        }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -402,30 +354,38 @@ fun QueuesScreen() {
         val buttonColor = Color(0xDDFFD700)
         Box {
             TopAppBar(title = {
-                if (showTopSpinner) SpinnerExternalSet(items = vm.spinnerTexts, selectedIndex = vm.curIndex) { index: Int ->
-                    Logd(TAG, "Queue selected: ${vm.queues[index].name}")
-                    showBin = false
-                    showFeeds = false
+                if (screenMode == QueuesScreenMode.Queue) SpinnerExternalSet(items = spinnerTexts, selectedIndex = curIndex) { index: Int ->
+                    Logd(TAG, "Queue selected: ${queues[index].name}")
                     val prevQueueSize = curQueue.size()
-                    curQueue = upsertBlk(vm.queues[index]) { it.update() }
+                    curIndex = queues.indexOfFirst { it.id == curQueue.id }
+
+                    curQueue = upsertBlk(queues[index]) { it.update() }
                     showRename = curQueue.name != "Default"
-                    vm.sortOrder = if (isQueueKeepSorted) queueKeepSortedOrder else null
-                    episodeSortOrder = vm.sortOrder
-                    vm.loadCurQueue(true)
+                    sortOrder = if (curQueue.keepSorted) curQueue.sortOrder else null
                     playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
                 } else Text(title)
             }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } }, actions = {
-                val binIconRes by remember(showBin) { derivedStateOf { if (showBin) R.drawable.playlist_play else R.drawable.ic_history } }
-                val feedsIconRes by remember(showFeeds) { derivedStateOf { if (showFeeds) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
-                if (!showFeeds) IconButton(onClick = { showBin = !showBin }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
-                if (!showBin) {
-                    IconButton(onClick = { showFeeds = !showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                    IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                }
+                val binIconRes by remember(screenMode) { derivedStateOf { if (screenMode == QueuesScreenMode.Bin) R.drawable.playlist_play else R.drawable.ic_history } }
+                val feedsIconRes by remember(screenMode) { derivedStateOf { if (screenMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
+                if (screenMode != QueuesScreenMode.Feed) IconButton(onClick = {
+                    screenMode = when(screenMode) {
+                        QueuesScreenMode.Queue -> QueuesScreenMode.Bin
+                        QueuesScreenMode.Bin -> QueuesScreenMode.Queue
+                        else -> QueuesScreenMode.Queue
+                    }
+                }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
+                if (screenMode != QueuesScreenMode.Bin) IconButton(onClick = {
+                    screenMode = when(screenMode) {
+                        QueuesScreenMode.Queue -> QueuesScreenMode.Feed
+                        QueuesScreenMode.Feed -> QueuesScreenMode.Queue
+                        else -> QueuesScreenMode.Queue
+                    }
+                }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
+                if (screenMode == QueuesScreenMode.Queue) IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                 DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                    DropdownMenuItem(text = { Text(stringResource(R.string.bin_limit) + ": ${curQueue.binLimit}") }, onClick = {
-                        showBinLimitDialog = true
+                    DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
+                        screenMode = QueuesScreenMode.Settings
                         expanded = false
                     })
                     DropdownMenuItem(text = { Text(stringResource(R.string.clear_bin_label)) }, onClick = {
@@ -433,42 +393,41 @@ fun QueuesScreen() {
                             it.idsBinList.clear()
                             it.update()
                         }
-                        if (showBin) vm.loadCurQueue(false)
                         expanded = false
                     })
-                    if (!showBin) {
+                    if (screenMode == QueuesScreenMode.Queue) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.sort)) }, onClick = {
-                            vm.showSortDialog = true
+                            showSortDialog = true
                             expanded = false
                         })
                         if (showRename) DropdownMenuItem(text = { Text(stringResource(R.string.rename)) }, onClick = {
-                            vm.showRenameQueueDialog.value = true
+                            showRenameQueueDialog.value = true
                             expanded = false
                         })
-                        if (vm.queueNames.size < 12) DropdownMenuItem(text = { Text(stringResource(R.string.add_queue)) }, onClick = {
-                            vm.showAddQueueDialog.value = true
+                        if (queueNames.size < 12) DropdownMenuItem(text = { Text(stringResource(R.string.add_queue)) }, onClick = {
+                            showAddQueueDialog.value = true
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.clear_queue_label)) }, onClick = {
-                            vm.showClearQueueDialog.value = true
+                            showClearQueueDialog.value = true
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
                             runOnceOrAsk(context)
                             expanded = false
                         })
-                        if (!isQueueKeepSorted) {
+                        if (!curQueue.keepSorted) {
                             fun toggleQL() {
-                                vm.isQueueLocked = !vm.isQueueLocked
-                                putPref(AppPrefs.prefQueueLocked, vm.isQueueLocked)
-                                vm.dragDropEnabled = !(isQueueKeepSorted || vm.isQueueLocked)
-                                Logt(TAG, context.getString(if (vm.isQueueLocked) R.string.queue_locked else R.string.queue_unlocked))
+                                isQueueLocked = !isQueueLocked
+                                putPref(AppPrefs.prefQueueLocked, isQueueLocked)
+                                dragDropEnabled = !(curQueue.keepSorted || isQueueLocked)
+                                Logt(TAG, context.getString(if (isQueueLocked) R.string.queue_locked else R.string.queue_unlocked))
                                 expanded = false
                             }
                             DropdownMenuItem(text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(stringResource(R.string.lock_queue))
-                                    Checkbox(checked = vm.isQueueLocked, onCheckedChange = { toggleQL() })
+                                    Checkbox(checked = isQueueLocked, onCheckedChange = { toggleQL() })
                                 }
                             }, onClick = { toggleQL() })
                         }
@@ -480,73 +439,70 @@ fun QueuesScreen() {
     }
 
     @Composable
-    fun RenameQueueDialog(showDialog: Boolean, onDismiss: () -> Unit) {
-        if (showDialog) {
-            Dialog(onDismissRequest = onDismiss) {
-                Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        var newName by remember { mutableStateOf(curQueue.name) }
-                        TextField(value = newName, onValueChange = { newName = it }, label = { Text("Rename (Unique name only)") })
-                        Button(onClick = {
-                            if (newName.isNotEmpty() && curQueue.name != newName && vm.queueNames.indexOf(newName) < 0) {
-                                val oldName = curQueue.name
-                                curQueue = upsertBlk(curQueue) { it.name = newName }
-                                val index_ = vm.queueNames.indexOf(oldName)
-                                vm.queueNames[index_] = newName
-                                vm.spinnerTexts[index_] = newName + " : " + curQueue.episodeIds.size
-                                onDismiss()
-                            }
-                        }) { Text(stringResource(R.string.confirm_label)) }
-                    }
+    fun Settings() {
+        Column {
+            TitleSummarySwitchRow(R.string.keep_queue_sorted, R.string.keep_queue_sorted_sum, curQueue.keepSorted) { v ->
+                upsertBlk(curQueue) { it.keepSorted = v }
+            }
+            var showLocationOptions by remember { mutableStateOf(false) }
+            var location by remember { mutableStateOf(EnqueueLocation.BACK) }
+            TitleSummaryActionColumn(R.string.pref_enqueue_location_title, R.string.pref_enqueue_location_sum) { showLocationOptions = true }
+            Text(location.name, modifier = Modifier.padding(start = 30.dp), style = MaterialTheme.typography.bodyMedium)
+
+            Row(Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(stringResource(R.string.bin_limit) + ": ${curQueue.binLimit}", style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.weight(1f))
+                var limitString by remember { mutableIntStateOf((curQueue.binLimit)) }
+                NumberEditor(limitString, stringResource(R.string.bin_limit), nz = true, modifier = Modifier.width(150.dp)) { v ->
+                    limitString = v
+                    curQueue = upsertBlk(curQueue) { it.binLimit = limitString }
                 }
+            }
+            if (showLocationOptions) {
+                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showLocationOptions = false },
+                    title = { Text(stringResource(R.string.pref_hardware_previous_button_title), style = CustomTextStyles.titleCustom) },
+                    text = {
+                        Column {
+                            EnqueueLocation.entries.forEach { option ->
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp)
+                                    .clickable { location = option }) {
+                                    Checkbox(checked = location == option, onCheckedChange = { location = option })
+                                    Text(stringResource(option.res), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            upsertBlk(curQueue) {
+                                it.enqueueLocation = location.code
+                            }
+                            showLocationOptions = false
+                        }) { Text(text = "OK") }
+                    },
+                    dismissButton = { TextButton(onClick = { showLocationOptions = false }) { Text(stringResource(R.string.cancel_label)) } }
+                )
+            }
+            TitleSummarySwitchRow(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum, curQueue.launchAutoEQDlWhenEmpty) { v ->
+                upsertBlk(curQueue) { it.launchAutoEQDlWhenEmpty = v }
+            }
+            TitleSummarySwitchRow(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum, curQueue.autoDownloadEpisodes) { v ->
+                upsertBlk(curQueue) { it.autoDownloadEpisodes = v }
             }
         }
     }
-
-    @Composable
-    fun AddQueueDialog(showDialog: Boolean, onDismiss: () -> Unit) {
-        if (showDialog) {
-            Dialog(onDismissRequest = onDismiss) {
-                Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        var newName by remember { mutableStateOf("") }
-                        TextField(value = newName, onValueChange = { newName = it }, label = { Text("Add queue (Unique name only)") })
-                        Button(onClick = {
-                            if (newName.isNotEmpty() && vm.queueNames.indexOf(newName) < 0) {
-                                val newQueue = PlayQueue()
-                                newQueue.id = vm.queueNames.size.toLong()
-                                newQueue.name = newName
-                                upsertBlk(newQueue) {}
-                                vm.queues = realm.query(PlayQueue::class).find()
-                                vm.queueNames = vm.queues.map { it.name }.toMutableStateList()
-                                vm.curIndex = vm.queues.indexOfFirst { it.id == curQueue.id }
-                                vm.spinnerTexts.clear()
-                                vm.spinnerTexts.addAll(vm.queues.map { "${it.name} : ${it.episodeIds.size}" })
-                                onDismiss()
-                            }
-                        }) { Text(stringResource(R.string.confirm_label)) }
-                    }
-                }
-            }
-        }
-    }
-
-    ComfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = vm.showClearQueueDialog) { clearQueue() }
-    RenameQueueDialog(showDialog = vm.showRenameQueueDialog.value, onDismiss = { vm.showRenameQueueDialog.value = false })
-    AddQueueDialog(showDialog = vm.showAddQueueDialog.value, onDismiss = { vm.showAddQueueDialog.value = false })
-    vm.swipeActions.ActionOptionsDialog()
-    vm.swipeActionsBin.ActionOptionsDialog()
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun FeedsGrid() {
         val context = LocalContext.current
         val lazyGridState = rememberLazyGridState()
+        Logd(TAG, "FeedsGrid")
         LazyVerticalGrid(state = lazyGridState, columns = GridCells.Adaptive(80.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
-            items(vm.feedsAssociated.size, key = {index -> vm.feedsAssociated[index].id}) { index ->
-                val feed by remember { mutableStateOf(vm.feedsAssociated[index]) }
+            items(feedsAssociated.size, key = {index -> feedsAssociated[index].id}) { index ->
+                val feed by remember { mutableStateOf(feedsAssociated[index]) }
                 ConstraintLayout {
                     val (coverImage, episodeCount, rating, _) = createRefs()
                     val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
@@ -578,67 +534,58 @@ fun QueuesScreen() {
         }
     }
 
-    BackHandler(enabled = showBin || showFeeds) {
-//        Logt(TAG, "BackHandler $showBin $showFeeds")
-        when {
-            showBin -> showBin = false
-            showFeeds -> showFeeds = false
-            else -> {  }
-        }
-    }
-
-    LaunchedEffect(showBin) { refreshQueueOrBin() }
+    OpenDialogs()
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        if (showBin) {
-            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                vm.infoBarText.value = "${vm.listInfoText} $feedOperationText"
-                InforBar(vm.infoBarText, vm.swipeActionsBin)
-                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, swipeActions = vm.swipeActionsBin)
-            }
-        } else {
-            if (showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
-            else {
-                Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                    if (vm.showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, showKeepSorted = true, onDismissRequest = { vm.showSortDialog = false }) { sortOrder, keep ->
-                        if (sortOrder != EpisodeSortOrder.RANDOM && sortOrder != EpisodeSortOrder.RANDOM1) isQueueKeepSorted = keep
-                        vm.sortOrder = sortOrder
-                        queueKeepSortedOrder = sortOrder
-                        vm.reorderQueue(sortOrder, true)
+        Logd(TAG, "Scaffold screenMode: $screenMode")
+        when (screenMode) {
+            QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
+            QueuesScreenMode.Settings -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { Settings() }
+            else -> {
+                val episodesChange by episodesFlow.collectAsState(initial = null)
+                val episodes = episodesChange?.list ?: emptyList()
+                LaunchedEffect(episodesChange?.list) {
+                    Logd(TAG, "LaunchedEffect(results)")
+                    scope.launch(Dispatchers.IO) {
+                        val info = buildListInfo(episodes)
+                        withContext(Dispatchers.Main) {
+                            listInfoText = info
+                            infoBarText.value = "$listInfoText $feedOperationText"
+                        }
                     }
-                    InforBar(vm.infoBarText, vm.swipeActions)
-                    EpisodeLazyColumn(context as MainActivity, vms = vm.vms,
-                        isDraggable = vm.dragDropEnabled, dragCB = { iFrom, iTo ->
-                            runOnIOScope { moveInQueueSync(iFrom, iTo, true) }
-                            if (iFrom in vm.vms.indices && iTo in vm.vms.indices) {
-                                val item = vm.vms.removeAt(iFrom)
-                                vm.vms.add(iTo, item)
-                            }
-                        },
-                        swipeActions = vm.swipeActions,
-                    )
+                    runOnIOScope {
+                        curQueue.episodes.clear()
+                        curQueue = upsert(curQueue) {
+                            it.episodeIds.clear()
+                            for (e in episodes) it.episodeIds.add(e.id)
+                            it.update()
+                        }
+                        EventFlow.postEvent(FlowEvent.QueueEvent.sorted(curQueue.episodes))
+                    }
+                }
+                if (screenMode == QueuesScreenMode.Bin) {
+                    Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                        infoBarText.value = "$listInfoText $feedOperationText"
+                        InforBar(infoBarText, swipeActionsBin)
+                        EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActionsBin)
+                    }
+                } else {
+                    Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                        InforBar(infoBarText, swipeActions)
+                        EpisodeLazyColumn(context as MainActivity, episodes,
+                            isDraggable = dragDropEnabled, dragCB = { iFrom, iTo ->
+                                runOnIOScope {
+                                    moveInQueue(iFrom, iTo, true)
+                                    withContext(Dispatchers.Main) { dragged++ }
+                                }
+                            },
+                            swipeActions = swipeActions,
+                        )
+                    }
                 }
             }
         }
     }
 }
-
-
-//    @SuppressLint("RestrictedApi")
-//    private fun onKeyUp(event: KeyEvent) {
-//        if (!isAdded || !isVisible || !isMenuVisible) return
-//        when (event.keyCode) {
-////            KeyEvent.KEYCODE_T -> recyclerView.smoothScrollToPosition(0)
-////            KeyEvent.KEYCODE_B -> recyclerView.smoothScrollToPosition(adapter!!.itemCount - 1)
-//            else -> {}
-//        }
-//    }
-
-private val TAG = Screens.Queues.name
-
-private var showBin by mutableStateOf(false)
-private var showFeeds by mutableStateOf(false)
-
-//private const val PREF_SHOW_LOCK_WARNING = "show_lock_warning"
 
 

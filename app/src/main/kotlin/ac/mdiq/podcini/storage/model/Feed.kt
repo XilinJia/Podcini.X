@@ -3,18 +3,21 @@ package ac.mdiq.podcini.storage.model
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.utils.EpisodeFilter
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.fromCode
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.utils.EpisodeState
-import ac.mdiq.podcini.storage.utils.FeedAutoDownloadFilter
-import ac.mdiq.podcini.storage.utils.FeedFunding
-import ac.mdiq.podcini.storage.utils.Rating
-import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
-import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
-import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting.Companion.fromInteger
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.specs.EpisodeFilter
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
+import ac.mdiq.podcini.storage.specs.FeedFunding
+import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting.Companion.fromInteger
+import ac.mdiq.podcini.storage.utils.generateFileName
+import ac.mdiq.podcini.util.Logd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -54,6 +57,8 @@ class Feed : RealmObject {
     var author: String? = null
 
     var imageUrl: String? = null
+
+    var useEpisodeImage: Boolean = false
 
     var episodes: RealmList<Episode> = realmListOf()
 
@@ -135,7 +140,7 @@ class Feed : RealmObject {
     @Ignore
     var episodeFilter: EpisodeFilter = EpisodeFilter("")
         get() {
-            val f = EpisodeFilter(filterString)
+            val f = EpisodeFilter(filterString, andOr = filterAndOr)
             f.titleText = titleFilterText
             f.durationFloor = durationFloor
             f.durationCeiling = durationCeiling
@@ -144,6 +149,8 @@ class Feed : RealmObject {
         set(value) {
             field = value
             filterString = value.propertySet.joinToString()
+            Logd(TAG, "episodeFilter filterString: $filterString")
+            filterAndOr = value.andOr
             titleFilterText = value.titleText
             durationFloor = value.durationFloor
             durationCeiling = value.durationCeiling
@@ -153,11 +160,12 @@ class Feed : RealmObject {
     var durationFloor: Int = 0
     var durationCeiling: Int = Int.MAX_VALUE
 
+    var filterAndOr: String = "AND"
+
     @Ignore
-    var sortOrder: EpisodeSortOrder? = null
+    var episodeSortOrder: EpisodeSortOrder = EpisodeSortOrder.DATE_NEW_OLD
         get() = fromCode(sortOrderCode)
         set(value) {
-            if (value == null) return
             field = value
             sortOrderCode = value.code
         }
@@ -178,8 +186,10 @@ class Feed : RealmObject {
             this.eigenTitle = value
         }
 
-    @Ignore
+    var sortValue: Long = 0L
+
     var sortInfo: String = ""
+
 
     @Ignore
     var isBuilding by mutableStateOf(false)
@@ -314,7 +324,7 @@ class Feed : RealmObject {
     var durationCeilingADL: Int = Int.MAX_VALUE
 
     @Ignore
-    var sortOrderADL: EpisodeSortOrder? = null
+    var episodesSortOrderADL: EpisodeSortOrder? = null
         get() = fromCode(sortOrderCodeADL)
         set(value) {
             if (value == null) return
@@ -444,6 +454,8 @@ class Feed : RealmObject {
         return false
     }
 
+    fun useFeedImage(): Boolean = !getPref(AppPrefs.prefEpisodeCover, false) || !useEpisodeImage
+
     fun getTypeAsInt(): Int = FEEDFILETYPE_FEED
 
     fun addPayment(funding: FeedFunding) {
@@ -457,7 +469,7 @@ class Feed : RealmObject {
 //        TODO: perhaps need to set prefStreamOverDownload for youtube feeds
         if (type != FeedType.YOUTUBE.name && !prefStreamOverDownload) qString += " AND downloaded == true"
         val eList_ = realm.query(Episode::class, qString).query(episodeFilter.queryString()).find().toMutableList()
-        if (sortOrder != null) getPermutor(sortOrder!!).reorder(eList_)
+        getPermutor(episodeSortOrder).reorder(eList_)
         return eList_
     }
 

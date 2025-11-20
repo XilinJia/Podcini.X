@@ -6,7 +6,7 @@ import org.json.JSONObject
 /**
  * timestamp/ID that can be used for requesting changes since this upload.
  */
-abstract class UploadChangesResponse(@JvmField val timestamp: Long) {
+abstract class UploadChangesResponse( val timestamp: Long) {
 
     companion object {
         fun fromJSONObject(objectString: String?): Pair<Long,  Map<String, String>> {

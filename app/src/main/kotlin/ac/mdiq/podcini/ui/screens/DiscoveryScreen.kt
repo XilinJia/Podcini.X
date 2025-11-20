@@ -4,7 +4,7 @@ import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.searcher.ItunesTopListLoader
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
-import ac.mdiq.podcini.storage.database.Feeds.getFeedList
+import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 
 import ac.mdiq.podcini.ui.compose.CustomTextStyles

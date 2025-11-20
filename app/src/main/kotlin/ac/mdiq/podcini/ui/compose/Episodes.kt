@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.automation.AlarmHandler.playEpisodeAtTime
+import ac.mdiq.podcini.automation.playEpisodeAtTime
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.wifiSyncEnabledKey
@@ -10,25 +10,24 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
-import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.storage.database.Episodes.deleteMediaSync
-import ac.mdiq.podcini.storage.database.Episodes.getClipFile
-import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
-import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.Feeds.allowForAutoDelete
-import ac.mdiq.podcini.storage.database.Feeds.shelveToFeed
-import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
-import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesQuiet
-import ac.mdiq.podcini.storage.database.Queues.removeFromAllQueuesSync
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.addToQueue
+import ac.mdiq.podcini.storage.database.allowForAutoDelete
+import ac.mdiq.podcini.storage.database.deleteMedia
+import ac.mdiq.podcini.storage.database.getClipFile
+import ac.mdiq.podcini.storage.database.hasAlmostEnded
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.removeFromAllQueues
+import ac.mdiq.podcini.storage.database.removeFromAllQueuesQuiet
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.setPlayState
+import ac.mdiq.podcini.storage.database.shelveToFeed
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
@@ -36,14 +35,14 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.duetime
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.SubscriptionLog
-import ac.mdiq.podcini.storage.utils.DurationConverter
-import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
-import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
-import ac.mdiq.podcini.storage.utils.EpisodeFilter
-import ac.mdiq.podcini.storage.utils.EpisodeFilter.EpisodesFilterGroup
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
-import ac.mdiq.podcini.storage.utils.EpisodeState
-import ac.mdiq.podcini.storage.utils.Rating
+import ac.mdiq.podcini.storage.specs.EpisodeFilter
+import ac.mdiq.podcini.storage.specs.EpisodeFilter.EpisodesFilterGroup
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.getDurationStringLocalized
+import ac.mdiq.podcini.storage.utils.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -51,10 +50,10 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
-import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
-import ac.mdiq.podcini.util.ShareUtils
-import ac.mdiq.podcini.util.ShareUtils.shareLink
+import ac.mdiq.podcini.util.localDateTimeString
+import ac.mdiq.podcini.util.shareFeedItemFile
+import ac.mdiq.podcini.util.shareFeedItemLinkWithDownloadLink
+import ac.mdiq.podcini.util.shareLink
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
@@ -108,7 +107,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -196,12 +194,12 @@ fun ShareDialog(item: Episode, act: Activity, onDismissRequest: () -> Unit) {
         confirmButton = {
             TextButton(onClick = {
                 when (position) {
-                    1 -> ShareUtils.shareFeedItemLinkWithDownloadLink(ctx, item, isChecked)
+                    1 -> shareFeedItemLinkWithDownloadLink(ctx, item, isChecked)
                     2 -> {
                         if (!item.downloadUrl.isNullOrEmpty()) shareLink(ctx, item.downloadUrl!!)
                         else Logt(TAG, "Episode download url is not valid, ignored.")
                     }
-                    3 -> ShareUtils.shareFeedItemFile(ctx, item)
+                    3 -> shareFeedItemFile(ctx, item)
                 }
                 prefs.edit {
                     putBoolean(PREF_SHARE_EPISODE_START_AT, isChecked)
@@ -243,12 +241,12 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
 //                                Text(ch.link?: "")
                                 val duration = if (index + 1 < chapters.size) chapters[index + 1].start - ch.start
                                 else media.duration - ch.start
-                                Text(stringResource(R.string.chapter_duration0) + DurationConverter.getDurationStringLocalized(duration), color = textColor)
+                                Text(stringResource(R.string.chapter_duration0) + getDurationStringLocalized(duration), color = textColor)
                             }
                             val playRes = if (index == currentChapterIndex) R.drawable.ic_replay else R.drawable.ic_play_48dp
                             Icon(imageVector = ImageVector.vectorResource(playRes), tint = textColor, contentDescription = "play button",
                                 modifier = Modifier.width(28.dp).height(32.dp).clickable {
-                                    if (status != PlayerStatus.PLAYING) playPause()
+                                    if (!isPlaying) playPause()
                                     mPlayer?.seekTo(ch.start.toInt())
                                     currentChapterIndex = index
                                 })
@@ -284,7 +282,7 @@ fun EpisodeMarks(episode: Episode?) {
             episode.marks.forEach { mark ->
                 FilterChip(onClick = {
                     if (curEpisode != null && exoPlayer != null && episode.id == curEpisode?.id) {
-                        if (status != PlayerStatus.PLAYING) playPause()
+                        if (!isPlaying) playPause()
                         mPlayer?.seekTo(mark.toInt())
                     }
                     else Logt(TAG, context.getString(R.string.play_mark_msg))
@@ -337,48 +335,40 @@ fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
 fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
     // TODO: somehow, episode is not updated after unrelate
     var episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return
-    val vmsr = remember { mutableStateListOf<EpisodeVM>() }
-    LaunchedEffect(Unit) {
-        vmsr.clear()
-        for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
-    }
+
     AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(5.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
-        text = { EpisodeLazyColumn(LocalContext.current, vms = vmsr, layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
-            actionButton_ = { EpisodeActionButton(it) },
-            actionButtonCB = {e1, _ ->
-                runOnIOScope {
-                    realm.write {
-                        val es = query(Episode::class, "id IN $0", listOf(episode.id, e1.id)).find()
-                        if (es.size == 2) {
-                            es[0].related.remove(es[1])
-                            es[1].related.remove(es[0])
+        text = {
+            EpisodeLazyColumn(LocalContext.current, episode.related.toList(), layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
+                actionButton_ = { EpisodeActionButton(it) },
+                actionButtonCB = {e1, _ ->
+                    runOnIOScope {
+                        realm.write {
+                            val es = query(Episode::class, "id IN $0", listOf(episode.id, e1.id)).find()
+                            if (es.size == 2) {
+                                es[0].related.remove(es[1])
+                                es[1].related.remove(es[0])
+                            }
+                        }
+                        episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return@runOnIOScope
+                        Logd("RelatedEpisodesDialog", "episode.related: ${episode.related.size}")
+                        withContext(Dispatchers.Main) {
+//                            vmsr.clear()
+//                            for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
                         }
                     }
-                    episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return@runOnIOScope
-                    Logd("RelatedEpisodesDialog", "episode.related: ${episode.related.size}")
-                    withContext(Dispatchers.Main) {
-                        vmsr.clear()
-                        for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
-                    }
-                }
-            } ) },
+                } ) },
         dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } } )
 }
 
 @Composable
-fun ChooseRatingDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
+fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 for (rating in Rating.entries.reversed()) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)
                         .clickable {
-                            runOnIOScope {
-                                for (vm in selected) {
-                                    upsert(vm.episode) { it.rating = rating.code }
-                                    vm.updateVMFromDB()
-                                }
-                            }
+                            runOnIOScope { for (e in selected) upsert(e) { it.rating = rating.code } }
                             onDismissRequest()
                         }) {
                         Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
@@ -391,22 +381,16 @@ fun ChooseRatingDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) 
 }
 
 @Composable
-fun AddCommentDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
+fun AddCommentDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
     var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
-    LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { onDismissRequest() },
+    CommentEditingDialog(textState = editCommentText, autoSave = false, onTextChange = { editCommentText = it }, onDismissRequest = { onDismissRequest() },
         onSave = {
-            runOnIOScope {
-                for (vm in selected) {
-                    Logd("AddCommentDialog", "onSave editCommentText [${editCommentText.text}]")
-                    upsert(vm.episode) { it.addComment(editCommentText.text) }
-                    vm.updateVMFromDB()
-                }
-            }
+            runOnIOScope { for (e in selected) upsert(e) { it.addComment(editCommentText.text) } }
         })
 }
 
 @Composable
-fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, futureCB: (EpisodeState)->Unit, ignoreCB: ()->Unit) {
+fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futureCB: (EpisodeState)->Unit, ignoreCB: ()->Unit) {
     val context = LocalContext.current
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
@@ -418,9 +402,9 @@ fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, fut
                                 EpisodeState.IGNORED -> ignoreCB()
                                 EpisodeState.AGAIN, EpisodeState.LATER -> futureCB(state)
                                 else -> runOnIOScope {
-                                    for (vm in selected) {
-                                        val hasAlmostEnded = hasAlmostEnded(vm.episode)
-                                        var item_ = setPlayStateSync(state, vm.episode, hasAlmostEnded, false)
+                                    for (e in selected) {
+                                        val hasAlmostEnded = hasAlmostEnded(e)
+                                        var item_ = setPlayState(state, e, hasAlmostEnded, false)
                                         when (state) {
                                             EpisodeState.UNPLAYED -> {
                                                 if (isProviderConnected && item_.feed?.isLocalFeed != true) {
@@ -432,9 +416,9 @@ fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, fut
                                                 if (hasAlmostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
                                                 val shouldAutoDelete = if (item_.feed == null) false else allowForAutoDelete(item_.feed!!) //                                            item = item_
                                                 if (hasAlmostEnded && shouldAutoDelete) {
-                                                    item_ = deleteMediaSync(context, item_)
-                                                    if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueuesSync(item_)
-                                                } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueuesSync(item_)
+                                                    item_ = deleteMedia(context, item_)
+                                                    if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(item_))
+                                                } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueues(listOf(item_))
                                                 if (item_.feed?.isLocalFeed != true && (isProviderConnected || wifiSyncEnabledKey)) { // not all items have media, Gpodder only cares about those that do
                                                     if (isProviderConnected) {
                                                         val actionPlay: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.PLAY).currentTimestamp().started(item_.duration / 1000).position(item_.duration / 1000).total(item_.duration / 1000).build()
@@ -442,10 +426,10 @@ fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, fut
                                                     }
                                                 }
                                             }
-                                            EpisodeState.QUEUE -> if (item_.feed?.queue != null) addToQueueSync(vm.episode, vm.episode.feed?.queue)
+                                            EpisodeState.QUEUE -> if (item_.feed?.queue != null) addToQueue(e, e.feed?.queue)
                                             else -> {}
                                         }
-                                        vm.updateVMFromDB()
+//                                        vm.updateVMFromDB()
                                     }
                                 }
                             }
@@ -462,7 +446,7 @@ fun PlayStateDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit, fut
 }
 
 @Composable
-fun PutToQueueDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
+fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
     val queues = realm.query(PlayQueue::class).find()
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
@@ -487,11 +471,11 @@ fun PutToQueueDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
                             if (removeChecked) {
                                 val toRemove = mutableSetOf<Long>()
                                 val toRemoveCur = mutableListOf<Episode>()
-                                selected.forEach { vm -> if (curQueue.contains(vm.episode)) toRemoveCur.add(vm.episode) }
-                                selected.forEach { vm ->
+                                selected.forEach { e -> if (curQueue.contains(e)) toRemoveCur.add(e) }
+                                selected.forEach { e ->
                                     for (q in queues) {
-                                        if (q.contains(vm.episode)) {
-                                            toRemove.add(vm.episode.id)
+                                        if (q.contains(e)) {
+                                            toRemove.add(e.id)
                                             break
                                         }
                                     }
@@ -499,7 +483,7 @@ fun PutToQueueDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
                                 if (toRemove.isNotEmpty()) removeFromAllQueuesQuiet(toRemove.toList())
                                 if (toRemoveCur.isNotEmpty()) EventFlow.postEvent(FlowEvent.QueueEvent.removed(toRemoveCur))
                             }
-                            selected.forEach { vm -> addToQueueSync(vm.episode, toQueue) }
+                            selected.forEach { e -> addToQueue(e, toQueue) }
                         }
                         onDismissRequest()
                     }) { Text(stringResource(R.string.confirm_label)) }
@@ -510,7 +494,7 @@ fun PutToQueueDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun ShelveDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
+fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
     val synthetics = realm.query(Feed::class).query("id >= 100 && id <= 1000").find()
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
@@ -533,7 +517,7 @@ fun ShelveDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
                 if (toFeed != null) Row {
                     Spacer(Modifier.weight(1f))
                     Button(onClick = {
-                        runOnIOScope { shelveToFeed(selected.map { it.episode }, toFeed!!, removeChecked) }
+                        runOnIOScope { shelveToFeed(selected, toFeed!!, removeChecked) }
                         onDismissRequest()
                     }) { Text(stringResource(R.string.confirm_label)) }
                 }
@@ -543,7 +527,7 @@ fun ShelveDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun EraseEpisodesDialog(selected: List<EpisodeVM>, feed: Feed?, onDismissRequest: () -> Unit) {
+fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: () -> Unit) {
     val message = stringResource(R.string.erase_episodes_confirmation_msg)
     val textColor = MaterialTheme.colorScheme.onSurface
     var textState by remember { mutableStateOf(TextFieldValue("")) }
@@ -551,7 +535,7 @@ fun EraseEpisodesDialog(selected: List<EpisodeVM>, feed: Feed?, onDismissRequest
 
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            if (feed == null || !feed.isSynthetic()) Text(stringResource(R.string.not_erase_message), modifier = Modifier.padding(10.dp))
+            if (feed == null) Text(stringResource(R.string.not_erase_message), modifier = Modifier.padding(10.dp))
             else Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(message + ": ${selected.size}")
                 Text(stringResource(R.string.reason_to_delete_msg))
@@ -559,18 +543,18 @@ fun EraseEpisodesDialog(selected: List<EpisodeVM>, feed: Feed?, onDismissRequest
                 Button(onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
-                            for (vm in selected) {
-                                val sLog = SubscriptionLog(vm.episode.id, vm.episode.title?:"", vm.episode.downloadUrl?:"", vm.episode.link?:"", SubscriptionLog.Type.Media.name)
+                            for (e in selected) {
+                                val sLog = SubscriptionLog(e.id, e.title?:"", e.downloadUrl?:"", e.link?:"", SubscriptionLog.Type.Media.name)
                                 upsert(sLog) {
-                                    it.rating = vm.episode.rating
-                                    it.comment = if (vm.episode.comment.isBlank()) "" else (vm.episode.comment + "\n")
+                                    it.rating = e.rating
+                                    it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
                                     it.comment += localDateTimeString() + "\nReason to remove:\n" + textState.text
                                     it.cancelDate = Date().time
                                 }
                             }
                             realm.write {
-                                for (vm in selected) {
-                                    val url = vm.episode.fileUrl
+                                for (e in selected) {
+                                    val url = e.fileUrl
                                     when {
                                         url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, url.toUri())?.delete()
                                         url != null -> {
@@ -578,8 +562,8 @@ fun EraseEpisodesDialog(selected: List<EpisodeVM>, feed: Feed?, onDismissRequest
                                             if (path != null) File(path).delete()
                                         }
                                     }
-                                    findLatest(feed)?.episodes?.remove(vm.episode)
-                                    findLatest(vm.episode)?.let { delete(it) }
+                                    findLatest(feed)?.episodes?.remove(e)
+                                    findLatest(e)?.let { delete(it) }
                                 }
                             }
                             EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
@@ -593,7 +577,7 @@ fun EraseEpisodesDialog(selected: List<EpisodeVM>, feed: Feed?, onDismissRequest
 }
 
 @Composable
-fun AlarmEpisodeDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
+fun AlarmEpisodeDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
     val context = LocalContext.current
     val textColor = MaterialTheme.colorScheme.onSurface
     var showIcon by remember { mutableStateOf(false) }
@@ -633,7 +617,7 @@ fun AlarmEpisodeDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) 
                     val currentTime = Calendar.getInstance()
                     if (targetTime.before(currentTime)) targetTime.add(Calendar.DAY_OF_MONTH, 1)
                     Logd(TAG, "start time: $targetTime")
-                    playEpisodeAtTime(context, targetTime.timeInMillis, selected[0].episode)
+                    playEpisodeAtTime(context, targetTime.timeInMillis, selected[0])
                 }
                 onDismissRequest()
             }) { Text(text = "OK") }
@@ -643,7 +627,7 @@ fun AlarmEpisodeDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) 
 }
 
 @Composable
-fun IgnoreEpisodesDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit) {
+fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
     val message = stringResource(R.string.ignore_episodes_confirmation_msg)
     val textColor = MaterialTheme.colorScheme.onSurface
     var textState by remember { mutableStateOf(TextFieldValue("")) }
@@ -657,12 +641,12 @@ fun IgnoreEpisodesDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit
                 Button(onClick = {
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
-                            for (vm in selected) {
-                                val hasAlmostEnded = hasAlmostEnded(vm.episode)
-                                val item_ = setPlayStateSync(EpisodeState.IGNORED, vm.episode, hasAlmostEnded, false)
+                            for (e in selected) {
+                                val hasAlmostEnded = hasAlmostEnded(e)
+                                val item_ = setPlayState(EpisodeState.IGNORED, e, hasAlmostEnded, false)
                                 Logd("IgnoreEpisodesDialog", "item_: ${item_.title} ${item_.playState}")
                                 upsert(item_) { it.addComment("Reason to ignore:\n${textState.text}") }
-                                vm.updateVMFromDB()
+//                                vm.updateVMFromDB()
                             }
                         } catch (e: Throwable) { Logs("IgnoreEpisodesDialog", e) }
                     }
@@ -674,13 +658,13 @@ fun IgnoreEpisodesDialog(selected: List<EpisodeVM>, onDismissRequest: () -> Unit
 }
 
 @Composable
-fun FutureStateDialog(episodes: List<EpisodeVM>, state: EpisodeState, onDismissRequest: () -> Unit) {
+fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissRequest: () -> Unit) {
     val message = stringResource(R.string.repeat_episodes_msg)
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Text(message + ": ${episodes.size}")
-                var intervals = remember { if (episodes.size == 1) episodes[0].episode.feed?.repeatIntervals?.toMutableList() else null }
+                Text(message + ": ${selected.size}")
+                var intervals = remember { if (selected.size == 1) selected[0].feed?.repeatIntervals?.toMutableList() else null }
                 if (intervals.isNullOrEmpty()) intervals = DEFAULT_INTERVALS.toMutableList()
                 val units = INTERVAL_UNITS.map { stringResource(it) }
                 var sel by remember { mutableIntStateOf(2) }
@@ -694,12 +678,12 @@ fun FutureStateDialog(episodes: List<EpisodeVM>, state: EpisodeState, onDismissR
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
                             val dueTime = duetime(intervals[sel], sel)
-                            for (vm in episodes) {
-                                val hasAlmostEnded = hasAlmostEnded(vm.episode)
-                                val item_ = setPlayStateSync(state, vm.episode, hasAlmostEnded, false)
+                            for (e in selected) {
+                                val hasAlmostEnded = hasAlmostEnded(e)
+                                val item_ = setPlayState(state, e, hasAlmostEnded, false)
                                 Logd("AgainEpisodesDialog", "item_: ${item_.title} ${item_.playState} ${Date(dueTime)}")
                                 upsert(item_) { it.repeatTime = dueTime }
-                                vm.updateVMFromDB()
+//                                vm.updateVMFromDB()
                             }
                         } catch (e: Throwable) { Logs("AgainEpisodesDialog", e) }
                     }
@@ -711,7 +695,7 @@ fun FutureStateDialog(episodes: List<EpisodeVM>, state: EpisodeState, onDismissR
 }
 
 @Composable
-fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<EpisodesFilterGroup> = mutableSetOf(),
+fun EpisodesFilterDialog(filter_: EpisodeFilter, filtersDisabled: MutableSet<EpisodesFilterGroup> = mutableSetOf(),
                          onDismissRequest: () -> Unit, onFilterChanged: (EpisodeFilter) -> Unit) {
     //    val filterValuesSet = remember {  filter.propertySet ?: mutableSetOf() }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
@@ -723,6 +707,28 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
             val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
             val scrollStateV = rememberScrollState()
             Column(Modifier.fillMaxSize().verticalScroll(scrollStateV)) {
+                var filter by remember { mutableStateOf(filter_.apply { if (andOr.isBlank()) andOr = "AND" }) }
+                var andOr by remember { mutableStateOf(filter.andOr.ifBlank { "AND" }) }
+                Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.join_categories_with) + " :", style = MaterialTheme.typography.bodyMedium , color = textColor, modifier = Modifier.padding(end = 10.dp))
+                    Spacer(Modifier.width(30.dp))
+                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "OR") buttonColor else buttonAltColor),
+                        onClick = {
+                            andOr = "AND"
+                            filter.andOr = andOr
+                            onFilterChanged(filter)
+                        },
+                    ) { Text(text = "AND", color = textColor) }
+                    Spacer(Modifier.width(20.dp))
+                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "AND") buttonColor else buttonAltColor),
+                        onClick = {
+                            andOr = "OR"
+                            filter.andOr = andOr
+                            onFilterChanged(filter)
+                        },
+                    ) { Text(text = "OR", color = textColor) }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                 var selectNone by remember { mutableStateOf(false) }
                 for (item in EpisodesFilterGroup.entries) {
                     if (item in filtersDisabled) continue
@@ -741,11 +747,11 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     if (selectedIndex != 0) {
                                         selectNone = false
                                         selectedIndex = 0
-                                        filter.propertySet.add(item.properties[0].filterId)
-                                        filter.propertySet.remove(item.properties[1].filterId)
+                                        filter.add(item.properties[0].filterId)
+                                        filter.remove(item.properties[1].filterId)
                                     } else {
                                         selectedIndex = -1
-                                        filter.propertySet.remove(item.properties[0].filterId)
+                                        filter.remove(item.properties[0].filterId)
                                     }
                                     Logd("EpisodeFilterDialog", "filterValues = [${filter.propertySet}]")
                                     onFilterChanged(filter)
@@ -757,11 +763,11 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     if (selectedIndex != 1) {
                                         selectNone = false
                                         selectedIndex = 1
-                                        filter.propertySet.add(item.properties[1].filterId)
-                                        filter.propertySet.remove(item.properties[0].filterId)
+                                        filter.add(item.properties[1].filterId)
+                                        filter.remove(item.properties[0].filterId)
                                     } else {
                                         selectedIndex = -1
-                                        filter.propertySet.remove(item.properties[1].filterId)
+                                        filter.remove(item.properties[1].filterId)
                                     }
                                     onFilterChanged(filter)
                                 },
@@ -778,8 +784,8 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                     if (expandRow) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             var showIcon by remember { mutableStateOf(false) }
-                                            var floor by remember { mutableStateOf((filter.durationFloor/1000)) }
-                                            var ceiling by remember { mutableStateOf((filter.durationCeiling/1000)) }
+                                            var floor by remember { mutableIntStateOf(filter.durationFloor/1000) }
+                                            var ceiling by remember { mutableIntStateOf(filter.durationCeiling/1000) }
                                             NumberEditor(floor, stringResource(R.string.floor_seconds), nz = true, instant = true, modifier = Modifier.weight(0.4f)) {
                                                 floor = it
                                                 showIcon = true
@@ -824,8 +830,8 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                         if (expandRow) {
                                             val cb = {
                                                 for (i in item.properties.indices) {
-                                                    if (selectedList[i].value) filter.propertySet.add(item.properties[i].filterId)
-                                                    else filter.propertySet.remove(item.properties[i].filterId)
+                                                    if (selectedList[i].value) filter.add(item.properties[i].filterId)
+                                                    else filter.remove(item.properties[i].filterId)
                                                 }
                                                 onFilterChanged(filter)
                                             }
@@ -844,15 +850,15 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
                                         selectNone = false
                                         selectedList[index].value = !selectedList[index].value
                                         if (selectedList[index].value) {
-                                            filter.propertySet.add(item.properties[index].filterId)
+                                            filter.add(item.properties[index].filterId)
                                             if (item.exclusive) for (i in selectedList.indices) {
                                                 if (i != index) {
                                                     selectedList[i].value = false
-                                                    filter.propertySet.remove(item.properties[i].filterId)
+                                                    filter.remove(item.properties[i].filterId)
                                                 }
                                             }
                                         }
-                                        else filter.propertySet.remove(item.properties[index].filterId)
+                                        else filter.remove(item.properties[index].filterId)
                                         onFilterChanged(filter)
                                     },
                                 ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
@@ -876,11 +882,9 @@ fun EpisodesFilterDialog(filter: EpisodeFilter, filtersDisabled: MutableSet<Epis
     }
 }
 
-var episodeSortOrder by mutableStateOf<EpisodeSortOrder?>(null)
-
 @Composable
-fun EpisodeSortDialog(initOrder: EpisodeSortOrder?, showKeepSorted: Boolean = false, onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder, Boolean) -> Unit) {
-    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || gearbox.supportExtraSort()) } }
+fun EpisodeSortDialog(initOrder: EpisodeSortOrder?, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
+    val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || f in includeConditionals || f in gearbox.includeExtraSort()) } }
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
@@ -890,8 +894,8 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder?, showKeepSorted: Boolean = fa
             color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             val scrollState = rememberScrollState()
+            var order by remember { mutableStateOf(initOrder) }
             var sortIndex by remember { mutableIntStateOf(if (initOrder != null) initOrder.ordinal/2 else -1) }
-            var keepSorted by remember { mutableStateOf(false) }
             Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).verticalScroll(scrollState)) {
                 NonlazyGrid(columns = 2, itemCount = orderList.size) { index ->
                     var dir by remember { mutableStateOf(if (sortIndex == index) initOrder!!.ordinal % 2 == 0 else true) }
@@ -899,14 +903,10 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder?, showKeepSorted: Boolean = fa
                         onClick = {
                             if (sortIndex == index) dir = !dir
                             sortIndex = index
-                            episodeSortOrder = EpisodeSortOrder.entries[2 * index + if (dir) 0 else 1]
-                            onSelectionChanged(episodeSortOrder!!, keepSorted)
+                            order = EpisodeSortOrder.entries[2 * index + if (dir) 0 else 1]
+                            onSelectionChanged(order)
                         }
                     ) { Text(text = stringResource(orderList[index].res) + if (dir) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                }
-                if (showKeepSorted) Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = keepSorted, onCheckedChange = { keepSorted = it })
-                    Text(text = stringResource(R.string.remove_from_other_queues), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
                 }
             }
         }

@@ -5,7 +5,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.MiscFormatter.dateStampFilename
+import ac.mdiq.podcini.util.dateStampFilename
 import android.app.Activity
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
@@ -34,11 +34,46 @@ fun autoBackup(activity: Activity) {
             directory.listFiles().forEach { file ->
                 if (file.isDirectory) deleteDirectoryAndContents(file)
                 Logd(TAG, "deleting ${file.name}")
-                file.delete()
+                try { file.delete() } catch (e: Throwable) { Loge(TAG, "deleteDirectoryAndContents: failed to delete ${file.name} ${e.message}")}
             }
         }
-        return directory.delete()
+        try { return  directory.delete() } catch (e: Throwable) { Loge(TAG, "deleteDirectoryAndContents: failed to delete ${directory.name} ${e.message}")}
+        return false
     }
+
+//    fun deleteDirectoryAndContents1(dir: DocumentFile): Boolean {
+//        if (dir.isDirectory) {
+//            dir.listFiles().forEach { child ->
+//                val fresh = dir.findFile(child.name ?: return@forEach)
+//                if (fresh != null) {
+//                    if (fresh.isDirectory) deleteDirectoryAndContents1(fresh)
+//                    Logd("DELETE", "Deleting ${fresh.name}")
+//                    fresh.delete()
+//                }
+//            }
+//        }
+//        return dir.delete()
+//    }
+
+//    fun deleteDirectoryAndContents2(directory: DocumentFile): Boolean {
+//        if (!directory.isDirectory) {
+//            Logd(TAG, "deleting file: ${directory.name}")
+//            return directory.delete()
+//        }
+//        val contents = directory.listFiles()
+//        if (contents.isNotEmpty()) {
+//            for (file in contents) {
+//                if (file.isDirectory) {
+//                    if (!deleteDirectoryAndContents2(file)) Loge(TAG, "deleteDirectoryAndContents Failed to recursively delete directory: ${file.name}")
+//                } else {
+//                    Logd(TAG, "deleting file: ${file.name}")
+//                    if (!file.delete()) Loge(TAG, "deleteDirectoryAndContents Failed to delete file: ${file.name}")
+//                }
+//            }
+//        }
+//        Logd(TAG, "deleting empty parent directory: ${directory.name}")
+//        return directory.delete()
+//    }
 
     CoroutineScope(Dispatchers.IO).launch {
         val interval = getPref(AppPrefs.prefAutoBackupIntervall, 24)

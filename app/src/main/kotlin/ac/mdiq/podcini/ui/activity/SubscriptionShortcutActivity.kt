@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.storage.database.Feeds.getFeedList
+import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.util.Logs

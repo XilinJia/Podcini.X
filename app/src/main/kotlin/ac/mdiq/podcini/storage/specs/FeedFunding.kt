@@ -1,16 +1,8 @@
-package ac.mdiq.podcini.storage.utils
+package ac.mdiq.podcini.storage.specs
 
 import org.apache.commons.lang3.StringUtils
 
-class FeedFunding(@JvmField var url: String?, @JvmField var content: String?) {
-    fun setContent(content: String?) {
-        this.content = content
-    }
-
-    fun setUrl(url: String?) {
-        this.url = url
-    }
-
+class FeedFunding( var url: String?, var content: String?) {
     override fun equals(other: Any?): Boolean {
         if (other == null || other.javaClass != this.javaClass) return false
         val funding = other as FeedFunding
@@ -28,7 +20,7 @@ class FeedFunding(@JvmField var url: String?, @JvmField var content: String?) {
         const val FUNDING_ENTRIES_SEPARATOR: String = "\u001e"
         const val FUNDING_TITLE_SEPARATOR: String = "\u001f"
 
-        @JvmStatic
+
         fun extractPaymentLinks(payLinks: String?): MutableList<FeedFunding> {
             if (payLinks.isNullOrBlank()) return arrayListOf()
 

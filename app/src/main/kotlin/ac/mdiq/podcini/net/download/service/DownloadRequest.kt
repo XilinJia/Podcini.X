@@ -11,16 +11,16 @@ import android.os.Parcel
 import android.os.Parcelable
 
 class DownloadRequest private constructor(
-        @JvmField val destination: String?,
-        @JvmField val source: String?,
+         val destination: String?,
+         val source: String?,
         val title: String?,
         val feedfileId: Long,
         val feedfileType: Int,
         var lastModified: String?,
         var username: String?,
-        @JvmField var password: String?,
+         var password: String?,
         private val mediaEnqueued: Boolean,
-        @JvmField val arguments: Bundle?,
+         val arguments: Bundle?,
         private val initiatedByUser: Boolean) : Parcelable {
 
     var progressPercent: Int = 0
@@ -180,7 +180,7 @@ class DownloadRequest private constructor(
 
         private fun nullIfEmpty(str: String?): String? = if (str.isNullOrEmpty()) null else str
 
-        @JvmField
+        
         val CREATOR: Parcelable.Creator<DownloadRequest> = object : Parcelable.Creator<DownloadRequest> {
             override fun createFromParcel(inVal: Parcel): DownloadRequest = DownloadRequest(inVal)
 

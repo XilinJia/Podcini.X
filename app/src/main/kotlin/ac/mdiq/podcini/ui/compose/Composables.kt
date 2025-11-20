@@ -4,7 +4,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
 import ac.mdiq.podcini.util.Logd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -47,6 +46,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
@@ -71,6 +71,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.Popup
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -158,45 +161,86 @@ fun SpinnerExternalSet(items: List<String>, selectedIndex: Int, modifier: Modifi
     }
 }
 
+//@Composable
+//fun CustomToast(message: String, durationMillis: Long = 2000L, onDismiss: () -> Unit) {
+//    LaunchedEffect(message) {
+//        delay(durationMillis)
+//        onDismiss()
+//    }
+//    Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
+//        val color = if (message.contains("Error", ignoreCase = true)) Color.Red else MaterialTheme.colorScheme.onSecondary
+//        Box(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(8.dp)) {
+//            Text(text = message, color = color, style = MaterialTheme.typography.bodyMedium)
+//        }
+//    }
+//}
+
 @Composable
-fun CustomToast(message: String, durationMillis: Long = 2000L, onDismiss: () -> Unit) {
-    LaunchedEffect(message) {
-        delay(durationMillis)
-        onDismiss()
+fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> Unit) {
+    var isForeground by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            isForeground = when (event) {
+                Lifecycle.Event.ON_RESUME -> true
+                Lifecycle.Event.ON_PAUSE -> false
+                else -> isForeground
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
-    Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
-        val color = if (message.contains("Error", ignoreCase = true)) Color.Red else MaterialTheme.colorScheme.onSecondary
-        Box(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(8.dp)) {
-            Text(text = message, color = color, style = MaterialTheme.typography.bodyMedium)
+
+    LaunchedEffect(message, isForeground) {
+        if (message.isNotBlank() && isForeground) {
+            delay(durationMillis)
+            onDismiss()
+        }
+    }
+
+    if (isForeground) {
+        Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
+            val color = if (message.contains("Error", ignoreCase = true)) Color.Red else MaterialTheme.colorScheme.onSecondary
+            Box(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(horizontal = 16.dp, vertical = 10.dp)) {
+                Text(text = message, color = color, style = MaterialTheme.typography.bodyMedium)
+            }
         }
     }
 }
 
 @Composable
-fun LargeTextEditingDialog(textState: TextFieldValue, onTextChange: (TextFieldValue) -> Unit, onDismissRequest: () -> Unit, onSave: () -> Unit) {
+fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, onTextChange: (TextFieldValue) -> Unit, onDismissRequest: () -> Unit, onSave: () -> Unit) {
     Dialog(onDismissRequest = { onDismissRequest() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        var textChanged by remember { mutableStateOf(false) }
         Surface(modifier = Modifier.fillMaxWidth().padding(16.dp), shape = MaterialTheme.shapes.medium, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(stringResource(R.string.add_comment), color = textColor, style = CustomTextStyles.titleCustom)
                 Spacer(modifier = Modifier.height(16.dp))
-                BasicTextField(value = textState, onValueChange = { onTextChange(it) }, textStyle = TextStyle(fontSize = 16.sp, color = textColor),
-                    modifier = Modifier.fillMaxWidth().height(300.dp).padding(10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small)
-                )
+                BasicTextField(value = textState, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(300.dp).padding(10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small),
+                    onValueChange = {
+                    textChanged = true
+                    onTextChange(it)
+                })
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                     TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
                     TextButton(onClick = {
                         onSave()
+                        textChanged = false
                         onDismissRequest()
                     }) { Text("Save") }
                 }
             }
         }
         LaunchedEffect(Unit) {
-            while (true) {
+            while (autoSave) {
                 delay(10000)
-                onSave()
+                if (textChanged) onSave()
+                textChanged = false
             }
         }
     }
@@ -278,6 +322,23 @@ fun TitleSummarySwitchPrefRow(titleRes: Int, summaryRes: Int, pref: AppPrefs, cb
         })
     }
 }
+
+@Composable
+fun TitleSummarySwitchRow(titleRes: Int, summaryRes: Int, initVal: Boolean, cb: ((Boolean)->Unit)) {
+    val textColor = MaterialTheme.colorScheme.onSurface
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(stringResource(titleRes), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+            Text(stringResource(summaryRes), color = textColor, style = MaterialTheme.typography.bodySmall)
+        }
+        var isChecked by remember { mutableStateOf(initVal) }
+        Switch(checked = isChecked, onCheckedChange = {
+            isChecked = it
+            cb.invoke(it)
+        })
+    }
+}
+
 
 var commonConfirm by mutableStateOf<CommonConfirmAttrib?>(null)
 data class CommonConfirmAttrib(

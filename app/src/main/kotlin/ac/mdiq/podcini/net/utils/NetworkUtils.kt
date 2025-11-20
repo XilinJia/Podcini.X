@@ -91,7 +91,7 @@ object NetworkUtils {
                     && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
         }
 
-    @JvmStatic
+    
     fun init(context: Context) {
         NetworkUtils.context = context
     }

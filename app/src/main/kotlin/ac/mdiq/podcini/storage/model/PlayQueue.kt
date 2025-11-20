@@ -1,6 +1,8 @@
 package ac.mdiq.podcini.storage.model
 
-import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
@@ -9,7 +11,6 @@ import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import java.util.Date
 
 class PlayQueue : RealmObject {
-
     @PrimaryKey
     var id: Long = 0L
 
@@ -18,7 +19,26 @@ class PlayQueue : RealmObject {
     var updated: Long = Date().time
         private set
 
+    var enqueueLocation: Int = 0
+
+    var launchAutoEQDlWhenEmpty: Boolean = true
+
+    var autoDownloadEpisodes: Boolean = false
+
+    @Ignore
+    var sortOrder: EpisodeSortOrder = EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW
+        get() = fromCode(sortOrderCode)
+        set(value) {
+            field = value
+            sortOrderCode = value.code
+        }
+    var sortOrderCode: Int = EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW.code     // in EpisodeSortOrder
+
+    var keepSorted: Boolean = false
+
     var episodeIds: RealmList<Long> = realmListOf()
+
+//    var episodes: RealmList<Episode> = realmListOf()
 
     @Ignore
     val episodes: MutableList<Episode> = mutableListOf()
@@ -38,9 +58,6 @@ class PlayQueue : RealmObject {
     fun update() {
         updated = Date().time
     }
-
-//    @Ignore
-//    var size by mutableIntStateOf( episodeIds.size )
 
     fun size() : Int = episodeIds.size
 

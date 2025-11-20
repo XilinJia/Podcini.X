@@ -1,12 +1,12 @@
-package ac.mdiq.podcini.storage.utils
+package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.storage.model.Episode
 import java.util.regex.Pattern
 
-class EmbeddedChapterImage(@JvmField val media: Episode, private val imageUrl: String) {
-    @JvmField
+class EmbeddedChapterImage( val media: Episode, private val imageUrl: String) {
+    
     var position: Int = 0
-    @JvmField
+    
     var length: Int = 0
 
     init {
@@ -35,7 +35,7 @@ class EmbeddedChapterImage(@JvmField val media: Episode, private val imageUrl: S
     companion object {
         private val EMBEDDED_IMAGE_MATCHER: Pattern = Pattern.compile("embedded-image://(\\d+)/(\\d+)")
 
-        @JvmStatic
+
         fun makeUrl(position: Int, length: Int): String {
             return "embedded-image://$position/$length"
         }

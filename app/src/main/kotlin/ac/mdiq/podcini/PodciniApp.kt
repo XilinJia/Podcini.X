@@ -5,13 +5,13 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.PreferenceUpgrader
 import ac.mdiq.podcini.receiver.SPAReceiver
-import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.ui.activity.SplashActivity
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.config.ApplicationCallbacks
-import ac.mdiq.podcini.util.config.ClientConfig
-import ac.mdiq.podcini.util.config.ClientConfigurator
+import ac.mdiq.podcini.config.ApplicationCallbacks
+import ac.mdiq.podcini.config.ClientConfig
+import ac.mdiq.podcini.config.ClientConfigurator
 import ac.mdiq.podcini.util.error.CrashReportWriter
 import android.app.Application
 import android.content.ComponentName
@@ -84,7 +84,7 @@ class PodciniApp : Application() {
 
         fun getAppContext(): Context = podciniApp.applicationContext
 
-        @JvmStatic
+        
         fun forceRestart() {
             val intent = Intent(getApp(), SplashActivity::class.java)
             val cn: ComponentName? = intent.component

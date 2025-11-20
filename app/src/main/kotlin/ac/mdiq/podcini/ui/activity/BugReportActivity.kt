@@ -3,11 +3,11 @@ package ac.mdiq.podcini.ui.activity
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.PreferenceUpgrader.githubAddress
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
-import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
+import ac.mdiq.podcini.storage.utils.getDataFolder
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
-import ac.mdiq.podcini.util.IntentUtils.openInBrowser
+import ac.mdiq.podcini.util.openInBrowser
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt

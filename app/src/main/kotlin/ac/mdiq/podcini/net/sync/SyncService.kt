@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.sync
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.CHANNEL_ID
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.net.sync.LockingAsyncExecutor.executeLockedAsync
@@ -18,22 +19,21 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileFor
 import ac.mdiq.podcini.net.utils.NetworkUtils.setAllowMobileFor
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
-import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
-import ac.mdiq.podcini.storage.database.Episodes.getEpisodes
-import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
-import ac.mdiq.podcini.storage.database.Feeds.deleteFeedSync
-import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.storage.database.Feeds.getFeedListDownloadUrls
-import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
-import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
+import ac.mdiq.podcini.storage.database.getEpisodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.getEpisodes
+import ac.mdiq.podcini.storage.database.hasAlmostEnded
+import ac.mdiq.podcini.storage.database.deleteFeed
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.getFeedListDownloadUrls
+import ac.mdiq.podcini.storage.database.updateFeedFull
+import ac.mdiq.podcini.storage.database.removeFromQueue
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.EpisodeFilter
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
-import ac.mdiq.podcini.ui.utils.NotificationUtils
+import ac.mdiq.podcini.storage.specs.EpisodeFilter
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -175,7 +175,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         if (feedID != null) {
             try {
                 runBlocking {
-                    deleteFeedSync(context, feedID)
+                    deleteFeed(context, feedID)
                     EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feedID))
                 }
             } catch (e: InterruptedException) { Logs(TAG, e)
@@ -280,10 +280,9 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
 //            if (result.first != null) queueToBeRemoved.add(result.second)
             updatedItems.add(result.second)
         }
-//        removeFromQueue(*updatedItems.toTypedArray())
 
         runOnIOScope {
-            removeFromQueueSync(curQueue, *updatedItems.toTypedArray())
+            removeFromQueue(curQueue, updatedItems)
             for (episode in updatedItems) upsert(episode) {}
             EventFlow.postEvent(FlowEvent.EpisodeEvent(updatedItems))
         }
@@ -316,7 +315,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         val intent = applicationContext.packageManager.getLaunchIntentForPackage(applicationContext.packageName)
         val pendingIntent = PendingIntent.getActivity(applicationContext, R.id.pending_intent_sync_error, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(applicationContext,
-            NotificationUtils.CHANNEL_ID.sync_error.name)
+            CHANNEL_ID.sync_error.name)
             .setContentTitle(applicationContext.getString(R.string.gpodnetsync_error_title))
             .setContentText(description)
             .setStyle(NotificationCompat.BigTextStyle().bigText(description))

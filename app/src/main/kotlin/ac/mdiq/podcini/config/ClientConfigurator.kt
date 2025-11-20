@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.util.config
+package ac.mdiq.podcini.config
 
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterfaceImpl
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.setCacheDirectory
@@ -12,9 +12,7 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences
 import ac.mdiq.podcini.preferences.UsageStatistics
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
-import ac.mdiq.podcini.storage.database.RealmDB.getRealmInstance
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.ui.utils.NotificationUtils
+import ac.mdiq.podcini.storage.database.getRealmInstance
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 
@@ -40,7 +38,7 @@ object ClientConfigurator {
         setCacheDirectory(File(context.cacheDir, "okhttp"))
         setProxyConfig(proxyConfig)
         SleepTimerPreferences.init(context)
-        NotificationUtils.createChannels(context)
+        createChannels(context)
         initialized = true
     }
 }

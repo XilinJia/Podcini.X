@@ -14,15 +14,15 @@ import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
-import ac.mdiq.podcini.storage.database.Episodes.indexWithId
-import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.Queues.getNextInQueue
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.indexWithId
+import ac.mdiq.podcini.storage.database.setPlayState
+import ac.mdiq.podcini.storage.database.getNextInQueue
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.EpisodeState
-import ac.mdiq.podcini.storage.utils.MediaType
-import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -168,7 +168,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     }
 
     override suspend fun invokeBufferListener() {
-        if (exoPlayer != null && status == PlayerStatus.PLAYING) {
+        if (exoPlayer != null && isPlaying) {
             withContext(Dispatchers.Main) {
                 val pct = exoPlayer!!.bufferedPercentage
                 if (bufferedPercentagePrev != pct) {
@@ -247,7 +247,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     override fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean, doPostPlayback: Boolean) {
         Logd(TAG, "prepareMedia status=$status stream=$streaming startWhenPrepared=$startWhenPrepared prepareImmediately=$prepareImmediately forceReset=$forceReset ${playable.getEpisodeTitle()} ")
 //       showStackTrace()
-        if (!forceReset && curEpisode?.id == prevMedia?.id && status == PlayerStatus.PLAYING) {
+        if (!forceReset && curEpisode?.id == prevMedia?.id && isPlaying) {
             Logd(TAG, "Method call to prepareMedia was ignored: media file already playing.")
             return
         }
@@ -257,13 +257,13 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 Logd(TAG, "prepareMedia: curEpisode exist status=$status")
                 Logd(TAG, "prepareMedia starts new playable:${playable.id} curEpisode:${curEpisode!!.id} prevMedia:${prevMedia?.id}")
                 // set temporarily to pause in order to update list with current position
-                if (status == PlayerStatus.PLAYING) {
+                if (isPlaying) {
                     val pos = curEpisode?.position ?: -1
                     seekTo(pos)
                     onPlaybackPause(curEpisode, pos)
                 }
                 // stop playback of this episode
-                if (status in listOf(PlayerStatus.PAUSED, PlayerStatus.PLAYING, PlayerStatus.PREPARED)) exoPlayer?.stop()
+                if (isPaused || isPlaying || isPrepared) exoPlayer?.stop()
                 // TODO: testing, this appears not right and not needed
 //            if (prevMedia != null && curEpisode?.id != prevMedia?.id) callback.onPostPlayback(prevMedia!!, ended = false, skipped = true, true)
                 if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, ended = false, skipped = true, true)
@@ -273,7 +273,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
         var item = playable
-        if (item.playState < EpisodeState.PROGRESS.code) item = runBlocking { setPlayStateSync(EpisodeState.PROGRESS, item, false) }
+        if (item.playState < EpisodeState.PROGRESS.code) item = runBlocking { setPlayState(EpisodeState.PROGRESS, item, false) }
         val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
         curIndexInQueue = eList.indexWithId(item.id)
         setCurEpisode(item)
@@ -334,12 +334,12 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     override fun play() {
         Logd(TAG, "play(): status: $status exoPlayer?.playbackState: ${exoPlayer?.playbackState}")
-        if (status in listOf(PlayerStatus.PAUSED, PlayerStatus.PREPARED)) {
+        if (isPaused || isPrepared) {
             Logd(TAG, "Resuming/Starting playback")
             acquireWifiLockIfNecessary()
             setPlaybackParams(getCurrentPlaybackSpeed(curEpisode), isSkipSilence)
             setVolume(1.0f, 1.0f)
-            if (curEpisode != null && status == PlayerStatus.PREPARED && curEpisode!!.position > 0)
+            if (curEpisode != null && isPrepared && curEpisode!!.position > 0)
                 seekTo(calculatePositionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime))
 
             if (exoPlayer?.playbackState in listOf(STATE_IDLE, STATE_ENDED)) setSource()
@@ -353,17 +353,16 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     override fun pause(reinit: Boolean) {
         releaseWifiLockIfNecessary()
-        if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.ERROR)) {
+        if (isPlaying || isError) {
             Logd(TAG, "Pausing playback $reinit")
-//             pauseAllPlayersAndStopSelf()
             exoPlayer?.pause()
             setPlayerStatus(PlayerStatus.PAUSED, curEpisode, getPosition())
             if (isStreaming && reinit) reinit()
-        } else Logd(TAG, "Ignoring call to pause: Player is in $status state")
+        } else Logt(TAG, "Ignoring call to pause: Player is in $status state")
     }
 
     override fun prepare() {
-        if (status == PlayerStatus.INITIALIZED) {
+        if (isInitialized) {
             Logd(TAG, "prepare Preparing media player: status: $status")
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
             setSource()
@@ -405,9 +404,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             endPlayback(true, wasSkipped = true)
             t = getPosition()
         }
-
-        when (status) {
-            PlayerStatus.PLAYING, PlayerStatus.PAUSED, PlayerStatus.PREPARED -> {
+        when  {
+            isPlaying || isPaused || isPrepared -> {
                 Logd(TAG, "seekTo t: $t")
 //                if (seekLatch != null && seekLatch!!.count > 0) try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
 //                seekLatch = CountDownLatch(1)
@@ -417,7 +415,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 if (statusBeforeSeeking == PlayerStatus.PREPARED && curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(t) }
 //                try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
             }
-            PlayerStatus.INITIALIZED -> {
+            isInitialized -> {
                 if (curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(t) }
                 startWhenPrepared.set(false)
                 prepare()
@@ -429,7 +427,9 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     override fun getPosition(): Int {
         var retVal = Episode.INVALID_TIME
 //        showStackTrace()
-        if (exoPlayer != null && status.isAtLeast(PlayerStatus.PREPARED)) retVal = exoPlayer!!.currentPosition.toInt()
+//        if (exoPlayer != null && status.isAtLeast(PlayerStatus.PREPARED)) retVal = exoPlayer!!.currentPosition.toInt()
+        if (exoPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logt(TAG, "player status ${exoPlayer?.playbackState} $status")
+        if (exoPlayer?.playbackState in listOf(STATE_BUFFERING, STATE_READY, STATE_ENDED)) retVal = exoPlayer!!.currentPosition.toInt()
 //        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
 //        Logd(TAG, "getPosition final position: $retVal")
@@ -446,7 +446,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     override fun getPlaybackSpeed(): Float {
         var retVal = 1f
-        if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED, PlayerStatus.INITIALIZED, PlayerStatus.PREPARED)) retVal = playbackParameters.speed
+        if (isPlaying || isPaused || isInitialized || isPrepared) retVal = playbackParameters.speed
         return retVal
     }
 
@@ -511,7 +511,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
      * invalid values.
      */
     override fun getVideoSize(): Pair<Int, Int>? {
-        if (status != PlayerStatus.ERROR && mediaType == MediaType.VIDEO) videoSize = Pair(videoWidth, videoHeight)
+        if (!isError && mediaType == MediaType.VIDEO) videoSize = Pair(videoWidth, videoHeight)
         return videoSize
     }
 
@@ -584,13 +584,13 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     }
 
     override fun endPlayback(hasEnded: Boolean, wasSkipped: Boolean, shouldContinue: Boolean) {
-        releaseWifiLockIfNecessary()
         if (curEpisode == null) {
             Logd(TAG, "endPlayback curEpisode is null, return")
+            releaseWifiLockIfNecessary()
             return
         }
 
-        val isPlaying = status == PlayerStatus.PLAYING
+//        val isPlaying = status == PlayerStatus.PLAYING
         // we're relying on the position stored in the EpisodeMedia object for post-playback processing
         val position = getPosition()
         if (position >= 0) upsertBlk(curEpisode!!) { it.setPosition(position) }
@@ -605,21 +605,27 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 if (nextMedia == null) {
                     Logd(TAG, "nextMedia is null. call callback.onPlaybackEnded true")
                     onPlaybackEnded(true)
+                    releaseWifiLockIfNecessary()
                     setCurEpisode(null)
                     exoPlayer?.stop()
-                    releaseWifiLockIfNecessary()
-                    if (status == PlayerStatus.INDETERMINATE) setPlayerStatus(PlayerStatus.STOPPED, null)
+                    if (isUnknown) setPlayerStatus(PlayerStatus.STOPPED, null)
                     else Logd(TAG, "Ignored call to stop: Current player state is: $status")
                 } else {
                     Logd(TAG, "has nextMedia. call callback.onPlaybackEnded false")
                     if (wasSkipped) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                     onPlaybackEnded(true)
-                    prepareMedia(playable = nextMedia, streaming = !nextMedia.localFileAvailable(), startWhenPrepared = isPlaying, prepareImmediately = isPlaying)
+                    val streaming = !nextMedia.localFileAvailable()
+                    if (streaming) acquireWifiLockIfNecessary()
+                    else releaseWifiLockIfNecessary()
+                    prepareMedia(playable = nextMedia, streaming = streaming, startWhenPrepared = isPlaying, prepareImmediately = isPlaying)
                 }
                 val hasNext = nextMedia != null
                 if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, hasNext)
             }
-            isPlaying -> onPlaybackPause(currentMedia, currentMedia?.position?: 0)
+            isPlaying -> {
+                releaseWifiLockIfNecessary()
+                onPlaybackPause(currentMedia, currentMedia?.position?: 0)
+            }
         }
     }
 

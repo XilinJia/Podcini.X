@@ -1,14 +1,13 @@
 package ac.mdiq.podcini.net.feed.parser
 
-import ac.mdiq.podcini.net.feed.parser.utils.DateUtils.parseOrNullIfFuture
-import ac.mdiq.podcini.net.feed.parser.utils.DateUtils.parseTimeString
-import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.getMimeType
-import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.isImageFile
-import ac.mdiq.podcini.net.feed.parser.utils.MimeTypeUtils.isMediaFile
+import ac.mdiq.podcini.net.feed.parser.utils.getMimeType
+import ac.mdiq.podcini.net.feed.parser.utils.isImageFile
+import ac.mdiq.podcini.net.feed.parser.utils.isMediaFile
+import ac.mdiq.podcini.net.feed.parser.utils.parseDate
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.FeedFunding
+import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import androidx.core.text.HtmlCompat
@@ -29,6 +28,7 @@ import org.xml.sax.helpers.DefaultHandler
 import org.xmlpull.v1.XmlPullParser
 import org.xmlpull.v1.XmlPullParserException
 import org.xmlpull.v1.XmlPullParserFactory
+import java.util.Date
 
 class FeedHandler {
     @Throws(SAXException::class, IOException::class, ParserConfigurationException::class, UnsupportedFeedtypeException::class)
@@ -154,39 +154,39 @@ class FeedHandler {
      * Contains all relevant information to describe the current state of a SyndHandler.
      * Feed that the Handler is currently processing.
      */
-    class HandlerState(@JvmField var feed: Feed) {
+    class HandlerState( var feed: Feed) {
         /**
          * Contains links to related feeds, e.g. feeds with enclosures in other formats. The key of the map is the
          * URL of the feed, the value is the title
          */
-        @JvmField
+        
         val alternateUrls: MutableMap<String, String> = mutableMapOf()
-        @JvmField
+        
         var redirectUrl: String? = null
-        @JvmField
+        
         val items: MutableList<Episode> = mutableListOf()
-        @JvmField
+        
         var currentItem: Episode? = null
-        @JvmField
+        
         var currentFunding: FeedFunding? = null
-        @JvmField
+        
         val tagstack: Stack<SyndElement> = Stack()
         /**
          * Namespaces that have been defined so far.
          */
-        @JvmField
+        
         val namespaces: MutableMap<String, Namespace> = mutableMapOf()
-        @JvmField
+        
         val defaultNamespaces: Stack<Namespace> = Stack()
         /**
          * Buffer for saving characters.
          */
-        @JvmField
+        
         var contentBuf: StringBuilder? = null
         /**
          * Temporarily saved objects.
          */
-        @JvmField
+        
         val tempObjects: MutableMap<String, Any> = mutableMapOf()
         /**
          * Returns the SyndElement that comes after the top element of the tagstack.
@@ -216,7 +216,7 @@ class FeedHandler {
 
     /** Superclass for all SAX Handlers which process Syndication formats  */
     class SyndHandler(feed: Feed, type: Type) : DefaultHandler() {
-        @JvmField
+        
         val state: HandlerState = HandlerState(feed)
 
         init {
@@ -339,8 +339,8 @@ class FeedHandler {
     }
 
     class FeedHandlerResult(
-            @JvmField val feed: Feed,
-            @JvmField val alternateFeedUrls: Map<String, String>,
+             val feed: Feed,
+             val alternateFeedUrls: Map<String, String>,
             val redirectUrl: String)
 
     abstract class Namespace {
@@ -358,7 +358,7 @@ class FeedHandler {
     }
 
     /** Defines a XML Element that is pushed on the tagstack  */
-    open class SyndElement(@JvmField val name: String, val namespace: Namespace)
+    open class SyndElement( val name: String, val namespace: Namespace)
 
     /** Represents Atom Element which contains text (content, title, summary).  */
     class AtomText(
@@ -724,7 +724,7 @@ class FeedHandler {
                     }
 
                     when {
-                        state.currentItem != null && (state.currentItem == null || isDefault) && url != null && validTypeMedia -> {
+                        state.currentItem != null && isDefault && url != null && validTypeMedia -> {
                             var size: Long = 0
                             val sizeStr: String? = attributes.getValue(SIZE)
                             if (!sizeStr.isNullOrEmpty()) {
@@ -816,7 +816,7 @@ class FeedHandler {
         override fun handleElementEnd(localName: String, state: HandlerState) {
             if (state.contentBuf == null) return
             val content = state.contentBuf.toString()
-            if (FUNDING == localName && state.currentFunding != null && content.isNotEmpty()) state.currentFunding!!.setContent(content)
+            if (FUNDING == localName && state.currentFunding != null && content.isNotEmpty()) state.currentFunding!!.content = content
         }
 
         companion object {
@@ -830,7 +830,7 @@ class FeedHandler {
     }
 
     /**
-     * SAX-Parser for reading RSS-Feeds.
+     * SAX-Parser for reading RSS-
      */
     class Rss20 : Namespace() {
         override fun handleElementStart(localName: String, state: HandlerState, attributes: Attributes): SyndElement {
@@ -1006,5 +1006,38 @@ class FeedHandler {
         private val TAG: String = FeedHandler::class.simpleName ?: "Anonymous"
         private const val ATOM_ROOT = "feed"
         private const val RSS_ROOT = "rss"
+
+        /**
+         * Parses the date but if the date is in the future, returns null.
+         */
+        fun parseOrNullIfFuture(input: String?): Date? {
+            val date = parseDate(input) ?: return null
+            val now = Date()
+            if (date.after(now)) return null
+            return date
+        }
+
+        /**
+         * Takes a string of the form [HH:]MM:SS[.mmm] and converts it to
+         * milliseconds.
+         *
+         * @throws java.lang.NumberFormatException if the number segments contain invalid numbers.
+         */
+        fun parseTimeString(time: String): Long {
+            val parts = time.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+            var result: Long = 0
+            var idx = 0
+            if (parts.size == 3) {
+                // string has hours
+                result += parts[idx].toInt() * 3600000L
+                idx++
+            }
+            if (parts.size >= 2) {
+                result += parts[idx].toInt() * 60000L
+                idx++
+                result += (parts[idx].toFloat() * 1000L).toLong()
+            }
+            return result
+        }
     }
 }

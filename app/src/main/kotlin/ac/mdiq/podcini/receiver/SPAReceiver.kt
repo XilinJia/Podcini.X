@@ -2,12 +2,12 @@ package ac.mdiq.podcini.receiver
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
-import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
+import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.config.ClientConfigurator
+import ac.mdiq.podcini.config.ClientConfigurator
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent

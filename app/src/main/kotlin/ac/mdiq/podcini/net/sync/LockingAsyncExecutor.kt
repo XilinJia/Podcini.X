@@ -7,14 +7,14 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.locks.ReentrantLock
 
 object LockingAsyncExecutor {
-    @JvmField
+    
     val lock: ReentrantLock = ReentrantLock()
 
     /**
      * Take the lock and execute runnable (to prevent changes to preferences being lost when enqueueing while sync is
      * in progress). If the lock is free, the runnable is directly executed in the calling thread to prevent overhead.
      */
-    @JvmStatic
+    
     fun executeLockedAsync(runnable: ()->Unit) {
         if (lock.tryLock()) try { runnable() } finally { lock.unlock() }
         else {

@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.net.sync
 
-import ac.mdiq.podcini.util.config.ClientConfig
+import ac.mdiq.podcini.config.ClientConfig
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit

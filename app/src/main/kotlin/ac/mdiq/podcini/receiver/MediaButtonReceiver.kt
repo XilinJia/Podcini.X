@@ -2,7 +2,7 @@ package ac.mdiq.podcini.receiver
 
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.config.ClientConfigurator
+import ac.mdiq.podcini.config.ClientConfigurator
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -11,7 +11,7 @@ import android.view.KeyEvent
 import androidx.core.content.ContextCompat
 
 
-// TODO: likely not used
+// TODO: only play/pause, not too useful now
 /**
  * Receives media button events.
  */
@@ -50,7 +50,7 @@ class MediaButtonReceiver : BroadcastReceiver() {
         const val NOTIFY_BUTTON_RECEIVER: String = "ac.mdiq.podcini.NOTIFY_BUTTON_RECEIVER"
         const val PLAYBACK_SERVICE_INTENT: String = "ac.mdiq.podcini.intents.PLAYBACK_SERVICE"
 
-        @JvmStatic
+        
         fun createIntent(context: Context, eventCode: Int): Intent {
             val event = KeyEvent(KeyEvent.ACTION_DOWN, eventCode)
             val startingIntent = Intent(context, MediaButtonReceiver::class.java)

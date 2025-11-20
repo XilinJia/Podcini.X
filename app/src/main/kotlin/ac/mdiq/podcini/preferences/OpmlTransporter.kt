@@ -6,7 +6,7 @@ import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.MiscFormatter.formatRfc822Date
+import ac.mdiq.podcini.util.formatRfc822Date
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -34,7 +34,7 @@ class OpmlTransporter {
 
     /** Represents a single feed in an OPML file.  */
     class OpmlElement {
-        @JvmField
+        
         var text: String? = null
         var xmlUrl: String? = null
         var htmlUrl: String? = null

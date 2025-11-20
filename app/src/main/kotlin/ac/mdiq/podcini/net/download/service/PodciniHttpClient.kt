@@ -2,12 +2,12 @@ package ac.mdiq.podcini.net.download.service
 
 import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder.encode
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
-import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.ProxyConfig
+import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.config.ClientConfig
+import ac.mdiq.podcini.config.ClientConfig
 import android.annotation.SuppressLint
 import android.net.TrafficStats
 import java.io.ByteArrayInputStream
@@ -65,14 +65,14 @@ object PodciniHttpClient {
     /**
      * Returns the HttpClient singleton.
      */
-    @JvmStatic
+    
     @Synchronized
     fun getHttpClient(): OkHttpClient {
         if (httpClient == null) httpClient = newBuilder().build()
         return httpClient!!
     }
 
-    @JvmStatic
+    
     @Synchronized
     fun reinit() {
         httpClient = newBuilder().build()
@@ -85,7 +85,7 @@ object PodciniHttpClient {
      * copy so that the clients don't share state.
      * @return http client
      */
-    @JvmStatic
+    
     fun newBuilder(): Builder {
         Logd(TAG, "Creating new instance of HTTP client")
         System.setProperty("http.maxConnections", MAX_CONNECTIONS.toString())
@@ -127,12 +127,12 @@ object PodciniHttpClient {
         return builder
     }
 
-    @JvmStatic
+    
     fun setCacheDirectory(cacheDirectory: File?) {
         PodciniHttpClient.cacheDirectory = cacheDirectory
     }
 
-    @JvmStatic
+    
     fun setProxyConfig(proxyConfig: ProxyConfig?) {
         PodciniHttpClient.proxyConfig = proxyConfig
     }
@@ -323,7 +323,7 @@ object PodciniHttpClient {
         throw IllegalStateException("Unexpected default trust managers")
     }
 
-    @JvmStatic
+    
     fun create(): X509TrustManager? {
         try {
             val keystore = KeyStore.getInstance(KeyStore.getDefaultType())

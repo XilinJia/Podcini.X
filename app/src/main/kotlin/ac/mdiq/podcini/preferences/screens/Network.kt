@@ -25,10 +25,10 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
-import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.PlayQueue
-import ac.mdiq.podcini.storage.utils.ProxyConfig
-import ac.mdiq.podcini.storage.utils.StorageUtils.deleteDirectoryRecursively
+import ac.mdiq.podcini.storage.specs.ProxyConfig
+import ac.mdiq.podcini.storage.utils.deleteDirectoryRecursively
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -673,45 +673,6 @@ fun NetworkScreen(activity: PreferenceActivity) {
                 )
             }
             TitleSummarySwitchPrefRow(R.string.pref_automatic_download_on_battery_title, R.string.pref_automatic_download_on_battery_sum, AppPrefs.prefEnableAutoDownloadOnBattery)
-            @Composable
-            fun IncludeQueueDialog(key: AppPrefs, defaultOn: Boolean, onDismiss: ()->Unit) {
-                val queues = remember { realm.query(PlayQueue::class).find() }
-                var selectedOptions by remember { mutableStateOf(getPref(key, queues.map { it.name }.toSet(), defaultOn)) }
-                fun updateSepections(option: PlayQueue) {
-                    selectedOptions = if (selectedOptions.contains(option.name)) selectedOptions - option.name else selectedOptions + option.name
-                }
-                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss,
-                    title = { Text(stringResource(R.string.pref_autodl_queues_title), style = CustomTextStyles.titleCustom) },
-                    text = {
-                        val scrollState = rememberScrollState()
-                        Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
-                            queues.forEach { option ->
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp).clickable { updateSepections(option) }) {
-                                    Checkbox(checked = selectedOptions.contains(option.name), onCheckedChange = { updateSepections(option) })
-                                    Text(option.name, modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            putPref(key, selectedOptions)
-                            onDismiss()
-                        }) { Text(text = "OK") }
-                    },
-                    dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) } }
-                )
-            }
-
-            //            TitleSummarySwitchPrefRow(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum, AppPrefs.prefEnableAutoDLOnEmptyQueue)
-
-            var showEmptyQueueOptions by remember { mutableStateOf(false) }
-            TitleSummaryActionColumn(R.string.pref_autodl_queue_empty_title, R.string.pref_autodl_queue_empty_sum) { showEmptyQueueOptions = true }
-            if (showEmptyQueueOptions) IncludeQueueDialog(AppPrefs.prefAutoDLOnEmptyIncludeQueues, false) { showEmptyQueueOptions = false }
-            var showQueueOptions by remember { mutableStateOf(false) }
-
-            TitleSummaryActionColumn(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum) { showQueueOptions = true }
-            if (showQueueOptions) IncludeQueueDialog(AppPrefs.prefAutoDLIncludeQueues, true) { showQueueOptions = false }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
 

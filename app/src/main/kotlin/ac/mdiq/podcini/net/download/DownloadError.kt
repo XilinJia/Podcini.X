@@ -2,7 +2,7 @@ package ac.mdiq.podcini.net.download
 
 /** Utility class for Download Errors.  */
 /** Get machine-readable code.  */
-enum class DownloadError(@JvmField val code: Int) {
+enum class DownloadError( val code: Int) {
     SUCCESS(0),
     ERROR_PARSER_EXCEPTION(1),
     ERROR_UNSUPPORTED_TYPE(2),
@@ -29,7 +29,7 @@ enum class DownloadError(@JvmField val code: Int) {
 
     companion object {
         /** Return DownloadError from its associated code.  */
-        @JvmStatic
+        
         fun fromCode(code: Int): DownloadError {
             return enumValues<DownloadError>().firstOrNull { it.code == code } ?: throw IllegalArgumentException("unknown code: $code")
         }

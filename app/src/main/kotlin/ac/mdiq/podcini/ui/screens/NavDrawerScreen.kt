@@ -5,17 +5,17 @@ import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.storage.database.Episodes.getEpisodesCount
-import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.getFeedCount
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.getEpisodesCount
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.getFeedCount
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
-import ac.mdiq.podcini.storage.utils.EpisodeFilter.Companion.unfiltered
+import ac.mdiq.podcini.storage.specs.EpisodeFilter.Companion.unfiltered
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.lcScope
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
@@ -283,10 +283,10 @@ class NavItem(val iconRes: Int, val nameRes: Int) {
 enum class Screens {
     Subscriptions,
     FeedDetails,
-    FeedSettings,
+//    FeedSettings,
     Facets,
     EpisodeInfo,
-    EpisodeText,
+//    EpisodeText,
     Queues,
     Search,
     OnlineSearch,
@@ -310,9 +310,9 @@ private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
 private val navHostMap: MutableMap<Screens, @Composable ()->Unit> = mutableMapOf(
     Screens.Subscriptions to { SubscriptionsScreen() },
     Screens.FeedDetails to { FeedDetailsScreen() },
-    Screens.FeedSettings to { FeedSettingsScreen() },
+//    Screens.FeedSettings to { FeedSettingsScreen() },
     Screens.EpisodeInfo to { EpisodeInfoScreen() },
-    Screens.EpisodeText to { EpisodeTextScreen() },
+//    Screens.EpisodeText to { EpisodeTextScreen() },
     Screens.Facets to { FacetsScreen() },
     Screens.Queues to { QueuesScreen() },
     Screens.Search to { SearchScreen() },
@@ -335,7 +335,7 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
 fun saveLastNavScreen(tag: String?, arg: String? = null) {
     Logd(TAG, "saveLastNavScreen(tag: $tag)")
     putPref(AppPrefs.prefLastScreen, tag ?:"")
-    if (arg == null && tag in listOf(Screens.FeedDetails.name, Screens.FeedSettings.name)) {
+    if (arg == null && tag == Screens.FeedDetails.name) {
         val arg_ = feedOnDisplay.id.toString()
         putPref(AppPrefs.prefLastScreenArg, arg_)
     } else putPref(AppPrefs.prefLastScreenArg, arg ?:"")

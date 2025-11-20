@@ -6,7 +6,7 @@ import ac.mdiq.podcini.net.download.service.Downloader
 import ac.mdiq.podcini.net.download.service.HttpDownloader
 import ac.mdiq.podcini.net.feed.parser.FeedHandler
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
-import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
+import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge

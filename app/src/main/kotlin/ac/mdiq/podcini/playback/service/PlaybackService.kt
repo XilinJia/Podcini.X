@@ -14,17 +14,22 @@ import ac.mdiq.podcini.playback.base.LocalMediaPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.isStreaming
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.streaming
-import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.EXTRA_ALLOW_STREAM_ALWAYS
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.EXTRA_ALLOW_STREAM_THIS_TIME
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.buildMediaItem
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentMediaType
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isInitialized
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPrepared
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPreparing
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.releaseCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
-import ac.mdiq.podcini.playback.base.PlayerStatus
-import ac.mdiq.podcini.playback.base.TaskManager
-import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
+import ac.mdiq.podcini.playback.base.PositionSaver
+import ac.mdiq.podcini.playback.base.PositionSaver.Companion.positionSaver
+import ac.mdiq.podcini.playback.base.SleepManager
+import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.cast.CastMediaPlayer
 import ac.mdiq.podcini.playback.cast.CastStateListener
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
@@ -32,9 +37,9 @@ import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
-import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
-import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.database.getEpisodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.util.EventFlow
@@ -42,6 +47,7 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
@@ -114,11 +120,11 @@ class PlaybackService : MediaLibraryService() {
             Logd(TAG, "Received Auto Connection update: $status")
             if (!isConnectedToCar) Logd(TAG, "Car was unplugged during playback.")
             else {
-                val playerStatus = MediaPlayerBase.status
-                when (playerStatus) {
-                    PlayerStatus.PAUSED, PlayerStatus.PREPARED -> mPlayer?.play()
-                    PlayerStatus.PREPARING -> mPlayer?.startWhenPrepared?.set(!mPlayer!!.startWhenPrepared.get())
-                    PlayerStatus.INITIALIZED -> {
+//                val playerStatus = MediaPlayerBase.status
+                when  {
+                    isPaused || isPrepared -> mPlayer?.play()
+                    isPreparing -> mPlayer?.startWhenPrepared?.set(!mPlayer!!.startWhenPrepared.get())
+                    isInitialized -> {
                         mPlayer?.startWhenPrepared?.set(true)
                         mPlayer?.prepare()
                     }
@@ -180,7 +186,7 @@ class PlaybackService : MediaLibraryService() {
             Logd(TAG, "audioBecomingNoisy onReceive called with action: ${intent.action}")
             Logd(TAG, "Pausing playback because audio is becoming noisy")
 //            pauseIfPauseOnDisconnect()
-            transientPause = (status == PlayerStatus.PLAYING)
+            transientPause = isPlaying
             if (getPref(AppPrefs.prefPauseOnHeadsetDisconnect, true) && !isCasting) mPlayer?.pause(false)
         }
     }
@@ -365,7 +371,8 @@ class PlaybackService : MediaLibraryService() {
         registerReceiver(bluetoothStateUpdated, IntentFilter(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED))
         registerReceiver(audioBecomingNoisy, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
         procFlowEvents()
-        taskManager = TaskManager(applicationContext)
+        positionSaver = PositionSaver(applicationContext)
+        sleepManager = SleepManager(applicationContext)
         monitorState()
 
         recreateMediaSessionIfNeeded()
@@ -399,7 +406,7 @@ class PlaybackService : MediaLibraryService() {
         val media = curEpisode
         var wasPlaying = false
         if (mPlayer != null) {
-            wasPlaying = status == PlayerStatus.PLAYING
+            wasPlaying = isPlaying
             mPlayer!!.pause(reinit = false)
             mPlayer!!.shutdown()
         }
@@ -438,7 +445,8 @@ class PlaybackService : MediaLibraryService() {
         unregisterReceiver(shutdownReceiver)
         unregisterReceiver(bluetoothStateUpdated)
         unregisterReceiver(audioBecomingNoisy)
-        taskManager?.shutdown()
+        positionSaver?.cancelPositionSaver()
+        sleepManager?.disableSleepTimer()
 
         releaseCache()
 
@@ -481,7 +489,7 @@ class PlaybackService : MediaLibraryService() {
         if (keycode == -1 && curEpisode != null) {
             if (mPlayer?.prevMedia?.id == curEpisode?.id) {
                 Logd(TAG, "onStartCommand playing same media: $status")
-                if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) return super.onStartCommand(intent, flags, startId)
+                if (isPlaying || isPaused) return super.onStartCommand(intent, flags, startId)
                 Logd(TAG, "onStartCommand playing same media: $status proceed")
             }
         }
@@ -527,40 +535,40 @@ class PlaybackService : MediaLibraryService() {
      * Handles media button events. return: keycode was handled
      */
     private fun handleKeycode(keycode: Int, notificationButton: Boolean): Boolean {
-        Logd(TAG, "Handling keycode: $keycode")
-        val info = mPlayer?.playerInfo
-        val status = info?.playerStatus
+        Logt(TAG, "Handling keycode: $keycode")
+//        val info = mPlayer?.playerInfo
+//        val status = info?.playerStatus
         when (keycode) {
             KeyEvent.KEYCODE_HEADSETHOOK, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
                 when {
-                    status == PlayerStatus.PLAYING -> mPlayer?.pause(false)
-                    status in listOf(PlayerStatus.PAUSED, PlayerStatus.PREPARED) -> mPlayer?.play()
-                    status == PlayerStatus.PREPARING -> mPlayer?.startWhenPrepared?.set(!mPlayer!!.startWhenPrepared.get())
-                    status == PlayerStatus.INITIALIZED -> {
+                    isPlaying -> mPlayer?.pause(false)
+                    isPlaying || isPrepared -> mPlayer?.play()
+                    isPreparing -> mPlayer?.startWhenPrepared?.set(!mPlayer!!.startWhenPrepared.get())
+                    isInitialized -> {
                         mPlayer?.startWhenPrepared?.set(true)
                         mPlayer?.prepare()
                     }
                     curEpisode == null -> startPlayingFromPreferences()
                     else -> return false
                 }
-                taskManager?.restartSleepTimer()
+                sleepManager?.restartSleepTimer()
                 return true
             }
             KeyEvent.KEYCODE_MEDIA_PLAY -> {
                 when {
-                    status in listOf(PlayerStatus.PAUSED, PlayerStatus.PREPARED) -> mPlayer?.play()
-                    status == PlayerStatus.INITIALIZED -> {
+                    isPlaying || isPrepared -> mPlayer?.play()
+                    isInitialized -> {
                         mPlayer?.startWhenPrepared?.set(true)
                         mPlayer?.prepare()
                     }
                     curEpisode == null -> startPlayingFromPreferences()
                     else -> return false
                 }
-                taskManager?.restartSleepTimer()
+                sleepManager?.restartSleepTimer()
                 return true
             }
             KeyEvent.KEYCODE_MEDIA_PAUSE -> {
-                if (status == PlayerStatus.PLAYING) {
+                if (isPlaying) {
                     mPlayer?.pause(false)
                     return true
                 }
@@ -569,14 +577,14 @@ class PlaybackService : MediaLibraryService() {
                 when {
                     // Handle remapped button as notification button which is not remapped again.
                     !notificationButton -> return handleKeycode(getPref(AppPrefs.prefHardwareForwardButton, "0").toInt(), true)
-                    status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED) -> {
+                    isPlaying || isPaused -> {
                         mPlayer?.skip()
                         return true
                     }
                 }
             }
             KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) {
+                if (isPlaying || isPaused) {
                     mPlayer?.seekDelta(fastForwardSecs * 1000)
                     return true
                 }
@@ -585,26 +593,26 @@ class PlaybackService : MediaLibraryService() {
                 when {
                     // Handle remapped button as notification button which is not remapped again.
                     !notificationButton -> return handleKeycode(getPref(AppPrefs.prefHardwarePreviousButton, "0").toInt(), true)
-                    status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED) -> {
+                    isPlaying || isPaused -> {
                         mPlayer?.seekTo(0)
                         return true
                     }
                 }
             }
             KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                if (status in listOf(PlayerStatus.PLAYING, PlayerStatus.PAUSED)) {
+                if (isPlaying || isPaused) {
                     mPlayer?.seekDelta(-rewindSecs * 1000)
                     return true
                 }
             }
             KEYCODE_MEDIA_STOP -> {
-                if (status == PlayerStatus.PLAYING) mPlayer?.pause(reinit = true)
+                if (isPlaying) mPlayer?.pause(reinit = true)
                 return true
             }
             else -> {
                 Logd(TAG, "Unhandled key code: $keycode")
                 // only notify the user about an unknown key event if it is actually doing something
-                if (info?.playable != null && info.playerStatus == PlayerStatus.PLAYING) Loge(TAG, String.format(resources.getString(R.string.unknown_media_key), keycode))
+                if (curEpisode != null && isPlaying) Loge(TAG, String.format(resources.getString(R.string.unknown_media_key), keycode))
             }
         }
         return false
@@ -672,7 +680,6 @@ class PlaybackService : MediaLibraryService() {
             for (e in event.episodes) {
                 if (e.id == curEpisode?.id) {
                     Logd(TAG, "onQueueEvent: queue event removed ${e.title}")
-                    val isPlaying = status == PlayerStatus.PLAYING
                     mPlayer?.endPlayback(hasEnded = false, wasSkipped = true, shouldContinue = isPlaying)
                     break
                 }
@@ -696,7 +703,7 @@ class PlaybackService : MediaLibraryService() {
                 mPlayer?.pause(reinit = false)
                 mPlayer?.setVolume(1.0f, 1.0f)
             }
-            event.getTimeLeft() < TaskManager.SLEEP_TIMER_ENDING_THRESHOLD -> {
+            event.getTimeLeft() < SleepManager.SLEEP_TIMER_ENDING_THRESHOLD -> {
                 val multiplicators = floatArrayOf(0.1f, 0.1f, 0.2f, 0.2f, 0.3f, 0.3f, 0.4f, 0.4f, 0.5f, 0.5f, 0.6f, 0.6f, 0.7f, 0.7f, 0.8f, 0.8f, 0.9f, 0.9f)
                 val multiplicator = multiplicators[min(multiplicators.size-1, (event.getTimeLeft().toInt() / 1000))]
                 Logd(TAG, "onSleepTimerAlmostExpired: $multiplicator")
@@ -790,10 +797,10 @@ class PlaybackService : MediaLibraryService() {
         var playbackService: PlaybackService? = null
         var mediaBrowser: MediaBrowser? = null
 
-        @JvmField
+        
         var isRunning: Boolean = false
 
-        @JvmStatic
+        
         @Volatile
         var isCasting: Boolean = false
             internal set
@@ -817,7 +824,7 @@ class PlaybackService : MediaLibraryService() {
          * type of media that is being played or the medaitype that is provided as an argument.
          * If the playbackservice is not running, the type of the last played media will be looked up.
          */
-        @JvmStatic
+        
         fun getPlayerActivityIntent(context: Context, mediaType_: MediaType? = null): Intent {
             val mediaType = mediaType_ ?: currentMediaType
             val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else curState.curIsVideo

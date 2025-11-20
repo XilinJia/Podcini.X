@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.util.error
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
+import ac.mdiq.podcini.storage.utils.getDataFolder
 import ac.mdiq.podcini.util.Logs
 import android.os.Build
 import org.apache.commons.io.IOUtils
@@ -23,11 +23,11 @@ class CrashReportWriter : Thread.UncaughtExceptionHandler {
     companion object {
         private val TAG: String = CrashReportWriter::class.simpleName ?: "Anonymous"
 
-        @JvmStatic
+        
         val crashLogFile: File
             get() = File(getDataFolder(null), "crash-report.log")
 
-        @JvmStatic
+        
         fun write(exception: Throwable) {
             val path = crashLogFile
             var out: PrintWriter? = null

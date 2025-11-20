@@ -3,11 +3,11 @@ package ac.mdiq.podcini.preferences
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
-import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
+import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.DurationConverter.convertOnSpeed
-import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.convertOnSpeed
+import ac.mdiq.podcini.storage.utils.getDurationStringLong
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -52,13 +52,13 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.edit
+import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import kotlin.math.max
-import androidx.core.content.edit
-import androidx.media3.common.util.UnstableApi
 
 object SleepTimerPreferences {
     private val TAG: String = SleepTimerPreferences::class.simpleName ?: "Anonymous"
@@ -83,34 +83,34 @@ object SleepTimerPreferences {
      * Sets up the UserPreferences class.
      * @throws IllegalArgumentException if context is null
      */
-    @JvmStatic
+    
     fun init(context: Context) {
         Logd(TAG, "Creating new instance of SleepTimerPreferences")
         prefs = context.getSharedPreferences(Prefs.SleepTimerDialog.name, Context.MODE_PRIVATE)
     }
 
-    @JvmStatic
+    
     fun lastTimerValue(): String = prefs!!.getString(Prefs.LastValue.name, DEFAULT_LAST_TIMER) ?: DEFAULT_LAST_TIMER    // in minutes
 
-    @JvmStatic
+    
     fun timerMillis(): Long = TimeUnit.MINUTES.toMillis(lastTimerValue().toLong())
 
-    @JvmStatic
+    
     fun vibrate(): Boolean = prefs!!.getBoolean(Prefs.Vibrate.name, false)
 
-    @JvmStatic
+    
     fun shakeToReset(): Boolean = prefs!!.getBoolean(Prefs.ShakeToReset.name, true)
 
-    @JvmStatic
+    
     fun autoEnable(): Boolean = prefs!!.getBoolean(Prefs.AutoEnable.name, false)
 
-    @JvmStatic
+    
     fun autoEnableFrom(): Int = prefs!!.getInt(Prefs.AutoEnableFrom.name, DEFAULT_AUTO_ENABLE_FROM)
 
-    @JvmStatic
+    
     fun autoEnableTo(): Int = prefs!!.getInt(Prefs.AutoEnableTo.name, DEFAULT_AUTO_ENABLE_TO)
 
-    @JvmStatic
+    
     fun isInTimeRange(from: Int, to: Int, current: Int): Boolean {
         return when {
             from < to -> current in from..<to   // Range covers one day
@@ -123,7 +123,7 @@ object SleepTimerPreferences {
     @Composable
     fun SleepTimerDialog(onDismiss: () -> Unit) {
         val lcScope = rememberCoroutineScope()
-        val timeLeft = remember { taskManager?.sleepTimerTimeLeft?:0 }
+        val timeLeft = remember { sleepManager?.sleepTimerTimeLeft?:0 }
         var showTimeDisplay by remember { mutableStateOf(false) }
         var showTimeSetup by remember { mutableStateOf(true) }
         var timerText by remember { mutableStateOf(getDurationStringLong(timeLeft.toInt())) }
@@ -156,8 +156,8 @@ object SleepTimerPreferences {
         var toEnd by remember { mutableStateOf(false) }
         var etxtTime by remember { mutableStateOf(lastTimerValue()) }
         fun extendSleepTimer(extendTime: Long) {
-            val timeLeft = taskManager?.sleepTimerTimeLeft ?: Episode.INVALID_TIME.toLong()
-            if (timeLeft != Episode.INVALID_TIME.toLong()) taskManager?.setSleepTimer(timeLeft + extendTime)
+            val timeLeft = sleepManager?.sleepTimerTimeLeft ?: Episode.INVALID_TIME.toLong()
+            if (timeLeft != Episode.INVALID_TIME.toLong()) sleepManager?.setSleepTimer(timeLeft + extendTime)
         }
 
         val scrollState = rememberScrollState()
@@ -181,7 +181,7 @@ object SleepTimerPreferences {
                                 Logd("SleepTimerDialog", "Sleep timer set: $time")
                                 if (time == 0L) throw NumberFormatException("Timer must not be zero")
                                 prefs!!.edit { putString(Prefs.LastValue.name, time.toString()) }
-                                taskManager?.setSleepTimer(timerMillis())
+                                sleepManager?.setSleepTimer(timerMillis())
                                 showTimeSetup = false
                                 showTimeDisplay = true
 //                        closeKeyboard(content)
@@ -190,7 +190,7 @@ object SleepTimerPreferences {
                     }
                     if (showTimeDisplay || timeLeft > 0) {
                         Text(timerText, style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                        Button(modifier = Modifier.fillMaxWidth(), onClick = { taskManager?.disableSleepTimer() }) { Text(stringResource(R.string.disable_sleeptimer_label)) }
+                        Button(modifier = Modifier.fillMaxWidth(), onClick = { sleepManager?.disableSleepTimer() }) { Text(stringResource(R.string.disable_sleeptimer_label)) }
                         Row {
                             Button(onClick = { extendSleepTimer((10 * 1000 * 60).toLong()) }) { Text(stringResource(R.string.extend_sleep_timer_label, 10)) }
                             Spacer(Modifier.weight(1f))

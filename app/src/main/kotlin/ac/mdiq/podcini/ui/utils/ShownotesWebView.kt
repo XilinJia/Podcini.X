@@ -2,12 +2,13 @@ package ac.mdiq.podcini.ui.utils
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.utils.NetworkUtils
-import ac.mdiq.podcini.storage.utils.DurationConverter
-import ac.mdiq.podcini.util.IntentUtils
+import ac.mdiq.podcini.storage.utils.getDurationStringLong
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.ShareUtils
+import ac.mdiq.podcini.util.isCallable
+import ac.mdiq.podcini.util.openInBrowser
+import ac.mdiq.podcini.util.shareLink
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -61,7 +62,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
                 if (ShownotesCleaner.isTimecodeLink(url) && timecodeSelectedListener != null) timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(url))
-                else IntentUtils.openInBrowser(context, url)
+                else openInBrowser(context, url)
                 return true
             }
             override fun onPageFinished(view: WebView, url: String) {
@@ -99,8 +100,8 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         if (selectedUrl == null) return false
         val itemId = item.itemId
         when (itemId) {
-            R.id.open_in_browser_item -> if (selectedUrl != null) IntentUtils.openInBrowser(context, selectedUrl!!)
-            R.id.share_url_item -> if (selectedUrl != null) ShareUtils.shareLink(context, selectedUrl!!)
+            R.id.open_in_browser_item -> if (selectedUrl != null) openInBrowser(context, selectedUrl!!)
+            R.id.share_url_item -> if (selectedUrl != null) shareLink(context, selectedUrl!!)
             R.id.copy_url_item -> {
                 val clipData: ClipData = ClipData.newPlainText(selectedUrl, selectedUrl)
                 val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -126,11 +127,11 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         if (selectedUrl == null) return
         if (ShownotesCleaner.isTimecodeLink(selectedUrl)) {
             menu.add(Menu.NONE, R.id.go_to_position_item, Menu.NONE, R.string.go_to_position_label)
-            menu.setHeaderTitle(DurationConverter.getDurationStringLong(ShownotesCleaner.getTimecodeLinkTime(selectedUrl)))
+            menu.setHeaderTitle(getDurationStringLong(ShownotesCleaner.getTimecodeLinkTime(selectedUrl)))
         } else {
             val uri = selectedUrl!!.toUri()
             val intent = Intent(Intent.ACTION_VIEW, uri)
-            if (IntentUtils.isCallable(context, intent)) menu.add(Menu.NONE, R.id.open_in_browser_item, Menu.NONE, R.string.open_in_browser_label)
+            if (isCallable(context, intent)) menu.add(Menu.NONE, R.id.open_in_browser_item, Menu.NONE, R.string.open_in_browser_label)
             menu.add(Menu.NONE, R.id.copy_url_item, Menu.NONE, R.string.copy_url_label)
             menu.add(Menu.NONE, R.id.share_url_item, Menu.NONE, R.string.share_url_label)
             menu.setHeaderTitle(selectedUrl)

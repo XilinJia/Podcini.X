@@ -2,22 +2,21 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.getFeedByTitleAndAuthor
-import ac.mdiq.podcini.storage.database.LogsAndStats.DownloadResultComparator
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.getFeedByTitleAndAuthor
+import ac.mdiq.podcini.storage.database.DownloadResultComparator
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
-import ac.mdiq.podcini.storage.utils.Rating.Companion.fromCode
+import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
-
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.utils.episodeOnDisplay
@@ -29,7 +28,7 @@ import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.MiscFormatter.formatDateTimeFlex
+import ac.mdiq.podcini.util.formatDateTimeFlex
 import ac.mdiq.podcini.util.error.DownloadErrorLabel.from
 import ac.mdiq.podcini.util.toastMessages
 import android.content.ClipData

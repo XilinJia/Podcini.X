@@ -14,11 +14,11 @@ import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
-import ac.mdiq.podcini.storage.database.Feeds.cancelMonitorFeeds
-import ac.mdiq.podcini.storage.database.Feeds.compileTags
-import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.monitorFeedList
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
+import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
+import ac.mdiq.podcini.storage.database.compileTags
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.monitorFeedList
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -551,7 +551,7 @@ class MainActivity : BaseActivity() {
 
         var isBSExpanded by mutableStateOf(false)
 
-        @JvmStatic
+        
         fun getIntentToOpenFeed(context: Context, feedId: Long): Intent {
             val intent = Intent(context.applicationContext, MainActivity::class.java)
             intent.putExtra(Extras.fragment_feed_id.name, feedId)
@@ -559,7 +559,7 @@ class MainActivity : BaseActivity() {
             return intent
         }
 
-        @JvmStatic
+        
         fun showOnlineFeed(context: Context, feedUrl: String, isShared: Boolean = false): Intent {
             val intent = Intent(context.applicationContext, MainActivity::class.java)
             intent.putExtra(Extras.fragment_feed_url.name, feedUrl)
@@ -568,7 +568,7 @@ class MainActivity : BaseActivity() {
             return intent
         }
 
-        @JvmStatic
+        
         fun showOnlineSearch(context: Context, query: String): Intent {
             val intent = Intent(context.applicationContext, MainActivity::class.java)
             intent.putExtra(Extras.search_string.name, query)

@@ -26,8 +26,8 @@ android {
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 193
-        versionName "8.25.2"
+        versionCode 194
+        versionName "9.0.0"
 
         ndkVersion "29.0.14206865"
 
@@ -166,13 +166,13 @@ android {
 }
 
 dependencies {
-    implementation platform('androidx.compose:compose-bom:2025.11.00')
+    implementation platform('androidx.compose:compose-bom:2025.11.01')
     implementation "androidx.compose.material3:material3"
     implementation "androidx.compose.material:material-icons-core"
     implementation 'androidx.compose.ui:ui'
     implementation 'androidx.compose.ui:ui-graphics'
 
-    implementation "androidx.activity:activity-compose:1.11.0"
+    implementation "androidx.activity:activity-compose:1.12.0"
     implementation "androidx.constraintlayout:constraintlayout-compose:1.1.1"
     implementation "androidx.navigation:navigation-compose:2.9.6"
 
@@ -180,10 +180,10 @@ dependencies {
     implementation "androidx.core:core-ktx:1.17.0"
     implementation "androidx.documentfile:documentfile:1.1.0"
     implementation "androidx.core:core-splashscreen:1.2.0"
-    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.9.4"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.10.0"
     implementation "androidx.preference:preference-ktx:1.2.1"
     implementation "androidx.webkit:webkit:1.14.0"
-    implementation "androidx.window:window:1.5.0"
+    implementation "androidx.window:window:1.5.1"
     implementation "androidx.work:work-runtime:2.11.0"
 
     implementation "androidx.media3:media3-exoplayer:1.8.0"
@@ -203,20 +203,20 @@ dependencies {
     implementation "io.coil-kt:coil:2.7.0"
     implementation "io.coil-kt:coil-compose:2.7.0"
     implementation "commons-io:commons-io:2.21.0"   // 20030203.000550 is not newer
-    implementation "org.apache.commons:commons-lang3:3.19.0"
+    implementation "org.apache.commons:commons-lang3:3.20.0"
 
     implementation "org.jsoup:jsoup:1.21.2"
-    implementation "com.squareup.okhttp3:okhttp:5.3.0"
-    implementation "com.squareup.okio:okio:3.16.2"
-    implementation "com.squareup.okhttp3:okhttp-urlconnection:5.3.0"
+    implementation "com.squareup.okhttp3:okhttp:5.3.1"
+    implementation "com.squareup.okio:okio:3.16.3"
+    implementation "com.squareup.okhttp3:okhttp-urlconnection:5.3.1"
     implementation "net.dankito.readability4j:readability4j:1.0.8"
     implementation "com.github.ByteHamster:SearchPreference:v2.5.0"
 
     compileOnly "com.google.android.wearable:wearable:2.9.0"
 
     freeImplementation "org.conscrypt:conscrypt-android:2.5.3"
-    debugImplementation "androidx.compose.ui:ui-tooling:1.9.4"
-    debugImplementation "androidx.compose.ui:ui-tooling-preview:1.9.4"
+    debugImplementation "androidx.compose.ui:ui-tooling:1.9.5"
+    debugImplementation "androidx.compose.ui:ui-tooling-preview:1.9.5"
 
     playImplementation "com.google.android.play:core-ktx:1.8.1"
     playImplementation "com.google.android.gms:play-services-base:18.9.0"

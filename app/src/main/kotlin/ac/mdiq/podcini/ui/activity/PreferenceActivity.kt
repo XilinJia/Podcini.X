@@ -25,10 +25,10 @@ import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.util.openInBrowser
 import ac.mdiq.podcini.util.toastMassege
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -36,8 +36,8 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.view.MenuItem
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -124,10 +124,14 @@ class PreferenceActivity : ComponentActivity() {
             CustomTheme(this) {
                 if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                 if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+                BackHandler(enabled = true) {
+                    if (navController.previousBackStackEntry != null) navController.popBackStack()
+                    else finish()
+                }
                 Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) },
                     navigationIcon = { IconButton(onClick = {
                         if (navController.previousBackStackEntry != null) navController.popBackStack()
-                        else onBackPressed()
+                        else finish()
                     }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }) }
                 ) { innerPadding ->
                     NavHost(navController = navController, startDestination = Screens.Main.name, Modifier.padding(innerPadding)) {
@@ -161,22 +165,6 @@ class PreferenceActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-//            if (supportFragmentManager.backStackEntryCount == 0) finish()
-//            else {
-//                val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-//                var view = currentFocus
-//                //If no view currently has focus, create a new one, just so we can grab a window token from it
-//                if (view == null) view = View(this)
-//                imm.hideSoftInputFromWindow(view.windowToken, 0)
-//                supportFragmentManager.popBackStack()
-//            }
-            return true
-        }
-        return false
     }
 
     override fun onStart() {
@@ -252,12 +240,6 @@ class PreferenceActivity : ComponentActivity() {
             IconTitleSummaryScreenRow(R.drawable.ic_download, R.string.network_pref, R.string.downloads_pref_sum, Screens.DownloadScreen.name)
             IconTitleSummaryScreenRow(R.drawable.ic_storage, R.string.import_export_pref, R.string.import_export_summary, Screens.ImportExportScreen.name)
             IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { navController.navigate(Screens.NotificationScreen.name) }
-            TitleSummarySwitchPrefRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, AppPrefs.prefOPMLBackup) {
-                putPref(AppPrefs.prefOPMLBackup, it)
-                val intent = packageManager?.getLaunchIntentForPackage(packageName)
-                intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                startActivity(intent)
-            }
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
             Text(stringResource(R.string.project_pref), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
             IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInBrowser(this@PreferenceActivity, githubAddress) }
@@ -339,7 +321,6 @@ class PreferenceActivity : ComponentActivity() {
                                 while ((reader.readLine()?.also { line = it }) != null) sb.append(line).append("\n")
                                 licenseText = sb.toString()
                                 showLicense.value = true
-//                                MaterialAlertDialogBuilder(this@PreferenceActivity).setMessage(licenseText).show()
                             } catch (e: IOException) { Logs(TAG, e) }
 //                            showLicenseText(licenses[curLicenseIndex].licenseTextFile)
                         }) { Text("View license") }
@@ -405,18 +386,6 @@ class PreferenceActivity : ComponentActivity() {
             }
 //            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
 //                Column(modifier = Modifier.weight(1f)) {
-//                    Text(stringResource(R.string.pref_black_theme_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-//                    Text(stringResource(R.string.pref_black_theme_message), color = textColor)
-//                }
-//                var isChecked by remember { mutableStateOf(getPref(AppPrefs.prefThemeBlack, false)) }
-//                Switch(checked = isChecked, onCheckedChange = {
-//                    isChecked = it
-//                    putPref(AppPrefs.prefThemeBlack, it)
-//                    recreate()
-//                })
-//            }
-//            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-//                Column(modifier = Modifier.weight(1f)) {
 //                    Text(stringResource(R.string.pref_tinted_theme_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
 //                    Text(stringResource(R.string.pref_tinted_theme_message), color = textColor)
 //                }
@@ -428,9 +397,7 @@ class PreferenceActivity : ComponentActivity() {
 //                })
 //            }
             TitleSummarySwitchPrefRow(R.string.pref_episode_cover_title, R.string.pref_episode_cover_summary, AppPrefs.prefEpisodeCover)
-            Text(stringResource(R.string.subscriptions_label), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
-            TitleSummarySwitchPrefRow(R.string.pref_swipe_refresh_title, R.string.pref_swipe_refresh_sum, AppPrefs.prefSwipeToRefreshAll)
-            TitleSummarySwitchPrefRow(R.string.pref_feedGridLayout_title, R.string.pref_feedGridLayout_sum, AppPrefs.prefFeedGridLayout)
+
             Text(stringResource(R.string.external_elements), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
             TitleSummarySwitchPrefRow(R.string.pref_show_notification_skip_title, R.string.pref_show_notification_skip_sum, AppPrefs.prefShowSkip)
             Text(stringResource(R.string.behavior), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))

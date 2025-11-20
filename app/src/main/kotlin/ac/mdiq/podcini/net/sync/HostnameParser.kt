@@ -5,13 +5,13 @@ import java.net.IDN
 import java.util.regex.Pattern
 
 class HostnameParser(hosturl: String?) {
-    @JvmField
+    
     var scheme: String? = null
-    @JvmField
+    
     var port: Int = 0
-    @JvmField
+    
     var host: String? = null
-    @JvmField
+    
     var subfolder: String? = null
 
     init {

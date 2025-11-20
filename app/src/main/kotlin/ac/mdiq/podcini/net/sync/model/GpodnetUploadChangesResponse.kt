@@ -19,7 +19,7 @@ class GpodnetUploadChangesResponse(timestamp: Long, private val updatedUrls: Map
          *
          * @throws org.json.JSONException If the method could not parse the JSONObject.
          */
-        @JvmStatic
+        
         @Throws(JSONException::class)
         fun fromJSONObject(objectString: String?): GpodnetUploadChangesResponse {
 //            val `object` = JSONObject(objectString)

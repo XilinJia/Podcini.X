@@ -3,7 +3,7 @@ package ac.mdiq.podcini.net.download.service
 
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.StorageUtils.feedfilePath
+import ac.mdiq.podcini.storage.utils.feedfilePath
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -15,7 +15,7 @@ import java.io.File
 object DownloadRequestCreator {
     private val TAG: String = DownloadRequestCreator::class.simpleName ?: "Anonymous"
 
-    @JvmStatic
+    
     fun create(feed: Feed): DownloadRequest.Builder {
         val dest = File(feedfilePath, feed.getFeedfileName())
         if (dest.exists()) dest.delete()
@@ -25,7 +25,7 @@ object DownloadRequestCreator {
         return DownloadRequest.Builder(dest.toString(), feed).withAuthentication(username, password).lastModified(feed.lastUpdate)
     }
 
-    @JvmStatic
+    
     fun create(media: Episode): DownloadRequest.Builder {
         Logd(TAG, "create: ${media.fileUrl} ${media.title}")
         val destUriString = try { media.getMediaFileUriString() } catch (e: Throwable ) {

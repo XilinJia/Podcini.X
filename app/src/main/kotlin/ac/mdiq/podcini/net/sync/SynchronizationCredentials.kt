@@ -3,7 +3,7 @@ package ac.mdiq.podcini.net.sync
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink.clearQueue
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.util.config.ClientConfig
+import ac.mdiq.podcini.config.ClientConfig
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.edit
@@ -22,35 +22,35 @@ object SynchronizationCredentials {
     private val preferences: SharedPreferences
         get() = ClientConfig.applicationCallbacks!!.getApplicationInstance()!!.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
 
-    @JvmStatic
+    
     var username: String?
         get() = preferences.getString(PREF_USERNAME, null)
         set(username) {
             preferences.edit { putString(PREF_USERNAME, username) }
         }
 
-    @JvmStatic
+    
     var password: String?
         get() = preferences.getString(PREF_PASSWORD, null)
         set(password) {
             preferences.edit { putString(PREF_PASSWORD, password) }
         }
 
-    @JvmStatic
+    
     var deviceID: String?
         get() = preferences.getString(PREF_DEVICEID, null)
         set(deviceID) {
             preferences.edit { putString(PREF_DEVICEID, deviceID) }
         }
 
-    @JvmStatic
+    
     var hosturl: String?
         get() = preferences.getString(PREF_HOSTNAME, null)
         set(value) {
             preferences.edit { putString(PREF_HOSTNAME, value) }
         }
 
-    @JvmStatic
+    
     var hostport: Int
         get() = preferences.getInt(PREF_HOSTPORT, 0)
         set(value) {

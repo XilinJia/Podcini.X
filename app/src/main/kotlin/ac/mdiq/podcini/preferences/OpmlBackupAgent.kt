@@ -5,8 +5,8 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlReader
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
-import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
+import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge

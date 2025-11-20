@@ -9,6 +9,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.getFinalRedirectedUrl
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.ui.screens.AudioPlayerVM
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
 import ac.mdiq.podcini.util.Loge
@@ -34,7 +35,7 @@ open class GearBoxBase {
 
     open fun isGearUrl(url: URL): Boolean = false
 
-    open fun supportExtraSort(): Boolean = false
+    open fun includeExtraSort(): List<EpisodeSortOrder> = listOf()
 
     open fun cleanGearData() {}
     open fun buildWebviewData(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
@@ -45,7 +46,7 @@ open class GearBoxBase {
     }
 
     @Composable
-    open fun PlayerDetailedGearPanel(vm: AudioPlayerVM) {}
+    open fun PlayerDetailedGearPanel(curItem: Episode?, reset: Boolean, cb: (Boolean)->Unit) {}
 
     @Composable
     open fun GearSearchText() {}

@@ -7,7 +7,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase
  * Stub implementation of CastPsmp for Free build flavour
  */
 object CastMediaPlayer {
-    @JvmStatic
+    
     fun getInstanceIfConnected(context: Context): MediaPlayerBase? {
         return null
     }

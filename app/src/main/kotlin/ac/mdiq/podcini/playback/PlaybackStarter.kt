@@ -6,15 +6,18 @@ import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.EXTRA_ALLOW_STREAM_THIS_TIME
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPrepared
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStopped
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
-import ac.mdiq.podcini.playback.base.PlayerStatus
-import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
+import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
-import ac.mdiq.podcini.storage.database.Episodes.checkAndMarkDuplicates
+import ac.mdiq.podcini.storage.database.checkAndMarkDuplicates
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.util.Logd
@@ -28,6 +31,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
     private val TAG = "PlaybackStarter"
 
     private var shouldStreamThisTime = false
+
     val intent: Intent
         @UnstableApi
         get() {
@@ -59,13 +63,13 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
             if (future.isDone && aController?.isConnected == true) {
                 Logd(TAG, "aController ready, play, $status")
                 mPlayer?.isStreaming = shouldStreamThisTime
-                when (status) {
-                    PlayerStatus.PLAYING -> playPause()
-                    PlayerStatus.PAUSED, PlayerStatus.PREPARED -> mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
-                    PlayerStatus.STOPPED -> ContextCompat.startForegroundService(context, intent)
+                when {
+                    isPlaying -> playPause()
+                    isPaused || isPrepared -> mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                    isStopped -> ContextCompat.startForegroundService(context, intent)
                     else -> mPlayer?.reinit()
                 }
-                taskManager?.restartSleepTimer()
+                sleepManager?.restartSleepTimer()
             } else {
                 Logd(TAG, "starting PlaybackService")
                 ContextCompat.startForegroundService(context, intent)

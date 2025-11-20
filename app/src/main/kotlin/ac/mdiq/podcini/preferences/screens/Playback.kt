@@ -14,7 +14,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.streamingCacheSizeMB
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
-import ac.mdiq.podcini.storage.database.Queues.EnqueueLocation
+import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -108,7 +108,6 @@ fun PlaybackPreferencesScreen(activity: PreferenceActivity) {
             fallbackSpeed = round(100 * speed_) / 100f
         }
         TitleSummaryActionColumn(R.string.pref_fallback_speed, R.string.pref_fallback_speed_sum) { showFBSpeedDialog = true }
-//        TitleSummarySwitchPrefRow(R.string.pref_playback_time_respects_speed_title, R.string.pref_playback_time_respects_speed_sum, AppPrefs.prefPlaybackTimeRespectsSpeed)
         var showFFSpeedDialog by remember { mutableStateOf(false) }
         if (showFFSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = speedforwardSpeed, maxSpeed = 10f, isGlobal = true,
             onDismiss = { showFFSpeedDialog = false }) { speed ->
@@ -197,32 +196,7 @@ fun PlaybackPreferencesScreen(activity: PreferenceActivity) {
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         Text(stringResource(R.string.queue_label) + "/" + stringResource(R.string.episodes_label), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
         TitleSummarySwitchPrefRow(R.string.pref_enqueue_downloaded_title, R.string.pref_enqueue_downloaded_summary, AppPrefs.prefEnqueueDownloaded)
-        var showEnqueueLocationOptions by remember { mutableStateOf(false) }
-        var tempLocationOption by remember { mutableStateOf(EnqueueLocation.BACK.name) }
-        TitleSummaryActionColumn(R.string.pref_enqueue_location_title, R.string.pref_enqueue_location_sum) { showEnqueueLocationOptions = true }
-        if (showEnqueueLocationOptions) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showEnqueueLocationOptions = false },
-                title = { Text(stringResource(R.string.pref_hardware_previous_button_title), style = CustomTextStyles.titleCustom) },
-                text = {
-                    Column {
-                        EnqueueLocation.entries.forEach { option ->
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(2.dp)
-                                .clickable { tempLocationOption = option.name }) {
-                                Checkbox(checked = tempLocationOption == option.name, onCheckedChange = { tempLocationOption = option.name })
-                                Text(stringResource(option.res), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
-                            }
-                        }
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = {
-                        putPref(AppPrefs.prefEnqueueLocation, tempLocationOption)
-                        showEnqueueLocationOptions = false
-                    }) { Text(text = "OK") }
-                },
-                dismissButton = { TextButton(onClick = { showEnqueueLocationOptions = false }) { Text(stringResource(R.string.cancel_label)) } }
-            )
-        }
+
         TitleSummarySwitchPrefRow(R.string.pref_followQueue_title, R.string.pref_followQueue_sum, AppPrefs.prefFollowQueue)
         TitleSummarySwitchPrefRow(R.string.pref_skip_keeps_episodes_title, R.string.pref_skip_keeps_episodes_sum, AppPrefs.prefSkipKeepsEpisode)
         TitleSummarySwitchPrefRow(R.string.pref_mark_played_removes_from_queue_title, R.string.pref_mark_played_removes_from_queue_sum, AppPrefs.prefRemoveFromQueueMarkedPlayed)

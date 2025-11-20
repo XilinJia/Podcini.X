@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.storage.utils
+package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.util.Logd
@@ -9,7 +9,6 @@ import java.util.regex.Pattern
 // We're storing the strings and not the parsed terms because
 // 1. It's easier to show the user exactly what they typed in this way (we don't have to recreate it)
 // 2. We don't know if we'll actually be asked to parse anything anyways.
-
 class FeedAutoDownloadFilter(
         val includeFilterRaw: String? = "",
         val excludeFilterRaw: String? = "",

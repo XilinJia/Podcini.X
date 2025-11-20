@@ -1,21 +1,22 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.storage.database.Episodes.getEpisode
-import ac.mdiq.podcini.storage.database.RealmDB.MonitorEntity
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.subscribeEpisode
-import ac.mdiq.podcini.storage.database.RealmDB.unsubscribeEpisode
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.getEpisode
+import ac.mdiq.podcini.storage.database.MonitorEntity
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.subscribeEpisode
+import ac.mdiq.podcini.storage.database.unsubscribeEpisode
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.NO_MEDIA_PLAYING
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_OTHER
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
@@ -208,12 +209,12 @@ object InTheatre {
     }
 
     @OptIn(UnstableApi::class)
-    @JvmStatic
+    
     fun isCurrentlyPlaying(media: Episode?): Boolean {
-        return isCurMedia(media) && PlaybackService.isRunning && MediaPlayerBase.status == PlayerStatus.PLAYING
+        return isCurMedia(media) && PlaybackService.isRunning && isPlaying
     }
 
-    @JvmStatic
+    
     fun isCurMedia(media: Episode?): Boolean {
         return media != null && curEpisode?.id == media.id
     }

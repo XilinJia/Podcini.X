@@ -3,7 +3,7 @@ package ac.mdiq.podcini.util
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import android.content.Context
 import android.view.KeyEvent
 import kotlinx.coroutines.CoroutineScope

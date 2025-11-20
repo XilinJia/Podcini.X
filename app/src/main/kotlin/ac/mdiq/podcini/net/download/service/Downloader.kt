@@ -1,11 +1,10 @@
 package ac.mdiq.podcini.net.download.service
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.storage.model.DownloadResult
-import ac.mdiq.podcini.util.config.ClientConfig
 import android.content.Context
 import android.net.wifi.WifiManager
-import android.net.wifi.WifiManager.WifiLock
 import java.util.Date
 
 abstract class Downloader(val downloadRequest: DownloadRequest) {
@@ -13,13 +12,13 @@ abstract class Downloader(val downloadRequest: DownloadRequest) {
     var isFinished: Boolean = false
         private set
 
-    @JvmField
+    
     @Volatile
     var cancelled: Boolean
-    @JvmField
+    
     var permanentRedirectUrl: String? = null
 
-    @JvmField
+    
     val result: DownloadResult
 
     init {
@@ -30,9 +29,15 @@ abstract class Downloader(val downloadRequest: DownloadRequest) {
 
     protected abstract fun download()
 
+//    suspend fun run(): Downloader {
+//        download()
+//        isFinished = true
+//        return this
+//    }
+
     suspend fun run(): Downloader {
         val wifiManager = ClientConfig.applicationCallbacks?.getApplicationInstance()?.applicationContext?.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-        var wifiLock: WifiLock? = null
+        var wifiLock: WifiManager.WifiLock? = null
         if (wifiManager != null) {
             wifiLock = wifiManager.createWifiLock(TAG)
             wifiLock.acquire()

@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
-import ac.mdiq.podcini.util.config.ClientConfigurator
+import ac.mdiq.podcini.config.ClientConfigurator
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.util.Logd
 

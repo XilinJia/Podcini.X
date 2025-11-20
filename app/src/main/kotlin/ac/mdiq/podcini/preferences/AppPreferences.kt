@@ -2,11 +2,10 @@ package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
-import ac.mdiq.podcini.storage.database.Queues.EnqueueLocation
-import ac.mdiq.podcini.storage.utils.EpisodeFilter
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
-import ac.mdiq.podcini.storage.utils.ProxyConfig
-import ac.mdiq.podcini.storage.utils.StorageUtils.createNoMediaFile
+import ac.mdiq.podcini.storage.specs.EpisodeFilter
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.ProxyConfig
+import ac.mdiq.podcini.storage.utils.createNoMediaFile
 import ac.mdiq.podcini.util.Logd
 import android.annotation.SuppressLint
 import android.content.Context
@@ -206,7 +205,7 @@ object AppPreferences {
         prefThemeBlack(false),
         prefTintedColors(false),
         prefFeedGridLayout(false),
-        prefSwipeToRefreshAll(true),
+//        prefSwipeToRefreshAll(true),
         prefEpisodeCover(false),
 //        showTimeLeft(false),
         prefShowTimeLeft(0),
@@ -214,8 +213,6 @@ object AppPreferences {
         prefShowDownloadReport(true),
         prefDefaultPage(DefaultPages.Subscriptions.name),
         prefBackButtonOpensDrawer(false),
-        prefQueueKeepSorted(false),
-        prefQueueKeepSortedOrder("use-default"),
         prefShowErrorToasts(true),
         prefPrintDebugLogs(false),
 
@@ -252,7 +249,6 @@ object AppPreferences {
         prefAutoDeleteLocal(false),
         prefPlaybackSpeedArray(null),
         prefFallbackSpeed("0.00"),
-//        prefPlaybackTimeRespectsSpeed(false),
         prefStreamOverDownload(false),
         prefLowQualityOnMobile(false),
         prefSpeedforwardSpeed("0.00"),
@@ -260,9 +256,7 @@ object AppPreferences {
 
         // Network
         prefEnqueueDownloaded(true),
-        prefEnqueueLocation(EnqueueLocation.BACK.name),
-//        prefAutoUpdateStartTime(":"),
-//        prefAutoUpdateInterval("12"),
+//        prefEnqueueLocation(EnqueueLocation.BACK.name),
 
         prefAutoUpdateIntervalMinutes("360"),
 
@@ -273,8 +267,8 @@ object AppPreferences {
         prefEnableAutoDl(false),
         prefEnableAutoDownloadOnBattery(false),
 
-        prefAutoDLIncludeQueues(setOf<String>()),   // special
-        prefAutoDLOnEmptyIncludeQueues(setOf<String>()),   // special
+//        prefAutoDLIncludeQueues(setOf<String>()),   // special
+//        prefAutoDLOnEmptyIncludeQueues(setOf<String>()),   // special
 
         feedIdsToRefresh(setOf<String>()),
 

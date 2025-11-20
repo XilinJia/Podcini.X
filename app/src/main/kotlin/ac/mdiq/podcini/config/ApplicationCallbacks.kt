@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.util.config
+package ac.mdiq.podcini.config
 
 import android.app.Application
 

@@ -1,13 +1,10 @@
-package ac.mdiq.podcini.storage.utils
+package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
-import ac.mdiq.podcini.storage.model.Feed.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.util.Logd
 import java.io.Serializable
-import kotlin.String
 
 class FeedFilter(vararg properties_: String) : Serializable {
     val properties: HashSet<String> = setOf(*properties_).filter { it.isNotEmpty() }.map {it.trim()}.toHashSet()
@@ -26,8 +23,8 @@ class FeedFilter(vararg properties_: String) : Serializable {
         }
 
         when {
-            properties.contains(States.global_playSpeed.name) -> statements.add(" playSpeed == $SPEED_USE_GLOBAL ")
-            properties.contains(States.custom_playSpeed.name) -> statements.add(" playSpeed != $SPEED_USE_GLOBAL ")
+            properties.contains(States.global_playSpeed.name) -> statements.add(" playSpeed == ${Feed.SPEED_USE_GLOBAL} ")
+            properties.contains(States.custom_playSpeed.name) -> statements.add(" playSpeed != ${Feed.SPEED_USE_GLOBAL} ")
         }
         when {
             properties.contains(States.has_skips.name) -> statements.add(" (introSkip != 0 OR endingSkip != 0) ")
@@ -38,8 +35,8 @@ class FeedFilter(vararg properties_: String) : Serializable {
             properties.contains(States.no_comments.name) -> statements.add(" comment == '' ")
         }
         when {
-            properties.contains(States.synthetic.name) -> statements.add(" id < $MAX_SYNTHETIC_ID ")
-            properties.contains(States.normal.name) -> statements.add(" id > $MAX_SYNTHETIC_ID ")
+            properties.contains(States.synthetic.name) -> statements.add(" id < ${Feed.MAX_SYNTHETIC_ID} ")
+            properties.contains(States.normal.name) -> statements.add(" id > ${Feed.MAX_SYNTHETIC_ID} ")
         }
         when {
             properties.contains(States.has_video.name) -> statements.add(" hasVideoMedia == true ")
@@ -134,7 +131,8 @@ class FeedFilter(vararg properties_: String) : Serializable {
     enum class FeedFilterGroup(val nameRes: Int, vararg values_: ItemProperties) {
         KEEP_UPDATED(R.string.keep_updated, ItemProperties(R.string.yes, States.keepUpdated.name), ItemProperties(R.string.no, States.not_keepUpdated.name)),
         OPINION(R.string.commented, ItemProperties(R.string.yes, States.has_comments.name), ItemProperties(R.string.no, States.no_comments.name)),
-        RATING(R.string.rating_label, ItemProperties(R.string.unrated, States.unrated.name),
+        RATING(
+            R.string.rating_label, ItemProperties(R.string.unrated, States.unrated.name),
             ItemProperties(R.string.trash, States.trash.name),
             ItemProperties(R.string.bad, States.bad.name),
             ItemProperties(R.string.OK, States.OK.name),
@@ -146,7 +144,8 @@ class FeedFilter(vararg properties_: String) : Serializable {
         ORIGIN(R.string.feed_origin, ItemProperties(R.string.youtube, States.youtube.name), ItemProperties(R.string.rss, States.rss.name)),
         TYPE(R.string.feed_type, ItemProperties(R.string.synthetic, States.synthetic.name), ItemProperties(R.string.normal, States.normal.name)),
         SKIPS(R.string.has_skips, ItemProperties(R.string.yes, States.has_skips.name), ItemProperties(R.string.no, States.no_skips.name)),
-        AUTO_DELETE(R.string.auto_delete, ItemProperties(R.string.always, States.always_auto_delete.name),
+        AUTO_DELETE(
+            R.string.auto_delete, ItemProperties(R.string.always, States.always_auto_delete.name),
             ItemProperties(R.string.never, States.never_auto_delete.name),
             ItemProperties(R.string.global, States.global_auto_delete.name), ),
         PREF_STREAMING(R.string.pref_stream_over_download_title, ItemProperties(R.string.yes, States.pref_streaming.name), ItemProperties(R.string.no, States.not_pref_streaming.name)),
@@ -159,7 +158,6 @@ class FeedFilter(vararg properties_: String) : Serializable {
     }
 
     companion object {
-        @JvmStatic
         fun unfiltered(): FeedFilter {
             return FeedFilter("")
         }

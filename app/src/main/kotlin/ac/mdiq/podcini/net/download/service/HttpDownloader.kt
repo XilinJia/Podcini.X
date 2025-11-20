@@ -4,13 +4,13 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
-import ac.mdiq.podcini.net.feed.parser.utils.DateUtils.parse
+import ac.mdiq.podcini.net.feed.parser.utils.parseDate
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed.Companion.FEEDFILETYPE_FEED
-import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
-import ac.mdiq.podcini.storage.utils.StorageUtils.freeSpaceAvailable
+import ac.mdiq.podcini.storage.utils.ensureMediaFileExists
+import ac.mdiq.podcini.storage.utils.freeSpaceAvailable
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -60,7 +60,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
             if (!downloadRequest.lastModified.isNullOrEmpty()) {
                 val lastModified = downloadRequest.lastModified
-                val lastModifiedDate = parse(lastModified)
+                val lastModifiedDate = parseDate(lastModified)
                 if (lastModifiedDate != null) {
                     val threeDaysAgo = System.currentTimeMillis() - 1000 * 60 * 60 * 24 * 3
                     if (lastModifiedDate.time > threeDaysAgo) {

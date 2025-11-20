@@ -11,7 +11,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
-import ac.mdiq.podcini.playback.base.TaskManager.Companion.taskManager
+import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
@@ -19,16 +19,16 @@ import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.UsageStatistics
-import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
-import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.setPlayState
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.AudioMediaTools
-import ac.mdiq.podcini.storage.utils.EpisodeState
-import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.utils.mergeAudios
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
@@ -36,10 +36,10 @@ import ac.mdiq.podcini.ui.screens.TTSObj
 import ac.mdiq.podcini.ui.screens.TTSObj.ensureTTS
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.IntentUtils
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.openInBrowser
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -77,7 +77,7 @@ import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
-class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) {
+class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) {
     private val TAG = this::class.simpleName ?: "ItemActionButton"
 
     private var _type = mutableStateOf(typeInit)
@@ -103,7 +103,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
     fun onClick(context: Context) {
         Logd(TAG, "onClick type: $type")
         when (type) {
-            ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) IntentUtils.openInBrowser(context, item.link!!)
+            ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInBrowser(context, item.link!!)
             ButtonTypes.CANCEL -> {
                 DownloadServiceInterface.impl?.cancel(context, item)
                 if (AppPreferences.isAutodownloadEnabled) {
@@ -261,7 +261,7 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
                         processing = 85
                         EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                         if (status == TextToSpeech.SUCCESS) {
-                            AudioMediaTools.mergeAudios(parts.toTypedArray(), mediaFile.absolutePath, null)
+                            mergeAudios(parts.toTypedArray(), mediaFile.absolutePath, null)
                             val retriever = MediaMetadataRetriever()
                             retriever.setDataSource(mediaFile.absolutePath)
                             val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toInt() ?: 0
@@ -297,11 +297,11 @@ class EpisodeActionButton(@JvmField var item: Episode, typeInit: ButtonTypes = B
             ButtonTypes.PLAYLOCAL -> {
                 if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
                     mPlayer?.play()
-                    taskManager?.restartSleepTimer()
+                    sleepManager?.restartSleepTimer()
                 } else {
                     clearCurTempSpeed()
                     PlaybackStarter(context, item).start()
-                    if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code) item = runBlocking { setPlayStateSync(EpisodeState.PROGRESS, item, false) }
+                    if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code) item = runBlocking { setPlayState(EpisodeState.PROGRESS, item, false) }
                 }
                 if (item.getMediaType() == MediaType.VIDEO) context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
 //                type = ButtonTypes.PAUSE  leave it to playerStat

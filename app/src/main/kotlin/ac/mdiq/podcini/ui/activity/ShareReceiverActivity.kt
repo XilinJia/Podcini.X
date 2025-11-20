@@ -2,8 +2,8 @@ package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.util.Logd

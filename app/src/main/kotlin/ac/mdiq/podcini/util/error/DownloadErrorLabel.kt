@@ -8,7 +8,7 @@ import androidx.annotation.StringRes
  * Provides user-visible labels for download errors.
  */
 object DownloadErrorLabel {
-    @JvmStatic
+    
     @StringRes
     fun from(error: DownloadError?): Int {
         when (error) {

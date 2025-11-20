@@ -2,17 +2,16 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.DurationConverter.getDurationStringShort
-import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.utils.getDurationStringShort
+import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
-import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
@@ -147,7 +146,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
 
     val monthStats = mutableStateListOf<MonthlyStatistics>()
     var monthlyMaxDataValue by mutableFloatStateOf(1f)
-    var monthVMS = mutableStateListOf<EpisodeVM>()
+//    var monthVMS = mutableStateListOf<EpisodeVM>()
 
     internal var downloadstatsData by mutableStateOf<StatisticsResult?>(null)
     internal var downloadChartData by mutableStateOf<LineChartData?>(null)
@@ -307,13 +306,13 @@ fun StatisticsScreen() {
 
     @Composable
     fun TodayStatsDialog(onDismissRequest: () -> Unit) {
-        val vms = remember { mutableStateListOf<EpisodeVM>() }
-        LaunchedEffect(vm.statsOfDay) {
-            vms.clear()
-            for (e in vm.statsOfDay.episodes) vms.add(EpisodeVM(e, TAG))
-        }
+//        val vms = remember { mutableStateListOf<EpisodeVM>() }
+//        LaunchedEffect(vm.statsOfDay) {
+//            vms.clear()
+//            for (e in vm.statsOfDay.episodes) vms.add(EpisodeVM(e, TAG))
+//        }
         AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
-            text = { EpisodeLazyColumn(LocalContext.current, vms = vms, showCoverImage = false, showActionButtons = false) },
+            text = { EpisodeLazyColumn(LocalContext.current, vm.statsOfDay.episodes, showCoverImage = false, showActionButtons = false) },
             dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } } )
     }
     if (vm.showTodayStats) TodayStatsDialog { vm.showTodayStats = false }
@@ -480,7 +479,7 @@ fun StatisticsScreen() {
             val barWidth = 50f
             val spaceBetweenBars = 20f
             val totalContentWidth = remember { bars.size * (barWidth + spaceBetweenBars).toInt() }
-            val screenWidth = with(LocalDensity.current) { context.resources.displayMetrics.widthPixels.toDp() }
+            val screenWidth = with(LocalDensity.current) { getAppContext().resources.displayMetrics.widthPixels.toDp() }
             val barColor = MaterialTheme.colorScheme.tertiary
             Canvas(modifier = Modifier.horizontalScroll(rememberScrollState()).width(if (totalContentWidth.dp > screenWidth) totalContentWidth.dp else screenWidth).height(150.dp).padding(start = 10.dp, end = 10.dp)
                 .border(BorderStroke(1.dp, barColor)).pointerInput(Unit) {
@@ -515,6 +514,7 @@ fun StatisticsScreen() {
                 }
             }
         }
+        val episodes = remember { mutableStateListOf<Episode>() }
         fun onMonthClicked(index: Int) {
             val year = vm.monthStats[index].year
             val month = vm.monthStats[index].month
@@ -522,13 +522,13 @@ fun StatisticsScreen() {
             val start = yearMonth.atDay(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli()
             val end = yearMonth.atEndOfMonth().atTime(23, 59, 59).toInstant(ZoneOffset.UTC).toEpochMilli()
             val data = getStatistics(start, end)
-            vm.monthVMS.clear()
-            for (e in data.episodes) vm.monthVMS.add(EpisodeVM(e, TAG))
+            episodes.clear()
+            episodes.addAll(data.episodes)
         }
 
-        if (vm.monthVMS.isNotEmpty()) AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.monthVMS.clear() },  confirmButton = {},
-            text = { EpisodeLazyColumn(LocalContext.current, vms = vm.monthVMS, showCoverImage = false, showActionButtons = false) },
-            dismissButton = { TextButton(onClick = { vm.monthVMS.clear() }) { Text(stringResource(R.string.cancel_label)) } } )
+        if (episodes.isNotEmpty()) AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { episodes.clear() },  confirmButton = {},
+            text = { EpisodeLazyColumn(LocalContext.current, episodes, showCoverImage = false, showActionButtons = false) },
+            dismissButton = { TextButton(onClick = { episodes.clear() }) { Text(stringResource(R.string.cancel_label)) } } )
 
         if (vm.statisticsState >= 0 && vm.monthStats.isEmpty()) loadMongthStats()
         Column {
@@ -824,14 +824,17 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
 fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Long, showOpenFeed: Boolean = false, onDismissRequest: () -> Unit) {
     val navController = LocalNavController.current
     var fStat by remember { mutableStateOf<FeedStatistics?>(null) }
-    val vms = remember { mutableStateListOf<EpisodeVM>() }
+//    val vms = remember { mutableStateListOf<EpisodeVM>() }
+    val episodes = remember { mutableStateListOf<Episode>()  }
     fun loadStatistics() {
         try {
             val data = getStatistics(timeFrom, timeTo, feedId)
             data.feedStats.sortWith { stat1: FeedStatistics, stat2: FeedStatistics -> stat2.item.timePlayed.compareTo(stat1.item.timePlayed) }
             if (data.feedStats.isNotEmpty()) fStat = data.feedStats[0]
-            vms.clear()
-            for (e in data.episodes) vms.add(EpisodeVM(e, TAG))
+            episodes.clear()
+            episodes.addAll(data.episodes)
+//            vms.clear()
+//            for (e in data.episodes) vms.add(EpisodeVM(e, TAG))
         } catch (error: Throwable) { Logs(TAG, error, "loadStatistics failed") }
     }
     LaunchedEffect(Unit) { loadStatistics() }
@@ -869,7 +872,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
                     Text(stringResource(R.string.statistics_space_used), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Text(Formatter.formatShortFileSize(context, fStat?.item?.totalDownloadSize ?: 0), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
-                Box(modifier = Modifier.weight(1f)) { EpisodeLazyColumn(context, vms = vms, showCoverImage = false, showActionButtons = false) }
+                Box(modifier = Modifier.weight(1f)) { EpisodeLazyColumn(context, episodes, showCoverImage = false, showActionButtons = false) }
             }
         },
         confirmButton = { if (showOpenFeed) TextButton(onClick = {

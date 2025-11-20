@@ -2,8 +2,9 @@ package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.automation.AutoDownloads.autodownload
-import ac.mdiq.podcini.automation.AutoDownloads.autoenqueue
+import ac.mdiq.podcini.automation.autodownload
+import ac.mdiq.podcini.automation.autoenqueue
+import ac.mdiq.podcini.config.CHANNEL_ID
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.service.DefaultDownloaderFactory
 import ac.mdiq.podcini.net.download.service.DownloadRequest
@@ -18,17 +19,22 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.storage.database.Feeds
-import ac.mdiq.podcini.storage.database.Feeds.feedOperationText
-import ac.mdiq.podcini.storage.database.LogsAndStats
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.unmanaged
+import ac.mdiq.podcini.storage.database.addDownloadStatus
+import ac.mdiq.podcini.storage.database.feedOperationText
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.getFeedDownloadLog
+import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.persistFeedLastUpdateFailed
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.unmanaged
+import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
+import ac.mdiq.podcini.storage.database.updateFeedFull
+import ac.mdiq.podcini.storage.database.updateFeedSimple
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.ui.utils.NotificationUtils
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -98,7 +104,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
                 Logt(TAG, "Partial refresh of ${feedIds.size} feeds")
                 val idsList = feedIds.map { it.toLong() }
                 feedsToUpdate = realm.query(Feed::class, "id IN $0", idsList).find().toMutableList()
-            } else feedsToUpdate = Feeds.getFeedList().toMutableList()
+            } else feedsToUpdate = getFeedList().toMutableList()
 
             val itr = feedsToUpdate.iterator()
             while (itr.hasNext()) {
@@ -112,7 +118,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
             }
 //            feedsToUpdate.shuffle() // If the worker gets cancelled early, every feed has a chance to be updated
         } else {
-            val feed = Feeds.getFeed(feedId)
+            val feed = getFeed(feedId)
             if (feed == null) {
                 Loge(TAG, "feed is null for feedId $feedId. update abort")
                 scope.launch(Dispatchers.Main) { feedOperationText = "" }
@@ -162,14 +168,14 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
             try {
                 Logd(TAG, "updating local feed? ${feed.isLocalFeed} ${feed.title}")
                 when {
-                    feed.isLocalFeed -> LocalFeedUpdater.updateFeed(feed, context, null)
+                    feed.isLocalFeed -> updateLocalFeed(feed, context, null)
                     else -> refreshFeed(feed, force)
                 }
             } catch (e: Exception) {
                 Loge(TAG, "update failed ${e.message}")
-                Feeds.persistFeedLastUpdateFailed(feed, true)
+                persistFeedLastUpdateFailed(feed, true)
                 val status = DownloadResult(feed.id, feed.title?:"", DownloadError.ERROR_IO_ERROR, false, e.message?:"")
-                LogsAndStats.addDownloadStatus(status)
+                addDownloadStatus(status)
             }
             titles.removeAt(0)
             feedIdsToRefresh.removeAt(0)
@@ -195,26 +201,26 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
                 return
             }
             Logt(TAG, "feed update failed: unsuccessful. cancelled? ${feed.title}")
-            Feeds.persistFeedLastUpdateFailed(feed, true)
-            LogsAndStats.addDownloadStatus(downloader.result)
+            persistFeedLastUpdateFailed(feed, true)
+            addDownloadStatus(downloader.result)
             return
         }
         val feedUpdateTask = FeedUpdateTask(context, request)
         val success = if (fullUpdate) feedUpdateTask.run() else feedUpdateTask.runSimple()
         if (!success) {
             Logt(TAG, "feed update failed: unsuccessful: ${feed.title}")
-            Feeds.persistFeedLastUpdateFailed(feed, true)
-            LogsAndStats.addDownloadStatus(feedUpdateTask.downloadStatus)
+            persistFeedLastUpdateFailed(feed, true)
+            addDownloadStatus(feedUpdateTask.downloadStatus)
             return
         }
         // we create a 'successful' download log if the feed's last refresh failed
-        val log = LogsAndStats.getFeedDownloadLog(request.feedfileId)
-        if (log.isNotEmpty() && !log[0].isSuccessful) LogsAndStats.addDownloadStatus(feedUpdateTask.downloadStatus)
+        val log = getFeedDownloadLog(request.feedfileId)
+        if (log.isNotEmpty() && !log[0].isSuccessful) addDownloadStatus(feedUpdateTask.downloadStatus)
         if (!request.source.isNullOrEmpty()) {
             when {
-                !downloader.permanentRedirectUrl.isNullOrEmpty() -> Feeds.updateFeedDownloadURL(request.source, downloader.permanentRedirectUrl!!)
+                !downloader.permanentRedirectUrl.isNullOrEmpty() -> updateFeedDownloadURL(request.source, downloader.permanentRedirectUrl!!)
                 feedUpdateTask.redirectUrl.isNotEmpty() && feedUpdateTask.redirectUrl != request.source ->
-                    Feeds.updateFeedDownloadURL(request.source, feedUpdateTask.redirectUrl)
+                    updateFeedDownloadURL(request.source, feedUpdateTask.redirectUrl)
             }
         }
     }
@@ -319,14 +325,14 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
         suspend fun run(): Boolean {
             feedHandlerResult = task.run()
             if (!task.isSuccessful) return false
-            Feeds.updateFeedFull(context, feedHandlerResult!!.feed, removeUnlistedItems = false)
+            updateFeedFull(context, feedHandlerResult!!.feed, removeUnlistedItems = false)
             return true
         }
 
         suspend fun runSimple(): Boolean {
             feedHandlerResult = task.run()
             if (!task.isSuccessful) return false
-            Feeds.updateFeedSimple(feedHandlerResult!!.feed)
+            updateFeedSimple(feedHandlerResult!!.feed)
             return true
         }
     }
@@ -340,7 +346,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
                 contentText = context.resources.getQuantityString(R.plurals.downloads_left, titles.size, titles.size)
                 bigText = titles.joinToString("\n") { "• $it" }
             }
-            return NotificationCompat.Builder(context, NotificationUtils.CHANNEL_ID.refreshing.name)
+            return NotificationCompat.Builder(context, CHANNEL_ID.refreshing.name)
                 .setContentTitle(context.getString(R.string.download_notification_title_feeds))
                 .setContentText(contentText)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(bigText))

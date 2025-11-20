@@ -18,7 +18,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.storage.database.Feeds
+import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
@@ -27,8 +27,8 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
-import ac.mdiq.podcini.util.config.ClientConfigurator
+import ac.mdiq.podcini.config.ClientConfigurator
+import ac.mdiq.podcini.util.fullDateTimeString
 import android.Manifest
 import android.content.Context
 import androidx.annotation.RequiresPermission
@@ -76,12 +76,11 @@ open class FeedUpdateWorkerBase(context: Context, private val params: WorkerPara
             }
             else -> {}
         }
-
         try {
             val fullUpdate = inputData.getBoolean(EXTRA_FULL_UPDATE, false)
 
             val feedId = inputData.getLong(EXTRA_FEED_ID, -1L)
-            val feed = if (feedId > -1L) Feeds.getFeed(feedId) else null
+            val feed = if (feedId > -1L) getFeed(feedId) else null
             if (feedId > -1L && feed == null) {
                 Loge(TAG, "feed is null for feedId $feedId. update abort")
                 if (isPeriodic) rescheduleUpdateTaskOnce(applicationContext)
@@ -106,7 +105,7 @@ open class FeedUpdateWorkerBase(context: Context, private val params: WorkerPara
                 return Result.success()
             } else return Result.success()
         } catch (e: Throwable) {
-            Loge(TAG, "Some errors occurred during refresh, will retry")
+            Loge(TAG, "Some errors occurred during refresh, will retry: ${e.message}")
             if (isPeriodic) {
                 if (attemptCount >= MAX_BACKOFF_ATTEMPTS) {
                     putPref(AppPrefs.feedIdsToRefresh, setOf<String>())

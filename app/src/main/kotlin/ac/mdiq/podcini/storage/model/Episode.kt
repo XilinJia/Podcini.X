@@ -7,28 +7,26 @@ import ac.mdiq.podcini.net.feed.parser.media.id3.ID3ReaderException
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentChapterReader
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.utils.ChapterUtils.ChapterStartTimeComparator
-import ac.mdiq.podcini.storage.utils.ChapterUtils.loadChaptersFromUrl
-import ac.mdiq.podcini.storage.utils.ChapterUtils.merge
-import ac.mdiq.podcini.storage.utils.EpisodeState
-import ac.mdiq.podcini.storage.utils.MediaType
-import ac.mdiq.podcini.storage.utils.Rating
-import ac.mdiq.podcini.storage.utils.StorageUtils.MEDIA_DOWNLOADPATH
-import ac.mdiq.podcini.storage.utils.StorageUtils.customMediaUriString
-import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
-import ac.mdiq.podcini.storage.utils.StorageUtils.getDataFolder
-import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
-import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting
-import ac.mdiq.podcini.storage.utils.VolumeAdaptionSetting.Companion.fromInteger
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
+import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting.Companion.fromInteger
+import ac.mdiq.podcini.storage.utils.ChapterStartTimeComparator
+import ac.mdiq.podcini.storage.utils.MEDIA_DOWNLOADPATH
+import ac.mdiq.podcini.storage.utils.customMediaUriString
+import ac.mdiq.podcini.storage.utils.generateFileName
+import ac.mdiq.podcini.storage.utils.getDataFolder
+import ac.mdiq.podcini.storage.utils.getMimeType
+import ac.mdiq.podcini.storage.utils.loadChaptersFromUrl
+import ac.mdiq.podcini.storage.utils.merge
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
+import ac.mdiq.podcini.util.fullDateTimeString
 import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -86,8 +84,6 @@ class Episode : RealmObject {
 
     var link: String? = null
 
-    @get:JvmName("getPubDateProperty")
-    @set:JvmName("setPubDateProperty")
     var pubDate: Long = 0
 
     @Ignore
@@ -120,6 +116,10 @@ class Episode : RealmObject {
             this.playStateSetTime = value?.time ?: 0L
         }
     var playStateSetTime: Long = 0L
+
+    var timeInQueue: Long = 0L
+
+    var timeOutQueue: Long = 0
 
     var paymentLink: String? = null
 
@@ -157,6 +157,7 @@ class Episode : RealmObject {
 
     var comment: String = ""
         private set
+
     var commentTime: Long = 0L
         private set
 
@@ -337,28 +338,19 @@ class Episode : RealmObject {
     }
 
     fun imageLocation(forceFeed: Boolean = false): String? {
-        return if (forceFeed || !getPref(AppPrefs.prefEpisodeCover, false)) feed?.imageUrl
-        else {
-            when {
-                imageUrl != null -> imageUrl
-//            TODO: this can be very expensive for list
-//            media != null && media?.hasEmbeddedPicture() == true -> EpisodeMedia.FILENAME_PREFIX_EMBEDDED_COVER + media!!.fileUrl
-                feed != null -> feed!!.imageUrl
-                hasEmbeddedPicture() -> FILENAME_PREFIX_EMBEDDED_COVER+fileUrl
-                else -> null
+        return when {
+            forceFeed || feed?.useFeedImage() == true -> feed?.imageUrl
+            else -> {
+                when {
+                    imageUrl != null -> imageUrl
+                    //            TODO: this can be very expensive for list
+                    //            media != null && media?.hasEmbeddedPicture() == true -> EpisodeMedia.FILENAME_PREFIX_EMBEDDED_COVER + media!!.fileUrl
+                    feed != null -> feed!!.imageUrl
+                    hasEmbeddedPicture() -> FILENAME_PREFIX_EMBEDDED_COVER + fileUrl
+                    else -> null
+                }
             }
         }
-    }
-
-    @JvmName("getPubDateFunction")
-    fun getPubDate(): Date {
-        return Date(pubDate)
-    }
-
-    @JvmName("setPubDateFunction")
-    fun setPubDate(pubDate: Date?) {
-        if (pubDate != null) this.pubDate = pubDate.time
-        else this.pubDate = 0
     }
 
     @JvmName("setPlayStateFunction")
@@ -394,10 +386,14 @@ class Episode : RealmObject {
         }
     }
 
-    fun addComment(text: String) {
-        comment = if (comment.isBlank()) "" else (comment + "\n")
-        commentTime = System.currentTimeMillis()
-        comment += fullDateTimeString(commentTime) + ":\n" + text
+    fun compileCommentText(): String = (if (comment.isBlank()) "" else comment.trimEnd('\n') + '\n') + fullDateTimeString(System.currentTimeMillis()) + ":\n"
+
+    fun addComment(text: String, addition: Boolean = true) {
+        if (addition) {
+            comment = if (comment.isBlank()) "" else (comment + "\n")
+            commentTime = System.currentTimeMillis()
+            comment += fullDateTimeString(commentTime) + ":\n" + text
+        } else comment = text
     }
 
     /**
@@ -768,14 +764,13 @@ class Episode : RealmObject {
     }
 
     fun getCurrentChapterIndex(position: Int): Int {
-//        val chapters = chapters
         if (chapters.isEmpty()) return -1
         for (i in chapters.indices) if (chapters[i].start > position) return i - 1
         return chapters.size - 1
     }
 
     fun loadChapters(context: Context, forceRefresh: Boolean) {
-        // Already loaded
+        // TODO: what's this?
         if (!forceRefresh) return
         var chaptersFromDatabase: List<Chapter>? = null
         var chaptersFromPodcastIndex: List<Chapter>? = null

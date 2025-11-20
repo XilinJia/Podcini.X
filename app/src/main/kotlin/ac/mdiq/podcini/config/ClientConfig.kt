@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.util.config
+package ac.mdiq.podcini.config
 
 /**
  * Stores callbacks for core classes like Services, DB classes etc. and other configuration variables.
@@ -10,6 +10,6 @@ object ClientConfig {
      */
     var USER_AGENT: String? = null
 
-    @JvmField
+    
     var applicationCallbacks: ApplicationCallbacks? = null
 }

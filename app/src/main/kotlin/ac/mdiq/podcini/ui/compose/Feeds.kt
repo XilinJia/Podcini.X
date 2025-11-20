@@ -21,20 +21,20 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
 import ac.mdiq.podcini.preferences.OpmlTransporter
-import ac.mdiq.podcini.storage.database.Feeds.compileTags
-import ac.mdiq.podcini.storage.database.Feeds.createSynthetic
-import ac.mdiq.podcini.storage.database.Feeds.deleteFeedSync
-import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.getPreserveSyndicate
-import ac.mdiq.podcini.storage.database.Feeds.getTags
-import ac.mdiq.podcini.storage.database.Feeds.shelveToFeed
-import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.compileTags
+import ac.mdiq.podcini.storage.database.createSynthetic
+import ac.mdiq.podcini.storage.database.deleteFeed
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.getPreserveSyndicate
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.shelveToFeed
+import ac.mdiq.podcini.storage.database.tags
+import ac.mdiq.podcini.storage.database.updateFeedFull
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog
-import ac.mdiq.podcini.storage.utils.Rating
+import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
@@ -45,8 +45,8 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.MiscFormatter
-import ac.mdiq.podcini.util.MiscFormatter.localDateTimeString
+import ac.mdiq.podcini.util.formatLargeInteger
+import ac.mdiq.podcini.util.localDateTimeString
 import android.view.Gravity
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -211,7 +211,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                                         }
                                     }
                                 }
-                                deleteFeedSync(context, f.id, false)
+                                deleteFeed(context, f.id, false)
                             }
                             EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))
                         } catch (e: Throwable) { Logs("RemoveFeedDialog", e) }
@@ -283,7 +283,7 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
                     else -> ""
                 }
                 if (authorText.isNotEmpty()) Text(authorText, color = textColor, style = MaterialTheme.typography.bodyMedium)
-                if (feed.subscriberCount > 0) Text(MiscFormatter.formatLargeInteger(feed.subscriberCount) + " subscribers", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                if (feed.subscriberCount > 0) Text(formatLargeInteger(feed.subscriberCount) + " subscribers", color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Row {
                     if (feed.count != null && feed.count > 0) Text(feed.count.toString() + " episodes", color = textColor, style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.weight(1f))
@@ -339,7 +339,7 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
 fun TagSettingDialog(feeds_: List<Feed>, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
         val feeds = realm.query(Feed::class).query("id IN $0", feeds_.map {it.id}).find()
-        val suggestions = remember { getTags() }
+//        val suggestions = remember { tags }
         val commonTags = remember {
             if (feeds.size == 1) feeds[0].tags.toMutableStateList()
             else {
@@ -352,7 +352,7 @@ fun TagSettingDialog(feeds_: List<Feed>, onDismiss: () -> Unit) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.tags_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                 var text by remember { mutableStateOf("") }
-                var filteredSuggestions by remember { mutableStateOf(suggestions) }
+                var filteredSuggestions = remember { tags.toList() }
                 var showSuggestions by remember { mutableStateOf(false) }
                 val tags = remember { commonTags.toMutableStateList() }
                 if (feeds.size > 1 && commonTags.isNotEmpty()) Text(stringResource(R.string.multi_feed_common_tags_info))
@@ -366,7 +366,7 @@ fun TagSettingDialog(feeds_: List<Feed>, onDismiss: () -> Unit) {
                         modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true), // Material3 requirement
                         onValueChange = {
                             text = it
-                            filteredSuggestions = suggestions.filter { item -> item.contains(text, ignoreCase = true) && item !in tags }
+                            filteredSuggestions = tags.filter { item -> item.contains(text, ignoreCase = true) && item !in tags }
                             showSuggestions = text.isNotEmpty() && filteredSuggestions.isNotEmpty()
                         },
                         keyboardActions = KeyboardActions(

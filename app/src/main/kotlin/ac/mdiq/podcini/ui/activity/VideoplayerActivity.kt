@@ -2,15 +2,14 @@ package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.playback.base.InTheatre.vCtrlFuture
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.vController
+import ac.mdiq.podcini.playback.base.InTheatre.vCtrlFuture
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
-import ac.mdiq.podcini.playback.base.PlayerStatus
-import ac.mdiq.podcini.playback.base.TaskManager.Companion.isSleepTimerActive
+import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.service.PlaybackService
@@ -32,13 +31,13 @@ import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.isLightTheme
 import ac.mdiq.podcini.ui.utils.ShownotesCleaner
-import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
+import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.IntentUtils.openInBrowser
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.openInBrowser
 import ac.mdiq.podcini.util.toastMassege
 import android.content.ComponentName
 import android.content.pm.PackageManager
@@ -349,7 +348,7 @@ class VideoplayerActivity : BaseActivity() {
     private fun loadMediaInfo() {
         Logd(TAG, "loadMediaInfo called")
         if (curEpisode == null) return
-        if (MediaPlayerBase.status == PlayerStatus.PLAYING && !isPlayingVideoLocally) {
+        if (isPlaying && !isPlayingVideoLocally) {
             Logd(TAG, "Closing, no longer video")
             finish()
             MainActivityStarter(this).withOpenPlayer().start()

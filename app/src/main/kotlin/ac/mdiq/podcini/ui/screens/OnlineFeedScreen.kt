@@ -9,28 +9,26 @@ import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
-import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.getFeedByTitleAndAuthor
-import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.storage.database.Feeds.isSubscribed
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.getFeedByTitleAndAuthor
+import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.isSubscribed
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
-import ac.mdiq.podcini.storage.utils.Rating.Companion.fromCode
+import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
-import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
-import ac.mdiq.podcini.ui.compose.VMS_CHUNK_SIZE
 import ac.mdiq.podcini.ui.utils.feedOnDisplay
 import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.ui.utils.isOnlineFeedShared
@@ -41,7 +39,7 @@ import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.MiscFormatter.formatAbbrev
+import ac.mdiq.podcini.util.formatAbbrev
 import android.app.Dialog
 import android.content.Context
 import android.text.Spannable
@@ -83,7 +81,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -149,7 +146,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal var swipeActions: SwipeActions
 
     internal var episodes = mutableListOf<Episode>()
-    internal val vms = mutableStateListOf<EpisodeVM>()
+//    internal val vms = mutableStateListOf<EpisodeVM>()
 
     init {
         feedSource = onlineFeedSource
@@ -172,11 +169,11 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var dialog: Dialog? = null
 
-    internal fun buildMoreItems() {
-//        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
-        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
-        if (nextItems.isNotEmpty()) vms.addAll(nextItems)
-    }
+//    internal fun buildMoreItems() {
+////        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+//        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
+//        if (nextItems.isNotEmpty()) vms.addAll(nextItems)
+//    }
 
     internal fun handleFeed(feed_: Feed, map: Map<String, String>) {
         selectedDownloadUrl = feedBuilder.selectedDownloadUrl
@@ -329,8 +326,8 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun showEpisodes() {
         if (feed == null) return
         episodes = feed!!.episodes
-        vms.clear()
-        buildMoreItems()
+//        vms.clear()
+//        buildMoreItems()
         infoBarText.value = "${episodes.size} episodes"
 
         Logd(TAG, "showEpisodes ${episodes.size}")
@@ -423,8 +420,8 @@ fun OnlineFeedScreen() {
                 Lifecycle.Event.ON_START -> {
                     vm.isPaused = false
                     vm.procFlowEvents()
-                    vm.vms.clear()
-                    vm.buildMoreItems()
+//                    vm.vms.clear()
+//                    vm.buildMoreItems()
                     vm.infoBarText.value = "${vm.episodes.size} episodes"
                 }
                 Lifecycle.Event.ON_STOP -> {
@@ -441,7 +438,7 @@ fun OnlineFeedScreen() {
         onDispose {
             vm.feeds = null
             vm.episodes.clear()
-            vm.vms.clear()
+//            vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -547,7 +544,7 @@ fun OnlineFeedScreen() {
             }
             if (vm.showEpisodes) {
                 InforBar(vm.infoBarText, vm.swipeActions)
-                EpisodeLazyColumn(context as MainActivity, vms = vm.vms, buildMoreItems = { vm.buildMoreItems() }, swipeActions = vm.swipeActions)
+                EpisodeLazyColumn(context as MainActivity, vm.episodes.toList(), swipeActions = vm.swipeActions)
             } else {
                 Column(Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))) {
 //                    TODO: alternate_urls_spinner

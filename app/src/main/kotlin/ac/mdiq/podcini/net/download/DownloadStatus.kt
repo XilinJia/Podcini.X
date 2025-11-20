@@ -1,8 +1,8 @@
 package ac.mdiq.podcini.net.download
 
 class DownloadStatus(
-        @JvmField val state: Int,
-        @JvmField val progress: Int) {
+         val state: Int,
+         val progress: Int) {
 
     enum class State {
         UNKNOWN,

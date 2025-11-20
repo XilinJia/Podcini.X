@@ -2,14 +2,14 @@ package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.StorageUtils.customMediaUriString
-import ac.mdiq.podcini.storage.utils.StorageUtils.generateFileName
-import ac.mdiq.podcini.storage.utils.StorageUtils.getMimeType
+import ac.mdiq.podcini.storage.utils.customMediaUriString
+import ac.mdiq.podcini.storage.utils.generateFileName
+import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs

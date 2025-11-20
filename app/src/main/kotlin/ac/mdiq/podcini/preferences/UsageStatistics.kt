@@ -20,21 +20,21 @@ object UsageStatistics {
     private const val SUFFIX_HIDDEN = "_hidden"
     private var prefs: SharedPreferences? = null
 
-    @JvmField
+    
     val ACTION_STREAM: StatsAction = StatsAction("downloadVsStream", 0)
-    @JvmField
+    
     val ACTION_DOWNLOAD: StatsAction = StatsAction("downloadVsStream", 1)
 
     /**
      * Sets up the UsageStatistics class.
      * @throws IllegalArgumentException if context is null
      */
-    @JvmStatic
+    
     fun init(context: Context) {
         prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
 
-    @JvmStatic
+    
     fun logAction(action: StatsAction) {
         val numExecutions = prefs!!.getInt(action.type + action.value, 0)
         val movingAverage = prefs!!.getFloat(action.type, 0.5f)
@@ -44,7 +44,7 @@ object UsageStatistics {
         }
     }
 
-    @JvmStatic
+    
     fun hasSignificantBiasTo(action: StatsAction): Boolean {
         if (prefs!!.getBoolean(action.type + SUFFIX_HIDDEN, false)) return false
         else {
@@ -53,7 +53,7 @@ object UsageStatistics {
         }
     }
 
-    @JvmStatic
+    
     fun doNotAskAgain(action: StatsAction) {
         prefs!!.edit { putBoolean(action.type + SUFFIX_HIDDEN, true) }
     }

@@ -4,7 +4,7 @@ import okio.ByteString
 import java.io.UnsupportedEncodingException
 
 object HttpCredentialEncoder {
-    @JvmStatic
+    
     fun encode(username: String, password: String, charset: String?): String {
         try {
             val credentials = "$username:$password"

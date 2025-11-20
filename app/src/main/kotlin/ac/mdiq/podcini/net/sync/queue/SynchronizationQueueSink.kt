@@ -23,7 +23,7 @@ object SynchronizationQueueSink {
         if (System.currentTimeMillis() - lastSyncAttempt > 1000 * 60 * 10) syncNow()
     }
 
-    @JvmStatic
+    
     fun clearQueue(context: Context) {
         LockingAsyncExecutor.executeLockedAsync { SynchronizationQueueStorage(context).clearQueue() }
     }

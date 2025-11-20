@@ -1,12 +1,12 @@
 package ac.mdiq.podcini.preferences
 
-import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.updateFeedFull
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.EpisodeState
-import ac.mdiq.podcini.storage.utils.Rating
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.util.Logd
 import android.app.Activity
 import android.database.sqlite.SQLiteDatabase

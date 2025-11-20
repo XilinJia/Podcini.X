@@ -1,19 +1,18 @@
 package ac.mdiq.podcini.playback.cast
 
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
-import ac.mdiq.podcini.storage.database.Episodes.getEpisodeByGuidOrUrl
-import ac.mdiq.podcini.storage.database.Queues.getNextInQueue
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.getEpisodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.getNextInQueue
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd

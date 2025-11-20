@@ -386,6 +386,9 @@
     <string name="count">Count</string>
     <string name="last_comment_date">Comment date</string>
     <string name="last_played_date">Played date</string>
+    <string name="time_in_queue">Time in queue</string>
+    <string name="time_out_queue">Time out queue</string>
+
     <string name="completed_date">Completed date</string>
     <string name="duration">Duration</string>
     <string name="spent">Spent</string>
@@ -559,8 +562,6 @@
     <string name="pref_feedGridLayout_title">Subscriptions use grid layout </string>
     <string name="pref_feedGridLayout_sum">When set, Subscriptions view use a grid layout, otherwise list layout</string>
 
-
-
     <string name="pref_show_notification_skip_title">Show skip on notification</string>
     <string name="pref_show_notification_skip_sum">Toggle the skip button on the notification panel</string>
     <string name="pref_enqueue_location_title">Enqueue location</string>
@@ -569,6 +570,9 @@
     <string name="enqueue_location_front">Front</string>
     <string name="enqueue_location_after_current">After current episode</string>
     <string name="enqueue_location_random">Random</string>
+
+    <string name="keep_queue_sorted">Keep queue sorted</string>
+    <string name="keep_queue_sorted_sum">When checked, queue order is based on the manually set sorting.</string>
 
     <string name="documentation_support">Documentation &amp; support</string>
     <string name="visit_user_forum">User forum</string>
@@ -756,6 +760,7 @@
     <string name="multi_feed_common_tags_info">{faw_info_circle} Only common tags from all selected subscriptions are shown. Other tags stay unaffected.</string>
     <string name="auto_download_settings_label">Auto download settings</string>
     <string name="episode_filters_label">Episode filter</string>
+    <string name="join_categories_with">Join categories with</string>
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>
     <string name="episode_exclusive_filters_label">Episode exclusive filter</string>
     <string name="episode_filters_description">List of terms used to decide if an episode should be included or excluded when auto downloading</string>
@@ -768,6 +773,8 @@
     <string name="mark_excluded_episodes_played">Mark excluded episodes played</string>
     <string name="use_wide_layout">Use wide layout</string>
     <string name="use_wide_layout_summary">Wide layout on episode list shows larger image, more suitable for video contents.</string>
+    <string name="use_episode_image">Use episode image</string>
+    <string name="use_episode_image_summary">When both this and use episode cover in global setting are set, episode image is shown on episodes lists.</string>
     <string name="keep_updated">Keep updated</string>
     <string name="keep_updated_summary">Include this podcast when (auto-)refreshing all podcasts</string>
     <string name="audo_add_new_queue">Auto add new to queue</string>

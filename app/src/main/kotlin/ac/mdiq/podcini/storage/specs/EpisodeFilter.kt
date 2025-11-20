@@ -1,24 +1,30 @@
-package ac.mdiq.podcini.storage.utils
+package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.util.Logd
 import java.io.Serializable
 
-class EpisodeFilter(vararg properties_: String) : Serializable {
-    val propertySet: HashSet<String> = setOf(*properties_).filter { it.isNotEmpty() }.map {it.trim()}.toHashSet()
+class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Serializable {
+    val propertySet = properties_.flatMap { it.split(",") }.map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
 
     var durationFloor: Int = 0
     var durationCeiling: Int = Int.MAX_VALUE
 
     var titleText: String = ""
 
-    constructor(properties: String) : this(*(properties.split(",").toTypedArray()))
-
     fun add(vararg properties_: String) {
-        propertySet.addAll(setOf(*properties_).filter { it.isNotEmpty() }.map {it.trim()})
+        propertySet.addAll(properties_.flatMap { it.split(",") }.map { it.trim() }.filter { it.isNotEmpty() })
+    }
+
+    fun remove(vararg properties_: String) {
+        propertySet.removeAll(properties_.flatMap { it.split(",") }.map { it.trim() }.filter { it.isNotEmpty() }.toSet())
     }
 
     fun queryString(): String {
+        Logd("EpisodeFilter", "queryString propertySet: ${propertySet.size} $propertySet")
+        Logd("EpisodeFilter", "actual type: ${propertySet::class}")
+        propertySet.forEach { Logd("EpisodeFilter", "element: [$it] hash=${it.hashCode()}") }
+
         val statements: MutableList<String> = mutableListOf()
         val mediaTypeQuerys = mutableListOf<String>()
         if (propertySet.contains(States.unknown.name)) mediaTypeQuerys.add(" mimeType == nil OR mimeType == '' ")
@@ -132,6 +138,7 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
             statements.add(query.toString())
         }
 
+        Logd("EpisodeFilter", "queryString ${propertySet.contains(States.has_comments.name)} ${States.has_comments.name} $propertySet")
         when {
             propertySet.contains(States.has_comments.name) -> statements.add(" comment != '' ")
             propertySet.contains(States.no_comments.name) -> statements.add(" comment == '' ")
@@ -140,7 +147,7 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
         if (statements.isEmpty()) return "id > 0"
         val query = StringBuilder(" (" + statements[0])
         if (statements.size > 1)  for (r in statements.subList(1, statements.size)) {
-            query.append(" AND ")
+            query.append(" $andOr ")
             query.append(r)
         }
         query.append(") ")
@@ -216,7 +223,8 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
     }
 
     enum class EpisodesFilterGroup(val nameRes: Int, vararg values_: FilterProperties, val exclusive: Boolean = false) {
-        RATING(R.string.rating_label,
+        RATING(
+            R.string.rating_label,
             FilterProperties(R.string.unrated, States.unrated.name),
             FilterProperties(R.string.trash, States.trash.name),
             FilterProperties(R.string.bad, States.bad.name),
@@ -224,7 +232,8 @@ class EpisodeFilter(vararg properties_: String) : Serializable {
             FilterProperties(R.string.good, States.good.name),
             FilterProperties(R.string.Super, States.superb.name),
         ),
-        PLAY_STATE(R.string.playstate,
+        PLAY_STATE(
+            R.string.playstate,
             FilterProperties(R.string.unspecified, States.unspecified.name),
             FilterProperties(R.string.building, States.building.name),
             FilterProperties(R.string.new_label, States.new.name),

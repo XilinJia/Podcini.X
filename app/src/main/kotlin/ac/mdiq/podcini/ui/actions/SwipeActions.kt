@@ -2,33 +2,30 @@ package ac.mdiq.podcini.ui.actions
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
-import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
-import ac.mdiq.podcini.storage.database.Episodes.deleteEpisodesWarnLocalRepeat
-import ac.mdiq.podcini.storage.database.Episodes.hasAlmostEnded
-import ac.mdiq.podcini.storage.database.Episodes.setPlayStateSync
-import ac.mdiq.podcini.storage.database.Queues.addToActiveQueue
-import ac.mdiq.podcini.storage.database.Queues.addToQueueSync
-import ac.mdiq.podcini.storage.database.Queues.smartRemoveFromQueue
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.runOnIOScope
-import ac.mdiq.podcini.storage.database.RealmDB.upsert
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.addToActiveQueue
+import ac.mdiq.podcini.storage.database.addToQueue
+import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
+import ac.mdiq.podcini.storage.database.hasAlmostEnded
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.setPlayState
+import ac.mdiq.podcini.storage.database.smartRemoveFromQueue
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.EpisodeState
+import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.AlarmEpisodeDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
+import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.EpisodeVM
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
+import ac.mdiq.podcini.ui.compose.FutureStateDialog
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
-import ac.mdiq.podcini.ui.compose.LargeTextEditingDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
-import ac.mdiq.podcini.ui.compose.FutureStateDialog
 import ac.mdiq.podcini.ui.compose.ShelveDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.Screens
@@ -36,7 +33,6 @@ import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.MiscFormatter.fullDateTimeString
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.TypedValue
@@ -66,7 +62,6 @@ import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -87,8 +82,6 @@ import androidx.core.content.edit
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.media3.common.util.UnstableApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.util.Date
 
 abstract class SwipeAction {
@@ -99,11 +92,11 @@ abstract class SwipeAction {
     abstract val colorRes: Int
     @Composable
     open fun ActionOptions() {}
-    open fun performAction(vm: EpisodeVM) {
-        onEVM = vm
+    open fun performAction(e: Episode) {
+        onEpisode = e
     }
     companion object {
-        internal var onEVM by mutableStateOf<EpisodeVM?>(null)
+        internal var onEpisode by mutableStateOf<Episode?>(null)
     }
 }
 
@@ -144,9 +137,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     inner class RightLeftActions(actions_: String) {
-        @JvmField
+        
         var right: MutableList<SwipeAction> = mutableListOf(NoAction(), NoAction())
-        @JvmField
+        
         var left: MutableList<SwipeAction> = mutableListOf(NoAction(), NoAction())
 
         init {
@@ -170,17 +163,17 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.ic_mark_played
         override val colorRes:  Int = R.attr.icon_gray
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
             showPlayStateDialog = true
         }
         @Composable
         override fun ActionOptions() {
             var showIgnoreDialog by remember { mutableStateOf(false) }
-            if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEVM!!), onDismissRequest = { showIgnoreDialog = false })
+            if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEpisode!!), onDismissRequest = { showIgnoreDialog = false })
             var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
-            if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(onEVM!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
-            if (showPlayStateDialog && onEVM != null) PlayStateDialog(listOf(onEVM!!), onDismissRequest = { showPlayStateDialog = false }, futureCB = { futureState = it }, ignoreCB = { showIgnoreDialog = true })
+            if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(onEpisode!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
+            if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!), onDismissRequest = { showPlayStateDialog = false }, futureCB = { futureState = it }, ignoreCB = { showIgnoreDialog = true })
         }
     }
 
@@ -194,13 +187,13 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val colorRes:  Int = android.R.attr.colorAccent
 
         override fun enabled(): Boolean {
-            if (onEVM?.episode?.feed?.queue != null) return false
-            return onEVM != null && !curQueue.contains(onEVM!!.episode)
+            if (onEpisode?.feed?.queue != null) return false
+            return onEpisode != null && !curQueue.contains(onEpisode!!)
         }
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
-            addToActiveQueue(vm.episode)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            runOnIOScope { addToActiveQueue(listOf(e)) }
         }
     }
 
@@ -214,13 +207,13 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val colorRes:  Int = android.R.attr.colorAccent
 
         override fun enabled(): Boolean {
-            val q = onEVM?.episode?.feed?.queue ?: return false
-            return !q.contains(onEVM!!.episode)
+            val q = onEpisode?.feed?.queue ?: return false
+            return !q.contains(onEpisode!!)
         }
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
-            if (vm.episode.feed?.queue != null) runOnIOScope { addToQueueSync(vm.episode) }
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            if (e.feed?.queue != null) runOnIOScope { addToQueue(e) }
         }
     }
 
@@ -234,13 +227,13 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.ic_playlist_play
         override val colorRes:  Int = R.attr.icon_gray
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
             showPutToQueueDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showPutToQueueDialog && onEVM != null) PutToQueueDialog(listOf(onEVM!!)) { showPutToQueueDialog = false }
+            if (showPutToQueueDialog && onEpisode != null) PutToQueueDialog(listOf(onEpisode!!)) { showPutToQueueDialog = false }
         }
     }
 
@@ -255,14 +248,14 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         var showDialog by mutableStateOf(false)
         private var useAction by mutableStateOf<SwipeAction?>(null)
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
             showDialog = true
         }
         @Composable
         override fun ActionOptions() {
             useAction?.ActionOptions()
-            if (showDialog && onEVM != null) Dialog(onDismissRequest = { showDialog = false }) {
+            if (showDialog && onEpisode != null) Dialog(onDismissRequest = { showDialog = false }) {
                 val context = LocalContext.current
                 Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -273,7 +266,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                 .padding(4.dp)
                                 .clickable {
                                     useAction = action
-                                    action.performAction(onEVM!!)
+                                    action.performAction(onEpisode!!)
                                     showDialog = false
                                 }) {
                                 val colorAccent = remember {
@@ -300,19 +293,20 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.ic_delete
         override val colorRes:  Int = R.attr.icon_red
 
-        override fun enabled(): Boolean = onEVM?.episode?.downloaded == true
+        override fun enabled(): Boolean = onEpisode?.downloaded == true
 
-        override fun performAction(vm: EpisodeVM) {
-            var item_ = vm.episode
-            super.performAction(vm)
+        override fun performAction(e: Episode) {
+            var item_ = e
+            super.performAction(e)
             if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
             runOnIOScope {
                 val almostEnded = hasAlmostEnded(item_)
-                if (almostEnded && item_.playState < EpisodeState.PLAYED.code) item_ = setPlayStateSync(EpisodeState.PLAYED, item_, resetMediaPosition = true, removeFromQueue = false)
+                if (almostEnded && item_.playState < EpisodeState.PLAYED.code) item_ = setPlayState(EpisodeState.PLAYED, item_, resetMediaPosition = true, removeFromQueue = false)
                 if (almostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
                 deleteEpisodesWarnLocalRepeat(context, listOf(item_))
-                vm.updateVMFromDB()
-                withContext(Dispatchers.Main) { vm.actionButton.update(vm.episode) }
+//                withContext(Dispatchers.Main) {
+////                    vm.actionButton.update(vm.episode)
+//                }
             }
         }
     }
@@ -327,13 +321,13 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.ic_star
         override val colorRes:  Int = R.attr.icon_yellow
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
             showChooseRatingDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showChooseRatingDialog && onEVM != null) ChooseRatingDialog(listOf(onEVM!!)) { showChooseRatingDialog = false }
+            if (showChooseRatingDialog && onEpisode != null) ChooseRatingDialog(listOf(onEpisode!!)) { showChooseRatingDialog = false }
         }
     }
 
@@ -341,7 +335,6 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val id: String
             get() = "COMMENT"
         private var showEditComment by mutableStateOf(false)
-        private var localTime by mutableLongStateOf(System.currentTimeMillis())
         private var editCommentText by mutableStateOf(TextFieldValue(""))
         override val title: String
             get() = getAppContext().getString(R.string.add_opinion_label)
@@ -349,18 +342,17 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.baseline_comment_24
         override val colorRes:  Int = R.attr.icon_yellow
 
-        override fun performAction(vm: EpisodeVM) {
-            val e = (if (isCurMedia(vm.episode)) curEpisode else realm.query(Episode::class).query("id == ${vm.episode.id}").first().find()) ?: return
-            onEVM?.episode = e
-            localTime = System.currentTimeMillis()
-            editCommentText = TextFieldValue((if (onEVM?.episode?.comment.isNullOrBlank()) "" else onEVM!!.episode.comment + "\n") + fullDateTimeString(localTime) + ":\n")
+        override fun performAction(e: Episode) {
+//            val e_ = (if (isCurMedia(e)) curEpisode else realm.query(Episode::class).query("id == ${e.id}").first().find()) ?: return
+            onEpisode = e
+            editCommentText = TextFieldValue(onEpisode?.compileCommentText() ?: "")
             showEditComment = true
         }
         @Composable
         override fun ActionOptions() {
             if (showEditComment) {
-                LargeTextEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false },
-                    onSave = { if (onEVM != null) runOnIOScope { onEVM!!.episode = upsert(onEVM!!.episode) { it.addComment(editCommentText.text) } } })
+                CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false },
+                    onSave = { if (onEpisode != null) runOnIOScope { onEpisode = upsert(onEpisode!!) { it.addComment(editCommentText.text, false) } } })
             }
         }
     }
@@ -375,15 +367,15 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.ic_search
         override val colorRes:  Int = R.attr.icon_yellow
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
             showSearchDialog = true
         }
         @Composable
         override fun ActionOptions() {
             val navController = LocalNavController.current
-            if (showSearchDialog && onEVM?.episode?.title != null) {
-                var textFieldValue by remember { mutableStateOf(TextFieldValue(onEVM!!.episode.title!!)) }
+            if (showSearchDialog && onEpisode?.title != null) {
+                var textFieldValue by remember { mutableStateOf(TextFieldValue(onEpisode!!.title!!)) }
                 val selectedText by remember(textFieldValue.selection) { mutableStateOf(
                     if (textFieldValue.selection.collapsed) ""
                     else {
@@ -432,31 +424,33 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.ic_history_remove
         override val colorRes:  Int = R.attr.icon_purple
 
-        override fun enabled(): Boolean = (onEVM?.episode?.lastPlayedTime ?: 0L) > 0L || (onEVM?.episode?.playbackCompletionTime ?: 0L) > 0L
+        override fun enabled(): Boolean = (onEpisode?.lastPlayedTime ?: 0L) > 0L || (onEpisode?.playbackCompletionTime ?: 0L) > 0L
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
-            val playbackCompletionDate = vm.episode.playbackCompletionDate
-            val lastPlayedDate = vm.episode.lastPlayedTime
-            setHistoryDates(vm.episode)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+
+            fun setHistoryDates(lastPlayed: Long = 0, completed: Date = Date(0)) {
+                runOnIOScope {
+                    val episode_ = realm.query(Episode::class).query("id == $0", e.id).first().find()
+                    if (episode_ != null) {
+                        upsert(episode_) {
+                            it.lastPlayedTime = lastPlayed
+                            it.playbackCompletionDate = completed
+                        }
+                        EventFlow.postEvent(FlowEvent.HistoryEvent())
+                    }
+                }
+            }
+
+            val playbackCompletionDate = e.playbackCompletionDate
+            val lastPlayedDate = e.lastPlayedTime
+            setHistoryDates()
             commonConfirm = CommonConfirmAttrib(
                 title = context.getString(R.string.removed_history_label),
                 message = "",
                 confirmRes = R.string.undo,
                 cancelRes = R.string.no,
-                onConfirm = {  if (playbackCompletionDate != null) setHistoryDates(vm.episode, lastPlayedDate, playbackCompletionDate) })
-        }
-        private fun setHistoryDates(episode: Episode, lastPlayed: Long = 0, completed: Date = Date(0)) {
-            runOnIOScope {
-                val episode_ = realm.query(Episode::class).query("id == $0", episode.id).first().find()
-                if (episode_ != null) {
-                    upsert(episode_) {
-                        it.lastPlayedTime = lastPlayed
-                        it.playbackCompletionDate = completed
-                    }
-                    EventFlow.postEvent(FlowEvent.HistoryEvent())
-                }
-            }
+                onConfirm = {  if (playbackCompletionDate != null) setHistoryDates(lastPlayedDate, playbackCompletionDate) })
         }
     }
 
@@ -469,11 +463,11 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.ic_playlist_remove
         override val colorRes:  Int = android.R.attr.colorAccent
 
-        override fun enabled(): Boolean = onEVM != null && curQueue.contains(onEVM!!.episode)
+        override fun enabled(): Boolean = onEpisode != null && curQueue.contains(onEpisode!!)
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
-            runOnIOScope { smartRemoveFromQueue(vm.episode) }
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            runOnIOScope { smartRemoveFromQueue(e) }
         }
     }
 
@@ -486,12 +480,12 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.ic_download
         override val colorRes:  Int = R.attr.icon_green
 
-        override fun enabled(): Boolean = onEVM?.episode?.downloaded == false && onEVM?.episode?.feed != null && !onEVM!!.episode.feed!!.isLocalFeed
+        override fun enabled(): Boolean = onEpisode?.downloaded == false && onEpisode?.feed != null && !onEpisode!!.feed!!.isLocalFeed
 
         @UnstableApi
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
-            if (!vm.episode.downloaded && vm.episode.feed != null && !vm.episode.feed!!.isLocalFeed) EpisodeActionButton(vm.episode, ButtonTypes.DOWNLOAD).onClick(context)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            if (!e.downloaded && e.feed != null && !e.feed!!.isLocalFeed) EpisodeActionButton(e, ButtonTypes.DOWNLOAD).onClick(context)
         }
     }
 
@@ -505,13 +499,13 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.baseline_shelves_24
         override val colorRes:  Int = R.attr.icon_gray
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
             showShelveDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showShelveDialog && onEVM != null) ShelveDialog(listOf(onEVM!!)) { showShelveDialog = false }
+            if (showShelveDialog && onEpisode != null) ShelveDialog(listOf(onEpisode!!)) { showShelveDialog = false }
         }
     }
 
@@ -525,16 +519,14 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes: Int = R.drawable.baseline_delete_forever_24
         override val colorRes: Int = R.attr.icon_gray
 
-//        override fun enabled(): Boolean = onEVM?.episode?.feed?.isSynthetic() == true
-
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
             showEraseDialog = true
         }
 
         @Composable
         override fun ActionOptions() {
-            if (showEraseDialog && onEVM != null) EraseEpisodesDialog(listOf(onEVM!!), onEVM!!.episode.feed) { showEraseDialog = false }
+            if (showEraseDialog && onEpisode != null) EraseEpisodesDialog(listOf(onEpisode!!), onEpisode!!.feed) { showEraseDialog = false }
         }
     }
 
@@ -548,13 +540,13 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.baseline_access_alarms_24
         override val colorRes:  Int = R.attr.icon_red
 
-        override fun performAction(vm: EpisodeVM) {
-            super.performAction(vm)
+        override fun performAction(e: Episode) {
+            super.performAction(e)
             showAlarmDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showAlarmDialog && onEVM != null) AlarmEpisodeDialog(listOf(onEVM!!)) { showAlarmDialog = false }
+            if (showAlarmDialog && onEpisode != null) AlarmEpisodeDialog(listOf(onEpisode!!)) { showAlarmDialog = false }
         }
     }
 
@@ -571,8 +563,8 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             val textColor = MaterialTheme.colorScheme.onSurface
 
             var actions = remember { sa.actions }
-            val leftAction = remember { mutableStateOf(actions.left) }
-            val rightAction = remember { mutableStateOf(actions.right) }
+            val leftAction = remember { mutableStateOf(actions.left[0]) }
+            val rightAction = remember { mutableStateOf(actions.right[0]) }
             var keys by remember { mutableStateOf(sa.actionsList) }
 
             var direction by remember { mutableIntStateOf(0) }
@@ -589,8 +581,8 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                     .padding(16.dp)
                                     .clickable {
                                         when (direction) {
-                                            -1 -> leftAction.value[0] = keys[index]
-                                            1 -> rightAction.value[0] = keys[index]
+                                            -1 -> leftAction.value = keys[index]
+                                            1 -> rightAction.value = keys[index]
                                             else -> {}
                                         }
                                         showPickerDialog = false
@@ -633,7 +625,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         Text(stringResource(R.string.swipe_left))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(leftAction.value[0].iconRes), tint = textColor, contentDescription = null, modifier = Modifier
+                            Icon(imageVector = ImageVector.vectorResource(leftAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier
                                 .width(35.dp)
                                 .height(35.dp)
                                 .clickable(onClick = {
@@ -653,7 +645,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                 .width(50.dp)
                                 .height(35.dp))
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(rightAction.value[0].iconRes), tint = textColor, contentDescription = null, modifier = Modifier
+                            Icon(imageVector = ImageVector.vectorResource(rightAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier
                                 .width(35.dp)
                                 .height(35.dp)
                                 .clickable(onClick = {
@@ -663,8 +655,8 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                             Spacer(Modifier.weight(0.1f))
                         }
                         Button(onClick = {
-                            actions = sa.RightLeftActions("${rightAction.value[0].id},${leftAction.value[0].id}")
-                            prefs.edit { putString(KEY_PREFIX_SWIPEACTIONS + sa.tag, "${rightAction.value[0].id},${leftAction.value[0].id}") }
+                            actions = sa.RightLeftActions("${rightAction.value.id},${leftAction.value.id}")
+                            prefs.edit { putString(KEY_PREFIX_SWIPEACTIONS + sa.tag, "${rightAction.value.id},${leftAction.value.id}") }
                             prefs.edit { putBoolean(KEY_PREFIX_NO_ACTION + sa.tag, true) }
                             callback(actions)
                             onDismissRequest()

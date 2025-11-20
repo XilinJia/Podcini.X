@@ -1,8 +1,8 @@
 package ac.mdiq.podcini.ui.utils
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.storage.utils.DurationConverter.durationStringLongToMs
-import ac.mdiq.podcini.storage.utils.DurationConverter.durationStringShortToMs
+import ac.mdiq.podcini.storage.utils.durationStringLongToMs
+import ac.mdiq.podcini.storage.utils.durationStringShortToMs
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
 import android.content.Context

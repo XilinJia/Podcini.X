@@ -13,13 +13,13 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
-import ac.mdiq.podcini.storage.database.Feeds.getFeed
-import ac.mdiq.podcini.storage.database.Feeds.getFeedList
-import ac.mdiq.podcini.storage.database.Feeds.updateFeedFull
-import ac.mdiq.podcini.storage.database.RealmDB.realm
+import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.updateFeedFull
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
-import ac.mdiq.podcini.storage.utils.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 
@@ -265,7 +265,7 @@ fun OnlineSearchScreen() {
                     val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
                     Logd(TAG, "addLocalFolderLauncher dirFeed episodes: ${dirFeed.episodes.size}")
 //                    dirFeed.episodes.clear()
-                    dirFeed.sortOrder = EpisodeSortOrder.EPISODE_TITLE_A_Z
+                    dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_A_Z
                     updateFeedFull(context, dirFeed, removeUnlistedItems = false)
                     val fromDatabase: Feed? = getFeed(dirFeed.id)
                     gearbox.feedUpdater(fromDatabase).startRefresh(context)

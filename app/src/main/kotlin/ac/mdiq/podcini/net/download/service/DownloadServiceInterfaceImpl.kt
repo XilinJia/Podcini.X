@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.download.service
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.config.CHANNEL_ID
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
@@ -10,26 +11,26 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.storage.database.Episodes
-import ac.mdiq.podcini.storage.database.Episodes.isEpisodeDownloaded
-import ac.mdiq.podcini.storage.database.LogsAndStats
-import ac.mdiq.podcini.storage.database.Queues
-import ac.mdiq.podcini.storage.database.Queues.removeFromQueueSync
-import ac.mdiq.podcini.storage.database.RealmDB.realm
-import ac.mdiq.podcini.storage.database.RealmDB.upsertBlk
+import ac.mdiq.podcini.storage.database.isEpisodeDownloaded
+import ac.mdiq.podcini.storage.database.addDownloadStatus
+import ac.mdiq.podcini.storage.database.addToQueue
+import ac.mdiq.podcini.storage.database.deleteAndRemoveFromQueues
+import ac.mdiq.podcini.storage.database.removeFromQueue
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
-import ac.mdiq.podcini.storage.utils.ChapterUtils
-import ac.mdiq.podcini.storage.utils.StorageUtils.ensureMediaFileExists
-import ac.mdiq.podcini.storage.utils.StorageUtils.quietlyDeleteFile
-import ac.mdiq.podcini.ui.utils.NotificationUtils
+import ac.mdiq.podcini.storage.utils.ensureMediaFileExists
+import ac.mdiq.podcini.storage.utils.quietlyDeleteFile
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.config.ClientConfigurator
+import ac.mdiq.podcini.config.ClientConfigurator
+import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.utils.loadChaptersFromUrl
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
@@ -82,9 +83,9 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             Loge(TAG, "downloadUrl is null or empty ${item.title}")
             return
         }
-        if (isEpisodeDownloaded(item)) {
+        if (isEpisodeDownloaded(context, item)) {
             if (getPref(AppPrefs.prefEnqueueDownloaded, false)) {
-                if (item.feed?.queue != null) runBlocking { Queues.addToQueueSync(item, item.feed?.queue) }
+                if (item.feed?.queue != null) runBlocking { addToQueue(item, item.feed?.queue) }
             }
             return
         }
@@ -98,14 +99,14 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
     override fun cancel(context: Context, media: Episode) {
         Logd(TAG, "starting cancel")
         // This needs to be done here, not in the worker. Reason: The worker might or might not be running.
-        Episodes.deleteAndRemoveFromQueues(context, media) // Remove partially downloaded file
+        deleteAndRemoveFromQueues(context, media) // Remove partially downloaded file
         val tag = WORK_TAG_EPISODE_URL + media.downloadUrl
         val future: Future<List<WorkInfo>> = WorkManager.getInstance(context).getWorkInfosByTag(tag)
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val workInfoList = future.get() // Wait for the completion of the future operation and retrieve the result
-                workInfoList.forEach { workInfo -> if (workInfo.tags.contains(WORK_DATA_WAS_QUEUED)) removeFromQueueSync(curQueue, media) }
+                workInfoList.forEach { workInfo -> if (workInfo.tags.contains(WORK_DATA_WAS_QUEUED)) removeFromQueue(curQueue, listOf(media), playState = EpisodeState.UNSPECIFIED) }
             } catch (exception: Throwable) { Logs(TAG, exception)
             } finally { WorkManager.getInstance(context).cancelAllWorkByTag(tag) }
         }
@@ -194,7 +195,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 downloader!!.run()
             } catch (e: Exception) {
                 Logs(TAG, e, "failed performDownload exception on downloader!!.call()")
-                LogsAndStats.addDownloadStatus(downloader!!.result)
+                addDownloadStatus(downloader!!.result)
                 sendErrorNotification(request.title?:"")
                 return Result.failure()
             }
@@ -204,7 +205,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             if (status.isSuccessful) {
                 val handler = MediaDownloadedHandler(applicationContext, downloader!!.result, request)
                 handler.run()
-                LogsAndStats.addDownloadStatus(handler.updatedStatus)
+                addDownloadStatus(handler.updatedStatus)
                 return Result.success()
             }
             if (status.reason == DownloadError.ERROR_HTTP_DATA_ERROR && status.reasonDetailed.toInt() == 416) {
@@ -215,7 +216,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 return retry3times()
             }
             Loge(TAG, "Download failed ${request.title} ${status.reason}")
-            LogsAndStats.addDownloadStatus(status)
+            addDownloadStatus(status)
             if (status.reason in listOf(DownloadError.ERROR_FORBIDDEN, DownloadError.ERROR_NOT_FOUND, DownloadError.ERROR_UNAUTHORIZED, DownloadError.ERROR_IO_BLOCKED)) {
                 Loge(TAG, "performDownload failure on various reasons ${status.reason?.name}")
                 // Fail fast, these are probably unrecoverable
@@ -246,7 +247,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 applicationContext.getString(R.string.download_error_details)))
         }
         private fun sendErrorNotification(title: String) {
-            val builder = NotificationCompat.Builder(applicationContext, NotificationUtils.CHANNEL_ID.error.name)
+            val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID.error.name)
             builder.setTicker(applicationContext.getString(R.string.download_report_title))
                 .setContentTitle(applicationContext.getString(R.string.download_report_title))
                 .setContentText(applicationContext.getString(R.string.download_error_tap_for_details))
@@ -264,7 +265,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             for ((key, value) in progressCopy) sb.append(String.format(Locale.getDefault(), "%s (%d%%)\n", key, value))
             val bigText = sb.toString().trim { it <= ' ' }
             val contentText = if (progressCopy.size == 1) bigText else applicationContext.resources.getQuantityString(R.plurals.downloads_left, progressCopy.size, progressCopy.size)
-            val builder = NotificationCompat.Builder(applicationContext, NotificationUtils.CHANNEL_ID.downloading.name)
+            val builder = NotificationCompat.Builder(applicationContext, CHANNEL_ID.downloading.name)
             builder.setTicker(applicationContext.getString(R.string.download_notification_title_episodes))
                 .setContentTitle(applicationContext.getString(R.string.download_notification_title_episodes))
                 .setContentText(contentText)
@@ -299,7 +300,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                     }
                     it.checkEmbeddedPicture(false) // enforce check
                     if (it.chapters.isEmpty()) it.setChapters(it.loadChaptersFromMediaFile(context))
-                    if (!it.podcastIndexChapterUrl.isNullOrBlank()) ChapterUtils.loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
+                    if (!it.podcastIndexChapterUrl.isNullOrBlank()) loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
                     if (!it.fileUrl.isNullOrBlank()) {
                         var durationStr: String? = null
                         try {
@@ -350,7 +351,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 .addTag(WORK_TAG)
                 .addTag(WORK_TAG_EPISODE_URL + item.downloadUrl)
             if (getPref(AppPrefs.prefEnqueueDownloaded, false)) {
-                if (item.feed?.queue != null) runBlocking { Queues.addToQueueSync(item, item.feed?.queue) }
+                if (item.feed?.queue != null) runBlocking { addToQueue(item, item.feed?.queue) }
                 workRequest.addTag(WORK_DATA_WAS_QUEUED)
             }
             workRequest.setInputData(Data.Builder().putLong(WORK_DATA_MEDIA_ID, item.id).build())

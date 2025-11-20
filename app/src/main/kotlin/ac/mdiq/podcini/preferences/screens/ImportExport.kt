@@ -33,7 +33,7 @@ import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.MiscFormatter.dateStampFilename
+import ac.mdiq.podcini.util.dateStampFilename
 import android.app.Activity.RESULT_OK
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -85,14 +85,14 @@ import androidx.compose.ui.window.Dialog
 import androidx.core.app.ShareCompat.IntentBuilder
 import androidx.core.content.FileProvider
 import androidx.documentfile.provider.DocumentFile
-import java.io.BufferedReader
-import java.io.IOException
-import java.io.InputStream
-import java.io.InputStreamReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.BufferedReader
+import java.io.IOException
+import java.io.InputStream
+import java.io.InputStreamReader
 
 @Composable
 fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
@@ -429,6 +429,12 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
     }
     val scrollState = rememberScrollState()
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
+        TitleSummarySwitchPrefRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, AppPrefs.prefOPMLBackup) {
+            putPref(AppPrefs.prefOPMLBackup, it)
+            val intent = activity.packageManager?.getLaunchIntentForPackage(activity.packageName)
+            intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            activity.startActivity(intent)
+        }
         var isAutoBackup by remember { mutableStateOf(getPref(AppPrefs.prefAutoBackup, false)) }
         TitleSummarySwitchPrefRow(R.string.pref_auto_backup_title, R.string.pref_auto_backup_sum, AppPrefs.prefAutoBackup) {
             isAutoBackup = it

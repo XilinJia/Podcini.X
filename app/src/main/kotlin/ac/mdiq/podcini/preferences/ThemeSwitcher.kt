@@ -12,7 +12,7 @@ object ThemeSwitcher {
     val isThemeColorTinted: Boolean
         get() = Build.VERSION.SDK_INT >= 31 && getPref(AppPrefs.prefTintedColors, false)
 
-    @JvmStatic
+    
     @StyleRes
     fun getTheme(context: Context): Int {
         val dynamic = isThemeColorTinted
@@ -24,7 +24,7 @@ object ThemeSwitcher {
         }
     }
 
-    @JvmStatic
+    
     @StyleRes
     fun getNoTitleTheme(context: Context): Int {
         val dynamic = isThemeColorTinted
@@ -36,7 +36,7 @@ object ThemeSwitcher {
         }
     }
 
-    @JvmStatic
+    
     @StyleRes
     fun getTranslucentTheme(context: Context): Int {
         val dynamic = isThemeColorTinted
