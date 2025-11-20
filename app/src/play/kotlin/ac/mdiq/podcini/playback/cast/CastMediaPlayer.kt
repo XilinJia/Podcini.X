@@ -43,6 +43,7 @@ import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.images.WebImage
 import java.io.IOException
 import java.util.Calendar
+import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
@@ -410,7 +411,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             val url: String = if (feedItem.imageUrl == null && feed != null) feed.imageUrl?:"" else feedItem.imageUrl?:""
             if (url.isNotEmpty()) metadata.addImage(WebImage(url.toUri()))
             val calendar = Calendar.getInstance()
-            calendar.time = feedItem.getPubDate()
+            calendar.time = Date(feedItem.pubDate)
             metadata.putDate(MediaMetadata.KEY_RELEASE_DATE, calendar)
             if (feed != null) {
                 if (!feed.author.isNullOrEmpty()) metadata.putString(MediaMetadata.KEY_ARTIST, feed.author!!)
