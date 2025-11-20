@@ -553,15 +553,16 @@ fun QueuesScreen() {
                             infoBarText.value = "$listInfoText $feedOperationText"
                         }
                     }
-                    runOnIOScope {
-                        curQueue.episodes.clear()
-                        curQueue = upsert(curQueue) {
-                            it.episodeIds.clear()
-                            for (e in episodes) it.episodeIds.add(e.id)
-                            it.update()
-                        }
-                        EventFlow.postEvent(FlowEvent.QueueEvent.sorted(curQueue.episodes))
-                    }
+                    reorderQueue(true)
+//                    runOnIOScope {
+//                        curQueue.episodes.clear()
+//                        curQueue = upsert(curQueue) {
+//                            it.episodeIds.clear()
+//                            for (e in episodes) it.episodeIds.add(e.id)
+//                            it.update()
+//                        }
+//                        EventFlow.postEvent(FlowEvent.QueueEvent.sorted(curQueue.episodes))
+//                    }
                 }
                 if (screenMode == QueuesScreenMode.Bin) {
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {

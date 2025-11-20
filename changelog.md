@@ -12,6 +12,7 @@
 	* added Queued for all queued episodes
 	* fixed Record showing no episodes
 * keep queue sorted is on per queue basis, and if set, addToQueue only add to the back
+	* if you sort the queue, the play order might not be updated (to be fixed later)
 * in Queues screen added Settings in menu, to set about the current queue
 	* keepSorted is moved from sorting dialog
 	* binLimit is moved from the menu
