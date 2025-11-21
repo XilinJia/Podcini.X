@@ -33,6 +33,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.URLUtil.guessFileName
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -64,6 +65,7 @@ import java.io.InputStream
 import java.util.Date
 import kotlin.math.max
 
+@Stable
 class Episode : RealmObject {
     @PrimaryKey
     var id: Long = 0L   // increments from Date().time * 100 at time of creation

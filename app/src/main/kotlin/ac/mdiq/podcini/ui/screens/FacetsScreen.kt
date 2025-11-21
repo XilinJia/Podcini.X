@@ -119,6 +119,7 @@ import java.io.File
 import java.net.URLDecoder
 import java.text.NumberFormat
 import java.util.Date
+import kotlin.math.min
 
 class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     var tag = TAG+QuickAccess.entries[0]
@@ -251,7 +252,7 @@ fun FacetsScreen() {
         else feedsAssociated.addAll(episodes.mapNotNull { it.feed }.distinctBy { it.id })
     }
 
-    LaunchedEffect(episodesChange?.list) {
+    LaunchedEffect(episodes.size) {
         updateToolbar()
         if (showFeeds) loadAssociatedFeeds()
     }

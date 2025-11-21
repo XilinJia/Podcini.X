@@ -62,7 +62,6 @@ suspend fun addToActiveQueue(episodes: List<Episode>) {
         if (qItemIds.contains(episode.id)) continue
         events.add(FlowEvent.QueueEvent.added(episode, insertPosition))
         try {
-            qItemIds.add(insertPosition, episode.id)
             qItems.add(insertPosition, episode)
         } catch (e: Throwable) { Loge(TAG, "addToActiveQueue: ${e.message}")}
         updatedItems.add(episode)
@@ -72,13 +71,7 @@ suspend fun addToActiveQueue(episodes: List<Episode>) {
         insertPosition++
     }
     if (queueModified) {
-        //                TODO: handle sorting
-        applySortOrder(qItems, curQueue, events = events)
-        curQueue = upsert(curQueue) {
-            it.episodeIds.clear()
-            it.episodeIds.addAll(qItemIds)
-            it.update()
-        }
+        curQueue = applySortOrder(qItems, curQueue, events = events)
         for (event in events) EventFlow.postEvent(event)
         for (episode in setInQueue) setPlayState(EpisodeState.QUEUE, episode, false)
     }
@@ -92,20 +85,14 @@ suspend fun addToQueue(episode: Episode, queue_: PlayQueue? = null) {
     val qItems = queue.episodes.toMutableList()
 
     val currentlyPlaying = curEpisode
-    var insertPosition = calcPosition(queue, currentlyPlaying)
+    val insertPosition = calcPosition(queue, currentlyPlaying)
     Logd(TAG, "addToQueueSync insertPosition: $insertPosition")
     val t = System.currentTimeMillis()
     upsert(episode) { it.timeInQueue = t }
 
     try { qItems.add(insertPosition, episode) } catch (e: Throwable) { Loge(TAG, "addToQueue ${e.message}")}
     val events = mutableListOf(FlowEvent.QueueEvent.added(episode, insertPosition))
-    applySortOrder(qItems, queue, events)
-
-    val queueNew = upsert(queue) {
-        it.episodeIds.add(insertPosition, episode.id)
-        insertPosition++
-        it.update()
-    }
+    val queueNew = applySortOrder(qItems, queue, events = events)
     if (episode.playState < EpisodeState.QUEUE.code) setPlayState(EpisodeState.QUEUE, episode, false)
     if (queue.id == curQueue.id) {
         curQueue = queueNew
@@ -119,19 +106,24 @@ suspend fun addToQueue(episode: Episode, queue_: PlayQueue? = null) {
  * @param queueItems  The queue to be sorted.
  * @param events Replaces the events by a single SORT event if the list has to be sorted automatically.
  */
-private fun applySortOrder(queueItems: MutableList<Episode>, queue: PlayQueue = curQueue, events: MutableList<FlowEvent.QueueEvent>) {
-    if (!queue.keepSorted) return
+private fun applySortOrder(queueItems: MutableList<Episode>, queue_: PlayQueue, events: MutableList<FlowEvent.QueueEvent>): PlayQueue {
+    var sorted = false
+    var queue = queue_
+    if (queue.sortOrder !in listOf(EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW, EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1)) {
+        getPermutor(queue.sortOrder).reorder(queueItems)
+        sorted = true
+    }
 
-    val sortOrder = queue.sortOrder
-    if (sortOrder == EpisodeSortOrder.RANDOM) return
+    if (queue.enqueueLocation != EnqueueLocation.BACK.code) resetInQueueTime(queueItems)
 
-    getPermutor(sortOrder).reorder(queueItems)
-    val t = System.currentTimeMillis()
-    var c = 0L
-    for (e in queueItems) upsertBlk(e) {it.timeInQueue = t+c++ }
+    if (sorted) queue = resetIds(queue, queueItems)
+
     // Replace ADDED events by a single SORTED event
-    events.clear()
-    events.add(FlowEvent.QueueEvent.sorted(queueItems))
+    if (sorted) {
+        events.clear()
+        events.add(FlowEvent.QueueEvent.sorted(queueItems))
+    }
+    return queue
 }
 
 fun clearQueue() : Job {
@@ -312,16 +304,29 @@ fun moveInQueue(from: Int, to: Int, broadcastUpdate: Boolean) {
             try { episodes.add(to, episode) } catch (e: Throwable) { Loge(TAG, "moveInQueue: ${e.message}")}
             if (broadcastUpdate) EventFlow.postEvent(FlowEvent.QueueEvent.moved(episode, to))
         }
-        val t = System.currentTimeMillis()
-        var c = 0L
-        for (e in episodes) upsertBlk(e) {it.timeInQueue = t+c++ }
+        resetInQueueTime(episodes)
         curQueue.episodes.clear()
-        curQueue = upsertBlk(curQueue) {
-            it.episodeIds.clear()
-            for (e in episodes) it.episodeIds.add(e.id)
-            it.update()
-        }
+        curQueue = resetIds(curQueue, episodes)
     } else Loge(TAG, "moveQueueItemHelper: Could not load queue")
+}
+
+fun resetIds(queue: PlayQueue, episodes: Collection<Episode>): PlayQueue {
+    return upsertBlk(queue) {
+        it.episodeIds.clear()
+        for (e in episodes) it.episodeIds.add(e.id)
+        it.update()
+    }
+}
+
+fun resetInQueueTime(episodes: Collection<Episode>) {
+    val t = System.currentTimeMillis()
+    var c = 0L
+    realm.writeBlocking {
+        for (e_ in episodes) {
+            val e = findLatest(e_) ?: continue
+            e.timeInQueue = t+c++
+        }
+    }
 }
 
 fun getNextInQueue(currentMedia: Episode?): Episode? {

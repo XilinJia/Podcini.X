@@ -115,14 +115,8 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
 
     var episodesFlow by mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow())
 
-//    internal val episodes = mutableListOf<Episode>()
-//    internal val vms = mutableStateListOf<EpisodeVM>()
-    internal var infoBarText = mutableStateOf("")
     internal var searchInFeed by mutableStateOf(false)
-//    internal var feedName by mutableStateOf("")
     internal var queryText by mutableStateOf("")
-
-    internal var swipeActions: SwipeActions
 
     init {
         Logd(TAG, "init $curSearchString")
@@ -130,17 +124,10 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         if (feedToSearchIn != null) {
             this.searchInFeed = true
             feedId = feedToSearchIn!!.id
-//            feedName = feedToSearchIn?.title ?: "Feed has no title"
         }
         automaticSearchDebouncer = Handler(Looper.getMainLooper())
-        swipeActions = SwipeActions(context, TAG)
     }
 
-    fun buildMoreItems() {
-//        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
-//        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
-//        if (nextItems.isNotEmpty()) vms.addAll(nextItems)
-    }
     private var eventSink: Job?     = null
     private var eventStickySink: Job? = null
     internal fun cancelFlowEvents() {
@@ -170,7 +157,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         if (query.isBlank()) return
         if (searchJob != null) {
             searchJob?.cancel()
-//            vms.clear()
         }
         searchJob = lcScope.launch {
             try {
@@ -187,12 +173,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 withContext(Dispatchers.Main) {
                     episodesFlow = results_.episodes
-//                    episodes.clear()
-//                    vms.clear()
-//                    if (first_.isNotEmpty()) {
-//                        episodes.addAll(first_)
-//                        buildMoreItems()
-//                    }
 //                    infoBarText.value = "${episodes.size} episodes"   TODO
                     if (feedId == 0L) {
                         feeds.clear()
@@ -328,11 +308,14 @@ fun SearchScreen() {
     val context = LocalContext.current
     val navController = LocalNavController.current
     val vm = remember { SearchVM(context, scope) }
+
+    var swipeActions by remember { mutableStateOf(SwipeActions(context, TAG)) }
+
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
+                    lifecycleOwner.lifecycle.addObserver(swipeActions)
                     if (vm.feedId > 0L) vm.searchInFeed = true
 //                    vm.refreshSwipeTelltale()
                     if (vm.queryText.isNotBlank()) vm.search(vm.queryText)
@@ -346,9 +329,7 @@ fun SearchScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-//            vm.episodes.clear()
             vm.feeds.clear()
-//            vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -494,9 +475,13 @@ fun SearchScreen() {
         }
     }
 
-    vm.swipeActions.ActionOptionsDialog()
-    val tabTitles = listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds)
-    val tabCounts = listOf(0, vm.feeds.size, vm.pafeeds.size)   // TODO
+    val episodesChange by vm.episodesFlow.collectAsState(initial = null)
+    val episodes = episodesChange?.list ?: emptyList()
+    val infoBarText = remember(episodes) { mutableStateOf("${episodes.size} episodes") }
+
+    swipeActions.ActionOptionsDialog()
+    val tabTitles = remember { listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds) }
+    val tabCounts = listOf(episodes.size, vm.feeds.size, vm.pafeeds.size)
     val selectedTabIndex = remember { mutableIntStateOf(0) }
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
@@ -527,10 +512,8 @@ fun SearchScreen() {
             }
             when (selectedTabIndex.intValue) {
                 0 -> {
-                    InforBar(vm.infoBarText, vm.swipeActions)
-                    val results by vm.episodesFlow.collectAsState(initial = null)
-                    val episodes = results?.list ?: emptyList()
-                    EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = vm.swipeActions)
+                    InforBar(infoBarText, swipeActions)
+                    EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions)
                 }
                 1 -> FeedsColumn()
                 2 -> PAFeedsColumn()

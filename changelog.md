@@ -1,3 +1,10 @@
+# 9.0.0-1
+
+* fixed number on episodes tab in Search screen
+* in Queues screen
+	* moved Rename from menu to the Settings
+	* disabled setting of keepSorted, it's automatically set if sortOrder is not timeInQueue ascending
+
 # 9.0.0
 
 * large rework in various parts to enhance efficiency and directly syncing Compose with DB

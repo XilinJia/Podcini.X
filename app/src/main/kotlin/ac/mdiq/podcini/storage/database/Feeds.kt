@@ -110,7 +110,7 @@ fun monitorFeedList(scope: CoroutineScope) {
     monitorJob = scope.launch(Dispatchers.IO) {
         feedQuery.asFlow().collect { changes: ResultsChange<Feed> ->
             val feeds = changes.list
-            Logd(TAG, "monitorFeedList feeds size: ${feeds.size}")
+//            Logd(TAG, "monitorFeedList feeds size: ${feeds.size}")
             when (changes) {
                 is UpdatedResults -> {
                     when {
@@ -125,9 +125,9 @@ fun monitorFeedList(scope: CoroutineScope) {
                             EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
                         }
                         changes.changes.isNotEmpty() -> {
-                            for (i in changes.changes) {
-                                Logd(TAG, "monitorFeedList feed changed: ${feeds[i].title}")
-                            }
+//                            for (i in changes.changes) {
+//                                Logd(TAG, "monitorFeedList feed changed: ${feeds[i].title}")
+//                            }
                         }
                         changes.deletions.isNotEmpty() -> {
                             val ids = feedIds.value.toMutableList()

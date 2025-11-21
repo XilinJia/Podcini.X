@@ -315,8 +315,8 @@ fun FeedDetailsScreen() {
 
     var listInfoText by remember { mutableStateOf("") }
     LaunchedEffect(episodes.size) {
+        Logd(TAG, "LaunchedEffect(episodes.size)")
         scope.launch(Dispatchers.IO) {
-            Logd(TAG, "LaunchedEffect(episodes.size)")
             val info = buildListInfo(episodes)
             withContext(Dispatchers.Main) {
                 listInfoText = info
@@ -464,6 +464,7 @@ fun FeedDetailsScreen() {
         }
 
         LaunchedEffect(feed) {
+            Logd(TAG, "LaunchedEffect feed")
             refresh()
         }
 

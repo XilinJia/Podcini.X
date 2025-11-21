@@ -344,6 +344,8 @@ fun SubscriptionsScreen() {
 
     suspend fun prepareSort() {
         Logd(TAG, "prepareSort feeds: ${feeds.size}")
+        if (feeds.isEmpty()) return
+
         when (sortIndex) {
             FeedSortIndex.Title.ordinal -> {
                 sortDir = if (titleAscending) Sort.ASCENDING else Sort.DESCENDING
@@ -595,7 +597,22 @@ fun SubscriptionsScreen() {
         }
     }
 
+    var sortingJob = remember<Job?> { null }
+    fun sortRoutine() {
+        sortingJob?.cancel()
+        sortingJob = runOnIOScope {
+            prepareSort()
+            saveSortingPrefs()
+        }.apply { invokeOnCompletion { sortingJob = null } }
+    }
+
+    LaunchedEffect(feedOperationText, feeds.size) {
+        Logd(TAG, "LaunchedEffect feedOperationText: $feedOperationText feeds.size: ${feeds.size}")
+        if (feedOperationText.isBlank()) sortRoutine()
+    }
+
     LaunchedEffect(feedsFiltered, sortPair.first, sortPair) {
+        Logd(TAG, "LaunchedEffect feedsFiltered, sortPair.first, sortPair")
         buildFlow()
     }
 
@@ -915,6 +932,7 @@ fun SubscriptionsScreen() {
                         val feed by remember { mutableStateOf(feeds[index]) }
                         var isSelected by remember { mutableStateOf(false) }
                         LaunchedEffect(key1 = selectMode, key2 = selectedSize) {
+                            Logd(TAG, "LaunchedEffect(key1 = selectMode, key2 = selectedSize)")
                             isSelected = selectMode && feed in selected
                         }
                         fun toggleSelected() {
@@ -984,10 +1002,7 @@ fun SubscriptionsScreen() {
                 LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     itemsIndexed(feeds, key = { _, feed -> feed.id}) { index, feed_ ->
                         val feed by rememberUpdatedState(feed_)
-                        var isSelected by remember { mutableStateOf(false) }
-                        LaunchedEffect(key1 = selectMode, key2 = selectedSize) {
-                            isSelected = selectMode && feed in selected
-                        }
+                        var isSelected by remember(key1 = selectMode, key2 = selectedSize) { mutableStateOf(selectMode && feed in selected) }
                         fun toggleSelected() {
                             isSelected = !isSelected
                             if (isSelected) selected.add(feed)
@@ -1094,14 +1109,6 @@ fun SubscriptionsScreen() {
     fun OpenDialogs() {
         @Composable
         fun SortDialog(onDismissRequest: () -> Unit) {
-            var sortingJob = remember<Job?> { null }
-            fun sortRoutine() {
-                sortingJob?.cancel()
-                sortingJob = runOnIOScope {
-                    prepareSort()
-                    saveSortingPrefs()
-                }.apply { invokeOnCompletion { sortingJob = null } }
-            }
             Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
                 val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
                 dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
@@ -1412,6 +1419,7 @@ fun SubscriptionsScreen() {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     val selectedList = remember { MutableList(vm.languages.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {
+                                        Logd(TAG, "LaunchedEffect(reset) lang")
                                         for (index in selectedList.indices) {
                                             if (vm.languages[index] in vm.langsSel) selectedList[index].value = true
                                             langFull = selectedList.count { it.value } == selectedList.size
@@ -1450,6 +1458,7 @@ fun SubscriptionsScreen() {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 val selectedList = remember { MutableList(vm.queueNames.size) { mutableStateOf(false) } }
                                 LaunchedEffect(reset) {
+                                    Logd(TAG, "LaunchedEffect(reset) queue")
                                     for (index in selectedList.indices) {
                                         if (vm.queueIds[index] in vm.qSelIds) selectedList[index].value = true
                                         queuesFull = selectedList.count { it.value } == selectedList.size
@@ -1487,6 +1496,7 @@ fun SubscriptionsScreen() {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     val selectedList = remember { MutableList(tags.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {
+                                        Logd(TAG, "LaunchedEffect(reset) tag")
                                         for (index in selectedList.indices) {
                                             if (tags[index] in vm.tagsSel) selectedList[index].value = true
                                             tagsFull = selectedList.count { it.value } == selectedList.size
@@ -1528,6 +1538,7 @@ fun SubscriptionsScreen() {
                                         var selectedIndex by remember { mutableIntStateOf(-1) }
                                         if (selectNone) selectedIndex = -1
                                         LaunchedEffect(Unit) {
+                                            Logd(TAG, "LaunchedEffect(Unit) filter")
                                             if (filter != null) {
                                                 if (item.values[0].filterId in filter.properties) selectedIndex = 0
                                                 else if (item.values[1].filterId in filter.properties) selectedIndex = 1
@@ -1572,6 +1583,7 @@ fun SubscriptionsScreen() {
                                         val selectedList = remember { MutableList(item.values.size) { mutableStateOf(false) } }
                                         var allOrNone by remember { mutableStateOf(false) }
                                         LaunchedEffect(reset) {
+                                            Logd(TAG, "LaunchedEffect(reset) filter")
                                             if (filter != null) {
                                                 for (index in selectedList.indices) {
                                                     if (item.values[index].filterId in filter.properties) selectedList[index].value = true

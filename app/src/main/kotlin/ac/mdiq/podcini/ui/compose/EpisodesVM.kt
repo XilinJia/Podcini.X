@@ -438,7 +438,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 val episode by rememberUpdatedState(episode_)
                 var actionButton by remember(episode.id) { mutableStateOf(EpisodeActionButton(episode)) }
                 var showAltActionsDialog by remember(episode.id) { mutableStateOf(false) }
-                var isSelected by remember(episode.id) { mutableStateOf(false) }
+                var isSelected by remember(episode.id, selectMode, selectedSize) { mutableStateOf( selectMode && episode in selected ) }
 
                 fun toggleSelected(e: Episode) {
                     isSelected = !isSelected
@@ -656,10 +656,6 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                         },
                     )
                 }.offset { IntOffset(offsetX.value.roundToInt(), 0) }) {
-                    LaunchedEffect(key1 = selectMode, key2 = selectedSize) {
-                        isSelected = selectMode && episode in selected
-                        //                        Logd(TAG, "LaunchedEffect $index ${isSelected} ${selected.size}")
-                    }
                     Column {
                         var yOffset by remember { mutableFloatStateOf(0f) }
                         var draggedIndex by remember { mutableStateOf<Int?>(null) }

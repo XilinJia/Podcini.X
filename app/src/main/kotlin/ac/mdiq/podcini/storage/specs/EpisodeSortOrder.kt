@@ -123,18 +123,18 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                 FEED_TITLE_A_Z -> comparator = Comparator { f1: Episode?, f2: Episode? -> feedTitle(f1).compareTo(feedTitle(f2)) }
                 FEED_TITLE_Z_A -> comparator = Comparator { f1: Episode?, f2: Episode? -> feedTitle(f2).compareTo(feedTitle(f1)) }
                 RANDOM, RANDOM1 -> permutor = object : Permutor<Episode> {
-                    override fun reorder(queue: MutableList<Episode>?) {
-                        if (!queue.isNullOrEmpty()) queue.shuffle()
+                    override fun reorder(episodes: MutableList<Episode>?) {
+                        if (!episodes.isNullOrEmpty()) episodes.shuffle()
                     }
                 }
                 SMART_SHUFFLE_OLD_NEW -> permutor = object : Permutor<Episode> {
-                    override fun reorder(queue: MutableList<Episode>?) {
-                        if (!queue.isNullOrEmpty()) smartShuffle(queue as MutableList<Episode?>, true)
+                    override fun reorder(episodes: MutableList<Episode>?) {
+                        if (!episodes.isNullOrEmpty()) smartShuffle(episodes as MutableList<Episode?>, true)
                     }
                 }
                 SMART_SHUFFLE_NEW_OLD -> permutor = object : Permutor<Episode> {
-                    override fun reorder(queue: MutableList<Episode>?) {
-                        if (!queue.isNullOrEmpty()) smartShuffle(queue as MutableList<Episode?>, false)
+                    override fun reorder(episodes: MutableList<Episode>?) {
+                        if (!episodes.isNullOrEmpty()) smartShuffle(episodes as MutableList<Episode?>, false)
                     }
                 }
                 SIZE_SMALL_LARGE -> comparator = Comparator { f1: Episode?, f2: Episode? -> size(f1).compareTo(size(f2)) }
@@ -143,7 +143,7 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
             if (comparator != null) {
                 val comparator2: java.util.Comparator<Episode> = comparator
                 permutor = object : Permutor<Episode> {
-                    override fun reorder(queue: MutableList<Episode>?) {if (!queue.isNullOrEmpty()) queue.sortWith(comparator2)}
+                    override fun reorder(episodes: MutableList<Episode>?) {if (!episodes.isNullOrEmpty()) episodes.sortWith(comparator2)}
                 }
             }
             return permutor!!
@@ -299,14 +299,14 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
          * This continues, until we end up with: `EEBEDEECEDEEAEE`.
          * Note that episodes aren't strictly ordered in terms of pubdate, but episodes of each feed are.
          *
-         * @param queue A (modifiable) list of FeedItem elements to be reordered.
+         * @param episodes A (modifiable) list of FeedItem elements to be reordered.
          * @param ascending `true` to use ascending pubdate in the reordering;
          * `false` for descending.
          */
-        private fun smartShuffle(queue: MutableList<Episode?>, ascending: Boolean) {
+        private fun smartShuffle(episodes: MutableList<Episode?>, ascending: Boolean) {
             // Divide FeedItems into lists by feed
             val map: MutableMap<Long, MutableList<Episode>> = mutableMapOf()
-            for (item in queue) {
+            for (item in episodes) {
                 if (item == null) continue
                 val id = item.feedId
                 if (id != null) {
@@ -327,8 +327,8 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
             }
 
             val emptySlots = mutableListOf<Int>()
-            for (i in queue.indices) {
-                queue[i] = null
+            for (i in episodes.indices) {
+                episodes[i] = null
                 emptySlots.add(i)
             }
 
@@ -343,8 +343,8 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                     val nextEmptySlot = emptySlotIterator.next()
                     skipped++
                     if (skipped >= spread * (placed + 1)) {
-                        if (queue[nextEmptySlot] != null) throw RuntimeException("Slot to be placed in not empty")
-                        queue[nextEmptySlot] = feedItems[placed]
+                        if (episodes[nextEmptySlot] != null) throw RuntimeException("Slot to be placed in not empty")
+                        episodes[nextEmptySlot] = feedItems[placed]
                         emptySlotIterator.remove()
                         placed++
                         if (placed == feedItems.size) break
@@ -361,9 +361,9 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
         interface Permutor<E> {
             /**
              * Reorders the specified list.
-             * @param queue A (modifiable) list of elements to be reordered
+             * @param episodes A (modifiable) list of elements to be reordered
              */
-            fun reorder(queue: MutableList<E>?)
+            fun reorder(episodes: MutableList<E>?)
         }
     }
 }
