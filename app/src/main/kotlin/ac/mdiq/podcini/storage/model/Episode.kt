@@ -65,6 +65,8 @@ import java.io.InputStream
 import java.util.Date
 import kotlin.math.max
 
+private const val smartMarkAsPlayedPercent: Int = 95
+
 @Stable
 class Episode : RealmObject {
     @PrimaryKey
@@ -367,6 +369,8 @@ class Episode : RealmObject {
         playState = if (played) EpisodeState.PLAYED.code else EpisodeState.UNPLAYED.code
         playStateSetTime = System.currentTimeMillis()
     }
+
+    fun hasAlmostEnded(): Boolean = duration > 0 && position >= duration * smartMarkAsPlayedPercent * 0.01
 
     /**
      * Updates this item's description property if the given argument is longer than the already stored description
@@ -679,6 +683,20 @@ class Episode : RealmObject {
         return getDataFolder(mediaPath).toString() + "/"
     }
 
+    fun isDownloaded(): Boolean {
+        val url = fileUrl ?: return false
+        when {
+            url.startsWith("content://") -> {
+                val documentFile = DocumentFile.fromSingleUri(getAppContext(), url.toUri())
+                return documentFile != null && documentFile.exists()
+            }
+            else -> {
+                val path = url.toUri().path ?: return false
+                return File(path).exists()
+            }
+        }
+    }
+
     suspend fun fetchMediaSize(persist: Boolean = true, force: Boolean = false) : Long {
         return withContext(Dispatchers.IO) {
             if (!isImageDownloadAllowed) {
@@ -715,6 +733,12 @@ class Episode : RealmObject {
             if (persist) upsert(this@Episode) { it.size = if (size_ <= 0) CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() else size_ }
             size_
         }
+    }
+
+    fun getClipFile(clipname: String): File {
+        val context = getAppContext()
+        val mediaFilesDir = context.getExternalFilesDir("media")?.apply { mkdirs() } ?: File(context.filesDir, "media").apply { mkdirs() }
+        return File(mediaFilesDir, "recorded_${id}_$clipname")
     }
 
     fun isSizeSetUnknown(): Boolean = (CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() == this.size)

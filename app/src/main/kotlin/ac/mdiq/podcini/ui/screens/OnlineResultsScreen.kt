@@ -8,11 +8,8 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
-
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.SearchBarRow
-import ac.mdiq.podcini.ui.utils.onlineSearchText
-import ac.mdiq.podcini.ui.utils.onlineSearcherName
 import ac.mdiq.podcini.util.Logd
 import android.annotation.SuppressLint
 import android.content.Context
@@ -62,6 +59,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+private var searchText by mutableStateOf("")
+private var searcherName by mutableStateOf("")
+fun setOnlineSearchTerms(searchProvider: Class<out PodcastSearcher?>, query: String? = null) {
+    searchText = query ?: ""
+    searcherName = searchProvider.name
+}
+
 class OnlineResultsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var searchProvider: PodcastSearcher? = null
 
@@ -75,7 +79,7 @@ class OnlineResultsVM(val context: Context, val lcScope: CoroutineScope) {
     internal var noResultText by mutableStateOf("")
 
     init {
-        defaultText = onlineSearchText
+        defaultText = searchText
     }
 
     private var searchJob: Job? = null
@@ -134,13 +138,13 @@ fun OnlineResultsScreen() {
                 Lifecycle.Event.ON_CREATE -> {
                     for (info in PodcastSearcherRegistry.searchProviders) {
                         Logd(TAG, "searchProvider: $info")
-                        if (info.searcher.javaClass.getName() == onlineSearcherName) {
+                        if (info.searcher.javaClass.getName() == searcherName) {
                             vm.searchProvider = info.searcher
                             break
                         }
                     }
                     if (vm.searchProvider == null) Logd(TAG,"Podcast searcher not found")
-                    vm.defaultText = onlineSearchText
+                    vm.defaultText = searchText
                     vm.search(vm.defaultText)
                 }
                 Lifecycle.Event.ON_START -> {}
@@ -161,7 +165,7 @@ fun OnlineResultsScreen() {
     @Composable
     fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { SearchBarRow(R.string.search_podcast_hint, defaultText = onlineSearchText) { queryText -> vm.search(queryText) } }, navigationIcon = {
+            TopAppBar(title = { SearchBarRow(R.string.search_podcast_hint, defaultText = searchText) { queryText -> vm.search(queryText) } }, navigationIcon = {
                 IconButton(onClick = {
                     if (navController.previousBackStackEntry != null) navController.popBackStack()
                 }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }

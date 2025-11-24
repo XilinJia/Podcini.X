@@ -41,7 +41,7 @@ class ExceptFavoriteCleanupAlgorithm : EpisodeCleanupAlgorithm() {
     private val candidates: List<Episode>
         get() {
             val candidates: MutableList<Episode> = mutableListOf()
-            val downloadedItems = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_NEW_OLD)
+            val downloadedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_NEW_OLD)
             for (item in downloadedItems) if (item.downloaded && !item.isSUPER) candidates.add(item)
             return candidates
         }
@@ -84,7 +84,7 @@ class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
     private val candidates: List<Episode>
         get() {
             val candidates: MutableList<Episode> = mutableListOf()
-            val downloadedItems = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_NEW_OLD)
+            val downloadedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_NEW_OLD)
             val idsInQueues = getInQueueEpisodeIds()
             for (item in downloadedItems) if (item.downloaded && !idsInQueues.contains(item.id) && !item.isSUPER) candidates.add(item)
             return candidates
@@ -137,7 +137,7 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
     private val candidates: List<Episode>
         get() {
             val candidates: MutableList<Episode> = mutableListOf()
-            val downloadedItems = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_NEW_OLD)
+            val downloadedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_NEW_OLD)
             val idsInQueues = getInQueueEpisodeIds()
             val mostRecentDateForDeletion = calcMostRecentDateForDeletion(Date())
             for (item in downloadedItems) {

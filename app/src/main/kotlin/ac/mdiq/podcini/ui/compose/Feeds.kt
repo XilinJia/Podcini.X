@@ -38,9 +38,9 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
+import ac.mdiq.podcini.ui.screens.feedScreenMode
+import ac.mdiq.podcini.ui.screens.feedOnDisplay
+import ac.mdiq.podcini.ui.screens.setOnlineFeedUrl
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd

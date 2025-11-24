@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.storage.model.AppAttribs
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState
 import ac.mdiq.podcini.storage.model.DownloadResult
@@ -10,6 +11,7 @@ import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
@@ -56,7 +58,9 @@ val config: RealmConfiguration by lazy {
         SubscriptionLog::class,
         Chapter::class,
         PAFeed::class,
-    )).name("Podcini.realm").schemaVersion(61)
+        AppAttribs::class,
+        SubscriptionsPrefs::class
+    )).name("Podcini.realm").schemaVersion(67)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -274,6 +278,18 @@ val config: RealmConfiguration by lazy {
                 for (queue in queues) {
                     queue.set("launchAutoEQDlWhenEmpty", true)
                 }
+            }
+            if (oldRealm.schemaVersion() < 65) {
+                Logd(TAG, "migrating DB from below 65")
+                newRealm.copyToRealm(
+                    DynamicMutableRealmObject.create(
+                        type = "AppAttribs",
+                        mapOf(
+                            "id" to 0L,
+                            "curQueueId" to 0L
+                        )
+                    )
+                )
             }
         }).build()
 }

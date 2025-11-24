@@ -17,18 +17,17 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueStorage
 import ac.mdiq.podcini.net.utils.NetworkUtils.containsUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.isAllowMobileFor
 import ac.mdiq.podcini.net.utils.NetworkUtils.setAllowMobileFor
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
+import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.getEpisodes
-import ac.mdiq.podcini.storage.database.hasAlmostEnded
-import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.getFeedListDownloadUrls
-import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -213,7 +212,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         val queuedEpisodeActions: MutableList<EpisodeAction> = synchronizationQueueStorage.queuedEpisodeActions
         if (lastSync == 0L) {
             EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_upload_played))
-            val readItems = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_NEW_OLD)
+            val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_NEW_OLD)
             Logd(TAG, "First sync. Upload state for all " + readItems.size + " played episodes")
             for (item in readItems) {
                 val played = EpisodeAction.Builder(item, EpisodeAction.PLAY)
@@ -257,7 +256,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         }
         var idRemove: Long? = null
         feedItem.setPosition(action.position * 1000)
-        if (hasAlmostEnded(feedItem)) {
+        if (feedItem.hasAlmostEnded()) {
             Logd(TAG, "Marking as played: $action")
             feedItem.setPlayed(true)
             feedItem.setPosition(0)
@@ -282,7 +281,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         }
 
         runOnIOScope {
-            removeFromQueue(curQueue, updatedItems)
+            removeFromQueue(actQueue, updatedItems)
             for (episode in updatedItems) upsert(episode) {}
             EventFlow.postEvent(FlowEvent.EpisodeEvent(updatedItems))
         }

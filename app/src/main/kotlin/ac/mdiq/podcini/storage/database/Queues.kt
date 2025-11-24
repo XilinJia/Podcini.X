@@ -4,9 +4,9 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.automation.autodownloadForQueue
 import ac.mdiq.podcini.automation.autoenqueueForQueue
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.writeMediaPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
 import ac.mdiq.podcini.playback.base.PlayerStatus
@@ -23,7 +23,6 @@ import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
-import kotlinx.coroutines.Job
 import java.util.Date
 import kotlin.random.Random
 
@@ -43,18 +42,23 @@ fun getInQueueEpisodeIds(): Set<Long> {
  * If a Episode is already in the queue, the Episode will not change its position in the queue.
  * @param episodes               the Episode objects that should be added to the queue.
  */
-suspend fun addToActiveQueue(episodes: List<Episode>) {
-    Logd(TAG, "addToActiveQueue( ... ) called")
+suspend fun addToActQueue(episodes: List<Episode>) {
+    Logd(TAG, "addToActQueue( ... ) called")
     if (episodes.isEmpty()) return
+    var queue = actQueue
+    if (queue.isVirtual()) {
+        Loge(TAG, "Active queue is virtual, ignored")
+        return
+    }
 
     var queueModified = false
     val setInQueue = mutableListOf<Episode>()
     val events: MutableList<FlowEvent.QueueEvent> = mutableListOf()
     val updatedItems: MutableList<Episode> = mutableListOf()
     val currentlyPlaying = curEpisode
-    var insertPosition = calcPosition(curQueue, currentlyPlaying)
-    val qItems = curQueue.episodes.toMutableList()
-    val qItemIds = curQueue.episodeIds.toMutableList()
+    var insertPosition = calcPosition(queue, currentlyPlaying)
+    val qItems = queue.episodes.toMutableList()
+    val qItemIds = queue.episodeIds.toMutableList()
 
     val t = System.currentTimeMillis()
     var c = 0L
@@ -71,15 +75,21 @@ suspend fun addToActiveQueue(episodes: List<Episode>) {
         insertPosition++
     }
     if (queueModified) {
-        curQueue = applySortOrder(qItems, curQueue, events = events)
+        queue = applySortOrder(qItems, queue, events = events)
+        if (queue.id == actQueue.id) actQueue = queue
+//        else if (queue.id == curQueue.id) curQueue = queue
         for (event in events) EventFlow.postEvent(event)
         for (episode in setInQueue) setPlayState(EpisodeState.QUEUE, episode, false)
     }
 }
 
-suspend fun addToQueue(episode: Episode, queue_: PlayQueue? = null) {
+suspend fun addToAssOrActQueue(episode: Episode, queue_: PlayQueue? = null) {
     Logd(TAG, "addToQueueSync( ... ) called")
-    var queue = queue_ ?: episode.feed?.queue ?: curQueue
+    var queue = queue_ ?: episode.feed?.queue ?: actQueue
+    if (queue.isVirtual()) {
+        Loge(TAG, "Current queue is virtual, ignored")
+        return
+    }
     queue = realm.query(PlayQueue::class).query("id == ${queue.id}").first().find() ?: return
     if (queue.episodeIds.contains(episode.id)) return
     val qItems = queue.episodes.toMutableList()
@@ -94,8 +104,8 @@ suspend fun addToQueue(episode: Episode, queue_: PlayQueue? = null) {
     val events = mutableListOf(FlowEvent.QueueEvent.added(episode, insertPosition))
     val queueNew = applySortOrder(qItems, queue, events = events)
     if (episode.playState < EpisodeState.QUEUE.code) setPlayState(EpisodeState.QUEUE, episode, false)
-    if (queue.id == curQueue.id) {
-        curQueue = queueNew
+    if (queue.id == actQueue.id) {
+        actQueue = queueNew
         EventFlow.postEvent(events[0])
     }
 }
@@ -109,12 +119,12 @@ suspend fun addToQueue(episode: Episode, queue_: PlayQueue? = null) {
 private fun applySortOrder(queueItems: MutableList<Episode>, queue_: PlayQueue, events: MutableList<FlowEvent.QueueEvent>): PlayQueue {
     var sorted = false
     var queue = queue_
-    if (queue.sortOrder !in listOf(EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW, EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1)) {
+    if (queue.sortOrder !in listOf(EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW, EpisodeSortOrder.TIME_IN_QUEUE_NEW_OLD, EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1)) {
         getPermutor(queue.sortOrder).reorder(queueItems)
         sorted = true
     }
 
-    if (queue.enqueueLocation != EnqueueLocation.BACK.code) resetInQueueTime(queueItems)
+    if (queue.enqueueLocation != EnqueueLocation.BACK.code && queue.sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_NEW_OLD) resetInQueueTime(queueItems)
 
     if (sorted) queue = resetIds(queue, queueItems)
 
@@ -126,43 +136,19 @@ private fun applySortOrder(queueItems: MutableList<Episode>, queue_: PlayQueue, 
     return queue
 }
 
-fun clearQueue() : Job {
-    Logd(TAG, "clearQueue called")
-    return runOnIOScope {
-        curQueue = upsert(curQueue) {
-            it.idsBinList.addAll(it.episodeIds)
-            trimBin(it)
-            it.episodeIds.clear()
-            it.update()
-        }
-        val t = System.currentTimeMillis()
-        var c = 0L
-        for (e in curQueue.episodes) {
-            var e_ = e
-            if (e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState))
-                e_ = setPlayState(EpisodeState.SKIPPED, e, false)
-            upsert(e_) { it.timeOutQueue = t+c++}
-        }
-        curQueue.episodes.clear()
-        EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
-        autoenqueueForQueue(curQueue)
-        if(curQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), curQueue)
-    }
-}
-
-suspend fun smartRemoveFromQueue(item_: Episode) {
+suspend fun smartRemoveFromActQueue(item_: Episode) {
     var item = item_
-    val almostEnded = hasAlmostEnded(item)
+    val almostEnded = item.hasAlmostEnded()
     if (almostEnded && item.playState < EpisodeState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayState(EpisodeState.PLAYED, item, resetMediaPosition = true, removeFromQueue = false)
     if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
     if (item.playState < EpisodeState.SKIPPED.code && !stateToPreserve(item.playState)) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED
         item = setPlayState(stat, item, resetMediaPosition = false, removeFromQueue = false)
     }
-    removeFromQueue(curQueue, listOf(item))
+    removeFromQueue(actQueue, listOf(item))
 }
 
-private fun trimBin(queue: PlayQueue) {
+fun trimBin(queue: PlayQueue) {
     if (queue.binLimit <= 0) return
     if (queue.idsBinList.size > queue.binLimit * 1.2) {
         val newSize = (0.2 * queue.binLimit).toInt()
@@ -175,26 +161,28 @@ private fun trimBin(queue: PlayQueue) {
 fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? = null) {
     Logd(TAG, "removeFromAllQueuesSync called ")
     val queues = realm.query(PlayQueue::class).find()
-    for (q in queues) if (q.id != curQueue.id) removeFromQueue(q, episodes, playState)
-    //        ensure curQueue is last updated
-    if (curQueue.size() > 0) removeFromQueue(curQueue, episodes, playState)
-    else upsertBlk(curQueue) { it.update() }
-    if (curQueue.size() == 0) {
-        autoenqueueForQueue(curQueue)
-        if(curQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), curQueue)
+    for (q in queues) if (q.id != actQueue.id) removeFromQueue(q, episodes, playState)
+    //        ensure actQueue is last updated
+    if (actQueue.size() > 0) removeFromQueue(actQueue, episodes, playState)
+    else upsertBlk(actQueue) { it.update() }
+    if (actQueue.size() == 0 && !actQueue.isVirtual()) {
+        autoenqueueForQueue(actQueue)
+        if(actQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), actQueue)
     }
 }
 
 /**
- * @param queue_    if null, use curQueue
+ * @param queue_    if null, use actQueue
  */
 internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, playState: EpisodeState? = null) {
-    Logd(TAG, "removeFromQueueSync called ")
+    Logd(TAG, "removeFromQueue called ")
     if (episodes.isEmpty()) return
-    val queue = queue_ ?: curQueue
+    val queue = queue_ ?: actQueue
     if (queue.size() == 0) {
-        autoenqueueForQueue(queue)
-        if(queue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), queue)
+        if (!queue.isVirtual()) {
+            autoenqueueForQueue(queue)
+            if (queue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), queue)
+        }
         return
     }
     val events: MutableList<FlowEvent.QueueEvent> = mutableListOf()
@@ -212,7 +200,7 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
                 it.timeOutQueue = t+c++
                 if (playState != null && it.playState == EpisodeState.QUEUE.code) it.setPlayState(playState)
             }
-            if (queue.id == curQueue.id) events.add(FlowEvent.QueueEvent.removed(episode))
+            if (queue.id == actQueue.id) events.add(FlowEvent.QueueEvent.removed(episode))
         }
     }
     if (indicesToRemove.isNotEmpty()) {
@@ -228,26 +216,28 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
             it.episodeIds.clear()
             for (e in qItems) it.episodeIds.add(e.id)
         }
-        if (queueNew.id == curQueue.id) {
+        if (queueNew.id == actQueue.id) {
             queueNew.episodes.clear()
-            curQueue = queueNew
+            actQueue = queueNew
         }
         for (event in events) EventFlow.postEvent(event)
-        if (queueNew.size() == 0) {
+        if (queueNew.size() == 0 && !queueNew.isVirtual()) {
             autoenqueueForQueue(queueNew)
             if(queueNew.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), queueNew)
         }
     } else Logd(TAG, "Queue was not modified by call to removeQueueItem")
 }
 
-suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>) {
+suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolean = true) {
     Logd(TAG, "removeFromAllQueuesQuiet called ")
 
-    suspend fun doit(q: PlayQueue, isCurQueue: Boolean = false) {
+    suspend fun doit(q: PlayQueue, isActQueue: Boolean = false) {
         if (q.size() == 0) {
-            if (isCurQueue) upsert(q) { it.update() }
-            autoenqueueForQueue(q)
-            if(q.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), q)
+            if (isActQueue) upsert(q) { it.update() }
+            if (!q.isVirtual()) {
+                autoenqueueForQueue(q)
+                if (q.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), q)
+            }
             return
         }
         val idsInQueuesToRemove: MutableSet<Long> = q.episodeIds.intersect(episodeIds.toSet()).toMutableSet()
@@ -257,7 +247,7 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>) {
             var c = 0L
             for (e in eList) {
                 var e_ = e
-                if (e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState))
+                if (updateState && e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState))
                     e_ = setPlayState(EpisodeState.SKIPPED, e, false)
                 upsert(e_) { it.timeOutQueue = t+c++}
             }
@@ -270,44 +260,21 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>) {
                 it.episodeIds.addAll(qeids)
                 it.update()
             }
-            if (qNew.size() == 0) {
+            if (qNew.size() == 0 && !q.isVirtual()) {
                 autoenqueueForQueue(qNew)
                 if(qNew.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), qNew)
             }
-            if (isCurQueue) curQueue = qNew
+            if (isActQueue) actQueue = qNew
         }
     }
 
     val queues = realm.query(PlayQueue::class).find()
     for (q in queues) {
-        if (q.id == curQueue.id) continue
+        if (q.id == actQueue.id) continue
         doit(q)
     }
-    //        ensure curQueue is last updated
-    doit(curQueue, true)
-}
-
-/**
- * Changes the position of a Episode in the queue.
- * This function must be run using the ExecutorService (dbExec).
- * @param from            Source index. Must be in range 0..queue.size()-1.
- * @param to              Destination index. Must be in range 0..queue.size()-1.
- * @param broadcastUpdate true if this operation should trigger a QueueUpdateBroadcast. This option should be set to
- * false if the caller wants to avoid unexpected updates of the GUI.
- * @throws IndexOutOfBoundsException if (to < 0 || to >= queue.size()) || (from < 0 || from >= queue.size())
- */
-fun moveInQueue(from: Int, to: Int, broadcastUpdate: Boolean) {
-    val episodes = curQueue.episodes.toMutableList()
-    if (episodes.isNotEmpty()) {
-        if ((from in 0 ..< episodes.size) && (to in 0..<episodes.size)) {
-            val episode = episodes.removeAt(from)
-            try { episodes.add(to, episode) } catch (e: Throwable) { Loge(TAG, "moveInQueue: ${e.message}")}
-            if (broadcastUpdate) EventFlow.postEvent(FlowEvent.QueueEvent.moved(episode, to))
-        }
-        resetInQueueTime(episodes)
-        curQueue.episodes.clear()
-        curQueue = resetIds(curQueue, episodes)
-    } else Loge(TAG, "moveQueueItemHelper: Could not load queue")
+    //        ensure actQueue is last updated
+    doit(actQueue, true)
 }
 
 fun resetIds(queue: PlayQueue, episodes: Collection<Episode>): PlayQueue {
@@ -331,8 +298,8 @@ fun resetInQueueTime(episodes: Collection<Episode>) {
 
 fun getNextInQueue(currentMedia: Episode?): Episode? {
     Logd(TAG, "getNextInQueue called currentMedia: ${currentMedia?.getEpisodeTitle()}")
-    val eList = if (currentMedia?.feed?.queue == null) currentMedia?.feed?.getVirtualQueueItems() else curQueue.episodes
-    if (eList.isNullOrEmpty()) {
+    val eList = actQueue.episodes
+    if (eList.isEmpty()) {
         Logd(TAG, "getNextInQueue queue is empty")
         writeNoMediaPlaying()
         return null
@@ -363,8 +330,8 @@ fun getNextInQueue(currentMedia: Episode?): Episode? {
 
 private fun calcPosition(queue: PlayQueue, currentPlaying: Episode?): Int {
     val queueItems = queue.episodes
-    if (queueItems.isEmpty()) return 0
-    if (queue.keepSorted) return queueItems.size
+    if (queueItems.isEmpty() || queue.sortOrder == EpisodeSortOrder.TIME_IN_QUEUE_NEW_OLD) return 0
+    if (queue.sortOrder == EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW) return queueItems.size
 
     fun getPositionOfFirstNonDownloadingItem(startPosition: Int): Int {
         fun isItemAtPositionDownloading(position: Int): Boolean {
@@ -372,9 +339,9 @@ private fun calcPosition(queue: PlayQueue, currentPlaying: Episode?): Int {
             if (curItem?.downloadUrl == null) return false
             return DownloadServiceInterface.impl?.isDownloadingEpisode(curItem.downloadUrl!!) == true
         }
-        val curQueueSize = queueItems.size
-        for (i in startPosition until curQueueSize) if (!isItemAtPositionDownloading(i)) return i
-        return curQueueSize
+        val qSize = queueItems.size
+        for (i in startPosition until qSize) if (!isItemAtPositionDownloading(i)) return i
+        return qSize
     }
     fun getCurrentlyPlayingPosition(): Int {
         if (currentPlaying == null) return -1

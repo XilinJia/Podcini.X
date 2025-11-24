@@ -14,7 +14,7 @@ import ac.mdiq.podcini.net.sync.model.SyncServiceException
 import ac.mdiq.podcini.net.sync.model.UploadChangesResponse
 import ac.mdiq.podcini.storage.database.getEpisodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.getEpisodes
-import ac.mdiq.podcini.storage.database.hasAlmostEnded
+
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -248,9 +248,9 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
         if (lastSync == 0L) {
             EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_upload_played))
 //            only push downloaded items
-            val pausedItems = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.paused.name), EpisodeSortOrder.DATE_NEW_OLD)
-            val readItems = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_NEW_OLD)
-            val favoriteItems = getEpisodes(0, Int.MAX_VALUE, EpisodeFilter(EpisodeFilter.States.superb.name), EpisodeSortOrder.DATE_NEW_OLD)
+            val pausedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.paused.name), EpisodeSortOrder.DATE_NEW_OLD)
+            val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_NEW_OLD)
+            val favoriteItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.superb.name), EpisodeSortOrder.DATE_NEW_OLD)
             val comItems = mutableSetOf<Episode>()
             comItems.addAll(pausedItems)
             comItems.addAll(readItems)
@@ -331,7 +331,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
                 it.lastPlayedTime = (action.timestamp!!.time)
                 it.rating = if (action.isFavorite) Rating.SUPER.code else Rating.UNRATED.code
                 it.setPlayState(EpisodeState.fromCode(action.playState))
-                if (hasAlmostEnded(it)) {
+                if (it.hasAlmostEnded()) {
                     Logd(TAG, "Marking as played")
                     it.setPlayed(true)
                     it.setPosition(0)

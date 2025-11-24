@@ -4,8 +4,8 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowStreaming
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.loadPlayableFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.monitorState
@@ -209,19 +209,19 @@ class PlaybackService : MediaLibraryService() {
     }
 
     val rootItem = MediaItem.Builder()
-        .setMediaId("CurQueue")
+        .setMediaId("ActQueue")
         .setMediaMetadata(
             MediaMetadata.Builder()
                 .setIsBrowsable(true)
                 .setIsPlayable(false)
                 .setMediaType(MediaMetadata.MEDIA_TYPE_FOLDER_MIXED)
-                .setTitle(curQueue.name)
+                .setTitle(actQueue.name)
                 .build())
         .build()
 
     val mediaItemsInQueue: MutableList<MediaItem> by lazy {
         val list = mutableListOf<MediaItem>()
-        curQueue.episodes.forEach {
+        actQueue.episodes.forEach {
             val item = buildMediaItem(it)
             if (item != null) list += item
         }
@@ -676,7 +676,7 @@ class PlaybackService : MediaLibraryService() {
 
     private fun onQueueEvent(event: FlowEvent.QueueEvent) {
         if (event.action == FlowEvent.QueueEvent.Action.REMOVED) {
-            notifyCurQueueItemsChanged()
+            notifyActQueueItemsChanged()
             for (e in event.episodes) {
                 if (e.id == curEpisode?.id) {
                     Logd(TAG, "onQueueEvent: queue event removed ${e.title}")
@@ -687,9 +687,9 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
-    fun notifyCurQueueItemsChanged(range_: Int = -1) {
-        Logd(TAG, "notifyCurQueueItemsChanged curQueue: ${curQueue.id}")
-        mediaSession?.notifyChildrenChanged("CurQueue", if (range_ > 0) range_ else curQueue.size(), null)
+    fun notifyActQueueItemsChanged(range_: Int = -1) {
+        Logd(TAG, "notifyCurQueueItemsChanged curQueue: ${actQueue.id}")
+        mediaSession?.notifyChildrenChanged("ActQueue", if (range_ > 0) range_ else actQueue.size(), null)
     }
 
     private fun onBufferUpdate(event: FlowEvent.BufferUpdateEvent) {

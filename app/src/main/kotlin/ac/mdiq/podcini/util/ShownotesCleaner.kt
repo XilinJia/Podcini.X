@@ -1,10 +1,8 @@
-package ac.mdiq.podcini.ui.utils
+package ac.mdiq.podcini.util
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.utils.durationStringLongToMs
 import ac.mdiq.podcini.storage.utils.durationStringShortToMs
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
 import android.content.Context
 import android.graphics.Color
 import android.util.TypedValue

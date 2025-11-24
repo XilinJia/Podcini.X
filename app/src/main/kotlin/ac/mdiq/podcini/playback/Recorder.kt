@@ -6,7 +6,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curDataSource
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCache
-import ac.mdiq.podcini.storage.database.getClipFile
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
@@ -40,7 +39,10 @@ fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null)
         return
     }
     if (endPositionMs == null) {
-        if (uri.scheme == "file" || uri.scheme == "content") return
+        if (uri.scheme == "file" || uri.scheme == "content") {
+            Logt(TAG, "uri is file or content, ignored")
+            return
+        }
         curDataSource?.startRecording(startPositionMs, bitrate, getAppContext().cacheDir)
         return
     }
@@ -65,7 +67,7 @@ fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null)
     val endBytePlayer = exoPlayer?.contentPositionToByte(endPositionMs)
 
     val clipname = "${getDurationStringShort(startPositionMs, false)}-${getDurationStringShort(endPositionMs, false)}.$ext"
-    val outputFile = getClipFile(curEpisode!!, clipname)
+    val outputFile = curEpisode!!.getClipFile(clipname)
     runOnIOScope {
         when {
             uri.scheme == "file" || uri.scheme == "content" -> {

@@ -2,35 +2,34 @@ package ac.mdiq.podcini.net.download.service
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.CHANNEL_ID
+import ac.mdiq.podcini.config.ClientConfigurator
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.storage.database.isEpisodeDownloaded
 import ac.mdiq.podcini.storage.database.addDownloadStatus
-import ac.mdiq.podcini.storage.database.addToQueue
+import ac.mdiq.podcini.storage.database.addToAssOrActQueue
 import ac.mdiq.podcini.storage.database.deleteAndRemoveFromQueues
-import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
+import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.utils.ensureMediaFileExists
+import ac.mdiq.podcini.storage.utils.loadChaptersFromUrl
 import ac.mdiq.podcini.storage.utils.quietlyDeleteFile
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.config.ClientConfigurator
-import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.storage.utils.loadChaptersFromUrl
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
@@ -83,9 +82,9 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             Loge(TAG, "downloadUrl is null or empty ${item.title}")
             return
         }
-        if (isEpisodeDownloaded(context, item)) {
+        if (item.isDownloaded()) {
             if (getPref(AppPrefs.prefEnqueueDownloaded, false)) {
-                if (item.feed?.queue != null) runBlocking { addToQueue(item, item.feed?.queue) }
+                if (item.feed?.queue != null) runBlocking { addToAssOrActQueue(item, item.feed?.queue) }
             }
             return
         }
@@ -106,7 +105,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val workInfoList = future.get() // Wait for the completion of the future operation and retrieve the result
-                workInfoList.forEach { workInfo -> if (workInfo.tags.contains(WORK_DATA_WAS_QUEUED)) removeFromQueue(curQueue, listOf(media), playState = EpisodeState.UNSPECIFIED) }
+                workInfoList.forEach { workInfo -> if (workInfo.tags.contains(WORK_DATA_WAS_QUEUED)) removeFromQueue(actQueue, listOf(media), playState = EpisodeState.UNSPECIFIED) }
             } catch (exception: Throwable) { Logs(TAG, exception)
             } finally { WorkManager.getInstance(context).cancelAllWorkByTag(tag) }
         }
@@ -351,7 +350,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 .addTag(WORK_TAG)
                 .addTag(WORK_TAG_EPISODE_URL + item.downloadUrl)
             if (getPref(AppPrefs.prefEnqueueDownloaded, false)) {
-                if (item.feed?.queue != null) runBlocking { addToQueue(item, item.feed?.queue) }
+                if (item.feed?.queue != null) runBlocking { addToAssOrActQueue(item, item.feed?.queue) }
                 workRequest.addTag(WORK_DATA_WAS_QUEUED)
             }
             workRequest.setInputData(Data.Builder().putLong(WORK_DATA_MEDIA_ID, item.id).build())

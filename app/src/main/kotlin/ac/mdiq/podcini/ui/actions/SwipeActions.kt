@@ -2,15 +2,15 @@ package ac.mdiq.podcini.ui.actions
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
-import ac.mdiq.podcini.storage.database.addToActiveQueue
-import ac.mdiq.podcini.storage.database.addToQueue
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
+import ac.mdiq.podcini.storage.database.addToActQueue
+import ac.mdiq.podcini.storage.database.addToAssOrActQueue
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
-import ac.mdiq.podcini.storage.database.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
-import ac.mdiq.podcini.storage.database.smartRemoveFromQueue
+import ac.mdiq.podcini.storage.database.smartRemoveFromActQueue
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -29,12 +29,9 @@ import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.ShelveDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.Screens
-import ac.mdiq.podcini.ui.utils.setSearchTerms
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
-import android.content.SharedPreferences
 import android.util.TypedValue
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -78,7 +75,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.core.content.edit
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.media3.common.util.UnstableApi
@@ -119,21 +115,16 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         Erase(),
         Alarm())
 
-    var actions by mutableStateOf(getPrefs(tag, ""))
+    var actions by mutableStateOf(RightLeftActions(appAttribs.swipeActionsMap[tag] ?: ""))
 
     override fun onStart(owner: LifecycleOwner) {
-        actions = getPrefs(tag, "")
+        actions = RightLeftActions(appAttribs.swipeActionsMap[tag] ?: "")
     }
 
     @Composable
     fun ActionOptionsDialog() {
         actions.left[0].ActionOptions()
         actions.right[0].ActionOptions()
-    }
-
-    private fun getPrefs(tag: String, defaultActions: String): RightLeftActions {
-        val prefsString = prefs.getString(KEY_PREFIX_SWIPEACTIONS + tag, defaultActions) ?: defaultActions
-        return RightLeftActions(prefsString)
     }
 
     inner class RightLeftActions(actions_: String) {
@@ -188,12 +179,12 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
         override fun enabled(): Boolean {
             if (onEpisode?.feed?.queue != null) return false
-            return onEpisode != null && !curQueue.contains(onEpisode!!)
+            return onEpisode != null && !actQueue.contains(onEpisode!!)
         }
 
         override fun performAction(e: Episode) {
             super.performAction(e)
-            runOnIOScope { addToActiveQueue(listOf(e)) }
+            runOnIOScope { addToActQueue(listOf(e)) }
         }
     }
 
@@ -213,7 +204,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
         override fun performAction(e: Episode) {
             super.performAction(e)
-            if (e.feed?.queue != null) runOnIOScope { addToQueue(e) }
+            if (e.feed?.queue != null) runOnIOScope { addToAssOrActQueue(e) }
         }
     }
 
@@ -300,7 +291,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             super.performAction(e)
             if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
             runOnIOScope {
-                val almostEnded = hasAlmostEnded(item_)
+                val almostEnded = item_.hasAlmostEnded()
                 if (almostEnded && item_.playState < EpisodeState.PLAYED.code) item_ = setPlayState(EpisodeState.PLAYED, item_, resetMediaPosition = true, removeFromQueue = false)
                 if (almostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
                 deleteEpisodesWarnLocalRepeat(context, listOf(item_))
@@ -437,7 +428,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                             it.lastPlayedTime = lastPlayed
                             it.playbackCompletionDate = completed
                         }
-                        EventFlow.postEvent(FlowEvent.HistoryEvent())
+//                        EventFlow.postEvent(FlowEvent.HistoryEvent())
                     }
                 }
             }
@@ -463,11 +454,11 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val iconRes:  Int = R.drawable.ic_playlist_remove
         override val colorRes:  Int = android.R.attr.colorAccent
 
-        override fun enabled(): Boolean = onEpisode != null && curQueue.contains(onEpisode!!)
+        override fun enabled(): Boolean = onEpisode != null && actQueue.contains(onEpisode!!)
 
         override fun performAction(e: Episode) {
             super.performAction(e)
-            runOnIOScope { smartRemoveFromQueue(e) }
+            runOnIOScope { smartRemoveFromActQueue(e) }
         }
     }
 
@@ -551,12 +542,6 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     }
 
     companion object {
-        private const val SWIPE_ACTIONS_PREF_NAME: String = "SwipeActionsPrefs"
-        private const val KEY_PREFIX_SWIPEACTIONS: String = "PrefSwipeActions"
-        private const val KEY_PREFIX_NO_ACTION: String = "PrefNoSwipeAction"
-
-        val prefs: SharedPreferences by lazy { getAppContext().getSharedPreferences(SWIPE_ACTIONS_PREF_NAME, Context.MODE_PRIVATE) }
-
         @Composable
         fun SwipeActionsSettingDialog(sa: SwipeActions, onDismissRequest: () -> Unit, callback: (RightLeftActions)->Unit) {
             val context = LocalContext.current
@@ -656,8 +641,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         }
                         Button(onClick = {
                             actions = sa.RightLeftActions("${rightAction.value.id},${leftAction.value.id}")
-                            prefs.edit { putString(KEY_PREFIX_SWIPEACTIONS + sa.tag, "${rightAction.value.id},${leftAction.value.id}") }
-                            prefs.edit { putBoolean(KEY_PREFIX_NO_ACTION + sa.tag, true) }
+                            upsertBlk(appAttribs) { it.swipeActionsMap[sa.tag] = "${rightAction.value.id},${leftAction.value.id}" }
                             callback(actions)
                             onDismissRequest()
                         }) { Text(stringResource(R.string.confirm_label)) }

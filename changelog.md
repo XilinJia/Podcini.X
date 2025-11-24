@@ -1,3 +1,32 @@
+# 9.1.0
+
+* added Virtual queue in Queues
+* playing/streaming any episode in list of FeedDetails, Facets, or Search screens, the list (limited to 200 episodes) is set as the Virtual queue
+* introduced ActQueue, it's the queue where the playback traverses, whereas curQueue now is the current queue on Queues screen
+* playing/streaming an episode in any queue (real or virtual), that queue is set as ActQueue
+* playing/streaming an episode from OnlineFeed screen sets actQueue to none, and is one off
+* operation "Add to active queue" now adds to the ActQueue (not the curQueue). If it's virtual, ignored
+* changed all external references to curQueue to ActQueue
+* properly handle queue's sortOrder of timeInQueue descending
+* moving episodes from one queue to another no longer changes the play state
+* increased max number of queues to 15
+* in Queues screen
+	* curQueue is persisted
+	* ActQueue is marked on the Spinner with ">"
+	* queue isLocked is set individually for every queue, and it's only settable when queue's sortOrder is timeInQueue ascending
+	* added remove queue in Settings
+	* screenMode is persistent in session
+	* in Feeds mode
+		* added icon in top bar to access Facets showing all episodes in the associated feeds
+		* added feed count on the top bar
+	* back press from Settings returns to Queues
+* in Subscriptions screen, added icon in top bar to access Facets showing all episodes in current feeds
+* Amended auto-download/enqueue routine to
+	* ensure episodes marked as InQueue are actually in queue
+	* mark excluded episode as Played if set
+* moved some SharePreferences properties to the DB (sorry no migrations)
+* some code refactoring
+
 # 9.0.0-1
 
 * fixed number on episodes tab in Search screen

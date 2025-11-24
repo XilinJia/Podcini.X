@@ -571,8 +571,8 @@
     <string name="enqueue_location_after_current">After current episode</string>
     <string name="enqueue_location_random">Random</string>
 
-    <string name="keep_queue_sorted">Keep queue sorted</string>
-    <string name="keep_queue_sorted_sum">When checked, queue order is based on the manually set sorting.</string>
+    <string name="remove_queue">Remove queue</string>
+    <string name="remove_queue_sum">Removes the queue, episodes in the queue will be set to Unplayed, and associated feeds will associate with the Default queue.</string>
 
     <string name="documentation_support">Documentation &amp; support</string>
     <string name="visit_user_forum">User forum</string>

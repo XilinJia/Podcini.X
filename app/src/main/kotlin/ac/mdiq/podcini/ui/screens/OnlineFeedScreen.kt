@@ -8,6 +8,7 @@ import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedByTitleAndAuthor
@@ -19,9 +20,11 @@ import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
+import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
@@ -29,11 +32,6 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.utils.isOnlineFeedShared
-import ac.mdiq.podcini.ui.utils.onlineFeedSource
-import ac.mdiq.podcini.ui.utils.onlineFeedUrl
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
@@ -108,6 +106,15 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
+
+private var onlineFeedUrl by mutableStateOf("")
+private var onlineFeedSource by mutableStateOf("")
+private var isOnlineFeedShared by mutableStateOf(false)
+fun setOnlineFeedUrl(url: String, source: String = "", shared: Boolean = false) {
+    onlineFeedUrl = url
+    onlineFeedSource = source
+    isOnlineFeedShared = shared
+}
 
 /**
  * Downloads a feed from a feed URL and parses it. Subclasses can display the
@@ -544,7 +551,8 @@ fun OnlineFeedScreen() {
             }
             if (vm.showEpisodes) {
                 InforBar(vm.infoBarText, vm.swipeActions)
-                EpisodeLazyColumn(context as MainActivity, vm.episodes.toList(), swipeActions = vm.swipeActions)
+                EpisodeLazyColumn(context as MainActivity, vm.episodes.toList(), swipeActions = vm.swipeActions,
+                    actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) actQueue = PlayQueue() })
             } else {
                 Column(Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))) {
 //                    TODO: alternate_urls_spinner

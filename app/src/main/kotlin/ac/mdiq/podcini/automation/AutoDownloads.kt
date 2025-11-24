@@ -8,21 +8,21 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
+import ac.mdiq.podcini.storage.database.addToAssOrActQueue
 import ac.mdiq.podcini.storage.database.deleteMedias
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeedList
-import ac.mdiq.podcini.storage.database.addToQueue
-import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
@@ -31,7 +31,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
-import io.github.xilinjia.krdb.UpdatePolicy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -145,7 +144,7 @@ class AutoEnqueueAlgorithm {
                 val q = e.feed?.queue
                 if (q != null) {
                     val e_ = upsertBlk(e) { it.disableAutoDownload() }
-                    addToQueue(e_, q)
+                    addToAssOrActQueue(e_, q)
                 }
                 else Loge(TAG, "auto-enqueue not performed: feed associated queue is null: ${e.title}")
             }
@@ -158,6 +157,7 @@ class AutoEnqueueAlgorithm {
 private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, onlyExisting: Boolean = false) {
     val NM = 3
     val feeds = feeds_ ?: getFeedList()
+    val eIdsAllQueues = realm.query(PlayQueue::class).find().flatMap { it.episodeIds }.toSet()
     feeds.forEach { f ->
         Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocalFeed} ${f.title}")
         if (((dl && f.autoDownload) || (!dl && f.autoEnqueue)) && !f.isLocalFeed) {
@@ -205,7 +205,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                                     val numToDelete = es.size + downloadedCount - allowedDLCount
                                     Logd(TAG, "assembleFeedsCandidates numToDelete: $numToDelete")
                                     if (numToDelete > 0) {
-                                        val toDelete_ = getEpisodes(dlFilter, f.id, numToDelete)
+                                        val toDelete_ = getEpisodes(dlFilter, EpisodeSortOrder.DATE_OLD_NEW, feedId=f.id, limit=numToDelete)
                                         if (toDelete_.isNotEmpty()) toReplace.addAll(toDelete_)
                                         Logd(TAG, "assembleFeedsCandidates toDelete_: ${toDelete_.size}")
                                     }
@@ -261,34 +261,40 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                     }
                     candidates.add(e)
                     if (++count >= allowedDLCount) break
-
-//                    if (f.autoDownloadFilter?.meetsAutoDLCriteria(e) == true) {
-//                        Logd(TAG, "assembleFeedsCandidates add to candidates: ${e.title} ${e.downloaded}")
-//                        candidates.add(e)
-//                        if (++count >= allowedDLCount) break
-//                    } else {
-//                        Logd(TAG, "episode not meet criteria for auto-download: ${e.title}")
-//                        upsertBlk(e) {
-//                            if (f.autoDownloadFilter?.markExcludedPlayed == true) it.setPlayed(true)
-//                            else it.disableAutoDownload()
-//                        }
-//                    }
                 }
             }
             episodes.clear()
             Logd(TAG, "assembleFeedsCandidates ${f.title} candidate size: ${candidates.size}")
-            if (!onlyExisting) {
-                runOnIOScope {
-                    realm.write {
+
+            runOnIOScope {
+                val eInQ = realm.query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.QUEUE.code}").find()
+                val q = f.queue
+                if (q != null) eInQ.forEach { e -> if (e.id !in eIdsAllQueues) addToAssOrActQueue(e, q) }
+                realm.write {
+                    if (f.autoDownloadFilter?.markExcludedPlayed == true) {
+                        val qStr = f.autoDownloadFilter!!.queryExcludeString()
+                        if (qStr.isNotBlank()) {
+                            while (true) {
+                                val eExc = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find()
+                                if (eExc.isEmpty()) break
+                                eExc.forEach { it.setPlayed(true) }
+                            }
+                        }
+                    }
+                    if (!onlyExisting) {
                         while (true) {
                             val episodesNew = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find()
                             if (episodesNew.isEmpty()) break
                             Logd(TAG, "run episodesNew: ${episodesNew.size}")
-                            episodesNew.map { e ->
+                            episodesNew.forEach { e->
                                 e.setPlayed(false)
                                 Logd(TAG, "run reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
-                                copyToRealm(e, UpdatePolicy.ALL)
                             }
+                            //                            episodesNew.map { e ->
+                            //                                e.setPlayed(false)
+                            //                                Logd(TAG, "run reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
+                            //                                copyToRealm(e, UpdatePolicy.ALL)
+                            //                            }
                         }
                     }
                 }

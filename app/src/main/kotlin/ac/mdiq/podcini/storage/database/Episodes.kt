@@ -7,7 +7,7 @@ import ac.mdiq.podcini.net.feed.updateLocalFeed
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
@@ -18,7 +18,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.EpisodeState.Companion.fromCode
@@ -27,12 +26,12 @@ import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.sendLocalBroadcast
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
 import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.fullDateTimeString
+import ac.mdiq.podcini.util.sendLocalBroadcast
 import android.content.Context
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationManagerCompat
@@ -52,30 +51,34 @@ import kotlin.math.min
 
 private const val TAG: String = "Episodes"
 
-private const val smartMarkAsPlayedPercent: Int = 95
-
 /**
  * @param offset The first episode that should be loaded.
  * @param limit The maximum number of episodes that should be loaded.
  * @param filter The filter describing which episodes to filter out.
  * TODO: filters of queued and notqueued don't work in this
  */
-fun getEpisodes(offset: Int, limit: Int, filter: EpisodeFilter?, sortOrder: EpisodeSortOrder?, copy: Boolean = true): List<Episode> {
-    val queryString = filter?.queryString()?:"id > 0"
+fun getEpisodes(filter: EpisodeFilter?, sortOrder: EpisodeSortOrder?, feedId: Long = -1, offset: Int = 0, limit: Int = Int.MAX_VALUE, copy: Boolean = true): List<Episode> {
+    var queryString = filter?.queryString()?:"id > 0"
+    if (feedId >= 0) queryString += " AND feedId == $feedId "
     Logd(TAG, "getEpisodes called with: offset=$offset, limit=$limit queryString: $queryString")
-    var episodes = realm.query(Episode::class).query(queryString).find().toMutableList()
-    if (sortOrder != null) getPermutor(sortOrder).reorder(episodes)
-    val size = episodes.size
-    if (offset < size && offset + limit < size) episodes = episodes.subList(offset, min(size, offset + limit))
-    return if (copy) realm.copyFromRealm(episodes) else episodes
+    if (offset > 0) {
+        var episodes = realm.query(Episode::class).query(queryString).sort(sortPairOf(sortOrder)).find().toMutableList()
+        val size = episodes.size
+        if (offset < size) {
+            episodes = episodes.subList(offset, min(size, offset + limit))
+            return if (copy) realm.copyFromRealm(episodes) else episodes
+        } else return listOf()
+    } else {
+        val episodes = realm.query(Episode::class).query(queryString).sort(sortPairOf(sortOrder)).limit(limit).find()
+        return if (copy) realm.copyFromRealm(episodes) else episodes
+    }
 }
 
 fun getEpisodesAsFlow(filter: EpisodeFilter?, sortOrder: EpisodeSortOrder?, feedId: Long = -1): Flow<ResultsChange<Episode>> {
     var queryString = filter?.queryString()?:"id > 0"
     if (feedId >= 0) queryString += " AND feedId == $feedId "
-    val sortPair = sortPairOf(sortOrder)
-    Logd(TAG, "getEpisodesAsFlow called with: queryString: $queryString sortPair: $sortPair")
-    return realm.query(Episode::class).query(queryString).sort(sortPair).asFlow()
+    Logd(TAG, "getEpisodesAsFlow called with: queryString: $queryString sortOrder: $sortOrder")
+    return realm.query(Episode::class).query(queryString).sort(sortPairOf(sortOrder)).asFlow()
 }
 
 fun getEpisodesCount(filter: EpisodeFilter?, feedId: Long = -1): Int {
@@ -83,14 +86,6 @@ fun getEpisodesCount(filter: EpisodeFilter?, feedId: Long = -1): Int {
     Logd(TAG, "getEpisodesCount called queryString: $queryString")
     if (feedId >= 0) queryString += " AND feedId == $feedId "
     return realm.query(Episode::class).query(queryString).count().find().toInt()
-}
-
-fun getEpisodes(filter: EpisodeFilter?, feedId: Long = -1, limit: Int): List<Episode> {
-    var queryString = filter?.queryString()?:"id > 0"
-    Logd(TAG, "getEpisodes called queryString: $queryString")
-    if (feedId >= 0) queryString += " AND feedId == $feedId "
-    queryString += " SORT(pubDate ASC) LIMIT($limit) "
-    return realm.query(Episode::class).query(queryString).find()
 }
 
 /**
@@ -104,15 +99,15 @@ fun getEpisodeByGuidOrUrl(guid: String?, episodeUrl: String, copy: Boolean = tru
     Logd(TAG, "getEpisodeByGuidOrUrl called $guid $episodeUrl")
     val episode = if (guid != null) realm.query(Episode::class).query("identifier == $0", guid).first().find()
     else realm.query(Episode::class).query("downloadUrl == $0", episodeUrl).first().find()
-    if (!copy) return episode
-    return if (episode != null) realm.copyFromRealm(episode) else null
+    if (!copy || episode == null) return episode
+    return realm.copyFromRealm(episode)
 }
 
 fun getEpisode(id: Long, copy: Boolean = true): Episode? {
     Logd(TAG, "getEpisodeMedia called $id")
     val episode = realm.query(Episode::class).query("id == $0", id).first().find()
-    if (!copy) return episode
-    return if (episode != null) realm.copyFromRealm(episode) else null
+    if (!copy || episode == null) return episode
+    return realm.copyFromRealm(episode)
 }
 
 fun getHistoryAsFlow(feedId: Long = 0L, start: Long = 0L, end: Long = Date().time,
@@ -120,7 +115,6 @@ fun getHistoryAsFlow(feedId: Long = 0L, start: Long = 0L, end: Long = Date().tim
     Logd(TAG, "getHistory() called")
     val qStr = (if (feedId > 0L) "feedId == $feedId AND " else "") + "((playbackCompletionTime > 0) OR (lastPlayedTime > $start AND lastPlayedTime <= $end))"
     val episodes = realm.query(Episode::class).query(qStr).sort(sortPairOf(sortOrder)).asFlow()
-    //        if (offset > 0 && episodes.size > offset) episodes = episodes.subList(offset, min(episodes.size, offset+limit))
     return episodes
 }
 
@@ -165,26 +159,10 @@ suspend fun deleteEpisodesWarnLocalRepeat(context: Context, items: Iterable<Epis
     }
 }
 
-//  is needed because some Runnable blocks call this
-
 fun deleteAndRemoveFromQueues(context: Context, episode: Episode) {
     Logd(TAG, "deleteMediaOfEpisode called ${episode.title}")
     val episode_ = deleteMedia(context, episode)
     if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(episode_))
-}
-
-fun isEpisodeDownloaded(context: Context, episode: Episode): Boolean {
-    val url = episode.fileUrl ?: return false
-    when {
-        url.startsWith("content://") -> { // Local feed or custom media folder
-            val documentFile = DocumentFile.fromSingleUri(context, url.toUri())
-            return documentFile != null && documentFile.exists()
-        }
-        else -> { // delete downloaded media file
-            val path = url.toUri().path ?: return false
-            return File(path).exists()
-        }
-    }
 }
 
 @OptIn(UnstableApi::class)
@@ -268,7 +246,7 @@ fun deleteMedia(context: Context, episode: Episode): Episode {
 @OptIn(UnstableApi::class)
 fun deleteMedias(context: Context, episodes: List<Episode>)  {
     val removedFromQueue: MutableList<Episode> = mutableListOf()
-    val queueItems = curQueue.episodes.toMutableList()
+    val queueItems = actQueue.episodes.toMutableList()
     for (episode in episodes) {
         if (queueItems.remove(episode)) removedFromQueue.add(episode)
         if (episode.id == curState.curMediaId) {
@@ -380,12 +358,3 @@ fun buildListInfo(episodes: List<Episode>): String {
 fun List<Episode>.indexWithId(id: Long): Int = indexOfFirst { it.id == id }
 
 fun List<Episode>.indexWithUrl(downloadUrl: String): Int = indexOfFirst { it.downloadUrl == downloadUrl }
-
-
-fun hasAlmostEnded(media: Episode): Boolean = media.duration > 0 && media.position >= media.duration * smartMarkAsPlayedPercent * 0.01
-
-fun getClipFile(episode: Episode, clipname: String): File {
-    val context = getAppContext()
-    val mediaFilesDir = context.getExternalFilesDir("media")?.apply { mkdirs() } ?: File(context.filesDir, "media").apply { mkdirs() }
-    return File(mediaFilesDir, "recorded_${episode.id}_$clipname")
-}

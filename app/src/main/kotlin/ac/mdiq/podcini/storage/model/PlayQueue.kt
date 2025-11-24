@@ -10,11 +10,15 @@ import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import java.util.Date
 
+const val VIRTUAL_QUEUE_ID = 100000L
+
 class PlayQueue : RealmObject {
     @PrimaryKey
     var id: Long = 0L
 
     var name: String = ""
+
+    var identity: String = ""
 
     var updated: Long = Date().time
         private set
@@ -34,11 +38,13 @@ class PlayQueue : RealmObject {
         }
     var sortOrderCode: Int = EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW.code     // in EpisodeSortOrder
 
-    var keepSorted: Boolean = false
+    var isLocked: Boolean = true
+
+    @Ignore
+    val isSorted: Boolean
+        get() = sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW
 
     var episodeIds: RealmList<Long> = realmListOf()
-
-//    var episodes: RealmList<Episode> = realmListOf()
 
     @Ignore
     val episodes: MutableList<Episode> = mutableListOf()
@@ -60,6 +66,8 @@ class PlayQueue : RealmObject {
     }
 
     fun size() : Int = episodeIds.size
+
+    fun isVirtual(): Boolean = id == VIRTUAL_QUEUE_ID
 
     constructor() {}
 }

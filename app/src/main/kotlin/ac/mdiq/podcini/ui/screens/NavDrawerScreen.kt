@@ -20,8 +20,6 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.lcScope
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
 import android.content.Context
 import android.content.Intent
@@ -283,10 +281,8 @@ class NavItem(val iconRes: Int, val nameRes: Int) {
 enum class Screens {
     Subscriptions,
     FeedDetails,
-//    FeedSettings,
     Facets,
     EpisodeInfo,
-//    EpisodeText,
     Queues,
     Search,
     OnlineSearch,
@@ -310,9 +306,7 @@ private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
 private val navHostMap: MutableMap<Screens, @Composable ()->Unit> = mutableMapOf(
     Screens.Subscriptions to { SubscriptionsScreen() },
     Screens.FeedDetails to { FeedDetailsScreen() },
-//    Screens.FeedSettings to { FeedSettingsScreen() },
     Screens.EpisodeInfo to { EpisodeInfoScreen() },
-//    Screens.EpisodeText to { EpisodeTextScreen() },
     Screens.Facets to { FacetsScreen() },
     Screens.Queues to { QueuesScreen() },
     Screens.Search to { SearchScreen() },

@@ -30,7 +30,7 @@ import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.isLightTheme
-import ac.mdiq.podcini.ui.utils.ShownotesCleaner
+import ac.mdiq.podcini.util.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.util.EventFlow

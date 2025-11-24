@@ -3,10 +3,10 @@ package ac.mdiq.podcini.playback.base
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.writePlayerStatus
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
@@ -14,10 +14,10 @@ import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
-import ac.mdiq.podcini.storage.database.indexWithId
-import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.getNextInQueue
+import ac.mdiq.podcini.storage.database.indexWithId
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
@@ -274,10 +274,10 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
         var item = playable
         if (item.playState < EpisodeState.PROGRESS.code) item = runBlocking { setPlayState(EpisodeState.PROGRESS, item, false) }
-        val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
-        curIndexInQueue = eList.indexWithId(item.id)
+//        val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
+        curIndexInQueue = actQueue.episodes.indexWithId(item.id)
         setCurEpisode(item)
-        Logd(TAG, "prepareMedia eList: ${eList.size} curIndexInQueue: $curIndexInQueue")
+        Logd(TAG, "prepareMedia eList: ${actQueue.episodes.size} curIndexInQueue: $curIndexInQueue")
 
         this.isStreaming = streaming
         mediaType = curEpisode!!.getMediaType()

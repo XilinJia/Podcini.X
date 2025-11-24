@@ -2,8 +2,8 @@ package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.service.PlaybackService
-import ac.mdiq.podcini.storage.database.getEpisode
 import ac.mdiq.podcini.storage.database.MonitorEntity
+import ac.mdiq.podcini.storage.database.getEpisode
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.subscribeEpisode
@@ -16,14 +16,16 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_OTHER
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
+import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
@@ -31,7 +33,6 @@ import com.google.common.util.concurrent.ListenableFuture
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
-import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -41,6 +42,8 @@ import kotlinx.coroutines.withContext
 object InTheatre {
     private val TAG: String = InTheatre::class.simpleName ?: "Anonymous"
 
+    const val VIRTUAL_QUEUE_SIZE = 200
+
     internal var aCtrlFuture: ListenableFuture<MediaController>? = null
     var aController: MediaController? = null
     internal var vCtrlFuture: ListenableFuture<MediaController>? = null
@@ -48,15 +51,15 @@ object InTheatre {
 
     var curIndexInQueue = -1
 
-    var curQueue: PlayQueue     // managed
+    var virQueue by mutableStateOf(PlayQueue())
+
+    var actQueue by mutableStateOf(PlayQueue())
 
 //    private var curEpisodeMonitor: Job? = null
     var curEpisode: Episode? = null     // manged
         private set
 
     var curMediaId by mutableLongStateOf(-1L)
-    val playedIds = mutableListOf<Long>()
-    var rememberPlayedIds = false
 
     private var curStateMonitor: Job? = null
     var curState: CurrentState      // managed
@@ -66,26 +69,33 @@ object InTheatre {
     var bitrate by mutableIntStateOf(0)
 
     init {
-        curQueue = PlayQueue()
+//        curQueue = PlayQueue()
         curState = CurrentState()
         CoroutineScope(Dispatchers.IO).launch {
-            Logd(TAG, "starting curQueue")
-            var curQueue_ = realm.query(PlayQueue::class).sort("updated", Sort.DESCENDING).first().find()
-            if (curQueue_ != null) curQueue = curQueue_
-            else {
+            Logd(TAG, "starting queues")
+            var queues = realm.query(PlayQueue::class).find()
+            if (queues.isEmpty()) {
                 for (i in 0..4) {
-                    curQueue_ = PlayQueue()
+                    val q = PlayQueue()
                     if (i == 0) {
-                        curQueue_.name = "Default"
-                        curQueue = curQueue_
+                        q.name = "Default"
                     } else {
-                        curQueue_.id = i.toLong()
-                        curQueue_.name = "Queue $i"
+                        q.id = i.toLong()
+                        q.name = "Queue $i"
                     }
-                    upsert(curQueue_) {}
+                    upsert(q) {}
                 }
-                upsert(curQueue) { it.update() }
             }
+            queues = realm.query(PlayQueue::class).find()
+            virQueue = realm.query(PlayQueue::class).query("name == 'Virtual'").first().find() ?:
+                    run {
+                        val vq = PlayQueue()
+                        vq.id = VIRTUAL_QUEUE_ID
+                        vq.name = "Virtual"
+                        upsertBlk(vq) {}
+                    }
+            actQueue = if (virQueue.size() == 0) queues[0] else virQueue
+
             Logd(TAG, "starting curState")
             val curState_ = realm.query(CurrentState::class).first().find()
             if (curState_ != null) curState = curState_
@@ -145,7 +155,6 @@ object InTheatre {
                     }))
                 }
                 curMediaId = episode.id
-                if (rememberPlayedIds) playedIds.add(curMediaId)
             }
             else -> {
                 curEpisode = null
@@ -209,7 +218,6 @@ object InTheatre {
     }
 
     @OptIn(UnstableApi::class)
-    
     fun isCurrentlyPlaying(media: Episode?): Boolean {
         return isCurMedia(media) && PlaybackService.isRunning && isPlaying
     }

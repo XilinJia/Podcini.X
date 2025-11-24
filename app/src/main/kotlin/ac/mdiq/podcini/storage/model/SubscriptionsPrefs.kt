@@ -1,0 +1,42 @@
+package ac.mdiq.podcini.storage.model
+
+import io.github.xilinjia.krdb.ext.realmSetOf
+import io.github.xilinjia.krdb.types.RealmObject
+import io.github.xilinjia.krdb.types.RealmSet
+import io.github.xilinjia.krdb.types.annotations.PrimaryKey
+
+class SubscriptionsPrefs: RealmObject {
+    @PrimaryKey
+    var id: Long = 0L
+
+    var feedsFilter: String = ""
+
+    var langsSel: RealmSet<String> = realmSetOf()
+
+    var tagsSel: RealmSet<String> = realmSetOf()
+
+    var qSelIds: RealmSet<String> = realmSetOf()
+
+    var sortIndex: Int = 0
+
+    var titleAscending: Boolean = true
+
+    var dateAscending: Boolean = false
+
+    var countAscending: Boolean = false
+
+    var dateSortIndex: Int = 0
+
+    var downlaodedSortIndex: Int = 0
+
+    var commentedSortIndex: Int = 0
+
+    var playStateCodeSet: RealmSet<String> = realmSetOf()
+
+    var ratingCodeSet: RealmSet<String> = realmSetOf()
+
+    var sortProperty: String = ""
+
+    var sortDirCode: Int = 0
+
+}

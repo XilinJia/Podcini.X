@@ -16,6 +16,7 @@ import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.languages
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.subPrefs
 import ac.mdiq.podcini.storage.database.tags
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -45,8 +46,6 @@ import ac.mdiq.podcini.ui.compose.SimpleSwitchDialog
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logt
@@ -57,7 +56,6 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
-import android.content.SharedPreferences
 import android.view.Gravity
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -147,13 +145,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.core.content.edit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import io.github.xilinjia.krdb.ext.toRealmSet
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
@@ -161,7 +159,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import java.text.NumberFormat
@@ -172,45 +169,38 @@ import java.util.Locale
 private const val TAG = "SubscriptionsScreen"
 
 class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
-    val prefs: SharedPreferences by lazy { context.getSharedPreferences("SubscriptionsFragmentPrefs", Context.MODE_PRIVATE) }
-
-    init {
-        lcScope.launch(Dispatchers.IO) { prefs }
-    }
-
     private var _feedsFilter: String? = null
     internal var feedsFilter: String
         get() {
-            if (_feedsFilter == null) _feedsFilter = prefs.getString("feedsFilter", "") ?: ""
+            if (_feedsFilter == null) _feedsFilter = subPrefs.feedsFilter
             return _feedsFilter ?: ""
         }
         set(filter) {
             _feedsFilter = filter
-            prefs.edit { putString("feedsFilter", filter) }
+            upsertBlk(subPrefs) { it.feedsFilter = filter }
         }
 
     internal val languages: MutableList<String> = mutableListOf()
     private var _langsSel: Set<String>? = null
     internal var langsSel: Set<String>
         get() {
-            if (_langsSel == null) _langsSel = prefs.getStringSet("langsSel", emptySet())?: languages.toSet()
+            if (_langsSel == null) _langsSel = subPrefs.langsSel
             return _langsSel!!
         }
         set(valueSet) {
             _langsSel = valueSet
-            prefs.edit { putStringSet("langsSel", valueSet) }
+            upsertBlk(subPrefs) { it.langsSel = valueSet.toRealmSet() }
         }
 
-//    internal val tags = mutableStateListOf<String>()
     private var _tagsSel: Set<String>? = null
     internal var tagsSel: Set<String>
         get() {
-            if (_tagsSel == null) _tagsSel = prefs.getStringSet("tagsSel", emptySet())?: tags.toSet()
+            if (_tagsSel == null) _tagsSel = subPrefs.tagsSel
             return _tagsSel!!
         }
         set(valueSet) {
             _tagsSel = valueSet
-            prefs.edit { putStringSet("tagsSel", valueSet) }
+            upsertBlk(subPrefs) { it.tagsSel = valueSet.toRealmSet() }
         }
 
     val queueNames = mutableStateListOf<String>()
@@ -218,12 +208,12 @@ class SubscriptionsVM(val context: Context, val lcScope: CoroutineScope) {
     private var _qSelIds: Set<String>? = null
     internal var qSelIds: Set<Long>
         get() {
-            if (_qSelIds == null) _qSelIds = prefs.getStringSet("qSelIds", emptySet()) ?: queueIds.map { it.toString() }.toSet()
+            if (_qSelIds == null) _qSelIds = subPrefs.qSelIds
             return _qSelIds!!.mapNotNull { it.toLongOrNull() }.toSet()
         }
         set(valueSet) {
             _qSelIds = valueSet.map { it.toString() }.toSet()
-            prefs.edit { putStringSet("qSelIds", _qSelIds) }
+            upsertBlk(subPrefs) { it.qSelIds = _qSelIds!!.toRealmSet() }
         }
 }
 
@@ -527,35 +517,36 @@ fun SubscriptionsScreen() {
         for (i in ratingSort.indices) {
             if (ratingSort[i].value) ratingCodeSet.add(Rating.entries[i].code.toString())
         }
-        vm.prefs.edit {
-            putInt("sortIndex", sortIndex)
-            putBoolean("titleAscending", titleAscending)
-            putBoolean("dateAscending", dateAscending)
-            putBoolean("countAscending", countAscending)
-            putInt("dateSortIndex", dateSortIndex)
-            putInt("downlaodedSortIndex", downlaodedSortIndex)
-            putInt("commentedSortIndex", commentedSortIndex)
-            putStringSet("playStateCodeSet", playStateCodeSet)
-            putStringSet("ratingCodeSet", ratingCodeSet)
-            putString("sortProperty", sortPair.first)
-            putInt("sortDirCode", sortPair.second.ordinal)
+
+        upsertBlk(subPrefs) {
+            it.sortIndex = sortIndex
+            it.titleAscending = titleAscending
+            it.dateAscending = dateAscending
+            it.countAscending = countAscending
+            it.dateSortIndex = dateSortIndex
+            it.downlaodedSortIndex = downlaodedSortIndex
+            it.commentedSortIndex = commentedSortIndex
+            it.playStateCodeSet = playStateCodeSet.toRealmSet()
+            it.ratingCodeSet = ratingCodeSet.toRealmSet()
+            it.sortProperty = sortPair.first
+            it.sortDirCode = sortPair.second.ordinal
         }
     }
 
     fun getSortingPrefs() {
-        sortIndex = vm.prefs.getInt("sortIndex", FeedSortIndex.Title.ordinal)
-        titleAscending = vm.prefs.getBoolean("titleAscending", true)
-        dateAscending = vm.prefs.getBoolean("dateAscending", true)
-        countAscending = vm.prefs.getBoolean("countAscending", true)
-        dateSortIndex = vm.prefs.getInt("dateSortIndex", FeedDateSortIndex.Publish.ordinal)
-        downlaodedSortIndex = vm.prefs.getInt("downlaodedSortIndex", -1)
-        commentedSortIndex = vm.prefs.getInt("commentedSortIndex", -1)
+        sortIndex = subPrefs.sortIndex
+        titleAscending = subPrefs.titleAscending
+        dateAscending = subPrefs.dateAscending
+        countAscending = subPrefs.countAscending
+        dateSortIndex = subPrefs.dateSortIndex
+        downlaodedSortIndex = subPrefs.downlaodedSortIndex
+        commentedSortIndex = subPrefs.commentedSortIndex
         playStateCodeSet.clear()
-        playStateCodeSet.addAll(vm.prefs.getStringSet("playStateCodeSet", setOf())!!)
+        playStateCodeSet.addAll(subPrefs.playStateCodeSet)
         ratingCodeSet.clear()
-        ratingCodeSet.addAll(vm.prefs.getStringSet("ratingCodeSet", setOf())!!)
-        val sortProperty = vm.prefs.getString("sortProperty", "eigenTitle") ?: "eigenTitle"
-        val sortDirCode = vm.prefs.getInt("sortDirCode", 0)
+        ratingCodeSet.addAll(subPrefs.ratingCodeSet)
+        val sortProperty = subPrefs.sortProperty.ifBlank { "eigenTitle" }
+        val sortDirCode = subPrefs.sortDirCode
         sortPair = Pair(sortProperty, if (sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
 
         for (i in episodeStateSort.indices) episodeStateSort[i].value = false
@@ -636,6 +627,12 @@ fun SubscriptionsScreen() {
                     IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
                     IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
+                    IconButton(onClick = {
+                        facetsMode = QuickAccess.Custom
+                        facetsCustomTag = "Subscriptions"
+                        facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", feeds.map { it.id })
+                        navController.navigate(Screens.Facets.name)
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                     DropdownMenu(expanded = expanded,
                         border = BorderStroke(1.dp, buttonColor),

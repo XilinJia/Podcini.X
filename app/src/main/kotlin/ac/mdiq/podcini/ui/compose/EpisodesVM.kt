@@ -9,16 +9,15 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
-import ac.mdiq.podcini.playback.base.InTheatre.rememberPlayedIds
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
-import ac.mdiq.podcini.storage.database.addToActiveQueue
-import ac.mdiq.podcini.storage.database.addToQueue
+import ac.mdiq.podcini.storage.database.addToActQueue
+import ac.mdiq.podcini.storage.database.addToAssOrActQueue
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
-import ac.mdiq.podcini.storage.database.hasAlmostEnded
+
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
-import ac.mdiq.podcini.storage.database.smartRemoveFromQueue
+import ac.mdiq.podcini.storage.database.smartRemoveFromActQueue
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
@@ -37,9 +36,9 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
-import ac.mdiq.podcini.ui.utils.episodeOnDisplay
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
+import ac.mdiq.podcini.ui.screens.episodeOnDisplay
+import ac.mdiq.podcini.ui.screens.feedOnDisplay
+import ac.mdiq.podcini.ui.screens.feedScreenMode
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.formatDateTimeFlex
@@ -289,13 +288,13 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 Text(stringResource(id = R.string.download_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
-                runOnIOScope { selected.forEach { addToQueue(it) } }
+                runOnIOScope { selected.forEach { addToAssOrActQueue(it) } }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to associated or active queue")
                 Text(stringResource(id = R.string.add_to_associated_queue)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
-                runOnIOScope { addToActiveQueue(selected) }
+                runOnIOScope { addToActQueue(selected) }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to active queue")
                 Text(stringResource(id = R.string.add_to_queue_label)) } },
@@ -307,7 +306,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 Text(stringResource(id = R.string.put_in_queue_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
-                runOnIOScope { for (e in selected) smartRemoveFromQueue(e) }
+                runOnIOScope { for (e in selected) smartRemoveFromActQueue(e) }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), "Remove from active queue")
                 Text(stringResource(id = R.string.remove_from_queue_label)) } },
@@ -333,7 +332,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                     for (e_ in selected) {
                         var e = e_
                         if (!e.downloaded && e.feed?.isLocalFeed != true) continue
-                        val almostEnded = hasAlmostEnded(e)
+                        val almostEnded = e.hasAlmostEnded()
                         if (almostEnded && e.playState < EpisodeState.PLAYED.code) e = setPlayState(state = EpisodeState.PLAYED, episode = e, resetMediaPosition = true, removeFromQueue = false)
                         if (almostEnded) upsert(e) { it.playbackCompletionDate = Date() }
                     }
@@ -416,9 +415,8 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             //                        forceRecomposeKey++
                             Logd(TAG, "Screen on, triggered scroll for recomposition")
                         }
-                        rememberPlayedIds = false
                     }
-                    Lifecycle.Event.ON_STOP -> rememberPlayedIds = true
+                    Lifecycle.Event.ON_STOP -> {}
                     else -> {}
                 }
             }
@@ -630,22 +628,22 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 Box(modifier = Modifier.fillMaxWidth().zIndex(if (isDragging) 10f else 0f).pointerInput(Unit) {
                     detectHorizontalDragGestures(
                         onDragStart = {
-                            Logd(TAG, "detectHorizontalDragGestures onDragStart")
+//                            Logd(TAG, "detectHorizontalDragGestures onDragStart")
                             velocityTracker.resetTracking()
                         },
                         onHorizontalDrag = { change, dragAmount ->
-                            Logd(TAG, "detectHorizontalDragGestures onHorizontalDrag $dragAmount")
+//                            Logd(TAG, "detectHorizontalDragGestures onHorizontalDrag $dragAmount")
                             if (abs(dragAmount) > 4) {
                                 velocityTracker.addPosition(change.uptimeMillis, change.position)
                                 scope.launch { offsetX.snapTo(offsetX.value + dragAmount) }
                             }
                         },
                         onDragEnd = {
-                            Logd(TAG, "detectHorizontalDragGestures onDragEnd")
+//                            Logd(TAG, "detectHorizontalDragGestures onDragEnd")
                             scope.launch {
                                 val velocity = velocityTracker.calculateVelocity().x
                                 val distance = offsetX.value
-                                Logd(TAG, "detectHorizontalDragGestures velocity: $velocity distance: $distance")
+//                                Logd(TAG, "detectHorizontalDragGestures velocity: $velocity distance: $distance")
                                 val shouldSwipe = abs(distance) > swipeDistanceThreshold && abs(velocity) > swipeVelocityThreshold
                                 if (shouldSwipe) {
                                     if (distance > 0) rightSwipeCB?.invoke(episode)

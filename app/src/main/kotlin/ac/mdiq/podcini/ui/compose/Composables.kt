@@ -59,6 +59,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
@@ -156,6 +158,43 @@ fun SpinnerExternalSet(items: List<String>, selectedIndex: Int, modifier: Modifi
                         expanded = false
                     }
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun MeasureLongestWidth(items: List<String>, textStyle: TextStyle, content: @Composable (maxWidth: Int) -> Unit) {
+    SubcomposeLayout { constraints ->
+        val placeables = items.map { label -> subcompose(label) { Text(label, style = textStyle) }.first().measure(constraints) }
+        val maxWidth = placeables.maxOf { it.width }
+        val placeable = subcompose("content") { content(maxWidth) }.first().measure(constraints)
+        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SpinnerExternalSet1(items: List<String>, selectedIndex: Int, modifier: Modifier = Modifier, onItemSelected: (Int) -> Unit) {
+    MeasureLongestWidth(items = items, textStyle = LocalTextStyle.current) { maxWidth ->
+        var expanded by remember { mutableStateOf(false) }
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it },
+            modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)).width(with(LocalDensity.current) { maxWidth.toDp() })) {
+            BasicTextField(readOnly = true, value = items.getOrNull(selectedIndex) ?: "Select Item", onValueChange = { }, textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
+                modifier = modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true).width(with(LocalDensity.current) { maxWidth.toDp() }), // Material3 requirement
+                decorationBox = { innerTextField ->
+                    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+                        innerTextField()
+                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                    }
+                })
+            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                for (i in items.indices) {
+                    DropdownMenuItem(text = { Text(items[i]) }, onClick = {
+                        onItemSelected(i)
+                        expanded = false
+                    })
+                }
             }
         }
     }

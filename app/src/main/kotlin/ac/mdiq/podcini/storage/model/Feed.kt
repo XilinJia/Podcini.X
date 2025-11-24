@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -276,7 +276,7 @@ class Feed : RealmObject {
     var queue: PlayQueue? = null
         get() = when {
             queueId >= 0 -> realm.query(PlayQueue::class).query("id == $queueId").first().find()
-            queueId == -1L -> curQueue
+            queueId == -1L -> actQueue
             queueId == -2L -> null
             else -> null
         }

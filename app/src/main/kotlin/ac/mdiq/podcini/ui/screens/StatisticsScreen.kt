@@ -6,14 +6,12 @@ import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -304,18 +302,11 @@ fun StatisticsScreen() {
         }
     }
 
-    @Composable
-    fun TodayStatsDialog(onDismissRequest: () -> Unit) {
-//        val vms = remember { mutableStateListOf<EpisodeVM>() }
-//        LaunchedEffect(vm.statsOfDay) {
-//            vms.clear()
-//            for (e in vm.statsOfDay.episodes) vms.add(EpisodeVM(e, TAG))
-//        }
-        AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
+    if (vm.showTodayStats) {
+        AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.showTodayStats = false },  confirmButton = {},
             text = { EpisodeLazyColumn(LocalContext.current, vm.statsOfDay.episodes, showCoverImage = false, showActionButtons = false) },
-            dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } } )
+            dismissButton = { TextButton(onClick = { vm.showTodayStats = false }) { Text(stringResource(R.string.cancel_label)) } } )
     }
-    if (vm.showTodayStats) TodayStatsDialog { vm.showTodayStats = false }
 
     @Composable
     fun OverviewNumbers(stats: StatisticsItem, nd: Int = 1, center: Boolean = true) {

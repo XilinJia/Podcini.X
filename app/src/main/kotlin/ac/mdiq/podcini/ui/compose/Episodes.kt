@@ -7,19 +7,17 @@ import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.wifiSyncEnabledKey
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.storage.database.addToQueue
+import ac.mdiq.podcini.storage.database.addToAssOrActQueue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.deleteMedia
-import ac.mdiq.podcini.storage.database.getClipFile
-import ac.mdiq.podcini.storage.database.hasAlmostEnded
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.removeFromAllQueuesQuiet
@@ -304,7 +302,7 @@ fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
                 confirmButton = {
                     TextButton(onClick = {
                         runOnIOScope {
-                            val file = getClipFile(episode, cliptToRemove)
+                            val file = episode.getClipFile(cliptToRemove)
                             file.delete()
                             upsert(episode) { it.clips.remove(cliptToRemove) }
                             withContext(Dispatchers.Main) { cliptToRemove = "" }
@@ -318,7 +316,7 @@ fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
         FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
             episode.clips.forEach { clip ->
                 FilterChip(onClick = {
-                    val file = getClipFile(episode, clip)
+                    val file = episode.getClipFile(clip)
                     if (player != null && file.exists()) {
                         player.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
                         player.prepare()
@@ -334,7 +332,7 @@ fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
 @Composable
 fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
     // TODO: somehow, episode is not updated after unrelate
-    var episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return
+//    var episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return
 
     AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(5.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
         text = {
@@ -349,12 +347,12 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
                                 es[1].related.remove(es[0])
                             }
                         }
-                        episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return@runOnIOScope
-                        Logd("RelatedEpisodesDialog", "episode.related: ${episode.related.size}")
-                        withContext(Dispatchers.Main) {
-//                            vmsr.clear()
-//                            for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
-                        }
+                        //                        episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return@runOnIOScope
+//                        Logd("RelatedEpisodesDialog", "episode.related: ${episode.related.size}")
+//                        withContext(Dispatchers.Main) {
+////                            vmsr.clear()
+////                            for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
+//                        }
                     }
                 } ) },
         dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } } )
@@ -403,7 +401,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                 EpisodeState.AGAIN, EpisodeState.LATER -> futureCB(state)
                                 else -> runOnIOScope {
                                     for (e in selected) {
-                                        val hasAlmostEnded = hasAlmostEnded(e)
+                                        val hasAlmostEnded = e.hasAlmostEnded()
                                         var item_ = setPlayState(state, e, hasAlmostEnded, false)
                                         when (state) {
                                             EpisodeState.UNPLAYED -> {
@@ -426,7 +424,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                                     }
                                                 }
                                             }
-                                            EpisodeState.QUEUE -> if (item_.feed?.queue != null) addToQueue(e, e.feed?.queue)
+                                            EpisodeState.QUEUE -> if (item_.feed?.queue != null) addToAssOrActQueue(e, e.feed?.queue)
                                             else -> {}
                                         }
 //                                        vm.updateVMFromDB()
@@ -453,7 +451,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
             val scrollState = rememberScrollState()
             Column(modifier = Modifier.verticalScroll(scrollState).padding(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                 var removeChecked by remember { mutableStateOf(false) }
-                var toQueue by remember { mutableStateOf(curQueue) }
+                var toQueue by remember { mutableStateOf(actQueue) }
                 for (q in queues) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         RadioButton(selected = toQueue == q, onClick = { toQueue = q })
@@ -471,7 +469,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                             if (removeChecked) {
                                 val toRemove = mutableSetOf<Long>()
                                 val toRemoveCur = mutableListOf<Episode>()
-                                selected.forEach { e -> if (curQueue.contains(e)) toRemoveCur.add(e) }
+                                selected.forEach { e -> if (actQueue.contains(e)) toRemoveCur.add(e) }
                                 selected.forEach { e ->
                                     for (q in queues) {
                                         if (q.contains(e)) {
@@ -480,10 +478,10 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                                         }
                                     }
                                 }
-                                if (toRemove.isNotEmpty()) removeFromAllQueuesQuiet(toRemove.toList())
+                                if (toRemove.isNotEmpty()) removeFromAllQueuesQuiet(toRemove.toList(), false)
                                 if (toRemoveCur.isNotEmpty()) EventFlow.postEvent(FlowEvent.QueueEvent.removed(toRemoveCur))
                             }
-                            selected.forEach { e -> addToQueue(e, toQueue) }
+                            selected.forEach { e -> addToAssOrActQueue(e, toQueue) }
                         }
                         onDismissRequest()
                     }) { Text(stringResource(R.string.confirm_label)) }
@@ -642,7 +640,7 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
                     CoroutineScope(Dispatchers.IO).launch {
                         try {
                             for (e in selected) {
-                                val hasAlmostEnded = hasAlmostEnded(e)
+                                val hasAlmostEnded = e.hasAlmostEnded()
                                 val item_ = setPlayState(EpisodeState.IGNORED, e, hasAlmostEnded, false)
                                 Logd("IgnoreEpisodesDialog", "item_: ${item_.title} ${item_.playState}")
                                 upsert(item_) { it.addComment("Reason to ignore:\n${textState.text}") }
@@ -679,7 +677,7 @@ fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissReq
                         try {
                             val dueTime = duetime(intervals[sel], sel)
                             for (e in selected) {
-                                val hasAlmostEnded = hasAlmostEnded(e)
+                                val hasAlmostEnded = e.hasAlmostEnded()
                                 val item_ = setPlayState(state, e, hasAlmostEnded, false)
                                 Logd("AgainEpisodesDialog", "item_: ${item_.title} ${item_.playState} ${Date(dueTime)}")
                                 upsert(item_) { it.repeatTime = dueTime }

@@ -291,7 +291,6 @@ object AppPreferences {
         prefFastForwardSecs(30),
         prefRewindSecs(10),
         prefStreamingCacheSizeMB(100),
-        prefQueueLocked(true),
         prefVideoPlaybackMode("1"),
     }
 

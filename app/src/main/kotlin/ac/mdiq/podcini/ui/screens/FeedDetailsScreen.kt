@@ -6,19 +6,21 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
-import ac.mdiq.podcini.playback.base.InTheatre.curQueue
+import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
+import ac.mdiq.podcini.playback.base.InTheatre.virQueue
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
+import ac.mdiq.podcini.storage.database.FeedAssistant
 import ac.mdiq.podcini.storage.database.buildListInfo
+import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
-import ac.mdiq.podcini.storage.database.FeedAssistant
-import ac.mdiq.podcini.storage.database.feedOperationText
-import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
-import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
+import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -44,12 +46,12 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
-import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.LayoutMode
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
@@ -58,10 +60,6 @@ import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
-import ac.mdiq.podcini.ui.utils.setSearchTerms
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.util.Logs
@@ -201,6 +199,10 @@ enum class ADLIncExc {
     EXCLUDE
 }
 
+var feedScreenMode by mutableStateOf(FeedScreenMode.List)
+
+var feedOnDisplay by mutableStateOf(Feed())
+
 val queueSettingOptions = listOf("Default", "Active", "None", "Custom")
 
 //private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
@@ -284,6 +286,8 @@ fun FeedDetailsScreen() {
     }
 
     var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
+
+    var listIdentity by remember { mutableStateOf("") }
 
     var layoutModeIndex by remember { mutableIntStateOf(LayoutMode.Normal.ordinal) }
 
@@ -1348,7 +1352,6 @@ fun FeedDetailsScreen() {
                     if (feed != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = filterButtonColor, contentDescription = "butFilter", modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(onClick = { if (enableFilter) showFilterDialog = true }, onLongClick = {
                         if (isFiltered) {
                             enableFilter = !enableFilter
-//                            vm.reassembleList()
                         }
                     }))
                 }
@@ -1359,7 +1362,6 @@ fun FeedDetailsScreen() {
                         FeedScreenMode.History -> FeedScreenMode.List
                         else -> FeedScreenMode.List
                     }
-//                    vm.reassembleList()
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
                 IconButton(onClick = {
                     val q = feed?.queue
@@ -1539,9 +1541,14 @@ fun FeedDetailsScreen() {
     suspend fun assembleList() {
         if (feed == null) return
         Logd(TAG, "assembleList feed!!.episodeFilter: ${feed!!.episodeFilter.propertySet}")
+        listIdentity = "FeedDetails.${feed!!.id}"
         episodesFlow = when {
-            feedScreenMode == FeedScreenMode.History -> getHistoryAsFlow(feed!!.id)
+            feedScreenMode == FeedScreenMode.History -> {
+                listIdentity += ".History"
+                getHistoryAsFlow(feed!!.id)
+            }
             enableFilter && feed!!.filterString.isNotBlank() -> {
+                listIdentity += ".${feed!!.filterString}.${feed!!.episodeSortOrder.name}"
                 try {
                     getEpisodesAsFlow(feed!!.episodeFilter, feed!!.episodeSortOrder, feed!!.id)
                 } catch (e: Throwable) {
@@ -1553,7 +1560,10 @@ fun FeedDetailsScreen() {
                     getEpisodesAsFlow(feed!!.episodeFilter, feed!!.episodeSortOrder, feed!!.id)
                 }
             }
-            else -> getEpisodesAsFlow(EpisodeFilter(""), feed!!.episodeSortOrder, feed!!.id)
+            else -> {
+                listIdentity += "..${feed!!.episodeSortOrder.name}"
+                getEpisodesAsFlow(EpisodeFilter(""), feed!!.episodeSortOrder, feed!!.id)
+            }
         }
         withContext(Dispatchers.Main) {
             layoutModeIndex = if (feed!!.useWideLayout) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
@@ -1589,13 +1599,26 @@ fun FeedDetailsScreen() {
                 if (feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
                     infoBarText.value = "$listInfoText $feedOperationText"
                     InforBar(infoBarText, swipeActions)
-                    EpisodeLazyColumn(
-                        context, episodes, feed = feed, layoutMode = layoutModeIndex,
+                    EpisodeLazyColumn(context, episodes, feed = feed, layoutMode = layoutModeIndex, swipeActions = swipeActions,
                         refreshCB = { runOnceOrAsk(context, feed = feed) },
-                        swipeActions = swipeActions,
                         actionButtonCB = { e, type ->
                             Logd(TAG, "actionButtonCB type: $type")
-                            if (e.feed?.id == feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) upsertBlk(feed!!) { it.lastPlayed = Date().time }
+                            if (e.feed?.id == feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
+                                runOnIOScope {
+                                    upsert(feed!!) { it.lastPlayed = Date().time }
+                                    if (virQueue.identity != listIdentity) {
+                                        virQueue = upsert(virQueue) { q ->
+                                            q.identity = listIdentity
+                                            q.sortOrder = feed!!.episodeSortOrder
+                                            q.episodeIds.clear()
+                                            q.episodeIds.addAll(episodes.take(VIRTUAL_QUEUE_SIZE).map { it.id })
+                                        }
+                                        virQueue.episodes.clear()
+                                        actQueue = virQueue
+                                    }
+                                }
+                                Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
+                            }
                         },
                     )
                 } else DetailUI()

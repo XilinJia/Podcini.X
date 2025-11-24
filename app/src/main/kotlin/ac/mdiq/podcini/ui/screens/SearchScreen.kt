@@ -2,12 +2,20 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
+import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
+import ac.mdiq.podcini.playback.base.InTheatre.virQueue
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationInHours
+import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
@@ -15,16 +23,11 @@ import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.SearchBarRow
-import ac.mdiq.podcini.ui.utils.curSearchString
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.utils.feedToSearchIn
-import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
-import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
 import ac.mdiq.podcini.util.Logd
 import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.util.Logt
 import ac.mdiq.podcini.util.formatLargeInteger
 import android.annotation.SuppressLint
 import android.content.Context
@@ -105,6 +108,14 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 
+private var curSearchString by mutableStateOf("")
+private var feedToSearchIn by mutableStateOf<Feed?>(null)
+fun setSearchTerms(query: String? = null, feed: Feed? = null) {
+    Logd("setSearchTerms", "query: $query feed: ${feed?.id}")
+    if (query != null) curSearchString = query
+    feedToSearchIn = feed
+}
+
 class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     internal var automaticSearchDebouncer: Handler
 
@@ -114,6 +125,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     internal val feeds = mutableStateListOf<Feed>()
 
     var episodesFlow by mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow())
+    var listIdentity by mutableStateOf("")
 
     internal var searchInFeed by mutableStateOf(false)
     internal var queryText by mutableStateOf("")
@@ -154,6 +166,115 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     private var searchJob: Job? = null
     @SuppressLint("StringFormatMatches")
     internal fun search(query: String) {
+        fun searchFeeds(queryWords: Array<String>): List<Feed> {
+            Logd(TAG, "searchFeeds called ${SearchBy.AUTHOR.selected}")
+            val sb = StringBuilder()
+            for (i in queryWords.indices) {
+                var isStart = true
+                val sb1 = StringBuilder()
+                if (SearchBy.TITLE.selected) {
+                    sb1.append("eigenTitle contains[c] '${queryWords[i]}'")
+                    sb1.append(" OR ")
+                    sb1.append("customTitle contains[c] '${queryWords[i]}'")
+                    isStart = false
+                }
+                if (SearchBy.AUTHOR.selected) {
+                    if (!isStart) sb1.append(" OR ")
+                    sb1.append("author contains[c] '${queryWords[i]}'")
+                    isStart = false
+                }
+                if (SearchBy.DESCRIPTION.selected) {
+                    if (!isStart) sb1.append(" OR ")
+                    sb1.append("description contains[c] '${queryWords[i]}'")
+                    isStart = false
+                }
+                if (SearchBy.COMMENT.selected) {
+                    if (!isStart) sb1.append(" OR ")
+                    sb1.append("comment contains[c] '${queryWords[i]}'")
+                }
+                if (sb1.isEmpty()) continue
+                sb.append("(")
+                sb.append(sb1)
+                sb.append(") ")
+                if (i != queryWords.size - 1) sb.append("AND ")
+            }
+            if (sb.isEmpty()) return listOf()
+            val queryString = sb.toString()
+            Logd(TAG, "searchFeeds queryString: $queryString")
+            return realm.query(Feed::class).query(queryString).find()
+        }
+
+        fun searchPAFeeds(queryWords: Array<String>): List<PAFeed> {
+            Logd(TAG, "searchFeeds called ${SearchBy.AUTHOR.selected}")
+            val sb = StringBuilder()
+            for (i in queryWords.indices) {
+                var isStart = true
+                val sb1 = StringBuilder()
+                if (SearchBy.TITLE.selected) {
+                    sb1.append("name contains[c] '${queryWords[i]}'")
+                    isStart = false
+                }
+                if (SearchBy.AUTHOR.selected) {
+                    if (!isStart) sb1.append(" OR ")
+                    sb1.append("author contains[c] '${queryWords[i]}'")
+                    isStart = false
+                }
+                if (SearchBy.DESCRIPTION.selected) {
+                    if (!isStart) sb1.append(" OR ")
+                    sb1.append("description contains[c] '${queryWords[i]}'")
+                    //                isStart = false
+                }
+                //            if (SearchBy.COMMENT.selected) {
+                //                if (!isStart) sb1.append(" OR ")
+                //                sb1.append("comment contains[c] '${queryWords[i]}'")
+                //            }
+                if (sb1.isEmpty()) continue
+                sb.append("(")
+                sb.append(sb1)
+                sb.append(") ")
+                if (i != queryWords.size - 1) sb.append("AND ")
+            }
+            if (sb.isEmpty()) return listOf()
+            val queryString = sb.toString()
+            Logd(TAG, "searchFeeds queryString: $queryString")
+            return realm.query(PAFeed::class).query(queryString).find()
+        }
+
+        fun searchEpisodes(feedID: Long, queryWords: Array<String>): Flow<ResultsChange<Episode>> {
+            Logd(TAG, "searchEpisodes called")
+            val sb = StringBuilder()
+            for (i in queryWords.indices) {
+                val sb1 = StringBuilder()
+                var isStart = true
+                if (SearchBy.TITLE.selected) {
+                    sb1.append("title contains[c] '${queryWords[i]}'" )
+                    isStart = false
+                }
+                if (SearchBy.DESCRIPTION.selected) {
+                    if (!isStart) sb1.append(" OR ")
+                    sb1.append("description contains[c] '${queryWords[i]}'")
+                    sb1.append(" OR ")
+                    sb1.append("transcript contains[c] '${queryWords[i]}'")
+                    isStart = false
+                }
+                if (SearchBy.COMMENT.selected) {
+                    if (!isStart) sb1.append(" OR ")
+                    sb1.append("comment contains[c] '${queryWords[i]}'")
+                }
+                if (sb1.isEmpty()) continue
+                sb.append("(")
+                sb.append(sb1)
+                sb.append(") ")
+                if (i != queryWords.size - 1) sb.append("AND ")
+            }
+            if (sb.isEmpty()) return emptyFlow()
+
+            var queryString = sb.toString()
+            if (feedID != 0L) queryString = "(feedId == $feedID) AND $queryString"
+            Logd(TAG, "searchEpisodes queryString: $queryString")
+            return realm.query(Episode::class).query(queryString).sort(sortPairOf(EpisodeSortOrder.DATE_NEW_OLD)).asFlow()
+        }
+
         if (query.isBlank()) return
         if (searchJob != null) {
             searchJob?.cancel()
@@ -164,6 +285,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                     if (query.isEmpty()) Triplet(emptyFlow(), listOf(), listOf())
                     else {
                         val queryWords = (if (query.contains(",")) query.split(",").map { it.trim() } else query.split("\\s+".toRegex())).dropWhile { it.isEmpty() }.toTypedArray()
+                        listIdentity = "Search.${queryWords.joinToString()}"
                         val items = searchEpisodes(feedId, queryWords)
                         val feeds: List<Feed> = searchFeeds(queryWords)
                         val pafeeds = searchPAFeeds(queryWords)
@@ -173,7 +295,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 withContext(Dispatchers.Main) {
                     episodesFlow = results_.episodes
-//                    infoBarText.value = "${episodes.size} episodes"   TODO
                     if (feedId == 0L) {
                         feeds.clear()
                         if (results_.feeds.isNotEmpty()) feeds.addAll(results_.feeds)
@@ -183,121 +304,6 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                 }
             } catch (e: Throwable) { Logs(TAG, e) }
         }.apply { invokeOnCompletion { searchJob = null } }
-    }
-
-    private fun searchFeeds(queryWords: Array<String>): List<Feed> {
-        Logd(TAG, "searchFeeds called ${SearchBy.AUTHOR.selected}")
-        val sb = StringBuilder()
-        for (i in queryWords.indices) {
-            var isStart = true
-            val sb1 = StringBuilder()
-            if (SearchBy.TITLE.selected) {
-                sb1.append("eigenTitle contains[c] '${queryWords[i]}'")
-                sb1.append(" OR ")
-                sb1.append("customTitle contains[c] '${queryWords[i]}'")
-                isStart = false
-            }
-            if (SearchBy.AUTHOR.selected) {
-                if (!isStart) sb1.append(" OR ")
-                sb1.append("author contains[c] '${queryWords[i]}'")
-                isStart = false
-            }
-            if (SearchBy.DESCRIPTION.selected) {
-                if (!isStart) sb1.append(" OR ")
-                sb1.append("description contains[c] '${queryWords[i]}'")
-                isStart = false
-            }
-            if (SearchBy.COMMENT.selected) {
-                if (!isStart) sb1.append(" OR ")
-                sb1.append("comment contains[c] '${queryWords[i]}'")
-            }
-            if (sb1.isEmpty()) continue
-            sb.append("(")
-            sb.append(sb1)
-            sb.append(") ")
-            if (i != queryWords.size - 1) sb.append("AND ")
-        }
-        if (sb.isEmpty()) return listOf()
-        val queryString = sb.toString()
-        Logd(TAG, "searchFeeds queryString: $queryString")
-        return realm.query(Feed::class).query(queryString).find()
-    }
-
-    private fun searchPAFeeds(queryWords: Array<String>): List<PAFeed> {
-        Logd(TAG, "searchFeeds called ${SearchBy.AUTHOR.selected}")
-        val sb = StringBuilder()
-        for (i in queryWords.indices) {
-            var isStart = true
-            val sb1 = StringBuilder()
-            if (SearchBy.TITLE.selected) {
-                sb1.append("name contains[c] '${queryWords[i]}'")
-                isStart = false
-            }
-            if (SearchBy.AUTHOR.selected) {
-                if (!isStart) sb1.append(" OR ")
-                sb1.append("author contains[c] '${queryWords[i]}'")
-                isStart = false
-            }
-            if (SearchBy.DESCRIPTION.selected) {
-                if (!isStart) sb1.append(" OR ")
-                sb1.append("description contains[c] '${queryWords[i]}'")
-//                isStart = false
-            }
-//            if (SearchBy.COMMENT.selected) {
-//                if (!isStart) sb1.append(" OR ")
-//                sb1.append("comment contains[c] '${queryWords[i]}'")
-//            }
-            if (sb1.isEmpty()) continue
-            sb.append("(")
-            sb.append(sb1)
-            sb.append(") ")
-            if (i != queryWords.size - 1) sb.append("AND ")
-        }
-        if (sb.isEmpty()) return listOf()
-        val queryString = sb.toString()
-        Logd(TAG, "searchFeeds queryString: $queryString")
-        return realm.query(PAFeed::class).query(queryString).find()
-    }
-
-    /**
-     * Searches the FeedItems of a specific Feed for a given string.
-     * @param feedID  The id of the feed whose episodes should be searched.
-     * @return A FutureTask object that executes the search request
-     * and returns the search result as a List of FeedItems.
-     */
-    private fun searchEpisodes(feedID: Long, queryWords: Array<String>): Flow<ResultsChange<Episode>> {
-        Logd(TAG, "searchEpisodes called")
-        val sb = StringBuilder()
-        for (i in queryWords.indices) {
-            val sb1 = StringBuilder()
-            var isStart = true
-            if (SearchBy.TITLE.selected) {
-                sb1.append("title contains[c] '${queryWords[i]}'" )
-                isStart = false
-            }
-            if (SearchBy.DESCRIPTION.selected) {
-                if (!isStart) sb1.append(" OR ")
-                sb1.append("description contains[c] '${queryWords[i]}'")
-                sb1.append(" OR ")
-                sb1.append("transcript contains[c] '${queryWords[i]}'")
-                isStart = false
-            }
-            if (SearchBy.COMMENT.selected) {
-                if (!isStart) sb1.append(" OR ")
-                sb1.append("comment contains[c] '${queryWords[i]}'")
-            }
-            if (sb1.isEmpty()) continue
-            sb.append("(")
-            sb.append(sb1)
-            sb.append(") ")
-            if (i != queryWords.size - 1) sb.append("AND ")
-        }
-        if (sb.isEmpty()) return emptyFlow()
-
-        var queryString = sb.toString()
-        if (feedID != 0L) queryString = "(feedId == $feedID) AND $queryString"
-        Logd(TAG, "searchEpisodes queryString: $queryString")
-        return realm.query(Episode::class).query(queryString).asFlow()
     }
 }
 
@@ -317,7 +323,6 @@ fun SearchScreen() {
                 Lifecycle.Event.ON_CREATE -> {
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
                     if (vm.feedId > 0L) vm.searchInFeed = true
-//                    vm.refreshSwipeTelltale()
                     if (vm.queryText.isNotBlank()) vm.search(vm.queryText)
                 }
                 Lifecycle.Event.ON_START -> vm.procFlowEvents()
@@ -507,13 +512,29 @@ fun SearchScreen() {
                         text = { Text(text = stringResource(titleRes) + "(${tabCounts[index]})", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium,
                             color = if (selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary else { MaterialTheme.colorScheme.onSurface }) }
                     )
-
                 }
             }
             when (selectedTabIndex.intValue) {
                 0 -> {
                     InforBar(infoBarText, swipeActions)
-                    EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions)
+                    EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions,
+                        actionButtonCB = { e, type ->
+                            if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
+                                if (virQueue.identity != vm.listIdentity) {
+                                    runOnIOScope {
+                                        virQueue = upsert(virQueue) { q ->
+                                            q.identity = vm.listIdentity
+                                            q.sortOrder = EpisodeSortOrder.DATE_NEW_OLD
+                                            q.episodeIds.clear()
+                                            q.episodeIds.addAll(episodes.take(VIRTUAL_QUEUE_SIZE).map { it.id })
+                                        }
+                                        virQueue.episodes.clear()
+                                        actQueue = virQueue
+                                    }
+                                    Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
+                                }
+                            }
+                        })
                 }
                 1 -> FeedsColumn()
                 2 -> PAFeedsColumn()

@@ -58,7 +58,7 @@ sealed class FlowEvent {
         }
     }
 
-    data class HistoryEvent(val sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_NEW_OLD, val startDate: Long = 0, val endDate: Long = Date().time) : FlowEvent()
+//    data class HistoryEvent(val sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_NEW_OLD, val startDate: Long = 0, val endDate: Long = Date().time) : FlowEvent()
 
     data class SleepTimerUpdatedEvent(private val timeLeft: Long) : FlowEvent() {
         val isOver: Boolean
@@ -82,6 +82,7 @@ sealed class FlowEvent {
         fun contains(feed: Feed): Boolean = feedIds.contains(feed.id)
     }
 
+    // TODO: perhaps FeedDetails Settings need to post this
     data class FeedChangeEvent(val feed: Feed, val changedFields: Array<String>) : FlowEvent()
 
     data class SpeedChangedEvent(val newSpeed: Float) : FlowEvent()
@@ -104,7 +105,7 @@ sealed class FlowEvent {
         }
     }
 
-    data class FeedTagsChangedEvent(val dummy: Unit = Unit) : FlowEvent()
+//    data class FeedTagsChangedEvent(val dummy: Unit = Unit) : FlowEvent()
 
     data class FeedUpdatingEvent(val isRunning: Boolean) : FlowEvent()
 

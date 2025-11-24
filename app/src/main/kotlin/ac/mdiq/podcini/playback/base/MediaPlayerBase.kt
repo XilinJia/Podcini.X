@@ -26,7 +26,7 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences.isInTimeRange
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.timerMillis
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.deleteMedia
-import ac.mdiq.podcini.storage.database.hasAlmostEnded
+
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -381,7 +381,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     fun onPostPlayback(playable: Episode, ended: Boolean, skipped: Boolean, playingNext: Boolean) {
         Logd(TAG, "onPostPlayback(): ended=$ended skipped=$skipped playingNext=$playingNext media=${playable.getEpisodeTitle()} ")
         var item = playable
-        val smartMarkAsPlayed = hasAlmostEnded(playable)
+        val smartMarkAsPlayed = playable.hasAlmostEnded()
         if (!ended && smartMarkAsPlayed) Logd(TAG, "smart mark as played")
 
         var autoSkipped = false
@@ -412,7 +412,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     if (ended || skipped || playingNext) it.playbackCompletionDate = Date()
                 }
 //                EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(item))
-                EventFlow.postEvent(FlowEvent.HistoryEvent())
+//                EventFlow.postEvent(FlowEvent.HistoryEvent())
 
                 val action = item.feed?.autoDeleteAction
                 val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))

@@ -33,11 +33,11 @@ import ac.mdiq.podcini.ui.screens.NavDrawerScreen
 import ac.mdiq.podcini.ui.screens.Navigate
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.drawerState
-import ac.mdiq.podcini.ui.utils.feedOnDisplay
-import ac.mdiq.podcini.ui.utils.feedScreenMode
-import ac.mdiq.podcini.ui.utils.setOnlineFeedUrl
-import ac.mdiq.podcini.ui.utils.setOnlineSearchTerms
-import ac.mdiq.podcini.ui.utils.setSearchTerms
+import ac.mdiq.podcini.ui.screens.feedOnDisplay
+import ac.mdiq.podcini.ui.screens.feedScreenMode
+import ac.mdiq.podcini.ui.screens.setOnlineFeedUrl
+import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
+import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.util.EventFlow
 import ac.mdiq.podcini.util.FlowEvent
@@ -163,10 +163,7 @@ class MainActivity : BaseActivity() {
     public override fun onCreate(savedInstanceState: Bundle?) {
         lastTheme = getNoTitleTheme(this)
         setTheme(lastTheme)
-        lifecycleScope.launch(Dispatchers.IO) {
-            prefs
-            SwipeActions.prefs
-        }
+        lifecycleScope.launch(Dispatchers.IO) { prefs }
 
         if (BuildConfig.DEBUG) {
             val builder = StrictMode.ThreadPolicy.Builder()

@@ -75,8 +75,6 @@ fun compileLanguages() {
     }
 }
 
-//fun getTags(): List<String> = tags
-
 fun compileTags() {
     val tagsSet = mutableSetOf<String>()
     val feeds = getFeedList()
@@ -86,7 +84,7 @@ fun compileTags() {
         tags.clear()
         tags.addAll(tagsSet)
         tags.sort()
-        EventFlow.postEvent(FlowEvent.FeedTagsChangedEvent())
+//        EventFlow.postEvent(FlowEvent.FeedTagsChangedEvent())
     }
 }
 
@@ -287,7 +285,7 @@ fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean
                 episode.setPlayState(EpisodeState.NEW)
                 if (savedFeed.autoAddNewToQueue) {
                     val q = savedFeed.queue
-                    if (q != null) runOnIOScope {  addToQueue(episode, q) }
+                    if (q != null) runOnIOScope {  addToAssOrActQueue(episode, q) }
                 }
             }
         }
@@ -368,7 +366,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
             episode.setPlayState(EpisodeState.NEW)
             if (savedFeed.autoAddNewToQueue) {
                 val q = savedFeed.queue
-                if (q != null) runOnIOScope {  addToQueue(episode, q) }
+                if (q != null) runOnIOScope {  addToAssOrActQueue(episode, q) }
             }
         }
     }
@@ -458,7 +456,7 @@ suspend fun deleteFeed(context: Context, feedId: Long, postEvent: Boolean = true
     if (feed != null) {
         val eids = feed.episodes.map { it.id }
         //                remove from queues
-        removeFromAllQueuesQuiet(eids)
+        removeFromAllQueuesQuiet(eids, false)
         //                remove media files
         realm.write {
             val feed_ = query(Feed::class).query("id == $0", feedId).first().find()
