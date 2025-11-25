@@ -42,16 +42,16 @@ import ac.mdiq.podcini.storage.utils.getDurationStringLocalized
 import ac.mdiq.podcini.storage.utils.getDurationStringLong
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.localDateTimeString
-import ac.mdiq.podcini.util.shareFeedItemFile
-import ac.mdiq.podcini.util.shareFeedItemLinkWithDownloadLink
-import ac.mdiq.podcini.util.shareLink
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.localDateTimeString
+import ac.mdiq.podcini.utils.shareFeedItemFile
+import ac.mdiq.podcini.utils.shareFeedItemLinkWithDownloadLink
+import ac.mdiq.podcini.utils.shareLink
 import android.app.Activity
 import android.content.Context
 import android.net.Uri
@@ -693,7 +693,7 @@ fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissReq
 }
 
 @Composable
-fun EpisodesFilterDialog(filter_: EpisodeFilter, filtersDisabled: MutableSet<EpisodesFilterGroup> = mutableSetOf(),
+fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<EpisodesFilterGroup> = mutableSetOf(), showAndOr: Boolean = true,
                          onDismissRequest: () -> Unit, onFilterChanged: (EpisodeFilter) -> Unit) {
     //    val filterValuesSet = remember {  filter.propertySet ?: mutableSetOf() }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
@@ -707,29 +707,31 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, filtersDisabled: MutableSet<Epi
             Column(Modifier.fillMaxSize().verticalScroll(scrollStateV)) {
                 var filter by remember { mutableStateOf(filter_.apply { if (andOr.isBlank()) andOr = "AND" }) }
                 var andOr by remember { mutableStateOf(filter.andOr.ifBlank { "AND" }) }
-                Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.join_categories_with) + " :", style = MaterialTheme.typography.bodyMedium , color = textColor, modifier = Modifier.padding(end = 10.dp))
-                    Spacer(Modifier.width(30.dp))
-                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "OR") buttonColor else buttonAltColor),
-                        onClick = {
-                            andOr = "AND"
-                            filter.andOr = andOr
-                            onFilterChanged(filter)
-                        },
-                    ) { Text(text = "AND", color = textColor) }
-                    Spacer(Modifier.width(20.dp))
-                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "AND") buttonColor else buttonAltColor),
-                        onClick = {
-                            andOr = "OR"
-                            filter.andOr = andOr
-                            onFilterChanged(filter)
-                        },
-                    ) { Text(text = "OR", color = textColor) }
+                if (showAndOr) {
+                    Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.join_categories_with) + " :", style = MaterialTheme.typography.bodyMedium , color = textColor, modifier = Modifier.padding(end = 10.dp))
+                        Spacer(Modifier.width(30.dp))
+                        OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "OR") buttonColor else buttonAltColor),
+                            onClick = {
+                                andOr = "AND"
+                                filter.andOr = andOr
+                                onFilterChanged(filter)
+                            },
+                        ) { Text(text = "AND", color = textColor) }
+                        Spacer(Modifier.width(20.dp))
+                        OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (andOr == "AND") buttonColor else buttonAltColor),
+                            onClick = {
+                                andOr = "OR"
+                                filter.andOr = andOr
+                                onFilterChanged(filter)
+                            },
+                        ) { Text(text = "OR", color = textColor) }
+                    }
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                 }
-                HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                 var selectNone by remember { mutableStateOf(false) }
                 for (item in EpisodesFilterGroup.entries) {
-                    if (item in filtersDisabled) continue
+                    if (item in disabledSet) continue
                     if (item.properties.size == 2) {
                         Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
                             var selectedIndex by remember { mutableIntStateOf(-1) }

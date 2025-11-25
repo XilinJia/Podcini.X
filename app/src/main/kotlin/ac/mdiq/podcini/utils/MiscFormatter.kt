@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.util
+package ac.mdiq.podcini.utils
 
 import android.content.Context
 import android.text.format.DateUtils

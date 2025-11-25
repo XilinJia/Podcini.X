@@ -39,11 +39,11 @@ import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.episodeOnDisplay
 import ac.mdiq.podcini.ui.screens.feedOnDisplay
 import ac.mdiq.podcini.ui.screens.feedScreenMode
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.formatDateTimeFlex
-import ac.mdiq.podcini.util.formatLargeInteger
-import ac.mdiq.podcini.util.stripDateTimeLines
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.formatDateTimeFlex
+import ac.mdiq.podcini.utils.formatLargeInteger
+import ac.mdiq.podcini.utils.stripDateTimeLines
 import android.content.Context
 import android.text.format.Formatter
 import android.util.TypedValue

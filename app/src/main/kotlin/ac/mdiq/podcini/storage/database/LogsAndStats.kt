@@ -1,9 +1,9 @@
 package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.storage.model.DownloadResult
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
 import kotlinx.coroutines.Job
 
 private const val TAG: String = "LogsAndStats"

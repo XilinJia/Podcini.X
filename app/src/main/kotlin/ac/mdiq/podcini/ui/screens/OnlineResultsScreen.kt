@@ -10,7 +10,7 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.SearchBarRow
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.foundation.background

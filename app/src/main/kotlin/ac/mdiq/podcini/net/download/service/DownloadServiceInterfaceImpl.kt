@@ -25,11 +25,11 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.utils.ensureMediaFileExists
 import ac.mdiq.podcini.storage.utils.loadChaptersFromUrl
 import ac.mdiq.podcini.storage.utils.quietlyDeleteFile
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context

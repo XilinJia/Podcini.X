@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.storage.utils
 
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logs
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
 import java.io.DataInputStream

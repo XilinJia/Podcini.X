@@ -19,8 +19,8 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.MediaType
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf

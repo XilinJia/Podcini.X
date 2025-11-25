@@ -11,9 +11,9 @@ import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed.Companion.FEEDFILETYPE_FEED
 import ac.mdiq.podcini.storage.utils.ensureMediaFileExists
 import ac.mdiq.podcini.storage.utils.freeSpaceAvailable
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import androidx.core.net.toUri
 import okhttp3.CacheControl
 import okhttp3.Protocol

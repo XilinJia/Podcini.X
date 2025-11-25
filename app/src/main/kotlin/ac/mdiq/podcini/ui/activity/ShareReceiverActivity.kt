@@ -6,8 +6,8 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.ui.compose.CustomTheme
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity

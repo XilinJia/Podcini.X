@@ -1,11 +1,10 @@
 @file:Suppress("FunctionName")
 
-package ac.mdiq.podcini.util
+package ac.mdiq.podcini.utils
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.util.localDateTimeString
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf

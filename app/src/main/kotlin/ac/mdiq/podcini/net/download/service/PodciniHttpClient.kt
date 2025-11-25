@@ -5,8 +5,8 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.ProxyConfig
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.config.ClientConfig
 import android.annotation.SuppressLint
 import android.net.TrafficStats

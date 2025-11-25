@@ -1,8 +1,8 @@
 package ac.mdiq.podcini.net.feed.parser.media.vorbis
 
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import org.apache.commons.io.EndianUtils
 import org.apache.commons.io.IOUtils
 import java.io.IOException

@@ -10,9 +10,8 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
-import ac.mdiq.podcini.ui.screens.AudioPlayerVM
-import ac.mdiq.podcini.util.ShownotesCleaner
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.utils.ShownotesCleaner
+import ac.mdiq.podcini.utils.Loge
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.media3.common.MediaMetadata

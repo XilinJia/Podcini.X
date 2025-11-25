@@ -4,12 +4,13 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedCount
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
@@ -20,7 +21,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.lcScope
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -93,16 +94,18 @@ val defaultScreen: String
         } catch (_: Throwable) { false }
         if (value.isBlank() || !isValid) value = Screens.Subscriptions.name
         if (value == AppPreferences.DefaultPages.Remember.name) {
-            value = getPref(AppPrefs.prefLastScreen, "")
+            value = appAttribs.prefLastScreen
             if (value.isBlank()) value = Screens.Subscriptions.name
             if (value == Screens.FeedDetails.name) {
-                val feedId = getPref(AppPrefs.prefLastScreenArg, "0L").toLongOrNull()
+                val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
                 if (feedId != null) feedOnDisplay = getFeed(feedId) ?: Feed()
             }
         }
         Logd(TAG, "get defaultScreen: [$value]")
         return value
     }
+
+var subscreenHandleBack = mutableStateOf(false)
 
 class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
     internal val feeds = mutableStateListOf<Feed>()
@@ -170,7 +173,7 @@ fun NavDrawerScreen(navController: NavController) {
             }
             Screens.FeedDetails.name -> {
                 if (args == null) {
-                    val feedId = getPref(AppPrefs.prefLastScreenArg, "0L").toLongOrNull()
+                    val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
                     if (feedId != null) {
                         val feed = getFeed(feedId)
                         if (feed != null) {
@@ -189,7 +192,7 @@ fun NavDrawerScreen(navController: NavController) {
         runOnIOScope { saveLastNavScreen(tag) }
     }
 
-    BackHandler(enabled = true) {
+    BackHandler(enabled = !subscreenHandleBack.value) {
         Logd(TAG, "BackHandler: $isBSExpanded")
         val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
         val defPage = defaultScreen
@@ -328,11 +331,13 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
 
 fun saveLastNavScreen(tag: String?, arg: String? = null) {
     Logd(TAG, "saveLastNavScreen(tag: $tag)")
-    putPref(AppPrefs.prefLastScreen, tag ?:"")
-    if (arg == null && tag == Screens.FeedDetails.name) {
-        val arg_ = feedOnDisplay.id.toString()
-        putPref(AppPrefs.prefLastScreenArg, arg_)
-    } else putPref(AppPrefs.prefLastScreenArg, arg ?:"")
+    upsertBlk(appAttribs) {
+        it.prefLastScreen = tag ?: ""
+        if (arg == null && tag == Screens.FeedDetails.name) {
+            val arg_ = feedOnDisplay.id.toString()
+            it.prefLastScreenArg = arg_
+        } else it.prefLastScreenArg = arg ?: ""
+    }
 }
 
 var drawerState by mutableStateOf(DrawerState(initialValue = DrawerValue.Closed))

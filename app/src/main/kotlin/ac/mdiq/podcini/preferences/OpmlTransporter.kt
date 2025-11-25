@@ -4,9 +4,9 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.formatRfc822Date
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.formatRfc822Date
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager

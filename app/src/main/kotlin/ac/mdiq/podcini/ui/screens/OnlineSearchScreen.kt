@@ -26,10 +26,10 @@ import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.SearchBarRow
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -260,7 +260,7 @@ fun OnlineSearchScreen() {
                     val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
                     Logd(TAG, "addLocalFolderLauncher dirFeed episodes: ${dirFeed.episodes.size}")
 //                    dirFeed.episodes.clear()
-                    dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_A_Z
+                    dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
                     updateFeedFull(context, dirFeed, removeUnlistedItems = false)
                     val fromDatabase: Feed? = getFeed(dirFeed.id)
                     gearbox.feedUpdater(fromDatabase).startRefresh(context)

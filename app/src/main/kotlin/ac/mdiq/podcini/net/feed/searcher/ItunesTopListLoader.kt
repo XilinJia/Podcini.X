@@ -3,7 +3,7 @@ package ac.mdiq.podcini.net.feed.searcher
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import android.content.Context
 import okhttp3.CacheControl
 import okhttp3.OkHttpClient

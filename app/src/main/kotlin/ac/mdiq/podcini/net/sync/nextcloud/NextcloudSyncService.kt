@@ -9,7 +9,7 @@ import ac.mdiq.podcini.net.sync.model.ISyncService
 import ac.mdiq.podcini.net.sync.model.SubscriptionChanges
 import ac.mdiq.podcini.net.sync.model.SyncServiceException
 import ac.mdiq.podcini.net.sync.model.UploadChangesResponse
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import java.io.IOException
 import java.net.MalformedURLException
 import okhttp3.Credentials.basic

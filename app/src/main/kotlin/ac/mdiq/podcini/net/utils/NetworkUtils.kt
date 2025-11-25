@@ -4,8 +4,8 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager

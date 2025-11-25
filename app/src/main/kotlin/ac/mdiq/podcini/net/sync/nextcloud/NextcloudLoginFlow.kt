@@ -1,8 +1,8 @@
 package ac.mdiq.podcini.net.sync.nextcloud
 
 import ac.mdiq.podcini.net.sync.HostnameParser
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import android.content.Context
 import android.content.Intent
 import androidx.core.net.toUri

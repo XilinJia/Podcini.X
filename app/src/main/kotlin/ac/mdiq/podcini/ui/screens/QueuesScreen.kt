@@ -45,11 +45,11 @@ import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import android.content.ComponentName
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
@@ -75,7 +75,9 @@ import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
@@ -170,8 +172,7 @@ fun QueuesScreen() {
     
     val feedsAssociated = remember {  mutableStateListOf<Feed>() }
 
-    val swipeActions = remember { SwipeActions(context, TAG) }
-    val swipeActionsBin = remember { SwipeActions(context, "$TAG.Bin") }
+    var swipeActions by remember { mutableStateOf(SwipeActions(context, TAG)) }
     var listInfoText by remember { mutableStateOf("") }
     val infoBarText = remember { mutableStateOf("") }
 
@@ -188,7 +189,6 @@ fun QueuesScreen() {
                 Lifecycle.Event.ON_CREATE -> {
                     queuesFlow = realm.query<PlayQueue>().asFlow()
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
-                    lifecycleOwner.lifecycle.addObserver(swipeActionsBin)
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
                     browserFuture.addListener({
@@ -213,7 +213,7 @@ fun QueuesScreen() {
         }
     }
 
-    BackHandler(enabled = queuesMode != QueuesScreenMode.Queue) {
+    BackHandler(enabled = subscreenHandleBack.value) {
         Logd(TAG, "BackHandler $queuesMode")
         when(queuesMode) {
             QueuesScreenMode.Bin, QueuesScreenMode.Feed, QueuesScreenMode.Settings -> queuesMode = QueuesScreenMode.Queue
@@ -239,8 +239,14 @@ fun QueuesScreen() {
 
     var dragDropEnabled by remember(curQueue.id) { mutableStateOf(!(curQueue.isSorted || curQueue.isSorted)) }
 
+    DisposableEffect(queuesMode) {
+        subscreenHandleBack.value = queuesMode != QueuesScreenMode.Queue
+        onDispose { subscreenHandleBack.value = false }
+    }
+
     LaunchedEffect(curQueue, queuesFlow, queuesMode, dragged) {
         Logd(TAG, "LaunchedEffect(curQueue, queuesFlow, screenMode, dragged)")
+        lifecycleOwner.lifecycle.removeObserver(swipeActions)
         when (queuesMode) {
             QueuesScreenMode.Feed -> {
                 feedsAssociated.clear()
@@ -249,6 +255,8 @@ fun QueuesScreen() {
                 title = "${feedsAssociated.size} Feeds"
             }
             QueuesScreenMode.Bin -> {
+                swipeActions = SwipeActions(context, "${TAG}_Bin")
+                lifecycleOwner.lifecycle.addObserver(swipeActions)
                 episodesFlow = queuesFlow.mapNotNull { resultsChange -> resultsChange.list.firstOrNull { it.id == curQueue.id }?.idsBinList
                 }.flatMapLatest { ids ->
                     realm.query(Episode::class, "id IN $0", ids).sort(Pair("timeOutQueue", Sort.DESCENDING)).asFlow()
@@ -256,6 +264,8 @@ fun QueuesScreen() {
                 title = curQueue.name + " Bin"
             }
             QueuesScreenMode.Queue -> {
+                swipeActions = SwipeActions(context, TAG)
+                lifecycleOwner.lifecycle.addObserver(swipeActions)
                 episodesFlow = queuesFlow.mapNotNull { resultsChange -> resultsChange.list.firstOrNull { it.id == curQueue.id }?.episodeIds
                 }.flatMapLatest { ids ->
                     realm.query(Episode::class).query("id IN $0", ids).sort(sortPairOf(curQueue.sortOrder)).asFlow()
@@ -329,11 +339,9 @@ fun QueuesScreen() {
         }
 
         swipeActions.ActionOptionsDialog()
-        swipeActionsBin.ActionOptionsDialog()
-
         if (showSortDialog) EpisodeSortDialog(initOrder = curQueue.sortOrder, onDismissRequest = { showSortDialog = false },
-            includeConditionals = listOf(EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW, EpisodeSortOrder.TIME_IN_QUEUE_NEW_OLD)) { order ->
-            curQueue = upsertBlk(curQueue) { it.sortOrder = order ?: EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW }
+            includeConditionals = listOf(EpisodeSortOrder.TIME_IN_QUEUE_ASC, EpisodeSortOrder.TIME_IN_QUEUE_DESC)) { order ->
+            curQueue = upsertBlk(curQueue) { it.sortOrder = order ?: EpisodeSortOrder.TIME_IN_QUEUE_ASC }
             reorderQueue()
         }
     }
@@ -430,7 +438,7 @@ fun QueuesScreen() {
 
     @Composable
     fun Settings() {
-        Column {
+        Column(Modifier.verticalScroll(rememberScrollState())) {
             val showRename by remember { mutableStateOf(curQueue.name != "Default" && curQueue.name != "Virtual") }
             if (showRename) Row(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp, end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.rename), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
@@ -495,38 +503,40 @@ fun QueuesScreen() {
             TitleSummarySwitchRow(R.string.pref_auto_download_include_queues_title, R.string.pref_auto_download_include_queues_sum, curQueue.autoDownloadEpisodes) { v ->
                 upsertBlk(curQueue) { it.autoDownloadEpisodes = v }
             }
-
-            if (showRename) TitleSummaryActionColumn(R.string.remove_queue, R.string.remove_queue_sum) {
-                commonConfirm = CommonConfirmAttrib(
-                    title = context.getString(R.string.remove_queue) + "?",
-                    message = "",
-                    confirmRes = R.string.confirm_label,
-                    cancelRes = R.string.cancel_label,
-                    onConfirm = {
-                        runOnIOScope {
-                            Logd(TAG, "remove_queue ")
-                            realm.write {
-                                Logd(TAG, "remove_queue episodes: ${curQueue.episodes.size}")
-                                curQueue.episodes.forEach {
-                                    val e = findLatest(it)
-                                    e?.setPlayState(EpisodeState.UNPLAYED)
+            if (showRename) {
+                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 80.dp))
+                TitleSummaryActionColumn(R.string.remove_queue, R.string.remove_queue_sum) {
+                    commonConfirm = CommonConfirmAttrib(
+                        title = context.getString(R.string.remove_queue) + "?",
+                        message = "",
+                        confirmRes = R.string.confirm_label,
+                        cancelRes = R.string.cancel_label,
+                        onConfirm = {
+                            runOnIOScope {
+                                Logd(TAG, "remove_queue ")
+                                realm.write {
+                                    Logd(TAG, "remove_queue episodes: ${curQueue.episodes.size}")
+                                    curQueue.episodes.forEach {
+                                        val e = findLatest(it)
+                                        e?.setPlayState(EpisodeState.UNPLAYED)
+                                    }
+                                    Logd(TAG, "remove_queue feedsAssociated: ${feedsAssociated.size}")
+                                    feedsAssociated.forEach {
+                                        val f = findLatest(it)
+                                        f?.queueId = 0
+                                    }
+                                    val q = findLatest(curQueue)
+                                    if (q != null) delete(q)
                                 }
-                                Logd(TAG, "remove_queue feedsAssociated: ${feedsAssociated.size}")
-                                feedsAssociated.forEach {
-                                    val f = findLatest(it)
-                                    f?.queueId = 0
+                                withContext(Dispatchers.Main) {
+                                    curQueue = queues[0]
+                                    curIndex = 0
+                                    queuesMode = QueuesScreenMode.Queue
                                 }
-                                val q = findLatest(curQueue)
-                                if (q != null) delete(q)
                             }
-                            withContext(Dispatchers.Main) {
-                                curQueue = queues[0]
-                                curIndex = 0
-                                queuesMode = QueuesScreenMode.Queue
-                            }
-                        }
-                    },
-                )
+                        },
+                    )
+                }
             }
         }
     }
@@ -611,8 +621,8 @@ fun QueuesScreen() {
                 if (queuesMode == QueuesScreenMode.Bin) {
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                         infoBarText.value = "$listInfoText $feedOperationText"
-                        InforBar(infoBarText, swipeActionsBin)
-                        EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActionsBin)
+                        InforBar(infoBarText, swipeActions)
+                        EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions)
                     }
                 } else {
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {

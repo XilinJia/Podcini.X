@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.playback.cast
 
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logs
 import android.content.Context
 import com.google.android.gms.cast.framework.CastContext
 import com.google.android.gms.cast.framework.CastSession

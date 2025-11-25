@@ -30,19 +30,19 @@ class PlayQueue : RealmObject {
     var autoDownloadEpisodes: Boolean = false
 
     @Ignore
-    var sortOrder: EpisodeSortOrder = EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW
+    var sortOrder: EpisodeSortOrder = EpisodeSortOrder.TIME_IN_QUEUE_ASC
         get() = fromCode(sortOrderCode)
         set(value) {
             field = value
             sortOrderCode = value.code
         }
-    var sortOrderCode: Int = EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW.code     // in EpisodeSortOrder
+    var sortOrderCode: Int = EpisodeSortOrder.TIME_IN_QUEUE_ASC.code     // in EpisodeSortOrder
 
     var isLocked: Boolean = true
 
     @Ignore
     val isSorted: Boolean
-        get() = sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW
+        get() = sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_ASC
 
     var episodeIds: RealmList<Long> = realmListOf()
 

@@ -22,11 +22,11 @@ import ac.mdiq.podcini.storage.utils.getDataFolder
 import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.storage.utils.loadChaptersFromUrl
 import ac.mdiq.podcini.storage.utils.merge
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.fullDateTimeString
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.fullDateTimeString
 import android.content.ContentResolver
 import android.content.Context
 import android.media.MediaMetadataRetriever

@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.net.sync.model
 
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logs
 import org.json.JSONException
 import org.json.JSONObject
 import java.text.ParseException

@@ -30,7 +30,7 @@ import ac.mdiq.podcini.ui.compose.ShelveDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.setSearchTerms
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import android.content.Context
 import android.util.TypedValue
 import androidx.compose.foundation.BorderStroke
@@ -556,14 +556,10 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             var showPickerDialog by remember { mutableStateOf(false) }
             if (showPickerDialog) {
                 Dialog(onDismissRequest = { showPickerDialog = false }) {
-                    Card(modifier = Modifier
-                        .wrapContentSize(align = Alignment.Center)
-                        .fillMaxWidth()
-                        .padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                    Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                         LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(16.dp)) {
                             items(keys.size) { index ->
-                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier
-                                    .padding(16.dp)
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)
                                     .clickable {
                                         when (direction) {
                                             -1 -> leftAction.value = keys[index]
@@ -572,9 +568,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                                         }
                                         showPickerDialog = false
                                     }) {
-                                    Icon(imageVector = ImageVector.vectorResource(keys[index].iconRes), tint = textColor, contentDescription = null, modifier = Modifier
-                                        .width(35.dp)
-                                        .height(35.dp))
+                                    Icon(imageVector = ImageVector.vectorResource(keys[index].iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp))
                                     Text(keys[index].title, color = textColor, textAlign = TextAlign.Center)
                                 }
                             }
@@ -601,38 +595,27 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         }
                         else -> { "" }
                 } }
-                Card(modifier = Modifier
-                    .wrapContentSize(align = Alignment.Center)
-                    .fillMaxWidth()
-                    .padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+                Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                         Text(stringResource(R.string.swipeactions_label) + " - " + forFragment)
                         Text(stringResource(R.string.swipe_left))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(leftAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier
-                                .width(35.dp)
-                                .height(35.dp)
+                            Icon(imageVector = ImageVector.vectorResource(leftAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
                                 .clickable(onClick = {
                                     direction = -1
                                     showPickerDialog = true
                                 }))
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier
-                                .width(50.dp)
-                                .height(35.dp))
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
                             Spacer(Modifier.weight(0.5f))
                         }
                         Text(stringResource(R.string.swipe_right))
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
                             Spacer(Modifier.weight(0.5f))
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier
-                                .width(50.dp)
-                                .height(35.dp))
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
                             Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(rightAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier
-                                .width(35.dp)
-                                .height(35.dp)
+                            Icon(imageVector = ImageVector.vectorResource(rightAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
                                 .clickable(onClick = {
                                     direction = 1
                                     showPickerDialog = true

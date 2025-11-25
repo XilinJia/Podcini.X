@@ -33,11 +33,11 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
@@ -212,7 +212,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         val queuedEpisodeActions: MutableList<EpisodeAction> = synchronizationQueueStorage.queuedEpisodeActions
         if (lastSync == 0L) {
             EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_upload_played))
-            val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_NEW_OLD)
+            val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_DESC)
             Logd(TAG, "First sync. Upload state for all " + readItems.size + " played episodes")
             for (item in readItems) {
                 val played = EpisodeAction.Builder(item, EpisodeAction.PLAY)

@@ -60,15 +60,15 @@ import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.formatDateTimeFlex
-import ac.mdiq.podcini.util.fullDateTimeString
-import ac.mdiq.podcini.util.isCallable
-import ac.mdiq.podcini.util.openInBrowser
-import ac.mdiq.podcini.util.shareLink
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.formatDateTimeFlex
+import ac.mdiq.podcini.utils.fullDateTimeString
+import ac.mdiq.podcini.utils.isCallable
+import ac.mdiq.podcini.utils.openInBrowser
+import ac.mdiq.podcini.utils.shareLink
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -391,7 +391,7 @@ fun FeedDetailsScreen() {
 
         if (feed != null && showSortDialog) EpisodeSortDialog(initOrder = feed!!.episodeSortOrder, onDismissRequest = { showSortDialog = false }) { order ->
             Logd(TAG, "persist Episode SortOrder_")
-            runOnIOScope { upsert(feed!!) { it.episodeSortOrder = order ?: EpisodeSortOrder.DATE_NEW_OLD } }
+            runOnIOScope { upsert(feed!!) { it.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC } }
         }
 
         swipeActions.ActionOptionsDialog()
@@ -1532,8 +1532,12 @@ fun FeedDetailsScreen() {
         }
     }
 
-    BackHandler(enabled = feedScreenMode !in listOf(FeedScreenMode.Info, FeedScreenMode.List) || !enableFilter) {
-//        Logt(TAG, "BackHandler ")
+    DisposableEffect(feedScreenMode) {
+        subscreenHandleBack.value = feedScreenMode !in listOf(FeedScreenMode.Info, FeedScreenMode.List) || !enableFilter
+        onDispose { subscreenHandleBack.value = false }
+    }
+
+    BackHandler(enabled = subscreenHandleBack.value) {
         feedScreenMode = FeedScreenMode.List
         enableFilter = true
     }
@@ -1555,7 +1559,7 @@ fun FeedDetailsScreen() {
                     Loge(TAG, "getEpisodesAsFlow error, retry: ${e.message}")
                     feed = upsert(feed!!) {
                         it.episodeFilter = EpisodeFilter("")
-                        it.episodeSortOrder = EpisodeSortOrder.DATE_NEW_OLD
+                        it.episodeSortOrder = EpisodeSortOrder.DATE_DESC
                     }
                     getEpisodesAsFlow(feed!!.episodeFilter, feed!!.episodeSortOrder, feed!!.id)
                 }

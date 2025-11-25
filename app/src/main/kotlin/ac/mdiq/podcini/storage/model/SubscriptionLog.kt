@@ -2,7 +2,7 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 

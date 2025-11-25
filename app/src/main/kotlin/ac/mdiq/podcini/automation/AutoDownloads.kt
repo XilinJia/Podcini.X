@@ -24,9 +24,9 @@ import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -205,7 +205,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                                     val numToDelete = es.size + downloadedCount - allowedDLCount
                                     Logd(TAG, "assembleFeedsCandidates numToDelete: $numToDelete")
                                     if (numToDelete > 0) {
-                                        val toDelete_ = getEpisodes(dlFilter, EpisodeSortOrder.DATE_OLD_NEW, feedId=f.id, limit=numToDelete)
+                                        val toDelete_ = getEpisodes(dlFilter, EpisodeSortOrder.DATE_ASC, feedId=f.id, limit=numToDelete)
                                         if (toDelete_.isNotEmpty()) toReplace.addAll(toDelete_)
                                         Logd(TAG, "assembleFeedsCandidates toDelete_: ${toDelete_.size}")
                                     }
@@ -241,7 +241,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                         val es = q.find().toMutableList()
                         Logd(TAG, "assembleFeedsCandidates Filter-sort queryString: [${es.size}] $queryString")
                         if (es.isNotEmpty()) {
-                            val sortOrder = f.episodesSortOrderADL ?: EpisodeSortOrder.DATE_NEW_OLD
+                            val sortOrder = f.episodesSortOrderADL ?: EpisodeSortOrder.DATE_DESC
                             Logd(TAG, "FILTER_SORT sortOrder: $sortOrder")
                             getPermutor(sortOrder).reorder(es)
                             episodes.addAll(if (es.size > allowedDLCount) es.subList(0, allowedDLCount) else es)

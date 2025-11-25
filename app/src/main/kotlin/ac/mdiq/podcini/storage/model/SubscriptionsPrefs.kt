@@ -9,13 +9,15 @@ class SubscriptionsPrefs: RealmObject {
     @PrimaryKey
     var id: Long = 0L
 
+    var prefFeedGridLayout: Boolean = false
+
     var feedsFilter: String = ""
 
     var langsSel: RealmSet<String> = realmSetOf()
 
     var tagsSel: RealmSet<String> = realmSetOf()
 
-    var qSelIds: RealmSet<String> = realmSetOf()
+    var queueSelIds: RealmSet<Long> = realmSetOf()
 
     var sortIndex: Int = 0
 

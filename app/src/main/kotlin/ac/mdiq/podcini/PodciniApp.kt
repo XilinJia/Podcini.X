@@ -1,18 +1,17 @@
 package ac.mdiq.podcini
 
-import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.preferences.PreferenceUpgrader
-import ac.mdiq.podcini.receiver.SPAReceiver
-import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.ui.activity.SplashActivity
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
 import ac.mdiq.podcini.config.ApplicationCallbacks
 import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.config.ClientConfigurator
-import ac.mdiq.podcini.util.error.CrashReportWriter
+import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.receiver.SPAReceiver
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.ui.activity.SplashActivity
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.error.CrashReportWriter
 import android.app.Application
 import android.content.ComponentName
 import android.content.Context
@@ -22,7 +21,6 @@ import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 
 class PodciniApp : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -39,8 +37,6 @@ class PodciniApp : Application() {
 
         podciniApp = this
         ClientConfigurator.initialize(this@PodciniApp)
-
-        applicationScope.launch(Dispatchers.IO) { PreferenceUpgrader.checkUpgrades(this@PodciniApp) }
 
         gearbox.init()
         sendSPAppsQueryFeedsIntent(this)

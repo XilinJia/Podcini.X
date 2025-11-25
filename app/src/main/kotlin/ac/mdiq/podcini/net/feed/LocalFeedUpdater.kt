@@ -18,8 +18,8 @@ import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri

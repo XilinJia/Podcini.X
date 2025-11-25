@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.net.feed.parser.media.vorbis
 
 import ac.mdiq.podcini.storage.model.Chapter
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
 

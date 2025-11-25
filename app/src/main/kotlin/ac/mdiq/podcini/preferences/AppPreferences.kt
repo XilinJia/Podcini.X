@@ -2,18 +2,16 @@ package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
-import ac.mdiq.podcini.storage.specs.EpisodeFilter
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.storage.utils.createNoMediaFile
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 import android.view.KeyEvent
+import androidx.core.content.edit
 import androidx.preference.PreferenceManager
 import java.net.Proxy
-import androidx.core.content.edit
 
 /**
  * Provides access to preferences set by the user in the settings screen. A
@@ -204,10 +202,7 @@ object AppPreferences {
         prefTheme("system"),
         prefThemeBlack(false),
         prefTintedColors(false),
-        prefFeedGridLayout(false),
-//        prefSwipeToRefreshAll(true),
         prefEpisodeCover(false),
-//        showTimeLeft(false),
         prefShowTimeLeft(0),
         prefShowSkip(true),
         prefShowDownloadReport(true),
@@ -215,15 +210,6 @@ object AppPreferences {
         prefBackButtonOpensDrawer(false),
         prefShowErrorToasts(true),
         prefPrintDebugLogs(false),
-
-        prefLastScreen(""),
-        prefLastScreenArg(""),
-
-        // Episodes
-        prefEpisodesSort("" + EpisodeSortOrder.DATE_NEW_OLD.code),
-        prefEpisodesFilter(""),
-        prefFacetsCurIndex(0),
-        prefDownloadsFilter(EpisodeFilter.States.downloaded.name),
 
         // Playback
         prefPauseOnHeadsetDisconnect(true),
@@ -256,21 +242,14 @@ object AppPreferences {
 
         // Network
         prefEnqueueDownloaded(true),
-//        prefEnqueueLocation(EnqueueLocation.BACK.name),
 
         prefAutoUpdateIntervalMinutes("360"),
 
-        prefLastFullUpdateTime(0L),
         prefMobileUpdateTypes(hashSetOf("images")),
         prefEpisodeCleanup(EpisodeCleanupOptions.Never.num.toString()),
         prefEpisodeCacheSize("25"),
         prefEnableAutoDl(false),
         prefEnableAutoDownloadOnBattery(false),
-
-//        prefAutoDLIncludeQueues(setOf<String>()),   // special
-//        prefAutoDLOnEmptyIncludeQueues(setOf<String>()),   // special
-
-        feedIdsToRefresh(setOf<String>()),
 
         prefProxyType(Proxy.Type.DIRECT.name),
         prefProxyHost(null),

@@ -10,9 +10,9 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.customMediaUriString
 import ac.mdiq.podcini.storage.utils.generateFileName
 import ac.mdiq.podcini.storage.utils.getMimeType
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import android.content.Context
 import android.net.Uri
 import android.os.ParcelFileDescriptor

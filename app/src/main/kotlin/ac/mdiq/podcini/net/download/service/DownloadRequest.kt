@@ -5,7 +5,7 @@ import ac.mdiq.podcini.storage.model.Episode
 
 import ac.mdiq.podcini.storage.model.Episode.Companion.FEEDFILETYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import android.os.Bundle
 import android.os.Parcel
 import android.os.Parcelable

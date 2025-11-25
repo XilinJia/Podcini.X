@@ -1,0 +1,9 @@
+# 9.2.0
+
+* fixed crash when setting swipeactions in Queues Bin
+* in Facets screen
+	* each screen mode has its own sortOrder, and its own swipeActions
+	* all screen modes (except Recorded) allow further filtering (using AND only)
+* likely fixed the strange behaviors of back press in Queues and FeeDetails screens
+* more SharePreferences properties moved to the DB
+* some code refactoring

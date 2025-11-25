@@ -16,10 +16,8 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.isVpnOverWifi
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.database.addDownloadStatus
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedDownloadLog
@@ -30,17 +28,18 @@ import ac.mdiq.podcini.storage.database.unmanaged
 import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.updateFeedSimple
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
 import android.Manifest
 import android.app.Notification
 import android.content.Context
@@ -49,6 +48,7 @@ import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import io.github.xilinjia.krdb.ext.toRealmSet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -61,7 +61,7 @@ import java.util.Date
 import javax.xml.parsers.ParserConfigurationException
 
 open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = false) {
-    protected val TAG = "FeedUpdateBase"
+    protected val TAG = "FeedUpdaterBase"
     protected val context = getAppContext()
     private val notificationManager = NotificationManagerCompat.from(context)
 
@@ -99,11 +99,10 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
     fun prepare(): Boolean {
         scope.launch(Dispatchers.Main) { feedOperationText = context.getString(R.string.preparing) }
         if (feedId == -1L) { // Update all
-            val feedIds = getPref(AppPrefs.feedIdsToRefresh, setOf<String>())
+            val feedIds = appAttribs.feedIdsToRefresh
             if (feedIds.isNotEmpty()) {
                 Logt(TAG, "Partial refresh of ${feedIds.size} feeds")
-                val idsList = feedIds.map { it.toLong() }
-                feedsToUpdate = realm.query(Feed::class, "id IN $0", idsList).find().toMutableList()
+                feedsToUpdate = realm.query(Feed::class, "id IN $0", feedIds).find().toMutableList()
             } else feedsToUpdate = getFeedList().toMutableList()
 
             val itr = feedsToUpdate.iterator()
@@ -160,7 +159,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
             return
         }
         val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()
-        val feedIdsToRefresh = feedsToUpdate.map { it.id.toString() }.toMutableList()
+        val feedIdsToRefresh = feedsToUpdate.map { it.id }.toMutableList()
         var i = 0
         while (i < feedsToUpdate.size) {
             notificationManager.notify(R.id.notification_updating_feeds, createNotification(titles))
@@ -179,7 +178,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
             }
             titles.removeAt(0)
             feedIdsToRefresh.removeAt(0)
-            putPref(AppPrefs.feedIdsToRefresh, feedIdsToRefresh.toSet())
+            upsertBlk(appAttribs) { it.feedIdsToRefresh = feedIdsToRefresh.toRealmSet()}
         }
     }
 

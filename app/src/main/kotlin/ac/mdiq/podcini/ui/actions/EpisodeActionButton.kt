@@ -18,7 +18,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActiv
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
-import ac.mdiq.podcini.preferences.UsageStatistics
+import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -34,12 +34,12 @@ import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.TTSObj
 import ac.mdiq.podcini.ui.screens.TTSObj.ensureTTS
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.openInBrowser
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.openInBrowser
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri

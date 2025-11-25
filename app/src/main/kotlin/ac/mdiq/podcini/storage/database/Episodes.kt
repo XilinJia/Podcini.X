@@ -24,14 +24,14 @@ import ac.mdiq.podcini.storage.specs.EpisodeState.Companion.fromCode
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.fullDateTimeString
-import ac.mdiq.podcini.util.sendLocalBroadcast
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.fullDateTimeString
+import ac.mdiq.podcini.utils.sendLocalBroadcast
 import android.content.Context
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationManagerCompat
@@ -75,7 +75,8 @@ fun getEpisodes(filter: EpisodeFilter?, sortOrder: EpisodeSortOrder?, feedId: Lo
 }
 
 fun getEpisodesAsFlow(filter: EpisodeFilter?, sortOrder: EpisodeSortOrder?, feedId: Long = -1): Flow<ResultsChange<Episode>> {
-    var queryString = filter?.queryString()?:"id > 0"
+    var queryString = filter?.queryString()
+    if (queryString.isNullOrBlank()) queryString = "id > 0"
     if (feedId >= 0) queryString += " AND feedId == $feedId "
     Logd(TAG, "getEpisodesAsFlow called with: queryString: $queryString sortOrder: $sortOrder")
     return realm.query(Episode::class).query(queryString).sort(sortPairOf(sortOrder)).asFlow()
@@ -110,10 +111,12 @@ fun getEpisode(id: Long, copy: Boolean = true): Episode? {
     return realm.copyFromRealm(episode)
 }
 
-fun getHistoryAsFlow(feedId: Long = 0L, start: Long = 0L, end: Long = Date().time,
-                     sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_NEW_OLD): Flow<ResultsChange<Episode>> {
+fun getHistoryAsFlow(feedId: Long = 0L, start: Long = 0L, end: Long = Date().time, filter: EpisodeFilter? = null, sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_DESC): Flow<ResultsChange<Episode>> {
     Logd(TAG, "getHistory() called")
-    val qStr = (if (feedId > 0L) "feedId == $feedId AND " else "") + "((playbackCompletionTime > 0) OR (lastPlayedTime > $start AND lastPlayedTime <= $end))"
+    var qStr = "((playbackCompletionTime > 0) OR (lastPlayedTime > $start AND lastPlayedTime <= $end))"
+    if (feedId > 0L) qStr += " AND feedId == $feedId "
+    val fqstr = filter?.queryString()
+    if (!fqstr.isNullOrBlank()) qStr += " AND ${fqstr} "
     val episodes = realm.query(Episode::class).query(qStr).sort(sortPairOf(sortOrder)).asFlow()
     return episodes
 }

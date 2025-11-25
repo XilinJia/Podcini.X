@@ -3,7 +3,7 @@ package ac.mdiq.podcini.playback.service
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.receiver.MediaButtonReceiver
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import android.content.ComponentName
 import android.content.Intent
 import android.os.IBinder

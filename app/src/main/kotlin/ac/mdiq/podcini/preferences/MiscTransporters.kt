@@ -14,8 +14,8 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import android.content.Context
 import org.apache.commons.io.IOUtils
 import org.apache.commons.lang3.StringUtils
@@ -71,9 +71,9 @@ class EpisodesProgressWriter : ExportWriter {
     override fun writeDocument(feeds: List<Feed>, writer: Writer, context: Context) {
         Logd(TAG, "Starting to write document")
         val queuedEpisodeActions: MutableList<EpisodeAction> = mutableListOf()
-        val pausedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.paused.name), EpisodeSortOrder.DATE_NEW_OLD)
-        val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_NEW_OLD)
-        val favoriteItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.superb.name), EpisodeSortOrder.DATE_NEW_OLD)
+        val pausedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.paused.name), EpisodeSortOrder.DATE_DESC)
+        val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_DESC)
+        val favoriteItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.superb.name), EpisodeSortOrder.DATE_DESC)
         val comItems = mutableSetOf<Episode>()
         comItems.addAll(pausedItems)
         comItems.addAll(readItems)
@@ -131,7 +131,7 @@ class FavoritesWriter : ExportWriter {
         val favTemplate = IOUtils.toString(favTemplateStream, UTF_8)
         val feedTemplateStream = context.assets.open(FEED_TEMPLATE)
         val feedTemplate = IOUtils.toString(feedTemplateStream, UTF_8)
-        val allFavorites = getEpisodes(EpisodeFilter(EpisodeFilter.States.superb.name), EpisodeSortOrder.DATE_NEW_OLD)
+        val allFavorites = getEpisodes(EpisodeFilter(EpisodeFilter.States.superb.name), EpisodeSortOrder.DATE_DESC)
         val favoritesByFeed = buildFeedMap(allFavorites)
         writer.append(templateParts[0])
         for (feedId in favoritesByFeed.keys) {

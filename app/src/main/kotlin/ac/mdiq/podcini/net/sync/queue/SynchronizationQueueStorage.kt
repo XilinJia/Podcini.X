@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import ac.mdiq.podcini.net.sync.SynchronizationSettings
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logs
 import org.json.JSONArray
 import org.json.JSONException
 import androidx.core.content.edit

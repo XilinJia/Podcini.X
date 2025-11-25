@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.net.ssl
 
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logs
 import android.content.Context
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException

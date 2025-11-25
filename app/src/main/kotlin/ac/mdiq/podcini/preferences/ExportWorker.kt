@@ -4,8 +4,8 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.getDataFolder
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import android.content.Context
 import android.net.Uri
 import androidx.annotation.StringRes

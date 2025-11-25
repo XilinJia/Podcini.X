@@ -10,7 +10,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.UsageStatistics
+import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.storage.database.addToAssOrActQueue
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromQueue
@@ -39,12 +39,12 @@ import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.ShownotesCleaner
-import ac.mdiq.podcini.util.formatDateTimeFlex
-import ac.mdiq.podcini.util.openInBrowser
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.ShownotesCleaner
+import ac.mdiq.podcini.utils.formatDateTimeFlex
+import ac.mdiq.podcini.utils.openInBrowser
 import android.content.ContextWrapper
 import android.speech.tts.TextToSpeech
 import android.text.format.Formatter.formatShortFileSize

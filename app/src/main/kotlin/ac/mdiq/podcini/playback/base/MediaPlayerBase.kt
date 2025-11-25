@@ -19,16 +19,15 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.streamingCacheSizeMB
-import ac.mdiq.podcini.preferences.SleepTimerPreferences.autoEnable
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.autoEnableFrom
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.autoEnableTo
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.isInTimeRange
-import ac.mdiq.podcini.preferences.SleepTimerPreferences.timerMillis
+import ac.mdiq.podcini.preferences.SleepTimerPreferences.lastTimerValue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.deleteMedia
-
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.sleepPrefs
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -36,13 +35,11 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.sendLocalBroadcast
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.sendLocalBroadcast
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
@@ -555,8 +552,8 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     val currentHour = now[Calendar.HOUR_OF_DAY]
                     autoEnableByTime = isInTimeRange(fromSetting, toSetting, currentHour)
                 }
-                if (oldStatus != null && autoEnable() && autoEnableByTime && sleepManager?.isSleepTimerActive != true) {
-                    sleepManager?.setSleepTimer(timerMillis())
+                if (oldStatus != null && sleepPrefs.AutoEnable && autoEnableByTime && sleepManager?.isSleepTimerActive != true) {
+                    sleepManager?.setSleepTimer(TimeUnit.MINUTES.toMillis(lastTimerValue()))
                     // TODO: what to do?
 //                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.sleep_timer_enabled_label), { taskManager?.disableSleepTimer() }, context.getString(R.string.undo)))
                 }

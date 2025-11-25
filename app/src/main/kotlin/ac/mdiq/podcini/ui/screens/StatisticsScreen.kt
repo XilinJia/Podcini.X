@@ -2,8 +2,10 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
@@ -12,12 +14,11 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.SharedPreferences
 import android.text.format.DateFormat
 import android.text.format.Formatter
 import androidx.compose.foundation.BorderStroke
@@ -94,7 +95,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import androidx.core.content.edit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -120,11 +120,6 @@ import kotlin.reflect.jvm.jvmErasure
 
 
 class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
-    private val prefs: SharedPreferences by lazy { getAppContext().getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE) }
-
-    init {
-        lcScope.launch(Dispatchers.IO) { prefs }
-    }
 
     internal var statisticsState by mutableIntStateOf(0)
     internal val selectedTabIndex = mutableIntStateOf(0)
@@ -135,8 +130,8 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     var statsResult by mutableStateOf(StatisticsResult())
 
     var chartData by mutableStateOf<LineChartData?>(null)
-    var timeFilterFrom by mutableLongStateOf(prefs.getLong(Prefs.FilterFrom.name, 0L))
-    var timeFilterTo by mutableLongStateOf(prefs.getLong(Prefs.FilterTo.name, Long.MAX_VALUE))
+    var timeFilterFrom by mutableLongStateOf(appAttribs.statisticsFrom)
+    var timeFilterTo by mutableLongStateOf(appAttribs.statisticsUntil.takeIf { it != 0L } ?: Long.MAX_VALUE)
     var numDays by mutableIntStateOf(1)
     var periodText by mutableStateOf("")
 
@@ -144,7 +139,6 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
 
     val monthStats = mutableStateListOf<MonthlyStatistics>()
     var monthlyMaxDataValue by mutableFloatStateOf(1f)
-//    var monthVMS = mutableStateListOf<EpisodeVM>()
 
     internal var downloadstatsData by mutableStateOf<StatisticsResult?>(null)
     internal var downloadChartData by mutableStateOf<LineChartData?>(null)
@@ -154,9 +148,9 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun setTimeFilter(timeFilterFrom_: Long, timeFilterTo_: Long) {
         timeFilterFrom = timeFilterFrom_
         timeFilterTo = timeFilterTo_
-        prefs.edit {
-            putLong(Prefs.FilterFrom.name, timeFilterFrom_)
-            putLong(Prefs.FilterTo.name, timeFilterTo_)
+        upsertBlk(appAttribs) {
+            it.statisticsFrom = timeFilterFrom_
+            it.statisticsUntil = timeFilterTo_
         }
     }
 

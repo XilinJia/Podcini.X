@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.utils.Loge
 
 enum class VolumeAdaptionSetting(val value: Int,  val adaptionFactor: Float, val resId: Int) {
     OFF(0, 1.0f, R.string.feed_volume_reduction_off),

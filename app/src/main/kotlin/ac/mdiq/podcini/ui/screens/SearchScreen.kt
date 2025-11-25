@@ -23,12 +23,12 @@ import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.SearchBarRow
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.formatLargeInteger
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.formatLargeInteger
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Handler
@@ -272,7 +272,7 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
             var queryString = sb.toString()
             if (feedID != 0L) queryString = "(feedId == $feedID) AND $queryString"
             Logd(TAG, "searchEpisodes queryString: $queryString")
-            return realm.query(Episode::class).query(queryString).sort(sortPairOf(EpisodeSortOrder.DATE_NEW_OLD)).asFlow()
+            return realm.query(Episode::class).query(queryString).sort(sortPairOf(EpisodeSortOrder.DATE_DESC)).asFlow()
         }
 
         if (query.isBlank()) return
@@ -524,7 +524,7 @@ fun SearchScreen() {
                                     runOnIOScope {
                                         virQueue = upsert(virQueue) { q ->
                                             q.identity = vm.listIdentity
-                                            q.sortOrder = EpisodeSortOrder.DATE_NEW_OLD
+                                            q.sortOrder = EpisodeSortOrder.DATE_DESC
                                             q.episodeIds.clear()
                                             q.episodeIds.addAll(episodes.take(VIRTUAL_QUEUE_SIZE).map { it.id })
                                         }

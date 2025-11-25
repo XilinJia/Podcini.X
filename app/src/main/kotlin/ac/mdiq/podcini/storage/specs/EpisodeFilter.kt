@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import java.io.Serializable
 
 class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Serializable {
@@ -14,6 +14,11 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
 
     fun add(vararg properties_: String) {
         propertySet.addAll(properties_.flatMap { it.split(",") }.map { it.trim() }.filter { it.isNotEmpty() })
+    }
+
+    fun add(filter: EpisodeFilter): EpisodeFilter {
+        propertySet.addAll(filter.propertySet)
+        return this
     }
 
     fun remove(vararg properties_: String) {

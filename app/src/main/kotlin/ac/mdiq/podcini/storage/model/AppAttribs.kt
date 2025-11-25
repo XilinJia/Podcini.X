@@ -11,10 +11,27 @@ class AppAttribs: RealmObject {
     @PrimaryKey
     var id: Long = 0L
 
+    var prefLastScreen: String = ""
+
+    var prefLastScreenArg: String = ""
+
     var curQueueId: Long = 0L
 
     var swipeActionsMap: RealmDictionary<String?> = realmDictionaryOf()
 
+    var prefLastFullUpdateTime: Long = 0L
+
+    var feedIdsToRefresh: RealmSet<Long> = realmSetOf()
+
+    var usageCountMap: RealmDictionary<Int?> = realmDictionaryOf()
+
+    var usageAverageMap: RealmDictionary<Float?> = realmDictionaryOf()
+
+    var usageHideMap: RealmDictionary<Boolean?> = realmDictionaryOf()
+
+    var statisticsFrom: Long = 0L
+
+    var statisticsUntil: Long = 0L
 
     constructor()
 }

@@ -4,7 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CustomTheme
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logs
 import android.app.ActivityManager
 import android.content.Intent
 import android.graphics.Bitmap

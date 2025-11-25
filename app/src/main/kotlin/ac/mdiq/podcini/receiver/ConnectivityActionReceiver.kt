@@ -4,8 +4,8 @@ import ac.mdiq.podcini.automation.autodownload
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkAllowAutoDownload
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.config.ClientConfigurator
 import android.content.BroadcastReceiver
 import android.content.Context

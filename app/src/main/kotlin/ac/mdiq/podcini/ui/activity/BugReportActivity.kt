@@ -1,18 +1,18 @@
 package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.preferences.PreferenceUpgrader.githubAddress
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.storage.utils.getDataFolder
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
-import ac.mdiq.podcini.util.openInBrowser
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.error.CrashReportWriter
-import ac.mdiq.podcini.util.toastMassege
+import ac.mdiq.podcini.utils.openInBrowser
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.error.CrashReportWriter
+import ac.mdiq.podcini.utils.githubAddress
+import ac.mdiq.podcini.utils.toastMassege
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Intent

@@ -65,18 +65,18 @@ import ac.mdiq.podcini.ui.compose.EpisodeMarks
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
-import ac.mdiq.podcini.util.ShownotesCleaner
+import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.FlowEvent.BufferUpdateEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.formatDateTimeFlex
-import ac.mdiq.podcini.util.formatLargeInteger
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.FlowEvent.BufferUpdateEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.formatDateTimeFlex
+import ac.mdiq.podcini.utils.formatLargeInteger
 import android.content.ComponentName
 import android.content.Context
 import android.content.ContextWrapper
@@ -222,13 +222,13 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
                     is FlowEvent.PlaybackServiceEvent -> {
-//                        if (event.action == FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN)
-//                            (context as? MainActivity)?.bottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
-//                        when (event.action) {
-//                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN -> actMain?.setPlayerVisible(false)
-//                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED -> if (curEpisode != null) actMain?.setPlayerVisible(true)
-//                PlaybackServiceEvent.Action.SERVICE_RESTARTED -> (context as MainActivity).setPlayerVisible(true)
-//                        }
+                        //                        if (event.action == FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN)
+                        //                            (context as? MainActivity)?.bottomSheet?.state = BottomSheetBehavior.STATE_EXPANDED
+                        //                        when (event.action) {
+                        //                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_SHUT_DOWN -> actMain?.setPlayerVisible(false)
+                        //                            FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED -> if (curEpisode != null) actMain?.setPlayerVisible(true)
+                        //                PlaybackServiceEvent.Action.SERVICE_RESTARTED -> (context as MainActivity).setPlayerVisible(true)
+                        //                        }
                     }
                     is BufferUpdateEvent -> {
                         when {
@@ -247,8 +247,6 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
     }
-
-
 }
 
 @androidx.annotation.OptIn(UnstableApi::class)
@@ -261,45 +259,44 @@ fun AudioPlayerScreen(navController: NavController) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = Color(0xDDFFD700)
 
-     val actMain: MainActivity? = remember { generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull() }
+    val actMain: MainActivity? = remember { generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull() }
 
-     var playerLocal: ExoPlayer? = remember { null }
+    var playerLocal: ExoPlayer? = remember { null }
 
-     var prevItem: Episode? = remember { null }
+    var prevItem: Episode? = remember { null }
 
-     var playButInit = remember { false }
+    var playButInit = remember { false }
 
     var resetPlayer by remember { mutableStateOf(false) }
 
     var showTimeLeft by remember { mutableIntStateOf(TimeLeftMode.Duration.ordinal) }
-     var titleText by remember { mutableStateOf("") }
-     var imgLoc by remember { mutableStateOf<String?>(null) }
-     var imgLocLarge by remember { mutableStateOf<String?>(null) }
-     var curPosition by remember { mutableIntStateOf(0) }
+    var titleText by remember { mutableStateOf("") }
+    var imgLoc by remember { mutableStateOf<String?>(null) }
+    var imgLocLarge by remember { mutableStateOf<String?>(null) }
+    var curPosition by remember { mutableIntStateOf(0) }
 
-     var duration by remember { mutableIntStateOf(0) }
-     var txtvLengthText by remember { mutableStateOf("") }
-     var sliderValue by remember { mutableFloatStateOf(0f) }
-     var showSpeedDialog by remember { mutableStateOf(false) }
+    var duration by remember { mutableIntStateOf(0) }
+    var txtvLengthText by remember { mutableStateOf("") }
+    var sliderValue by remember { mutableFloatStateOf(0f) }
+    var showSpeedDialog by remember { mutableStateOf(false) }
     var hasRelations by remember { mutableStateOf(false) }
 
-     var shownotesCleaner: ShownotesCleaner? = remember {  null }
+    var shownotesCleaner: ShownotesCleaner? = remember {  null }
 
-     var cleanedNotes by remember { mutableStateOf<String?>(null) }
+    var cleanedNotes by remember { mutableStateOf<String?>(null) }
     var showHomeText = remember { false }
     // TODO: somehow, these 2 are not used?
-//     var homeText: String? = remember { null }
-     var readerhtml: String? = remember { null }
+    //     var homeText: String? = remember { null }
+    var readerhtml: String? = remember { null }
 
-     var txtvPodcastTitle by remember { mutableStateOf("") }
-     var episodeDate by remember { mutableStateOf("") }
+    var txtvPodcastTitle by remember { mutableStateOf("") }
+    var episodeDate by remember { mutableStateOf("") }
 
     //    private var chapterControlVisible by mutableStateOf(false)
-     var hasNextChapter by remember { mutableStateOf(true) }
-     var rating by remember { mutableIntStateOf(vm.curItem?.rating ?: Rating.UNRATED.code) }
+    var hasNextChapter by remember { mutableStateOf(true) }
+    var rating by remember { mutableIntStateOf(vm.curItem?.rating ?: Rating.UNRATED.code) }
 
-     var recordingStartTime by remember { mutableStateOf<Long?>(null) }
-
+    var recordingStartTime by remember { mutableStateOf<Long?>(null) }
 
     fun lengthText() {
         val remainingTime = max((vm.curItem!!.duration - vm.curItem!!.position), 0)
@@ -331,9 +328,9 @@ fun AudioPlayerScreen(navController: NavController) {
             Logd(TAG, "displayCoverImage: imgLoc: $imgLoc")
         }
     }
-    
+
     @androidx.annotation.OptIn(UnstableApi::class)
-     fun updateUi() {
+    fun updateUi() {
         //        Logd(TAG, "updateUi called $media")
         titleText = vm.curItem?.getEpisodeTitle() ?: ""
         vm.txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
@@ -341,14 +338,14 @@ fun AudioPlayerScreen(navController: NavController) {
         if (isPlayingVideoLocally && curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY) isBSExpanded = false
         prevItem = vm.curItem
     }
-     fun updateDetails() {
+    fun updateDetails() {
         scope.launch {
             Logd(TAG, "in updateDetails")
             withContext(Dispatchers.IO) {
                 //                if (curEpisode != null && curEpisode?.id != vm.curItem?.id) setItem(curEpisode!!)
                 if (vm.curItem != null) {
                     showHomeText = false
-//                    homeText = null
+                    //                    homeText = null
                     rating = vm.curItem!!.rating
                     Logd(TAG, "updateDetails rating: $rating vm.curItem!!.rating: ${vm.curItem!!.rating}")
                     Logd(TAG, "updateDetails updateInfo ${cleanedNotes == null} ${prevItem?.identifyingValue} ${vm.curItem!!.identifyingValue}")
@@ -378,14 +375,14 @@ fun AudioPlayerScreen(navController: NavController) {
         }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
     }
 
-     fun setItem(item_: Episode?) {
+    fun setItem(item_: Episode?) {
         Logd(TAG, "setItem ${item_?.title}")
         if (vm.curItem?.identifyingValue != item_?.identifyingValue) {
             vm.curItem = item_
             hasRelations = !vm.curItem?.related.isNullOrEmpty()
             rating = vm.curItem?.rating ?: Rating.UNRATED.code
             showHomeText = false
-//            homeText = null
+            //            homeText = null
             cleanedNotes = null
         }
     }
@@ -550,7 +547,6 @@ fun AudioPlayerScreen(navController: NavController) {
 
     var showVolumeDialog by remember { mutableStateOf(false) }
     if (showVolumeDialog) VolumeAdaptionDialog { showVolumeDialog = false }
-
     var showSleepTimeDialog by remember { mutableStateOf(false) }
     if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
 
@@ -708,7 +704,7 @@ fun AudioPlayerScreen(navController: NavController) {
                         if (speedForward > 0.1f) speedForward(speedForward)
                     } },
                 onLongClick = {
-//                    context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT))
+                    //                    context.sendBroadcast(MediaButtonReceiver.createIntent(context, KeyEvent.KEYCODE_MEDIA_NEXT))
                     if (isPlaying || isPaused) mPlayer?.skip()
                 })) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_skip_48dp), tint = buttonColor, contentDescription = "skip", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
@@ -845,32 +841,32 @@ fun AudioPlayerScreen(navController: NavController) {
             }
             SelectionContainer { Text(titleText, textAlign = TextAlign.Center, color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
 
-//            fun restoreFromPreference(): Boolean {
-//                if ((context as MainActivity).bottomSheet.state != BottomSheetBehavior.STATE_EXPANDED) return false
-//                Logd(TAG, "Restoring from preferences")
-//                val context: Activity? = context
-//                if (context != null) {
-//                    val id = prefs!!.getString(PREF_PLAYABLE_ID, "")
-//                    val scrollY = prefs!!.getInt(PREF_SCROLL_Y, -1)
-//                    if (scrollY != -1) {
-//                        if (id == curMedia?.id?.toString()) {
-//                            Logd(TAG, "Restored scroll Position: $scrollY")
-////                            binding.itemDescriptionFragment.scrollTo(binding.itemDescriptionFragment.scrollX, scrollY)
-//                            return true
-//                        }
-//                        Logd(TAG, "reset scroll Position: 0")
-////                        binding.itemDescriptionFragment.scrollTo(0, 0)
-//                        return true
-//                    }
-//                }
-//                return false
-//            }
+            //            fun restoreFromPreference(): Boolean {
+            //                if ((context as MainActivity).bottomSheet.state != BottomSheetBehavior.STATE_EXPANDED) return false
+            //                Logd(TAG, "Restoring from preferences")
+            //                val context: Activity? = context
+            //                if (context != null) {
+            //                    val id = prefs!!.getString(PREF_PLAYABLE_ID, "")
+            //                    val scrollY = prefs!!.getInt(PREF_SCROLL_Y, -1)
+            //                    if (scrollY != -1) {
+            //                        if (id == curMedia?.id?.toString()) {
+            //                            Logd(TAG, "Restored scroll Position: $scrollY")
+            ////                            binding.itemDescriptionFragment.scrollTo(binding.itemDescriptionFragment.scrollX, scrollY)
+            //                            return true
+            //                        }
+            //                        Logd(TAG, "reset scroll Position: 0")
+            ////                        binding.itemDescriptionFragment.scrollTo(0, 0)
+            //                        return true
+            //                    }
+            //                }
+            //                return false
+            //            }
             AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
                 ShownotesWebView(context).apply {
                     setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
                     // Restoring the scroll position might not always work
                     setPageFinishedListener {
-//                        postDelayed({ restoreFromPreference() }, 50)
+                        //                        postDelayed({ restoreFromPreference() }, 50)
                         postDelayed({ }, 50)
                     }
                 }
@@ -923,6 +919,7 @@ fun AudioPlayerScreen(navController: NavController) {
         updateTimeline()
         imgLoc = curEpisode?.imageLocation()
     }
+
     Box(modifier = Modifier.fillMaxWidth().then(if (!isBSExpanded) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())) {
         PlayerUI(Modifier.align(if (!isBSExpanded) Alignment.TopCenter else Alignment.BottomCenter).zIndex(1f))
         if (isBSExpanded) {

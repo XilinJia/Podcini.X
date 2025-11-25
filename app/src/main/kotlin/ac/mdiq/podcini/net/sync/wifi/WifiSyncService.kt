@@ -21,10 +21,10 @@ import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import android.content.Context
 import androidx.core.content.ContextCompat.getString
 import androidx.work.BackoffPolicy
@@ -248,9 +248,9 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
         if (lastSync == 0L) {
             EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_upload_played))
 //            only push downloaded items
-            val pausedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.paused.name), EpisodeSortOrder.DATE_NEW_OLD)
-            val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_NEW_OLD)
-            val favoriteItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.superb.name), EpisodeSortOrder.DATE_NEW_OLD)
+            val pausedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.paused.name), EpisodeSortOrder.DATE_DESC)
+            val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_DESC)
+            val favoriteItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.superb.name), EpisodeSortOrder.DATE_DESC)
             val comItems = mutableSetOf<Episode>()
             comItems.addAll(pausedItems)
             comItems.addAll(readItems)

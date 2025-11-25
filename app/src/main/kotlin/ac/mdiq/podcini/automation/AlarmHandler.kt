@@ -2,8 +2,8 @@ package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.receiver.AlarmReceiver
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context

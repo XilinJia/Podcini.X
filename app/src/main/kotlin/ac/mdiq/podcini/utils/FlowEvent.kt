@@ -1,9 +1,8 @@
-package ac.mdiq.podcini.util
+package ac.mdiq.podcini.utils
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import android.content.Context
 import android.view.KeyEvent
 import kotlinx.coroutines.CoroutineScope
@@ -58,7 +57,7 @@ sealed class FlowEvent {
         }
     }
 
-//    data class HistoryEvent(val sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_NEW_OLD, val startDate: Long = 0, val endDate: Long = Date().time) : FlowEvent()
+//    data class HistoryEvent(val sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_DESC, val startDate: Long = 0, val endDate: Long = Date().time) : FlowEvent()
 
     data class SleepTimerUpdatedEvent(private val timeLeft: Long) : FlowEvent() {
         val isOver: Boolean

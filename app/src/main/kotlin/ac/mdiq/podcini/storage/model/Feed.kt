@@ -17,7 +17,7 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting.Companion.fromInteger
 import ac.mdiq.podcini.storage.utils.generateFileName
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -163,7 +163,7 @@ class Feed : RealmObject {
     var filterAndOr: String = "AND"
 
     @Ignore
-    var episodeSortOrder: EpisodeSortOrder = EpisodeSortOrder.DATE_NEW_OLD
+    var episodeSortOrder: EpisodeSortOrder = EpisodeSortOrder.DATE_DESC
         get() = fromCode(sortOrderCode)
         set(value) {
             field = value

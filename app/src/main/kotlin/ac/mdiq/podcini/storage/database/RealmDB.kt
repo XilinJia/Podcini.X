@@ -6,17 +6,19 @@ import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.FacetsPrefs
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
+import ac.mdiq.podcini.storage.model.SleepPrefs
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.showStackTrace
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.showStackTrace
 import android.net.Uri
 import io.github.xilinjia.krdb.MutableRealm
 import io.github.xilinjia.krdb.Realm
@@ -59,8 +61,10 @@ val config: RealmConfiguration by lazy {
         Chapter::class,
         PAFeed::class,
         AppAttribs::class,
-        SubscriptionsPrefs::class
-    )).name("Podcini.realm").schemaVersion(67)
+        SubscriptionsPrefs::class,
+        FacetsPrefs::class,
+        SleepPrefs::class
+    )).name("Podcini.realm").schemaVersion(70)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema

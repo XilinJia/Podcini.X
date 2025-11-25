@@ -6,7 +6,7 @@ import android.content.Intent
 
 import ac.mdiq.podcini.config.ClientConfigurator
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 
 /**
  * Refreshes all feeds when it receives an intent

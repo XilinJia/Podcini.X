@@ -3,8 +3,8 @@ package ac.mdiq.podcini.net.feed.parser.media.id3
 import ac.mdiq.podcini.net.feed.parser.media.id3.model.FrameHeader
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage.Companion.makeUrl
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import org.apache.commons.io.input.CountingInputStream
 import java.io.IOException
 import java.net.URLDecoder

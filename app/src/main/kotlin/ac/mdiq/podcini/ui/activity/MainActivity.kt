@@ -20,7 +20,6 @@ import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.monitorFeedList
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
@@ -39,12 +38,12 @@ import ac.mdiq.podcini.ui.screens.setOnlineFeedUrl
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
-import ac.mdiq.podcini.util.toastMassege
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.toastMassege
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context

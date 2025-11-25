@@ -17,18 +17,19 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.config.ClientConfigurator
-import ac.mdiq.podcini.util.fullDateTimeString
+import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.utils.fullDateTimeString
 import android.Manifest
 import android.content.Context
 import androidx.annotation.RequiresPermission
@@ -64,7 +65,7 @@ open class FeedUpdateWorkerBase(context: Context, private val params: WorkerPara
         if (attemptCount > 0) Logt(TAG, "Running backoff refresh due to prior errors")
 
         val isPeriodic = inputData.getBoolean(KEY_IS_PERIODIC, false)
-        if (isPeriodic) putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
+        if (isPeriodic) upsertBlk(appAttribs) { it.prefLastFullUpdateTime = System.currentTimeMillis() }
         when {
             !networkAvailable() -> {
                 EventFlow.postEvent(FlowEvent.MessageEvent(applicationContext.getString(R.string.download_error_no_connection)))
@@ -108,7 +109,7 @@ open class FeedUpdateWorkerBase(context: Context, private val params: WorkerPara
             Loge(TAG, "Some errors occurred during refresh, will retry: ${e.message}")
             if (isPeriodic) {
                 if (attemptCount >= MAX_BACKOFF_ATTEMPTS) {
-                    putPref(AppPrefs.feedIdsToRefresh, setOf<String>())
+                    upsertBlk(appAttribs) { it.feedIdsToRefresh.clear() }
                     rescheduleUpdateTaskOnce(applicationContext)
                     return Result.success()
                 }
@@ -160,7 +161,7 @@ object FeedUpdateManager {
 
     fun getInitialDelay(context: Context, now: Boolean = false): Long {
         val initialDelay = if (now) 0L else intervalInMillis
-        val lastUpdateTime = getPref(AppPrefs.prefLastFullUpdateTime, 0L)
+        val lastUpdateTime = appAttribs.prefLastFullUpdateTime
         Logd(TAG, "lastUpdateTime: $lastUpdateTime updateInterval: $intervalInMillis")
         nextRefreshTime = if (lastUpdateTime == 0L) {
             if (initialDelay != 0L) fullDateTimeString(Calendar.getInstance().timeInMillis + initialDelay + intervalInMillis)
@@ -180,7 +181,7 @@ object FeedUpdateManager {
         else {
             var policy = ExistingWorkPolicy.KEEP
             if (replace) {
-                putPref(AppPrefs.prefLastFullUpdateTime, System.currentTimeMillis())
+                upsertBlk(appAttribs) { it.prefLastFullUpdateTime = System.currentTimeMillis() }
                 policy = ExistingWorkPolicy.REPLACE
             }
             val initialDelay = getInitialDelay(context, true)

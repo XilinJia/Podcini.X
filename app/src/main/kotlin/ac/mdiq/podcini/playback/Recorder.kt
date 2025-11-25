@@ -9,9 +9,9 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCache
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import androidx.annotation.OptIn
 import androidx.media3.common.Format
 import androidx.media3.common.Timeline

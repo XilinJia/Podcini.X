@@ -3,7 +3,7 @@ package ac.mdiq.podcini.storage.specs
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.utils.Logd
 import java.io.Serializable
 
 class FeedFilter(vararg properties_: String) : Serializable {

@@ -389,6 +389,8 @@
     <string name="time_in_queue">Time in queue</string>
     <string name="time_out_queue">Time out queue</string>
 
+    <string name="between_dates">Between dates</string>
+
     <string name="completed_date">Completed date</string>
     <string name="duration">Duration</string>
     <string name="spent">Spent</string>
@@ -404,11 +406,8 @@
     <string name="size">Size</string>
     <string name="clear_queue_confirmation_msg">Please confirm that you want to clear the queue of ALL of the episodes in it</string>
 
-    <!--  Variable Speed -->
-
     <!-- Empty list labels -->
     <string name="no_shownotes_label">This episode has no shownotes.</string>
-
 
     <!-- Preferences -->
     <string name="project_pref">Project</string>

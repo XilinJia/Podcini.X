@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.util
+package ac.mdiq.podcini.utils
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Episode

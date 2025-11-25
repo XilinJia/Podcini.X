@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.net.feed.searcher
 
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

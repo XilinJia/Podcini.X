@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.receiver
 
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.config.ClientConfigurator
 import android.content.BroadcastReceiver
 import android.content.Context

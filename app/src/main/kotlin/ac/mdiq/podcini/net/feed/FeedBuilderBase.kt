@@ -8,10 +8,10 @@ import ac.mdiq.podcini.net.feed.parser.FeedHandler
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.error.DownloadErrorLabel.from
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import android.content.Context
 import io.github.xilinjia.krdb.ext.toRealmList
 import java.io.File

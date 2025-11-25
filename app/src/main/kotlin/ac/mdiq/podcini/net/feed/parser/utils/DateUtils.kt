@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.net.feed.parser.utils
 
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
 import org.apache.commons.lang3.StringUtils
 import java.text.ParseException
 import java.text.ParsePosition

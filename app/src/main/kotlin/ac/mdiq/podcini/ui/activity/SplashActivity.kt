@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.ui.activity
 
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.error.CrashReportWriter
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.error.CrashReportWriter
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent

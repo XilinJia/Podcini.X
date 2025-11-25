@@ -1,10 +1,10 @@
 package ac.mdiq.podcini.playback.base
 
-import ac.mdiq.podcini.preferences.SleepTimerPreferences
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logt
+import ac.mdiq.podcini.storage.database.sleepPrefs
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logt
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Context.SENSOR_SERVICE
@@ -98,14 +98,14 @@ class SleepManager(private val context: Context) {
                         delay(1000L)
                         postTimeLeft()
                         Logd(TAG, "Sleep timer is about to expire")
-                        if (SleepTimerPreferences.vibrate() && !hasVibrated) {
+                        if (sleepPrefs.Vibrate && !hasVibrated) {
                             val v = context.getSystemService(VIBRATOR_SERVICE) as? Vibrator
                             if (v != null) {
                                 v.vibrate(500)
                                 hasVibrated = true
                             }
                         }
-                        if (shakeListener == null && SleepTimerPreferences.shakeToReset()) shakeListener = ShakeListener(context, this@SleepTimer)
+                        if (shakeListener == null && sleepPrefs.ShakeToReset) shakeListener = ShakeListener(context, this@SleepTimer)
                         if (timeLeft <= 0) {
                             Logd(TAG, "Sleep timer expired")
                             shakeListener?.pause()

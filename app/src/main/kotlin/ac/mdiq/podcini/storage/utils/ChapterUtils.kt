@@ -2,9 +2,9 @@ package ac.mdiq.podcini.storage.utils
 
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.storage.model.Chapter
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Logs
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Loge
 import okhttp3.CacheControl
 import okhttp3.Request
 import okhttp3.Request.Builder

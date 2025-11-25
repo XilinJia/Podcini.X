@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.util.error
+package ac.mdiq.podcini.utils.error
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadError

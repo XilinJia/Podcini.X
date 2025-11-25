@@ -19,10 +19,10 @@ import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.util.EventFlow
-import ac.mdiq.podcini.util.FlowEvent
-import ac.mdiq.podcini.util.Logd
-import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.utils.EventFlow
+import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import java.util.Date
 import kotlin.random.Random
 
@@ -119,12 +119,12 @@ suspend fun addToAssOrActQueue(episode: Episode, queue_: PlayQueue? = null) {
 private fun applySortOrder(queueItems: MutableList<Episode>, queue_: PlayQueue, events: MutableList<FlowEvent.QueueEvent>): PlayQueue {
     var sorted = false
     var queue = queue_
-    if (queue.sortOrder !in listOf(EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW, EpisodeSortOrder.TIME_IN_QUEUE_NEW_OLD, EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1)) {
+    if (queue.sortOrder !in listOf(EpisodeSortOrder.TIME_IN_QUEUE_ASC, EpisodeSortOrder.TIME_IN_QUEUE_DESC, EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1)) {
         getPermutor(queue.sortOrder).reorder(queueItems)
         sorted = true
     }
 
-    if (queue.enqueueLocation != EnqueueLocation.BACK.code && queue.sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_NEW_OLD) resetInQueueTime(queueItems)
+    if (queue.enqueueLocation != EnqueueLocation.BACK.code && queue.sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_DESC) resetInQueueTime(queueItems)
 
     if (sorted) queue = resetIds(queue, queueItems)
 
@@ -330,8 +330,8 @@ fun getNextInQueue(currentMedia: Episode?): Episode? {
 
 private fun calcPosition(queue: PlayQueue, currentPlaying: Episode?): Int {
     val queueItems = queue.episodes
-    if (queueItems.isEmpty() || queue.sortOrder == EpisodeSortOrder.TIME_IN_QUEUE_NEW_OLD) return 0
-    if (queue.sortOrder == EpisodeSortOrder.TIME_IN_QUEUE_OLD_NEW) return queueItems.size
+    if (queueItems.isEmpty() || queue.sortOrder == EpisodeSortOrder.TIME_IN_QUEUE_DESC) return 0
+    if (queue.sortOrder == EpisodeSortOrder.TIME_IN_QUEUE_ASC) return queueItems.size
 
     fun getPositionOfFirstNonDownloadingItem(startPosition: Int): Int {
         fun isItemAtPositionDownloading(position: Int): Boolean {
