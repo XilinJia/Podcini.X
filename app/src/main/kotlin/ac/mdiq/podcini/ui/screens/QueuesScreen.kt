@@ -237,7 +237,7 @@ fun QueuesScreen() {
     LaunchedEffect(queues) { curIndex = queues.indexOfFirst { it.id == appAttribs.curQueueId }  }
     LaunchedEffect(curIndex, queues) { if (curIndex >= 0 && queues.isNotEmpty()) curQueue = queues[curIndex] }
 
-    var dragDropEnabled by remember(curQueue.id) { mutableStateOf(!(curQueue.isSorted || curQueue.isSorted)) }
+    var dragDropEnabled by remember(curQueue.id) { mutableStateOf(!(curQueue.isSorted || curQueue.isLocked)) }
 
     DisposableEffect(queuesMode) {
         subscreenHandleBack.value = queuesMode != QueuesScreenMode.Queue
