@@ -63,7 +63,7 @@
     <string name="tts_init_failed">TTS init failed</string>
     <string name="episode_has_no_content">Episode has not content</string>
 
-    <string name="unrestricted_background_permission_text">In order to successfully play a list of episodes in the background, Podcini needs Permission for Unrestricted Background Activity. Note on some brands, there are sustomized settings for this, please ensure to set them accordingly.</string>
+    <string name="unrestricted_background_permission_text">In order to successfully play a list of episodes in the background, Podcini needs Permission for Unrestricted Background Activity. Note on some brands, there are customized settings for this, please ensure to set them accordingly.</string>
 
 
     <string name="notification_check_permission">Check permission</string>
@@ -506,6 +506,9 @@
     <string name="pref_automatic_download_on_battery_title">Download when not charging</string>
     <string name="pref_automatic_download_on_battery_sum">Allow automatic download when the battery is not charging</string>
 
+    <string name="pref_disable_wifilock_title">Disable using WifiLock</string>
+    <string name="pref_disable_wifilock_sum">WifiLock routines are deprecated and not functional on modern Android. Try disable it.</string>
+
     <string name="pref_autodl_queue_empty_title">Launch when queue gets empty</string>
     <string name="pref_autodl_queue_empty_sum">When a queue becomes empty, automatic download starts for associated feeds where the policy is other than \"Only new items\"</string>
 
@@ -599,6 +602,9 @@
     <string name="pref_show_error_toasts_sum">Toggles if error messages are shown as toasts.</string>
     <string name="pref_print_logs">Print debug logs</string>
     <string name="pref_print_logs_sum">Toggles if debug messages are logged.  This can degrade performance. Turn this on only when preparing to report issues.</string>
+    <string name="pref_dont_ask_restricted">Don\'t ask again for restricted background</string>
+    <string name="pref_dont_ask_restricted_sum">Request for restricted background permission is prompted in case the permission is not granted. This disables the prompts. Please ensure the permission is granted, otherwise, continued playback and feeds updates in background don\'t function properly.</string>
+
     <string name="remember_last_page">Remember last page</string>
     <string name="pref_delete_removes_from_queue_title">Delete removes from queue</string>
     <string name="pref_delete_removes_from_queue_sum">Automatically remove an episode from the queue when it is deleted</string>

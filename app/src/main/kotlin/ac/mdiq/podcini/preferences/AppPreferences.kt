@@ -211,6 +211,8 @@ object AppPreferences {
         prefShowErrorToasts(true),
         prefPrintDebugLogs(false),
 
+        dont_ask_again_unrestricted_background(false),
+
         // Playback
         prefPauseOnHeadsetDisconnect(true),
         prefUnpauseOnHeadsetReconnect(true),
@@ -242,6 +244,8 @@ object AppPreferences {
 
         // Network
         prefEnqueueDownloaded(true),
+
+        prefDisableWifiLock(false),
 
         prefAutoUpdateIntervalMinutes("360"),
 

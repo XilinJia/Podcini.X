@@ -314,7 +314,6 @@ fun FacetsScreen() {
                 }
                 Logt(TAG, "History cleared")
                 withContext(Dispatchers.Main) { progressing = false }
-//                EventFlow.postEvent(FlowEvent.HistoryEvent())
 
             }
         }
@@ -338,7 +337,6 @@ fun FacetsScreen() {
         if (showDatesFilterDialog) DatesFilterDialog(oldestDate = 0L, onDismissRequest = { showDatesFilterDialog = false} ) { timeFilterFrom, timeFilterTo ->
             historyStartDate = timeFilterFrom
             historyEndDate = timeFilterTo
-//            EventFlow.postEvent(FlowEvent.HistoryEvent(sortOrder, timeFilterFrom, timeFilterTo))
         }
     }
 
@@ -564,7 +562,7 @@ fun FacetsScreen() {
                     if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
                         if (virQueue.identity != listIdentity) {
                             runOnIOScope {
-                                virQueue = upsertBlk(virQueue) { q ->
+                                virQueue = upsert(virQueue) { q ->
                                     q.identity = listIdentity
                                     q.sortOrder = vm.sortOrder
                                     q.episodeIds.clear()

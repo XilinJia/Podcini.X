@@ -408,8 +408,6 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     if (ended || (skipped && smartMarkAsPlayed)) it.setPosition(0)
                     if (ended || skipped || playingNext) it.playbackCompletionDate = Date()
                 }
-//                EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(item))
-//                EventFlow.postEvent(FlowEvent.HistoryEvent())
 
                 val action = item.feed?.autoDeleteAction
                 val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))

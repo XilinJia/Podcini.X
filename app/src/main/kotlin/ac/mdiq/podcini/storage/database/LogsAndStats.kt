@@ -21,7 +21,7 @@ fun addDownloadStatus(status: DownloadResult?): Job {
         if (status != null) {
             if (status.id == 0L) status.setId()
             upsert(status) {}
-            EventFlow.postEvent(FlowEvent.DownloadLogEvent())
+//            EventFlow.postEvent(FlowEvent.DownloadLogEvent())
         }
     }
 }

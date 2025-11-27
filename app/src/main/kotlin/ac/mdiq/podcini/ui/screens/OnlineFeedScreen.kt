@@ -252,12 +252,9 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 //    }
 
     private var eventSink: Job?     = null
-    private var eventStickySink: Job? = null
     internal fun cancelFlowEvents() {
         eventSink?.cancel()
         eventSink = null
-        eventStickySink?.cancel()
-        eventStickySink = null
     }
     internal fun procFlowEvents() {
         if (eventSink == null) eventSink = lcScope.launch {

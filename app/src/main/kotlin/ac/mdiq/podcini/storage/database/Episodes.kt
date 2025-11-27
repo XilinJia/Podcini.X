@@ -263,12 +263,12 @@ fun deleteMedias(context: Context, episodes: List<Episode>)  {
         }
     }
     if (removedFromQueue.isNotEmpty()) removeFromAllQueues(removedFromQueue)
-    for (episode in removedFromQueue) EventFlow.postEvent(FlowEvent.QueueEvent.irreversibleRemoved(episode))
+//    for (episode in removedFromQueue) EventFlow.postEvent(FlowEvent.QueueEvent.irreversibleRemoved(episode))
 
     // we assume we also removed download log entries for the feed or its media files.
     // especially important if download or refresh failed, as the user should not be able
     // to retry these
-    EventFlow.postEvent(FlowEvent.DownloadLogEvent())
+//    EventFlow.postEvent(FlowEvent.DownloadLogEvent())
 }
 
 fun checkAndMarkDuplicates(episode: Episode): Episode {
@@ -285,7 +285,7 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                         e.playState <= EpisodeState.AGAIN.code -> {
                             e.setPlayState(EpisodeState.IGNORED)
                             e.addComment(comment)
-                            EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(e))
+//                            EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(e))
                         }
                         episode.playState == EpisodeState.IGNORED.code -> { }
                         else -> {
@@ -297,7 +297,7 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                             m?.let {
                                 //                                    media = it
                                 updated = true
-                                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(it))
+//                                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(it))
                             }
                             Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
                         }
@@ -333,7 +333,6 @@ suspend fun setPlayState(state: EpisodeState, episode: Episode, resetMediaPositi
     Logd(TAG, "setPlayState played0: ${result.playState}")
     if (removeFromQueue && state == EpisodeState.PLAYED && getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueues(listOf(result))
     Logd(TAG, "setPlayState played1: ${result.playState}")
-    //        EventFlow.postEvent(FlowEvent.EpisodePlayedEvent(result))
     return result
 }
 

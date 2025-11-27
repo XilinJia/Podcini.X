@@ -12,6 +12,9 @@ import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.cast.BaseActivity
+import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
@@ -107,6 +110,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
@@ -304,9 +308,10 @@ class MainActivity : BaseActivity() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (dontAskAgain) prefs.edit { putBoolean("dont_ask_again_unrestricted_background", true) }
-                    val intent = Intent()
-                    intent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
+                    if (dontAskAgain) putPref(AppPreferences.AppPrefs.dont_ask_again_unrestricted_background, true)
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply { data = "package:$packageName".toUri() }
+//                    val intent = Intent()
+//                    intent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
                     this@MainActivity.startActivity(intent)
                     onDismiss()
                 }) { Text("OK") }
@@ -318,7 +323,7 @@ class MainActivity : BaseActivity() {
     private fun checkAndRequestUnrestrictedBackgroundActivity() {
         val powerManager = getSystemService(POWER_SERVICE) as PowerManager
         val isIgnoringBatteryOptimizations = powerManager.isIgnoringBatteryOptimizations(packageName)
-        val dontAskAgain = prefs.getBoolean("dont_ask_again_unrestricted_background", false)
+        val dontAskAgain = getPref(AppPreferences.AppPrefs.dont_ask_again_unrestricted_background, false)
         if (!isIgnoringBatteryOptimizations && !dontAskAgain) showUnrestrictedBackgroundPermissionDialog = true
     }
 

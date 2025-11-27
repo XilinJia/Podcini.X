@@ -108,7 +108,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 DownloadServiceInterface.impl?.cancel(context, item)
                 if (AppPreferences.isAutodownloadEnabled) {
                     val item_ = upsertBlk(item) { it.disableAutoDownload() }
-                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item_))
+//                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item_))
                 }
                 type = ButtonTypes.DOWNLOAD
             }
@@ -193,7 +193,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 }
                 processing = 1
                 item = upsertBlk(item) { it.setPlayState(EpisodeState.BUILDING) }
-                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
+//                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                 ensureTTS(context)
                 var readerText: String?
                 runOnIOScope {
@@ -207,11 +207,11 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     } else readerText = HtmlCompat.fromHtml(item.transcript!!, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                     Logd(TAG, "readerText: [$readerText]")
                     processing = 1
-                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
+//                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                     if (!readerText.isNullOrEmpty()) {
                         while (!TTSObj.ttsReady) runBlocking { delay(100) }
                         processing = 15
-                        EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
+//                        EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                         while (TTSObj.ttsWorking) runBlocking { delay(100) }
                         TTSObj.ttsWorking = true
                         if (item.feed?.language != null) {
@@ -256,10 +256,10 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                             i++
                             while (i - j > 0) runBlocking { delay(100) }
                             processing = 15 + 70 * startIndex / readerText!!.length
-                            EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
+//                            EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                         }
                         processing = 85
-                        EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
+//                        EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                         if (status == TextToSpeech.SUCCESS) {
                             mergeAudios(parts.toTypedArray(), mediaFile.absolutePath, null)
                             val retriever = MediaMetadataRetriever()
@@ -290,7 +290,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     item = upsertBlk(item) { it.setPlayState(EpisodeState.UNPLAYED) }
 
                     processing = 100
-                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
+//                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                 }
                 type = ButtonTypes.PLAY
             }

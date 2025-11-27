@@ -238,8 +238,6 @@ fun EpisodeInfoScreen() {
                         if (offerStreaming) AppPreferences.prefStreamOverDownload = true
                         if (episode?.feed != null) episode!!.feed = upsertBlk(episode!!.feed!!) { it.prefStreamOverDownload = offerStreaming }
                         // Update all visible lists to reflect new streaming action button
-                        //            TODO: need another event type?
-                        //                    EventFlow.postEvent(FlowEvent.EpisodePlayedEvent())
                         //                        load()
                         //                        if (episode != null && webviewData.isBlank()) {
                         //                            Logd(TAG, "description: ${episode?.description}")

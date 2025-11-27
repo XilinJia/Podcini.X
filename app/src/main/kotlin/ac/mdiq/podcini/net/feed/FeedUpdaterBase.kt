@@ -171,7 +171,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
                     else -> refreshFeed(feed, force)
                 }
             } catch (e: Exception) {
-                Loge(TAG, "update failed ${e.message}")
+                Loge(TAG, "refreshFeeds: update failed ${feed.title} ${e.message}")
                 persistFeedLastUpdateFailed(feed, true)
                 val status = DownloadResult(feed.id, feed.title?:"", DownloadError.ERROR_IO_ERROR, false, e.message?:"")
                 addDownloadStatus(status)
@@ -196,10 +196,10 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
         downloader.run()
         if (!downloader.result.isSuccessful) {
             if (downloader.cancelled || downloader.result.reason == DownloadError.ERROR_DOWNLOAD_CANCELLED) {
-                Logd(TAG, "feed refresh cancelled, likely due to feed not changed: ${feed.title}")
+                Logt(TAG, "refreshFeed: feed refresh cancelled, likely due to feed not changed: ${feed.title}")
                 return
             }
-            Logt(TAG, "feed update failed: unsuccessful. cancelled? ${feed.title}")
+            Logt(TAG, "refreshFeed: feed update failed: unsuccessful. cancelled? ${feed.title}")
             persistFeedLastUpdateFailed(feed, true)
             addDownloadStatus(downloader.result)
             return
@@ -207,7 +207,7 @@ open class FeedUpdaterBase(val feed: Feed? = null, val fullUpdate: Boolean = fal
         val feedUpdateTask = FeedUpdateTask(context, request)
         val success = if (fullUpdate) feedUpdateTask.run() else feedUpdateTask.runSimple()
         if (!success) {
-            Logt(TAG, "feed update failed: unsuccessful: ${feed.title}")
+            Logt(TAG, "refreshFeed: feed update failed: unsuccessful: ${feed.title}")
             persistFeedLastUpdateFailed(feed, true)
             addDownloadStatus(feedUpdateTask.downloadStatus)
             return

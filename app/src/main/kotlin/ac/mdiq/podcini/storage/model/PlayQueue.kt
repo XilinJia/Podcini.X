@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import io.github.xilinjia.krdb.ext.realmListOf
@@ -23,7 +24,7 @@ class PlayQueue : RealmObject {
     var updated: Long = Date().time
         private set
 
-    var enqueueLocation: Int = 0
+    var enqueueLocation: Int = EnqueueLocation.BACK.code
 
     var launchAutoEQDlWhenEmpty: Boolean = true
 

@@ -1,4 +1,4 @@
-package ac.mdiq.podcini.utils
+package ac.mdiq.podcini.preferences
 
 import android.content.Context
 

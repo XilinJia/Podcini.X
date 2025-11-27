@@ -42,7 +42,7 @@ import kotlinx.coroutines.withContext
 object InTheatre {
     private val TAG: String = InTheatre::class.simpleName ?: "Anonymous"
 
-    const val VIRTUAL_QUEUE_SIZE = 200
+    const val VIRTUAL_QUEUE_SIZE = 50
 
     internal var aCtrlFuture: ListenableFuture<MediaController>? = null
     var aController: MediaController? = null

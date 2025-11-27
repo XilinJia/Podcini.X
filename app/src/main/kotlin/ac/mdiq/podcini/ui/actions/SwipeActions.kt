@@ -428,7 +428,6 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                             it.lastPlayedTime = lastPlayed
                             it.playbackCompletionDate = completed
                         }
-//                        EventFlow.postEvent(FlowEvent.HistoryEvent())
                     }
                 }
             }

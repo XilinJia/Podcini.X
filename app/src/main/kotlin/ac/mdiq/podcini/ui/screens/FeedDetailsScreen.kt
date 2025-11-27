@@ -1619,9 +1619,9 @@ fun FeedDetailsScreen() {
                                         }
                                         virQueue.episodes.clear()
                                         actQueue = virQueue
+                                        Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
                                     }
                                 }
-                                Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
                             }
                         },
                     )

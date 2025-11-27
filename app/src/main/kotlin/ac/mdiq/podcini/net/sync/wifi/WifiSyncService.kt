@@ -338,7 +338,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
                     idRemove = it.id
                 } else Logd(TAG, "Setting position")
             }
-            EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(feedItem))
+//            EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(feedItem))
         } else Logd(TAG, "local is newer, no change")
         return if (idRemove != null) Pair(idRemove, feedItem) else null
     }

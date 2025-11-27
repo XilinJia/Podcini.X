@@ -9,6 +9,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
@@ -119,7 +120,7 @@ fun PlaybackPreferencesScreen(activity: PreferenceActivity) {
         }
         TitleSummaryActionColumn(R.string.pref_speed_forward, R.string.pref_speed_forward_sum) { showFFSpeedDialog = true }
         TitleSummarySwitchPrefRow(R.string.pref_skip_silence_title, R.string.pref_skip_silence_sum, AppPrefs.prefSkipSilence)
-        var prefStreaming by remember { mutableStateOf(getPref(AppPrefs.prefStreamOverDownload, false)) }
+        var prefStreaming by remember { mutableStateOf(prefStreamOverDownload) }
         TitleSummarySwitchPrefRow(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, AppPrefs.prefStreamOverDownload) {
             prefStreaming = it
             putPref(AppPrefs.prefStreamOverDownload, it)

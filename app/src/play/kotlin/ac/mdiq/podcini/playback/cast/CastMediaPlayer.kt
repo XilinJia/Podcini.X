@@ -231,7 +231,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             return
         }
         if (curEpisode != null && doPostPlayback) {
-            if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, false, false, true)
+            if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, ended = false, skipped = false, playingNext = true)
             setPlayerStatus(PlayerStatus.INDETERMINATE, null)
         }
 
@@ -361,7 +361,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         val currentMedia = curEpisode
         when {
             shouldContinue -> {
-                var nextMedia = getNextInQueue(currentMedia)
+                val nextMedia = getNextInQueue(currentMedia)
                 val playNextEpisode = isPlaying && nextMedia != null
                 when {
                     playNextEpisode -> Logd(TAG, "Playback of next episode will start immediately.")
@@ -401,26 +401,25 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         fun from(media: Episode?): MediaInfo? {
             if (media == null) return null
             val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_GENERIC)
-            val feedItem = media
             metadata.putString(MediaMetadata.KEY_TITLE, media.getEpisodeTitle())
             val subtitle = media.feed?.title?:""
             metadata.putString(MediaMetadata.KEY_SUBTITLE, subtitle)
 
-            val feed: Feed? = feedItem.feed
+            val feed: Feed? = media.feed
             // Manual because cast does not support embedded images
-            val url: String = if (feedItem.imageUrl == null && feed != null) feed.imageUrl?:"" else feedItem.imageUrl?:""
+            val url: String = if (media.imageUrl == null && feed != null) feed.imageUrl?:"" else media.imageUrl?:""
             if (url.isNotEmpty()) metadata.addImage(WebImage(url.toUri()))
             val calendar = Calendar.getInstance()
-            calendar.time = Date(feedItem.pubDate)
+            calendar.time = Date(media.pubDate)
             metadata.putDate(MediaMetadata.KEY_RELEASE_DATE, calendar)
             if (feed != null) {
                 if (!feed.author.isNullOrEmpty()) metadata.putString(MediaMetadata.KEY_ARTIST, feed.author!!)
                 if (!feed.downloadUrl.isNullOrEmpty()) metadata.putString(KEY_FEED_URL, feed.downloadUrl!!)
                 if (!feed.link.isNullOrEmpty()) metadata.putString(KEY_FEED_WEBSITE, feed.link!!)
             }
-            if (!feedItem.identifier.isNullOrEmpty()) metadata.putString(KEY_EPISODE_IDENTIFIER, feedItem.identifier!!)
+            if (!media.identifier.isNullOrEmpty()) metadata.putString(KEY_EPISODE_IDENTIFIER, media.identifier!!)
             else metadata.putString(KEY_EPISODE_IDENTIFIER, media.downloadUrl ?: "")
-            if (!feedItem.link.isNullOrEmpty()) metadata.putString(KEY_EPISODE_LINK, feedItem.link!!)
+            if (!media.link.isNullOrEmpty()) metadata.putString(KEY_EPISODE_LINK, media.link!!)
 
             // This field only identifies the id on the device that has the original version.
             // Idea is to perhaps, on a first approach, check if the version on the local DB with the
@@ -432,7 +431,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             metadata.putInt(KEY_FORMAT_VERSION, FORMAT_VERSION_VALUE)
             metadata.putString(KEY_STREAM_URL, media.downloadUrl!!)
 
-            Logd(TAG, "media: ${media.id} ${feedItem.title}")
+            Logd(TAG, "media: ${media.id} ${media.title}")
             Logd(TAG, "url: ${media.getMediaType()} $media.effectUrl")
             val builder = MediaInfo.Builder(media.effectUrl)
                 .setEntity(media.id.toString())
@@ -480,7 +479,6 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 }
                 else -> false
             }
-            return false
         }
         
         /**

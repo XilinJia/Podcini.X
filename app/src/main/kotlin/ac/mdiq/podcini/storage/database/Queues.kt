@@ -20,7 +20,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.EventFlow
-import ac.mdiq.podcini.utils.FlowEvent
+import ac.mdiq.podcini.utils.FlowEvent.QueueEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import java.util.Date
@@ -53,21 +53,17 @@ suspend fun addToActQueue(episodes: List<Episode>) {
 
     var queueModified = false
     val setInQueue = mutableListOf<Episode>()
-    val events: MutableList<FlowEvent.QueueEvent> = mutableListOf()
     val updatedItems: MutableList<Episode> = mutableListOf()
-    val currentlyPlaying = curEpisode
-    var insertPosition = calcPosition(queue, currentlyPlaying)
     val qItems = queue.episodes.toMutableList()
-    val qItemIds = queue.episodeIds.toMutableList()
+    if (qItems.isNotEmpty() && queue.sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_ASC) getPermutor(EpisodeSortOrder.TIME_IN_QUEUE_ASC).reorder(qItems)
+    var insertPosition = calcPosition(qItems, EnqueueLocation.fromCode(queue.enqueueLocation), curEpisode)
 
+    val qItemIds = queue.episodeIds.toSet()
     val t = System.currentTimeMillis()
     var c = 0L
     for (episode in episodes) {
         if (qItemIds.contains(episode.id)) continue
-        events.add(FlowEvent.QueueEvent.added(episode, insertPosition))
-        try {
-            qItems.add(insertPosition, episode)
-        } catch (e: Throwable) { Loge(TAG, "addToActiveQueue: ${e.message}")}
+        try { qItems.add(insertPosition, episode) } catch (e: Throwable) { Loge(TAG, "addToActiveQueue: ${e.message}")}
         updatedItems.add(episode)
         upsert(episode) {it.timeInQueue = t+c++ }
         queueModified = true
@@ -75,10 +71,9 @@ suspend fun addToActQueue(episodes: List<Episode>) {
         insertPosition++
     }
     if (queueModified) {
-        queue = applySortOrder(qItems, queue, events = events)
+        applySortOrder(qItems, queue)
+        queue = resetIds(queue, qItems)
         if (queue.id == actQueue.id) actQueue = queue
-//        else if (queue.id == curQueue.id) curQueue = queue
-        for (event in events) EventFlow.postEvent(event)
         for (episode in setInQueue) setPlayState(EpisodeState.QUEUE, episode, false)
     }
 }
@@ -92,48 +87,28 @@ suspend fun addToAssOrActQueue(episode: Episode, queue_: PlayQueue? = null) {
     }
     queue = realm.query(PlayQueue::class).query("id == ${queue.id}").first().find() ?: return
     if (queue.episodeIds.contains(episode.id)) return
-    val qItems = queue.episodes.toMutableList()
 
-    val currentlyPlaying = curEpisode
-    val insertPosition = calcPosition(queue, currentlyPlaying)
+    val qItems = queue.episodes.toMutableList()
+    if (qItems.isNotEmpty() && queue.sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_ASC) getPermutor(EpisodeSortOrder.TIME_IN_QUEUE_ASC).reorder(qItems)
+
+    val currentlyPlaying = if (queue.id == actQueue.id) curEpisode else null
+    val insertPosition = calcPosition(qItems, EnqueueLocation.fromCode(queue.enqueueLocation), currentlyPlaying)
     Logd(TAG, "addToQueueSync insertPosition: $insertPosition")
     val t = System.currentTimeMillis()
     upsert(episode) { it.timeInQueue = t }
 
     try { qItems.add(insertPosition, episode) } catch (e: Throwable) { Loge(TAG, "addToQueue ${e.message}")}
-    val events = mutableListOf(FlowEvent.QueueEvent.added(episode, insertPosition))
-    val queueNew = applySortOrder(qItems, queue, events = events)
+    applySortOrder(qItems, queue)
+    val queueNew = resetIds(queue, qItems)
     if (episode.playState < EpisodeState.QUEUE.code) setPlayState(EpisodeState.QUEUE, episode, false)
-    if (queue.id == actQueue.id) {
-        actQueue = queueNew
-        EventFlow.postEvent(events[0])
-    }
+    if (queue.id == actQueue.id) actQueue = queueNew
 }
 
-/**
- * Sorts the queue depending on the configured sort order.
- * If the queue is not in keep sorted mode, nothing happens.
- * @param queueItems  The queue to be sorted.
- * @param events Replaces the events by a single SORT event if the list has to be sorted automatically.
- */
-private fun applySortOrder(queueItems: MutableList<Episode>, queue_: PlayQueue, events: MutableList<FlowEvent.QueueEvent>): PlayQueue {
-    var sorted = false
-    var queue = queue_
-    if (queue.sortOrder !in listOf(EpisodeSortOrder.TIME_IN_QUEUE_ASC, EpisodeSortOrder.TIME_IN_QUEUE_DESC, EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1)) {
+private fun applySortOrder(queueItems: MutableList<Episode>, queue: PlayQueue) {
+    if (queue.enqueueLocation != EnqueueLocation.BACK.code) resetInQueueTime(queueItems)
+    if (queue.sortOrder !in listOf(EpisodeSortOrder.TIME_IN_QUEUE_ASC, EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1)) {
         getPermutor(queue.sortOrder).reorder(queueItems)
-        sorted = true
     }
-
-    if (queue.enqueueLocation != EnqueueLocation.BACK.code && queue.sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_DESC) resetInQueueTime(queueItems)
-
-    if (sorted) queue = resetIds(queue, queueItems)
-
-    // Replace ADDED events by a single SORTED event
-    if (sorted) {
-        events.clear()
-        events.add(FlowEvent.QueueEvent.sorted(queueItems))
-    }
-    return queue
 }
 
 suspend fun smartRemoveFromActQueue(item_: Episode) {
@@ -185,7 +160,7 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
         }
         return
     }
-    val events: MutableList<FlowEvent.QueueEvent> = mutableListOf()
+    val removeFromActQueue = mutableListOf<Episode>()
     val indicesToRemove: MutableList<Int> = mutableListOf()
     val qItems = queue.episodes.toMutableList()
     val eList = episodes.toList()
@@ -200,7 +175,7 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
                 it.timeOutQueue = t+c++
                 if (playState != null && it.playState == EpisodeState.QUEUE.code) it.setPlayState(playState)
             }
-            if (queue.id == actQueue.id) events.add(FlowEvent.QueueEvent.removed(episode))
+            if (queue.id == actQueue.id) removeFromActQueue.add(episode)
         }
     }
     if (indicesToRemove.isNotEmpty()) {
@@ -220,7 +195,7 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
             queueNew.episodes.clear()
             actQueue = queueNew
         }
-        for (event in events) EventFlow.postEvent(event)
+        EventFlow.postEvent(QueueEvent.removed(removeFromActQueue))
         if (queueNew.size() == 0 && !queueNew.isVirtual()) {
             autoenqueueForQueue(queueNew)
             if(queueNew.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), queueNew)
@@ -328,10 +303,8 @@ fun getNextInQueue(currentMedia: Episode?): Episode? {
     return nextItem
 }
 
-private fun calcPosition(queue: PlayQueue, currentPlaying: Episode?): Int {
-    val queueItems = queue.episodes
-    if (queueItems.isEmpty() || queue.sortOrder == EpisodeSortOrder.TIME_IN_QUEUE_DESC) return 0
-    if (queue.sortOrder == EpisodeSortOrder.TIME_IN_QUEUE_ASC) return queueItems.size
+private fun calcPosition(queueItems: MutableList<Episode>, loc: EnqueueLocation, currentPlaying: Episode?): Int {
+    if (queueItems.isEmpty()) return 0
 
     fun getPositionOfFirstNonDownloadingItem(startPosition: Int): Int {
         fun isItemAtPositionDownloading(position: Int): Boolean {
@@ -350,7 +323,7 @@ private fun calcPosition(queue: PlayQueue, currentPlaying: Episode?): Int {
         return -1
     }
 
-    return when (EnqueueLocation.fromCode(queue.enqueueLocation)) {
+    return when (loc) {
         EnqueueLocation.BACK -> queueItems.size
         // Return not necessarily 0, so that when a list of items are downloaded and enqueued
         // in succession of calls (e.g., users manually tapping download one by one),
@@ -362,3 +335,4 @@ private fun calcPosition(queue: PlayQueue, currentPlaying: Episode?): Int {
         //                else -> throw AssertionError("calcPosition() : unrecognized enqueueLocation option: $enqueueLocation")
     }
 }
+

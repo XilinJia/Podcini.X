@@ -35,29 +35,12 @@ sealed class FlowEvent {
     }
 
     data class QueueEvent(val action: Action, val episodes: List<Episode>, val position: Int) : FlowEvent() {
-        enum class Action {
-            ADDED, SET_QUEUE, REMOVED, IRREVERSIBLE_REMOVED, CLEARED, DELETED_MEDIA, SORTED, MOVED, SWITCH_QUEUE
-        }
-//        fun inQueue(): Boolean {
-//            return when (action) {
-//                Action.ADDED, Action.SET_QUEUE, Action.SORTED, Action.MOVED, Action.SWITCH_QUEUE -> true
-//                else -> false
-//            }
-//        }
+        enum class Action { REMOVED, CLEARED }
         companion object {
-            fun added(episode: Episode, position: Int): QueueEvent = QueueEvent(Action.ADDED, listOf(episode), position)
-//            fun setQueue(queue: List<Episode>): QueueEvent = QueueEvent(Action.SET_QUEUE, queue, -1)
-            fun removed(episode: Episode): QueueEvent = QueueEvent(Action.REMOVED, listOf(episode), -1)
             fun removed(episodes: List<Episode>): QueueEvent = QueueEvent(Action.REMOVED, episodes, -1)
-            fun irreversibleRemoved(episode: Episode): QueueEvent = QueueEvent(Action.IRREVERSIBLE_REMOVED, listOf(episode), -1)
             fun cleared(): QueueEvent = QueueEvent(Action.CLEARED, listOf(), -1)
-            fun sorted(sortedQueue: List<Episode>): QueueEvent = QueueEvent(Action.SORTED, sortedQueue, -1)
-            fun moved(episode: Episode, newPosition: Int): QueueEvent = QueueEvent(Action.MOVED, listOf(episode), newPosition)
-//            fun switchQueue(qItems: List<Episode>): QueueEvent = QueueEvent(Action.SWITCH_QUEUE, qItems, -1)
         }
     }
-
-//    data class HistoryEvent(val sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_DESC, val startDate: Long = 0, val endDate: Long = Date().time) : FlowEvent()
 
     data class SleepTimerUpdatedEvent(private val timeLeft: Long) : FlowEvent() {
         val isOver: Boolean
@@ -86,25 +69,12 @@ sealed class FlowEvent {
 
     data class SpeedChangedEvent(val newSpeed: Float) : FlowEvent()
 
-    data class DownloadLogEvent(val dummy: Unit = Unit) : FlowEvent()
-
-    data class EpisodeEvent(val episodes: List<Episode>) : FlowEvent() {
-        companion object {
-            fun updated(vararg episodes: Episode): EpisodeEvent = EpisodeEvent(listOf(*episodes))
-        }
-    }
-
     data class EpisodeMediaEvent(val action: Action, val episodes: List<Episode>) : FlowEvent() {
-        enum class Action { ADDED, REMOVED, UPDATED, ERROR, UNKNOWN }
+        enum class Action { REMOVED }
         companion object {
-            fun added(vararg episodes: Episode): EpisodeMediaEvent = EpisodeMediaEvent(Action.ADDED, listOf(*episodes))
-            fun updated(episodes: List<Episode>): EpisodeMediaEvent = EpisodeMediaEvent(Action.UPDATED, episodes)
-            fun updated(vararg episodes: Episode): EpisodeMediaEvent = EpisodeMediaEvent(Action.UPDATED, listOf(*episodes))
             fun removed(vararg episodes: Episode): EpisodeMediaEvent = EpisodeMediaEvent(Action.REMOVED, listOf(*episodes))
         }
     }
-
-//    data class FeedTagsChangedEvent(val dummy: Unit = Unit) : FlowEvent()
 
     data class FeedUpdatingEvent(val isRunning: Boolean) : FlowEvent()
 

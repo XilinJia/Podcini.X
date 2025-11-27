@@ -181,7 +181,10 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                 return
             }
             onFail(DownloadError.ERROR_IO_ERROR, e.message)
-        } catch (e: NullPointerException) { onFail(DownloadError.ERROR_CONNECTION_ERROR, downloadRequest.source)    // might be thrown by connection.getInputStream()
+        } catch (e: NullPointerException) {
+            onFail(DownloadError.ERROR_CONNECTION_ERROR, downloadRequest.source)    // might be thrown by connection.getInputStream()
+        } catch (e: Throwable) {
+            onFail(DownloadError.ERROR_NOT_FOUND, e.message)
         } finally {
             IOUtils.closeQuietly(out)
             IOUtils.closeQuietly(responseBody)

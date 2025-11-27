@@ -11,7 +11,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.error.CrashReportWriter
-import ac.mdiq.podcini.utils.githubAddress
+import ac.mdiq.podcini.preferences.githubAddress
 import ac.mdiq.podcini.utils.toastMassege
 import android.content.ClipData
 import android.content.ClipboardManager

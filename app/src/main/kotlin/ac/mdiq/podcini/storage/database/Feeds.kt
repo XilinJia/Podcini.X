@@ -71,7 +71,6 @@ fun compileLanguages() {
         languages.clear()
         languages.addAll(langsSet)
         languages.sort()
-        //            EventFlow.postEvent(FlowEvent.FeedTagsChangedEvent())
     }
 }
 
@@ -84,7 +83,6 @@ fun compileTags() {
         tags.clear()
         tags.addAll(tagsSet)
         tags.sort()
-//        EventFlow.postEvent(FlowEvent.FeedTagsChangedEvent())
     }
 }
 
@@ -366,7 +364,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
             episode.setPlayState(EpisodeState.NEW)
             if (savedFeed.autoAddNewToQueue) {
                 val q = savedFeed.queue
-                if (q != null) runOnIOScope {  addToAssOrActQueue(episode, q) }
+                if (q != null) runOnIOScope { addToAssOrActQueue(episode, q) }
             }
         }
     }

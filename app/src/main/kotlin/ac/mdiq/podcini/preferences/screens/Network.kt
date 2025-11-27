@@ -674,6 +674,8 @@ fun NetworkScreen(activity: PreferenceActivity) {
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
 
+        TitleSummarySwitchPrefRow(R.string.pref_disable_wifilock_title, R.string.pref_disable_wifilock_sum, AppPrefs.prefDisableWifiLock)
+
         var showSetCustomFolderDialog by remember { mutableStateOf(false) }
         if (showSetCustomFolderDialog) {
             val sumTextRes = if (useCustomMediaDir) R.string.pref_custom_media_dir_sum1 else R.string.pref_custom_media_dir_sum

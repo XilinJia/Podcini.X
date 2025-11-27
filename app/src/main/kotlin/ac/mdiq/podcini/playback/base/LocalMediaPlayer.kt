@@ -629,7 +629,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         }
     }
 
-    override fun shouldLockWifi(): Boolean = isStreaming
+    override fun shouldLockWifi(): Boolean = isStreaming && getPref(AppPrefs.prefDisableWifiLock, false)
 
     companion object {
         private val TAG: String = LocalMediaPlayer::class.simpleName ?: "Anonymous"
@@ -637,7 +637,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         const val BUFFERING_STARTED: Int = -1
         const val BUFFERING_ENDED: Int = -2
 
-        var streaming: Boolean? = getPref(AppPrefs.prefStreamOverDownload, false)
+//        var streaming: Boolean? = getPref(AppPrefs.prefStreamOverDownload, false)
 
         var exoPlayer: ExoPlayer? = null
 

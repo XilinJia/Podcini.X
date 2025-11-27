@@ -321,8 +321,8 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                     it.disableAutoDownload()
                 }
                 // TODO: need to post two events?
-                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
-                if (broadcastUnreadStateUpdate) EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.updated(item))
+//                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
+//                if (broadcastUnreadStateUpdate) EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.updated(item))
                 if (isProviderConnected) {
                     Logd(TAG, "enqueue synch")
                     val action = EpisodeAction.Builder(item, EpisodeAction.DOWNLOAD).currentTimestamp().build()

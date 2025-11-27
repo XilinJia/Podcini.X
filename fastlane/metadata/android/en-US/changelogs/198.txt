@@ -1,0 +1,10 @@
+# 9.2.1
+
+* amended addInQueue routines to handle orders properly
+* likely fixed order mismatch of curQueue and actQueue
+* Virtual queue size set to 50 (200 unrealistic)
+* in Audo-download/enqueue, when checking if episodes are in queue, skip virQueue
+* in Settings->Network, added option to disable using WifiLock (as it's reported not functional on modern Android)
+* added a toggle for "don't ask again for restricted background" in Settings->Interface
+* background permission request dialog now sets permission directly
+* cleared some useless events

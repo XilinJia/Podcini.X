@@ -298,7 +298,10 @@ fun QueuesScreen() {
                     upsert(e_) { it.timeOutQueue = t+c++}
                 }
                 curQueue.episodes.clear()
-                if (curQueue.id == actQueue.id) EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
+                if (curQueue.id == actQueue.id) {
+                    actQueue = curQueue
+                    EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
+                }
                 if (!curQueue.isVirtual()) {
                     autoenqueueForQueue(curQueue)
                     if (curQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), curQueue)
@@ -313,7 +316,7 @@ fun QueuesScreen() {
                 getPermutor(curQueue.sortOrder).reorder(episodes_)
                 curQueue = resetIds(curQueue, episodes_)
                 curQueue.episodes.clear()
-                if (curQueue.id == actQueue.id) EventFlow.postEvent(FlowEvent.QueueEvent.sorted(curQueue.episodes))
+                if (curQueue.id == actQueue.id) actQueue = curQueue
             }
         }
 
@@ -591,7 +594,6 @@ fun QueuesScreen() {
             if ((from in 0 ..< episodes.size) && (to in 0..<episodes.size)) {
                 val episode = episodes.removeAt(from)
                 try { episodes.add(to, episode) } catch (e: Throwable) { Loge(TAG, "moveInQueue: ${e.message}")}
-                if (actQueue.id == curQueue.id) EventFlow.postEvent(FlowEvent.QueueEvent.moved(episode, to))
             }
             resetInQueueTime(episodes)
             curQueue.episodes.clear()
