@@ -8,7 +8,7 @@ import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
 import ac.mdiq.podcini.storage.database.deleteAndRemoveFromQueues
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
-import ac.mdiq.podcini.storage.database.getInQueueEpisodeIds
+import ac.mdiq.podcini.storage.database.inQueueEpisodeIdSet
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
@@ -85,7 +85,7 @@ class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
         get() {
             val candidates: MutableList<Episode> = mutableListOf()
             val downloadedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_DESC)
-            val idsInQueues = getInQueueEpisodeIds()
+            val idsInQueues = inQueueEpisodeIdSet()
             for (item in downloadedItems) if (item.downloaded && !idsInQueues.contains(item.id) && !item.isSUPER) candidates.add(item)
             return candidates
         }
@@ -138,7 +138,7 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
         get() {
             val candidates: MutableList<Episode> = mutableListOf()
             val downloadedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_DESC)
-            val idsInQueues = getInQueueEpisodeIds()
+            val idsInQueues = inQueueEpisodeIdSet()
             val mostRecentDateForDeletion = calcMostRecentDateForDeletion(Date())
             for (item in downloadedItems) {
                 if (item.downloaded && !idsInQueues.contains(item.id) && item.playState >= EpisodeState.PLAYED.code && !item.isSUPER) {

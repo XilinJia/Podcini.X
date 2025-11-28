@@ -12,6 +12,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.storage.database.addToAssOrActQueue
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -38,6 +39,7 @@ import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
+import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -145,8 +147,6 @@ fun EpisodeInfoScreen() {
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
 
-    //    val vm = remember(episodeOnDisplay.id) { EpisodeInfoVM(context, scope) }
-
     var episodeFlow by remember { mutableStateOf<Flow<SingleQueryChange<Episode>>>(emptyFlow()) }
 
     val actMain: MainActivity? = remember {  generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull() }
@@ -155,7 +155,6 @@ fun EpisodeInfoScreen() {
 
     var playerLocal: ExoPlayer? = remember {  null }
 
-//    var itemLoaded = remember {  false }
     var episode by remember { mutableStateOf<Episode?>(null) }   // managed
 
     var txtvSize by remember { mutableStateOf("") }
@@ -163,26 +162,10 @@ fun EpisodeInfoScreen() {
     var showHomeScreen by remember { mutableStateOf(false) }
     var actionButton by remember { mutableStateOf<EpisodeActionButton?>(null) }
 
-    fun getMediaSize() {
-        when {
-            episode == null -> txtvSize = ""
-            episode!!.size > 0 -> txtvSize = formatShortFileSize(context, episode!!.size)
-            isImageDownloadAllowed && !episode!!.isSizeSetUnknown() -> {
-                scope.launch {
-                    val sizeValue = if (episode?.feed?.prefStreamOverDownload == false) episode?.fetchMediaSize() ?: 0L else 0L
-                    txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
-                }
-            }
-            else -> txtvSize = ""
-        }
-    }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-                    episodeFlow = realm.query<Episode>("id == $0", episodeOnDisplay.id).first().asFlow()
-                }
+                Lifecycle.Event.ON_CREATE -> episodeFlow = realm.query<Episode>("id == $0", episodeOnDisplay.id).first().asFlow()
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -203,14 +186,29 @@ fun EpisodeInfoScreen() {
     LaunchedEffect(episodeChange, episodeOnDisplay.id) {
         episode = episodeChange?.obj ?: return@LaunchedEffect
 
-        //        inQueue = if (episode == null) false else (episode!!.feed?.queue ?: curQueue).contains(episode!!)
         actionButton = EpisodeActionButton(episode!!)
         shownotesCleaner = ShownotesCleaner(context)
-        getMediaSize()
+
+        when {
+            episode == null -> txtvSize = ""
+            episode!!.size > 0 -> txtvSize = formatShortFileSize(context, episode!!.size)
+            isImageDownloadAllowed && !episode!!.isSizeSetUnknown() -> {
+                scope.launch {
+                    val sizeValue = if (episode?.feed?.prefStreamOverDownload == false) episode?.fetchMediaSize() ?: 0L else 0L
+                    txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
+                }
+            }
+            else -> txtvSize = ""
+        }
+
         if (episode != null && webviewData.isBlank()) {
             Logd(TAG, "description: ${episode?.description}")
-            val webDataPair = gearbox.buildWebviewData(episode!!, shownotesCleaner)
-            webviewData = webDataPair?.second ?: shownotesCleaner.processShownotes(episode!!.description ?: "", episode!!.duration)
+            scope.launch(Dispatchers.IO) {
+                val webDataPair = gearbox.buildWebviewData(episode!!, shownotesCleaner)
+                withContext(Dispatchers.Main) {
+                    webviewData = webDataPair?.second ?: shownotesCleaner.processShownotes(episode!!.description ?: "", episode!!.duration)
+                }
+            }
         }
         if (!episode?.clips.isNullOrEmpty()) playerLocal = ExoPlayer.Builder(context).build()
     }
@@ -225,6 +223,7 @@ fun EpisodeInfoScreen() {
     var showIgnoreDialog by remember { mutableStateOf(false) }
     var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
+    var showTagsSettingDialog by remember { mutableStateOf(false) }
 
     @Composable
     fun OpenDialogs() {
@@ -266,6 +265,9 @@ fun EpisodeInfoScreen() {
             var commentText by remember { mutableStateOf(TextFieldValue(episode?.compileCommentText() ?: "")) }
             CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},
                 onSave = { upsertBlk(episode!!) { it.addComment(commentText.text, false) } })
+        }
+        if (showTagsSettingDialog) TagSettingDialog(appAttribs.episodeTags.toSet(), episode!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
+            upsertBlk(episode!!) { it.tags.addAll(tags) }
         }
     }
 
@@ -316,11 +318,10 @@ fun EpisodeInfoScreen() {
                             if (tts == null) {
                                 tts = TextToSpeech(context) { status: Int ->
                                     if (status == TextToSpeech.SUCCESS) {
-                                        if (episode?.feed?.language != null) {
-                                            val result = tts?.setLanguage(Locale(episode!!.feed!!.language!!))
-                                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                                                Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + "${episode?.feed?.language}")
-                                            }
+                                        if (!episode?.feed?.languages.isNullOrEmpty()) {
+                                            val result = tts?.setLanguage(Locale(episode!!.feed!!.languages[0]))
+                                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED)
+                                                Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + episode?.feed?.languages[0])
                                         }
                                         Logt(TAG, "TTS init success")
                                     } else Loge(TAG, context.getString(R.string.tts_init_failed))
@@ -501,7 +502,6 @@ fun EpisodeInfoScreen() {
                 if (!episode?.link.isNullOrEmpty()) IconButton(onClick = {
                     showHomeScreen = true
                     episodeOnDisplay = episode!!
-                    //                    navController.navigate(Screens.EpisodeText.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
                 IconButton(onClick = {
                     val url = episode?.getLinkWithFallback()
@@ -574,24 +574,23 @@ fun EpisodeInfoScreen() {
                             }
                             Icon(imageVector = ImageVector.vectorResource(actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).align(Alignment.BottomEnd).combinedClickable(onClick = { actionButton?.onClick(context) }, onLongClick = { showAltActionsDialog = true }))
                         }
+                        if (episode?.downloadUrl.isNullOrBlank()) Text("noMediaLabel", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.BottomStart))
                     }
                 }
-                if (!episode?.downloadUrl.isNullOrBlank()) Text("noMediaLabel", color = textColor, style = MaterialTheme.typography.bodyMedium)
                 val scrollState = rememberScrollState()
                 Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
+                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
+                    Text("Tags: ${episode?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
+                    Text(stringResource(R.string.my_opinion_label) + if (episode?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
+                    Text(episode?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                    EpisodeMarks(episode)
+                    EpisodeClips(episode, playerLocal)
                     AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
                         ShownotesWebView(context).apply {
                             setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
                             setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
                         }
                     }, update = { it.loadDataWithBaseURL("https://127.0.0.1", webviewData, "text/html", "utf-8", "about:blank") })
-                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
-                    EpisodeMarks(episode)
-                    EpisodeClips(episode, playerLocal)
-                    Text(stringResource(R.string.my_opinion_label) + if (episode?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable {
-                        showEditComment = true
-                    })
-                    Text(episode?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                     Text(episode?.link ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable(onClick = {
                         if (!episode?.link.isNullOrBlank()) openInBrowser(context, episode!!.link!!)
                     }))

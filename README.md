@@ -124,7 +124,7 @@ Note, if you already have subscriptions in Podcini, importing the OPML file or t
 
 ### Queues
 
-* Multiple queues can be used: 5 queues are provided by default, user can rename or add up to 10 queues
+* Multiple queues can be used: 5 queues are provided by default, user can rename or add up to 15 queues
   * on app startup, the most recently updated queue is set to active queue
   * any episodes can be easily added/moved to the active or any designated queues
   * any queue can be associated with any podcast for customized playing experience

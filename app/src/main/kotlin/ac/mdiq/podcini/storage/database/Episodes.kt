@@ -9,13 +9,14 @@ import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
-import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
+import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.TimeLeftMode
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
@@ -116,7 +117,7 @@ fun getHistoryAsFlow(feedId: Long = 0L, start: Long = 0L, end: Long = Date().tim
     var qStr = "((playbackCompletionTime > 0) OR (lastPlayedTime > $start AND lastPlayedTime <= $end))"
     if (feedId > 0L) qStr += " AND feedId == $feedId "
     val fqstr = filter?.queryString()
-    if (!fqstr.isNullOrBlank()) qStr += " AND ${fqstr} "
+    if (!fqstr.isNullOrBlank()) qStr += " AND $fqstr "
     val episodes = realm.query(Episode::class).query(qStr).sort(sortPairOf(sortOrder)).asFlow()
     return episodes
 }
@@ -209,7 +210,6 @@ fun deleteMedia(context: Context, episode: Episode): Episode {
                     return episode
                 }
                 episode = upsertBlk(episode) {
-                    it.downloaded = false
                     it.setfileUrlOrNull(null)
                     it.hasEmbeddedPicture = false
                     if (it.playState < EpisodeState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
@@ -221,7 +221,7 @@ fun deleteMedia(context: Context, episode: Episode): Episode {
     } catch (e: Throwable) { Logs(TAG, e, "deleteMedia failed") }
 
     if (episode.id == curState.curMediaId) {
-        writeNoMediaPlaying()
+        savePlayerStatus(null)
         sendLocalBroadcast(context, ACTION_SHUTDOWN_PLAYBACK_SERVICE)
         val nm = NotificationManagerCompat.from(context)
         nm.cancel(R.id.notification_playing)
@@ -254,7 +254,7 @@ fun deleteMedias(context: Context, episodes: List<Episode>)  {
         if (queueItems.remove(episode)) removedFromQueue.add(episode)
         if (episode.id == curState.curMediaId) {
             // Applies to both downloaded and streamed media
-            writeNoMediaPlaying()
+            savePlayerStatus(null)
             sendLocalBroadcast(context, ACTION_SHUTDOWN_PLAYBACK_SERVICE)
         }
         if (episode.feed != null && !episode.feed!!.isLocalFeed) {

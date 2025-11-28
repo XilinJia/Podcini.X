@@ -79,7 +79,7 @@ class AutoDownloadAlgorithm {
             val toReplace: MutableSet<Episode> = mutableSetOf()
             val candidates: MutableSet<Episode> = mutableSetOf()
             if (checkQueues) {
-                val queues = realm.query(PlayQueue::class).find()
+                val queues = realm.query(PlayQueue::class).find().filter { !it.isVirtual() }
                 for (q in queues) {
                     if (q.autoDownloadEpisodes) {
                         val queueItems = realm.query(Episode::class).query("id IN $0 AND downloaded == false", q.episodeIds).find()

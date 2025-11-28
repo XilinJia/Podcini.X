@@ -166,7 +166,7 @@
     <string name="combo_action">Działanie kombinacji</string>
     <string name="shelve_label">Schowka do syntezy</string>
     <string name="add_to_queue_label">Dodaj do kolejki</string>
-    <string name="remove_from_queue_label">Usuń z kolejki</string>
+
     <string name="media_type">Typ mediów</string>
     <string name="unknown">Nieznane</string>
     <string name="audio">Dźwięk</string>
@@ -597,7 +597,7 @@
     <string name="authentication_descr">Zmień swoją nazwę użytkownika oraz hasło dla tego podcastu i jego odcinków</string>
     <string name="tags_label">Tagi</string>
     <string name="feed_tags_summary">Zmień tagi tego podcastu, żeby lepiej zorganizować swoje subskrypcje</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Tylko wspólne tagi wybranych subskrypcji są pokazane. Pozostałe tagi zostaną bez zmian.</string>
+
     <string name="auto_download_settings_label">Ustawienia automatycznego pobierania</string>
     <string name="episode_filters_label">Filtr odcinków</string>
     <string name="episode_inclusive_filters_label">Filtr wliczający odcinek</string>

@@ -4,6 +4,8 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
+import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -12,6 +14,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +25,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,13 +34,19 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +65,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -528,5 +540,81 @@ fun SelectLowerAllUpper(selectedList: MutableList<MutableState<Boolean>>, lowerC
                 upperCB()
             },
         ) { Text(text = ">>>", maxLines = 1, color = textColor) }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun TagSettingDialog(allTags: Set<String>, commonTags: Set<String>, multiples: Boolean = false, onDismiss: () -> Unit, cb: (List<String>)->Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.tags_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
+                var text by remember { mutableStateOf("") }
+                var filteredSuggestions = remember { allTags.toList() }
+                var showSuggestions by remember { mutableStateOf(false) }
+                val tags = remember { commonTags.toMutableStateList() }
+
+                if (multiples) Text(stringResource(R.string.tagging_multiple_sum))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    tags.forEach { FilterChip(onClick = {  }, label = { Text(it) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
+                        modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { tags.remove(it) })) }) }
+                }
+                ExposedDropdownMenuBox(expanded = showSuggestions, onExpandedChange = { }) {
+                    TextField(value = text, placeholder = { Text("Type something...") }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
+                        modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true), // Material3 requirement
+                        onValueChange = {
+                            text = it
+                            filteredSuggestions = tags.filter { item -> item.contains(text, ignoreCase = true) && item !in tags }
+                            showSuggestions = text.isNotEmpty() && filteredSuggestions.isNotEmpty()
+                        },
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                if (text.isNotBlank()) {
+                                    if (text !in tags) tags.add(text)
+                                    text = ""
+                                }
+                            }
+                        ),
+                        trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon",
+                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                                if (text.isNotBlank()) {
+                                    if (text !in tags) tags.add(text)
+                                    text = ""
+                                }
+                            })) }
+                    )
+                    ExposedDropdownMenu(expanded = showSuggestions, onDismissRequest = { showSuggestions = false }) {
+                        for (i in filteredSuggestions.indices) {
+                            DropdownMenuItem(text = { Text(filteredSuggestions[i]) },
+                                onClick = {
+                                    text = filteredSuggestions[i]
+                                    showSuggestions = false
+                                }
+                            )
+                        }
+                    }
+                }
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    allTags.forEach { FilterChip(onClick = { tags.add(it) }, label = { Text(it) }, selected = false ) }
+                }
+                Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
+                    Button(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
+                    Spacer(Modifier.weight(1f))
+                    Button(onClick = {
+                        Logd("TagsSettingDialog", "tags: [${tags.joinToString()}] commonTags: [${commonTags.joinToString()}]")
+                        cb(tags)
+                        val tagsSet = appAttribs.episodeTags.toMutableSet() + tags
+                        upsertBlk(appAttribs) {
+                            it.episodeTags.clear()
+                            it.episodeTags.addAll(tagsSet)
+                            it.episodeTags.sort()
+                        }
+                        onDismiss()
+                    }) { Text(stringResource(R.string.confirm_label)) }
+                }
+            }
+        }
     }
 }

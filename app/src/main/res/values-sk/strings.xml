@@ -164,7 +164,7 @@
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Shelve to synthetic</string>
     <string name="add_to_queue_label">Pridať do poradia</string>
-    <string name="remove_from_queue_label">Odstrániť z poradia</string>
+
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
     <string name="audio">Audio</string>
@@ -595,7 +595,7 @@
     <string name="authentication_descr">Zmeniť svoje používateľské meno a heslo pre tento podcast a jeho epizódy.</string>
     <string name="tags_label">Štítky</string>
     <string name="feed_tags_summary">Zmeňte si štítky tohto podcastu aby sa pomohlo usporiadaniu Vašich odberov</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Len všeobecné štítky zo všetkých označených odberov sú zobrazené. Ostatné štítky ostávajú nezmenené.</string>
+
     <string name="auto_download_settings_label">Nastavenia automatického sťahovania</string>
     <string name="episode_filters_label">Filter epizód</string>
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>

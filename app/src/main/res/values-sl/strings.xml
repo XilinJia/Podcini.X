@@ -164,7 +164,7 @@
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Shelve to synthetic</string>
     <string name="add_to_queue_label">Add to active queue</string>
-    <string name="remove_from_queue_label">Remove from active queue</string>
+
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
     <string name="audio">Audio</string>
@@ -595,7 +595,7 @@
     <string name="authentication_descr">Spremenite svoje uporabniško ime in geslo za ta podcast in njegove epizode.</string>
     <string name="tags_label">Oznake</string>
     <string name="feed_tags_summary">Change the tags of this podcast to help organize your subscriptions</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Only common tags from all selected subscriptions are shown. Other tags stay unaffected.</string>
+
     <string name="auto_download_settings_label">Auto download settings</string>
     <string name="episode_filters_label">Episode filter</string>
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>

@@ -62,7 +62,8 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         setWebViewClient(object : WebViewClient() {
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                if (ShownotesCleaner.isTimecodeLink(url) && timecodeSelectedListener != null) timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(url))
+                if ((ShownotesCleaner.isTimecodeLink(url) || ShownotesCleaner.isHTTPTimecodeLink(url)) && timecodeSelectedListener != null)
+                    timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(url))
                 else openInBrowser(context, url)
                 return true
             }
@@ -110,7 +111,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
                 Logt(TAG, context.getString(R.string.copied_to_clipboard))
             }
             R.id.go_to_position_item -> {
-                if (ShownotesCleaner.isTimecodeLink(selectedUrl) && timecodeSelectedListener != null)
+                if ((ShownotesCleaner.isTimecodeLink(selectedUrl) || ShownotesCleaner.isHTTPTimecodeLink(selectedUrl)) && timecodeSelectedListener != null)
                     timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(selectedUrl))
                 else Loge(TAG, "Selected go_to_position_item, but URL was not timecode link: $selectedUrl")
             }
@@ -126,7 +127,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
     override fun onCreateContextMenu(menu: ContextMenu) {
         super.onCreateContextMenu(menu)
         if (selectedUrl == null) return
-        if (ShownotesCleaner.isTimecodeLink(selectedUrl)) {
+        if (ShownotesCleaner.isTimecodeLink(selectedUrl) || ShownotesCleaner.isHTTPTimecodeLink(selectedUrl)) {
             menu.add(Menu.NONE, R.id.go_to_position_item, Menu.NONE, R.string.go_to_position_label)
             menu.setHeaderTitle(getDurationStringLong(ShownotesCleaner.getTimecodeLinkTime(selectedUrl)))
         } else {

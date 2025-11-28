@@ -162,7 +162,7 @@
     <string name="combo_action">Combo actie</string>
     <string name="shelve_label">Schelp om samen te voegen</string>
     <string name="add_to_queue_label">Toevoegen aan wachtrij</string>
-    <string name="remove_from_queue_label">Verwijderen uit wachtrij</string>
+
     <string name="media_type">Media type</string>
     <string name="unknown">onbekend</string>
     <string name="audio">Geluid</string>
@@ -585,7 +585,7 @@
     <string name="authentication_descr">Gebruikersnaam en wachtwoord wijzigen voor deze podcast en bijbehorende afleveringen.</string>
     <string name="tags_label">Labels</string>
     <string name="feed_tags_summary">Wijzig de labels van deze podcast om abonnementen te organiseren</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Er worden alleen algemene labels getoond. Andere labels worden niet aangepast.</string>
+
     <string name="auto_download_settings_label">Automatische download instellingen</string>
     <string name="episode_filters_label">Aflevering filter</string>
     <string name="episode_inclusive_filters_label">Aflevering inclusief filter</string>

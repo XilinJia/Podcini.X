@@ -64,7 +64,6 @@ enum class PrefHardwareForwardButton(val res: Int, val res1: Int) {
 fun PlaybackPreferencesScreen(activity: PreferenceActivity) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val scrollState = rememberScrollState()
-//    val context = LocalContext.current
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
         Text(stringResource(R.string.interruptions), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         var prefUnpauseOnHeadsetReconnect by remember { mutableStateOf(getPref(AppPrefs.prefPauseOnHeadsetDisconnect, true)) }
@@ -197,7 +196,6 @@ fun PlaybackPreferencesScreen(activity: PreferenceActivity) {
         Text(stringResource(R.string.queue_label) + "/" + stringResource(R.string.episodes_label), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
         TitleSummarySwitchPrefRow(R.string.pref_enqueue_downloaded_title, R.string.pref_enqueue_downloaded_summary, AppPrefs.prefEnqueueDownloaded)
 
-        TitleSummarySwitchPrefRow(R.string.pref_followQueue_title, R.string.pref_followQueue_sum, AppPrefs.prefFollowQueue)
         TitleSummarySwitchPrefRow(R.string.pref_skip_keeps_episodes_title, R.string.pref_skip_keeps_episodes_sum, AppPrefs.prefSkipKeepsEpisode)
         TitleSummarySwitchPrefRow(R.string.pref_mark_played_removes_from_queue_title, R.string.pref_mark_played_removes_from_queue_sum, AppPrefs.prefRemoveFromQueueMarkedPlayed)
 

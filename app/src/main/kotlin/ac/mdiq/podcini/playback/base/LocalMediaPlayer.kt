@@ -8,7 +8,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.writePlayerStatus
+import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -126,7 +126,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     Logd(TAG, "onIsPlayingChanged $isPlaying")
                     val stat = if (isPlaying) PlayerStatus.PLAYING else PlayerStatus.PAUSED
                     setPlayerStatus(stat, curEpisode, getPosition())
-                    writePlayerStatus(stat)
+                    savePlayerStatus(stat)
                 }
                 override fun onPlayerError(error: PlaybackException) {
                     Logd(TAG, "onPlayerError ${error.message}")

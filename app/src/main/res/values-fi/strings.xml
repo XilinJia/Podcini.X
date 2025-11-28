@@ -162,7 +162,7 @@
     <string name="combo_action">Combo toiminto</string>
     <string name="shelve_label">Hyvitä synteettiseksi</string>
     <string name="add_to_queue_label">Lisää jonoon</string>
-    <string name="remove_from_queue_label">Poista jonosta</string>
+
     <string name="media_type">Median tyyppi</string>
     <string name="unknown">Tuntematon</string>
     <string name="audio">Ääni</string>
@@ -585,7 +585,7 @@
     <string name="authentication_descr">Vaihda käyttäjätunnus ja salasana tälle podcastille ja sen jaksoille.</string>
     <string name="tags_label">Tunnisteet</string>
     <string name="feed_tags_summary">Muokkaa tämän podcastin tunnisteita tilaustesi järjestelemisen avuksi.</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Vain kaikissa valituissa tilauksissa esiintyvät tunnisteet näytetään. Muita tunnisteita ei muuteta.</string>
+
     <string name="auto_download_settings_label">Automaattisen latauksen asetukset</string>
     <string name="episode_filters_label">Jaksosuodin</string>
     <string name="episode_inclusive_filters_label">Jakso, mukaan lukien suodatin</string>

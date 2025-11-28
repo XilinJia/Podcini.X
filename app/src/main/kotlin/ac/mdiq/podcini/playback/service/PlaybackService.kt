@@ -7,7 +7,7 @@ import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
-import ac.mdiq.podcini.playback.base.InTheatre.loadPlayableFromPreferences
+import ac.mdiq.podcini.playback.base.InTheatre.playableFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.monitorState
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer
@@ -413,7 +413,8 @@ class PlaybackService : MediaLibraryService() {
         if (mPlayer == null) mPlayer = LocalMediaPlayer(applicationContext) // Cast not supported or not connected
 
         Logd(TAG, "recreateMediaPlayer wasPlaying: $wasPlaying")
-        if (media != null) mPlayer!!.prepareMedia(playable = media, streaming = !media.localFileAvailable(), startWhenPrepared = wasPlaying, prepareImmediately = true, doPostPlayback = true)
+        // TODO: test not preparing on first start
+//        if (media != null) mPlayer!!.prepareMedia(playable = media, streaming = !media.localFileAvailable(), startWhenPrepared = wasPlaying, prepareImmediately = true, doPostPlayback = true)
         isCasting = mPlayer!!.isCasting()
     }
 
@@ -617,11 +618,12 @@ class PlaybackService : MediaLibraryService() {
         return false
     }
 
+    // TODO: check out this
     private fun startPlayingFromPreferences() {
         recreateMediaSessionIfNeeded()
         scope.launch {
             try {
-                withContext(Dispatchers.IO) { loadPlayableFromPreferences() }
+                withContext(Dispatchers.IO) { playableFromPreferences() }
                 withContext(Dispatchers.Main) { startPlaying(false) }
             } catch (e: Throwable) { Logs(TAG, e, "EpisodeMedia was not loaded from preferences. Stopping service.") }
         }

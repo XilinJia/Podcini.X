@@ -8,13 +8,12 @@ import ac.mdiq.podcini.preferences.DocumentFileExportWorker
 import ac.mdiq.podcini.preferences.ExportTypes
 import ac.mdiq.podcini.preferences.ExportWorker
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.compileLanguages
 import ac.mdiq.podcini.storage.database.feedOperationText
-import ac.mdiq.podcini.storage.database.languages
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.subPrefs
-import ac.mdiq.podcini.storage.database.tags
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -173,7 +172,6 @@ fun SubscriptionsScreen() {
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
-//    val languages = remember { mutableListOf<String>() }
     val queueNames = remember { mutableStateListOf<String>() }
     val queueIds = remember { mutableListOf<Long>() }
 
@@ -212,7 +210,7 @@ fun SubscriptionsScreen() {
     var showSortDialog by remember { mutableStateOf(false) }
     var showNewSynthetic by remember { mutableStateOf(false) }
 
-    var useGrid by remember { mutableStateOf<Boolean>(subPrefs.prefFeedGridLayout) }
+    var useGrid by remember { mutableStateOf(subPrefs.prefFeedGridLayout) }
 
     var selectMode by remember { mutableStateOf(false) }
 
@@ -221,34 +219,34 @@ fun SubscriptionsScreen() {
 
     fun feedFetchQString(): String {
         fun languagesQS() : String {
-            var q  = ""
+            var qrs  = ""
             when {
-                subPrefs.langsSel.isEmpty() -> q = " (language == '' OR language == nil) "
-                subPrefs.langsSel.size == languages.size -> q = ""
+                subPrefs.langsSel.isEmpty() -> qrs = " (languages.@count > 0) "
+                subPrefs.langsSel.size == appAttribs.languages.size -> qrs = ""
                 else -> {
                     for (l in subPrefs.langsSel) {
-                        q += if (q.isEmpty()) " ( language == '$l' " else " OR language == '$l' "
+                        qrs += if (qrs.isEmpty()) " ( ANY languages == '$l' " else " OR ANY languages == '$l' "
                     }
-                    if (q.isNotEmpty()) q += " ) "
+                    if (qrs.isNotEmpty()) qrs += " ) "
                 }
             }
-            Logd(TAG, "languagesQS: $q")
-            return q
+            Logd(TAG, "languagesQS: $qrs")
+            return qrs
         }
         fun tagsQS() : String {
-            var q  = ""
+            var qrs  = ""
             when {
-                subPrefs.tagsSel.isEmpty() -> q = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
-                subPrefs.tagsSel.size == tags.size -> q = ""
+                subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
+                subPrefs.tagsSel.size == appAttribs.feedTags.size -> qrs = ""
                 else -> {
                     for (t in subPrefs.tagsSel) {
-                        q += if (q.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
+                        qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
                     }
-                    if (q.isNotEmpty()) q += " ) "
+                    if (qrs.isNotEmpty()) qrs += " ) "
                 }
             }
-            Logd(TAG, "tagsQS: $q")
-            return q
+            Logd(TAG, "tagsQS: $qrs")
+            return qrs
         }
         fun queuesQS() : String {
             val qSelIds_ = subPrefs.queueSelIds.toMutableSet()
@@ -257,13 +255,13 @@ fun SubscriptionsScreen() {
                 if ((queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
                 else qSelIds_.remove(-2)
             }
-            var q  = ""
+            var qrs  = ""
             for (id in qSelIds_) {
-                q += if (q.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
+                qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
             }
-            if (q.isNotEmpty()) q += " ) "
-            Logd(TAG, "queuesQS: $q")
-            return q
+            if (qrs.isNotEmpty()) qrs += " ) "
+            Logd(TAG, "queuesQS: $qrs")
+            return qrs
         }
 
         var fQueryStr = FeedFilter(subPrefs.feedsFilter).queryString()
@@ -503,14 +501,13 @@ fun SubscriptionsScreen() {
 
     fun buildFlow() {
         feedsFlow = realm.query(Feed::class).query(feedFetchQString()).sort(sortPair).asFlow()
-        isFiltered = subPrefs.feedsFilter.isNotEmpty() || subPrefs.tagsSel.size != tags.size || subPrefs.langsSel.size != languages.size || subPrefs.queueSelIds.size != queueIds.size
+        isFiltered = subPrefs.feedsFilter.isNotEmpty() || subPrefs.tagsSel.size != appAttribs.feedTags.size || subPrefs.langsSel.size != appAttribs.languages.size || subPrefs.queueSelIds.size != queueIds.size
     }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    compileLanguages()
                     getSortingPrefs()
                     //                    if (arguments != null) displayedFolder = requireArguments().getString(ARGUMENT_FOLDER, null)
                     val queues = realm.query(PlayQueue::class).find()
@@ -741,7 +738,9 @@ fun SubscriptionsScreen() {
             if (showAutoDeleteHandlerDialog) AutoDeleteHandlerDialog {showAutoDeleteHandlerDialog = false}
             if (showAssociateDialog) SetAssociateQueueDialog {showAssociateDialog = false}
             if (showKeepUpdateDialog) SetKeepUpdateDialog {showKeepUpdateDialog = false}
-            if (showTagsSettingDialog) TagSettingDialog(selected) { showTagsSettingDialog = false }
+            if (showTagsSettingDialog) TagSettingDialog(appAttribs.feedTags.toSet(), setOf(), multiples = true, { showTagsSettingDialog = false } ) { tags ->
+                for (f in selected) upsertBlk(f) { it.tags.addAll(tags) }
+            }
             if (showSpeedDialog) PlaybackSpeedDialog(selected, initSpeed = 1f, maxSpeed = 3f, onDismiss = {showSpeedDialog = false}) { newSpeed ->
                 saveFeed { it: Feed -> it.playSpeed = newSpeed }
             }
@@ -1341,8 +1340,8 @@ fun SubscriptionsScreen() {
         fun FilterDialog(filter: FeedFilter? = null, onDismissRequest: () -> Unit) {
             val filterValues = remember { filter?.properties ?: mutableSetOf() }
             var reset by remember { mutableIntStateOf(0) }
-            var langFull by remember { mutableStateOf(subPrefs.langsSel.size == languages.size) }
-            var tagsFull by remember { mutableStateOf(subPrefs.tagsSel.size == tags.size) }
+            var langFull by remember { mutableStateOf(subPrefs.langsSel.size == appAttribs.languages.size) }
+            var tagsFull by remember { mutableStateOf(subPrefs.tagsSel.size == appAttribs.feedTags.size) }
             var queuesFull by remember { mutableStateOf(subPrefs.queueSelIds.size == queueNames.size) }
             fun onFilterChanged(newFilterValues: Set<String>) {
                 upsertBlk(subPrefs) { it.feedsFilter = StringUtils.join(newFilterValues, ",") }
@@ -1357,13 +1356,13 @@ fun SubscriptionsScreen() {
                     Column(Modifier.fillMaxSize()) {
                         val scrollStateV = rememberScrollState()
                         Column(Modifier.fillMaxSize().verticalScroll(scrollStateV)) {
-                            if (languages.size > 1) {
+                            if (appAttribs.languages.size > 1) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    val selectedList = remember { MutableList(languages.size) { mutableStateOf(false) } }
+                                    val selectedList = remember { MutableList(appAttribs.languages.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {
                                         Logd(TAG, "LaunchedEffect(reset) lang")
                                         for (index in selectedList.indices) {
-                                            if (languages[index] in subPrefs.langsSel) selectedList[index].value = true
+                                            if (appAttribs.languages[index] in subPrefs.langsSel) selectedList[index].value = true
                                             langFull = selectedList.count { it.value } == selectedList.size
                                         }
                                     }
@@ -1373,27 +1372,27 @@ fun SubscriptionsScreen() {
                                         if (expandRow) {
                                             val cb = {
                                                 val langsSel = mutableSetOf<String>()
-                                                for (i in languages.indices) {
-                                                    if (selectedList[i].value) langsSel.add(languages[i])
+                                                for (i in appAttribs.languages.indices) {
+                                                    if (selectedList[i].value) langsSel.add(appAttribs.languages[i])
                                                 }
                                                 upsertBlk(subPrefs) { it.langsSel = langsSel.toRealmSet() }
                                                 feedsFiltered += 1
-                                                Logd(TAG, "langsSel: ${subPrefs.langsSel.size} ${languages.size}")
+                                                Logd(TAG, "langsSel: ${subPrefs.langsSel.size} ${appAttribs.languages.size}")
                                             }
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
                                     }
-                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = languages.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = appAttribs.languages.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                         OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
                                                 val langsSel = subPrefs.langsSel.toMutableSet()
-                                                if (selectedList[index].value) langsSel.add(languages[index])
-                                                else langsSel.remove(languages[index])
+                                                if (selectedList[index].value) langsSel.add(appAttribs.languages[index])
+                                                else langsSel.remove(appAttribs.languages[index])
                                                 upsertBlk(subPrefs) { it.langsSel = langsSel.toRealmSet() }
                                                 feedsFiltered += 1
                                             },
-                                        ) { Text(text = languages[index], maxLines = 1, color = textColor) }
+                                        ) { Text(text = appAttribs.languages[index], maxLines = 1, color = textColor) }
                                     }
                                 }
                             }
@@ -1415,7 +1414,7 @@ fun SubscriptionsScreen() {
                                             for (i in queueNames.indices) {
                                                 if (selectedList[i].value) qSelIds.add(queueIds[i])
                                             }
-                                            upsertBlk(subPrefs) { it.queueSelIds = qSelIds!!.toRealmSet() }
+                                            upsertBlk(subPrefs) { it.queueSelIds = qSelIds.toRealmSet() }
                                             feedsFiltered += 1
                                         }
                                         SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
@@ -1428,19 +1427,19 @@ fun SubscriptionsScreen() {
                                             val qSelIds = subPrefs.queueSelIds.toMutableSet()
                                             if (selectedList[index].value) qSelIds.add(queueIds[index])
                                             else qSelIds.remove(queueIds[index])
-                                            upsertBlk(subPrefs) { it.queueSelIds = qSelIds!!.toRealmSet() }
+                                            upsertBlk(subPrefs) { it.queueSelIds = qSelIds.toRealmSet() }
                                             feedsFiltered += 1
                                         },
                                     ) { Text(text = queueNames[index], maxLines = 1, color = textColor) }
                                 }
                             }
-                            if (tags.isNotEmpty()) {
+                            if (appAttribs.feedTags.isNotEmpty()) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    val selectedList = remember { MutableList(tags.size) { mutableStateOf(false) } }
+                                    val selectedList = remember { MutableList(appAttribs.feedTags.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {
                                         Logd(TAG, "LaunchedEffect(reset) tag")
                                         for (index in selectedList.indices) {
-                                            if (tags[index] in subPrefs.tagsSel) selectedList[index].value = true
+                                            if (appAttribs.feedTags[index] in subPrefs.tagsSel) selectedList[index].value = true
                                             tagsFull = selectedList.count { it.value } == selectedList.size
                                         }
                                     }
@@ -1450,8 +1449,8 @@ fun SubscriptionsScreen() {
                                         if (expandRow) {
                                             val cb = {
                                                 val tagsSel = mutableSetOf<String>()
-                                                for (i in tags.indices) {
-                                                    if (selectedList[i].value) tagsSel.add(tags[i])
+                                                for (i in appAttribs.feedTags.indices) {
+                                                    if (selectedList[i].value) tagsSel.add(appAttribs.feedTags[i])
                                                 }
                                                 upsertBlk(subPrefs) { it.tagsSel = tagsSel.toRealmSet() }
                                                 feedsFiltered += 1
@@ -1459,17 +1458,17 @@ fun SubscriptionsScreen() {
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
                                     }
-                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = tags.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = appAttribs.feedTags.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                         OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
                                                 val tagsSel = subPrefs.tagsSel.toMutableSet()
-                                                if (selectedList[index].value) tagsSel.add(tags[index])
-                                                else tagsSel.remove(tags[index])
+                                                if (selectedList[index].value) tagsSel.add(appAttribs.feedTags[index])
+                                                else tagsSel.remove(appAttribs.feedTags[index])
                                                 upsertBlk(subPrefs) { it.tagsSel = tagsSel.toRealmSet() }
                                                 feedsFiltered += 1
                                             },
-                                        ) { Text(text = tags[index], maxLines = 1, color = textColor) }
+                                        ) { Text(text = appAttribs.feedTags[index], maxLines = 1, color = textColor) }
                                     }
                                 }
                             }
@@ -1572,9 +1571,9 @@ fun SubscriptionsScreen() {
                                 Spacer(Modifier.weight(0.3f))
                                 Button(onClick = {
                                     upsertBlk(subPrefs) {
-                                        it.tagsSel = tags.toRealmSet()
-                                        it.queueSelIds = queueIds!!.toRealmSet()
-                                        it.langsSel = languages.toRealmSet()
+                                        it.tagsSel = appAttribs.feedTags.toRealmSet()
+                                        it.queueSelIds = queueIds.toRealmSet()
+                                        it.langsSel = appAttribs.languages.toRealmSet()
                                     }
                                     selectNone = true
                                     reset++

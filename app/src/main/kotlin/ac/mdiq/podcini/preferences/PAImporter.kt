@@ -184,7 +184,10 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                         "custom_name" -> feed.customTitle = cursor.getStringOrNull(i)
                         "feed_url" -> feed.downloadUrl = cursor.getString(i)
                         "homepage" -> feed.link = cursor.getStringOrNull(i)
-                        "language" -> feed.language = cursor.getStringOrNull(i)
+                        "language" -> {
+                            val l = cursor.getStringOrNull(i)
+                            if (!l.isNullOrEmpty()) feed.languages.add(l)
+                        }
                         "author" -> feed.author = cursor.getStringOrNull(i)
                         "description" -> feed.description = cursor.getStringOrNull(i)
                         "login" -> feed.username = cursor.getStringOrNull(i)

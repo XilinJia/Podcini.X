@@ -63,15 +63,15 @@ class ShownotesCleaner(context: Context) {
         val startTime = System.nanoTime()
         // replace ASCII line breaks with HTML ones if shownotes don't contain HTML line breaks already
         if (!LINE_BREAK_REGEX.matcher(shownotes).find() && !shownotes.contains("<p>")) shownotes = shownotes.replace("\n", "<br />")
-        Logd(TAG, "nanotime0: ${System.nanoTime() - startTime}")
-        val document = Jsoup.parse(shownotes)
-        Logd(TAG, "nanotime: ${System.nanoTime() - startTime}")
+//        Logd(TAG, "nanotime0: ${System.nanoTime() - startTime}")
+        val document = Jsoup.parse(shownotes)   // TODO: this is time consuming
+//        Logd(TAG, "nanotime: ${System.nanoTime() - startTime}")
         cleanCss(document)
-        Logd(TAG, "nanotime1: ${System.nanoTime() - startTime}")
+//        Logd(TAG, "nanotime1: ${System.nanoTime() - startTime}")
         document.head().appendElement("style").attr("type", "text/css").text(webviewStyle)
-        Logd(TAG, "nanotime2: ${System.nanoTime() - startTime}")
+//        Logd(TAG, "nanotime2: ${System.nanoTime() - startTime}")
         addTimecodes(document, playableDuration)
-        Logd(TAG, "nanotime3: ${System.nanoTime() - startTime}")
+//        Logd(TAG, "nanotime3: ${System.nanoTime() - startTime}")
         return document.toString()
     }
 
@@ -136,6 +136,9 @@ class ShownotesCleaner(context: Context) {
         private val TAG: String = ShownotesCleaner::class.simpleName ?: "Anonymous"
 
         private val TIMECODE_LINK_REGEX: Pattern = Pattern.compile("podcini://timecode/(\\d+)")
+
+        private val HTTP_TIMECODE_LINK_REGEX: Pattern = Pattern.compile("^https?://[^\\s]+[?&]t=(\\d+)")
+
         private const val TIMECODE_LINK = "<a class=\"timecode\" href=\"podcini://timecode/%d\">%s</a>"
         private val TIMECODE_REGEX: Pattern = Pattern.compile("\\b((\\d+):)?(\\d+):(\\d{2})\\b")
         private val LINE_BREAK_REGEX: Pattern = Pattern.compile("<br */?>")
@@ -143,7 +146,15 @@ class ShownotesCleaner(context: Context) {
         private const val CSS_COMMENT = "/\\*.*?\\*/"
 
         fun isTimecodeLink(link: String?): Boolean {
-            return link != null && link.matches(TIMECODE_LINK_REGEX.pattern().toRegex())
+            if (link == null) return false
+            if(link.matches(TIMECODE_LINK_REGEX.pattern().toRegex())) return true
+            return false
+        }
+
+        fun isHTTPTimecodeLink(link: String?): Boolean {
+            if (link == null) return false
+            if (link.matches(HTTP_TIMECODE_LINK_REGEX.pattern().toRegex())) return true
+            return false
         }
 
         /**
@@ -154,6 +165,10 @@ class ShownotesCleaner(context: Context) {
             if (isTimecodeLink(link)) {
                 val m = TIMECODE_LINK_REGEX.matcher(link!!)
                 try { if (m.find()) return m.group(1)?.toInt()?:0 } catch (e: NumberFormatException) { Logs(TAG, e) }
+            }
+            if (isHTTPTimecodeLink(link)) {
+                val m = HTTP_TIMECODE_LINK_REGEX.matcher(link!!)
+                try { if (m.find()) return (m.group(1)?.toInt()?:0) * 1000 } catch (e: NumberFormatException) { Logs(TAG, e) }
             }
             return -1
         }

@@ -9,6 +9,7 @@ import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
@@ -136,6 +137,9 @@ class Episode : RealmObject {
 
     var isAutoDownloadEnabled: Boolean = true
 
+    @Ignore
+    val tagsAsString: String
+        get() = tags.joinToString(TAG_SEPARATOR)
     var tags: RealmSet<String> = realmSetOf()
 
     var clips: RealmSet<String> = realmSetOf()

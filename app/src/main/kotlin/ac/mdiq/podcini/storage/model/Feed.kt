@@ -52,7 +52,9 @@ class Feed : RealmObject {
 
     var description: String? = null
 
-    var language: String? = null
+//    var language: String? = null
+
+    var languages: RealmList<String> = realmListOf()
 
     var author: String? = null
 
@@ -381,6 +383,8 @@ class Feed : RealmObject {
         this.volumeAdaption = volumeAdaptionSetting?.value ?: 0
     }
 
+    var preferredLnaguages: RealmSet<String> = realmSetOf()
+
     // above from FeedPreferences
 
     constructor() : super()
@@ -417,7 +421,7 @@ class Feed : RealmObject {
         if (other.identifier != null) identifier = other.identifier
         if (other.link != null) link = other.link
         if (other.description != null) description = other.description
-        if (other.language != null) language = other.language
+//        if (other.language != null) language = other.language
         if (other.author != null) author = other.author
         if (other.paymentLinkList.isNotEmpty()) paymentLinkList = other.paymentLinkList
 
@@ -446,7 +450,7 @@ class Feed : RealmObject {
         if (other.identifier != null && (identifier == null || identifier != other.identifier)) return true
         if (other.link != null && (link == null || link != other.link)) return true
         if (other.description != null && (description == null || description != other.description)) return true
-        if (other.language != null && (language == null || language != other.language)) return true
+//        if (other.language != null && (language == null || language != other.language)) return true
         if (other.author != null && (author == null || author != other.author)) return true
         if (other.paymentLinkList.isNotEmpty() && (paymentLinkList.isEmpty() || paymentLinkList != other.paymentLinkList)) return true
         if (other.isPaged && !this.isPaged) return true

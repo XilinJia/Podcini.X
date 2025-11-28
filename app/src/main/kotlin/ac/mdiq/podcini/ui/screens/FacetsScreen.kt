@@ -14,7 +14,7 @@ import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
-import ac.mdiq.podcini.storage.database.getInQueueEpisodeIds
+import ac.mdiq.podcini.storage.database.inQueueEpisodeIdSet
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -117,7 +117,7 @@ import java.text.NumberFormat
 import java.util.Date
 
 enum class QuickAccess {
-    New, Planned, Repeats, Liked, Commented, Recorded, Queued, Downloaded, History, All, Custom
+    New, Planned, Repeats, Liked, Commented, Tagged, Recorded, Queued, Downloaded, History, All, Custom
 }
 
 var facetsMode by mutableStateOf(QuickAccess.New)
@@ -209,13 +209,17 @@ fun FacetsScreen() {
                 listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.has_comments.name).add(vm.filter), vm.sortOrder)
             }
+            QuickAccess.Tagged -> {
+                listIdentity += ".${vm.sortOrder.name}"
+                getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.tagged.name).add(vm.filter), vm.sortOrder)
+            }
             QuickAccess.Recorded -> {
                 listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.has_clips.name, EpisodeFilter.States.has_marks.name, andOr = "OR"), vm.sortOrder)
             }
             QuickAccess.Queued -> {
                 val qstr = EpisodeFilter(EpisodeFilter.States.inQueue.name).add(vm.filter).queryString()
-                val ids = getInQueueEpisodeIds()
+                val ids = inQueueEpisodeIdSet()
                 val sortPair = sortPairOf(vm.sortOrder)
                 listIdentity += ".${vm.sortOrder.name}"
                 realm.query(Episode::class).query("$qstr OR id IN $0", ids).sort(sortPair).asFlow()
@@ -564,6 +568,7 @@ fun FacetsScreen() {
                             runOnIOScope {
                                 virQueue = upsert(virQueue) { q ->
                                     q.identity = listIdentity
+                                    q.playInSequence = true
                                     q.sortOrder = vm.sortOrder
                                     q.episodeIds.clear()
                                     q.episodeIds.addAll(episodes.take(VIRTUAL_QUEUE_SIZE).map { it.id })

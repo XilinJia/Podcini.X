@@ -167,7 +167,7 @@
     <string name="combo_action">إجراءات التركيب</string>
     <string name="shelve_label">رفوف اصطناعي</string>
     <string name="add_to_queue_label">اضف للائحة الاستماع</string>
-    <string name="remove_from_queue_label">أزل من لائحة الاستماع</string>
+
     <string name="media_type">نوع الوسائط</string>
     <string name="unknown">غير معروف</string>
     <string name="audio">الصوت</string>
@@ -606,7 +606,7 @@
     <string name="authentication_descr">غيّر اسم المستخدم وكلمة المرور لهذا البودكاست وحلقاته.</string>
     <string name="tags_label">العلامات</string>
     <string name="feed_tags_summary">قم بتغيير العلامات الخاصة بهذا البودكاست للمساعدة في تنظيم اشتراكاتك</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} سيتم عرض العلامات المشتركة بين الاشتراكات المختارة فقط. لن يتم تعديل العلامات الأخرى</string>
+
     <string name="auto_download_settings_label">إعدادات التنزيل التلقائي</string>
     <string name="episode_filters_label">مصفاة الحلقات</string>
     <string name="episode_inclusive_filters_label">الفلتر الشامل للحلقة</string>

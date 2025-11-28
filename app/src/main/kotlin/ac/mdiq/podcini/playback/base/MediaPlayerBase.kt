@@ -9,9 +9,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
-import ac.mdiq.podcini.playback.base.InTheatre.writeMediaPlaying
-import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
-import ac.mdiq.podcini.playback.base.InTheatre.writePlayerStatus
+import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.PositionSaver.Companion.positionSaver
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.QuickSettingsTileService
@@ -87,7 +85,6 @@ import kotlin.math.max
 
 @UnstableApi
 abstract class MediaPlayerBase protected constructor(protected val context: Context) {
-
     @Volatile
     private var oldStatus: PlayerStatus? = null
     internal var prevMedia: Episode? = null
@@ -530,15 +527,15 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         currentMediaType = mediaType
         Logd(TAG, "setPlayerStatus $status")
         when {
-            isInitialized -> writeMediaPlaying(curEpisode, status)
+            isInitialized -> savePlayerStatus(curEpisode, status)
             isPrepared -> {
-                writeMediaPlaying(curEpisode, status)
+                savePlayerStatus(curEpisode, status)
                 if (curEpisode != null) startChapterLoader(curEpisode!!)
             }
-            isPaused -> writePlayerStatus(status)
+            isPaused -> savePlayerStatus(status)
             isStopped -> {}
             isPlaying -> {
-                writePlayerStatus(status)
+                savePlayerStatus(status)
                 persistCurrentPosition(true, null, Episode.INVALID_TIME)
                 // set sleep timer if auto-enabled
                 var autoEnableByTime = true
@@ -557,7 +554,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 }
             }
             isError -> {
-                writeNoMediaPlaying()
+                savePlayerStatus(null)
                 pause(reinit = false)
             }
             else -> {}
@@ -747,7 +744,6 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         var simpleCache: SimpleCache? = null
         var curDataSource: SegmentSavingDataSource? = null
 
-        
         var httpDataSourceFactory:  OkHttpDataSource.Factory? = null
 
         val prefPlaybackSpeed: Float

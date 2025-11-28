@@ -256,7 +256,9 @@
     <string name="shelve_label">Shelve to synthetic</string>
     <string name="add_to_queue_label">Add to active queue</string>
     <string name="add_to_associated_queue">Add to associated queue</string>
-    <string name="remove_from_queue_label">Remove from active queue</string>
+
+    <string name="remove_from_all_queues">Remove from all queues</string>
+
 
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
@@ -445,7 +447,6 @@
     <string name="button_action_rewind">Rewind</string>
     <string name="button_action_skip_episode">Skip episode</string>
     <string name="button_action_restart_episode">Restart episode</string>
-    <string name="pref_followQueue_sum">Jump to next queue item when playback completes</string>
     <string name="pref_custom_media_dir_title">Use custom media folder</string>
     <string name="pref_custom_media_dir_sum">Choose a custom folder for downloaded media. You can always reset. A restart is needed.</string>
     <string name="pref_custom_media_dir_sum1">Custom media folder is set. Want to change?</string>
@@ -479,6 +480,8 @@
     <string name="alarm_start_time_sum">Set start hour (0-23) and minute (0-59) for the episode to be played. Leaving the fields empty means the alarm is not set.</string>
 
     <string name="pref_followQueue_title">Continuous playback</string>
+    <string name="pref_followQueue_sum">Jump to next queue item when playback completes</string>
+
     <string name="pref_pauseOnHeadsetDisconnect_title">Headphones or Bluetooth disconnect</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Headphones reconnect</string>
     <string name="pref_unpauseOnBluetoothReconnect_title">Bluetooth reconnect</string>
@@ -762,7 +765,8 @@
     <string name="authentication_descr">Change your username and password for this podcast and its episodes.</string>
     <string name="tags_label">Tags</string>
     <string name="feed_tags_summary">Change the tags of this podcast to help organize your subscriptions</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Only common tags from all selected subscriptions are shown. Other tags stay unaffected.</string>
+    <string name="tagging_multiple_sum">Existing tags are not shown when editing for multiple entities.</string>
+
     <string name="auto_download_settings_label">Auto download settings</string>
     <string name="episode_filters_label">Episode filter</string>
     <string name="join_categories_with">Join categories with</string>
@@ -858,6 +862,7 @@
     <string name="youtube">Youtube</string>
     <string name="rss">RSS</string>
     <string name="has_video">Has video</string>
+    <string name="tagged">Tagged</string>
     <string name="has_comments">Has commented</string>
     <string name="has_clips">Has clips</string>
     <string name="has_marks">Has marks</string>

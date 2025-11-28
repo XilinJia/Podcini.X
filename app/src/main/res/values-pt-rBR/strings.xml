@@ -134,7 +134,7 @@
 
 
     <string name="add_to_queue_label">Adicionar à fila</string>
-  <string name="remove_from_queue_label">Remover da fila</string>
+
 
 
     <string name="visit_website_label">Visitar o site</string>
@@ -457,7 +457,7 @@
   <string name="authentication_descr">Altera seu nome de usuário e sua senha para este podcast e seus episódios.</string>
   <string name="tags_label">Etiquetas</string>
   <string name="feed_tags_summary">Altere as etiquetas desse podcast para ajudar a organizar suas assinaturas</string>
-  <string name="multi_feed_common_tags_info">{faw_info_circle} São mostradas apenas as etiquetas comuns às assinaturas selecionadas. As outras etiquetas não são afetadas.</string>
+
   <string name="auto_download_settings_label">Configurações do download automático</string>
   <string name="episode_filters_description">Lista de termos utilizados para decidir se um episódio deve ser incluído ou excluído no download automático</string>
   <string name="exclude_terms">Excluir episódios que possuam qualquer um dos termos abaixo</string>

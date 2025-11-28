@@ -214,32 +214,31 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
         }
     }
 
-    val showConfirmYoutubeDialog = remember { mutableStateOf(false) }
-    val ytUrls = remember { mutableListOf<String>() }
-    gearbox.ConfirmAddEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
-
     var showChooseRatingDialog by remember { mutableStateOf(false) }
-    if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
-
     var showAddCommentDialog by remember { mutableStateOf(false) }
-    if (showAddCommentDialog) AddCommentDialog(selected) { showAddCommentDialog = false }
-
     var showIgnoreDialog by remember { mutableStateOf(false) }
     var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
-    if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { futureState = it },{ showIgnoreDialog = true })
-
     var showPutToQueueDialog by remember { mutableStateOf(false) }
-    if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
-
     var showShelveDialog by remember { mutableStateOf(false) }
-    if (showShelveDialog) ShelveDialog(selected) { showShelveDialog = false }
-
     var showEraseDialog by remember { mutableStateOf(false) }
-    if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismissRequest = { showEraseDialog = false })
+    val showConfirmYoutubeDialog = remember { mutableStateOf(false) }
+    val ytUrls = remember { mutableListOf<String>() }
 
-    if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismissRequest = { showIgnoreDialog = false })
-    if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(selected, futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
+    @Composable
+    fun OpenDialogs() {
+        gearbox.ConfirmAddEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
+        if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
+        if (showAddCommentDialog) AddCommentDialog(selected) { showAddCommentDialog = false }
+        if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { futureState = it }, { showIgnoreDialog = true })
+        if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
+        if (showShelveDialog) ShelveDialog(selected) { showShelveDialog = false }
+        if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismissRequest = { showEraseDialog = false })
+        if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismissRequest = { showIgnoreDialog = false })
+        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(selected, futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
+    }
+
+    OpenDialogs()
 
     @Composable
     fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
@@ -309,7 +308,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 runOnIOScope { for (e in selected) smartRemoveFromActQueue(e) }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), "Remove from active queue")
-                Text(stringResource(id = R.string.remove_from_queue_label)) } },
+                Text(stringResource(id = R.string.remove_from_all_queues)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 runOnIOScope {
@@ -583,16 +582,17 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             TitleColumn(index, modifier = Modifier.fillMaxWidth())
                             if (showActionButtons) {
                                 if (actionButton_ == null) {
-                                    LaunchedEffect(playerStat) {
-                                        //                                Logd(TAG, "LaunchedEffect playerStat: $playerStat")
-                                        if (episode.id == curMediaId) {
-                                            if (playerStat == PLAYER_STATUS_PLAYING) {
-                                                actionButton.type = ButtonTypes.PAUSE
-                                                //                                        subscribeCurVM()
-                                            }
-                                            else actionButton.update(episode)
-                                        } else if (actionButton.type == ButtonTypes.PAUSE) actionButton.update(episode)
-                                    }
+//                                    LaunchedEffect(playerStat) {
+//                                        if (episode.id == curMediaId) {
+//                                            if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
+//                                            else actionButton.update(episode)
+//                                        } else if (actionButton.type == ButtonTypes.PAUSE) actionButton.update(episode)
+//                                    }
+                                    if (episode.id == curMediaId) {
+                                        if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
+                                        else actionButton.update(episode)
+                                    } else if (actionButton.type == ButtonTypes.PAUSE) actionButton.update(episode)
+                                    LaunchedEffect(episode.downloaded) { actionButton.update(episode) }
                                 } else LaunchedEffect(Unit) { actionButton = actionButton_(episode) }
                                 Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd).pointerInput(Unit) {
                                     detectTapGestures(

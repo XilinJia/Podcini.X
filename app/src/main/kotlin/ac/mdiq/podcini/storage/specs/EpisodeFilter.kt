@@ -149,6 +149,11 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             propertySet.contains(States.no_comments.name) -> statements.add(" comment == '' ")
         }
 
+        when {
+            propertySet.contains(States.tagged.name) -> statements.add(" tags.@count > 0 ")
+            propertySet.contains(States.untagged.name) -> statements.add(" tags.@count == 0 ")
+        }
+
         if (statements.isEmpty()) return "id > 0"
         val query = StringBuilder(" (" + statements[0])
         if (statements.size > 1)  for (r in statements.subList(1, statements.size)) {
@@ -193,6 +198,9 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
 
         has_comments,
         no_comments,
+
+        tagged,
+        untagged,
 
         has_clips,
         no_clips,
@@ -254,7 +262,9 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             FilterProperties(R.string.passed, States.passed.name),
             FilterProperties(R.string.ignored, States.ignored.name),
         ),
-        OPINION(R.string.has_comments, FilterProperties(R.string.yes, States.has_comments.name), FilterProperties(R.string.no, States.no_comments.name),exclusive = true),
+        OPINION(R.string.has_comments, FilterProperties(R.string.yes, States.has_comments.name), FilterProperties(R.string.no, States.no_comments.name), exclusive = true),
+
+        TAGGED(R.string.tagged, FilterProperties(R.string.yes, States.tagged.name), FilterProperties(R.string.no, States.untagged.name), exclusive = true),
 
         CLIPPED(R.string.has_clips, FilterProperties(R.string.yes, States.has_clips.name), FilterProperties(R.string.no, States.no_clips.name),exclusive = true),
 

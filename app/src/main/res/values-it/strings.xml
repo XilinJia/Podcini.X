@@ -165,7 +165,7 @@
     <string name="combo_action">Azione combinata</string>
     <string name="shelve_label">Ripiano a sintetico</string>
     <string name="add_to_queue_label">Aggiungi alla coda</string>
-    <string name="remove_from_queue_label">Rimuovi dalla coda</string>
+
     <string name="media_type">Tipo di supporto</string>
     <string name="unknown">Sconosciuto</string>
     <string name="audio">Audio</string>
@@ -588,7 +588,7 @@
     <string name="authentication_descr">Cambia il nome utente e la password per questo podcast e i suoi episodi.</string>
     <string name="tags_label">Tag</string>
     <string name="feed_tags_summary">Cambia i tag di questo podcast per agevolare l\'organizzazione delle tue iscrizioni</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Vengono mostrati solo i tag comuni alle iscrizioni selezionate. Gli altri tag non vengono modificati.</string>
+
     <string name="auto_download_settings_label">Impostazioni download automatico</string>
     <string name="episode_filters_label">Filtro degli episodi</string>
     <string name="episode_inclusive_filters_label">Filtro inclusivo Episodio</string>

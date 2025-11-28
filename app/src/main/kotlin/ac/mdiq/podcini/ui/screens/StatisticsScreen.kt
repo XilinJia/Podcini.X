@@ -702,6 +702,7 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
     result.oldestDate = Long.MAX_VALUE
     for ((fid, episodes) in groupdMedias) {
         val feed = getFeed(fid, false) ?: continue
+        Logd(TAG, "getStatistics feed: ${feed.title}")
         val fStat = FeedStatistics()
         fStat.feed = feed
         fStat.item.episodesTotal = episodes.size
@@ -809,17 +810,18 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
 fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Long, showOpenFeed: Boolean = false, onDismissRequest: () -> Unit) {
     val navController = LocalNavController.current
     var fStat by remember { mutableStateOf<FeedStatistics?>(null) }
-//    val vms = remember { mutableStateListOf<EpisodeVM>() }
     val episodes = remember { mutableStateListOf<Episode>()  }
     fun loadStatistics() {
         try {
             val data = getStatistics(timeFrom, timeTo, feedId)
-            data.feedStats.sortWith { stat1: FeedStatistics, stat2: FeedStatistics -> stat2.item.timePlayed.compareTo(stat1.item.timePlayed) }
-            if (data.feedStats.isNotEmpty()) fStat = data.feedStats[0]
+            if (data.feedStats.isNotEmpty()) {
+                Logd(TAG, "loadStatistics data.feedStats: ${data.feedStats.size}")
+                data.feedStats.sortWith { stat1: FeedStatistics, stat2: FeedStatistics -> stat2.item.timePlayed.compareTo(stat1.item.timePlayed) }
+                fStat = data.feedStats[0]
+                Logd(TAG,"loadStatistics durationTotal ${fStat?.item?.durationTotal}")
+            }
             episodes.clear()
             episodes.addAll(data.episodes)
-//            vms.clear()
-//            for (e in data.episodes) vms.add(EpisodeVM(e, TAG))
         } catch (error: Throwable) { Logs(TAG, error, "loadStatistics failed") }
     }
     LaunchedEffect(Unit) { loadStatistics() }
@@ -835,19 +837,19 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
                 }
                 Row {
                     Text(stringResource(R.string.statistics_length_played), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort(fStat?.item?.durationStarted ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(getDurationStringShort((fStat?.item?.durationStarted ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_time_played), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort(fStat?.item?.timePlayed ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(getDurationStringShort((fStat?.item?.timePlayed ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_time_spent), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort(fStat?.item?.timeSpent ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(getDurationStringShort((fStat?.item?.timeSpent ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_total_duration), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    Text(getDurationStringShort(fStat?.item?.durationTotal ?: 0, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
+                    Text(getDurationStringShort(duration = (fStat?.item?.durationTotal ?: 0)*1000, true), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
                 Row {
                     Text(stringResource(R.string.statistics_episodes_on_device), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))

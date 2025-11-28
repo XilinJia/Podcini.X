@@ -25,7 +25,6 @@ import ac.mdiq.podcini.utils.Logt
 import android.app.backup.BackupManager
 import android.content.Context
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
@@ -50,12 +49,12 @@ import kotlin.math.abs
 private const val TAG: String = "Feeds"
 var feedOperationText by mutableStateOf("")
 
-val tags = mutableStateListOf<String>()
-val languages = mutableStateListOf<String>()
+var feeds = listOf<Feed>()
 
 @Synchronized
 fun getFeedList(queryString: String = ""): List<Feed> {
-    return if (queryString.isEmpty()) realm.query(Feed::class).find()
+//    return if (queryString.isEmpty()) realm.query(Feed::class).find()
+    return if (queryString.isEmpty()) feeds
     else realm.query(Feed::class, queryString).find()
 }
 
@@ -64,13 +63,18 @@ fun getFeedCount(): Int = realm.query(Feed::class).count().find().toInt()
 fun compileLanguages() {
     val langsSet = mutableSetOf<String>()
     val feeds = getFeedList()
-    for (feed in feeds) langsSet.add(if (!feed.language.isNullOrBlank()) feed.language!! else "")
-    Logd(TAG, "langsSet: ${langsSet.size} languages: ${languages.size}")
-    val newLanguages = langsSet - languages.toSet()
+    for (feed in feeds) {
+        val langs = feed.languages
+        if (langs.isNotEmpty()) langsSet.addAll(langs)
+    }
+    Logd(TAG, "langsSet: ${langsSet.size} appAttribs.languages: ${appAttribs.languages.size}")
+    val newLanguages = langsSet - appAttribs.languages.toSet()
     if (newLanguages.isNotEmpty()) {
-        languages.clear()
-        languages.addAll(langsSet)
-        languages.sort()
+        upsertBlk(appAttribs) {
+            it.languages.clear()
+            it.languages.addAll(langsSet)
+            it.languages.sort()
+        }
     }
 }
 
@@ -78,11 +82,13 @@ fun compileTags() {
     val tagsSet = mutableSetOf<String>()
     val feeds = getFeedList()
     for (feed in feeds) tagsSet.addAll(feed.tags.filter { it != TAG_ROOT })
-    val newTags = tagsSet - tags.toSet()
+    val newTags = tagsSet - appAttribs.feedTags
     if (newTags.isNotEmpty()) {
-        tags.clear()
-        tags.addAll(tagsSet)
-        tags.sort()
+        upsertBlk(appAttribs) {
+            it.feedTags.clear()
+            it.feedTags.addAll(tagsSet)
+            it.feedTags.sort()
+        }
     }
 }
 
@@ -105,7 +111,7 @@ fun monitorFeedList(scope: CoroutineScope) {
     val feedQuery = realm.query(Feed::class)
     monitorJob = scope.launch(Dispatchers.IO) {
         feedQuery.asFlow().collect { changes: ResultsChange<Feed> ->
-            val feeds = changes.list
+            feeds = changes.list
 //            Logd(TAG, "monitorFeedList feeds size: ${feeds.size}")
             when (changes) {
                 is UpdatedResults -> {
@@ -117,6 +123,7 @@ fun monitorFeedList(scope: CoroutineScope) {
                                 ids.add(feeds[i].id)
                             }
                             feedIds.value = ids.toList()
+                            compileLanguages()
                             // TODO: not sure why the state flow does not collect
                             EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
                         }

@@ -162,7 +162,7 @@
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Shelve to synthetic</string>
     <string name="add_to_queue_label">Add to active queue</string>
-    <string name="remove_from_queue_label">Remove from active queue</string>
+
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
     <string name="audio">Audio</string>
@@ -585,7 +585,7 @@
     <string name="authentication_descr">A felhasználónév és jelszó módosítása ennél a podcastnál és az epizódoknál.</string>
     <string name="tags_label">Címkék</string>
     <string name="feed_tags_summary">Módosítja a podcast címkéit, hogy segítsen a feliratkozásai rendszerezésében</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Csak a kiválasztott feliratkozások közös címkéi jelennek meg. A többi címke változatlan marad.</string>
+
     <string name="auto_download_settings_label">Auto download settings</string>
     <string name="episode_filters_label">Episode filter</string>
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>

@@ -4,7 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.setCurTempSpeed
+import ac.mdiq.podcini.playback.base.InTheatre.saveCurTempSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
@@ -21,6 +21,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
 import ac.mdiq.podcini.preferences.OpmlTransporter
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.compileTags
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed
@@ -28,7 +29,6 @@ import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getPreserveSyndicate
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.shelveToFeed
-import ac.mdiq.podcini.storage.database.tags
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -334,89 +334,6 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
-@Composable
-fun TagSettingDialog(feeds_: List<Feed>, onDismiss: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        val feeds = realm.query(Feed::class).query("id IN $0", feeds_.map {it.id}).find()
-//        val suggestions = remember { tags }
-        val commonTags = remember {
-            if (feeds.size == 1) feeds[0].tags.toMutableStateList()
-            else {
-                val commons = feeds[0].tags.toMutableSet()
-                if (commons.isNotEmpty()) for (f in feeds) commons.retainAll(f.tags)
-                commons.toMutableStateList()
-            }
-        }
-        Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.tags_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
-                var text by remember { mutableStateOf("") }
-                var filteredSuggestions = remember { tags.toList() }
-                var showSuggestions by remember { mutableStateOf(false) }
-                val tags = remember { commonTags.toMutableStateList() }
-                if (feeds.size > 1 && commonTags.isNotEmpty()) Text(stringResource(R.string.multi_feed_common_tags_info))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    tags.forEach { FilterChip(onClick = {  }, label = { Text(it) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
-                        modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { tags.remove(it) })) }) }
-                }
-                ExposedDropdownMenuBox(expanded = showSuggestions, onExpandedChange = { }) {
-                    TextField(value = text, placeholder = { Text("Type something...") }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
-                        modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true), // Material3 requirement
-                        onValueChange = {
-                            text = it
-                            filteredSuggestions = tags.filter { item -> item.contains(text, ignoreCase = true) && item !in tags }
-                            showSuggestions = text.isNotEmpty() && filteredSuggestions.isNotEmpty()
-                        },
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                if (text.isNotBlank()) {
-                                    if (text !in tags) tags.add(text)
-                                    text = ""
-                                }
-                            }
-                        ),
-                        trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon",
-                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                if (text.isNotBlank()) {
-                                    if (text !in tags) tags.add(text)
-                                    text = ""
-                                }
-                            })) }
-                    )
-                    ExposedDropdownMenu(expanded = showSuggestions, onDismissRequest = { showSuggestions = false }) {
-                        for (i in filteredSuggestions.indices) {
-                            DropdownMenuItem(text = { Text(filteredSuggestions[i]) },
-                                onClick = {
-                                    text = filteredSuggestions[i]
-                                    showSuggestions = false
-                                }
-                            )
-                        }
-                    }
-                }
-                Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
-                    Button(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
-                    Spacer(Modifier.weight(1f))
-                    Button(onClick = {
-                        Logd("TagsSettingDialog", "tags: [${tags.joinToString()}] commonTags: [${commonTags.joinToString()}]")
-                        if ((tags.toSet() + commonTags.toSet()).isNotEmpty() || text.isNotBlank()) {
-                            for (f in feeds) upsertBlk(f) {
-                                if (commonTags.isNotEmpty()) it.tags.removeAll(commonTags)
-                                if (tags.isNotEmpty()) it.tags.addAll(tags)
-                                if (text.isNotBlank()) it.tags.add(text)
-                            }
-                            compileTags()
-                        }
-                        onDismiss()
-                    }) { Text(stringResource(R.string.confirm_label)) }
-                }
-            }
-        }
-    }
-}
-
 private fun speed2Slider(speed: Float, maxSpeed: Float): Float {
     return if (speed < 1) (speed - 0.1f) / 1.8f else (speed - 2f + maxSpeed) / 2 / (maxSpeed - 1f)
 }
@@ -602,11 +519,11 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                     if (settingCode[2]) putPref(AppPrefs.prefPlaybackSpeed, chipSpeed.toString())
                                     if (settingCode[1] && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
                                     if (settingCode[0]) {
-                                        setCurTempSpeed(chipSpeed)
+                                        saveCurTempSpeed(chipSpeed)
                                         mPlayer?.setPlaybackParams(chipSpeed, isSkipSilence)
                                     }
                                 } else {
-                                    setCurTempSpeed(chipSpeed)
+                                    saveCurTempSpeed(chipSpeed)
                                     mPlayer?.setPlaybackParams(chipSpeed, isSkipSilence)
                                 }
                             }

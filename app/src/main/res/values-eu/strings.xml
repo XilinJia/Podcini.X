@@ -132,7 +132,7 @@
 
 
     <string name="add_to_queue_label">Gehitu ilaran</string>
-  <string name="remove_from_queue_label">Kendu ilaratik</string>
+
 
 
     <string name="visit_website_label">Bisitatu webgunea</string>
@@ -434,7 +434,7 @@
   <string name="authentication_descr">Aldatu podcast honen eta bere saioen erabiltzaile izena eta pasahitza.</string>
   <string name="tags_label">Etiketak</string>
   <string name="feed_tags_summary">Aldatu podcast honen etiketak zure harpidetzak antolatzen laguntzeko</string>
-  <string name="multi_feed_common_tags_info">{faw_info_circle} Hautatutako harpidetza guztien ohiko etiketak baino ez dira erakusten. Gainerako etiketek ez dute eraginik izango.</string>
+
   <string name="episode_filters_description">Saio bat deskarga automatikotik kanpo utzi behar den edo ez erabakitzeko erabilitako terminoen zerrenda</string>
   <string name="keep_updated">Mantendu eguneratuta</string>
   <string name="keep_updated_summary">Eguneratu podcast hau ere podcast guztiak (auto-)eguneratzean</string>

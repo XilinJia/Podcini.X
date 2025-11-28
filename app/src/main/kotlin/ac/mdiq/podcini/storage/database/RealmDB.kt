@@ -26,6 +26,7 @@ import io.github.xilinjia.krdb.RealmConfiguration
 import io.github.xilinjia.krdb.UpdatePolicy
 import io.github.xilinjia.krdb.dynamic.DynamicMutableRealmObject
 import io.github.xilinjia.krdb.dynamic.DynamicRealmObject
+import io.github.xilinjia.krdb.dynamic.getNullableValue
 import io.github.xilinjia.krdb.dynamic.getValue
 import io.github.xilinjia.krdb.dynamic.getValueList
 import io.github.xilinjia.krdb.dynamic.getValueSet
@@ -64,7 +65,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(70)
+    )).name("Podcini.realm").schemaVersion(72)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -261,27 +262,21 @@ val config: RealmConfiguration by lazy {
                         Logd(TAG, "migrating DB eids: ${eids.size}")
                         val episodes = newRealm.query("Episode", "id IN $0", eids).find()
                         Logd(TAG, "migrating DB episodes: ${episodes.size}")
-                        for (e in episodes) {
-                            e.set("timeInQueue", t+c++)
-                        }
+                        for (e in episodes) e.set("timeInQueue", t + c++)
                         //                            val newEpisodes = queue.getObjectList("episodes")
                         //                            newEpisodes.addAll(episodes)
                         val beids = oldQueue.getValueList<Long>("idsBinList")
                         Logd(TAG, "migrating DB beids: ${beids.size}")
                         val bepisodes = newRealm.query("Episode", "id IN $0", beids).find()
                         Logd(TAG, "migrating DB bepisodes: ${bepisodes.size}")
-                        for (e in bepisodes) {
-                            e.set("timeOutQueue", t+c++)
-                        }
+                        for (e in bepisodes) e.set("timeOutQueue", t + c++)
                     }
                 }
             }
             if (oldRealm.schemaVersion() < 59) {
                 Logd(TAG, "migrating DB from below 59")
                 val queues = newRealm.query("PlayQueue").find()
-                for (queue in queues) {
-                    queue.set("launchAutoEQDlWhenEmpty", true)
-                }
+                for (queue in queues) queue.set("launchAutoEQDlWhenEmpty", true)
             }
             if (oldRealm.schemaVersion() < 65) {
                 Logd(TAG, "migrating DB from below 65")
@@ -294,6 +289,36 @@ val config: RealmConfiguration by lazy {
                         )
                     )
                 )
+            }
+            if (oldRealm.schemaVersion() < 71) {
+                Logd(TAG, "migrating DB from below 71")
+                val queues = newRealm.query("PlayQueue").find()
+                for (queue in queues) queue.set("playInSequence", true)
+            }
+            if (oldRealm.schemaVersion() < 72) {
+                Logd(TAG, "migrating DB from below 72")
+                val appAttribs = newRealm.query("AppAttribs").find()
+                if (appAttribs.isNotEmpty()) {
+                    val aa = appAttribs[0]
+                    val fTags = aa.getValueList<String>("feedTags")
+                    val languages = aa.getValueList<String>("languages")
+                    val feedsOld = oldRealm.query("Feed").find()
+                    for (f in feedsOld) {
+                        val id = f.getValue<Long>("id")
+                        val lang = f.getNullableValue<String>("language") ?: ""
+                        Logd(TAG, "migrating feed language $[lang]")
+                        val fNew = newRealm.query("Feed", "id == $id").first().find()
+                        if (fNew != null) {
+                            val langs = fNew.getValueList<String>("languages")
+                            langs.add(lang)
+                        }
+                        Logd(TAG, "migrating languages [$lang]")
+                        languages.add(lang)
+                        val tags = f.getValueSet<String>("tags")
+                        Logd(TAG, "migrating tags [$tags]")
+                        fTags.addAll(tags)
+                    }
+                }
             }
         }).build()
 }

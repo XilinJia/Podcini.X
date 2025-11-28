@@ -51,7 +51,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -109,7 +108,6 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
@@ -130,7 +128,7 @@ class MainActivity : BaseActivity() {
     private var lastTheme = 0
 //    private var navigationBarInsets = Insets.NONE
 
-    val prefs: SharedPreferences by lazy { getSharedPreferences("MainActivityPrefs", MODE_PRIVATE) }
+//    val prefs: SharedPreferences by lazy { getSharedPreferences("MainActivityPrefs", MODE_PRIVATE) }
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
         Logt(TAG, getString(R.string.notification_permission_text))
@@ -166,7 +164,6 @@ class MainActivity : BaseActivity() {
     public override fun onCreate(savedInstanceState: Bundle?) {
         lastTheme = getNoTitleTheme(this)
         setTheme(lastTheme)
-        lifecycleScope.launch(Dispatchers.IO) { prefs }
 
         if (BuildConfig.DEBUG) {
             val builder = StrictMode.ThreadPolicy.Builder()
@@ -176,7 +173,7 @@ class MainActivity : BaseActivity() {
             StrictMode.setThreadPolicy(builder.build())
         }
 
-        lifecycleScope.launch((Dispatchers.IO)) { compileTags() }
+//        lifecycleScope.launch((Dispatchers.IO)) { compileTags() }
 
         super.onCreate(savedInstanceState)
         handleNavIntent()
@@ -199,11 +196,11 @@ class MainActivity : BaseActivity() {
         else checkAndRequestUnrestrictedBackgroundActivity()
 
         val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
-        val lastScheduledVersion = prefs.getString(Extras.lastVersion.name, "0")
+        val lastScheduledVersion = getPref(AppPreferences.AppPrefs.lastVersion, "0")
         if (currentVersion != lastScheduledVersion) {
             WorkManager.getInstance(applicationContext).cancelUniqueWork(feedUpdateWorkId)
             scheduleUpdateTaskOnce(applicationContext, true)
-            prefs.edit { putString(Extras.lastVersion.name, currentVersion) }
+            putPref(AppPreferences.AppPrefs.lastVersion, currentVersion)
         } else scheduleUpdateTaskOnce(applicationContext, false)
 
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
@@ -523,8 +520,6 @@ class MainActivity : BaseActivity() {
         fragment_feed_id,
         fragment_feed_url,
         refresh_on_start,
-        started_from_share, // TODO: seems not needed
-        add_to_back_stack,
         generated_view_id,
         search_string,
         isShared

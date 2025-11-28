@@ -7,12 +7,8 @@ import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
-import ac.mdiq.podcini.playback.base.InTheatre.writeMediaPlaying
-import ac.mdiq.podcini.playback.base.InTheatre.writeNoMediaPlaying
-import ac.mdiq.podcini.playback.base.PlayerStatus
+import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
@@ -28,8 +24,7 @@ import kotlin.random.Random
 
 private const val TAG: String = "Queues"
 
-
-fun getInQueueEpisodeIds(): Set<Long> {
+fun inQueueEpisodeIdSet(): Set<Long> {
     Logd(TAG, "getQueueIDList() called")
     val queues = realm.query(PlayQueue::class).find()
     val ids = mutableSetOf<Long>()
@@ -276,7 +271,12 @@ fun getNextInQueue(currentMedia: Episode?): Episode? {
     val eList = actQueue.episodes
     if (eList.isEmpty()) {
         Logd(TAG, "getNextInQueue queue is empty")
-        writeNoMediaPlaying()
+        savePlayerStatus(null)
+        return null
+    }
+    if (!actQueue.playInSequence) {
+        Logd(TAG, "getNextInQueue(), but follow queue is not enabled.")
+        savePlayerStatus(null)
         return null
     }
     Logd(TAG, "getNextInQueue curIndexInQueue: $curIndexInQueue ${eList.size}")
@@ -292,12 +292,6 @@ fun getNextInQueue(currentMedia: Episode?): Episode? {
         }
     } else eList[0]
     Logd(TAG, "getNextInQueue nextItem ${nextItem.title}")
-    val continuePlay = getPref(AppPrefs.prefFollowQueue, true)
-    if (!continuePlay) {
-        Logd(TAG, "getNextInQueue(), but follow queue is not enabled.")
-        writeMediaPlaying(nextItem, PlayerStatus.STOPPED)
-        return null
-    }
     nextItem = checkAndMarkDuplicates(nextItem)
     episodeChangedWhenScreenOff = true
     return nextItem

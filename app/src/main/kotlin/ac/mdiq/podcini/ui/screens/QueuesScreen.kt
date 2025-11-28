@@ -187,7 +187,7 @@ fun QueuesScreen() {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    queuesFlow = realm.query<PlayQueue>().asFlow()
+                    queuesFlow = realm.query<PlayQueue>().sort("name").asFlow()
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
@@ -231,7 +231,7 @@ fun QueuesScreen() {
     val queues = queuesResults?.list ?: emptyList()
 
     val queueNames = remember(queues) { queues.map { it.name } }
-    val spinnerTexts = remember(queues) { queues.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" } }
+    val spinnerTexts = remember(queues, actQueue) { queues.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" } }
     var actIndex by remember(queues) {  mutableIntStateOf(queues.indexOfFirst { it.id == actQueue.id } ) }
 
     LaunchedEffect(queues) { curIndex = queues.indexOfFirst { it.id == appAttribs.curQueueId }  }
@@ -463,6 +463,10 @@ fun QueuesScreen() {
                         }))
                 })
             }
+            TitleSummarySwitchRow(R.string.pref_followQueue_title, R.string.pref_followQueue_sum, curQueue.playInSequence) { v ->
+                upsertBlk(curQueue) { it.playInSequence = v }
+            }
+
             var showLocationOptions by remember { mutableStateOf(false) }
             var location by remember { mutableStateOf(EnqueueLocation.BACK) }
             TitleSummaryActionColumn(R.string.pref_enqueue_location_title, R.string.pref_enqueue_location_sum) { showLocationOptions = true }

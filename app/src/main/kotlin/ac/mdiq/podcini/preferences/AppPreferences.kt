@@ -194,6 +194,8 @@ object AppPreferences {
 
     @Suppress("EnumEntryName")
     enum class AppPrefs(val default: Any?) {
+        lastVersion("0"),
+
         prefOPMLBackup(true),
         prefOPMLRestore(false),
         prefOPMLFeedsToRestore(0),
@@ -219,7 +221,6 @@ object AppPreferences {
         prefUnpauseOnBluetoothReconnect(false),
         prefHardwareForwardButton(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD.toString()),
         prefHardwarePreviousButton(KeyEvent.KEYCODE_MEDIA_REWIND.toString()),
-        prefFollowQueue(true),
         prefSkipKeepsEpisode(true),
         prefRemoveFromQueueMarkedPlayed(true),
         prefFavoriteKeepsEpisode(true),

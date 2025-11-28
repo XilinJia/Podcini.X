@@ -161,7 +161,7 @@
     <string name="combo_action">组合操作</string>
     <string name="shelve_label">架设为合成的</string>
     <string name="add_to_queue_label">添加到活动队列</string>
-    <string name="remove_from_queue_label">从活动队列中删除</string>
+
     <string name="media_type">媒体类型</string>
     <string name="unknown">未知的</string>
     <string name="audio">音频</string>
@@ -580,7 +580,7 @@
     <string name="authentication_descr">更改这个播客及其剧集的用户名和密码。</string>
     <string name="tags_label">标签</string>
     <string name="feed_tags_summary">更改此播客的标签以帮助安排您的订阅</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Only common tags from all selected subscriptions are shown. Other tags stay unaffected.</string>
+
     <string name="auto_download_settings_label">自动下载设置</string>
     <string name="episode_filters_label">剧集过滤器</string>
     <string name="episode_inclusive_filters_label">剧集包含筛选器</string>

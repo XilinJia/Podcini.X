@@ -129,7 +129,7 @@
 
 
     <string name="add_to_queue_label">Legg til i kø</string>
-  <string name="remove_from_queue_label">Fjern fra køen</string>
+
 
 
     <string name="visit_website_label">Besøk nettside</string>
@@ -461,7 +461,7 @@
   <string name="authentication_descr">Endre brukernavnet og passordet for denne podkasten og dens episoder</string>
   <string name="tags_label">Tagger</string>
   <string name="feed_tags_summary">Endre tagger av podcasten for å organisere abonnementene dine bedre</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Bare standard tagger fra alle valgte abonnementer er synlig.  Andre tagger blir ikke påvirket.</string>
+
   <string name="auto_download_settings_label">Innstillinger for automatisk nedlastning</string>
   <string name="episode_filters_label">Episodefiltrering</string>
   <string name="episode_filters_description">Nøkkelord som skal brukes for å avgjøre om en episode skal nedlastes automatisk eller ikke</string>

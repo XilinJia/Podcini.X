@@ -55,7 +55,6 @@ object InTheatre {
 
     var actQueue by mutableStateOf(PlayQueue())
 
-//    private var curEpisodeMonitor: Job? = null
     var curEpisode: Episode? = null     // manged
         private set
 
@@ -69,7 +68,6 @@ object InTheatre {
     var bitrate by mutableIntStateOf(0)
 
     init {
-//        curQueue = PlayQueue()
         curState = CurrentState()
         CoroutineScope(Dispatchers.IO).launch {
             Logd(TAG, "starting queues")
@@ -103,7 +101,7 @@ object InTheatre {
                 Logd(TAG, "creating new curState")
                 upsert(curState) {}
             }
-            loadPlayableFromPreferences()
+            playableFromPreferences()
         }
         monitorState()
     }
@@ -163,7 +161,7 @@ object InTheatre {
         }
     }
 
-    fun setCurTempSpeed(speed: Float) {
+    fun saveCurTempSpeed(speed: Float) {
         upsertBlk(curState) { it.curTempSpeed = speed }
     }
 
@@ -171,27 +169,9 @@ object InTheatre {
         upsertBlk(curState) { it.curTempSpeed = Feed.SPEED_USE_GLOBAL }
     }
 
-    fun writePlayerStatus(playerStatus: PlayerStatus) {
-        upsertBlk(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
-    }
-
-    fun writeMediaPlaying(playable: Episode?, playerStatus: PlayerStatus) {
-        Logd(TAG, "Writing playback preferences ${playable?.id}")
-        if (playable == null) writeNoMediaPlaying()
-        else {
-            upsertBlk(curState) {
-                it.curMediaType = PLAYABLE_TYPE_FEEDMEDIA.toLong()
-                it.curIsVideo = playable.getMediaType() == MediaType.VIDEO
-                val feedId = playable.feed?.id
-                if (feedId != null) it.curFeedId = feedId
-                it.curMediaId = playable.id
-//                it.curPlayerStatus = playerStatus.getAsInt()
-            }
-        }
-    }
-
-    fun writeNoMediaPlaying() {
-        upsertBlk(curState) {
+    fun savePlayerStatus(playerStatus: PlayerStatus?) {
+        if (playerStatus != null) upsertBlk(curState) { it.curPlayerStatus = playerStatus.getAsInt() }
+        else upsertBlk(curState) {
             it.curMediaType = NO_MEDIA_PLAYING
             it.curFeedId = NO_MEDIA_PLAYING
             it.curMediaId = NO_MEDIA_PLAYING
@@ -199,20 +179,31 @@ object InTheatre {
         }
     }
 
+    fun savePlayerStatus(episode: Episode?, playerStatus: PlayerStatus) {
+        Logd(TAG, "Writing playback preferences ${episode?.id}")
+        if (episode == null) savePlayerStatus(null)
+        else upsertBlk(curState) {
+            it.curPlayerStatus = playerStatus.getAsInt()
+            it.curMediaType = PLAYABLE_TYPE_FEEDMEDIA.toLong()
+            it.curIsVideo = episode.getMediaType() == MediaType.VIDEO
+            val feedId = episode.feed?.id
+            if (feedId != null) it.curFeedId = feedId
+            it.curMediaId = episode.id
+        }
+    }
+
+    // TODO: check out this
     /**
      * Restores a playable object from a sharedPreferences file. This method might load data from the database,
      * depending on the type of playable that was restored.
      * @return The restored EpisodeMedia object
      */
-    fun loadPlayableFromPreferences() {
+    fun playableFromPreferences() {
         Logd(TAG, "loadPlayableFromPreferences currentlyPlayingType: $curState.curMediaType")
         if (curState.curMediaType != NO_MEDIA_PLAYING) {
             val type = curState.curMediaType.toInt()
             if (type == PLAYABLE_TYPE_FEEDMEDIA) {
-                val mediaId = curState.curMediaId
-                Logd(TAG, "loadPlayableFromPreferences getting mediaId: $mediaId")
-                if (mediaId != 0L) setCurEpisode(getEpisode(mediaId))
-                Logd(TAG, "loadPlayableFromPreferences: curMedia: ${curEpisode?.id}")
+                if (curState.curMediaId != 0L) setCurEpisode(getEpisode(curState.curMediaId))
             } else Loge(TAG, "Could not restore EpisodeMedia object from preferences")
         }
     }
@@ -229,8 +220,6 @@ object InTheatre {
 
     fun cleanup() {
         Logd(TAG, "cleanup()")
-//        curEpisodeMonitor?.cancel()
-//        curEpisodeMonitor = null
         if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
         curStateMonitor?.cancel()
         curStateMonitor = null

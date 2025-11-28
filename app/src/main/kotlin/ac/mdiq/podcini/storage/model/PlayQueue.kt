@@ -19,6 +19,8 @@ class PlayQueue : RealmObject {
 
     var name: String = ""
 
+    var playInSequence: Boolean = true
+
     var identity: String = ""
 
     var updated: Long = Date().time
@@ -28,7 +30,7 @@ class PlayQueue : RealmObject {
 
     var launchAutoEQDlWhenEmpty: Boolean = true
 
-    var autoDownloadEpisodes: Boolean = false
+    var autoDownloadEpisodes: Boolean = false       // TODO: need to rethink
 
     @Ignore
     var sortOrder: EpisodeSortOrder = EpisodeSortOrder.TIME_IN_QUEUE_ASC

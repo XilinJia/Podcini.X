@@ -101,7 +101,10 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
                         "description" -> feed.description = cursor.getStringOrNull(i)
                         "payment_link" -> feed.payment_link = cursor.getStringOrNull(i)
                         "last_update" -> feed.lastUpdate = cursor.getStringOrNull(i)
-                        "language" -> feed.language = cursor.getStringOrNull(i)
+                        "language" -> {
+                            val l = cursor.getStringOrNull(i)
+                            if (!l.isNullOrEmpty()) feed.languages.add(l)
+                        }
                         "author" -> feed.author = cursor.getStringOrNull(i)
                         "image_url" -> feed.imageUrl = cursor.getStringOrNull(i)
                         "type" -> feed.type = cursor.getStringOrNull(i)

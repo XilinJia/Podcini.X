@@ -162,7 +162,7 @@
     <string name="combo_action">Combo δράση</string>
     <string name="shelve_label">Ράφι σε συνθετικό</string>
     <string name="add_to_queue_label">Προσθήκη στην ενεργή ουρά</string>
-    <string name="remove_from_queue_label">Αφαίρεση από την ενεργή ουρά</string>
+
     <string name="media_type">Τύπος πολυμέσων</string>
     <string name="unknown">Άγνωστο</string>
     <string name="audio">Ήχος</string>
@@ -585,7 +585,7 @@
     <string name="authentication_descr">Αλλάξτε το όνομα χρήστη και τον κωδικό πρόσβασης για αυτό το podcast και τα επεισόδιά του.</string>
     <string name="tags_label">Ετικέτες</string>
     <string name="feed_tags_summary">Αλλάξτε τις ετικέτες αυτού του podcast για να οργανώσετε τις συνδρομές σας</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Εμφανίζονται μόνο κοινές ετικέτες από όλες τις επιλεγμένες συνδρομές. Άλλες ετικέτες παραμένουν ανεπηρέαστες.</string>
+
     <string name="auto_download_settings_label">Ρυθμίσεις αυτόματης λήψης</string>
     <string name="episode_filters_label">Φίλτρο επεισοδίων</string>
     <string name="episode_inclusive_filters_label">Episode inclusive φίλτρο</string>

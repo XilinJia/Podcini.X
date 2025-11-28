@@ -1,0 +1,27 @@
+# 9.3.0
+
+* on Episodes lists
+	* ensure button updates when media is deleted
+	* update curEpisode action button on compose
+	* "Remove from active queue" is changed to "Remove from all queues" in swipe actions and multi-selection options
+* moved setting of "Continuous playback" to queue's setting as playInSequence (defaulted to true)
+* when playing an episode in FeedDetails list, playInSequence in the virtual queue is set to true only if the feed's associated queue is not None
+* feed languages and tags are shown in FeedDetails, where tags can be edited
+* in Queues screen
+	* spinner list is sorted
+	* ensure the spinner text reflect on actQueue
+* enabled position seeking from https patterns in episode's description
+* not prepare player on first start
+* multiple-language feeds are supported
+* tags and languages are persisted
+* enabled tagging for episodes
+* amended tags editing routine to work for both Feeds and Episodes
+* in EpisodeInfo
+	* fixed showing no media label on normal episode
+	* adjusted detailed info layout
+	* added tags editing for the episode
+	* moved webdata processing to IO dispatcher
+* added Tagged in episodes filters
+* added Tagged mode in Facets screen
+* fixed feed statistics summary showing 0s
+* put SharePreferences properties in MainActivity to AppPreferences

@@ -164,7 +164,7 @@
     <string name="combo_action">Kombo akce</string>
     <string name="shelve_label">Štětovnice na syntetickou</string>
     <string name="add_to_queue_label">Přidat do fronty</string>
-    <string name="remove_from_queue_label">Odebrat z fronty</string>
+
     <string name="media_type">Typ média</string>
     <string name="unknown">Neznámý</string>
     <string name="audio">Zvuk</string>
@@ -595,7 +595,7 @@
     <string name="authentication_descr">Změnit uživatelské jméno a heslo pro tento podcast a jeho epizody.</string>
     <string name="tags_label">Klíčová slova</string>
     <string name="feed_tags_summary">Pro lepší organizaci vašich odběrů můžete upravit klíčová slova tohoto podcastu.</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} Jsou zobrazeny pouze společná klíčová slova ze všech vybraných odběrů. Ostatní klíčová slova zůstanou nedotčena.</string>
+
     <string name="auto_download_settings_label">Nastavení automatického stahování</string>
     <string name="episode_filters_label">Filtr epizod</string>
     <string name="episode_inclusive_filters_label">Epizoda včetně filtru</string>

@@ -161,7 +161,7 @@
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Shelve to synthetic</string>
     <string name="add_to_queue_label">대기열에 추가</string>
-    <string name="remove_from_queue_label">대기열에서 제거</string>
+
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
     <string name="audio">Audio</string>
@@ -580,7 +580,7 @@
     <string name="authentication_descr">이 팟캐스트와 에피소드에 대한 사용자 이름과 비밀번호를 바꿉니다.</string>
     <string name="tags_label">태그</string>
     <string name="feed_tags_summary">구독 정리에 도움이 되도록 이 팟캐스트의 태그 바꾸기</string>
-    <string name="multi_feed_common_tags_info">{faw_info_circle} 선택한 구독에 들어 있는 공통 태그만 표시됩니다. 다른 태그는 변하지 않고 그대로 있습니다.</string>
+
     <string name="auto_download_settings_label">자동 다운로드 설정</string>
     <string name="episode_filters_label">에피소드 필터</string>
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>

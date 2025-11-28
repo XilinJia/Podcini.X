@@ -523,6 +523,7 @@ fun SearchScreen() {
                                     runOnIOScope {
                                         virQueue = upsert(virQueue) { q ->
                                             q.identity = vm.listIdentity
+                                            q.playInSequence = true
                                             q.sortOrder = EpisodeSortOrder.DATE_DESC
                                             q.episodeIds.clear()
                                             q.episodeIds.addAll(episodes.take(VIRTUAL_QUEUE_SIZE).map { it.id })

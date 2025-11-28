@@ -78,6 +78,8 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.media3.common.util.UnstableApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.Date
 
 abstract class SwipeAction {
@@ -292,12 +294,14 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
             runOnIOScope {
                 val almostEnded = item_.hasAlmostEnded()
-                if (almostEnded && item_.playState < EpisodeState.PLAYED.code) item_ = setPlayState(EpisodeState.PLAYED, item_, resetMediaPosition = true, removeFromQueue = false)
-                if (almostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
+                if (almostEnded) {
+                    if (item_.playState < EpisodeState.PLAYED.code) item_ = setPlayState(EpisodeState.PLAYED, item_, resetMediaPosition = true, removeFromQueue = false)
+                    item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
+                }
                 deleteEpisodesWarnLocalRepeat(context, listOf(item_))
-//                withContext(Dispatchers.Main) {
-////                    vm.actionButton.update(vm.episode)
-//                }
+                withContext(Dispatchers.Main) {
+//                    vm.actionButton.update(vm.episode)
+                }
             }
         }
     }
@@ -448,7 +452,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val id: String
             get() = "REMOVE_FROM_QUEUE"
         override val title: String
-            get() = getAppContext().getString(R.string.remove_from_queue_label)
+            get() = getAppContext().getString(R.string.remove_from_all_queues)
 
         override val iconRes:  Int = R.drawable.ic_playlist_remove
         override val colorRes:  Int = android.R.attr.colorAccent

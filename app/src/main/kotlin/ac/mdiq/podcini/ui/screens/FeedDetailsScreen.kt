@@ -13,6 +13,7 @@ import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.FeedAssistant
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
@@ -311,6 +312,7 @@ fun FeedDetailsScreen() {
     var showFilterDialog by remember {  mutableStateOf(false) }
     var showRenameDialog by remember {  mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
+    var showTagsSettingDialog by remember { mutableStateOf(false) }
 
     val infoBarText = remember { mutableStateOf("") }
 
@@ -395,6 +397,10 @@ fun FeedDetailsScreen() {
         }
 
         swipeActions.ActionOptionsDialog()
+
+        if (showTagsSettingDialog) TagSettingDialog(appAttribs.feedTags.toSet(), feed!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
+            upsertBlk(feed!!) { it.tags.addAll(tags) }
+        }
     }
 
     @Composable
@@ -865,13 +871,10 @@ fun FeedDetailsScreen() {
                 }
                 //                    tags
                 Column {
-                    var showDialog by remember { mutableStateOf(false) }
-                    if (showDialog) TagSettingDialog(feeds_ = listOf(feed!!), onDismiss = { showDialog = false })
                     Row(Modifier.fillMaxWidth()) {
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_tag), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.tags_label), style = CustomTextStyles.titleCustom, color = textColor,
-                            modifier = Modifier.clickable(onClick = { showDialog = true }))
+                        Text(text = stringResource(R.string.tags_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showTagsSettingDialog = true }))
                     }
                     Text(text = stringResource(R.string.feed_tags_summary), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
@@ -1464,10 +1467,15 @@ fun FeedDetailsScreen() {
                 Column {
                     Text(feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
                     Text(feed?.author ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+                    if (!feed?.languages.isNullOrEmpty()) Row(modifier = Modifier.padding(top = 4.dp)) {
+                        Text("Languages: ")
+                        for (l in feed!!.languages) Text(l, modifier = Modifier.padding(end = 2.dp))
+                    }
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
             }
+            Text("Tags: ${feed?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
             Text(stringResource(R.string.my_opinion_label) + if (feed?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
                 modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable {
                     editCommentText = TextFieldValue((if (feed?.comment.isNullOrBlank()) "" else feed!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
@@ -1504,7 +1512,6 @@ fun FeedDetailsScreen() {
                     Text(stringResource(R.string.support_funding_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     fun fundingText(): String {
                         val fundingList: MutableList<FeedFunding> = feed!!.paymentLinkList
-                        // Filter for duplicates, but keep items in the order that they have in the feed.
                         val i: MutableIterator<FeedFunding> = fundingList.iterator()
                         while (i.hasNext()) {
                             val funding: FeedFunding = i.next()
@@ -1613,6 +1620,7 @@ fun FeedDetailsScreen() {
                                     if (virQueue.identity != listIdentity) {
                                         virQueue = upsert(virQueue) { q ->
                                             q.identity = listIdentity
+                                            q.playInSequence = feed?.queue != null
                                             q.sortOrder = feed!!.episodeSortOrder
                                             q.episodeIds.clear()
                                             q.episodeIds.addAll(episodes.take(VIRTUAL_QUEUE_SIZE).map { it.id })
