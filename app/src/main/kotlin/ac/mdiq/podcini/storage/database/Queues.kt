@@ -115,7 +115,7 @@ suspend fun smartRemoveFromActQueue(item_: Episode) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED
         item = setPlayState(stat, item, resetMediaPosition = false, removeFromQueue = false)
     }
-    removeFromQueue(actQueue, listOf(item))
+    removeFromAllQueues(listOf(item))
 }
 
 fun trimBin(queue: PlayQueue) {
