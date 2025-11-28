@@ -738,7 +738,7 @@ fun SubscriptionsScreen() {
             if (showAutoDeleteHandlerDialog) AutoDeleteHandlerDialog {showAutoDeleteHandlerDialog = false}
             if (showAssociateDialog) SetAssociateQueueDialog {showAssociateDialog = false}
             if (showKeepUpdateDialog) SetKeepUpdateDialog {showKeepUpdateDialog = false}
-            if (showTagsSettingDialog) TagSettingDialog(appAttribs.feedTags.toSet(), setOf(), multiples = true, { showTagsSettingDialog = false } ) { tags ->
+            if (showTagsSettingDialog) TagSettingDialog(appAttribs.feedTags.toSet(), setOf(), multiples = true, isFeed = true, { showTagsSettingDialog = false } ) { tags ->
                 for (f in selected) upsertBlk(f) { it.tags.addAll(tags) }
             }
             if (showSpeedDialog) PlaybackSpeedDialog(selected, initSpeed = 1f, maxSpeed = 3f, onDismiss = {showSpeedDialog = false}) { newSpeed ->

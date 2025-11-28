@@ -545,7 +545,7 @@ fun SelectLowerAllUpper(selectedList: MutableList<MutableState<Boolean>>, lowerC
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun TagSettingDialog(allTags: Set<String>, commonTags: Set<String>, multiples: Boolean = false, onDismiss: () -> Unit, cb: (List<String>)->Unit) {
+fun TagSettingDialog(allTags: Set<String>, commonTags: Set<String>, multiples: Boolean = false, isFeed: Boolean = true, onDismiss: () -> Unit, cb: (List<String>)->Unit) {
     Dialog(onDismissRequest = onDismiss) {
         Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -605,11 +605,20 @@ fun TagSettingDialog(allTags: Set<String>, commonTags: Set<String>, multiples: B
                     Button(onClick = {
                         Logd("TagsSettingDialog", "tags: [${tags.joinToString()}] commonTags: [${commonTags.joinToString()}]")
                         cb(tags)
-                        val tagsSet = appAttribs.episodeTags.toMutableSet() + tags
-                        upsertBlk(appAttribs) {
-                            it.episodeTags.clear()
-                            it.episodeTags.addAll(tagsSet)
-                            it.episodeTags.sort()
+                        if (isFeed) {
+                            val tagsSet = appAttribs.feedTags.toMutableSet() + tags
+                            upsertBlk(appAttribs) {
+                                it.feedTags.clear()
+                                it.feedTags.addAll(tagsSet)
+                                it.feedTags.sort()
+                            }
+                        } else {
+                            val tagsSet = appAttribs.episodeTags.toMutableSet() + tags
+                            upsertBlk(appAttribs) {
+                                it.episodeTags.clear()
+                                it.episodeTags.addAll(tagsSet)
+                                it.episodeTags.sort()
+                            }
                         }
                         onDismiss()
                     }) { Text(stringResource(R.string.confirm_label)) }

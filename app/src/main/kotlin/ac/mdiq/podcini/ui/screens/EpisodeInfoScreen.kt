@@ -266,7 +266,7 @@ fun EpisodeInfoScreen() {
             CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},
                 onSave = { upsertBlk(episode!!) { it.addComment(commentText.text, false) } })
         }
-        if (showTagsSettingDialog) TagSettingDialog(appAttribs.episodeTags.toSet(), episode!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
+        if (showTagsSettingDialog) TagSettingDialog(appAttribs.episodeTags.toSet(), episode!!.tags, isFeed = false, onDismiss = { showTagsSettingDialog = false }) { tags ->
             upsertBlk(episode!!) { it.tags.addAll(tags) }
         }
     }
