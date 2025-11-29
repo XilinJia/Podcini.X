@@ -31,6 +31,8 @@ import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
 import android.Manifest
 import android.content.Context
+import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+import android.os.Build
 import androidx.annotation.RequiresPermission
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -114,7 +116,10 @@ class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameter
     }
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
-        return withContext(Dispatchers.Main) { ForegroundInfo(R.id.notification_updating_feeds, createNotification(null)) }
+        return withContext(Dispatchers.Main) {
+            ForegroundInfo(R.id.notification_updating_feeds, createNotification(null),
+                if (Build.VERSION.SDK_INT >= 29) FOREGROUND_SERVICE_TYPE_DATA_SYNC else 0 )
+        }
     }
 }
 
