@@ -20,6 +20,7 @@ import ac.mdiq.podcini.ui.compose.AlarmEpisodeDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
 import ac.mdiq.podcini.ui.compose.FutureStateDialog
@@ -27,6 +28,8 @@ import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.ShelveDialog
+import ac.mdiq.podcini.ui.compose.TagSettingDialog
+import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.setSearchTerms
@@ -44,16 +47,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
@@ -74,7 +73,6 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.media3.common.util.UnstableApi
@@ -109,6 +107,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         RemoveFromQueue(),
         SetRating(),
         AddComment(),
+        AddTag(),
         SearchSelected(),
         Download(),
         Delete(),
@@ -248,28 +247,26 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         @Composable
         override fun ActionOptions() {
             useAction?.ActionOptions()
-            if (showDialog && onEpisode != null) Dialog(onDismissRequest = { showDialog = false }) {
+            if (showDialog && onEpisode != null) CommonDialogSurface(onDismissRequest = { showDialog = false }) {
                 val context = LocalContext.current
-                Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        for (action in actionsList) {
-                            if (action is NoAction || action is Combo) continue
-                            if (!action.enabled()) continue
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
-                                .padding(4.dp)
-                                .clickable {
-                                    useAction = action
-                                    action.performAction(onEpisode!!)
-                                    showDialog = false
-                                }) {
-                                val colorAccent = remember {
-                                    val typedValue = TypedValue()
-                                    context.theme.resolveAttribute(action.colorRes, typedValue, true)
-                                    Color(typedValue.data)
-                                }
-                                Icon(imageVector = ImageVector.vectorResource(id = action.iconRes),  tint = colorAccent, contentDescription = action.title)
-                                Text(action.title, Modifier.padding(start = 4.dp))
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    for (action in actionsList) {
+                        if (action is NoAction || action is Combo) continue
+                        if (!action.enabled()) continue
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
+                            .padding(4.dp)
+                            .clickable {
+                                useAction = action
+                                action.performAction(onEpisode!!)
+                                showDialog = false
+                            }) {
+                            val colorAccent = remember {
+                                val typedValue = TypedValue()
+                                context.theme.resolveAttribute(action.colorRes, typedValue, true)
+                                Color(typedValue.data)
                             }
+                            Icon(imageVector = ImageVector.vectorResource(id = action.iconRes),  tint = colorAccent, contentDescription = action.title)
+                            Text(action.title, Modifier.padding(start = 4.dp))
                         }
                     }
                 }
@@ -348,6 +345,30 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             if (showEditComment) {
                 CommentEditingDialog(textState = editCommentText, onTextChange = { editCommentText = it }, onDismissRequest = { showEditComment = false },
                     onSave = { if (onEpisode != null) runOnIOScope { onEpisode = upsert(onEpisode!!) { it.addComment(editCommentText.text, false) } } })
+            }
+        }
+    }
+
+    class AddTag : SwipeAction() {
+        override val id: String
+            get() = "TAG"
+        private var showTagDialog by mutableStateOf(false)
+        override val title: String
+            get() = getAppContext().getString(R.string.tags_label)
+
+        override val iconRes:  Int = R.drawable.baseline_label_24
+        override val colorRes:  Int = R.attr.icon_yellow
+
+        override fun performAction(e: Episode) {
+            onEpisode = e
+            showTagDialog = true
+        }
+        @Composable
+        override fun ActionOptions() {
+            if (showTagDialog) {
+                TagSettingDialog(TagType.Episode, onEpisode!!.tags, onDismiss = { showTagDialog = false }) { tags ->
+                    upsertBlk(onEpisode!!) { it.tags.addAll(tags) }
+                }
             }
         }
     }
@@ -558,80 +579,76 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             var direction by remember { mutableIntStateOf(0) }
             var showPickerDialog by remember { mutableStateOf(false) }
             if (showPickerDialog) {
-                Dialog(onDismissRequest = { showPickerDialog = false }) {
-                    Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                        LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(16.dp)) {
-                            items(keys.size) { index ->
-                                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)
-                                    .clickable {
-                                        when (direction) {
-                                            -1 -> leftAction.value = keys[index]
-                                            1 -> rightAction.value = keys[index]
-                                            else -> {}
-                                        }
-                                        showPickerDialog = false
-                                    }) {
-                                    Icon(imageVector = ImageVector.vectorResource(keys[index].iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp))
-                                    Text(keys[index].title, color = textColor, textAlign = TextAlign.Center)
-                                }
+                CommonDialogSurface(onDismissRequest = { showPickerDialog = false }) {
+                    LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(16.dp)) {
+                        items(keys.size) { index ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)
+                                .clickable {
+                                    when (direction) {
+                                        -1 -> leftAction.value = keys[index]
+                                        1 -> rightAction.value = keys[index]
+                                        else -> {}
+                                    }
+                                    showPickerDialog = false
+                                }) {
+                                Icon(imageVector = ImageVector.vectorResource(keys[index].iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp))
+                                Text(keys[index].title, color = textColor, textAlign = TextAlign.Center)
                             }
                         }
                     }
                 }
             }
 
-            if (!showPickerDialog) Dialog(onDismissRequest = { onDismissRequest() }) {
+            if (!showPickerDialog) CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
                 Logd("SwipeActions", "SwipeActions tag: ${sa.tag}")
-                val forFragment = remember(sa.tag) {
-                    if (sa.tag != Screens.Queues.name) keys = keys.filter { a: SwipeAction -> a !is RemoveFromQueue }
-                    when (sa.tag) {
-                        Screens.Facets.name -> context.getString(R.string.facets)
-                        Screens.OnlineEpisodes.name -> context.getString(R.string.online_episodes_label)
-                        Screens.Search.name -> context.getString(R.string.search_label)
-                        Screens.FeedDetails.name -> {
-                            keys = keys.filter { a: SwipeAction -> a !is RemoveFromHistory }
-                            context.getString(R.string.subscription)
-                        }
-                        Screens.Queues.name -> {
-                            keys = keys.filter { a: SwipeAction -> (a !is AddToActiveQueue && a !is RemoveFromHistory) }
-                            context.getString(R.string.queue_label)
-                        }
-                        else -> { "" }
-                } }
-                Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).fillMaxWidth().padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                        Text(stringResource(R.string.swipeactions_label) + " - " + forFragment)
-                        Text(stringResource(R.string.swipe_left))
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
-                            Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(leftAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
-                                .clickable(onClick = {
-                                    direction = -1
-                                    showPickerDialog = true
-                                }))
-                            Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
-                            Spacer(Modifier.weight(0.5f))
-                        }
-                        Text(stringResource(R.string.swipe_right))
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
-                            Spacer(Modifier.weight(0.5f))
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
-                            Spacer(Modifier.weight(0.1f))
-                            Icon(imageVector = ImageVector.vectorResource(rightAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
-                                .clickable(onClick = {
-                                    direction = 1
-                                    showPickerDialog = true
-                                }))
-                            Spacer(Modifier.weight(0.1f))
-                        }
-                        Button(onClick = {
-                            actions = sa.RightLeftActions("${rightAction.value.id},${leftAction.value.id}")
-                            upsertBlk(appAttribs) { it.swipeActionsMap[sa.tag] = "${rightAction.value.id},${leftAction.value.id}" }
-                            callback(actions)
-                            onDismissRequest()
-                        }) { Text(stringResource(R.string.confirm_label)) }
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                    val forFragment = remember(sa.tag) {
+                        if (sa.tag != Screens.Queues.name) keys = keys.filter { a: SwipeAction -> a !is RemoveFromQueue }
+                        when (sa.tag) {
+                            Screens.Facets.name -> context.getString(R.string.facets)
+                            Screens.OnlineEpisodes.name -> context.getString(R.string.online_episodes_label)
+                            Screens.Search.name -> context.getString(R.string.search_label)
+                            Screens.FeedDetails.name -> {
+                                keys = keys.filter { a: SwipeAction -> a !is RemoveFromHistory }
+                                context.getString(R.string.subscription)
+                            }
+                            Screens.Queues.name -> {
+                                keys = keys.filter { a: SwipeAction -> (a !is AddToActiveQueue && a !is RemoveFromHistory) }
+                                context.getString(R.string.queue_label)
+                            }
+                            else -> { sa.tag }
+                        } }
+                    Text(stringResource(R.string.swipeactions_label) + " - " + forFragment)
+                    Text(stringResource(R.string.swipe_left))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
+                        Spacer(Modifier.weight(0.1f))
+                        Icon(imageVector = ImageVector.vectorResource(leftAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
+                            .clickable(onClick = {
+                                direction = -1
+                                showPickerDialog = true
+                            }))
+                        Spacer(Modifier.weight(0.1f))
+                        Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
+                        Spacer(Modifier.weight(0.5f))
                     }
+                    Text(stringResource(R.string.swipe_right))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
+                        Spacer(Modifier.weight(0.5f))
+                        Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(50.dp).height(35.dp))
+                        Spacer(Modifier.weight(0.1f))
+                        Icon(imageVector = ImageVector.vectorResource(rightAction.value.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp)
+                            .clickable(onClick = {
+                                direction = 1
+                                showPickerDialog = true
+                            }))
+                        Spacer(Modifier.weight(0.1f))
+                    }
+                    Button(onClick = {
+                        actions = sa.RightLeftActions("${rightAction.value.id},${leftAction.value.id}")
+                        upsertBlk(appAttribs) { it.swipeActionsMap[sa.tag] = "${rightAction.value.id},${leftAction.value.id}" }
+                        callback(actions)
+                        onDismissRequest()
+                    }) { Text(stringResource(R.string.confirm_label)) }
                 }
             }
         }

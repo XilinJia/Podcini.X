@@ -63,8 +63,7 @@ enum class PrefHardwareForwardButton(val res: Int, val res1: Int) {
 @Composable
 fun PlaybackPreferencesScreen(activity: PreferenceActivity) {
     val textColor = MaterialTheme.colorScheme.onSurface
-    val scrollState = rememberScrollState()
-    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
         Text(stringResource(R.string.interruptions), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         var prefUnpauseOnHeadsetReconnect by remember { mutableStateOf(getPref(AppPrefs.prefPauseOnHeadsetDisconnect, true)) }
         TitleSummarySwitchPrefRow(R.string.pref_pauseOnHeadsetDisconnect_title, R.string.pref_pauseOnDisconnect_sum, AppPrefs.prefPauseOnHeadsetDisconnect) {

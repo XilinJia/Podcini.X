@@ -7,9 +7,9 @@ import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.newBuilder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.reinit
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndscheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.getInitialDelay
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.nextRefreshTime
-import ac.mdiq.podcini.net.feed.FeedUpdateManager.scheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.sync.SyncService
 import ac.mdiq.podcini.net.sync.SynchronizationCredentials
 import ac.mdiq.podcini.net.sync.SynchronizationProviderViewData
@@ -345,43 +345,40 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
 //    }
 
     val textColor = MaterialTheme.colorScheme.onSurface
-//    val scrollState = rememberScrollState()
-//    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
-        TitleSummaryActionColumn(R.string.wifi_sync, R.string.wifi_sync_summary_unchoosen) {
-            showWifiAuthenticationDialog = true
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
-            var titleRes by remember { mutableIntStateOf(0) }
-            var summaryRes by remember { mutableIntStateOf(R.string.synchronization_summary_unchoosen) }
-            var iconRes by remember { mutableIntStateOf(R.drawable.ic_notification_sync) }
-            var onClick: (() -> Unit)? = null
-            if (loggedIn) {
-                selectedProvider = SynchronizationProviderViewData.fromIdentifier(selectedSyncProviderKey)
-                if (selectedProvider != null) {
-                    summaryRes = selectedProvider!!.summaryResource
-                    iconRes = selectedProvider!!.iconResource
-                    Icon(painter = painterResource(id = iconRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
-                }
-            } else {
-                titleRes = R.string.synchronization_choose_title
-                summaryRes = R.string.synchronization_summary_unchoosen
-                iconRes = R.drawable.ic_cloud
-                onClick = { chooseProviderAndLoginDialog = true }
-                Icon(imageVector = ImageVector.vectorResource(iconRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
-            }
-            TitleSummaryActionColumn(titleRes, summaryRes) { onClick?.invoke() }
-        }
+    TitleSummaryActionColumn(R.string.wifi_sync, R.string.wifi_sync_summary_unchoosen) {
+        showWifiAuthenticationDialog = true
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
+        var titleRes by remember { mutableIntStateOf(0) }
+        var summaryRes by remember { mutableIntStateOf(R.string.synchronization_summary_unchoosen) }
+        var iconRes by remember { mutableIntStateOf(R.drawable.ic_notification_sync) }
+        var onClick: (() -> Unit)? = null
         if (loggedIn) {
-            TitleSummaryActionColumn(R.string.synchronization_sync_changes_title, R.string.synchronization_sync_summary) { SyncService.syncImmediately(activity.applicationContext) }
-            TitleSummaryActionColumn(R.string.synchronization_full_sync_title, R.string.synchronization_force_sync_summary) { SyncService.fullSync(activity) }
-            TitleSummaryActionColumn(R.string.synchronization_logout, 0) {
-                SynchronizationCredentials.clear(activity)
-                Logt("SynchronizationPreferencesScreen", activity.getString(R.string.pref_synchronization_logout_toast))
-                setSelectedSyncProvider(null)
-                loggedIn = isProviderConnected
+            selectedProvider = SynchronizationProviderViewData.fromIdentifier(selectedSyncProviderKey)
+            if (selectedProvider != null) {
+                summaryRes = selectedProvider!!.summaryResource
+                iconRes = selectedProvider!!.iconResource
+                Icon(painter = painterResource(id = iconRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
             }
+        } else {
+            titleRes = R.string.synchronization_choose_title
+            summaryRes = R.string.synchronization_summary_unchoosen
+            iconRes = R.drawable.ic_cloud
+            onClick = { chooseProviderAndLoginDialog = true }
+            Icon(imageVector = ImageVector.vectorResource(iconRes), contentDescription = "", tint = textColor, modifier = Modifier.size(40.dp).padding(end = 15.dp))
         }
-//    }
+        TitleSummaryActionColumn(titleRes, summaryRes) { onClick?.invoke() }
+    }
+    if (loggedIn) {
+        TitleSummaryActionColumn(R.string.synchronization_sync_changes_title, R.string.synchronization_sync_summary) { SyncService.syncImmediately(activity.applicationContext) }
+        TitleSummaryActionColumn(R.string.synchronization_full_sync_title, R.string.synchronization_force_sync_summary) { SyncService.fullSync(activity) }
+        TitleSummaryActionColumn(R.string.synchronization_logout, 0) {
+            SynchronizationCredentials.clear(activity)
+            Logt("SynchronizationPreferencesScreen", activity.getString(R.string.pref_synchronization_logout_toast))
+            setSelectedSyncProvider(null)
+            loggedIn = isProviderConnected
+        }
+    }
 }
 
 @Composable
@@ -553,7 +550,6 @@ fun NetworkScreen(activity: PreferenceActivity) {
         )
     }
 
-    val scrollState = rememberScrollState()
     var showProxyDialog by remember { mutableStateOf(false) }
     if (showProxyDialog) ProxyDialog {showProxyDialog = false }
 
@@ -605,7 +601,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
         getInitialDelay(activity)
     }
 
-    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
         Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(stringResource(R.string.feed_refresh_title), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
@@ -613,7 +609,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                     refreshInterval = it.toString()
                     Logd("DownloadsSetting", "refreshInterval: $refreshInterval")
                     putPref(AppPrefs.prefAutoUpdateIntervalMinutes, refreshInterval)
-                    scheduleUpdateTaskOnce(activity.applicationContext, replace = true)
+                    checkAndscheduleUpdateTaskOnce(activity.applicationContext, replace = true, force = true)
                 }
             }
             Text(stringResource(R.string.feed_refresh_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -761,7 +757,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                         putPref(AppPrefs.prefMobileUpdateTypes, tempSelectedOptions)
                         val optionsDiff = (tempSelectedOptions - initMobileOptions) + (initMobileOptions - tempSelectedOptions)
                         if (optionsDiff.contains(MobileUpdateOptions.feed_refresh.name) || optionsDiff.contains(MobileUpdateOptions.auto_download.name))
-                            scheduleUpdateTaskOnce(activity.applicationContext, replace = true)
+                            checkAndscheduleUpdateTaskOnce(activity.applicationContext, replace = true, force = true)
                         showMeteredNetworkOptions = false
                     }) { Text(text = "OK") }
                 },

@@ -59,6 +59,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
+import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeClips
 import ac.mdiq.podcini.ui.compose.EpisodeMarks
@@ -518,27 +519,25 @@ fun AudioPlayerScreen(navController: NavController) {
     @Composable
     fun VolumeAdaptionDialog(onDismissRequest: () -> Unit) {
         val (selectedOption, onOptionSelected) = remember { mutableStateOf(vm.curItem?.volumeAdaptionSetting ?: VolumeAdaptionSetting.OFF) }
-        Dialog(onDismissRequest = { onDismissRequest() }) {
-            Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    VolumeAdaptionSetting.entries.forEach { item ->
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Checkbox(checked = (item == selectedOption),
-                                onCheckedChange = { _ ->
-                                    Logd(TAG, "row clicked: $item $selectedOption")
-                                    if (item != selectedOption) {
-                                        onOptionSelected(item)
-                                        if (vm.curItem != null) {
-                                            vm.curItem!!.volumeAdaptionSetting = item
-                                            curEpisode!!.volumeAdaptionSetting = item
-                                            mPlayer?.setVolume(1.0f, 1.0f)
-                                        }
-                                        onDismissRequest()
+        CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                VolumeAdaptionSetting.entries.forEach { item ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = (item == selectedOption),
+                            onCheckedChange = { _ ->
+                                Logd(TAG, "row clicked: $item $selectedOption")
+                                if (item != selectedOption) {
+                                    onOptionSelected(item)
+                                    if (vm.curItem != null) {
+                                        vm.curItem!!.volumeAdaptionSetting = item
+                                        curEpisode!!.volumeAdaptionSetting = item
+                                        mPlayer?.setVolume(1.0f, 1.0f)
                                     }
+                                    onDismissRequest()
                                 }
-                            )
-                            Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
-                        }
+                            }
+                        )
+                        Text(text = stringResource(item.resId), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
                     }
                 }
             }
@@ -827,8 +826,7 @@ fun AudioPlayerScreen(navController: NavController) {
         var showChaptersDialog by remember { mutableStateOf(false) }
         if (showChaptersDialog) ChaptersDialog(media = vm.curItem!!, onDismissRequest = {showChaptersDialog = false})
 
-        val scrollState = rememberScrollState()
-        Column(modifier = modifier.fillMaxWidth().verticalScroll(scrollState)) {
+        Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             gearbox.PlayerDetailedGearPanel(vm.curItem, resetPlayer) { resetPlayer = it }
             SelectionContainer { Text(txtvPodcastTitle, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {

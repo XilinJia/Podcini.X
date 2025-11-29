@@ -117,10 +117,9 @@ object SleepTimerPreferences {
             if (timeLeft != Episode.INVALID_TIME.toLong()) sleepManager?.setSleepTimer(timeLeft + extendTime)
         }
 
-        val scrollState = rememberScrollState()
         AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.sleep_timer_label)) },
             text = {
-                Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
+                Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                     if (showTimeSetup) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp)) {
                             Checkbox(checked = toEnd, onCheckedChange = { toEnd = it })

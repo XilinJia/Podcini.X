@@ -12,6 +12,7 @@ import ac.mdiq.podcini.preferences.screens.UIPreferencesScreen
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
+import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
@@ -33,7 +34,6 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -48,7 +48,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -60,7 +59,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -80,7 +78,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -216,8 +213,7 @@ class PreferenceActivity : ComponentActivity() {
             }
         }
         val textColor = MaterialTheme.colorScheme.onSurface
-        val scrollState = rememberScrollState()
-        Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp).verticalScroll(scrollState)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp).verticalScroll(rememberScrollState())) {
             if (copyrightNoticeText.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 10.dp)) {
                     Icon(imageVector = Icons.Filled.Info, contentDescription = "", tint = Color.Red, modifier = Modifier.size(40.dp).padding(end = 15.dp))
@@ -295,25 +291,23 @@ class PreferenceActivity : ComponentActivity() {
         ComfirmDialog(titleRes = 0, message = licenseText, showLicense) {}
         var showDialog by remember { mutableStateOf(false) }
         var curLicenseIndex by remember { mutableIntStateOf(-1) }
-        if (showDialog) Dialog(onDismissRequest = { showDialog = false }) {
-            Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(licenses[curLicenseIndex].title, color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                    Row {
-                        Button(onClick = { openInBrowser(this@PreferenceActivity, licenses[curLicenseIndex].licenseUrl) }) { Text("View website") }
-                        Spacer(Modifier.weight(1f))
-                        Button(onClick = {
-                            try {
-                                val reader = BufferedReader(InputStreamReader(assets.open(licenses[curLicenseIndex].licenseTextFile), "UTF-8"))
-                                val sb = StringBuilder()
-                                var line = ""
-                                while ((reader.readLine()?.also { line = it }) != null) sb.append(line).append("\n")
-                                licenseText = sb.toString()
-                                showLicense.value = true
-                            } catch (e: IOException) { Logs(TAG, e) }
-//                            showLicenseText(licenses[curLicenseIndex].licenseTextFile)
-                        }) { Text("View license") }
-                    }
+        if (showDialog) CommonDialogSurface(onDismissRequest = { showDialog = false }) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text(licenses[curLicenseIndex].title, color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+                Row {
+                    Button(onClick = { openInBrowser(this@PreferenceActivity, licenses[curLicenseIndex].licenseUrl) }) { Text("View website") }
+                    Spacer(Modifier.weight(1f))
+                    Button(onClick = {
+                        try {
+                            val reader = BufferedReader(InputStreamReader(assets.open(licenses[curLicenseIndex].licenseTextFile), "UTF-8"))
+                            val sb = StringBuilder()
+                            var line = ""
+                            while ((reader.readLine()?.also { line = it }) != null) sb.append(line).append("\n")
+                            licenseText = sb.toString()
+                            showLicense.value = true
+                        } catch (e: IOException) { Logs(TAG, e) }
+                        //                            showLicenseText(licenses[curLicenseIndex].licenseTextFile)
+                    }) { Text("View license") }
                 }
             }
         }

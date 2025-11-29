@@ -36,6 +36,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
@@ -71,19 +72,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
@@ -119,7 +117,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -244,16 +241,15 @@ fun QueuesScreen() {
         onDispose { subscreenHandleBack.value = false }
     }
 
+    LaunchedEffect(curQueue) {
+        feedsAssociated.clear()
+        feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
+    }
+
     LaunchedEffect(curQueue, queuesFlow, queuesMode, dragged) {
         Logd(TAG, "LaunchedEffect(curQueue, queuesFlow, screenMode, dragged)")
         lifecycleOwner.lifecycle.removeObserver(swipeActions)
         when (queuesMode) {
-            QueuesScreenMode.Feed -> {
-                feedsAssociated.clear()
-                feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
-                Logd(TAG, "feedsAssociated: ${feedsAssociated.size} ${curQueue.id}")
-                title = "${feedsAssociated.size} Feeds"
-            }
             QueuesScreenMode.Bin -> {
                 swipeActions = SwipeActions(context, "${TAG}_Bin")
                 lifecycleOwner.lifecycle.addObserver(swipeActions)
@@ -271,6 +267,10 @@ fun QueuesScreen() {
                     realm.query(Episode::class).query("id IN $0", ids).sort(sortPairOf(curQueue.sortOrder)).asFlow()
                 }
                 title = ""
+            }
+            QueuesScreenMode.Feed -> {
+                Logd(TAG, "feedsAssociated: ${feedsAssociated.size} ${curQueue.id}")
+                title = "${feedsAssociated.size} Feeds"
             }
             else -> {
                 title = "Settings"
@@ -322,22 +322,20 @@ fun QueuesScreen() {
 
         ComfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = showClearQueueDialog) { clearQueue() }
 
-        if (showAddQueueDialog.value) Dialog(onDismissRequest = { showAddQueueDialog.value = false }) {
-            Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    var newName by remember { mutableStateOf("") }
-                    TextField(value = newName, onValueChange = { newName = it }, label = { Text("Add queue (Unique name only)") })
-                    Button(onClick = {
-                        if (newName.isNotEmpty() && queueNames.indexOf(newName) < 0) {
-                            val newQueue = PlayQueue()
-                            val maxId = queues.map { it.id }.filter { it < VIRTUAL_QUEUE_ID }.maxOrNull() ?: -1
-                            newQueue.id = maxId + 1
-                            newQueue.name = newName
-                            upsertBlk(newQueue) {}
-                            showAddQueueDialog.value = false
-                        }
-                    }) { Text(stringResource(R.string.confirm_label)) }
-                }
+        if (showAddQueueDialog.value) CommonDialogSurface(onDismissRequest = { showAddQueueDialog.value = false }) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                var newName by remember { mutableStateOf("") }
+                TextField(value = newName, onValueChange = { newName = it }, label = { Text("Add queue (Unique name only)") })
+                Button(onClick = {
+                    if (newName.isNotEmpty() && queueNames.indexOf(newName) < 0) {
+                        val newQueue = PlayQueue()
+                        val maxId = queues.map { it.id }.filter { it < VIRTUAL_QUEUE_ID }.maxOrNull() ?: -1
+                        newQueue.id = maxId + 1
+                        newQueue.name = newName
+                        upsertBlk(newQueue) {}
+                        showAddQueueDialog.value = false
+                    }
+                }) { Text(stringResource(R.string.confirm_label)) }
             }
         }
 
@@ -414,10 +412,10 @@ fun QueuesScreen() {
                             showClearQueueDialog.value = true
                             expanded = false
                         })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                            runOnceOrAsk(context)
-                            expanded = false
-                        })
+//                        DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
+//                            runOnceOrAsk(context)
+//                            expanded = false
+//                        })
                         if (!curQueue.isSorted) {
                             fun toggleQL() {
                                 curQueue = upsertBlk(curQueue) { it.isLocked = !it.isLocked}
@@ -632,8 +630,18 @@ fun QueuesScreen() {
                     }
                 } else {
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                        infoBarText.value = "$listInfoText $feedOperationText"
                         InforBar(infoBarText, swipeActions)
                         EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions,
+                            refreshCB = {
+                                commonConfirm = CommonConfirmAttrib(
+                                    title = context.getString(R.string.feed_refresh_title) + "?",
+                                    message = "",
+                                    confirmRes = R.string.confirm_label,
+                                    cancelRes = R.string.cancel_label,
+                                    onConfirm = { runOnceOrAsk(context, feeds = feedsAssociated)  },
+                                )
+                            },
                             isDraggable = dragDropEnabled, dragCB = { iFrom, iTo ->
                                 runOnIOScope {
                                     moveInQueue(iFrom, iTo)

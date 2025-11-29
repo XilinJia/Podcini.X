@@ -9,7 +9,6 @@ import ac.mdiq.podcini.preferences.ExportTypes
 import ac.mdiq.podcini.preferences.ExportWorker
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.storage.database.appAttribs
-import ac.mdiq.podcini.storage.database.compileLanguages
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -32,6 +31,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
+import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
@@ -41,6 +41,7 @@ import ac.mdiq.podcini.ui.compose.SelectLowerAllUpper
 import ac.mdiq.podcini.ui.compose.SimpleSwitchDialog
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
+import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -74,7 +75,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -90,7 +90,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
@@ -626,21 +625,19 @@ fun SubscriptionsScreen() {
         fun OpenDialogs() {
             @Composable
             fun AutoDeleteHandlerDialog(onDismissRequest: () -> Unit) {
-                val (selectedOption, _) = remember { mutableStateOf("") }
-                Dialog(onDismissRequest = { onDismissRequest() }) {
-                    Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            FeedAutoDeleteOptions.forEach { text ->
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).selectable(selected = (text == selectedOption), onClick = {
-                                    if (text != selectedOption) {
-                                        val autoDeleteAction: AutoDeleteAction = AutoDeleteAction.fromTag(text)
-                                        saveFeed { it: Feed -> it.autoDeleteAction = autoDeleteAction }
-                                        onDismissRequest()
-                                    }
-                                })) {
-                                    RadioButton(selected = (text == selectedOption), onClick = { })
-                                    Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
+                CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        val (selectedOption, _) = remember { mutableStateOf("") }
+                        FeedAutoDeleteOptions.forEach { text ->
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).selectable(selected = (text == selectedOption), onClick = {
+                                if (text != selectedOption) {
+                                    val autoDeleteAction: AutoDeleteAction = AutoDeleteAction.fromTag(text)
+                                    saveFeed { it: Feed -> it.autoDeleteAction = autoDeleteAction }
+                                    onDismissRequest()
                                 }
+                            })) {
+                                RadioButton(selected = (text == selectedOption), onClick = { })
+                                Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
                             }
                         }
                     }
@@ -649,43 +646,41 @@ fun SubscriptionsScreen() {
 
             @Composable
             fun SetAssociateQueueDialog(onDismissRequest: () -> Unit) {
-                var selectedOption by remember {mutableStateOf("")}
-                Dialog(onDismissRequest = { onDismissRequest() }) {
-                    Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            queueSettingOptions.forEach { option ->
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(checked = option == selectedOption,
-                                        onCheckedChange = { isChecked ->
-                                            selectedOption = option
-                                            if (isChecked) Logd(TAG, "$option is checked")
-                                            when (selectedOption) {
-                                                "Default" -> {
-                                                    saveFeed { it: Feed -> it.queueId = 0L }
-                                                    onDismissRequest()
-                                                }
-                                                "Active" -> {
-                                                    saveFeed { it: Feed -> it.queueId = -1L }
-                                                    onDismissRequest()
-                                                }
-                                                "None" -> {
-                                                    saveFeed { it: Feed -> it.queueId = -2L }
-                                                    onDismissRequest()
-                                                }
-                                                "Custom" -> {}
+                CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        var selectedOption by remember {mutableStateOf("")}
+                        queueSettingOptions.forEach { option ->
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = option == selectedOption,
+                                    onCheckedChange = { isChecked ->
+                                        selectedOption = option
+                                        if (isChecked) Logd(TAG, "$option is checked")
+                                        when (selectedOption) {
+                                            "Default" -> {
+                                                saveFeed { it: Feed -> it.queueId = 0L }
+                                                onDismissRequest()
                                             }
+                                            "Active" -> {
+                                                saveFeed { it: Feed -> it.queueId = -1L }
+                                                onDismissRequest()
+                                            }
+                                            "None" -> {
+                                                saveFeed { it: Feed -> it.queueId = -2L }
+                                                onDismissRequest()
+                                            }
+                                            "Custom" -> {}
                                         }
-                                    )
-                                    Text(option)
-                                }
+                                    }
+                                )
+                                Text(option)
                             }
-                            if (selectedOption == "Custom") {
-                                val queues = realm.query(PlayQueue::class).find()
-                                SpinnerExternalSet(items = queues.map { it.name }, selectedIndex = 0) { index ->
-                                    Logd(TAG, "Queue selected: ${queues[index]}")
-                                    saveFeed { it: Feed -> it.queueId = queues[index].id }
-                                    onDismissRequest()
-                                }
+                        }
+                        if (selectedOption == "Custom") {
+                            val queues = realm.query(PlayQueue::class).find()
+                            SpinnerExternalSet(items = queues.map { it.name }, selectedIndex = 0) { index ->
+                                Logd(TAG, "Queue selected: ${queues[index]}")
+                                saveFeed { it: Feed -> it.queueId = queues[index].id }
+                                onDismissRequest()
                             }
                         }
                     }
@@ -694,39 +689,35 @@ fun SubscriptionsScreen() {
 
             @Composable
             fun SetKeepUpdateDialog(onDismissRequest: () -> Unit) {
-                Dialog(onDismissRequest = { onDismissRequest() }) {
-                    Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
-                            Row(Modifier.fillMaxWidth()) {
-                                Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "")
-                                Spacer(modifier = Modifier.width(20.dp))
-                                Text(text = stringResource(R.string.keep_updated), style = CustomTextStyles.titleCustom)
-                                Spacer(modifier = Modifier.weight(1f))
-                                var checked by remember { mutableStateOf(false) }
-                                Switch(checked = checked, onCheckedChange = {
-                                    checked = it
-                                    saveFeed { pref: Feed -> pref.keepUpdated = checked }
-                                })
-                            }
-                            Text(text = stringResource(R.string.keep_updated_summary), style = MaterialTheme.typography.bodyMedium)
+                CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
+                        Row(Modifier.fillMaxWidth()) {
+                            Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "")
+                            Spacer(modifier = Modifier.width(20.dp))
+                            Text(text = stringResource(R.string.keep_updated), style = CustomTextStyles.titleCustom)
+                            Spacer(modifier = Modifier.weight(1f))
+                            var checked by remember { mutableStateOf(false) }
+                            Switch(checked = checked, onCheckedChange = {
+                                checked = it
+                                saveFeed { pref: Feed -> pref.keepUpdated = checked }
+                            })
                         }
+                        Text(text = stringResource(R.string.keep_updated_summary), style = MaterialTheme.typography.bodyMedium)
                     }
                 }
             }
 
             @Composable
             fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
-                Dialog(onDismissRequest = onDismissRequest) {
-                    Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
-                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                            for (rating in Rating.entries.reversed()) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
-                                    for (item in selected) upsertBlk(item) { it.rating = rating.code }
-                                    onDismissRequest()
-                                }) {
-                                    Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
-                                    Text(rating.name, Modifier.padding(start = 4.dp))
-                                }
+                CommonDialogSurface(onDismissRequest = onDismissRequest) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        for (rating in Rating.entries.reversed()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
+                                for (item in selected) upsertBlk(item) { it.rating = rating.code }
+                                onDismissRequest()
+                            }) {
+                                Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
+                                Text(rating.name, Modifier.padding(start = 4.dp))
                             }
                         }
                     }
@@ -738,7 +729,7 @@ fun SubscriptionsScreen() {
             if (showAutoDeleteHandlerDialog) AutoDeleteHandlerDialog {showAutoDeleteHandlerDialog = false}
             if (showAssociateDialog) SetAssociateQueueDialog {showAssociateDialog = false}
             if (showKeepUpdateDialog) SetKeepUpdateDialog {showKeepUpdateDialog = false}
-            if (showTagsSettingDialog) TagSettingDialog(appAttribs.feedTags.toSet(), setOf(), multiples = true, isFeed = true, { showTagsSettingDialog = false } ) { tags ->
+            if (showTagsSettingDialog) TagSettingDialog(TagType.Feed, setOf(), multiples = true, { showTagsSettingDialog = false } ) { tags ->
                 for (f in selected) upsertBlk(f) { it.tags.addAll(tags) }
             }
             if (showSpeedDialog) PlaybackSpeedDialog(selected, initSpeed = 1f, maxSpeed = 3f, onDismiss = {showSpeedDialog = false}) { newSpeed ->
@@ -839,8 +830,7 @@ fun SubscriptionsScreen() {
                     Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_import_export_24), "")
                     Text(stringResource(id = R.string.opml_export_label)) } },
             )
-            val scrollState = rememberScrollState()
-            Column(modifier = modifier.verticalScroll(scrollState), verticalArrangement = Arrangement.Bottom) {
+            Column(modifier = modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.Bottom) {
                 if (isExpanded) options.forEachIndexed { _, button ->
                     FloatingActionButton(containerColor = MaterialTheme.colorScheme.onTertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiary,
                         modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp), onClick = {}) { button() }
@@ -850,7 +840,8 @@ fun SubscriptionsScreen() {
             }
         }
 
-        fun swipeRefresh() {
+        PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
+            refreshing = true
             commonConfirm = CommonConfirmAttrib(
                 title = context.getString(R.string.feed_refresh_title) + "?",
                 message = "",
@@ -858,11 +849,6 @@ fun SubscriptionsScreen() {
                 cancelRes = R.string.cancel_label,
                 onConfirm = { checkAndscheduleUpdateTaskOnce(context, replace = true, force = true) },
             )
-        }
-
-        PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
-            refreshing = true
-            swipeRefresh()
             refreshing = false
         }) {
             val context = LocalContext.current
@@ -1055,10 +1041,8 @@ fun SubscriptionsScreen() {
                 dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
                 Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
-                    val scrollState = rememberScrollState()
-                    Column(Modifier.fillMaxSize().verticalScroll(scrollState)) {
-                        val scrollStateH = rememberScrollState()
-                        Row(Modifier.fillMaxWidth().horizontalScroll(scrollStateH)) {
+                    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != FeedSortIndex.Title.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
                                     if (sortIndex == FeedSortIndex.Title.ordinal) titleAscending = !titleAscending
@@ -1354,15 +1338,15 @@ fun SubscriptionsScreen() {
                 Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
                     Column(Modifier.fillMaxSize()) {
-                        val scrollStateV = rememberScrollState()
-                        Column(Modifier.fillMaxSize().verticalScroll(scrollStateV)) {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                             if (appAttribs.languages.size > 1) {
+                                val langs = remember { appAttribs.languages.toList().sorted() }
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    val selectedList = remember { MutableList(appAttribs.languages.size) { mutableStateOf(false) } }
+                                    val selectedList = remember { MutableList(langs.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {
                                         Logd(TAG, "LaunchedEffect(reset) lang")
                                         for (index in selectedList.indices) {
-                                            if (appAttribs.languages[index] in subPrefs.langsSel) selectedList[index].value = true
+                                            if (langs[index] in subPrefs.langsSel) selectedList[index].value = true
                                             langFull = selectedList.count { it.value } == selectedList.size
                                         }
                                     }
@@ -1372,27 +1356,27 @@ fun SubscriptionsScreen() {
                                         if (expandRow) {
                                             val cb = {
                                                 val langsSel = mutableSetOf<String>()
-                                                for (i in appAttribs.languages.indices) {
-                                                    if (selectedList[i].value) langsSel.add(appAttribs.languages[i])
+                                                for (i in langs.indices) {
+                                                    if (selectedList[i].value) langsSel.add(langs[i])
                                                 }
                                                 upsertBlk(subPrefs) { it.langsSel = langsSel.toRealmSet() }
                                                 feedsFiltered += 1
-                                                Logd(TAG, "langsSel: ${subPrefs.langsSel.size} ${appAttribs.languages.size}")
+                                                Logd(TAG, "langsSel: ${subPrefs.langsSel.size} ${langs.size}")
                                             }
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
                                     }
-                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = appAttribs.languages.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = langs.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                         OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
                                                 val langsSel = subPrefs.langsSel.toMutableSet()
-                                                if (selectedList[index].value) langsSel.add(appAttribs.languages[index])
-                                                else langsSel.remove(appAttribs.languages[index])
+                                                if (selectedList[index].value) langsSel.add(langs[index])
+                                                else langsSel.remove(langs[index])
                                                 upsertBlk(subPrefs) { it.langsSel = langsSel.toRealmSet() }
                                                 feedsFiltered += 1
                                             },
-                                        ) { Text(text = appAttribs.languages[index], maxLines = 1, color = textColor) }
+                                        ) { Text(text = langs[index], maxLines = 1, color = textColor) }
                                     }
                                 }
                             }
@@ -1434,12 +1418,13 @@ fun SubscriptionsScreen() {
                                 }
                             }
                             if (appAttribs.feedTags.isNotEmpty()) {
+                                val tagList = remember { appAttribs.feedTags.toList().sorted() }
                                 Column(modifier = Modifier.fillMaxWidth()) {
-                                    val selectedList = remember { MutableList(appAttribs.feedTags.size) { mutableStateOf(false) } }
+                                    val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {
                                         Logd(TAG, "LaunchedEffect(reset) tag")
                                         for (index in selectedList.indices) {
-                                            if (appAttribs.feedTags[index] in subPrefs.tagsSel) selectedList[index].value = true
+                                            if (tagList[index] in subPrefs.tagsSel) selectedList[index].value = true
                                             tagsFull = selectedList.count { it.value } == selectedList.size
                                         }
                                     }
@@ -1449,8 +1434,8 @@ fun SubscriptionsScreen() {
                                         if (expandRow) {
                                             val cb = {
                                                 val tagsSel = mutableSetOf<String>()
-                                                for (i in appAttribs.feedTags.indices) {
-                                                    if (selectedList[i].value) tagsSel.add(appAttribs.feedTags[i])
+                                                for (i in tagList.indices) {
+                                                    if (selectedList[i].value) tagsSel.add(tagList[i])
                                                 }
                                                 upsertBlk(subPrefs) { it.tagsSel = tagsSel.toRealmSet() }
                                                 feedsFiltered += 1
@@ -1458,17 +1443,17 @@ fun SubscriptionsScreen() {
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
                                     }
-                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = appAttribs.feedTags.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                         OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
                                                 val tagsSel = subPrefs.tagsSel.toMutableSet()
-                                                if (selectedList[index].value) tagsSel.add(appAttribs.feedTags[index])
-                                                else tagsSel.remove(appAttribs.feedTags[index])
+                                                if (selectedList[index].value) tagsSel.add(tagList[index])
+                                                else tagsSel.remove(tagList[index])
                                                 upsertBlk(subPrefs) { it.tagsSel = tagsSel.toRealmSet() }
                                                 feedsFiltered += 1
                                             },
-                                        ) { Text(text = appAttribs.feedTags[index], maxLines = 1, color = textColor) }
+                                        ) { Text(text = tagList[index], maxLines = 1, color = textColor) }
                                     }
                                 }
                             }

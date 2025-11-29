@@ -235,7 +235,6 @@ fun OnlineSearchScreen() {
 
     val textColor = MaterialTheme.colorScheme.onSurface
     val actionColor = MaterialTheme.colorScheme.tertiary
-    val scrollState = rememberScrollState()
     ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, vm.numberOPMLFeedsToRestore.intValue), vm.showOPMLRestoreDialog) {
         vm.showProgress = true
         performRestore(context)
@@ -262,10 +261,10 @@ fun OnlineSearchScreen() {
 //                    dirFeed.episodes.clear()
                     dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
                     updateFeedFull(context, dirFeed, removeUnlistedItems = false)
-                    val fromDatabase: Feed? = getFeed(dirFeed.id)
-                    gearbox.feedUpdater(fromDatabase).startRefresh(context)
-                    Logd(TAG, "addLocalFolderLauncher fromDatabase episodes: ${fromDatabase?.episodes?.size}")
-                    fromDatabase
+                    val fd: Feed? = getFeed(dirFeed.id)
+                    if (fd != null) gearbox.feedUpdater(listOf(fd)).startRefresh(context)
+                    Logd(TAG, "addLocalFolderLauncher fromDatabase episodes: ${fd?.episodes?.size}")
+                    fd
                 }
                 withContext(Dispatchers.Main) {
                     if (feed != null) {
@@ -337,7 +336,7 @@ fun OnlineSearchScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showProgress) Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(innerPadding).fillMaxSize()) {
             CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.Center))
-        } else Column(Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 10.dp).background(MaterialTheme.colorScheme.surface).verticalScroll(scrollState)) {
+        } else Column(Modifier.fillMaxSize().padding(innerPadding).padding(horizontal = 10.dp).background(MaterialTheme.colorScheme.surface).verticalScroll(rememberScrollState())) {
             QuickDiscoveryView()
             Text(stringResource(R.string.advanced), color = textColor, fontWeight = FontWeight.Bold)
 //            Text(stringResource(R.string.add_podcast_by_url), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = { vm.showAddViaUrlDialog() }))

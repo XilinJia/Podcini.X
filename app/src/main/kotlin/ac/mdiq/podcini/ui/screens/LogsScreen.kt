@@ -19,6 +19,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -189,25 +190,23 @@ fun LogsScreen() {
                 ShareLog.Status.EXISTING.ordinal -> stringResource(R.string.share_existing)
                 else -> ""
             }
-            Dialog(onDismissRequest = { onDismissRequest() }) {
-                Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        val textColor = MaterialTheme.colorScheme.onSurface
-                        Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
-                        Text(message, color = textColor)
-                        Row(Modifier.padding(top = 10.dp)) {
-                            Spacer(Modifier.weight(0.5f))
-                            Text(stringResource(R.string.copy_to_clipboard), color = textColor,
-                                modifier = Modifier.clickable {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val clip = ClipData.newPlainText(context.getString(R.string.download_error_details), message)
-                                    clipboard.setPrimaryClip(clip)
-                                    if (Build.VERSION.SDK_INT < 32) EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.copied_to_clipboard)))
-                                })
-                            Spacer(Modifier.weight(0.3f))
-                            Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
-                            Spacer(Modifier.weight(0.2f))
-                        }
+            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    val textColor = MaterialTheme.colorScheme.onSurface
+                    Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
+                    Text(message, color = textColor)
+                    Row(Modifier.padding(top = 10.dp)) {
+                        Spacer(Modifier.weight(0.5f))
+                        Text(stringResource(R.string.copy_to_clipboard), color = textColor,
+                            modifier = Modifier.clickable {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText(context.getString(R.string.download_error_details), message)
+                                clipboard.setPrimaryClip(clip)
+                                if (Build.VERSION.SDK_INT < 32) EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.copied_to_clipboard)))
+                            })
+                        Spacer(Modifier.weight(0.3f))
+                        Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
+                        Spacer(Modifier.weight(0.2f))
                     }
                 }
             }
@@ -308,20 +307,18 @@ fun LogsScreen() {
     @Composable
     fun SubscriptionDetailDialog(log: SubscriptionLog, showDialog: Boolean, onDismissRequest: () -> Unit) {
         if (showDialog) {
-            Dialog(onDismissRequest = { onDismissRequest() }) {
-                Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        val textColor = MaterialTheme.colorScheme.onSurface
-                        Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
-                        Text(log.title, color = textColor)
-                        Text(log.comment, color = textColor)
-                        Text("URL: " + log.url, color = textColor)
-                        Text("Link: " + log.link, color = textColor)
-                        Row(Modifier.padding(top = 10.dp)) {
-                            Spacer(Modifier.weight(0.3f))
-                            Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
-                            Spacer(Modifier.weight(0.2f))
-                        }
+            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    val textColor = MaterialTheme.colorScheme.onSurface
+                    Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
+                    Text(log.title, color = textColor)
+                    Text(log.comment, color = textColor)
+                    Text("URL: " + log.url, color = textColor)
+                    Text("Link: " + log.link, color = textColor)
+                    Row(Modifier.padding(top = 10.dp)) {
+                        Spacer(Modifier.weight(0.3f))
+                        Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
+                        Spacer(Modifier.weight(0.2f))
                     }
                 }
             }
@@ -387,26 +384,24 @@ fun LogsScreen() {
             if (!status.isSuccessful) message = status.reasonDetailed
             val messageFull = context.getString(R.string.download_log_details_message, context.getString(from(status.reason)), message, url)
 
-            Dialog(onDismissRequest = { onDismissRequest() }) {
-                Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    Column(modifier = Modifier.padding(10.dp)) {
-                        val textColor = MaterialTheme.colorScheme.onSurface
-                        Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
-                        Text(messageFull, color = textColor)
-                        Row(Modifier.padding(top = 10.dp)) {
-                            Spacer(Modifier.weight(0.5f))
-                            Text(stringResource(R.string.copy_to_clipboard), color = textColor,
-                                modifier = Modifier.clickable {
-                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                    val clip = ClipData.newPlainText(context.getString(R.string.download_error_details), messageFull)
-                                    clipboard.setPrimaryClip(clip)
-                                    if (Build.VERSION.SDK_INT < 32)
-                                        EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.copied_to_clipboard)))
-                                })
-                            Spacer(Modifier.weight(0.3f))
-                            Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
-                            Spacer(Modifier.weight(0.2f))
-                        }
+            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    val textColor = MaterialTheme.colorScheme.onSurface
+                    Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
+                    Text(messageFull, color = textColor)
+                    Row(Modifier.padding(top = 10.dp)) {
+                        Spacer(Modifier.weight(0.5f))
+                        Text(stringResource(R.string.copy_to_clipboard), color = textColor,
+                            modifier = Modifier.clickable {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText(context.getString(R.string.download_error_details), messageFull)
+                                clipboard.setPrimaryClip(clip)
+                                if (Build.VERSION.SDK_INT < 32)
+                                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.copied_to_clipboard)))
+                            })
+                        Spacer(Modifier.weight(0.3f))
+                        Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
+                        Spacer(Modifier.weight(0.2f))
                     }
                 }
             }
@@ -471,7 +466,7 @@ fun LogsScreen() {
                                             return@clickable
                                         }
 //                                        FeedUpdateManager.runOnce(context, feed)
-                                        gearbox.feedUpdater(feed).startRefresh(context)
+                                        gearbox.feedUpdater(listOf(feed)).startRefresh(context)
                                     }
                                     Episode.FEEDFILETYPE_FEEDMEDIA -> {
                                         showAction = false

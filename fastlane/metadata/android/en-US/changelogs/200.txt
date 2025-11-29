@@ -1,0 +1,11 @@
+# 9.4.0
+
+* list in Add to queue dialog is sorted
+* amended logic for feeds refresh on mobile
+* made feeds refresh in foreground service to avoid being killed by some system
+* amended feeds refresh routines to allow multiple feeds
+* in Queues screen
+	* enabled down-swipe to refresh associated feeds
+	* disabled refresh all feeds in menu (not proper place to do)
+* edit episodes tags can be accessed in swipe actions and multi-select menus
+* some code refactoring

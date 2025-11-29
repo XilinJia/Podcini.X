@@ -68,12 +68,11 @@ fun compileLanguages() {
         if (langs.isNotEmpty()) langsSet.addAll(langs)
     }
     Logd(TAG, "langsSet: ${langsSet.size} appAttribs.languages: ${appAttribs.languages.size}")
-    val newLanguages = langsSet - appAttribs.languages.toSet()
+    val newLanguages = langsSet - appAttribs.languages
     if (newLanguages.isNotEmpty()) {
         upsertBlk(appAttribs) {
             it.languages.clear()
             it.languages.addAll(langsSet)
-            it.languages.sort()
         }
     }
 }
@@ -87,7 +86,6 @@ fun compileTags() {
         upsertBlk(appAttribs) {
             it.feedTags.clear()
             it.feedTags.addAll(tagsSet)
-            it.feedTags.sort()
         }
     }
 }

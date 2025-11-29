@@ -565,7 +565,6 @@ fun OnlineFeedScreen() {
                         Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))
                     }
                 }
-                val scrollState = rememberScrollState()
                 var numEpisodes by remember { mutableIntStateOf(vm.feed?.episodes?.size ?: 0) }
                 LaunchedEffect(Unit) {
                     while (true) {
@@ -573,7 +572,7 @@ fun OnlineFeedScreen() {
                         numEpisodes = vm.feed?.episodes?.size ?: 0
                     }
                 }
-                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
+                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
                     Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)

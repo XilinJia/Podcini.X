@@ -90,6 +90,25 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.delay
 
+@Composable
+fun CommonDialogSurface(onDismissRequest: () -> Unit, content: @Composable (() -> Unit)) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+            content()
+        }
+    }
+}
+
+@Composable
+fun CommonDialogCard(onDismissRequest: () -> Unit, content: @Composable (() -> Unit)) {
+    Dialog(onDismissRequest = onDismissRequest) {
+        Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+            content()
+        }
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Spinner(items: List<String>, selectedItem: String, modifier: Modifier = Modifier, onItemSelected: (Int) -> Unit) {
@@ -409,23 +428,22 @@ fun CommonConfirmDialog(c: CommonConfirmAttrib) {
         title = { Text(c.title) },
         text = {
             Column {
-                val scrollState = rememberScrollState()
-                Column(modifier = Modifier.verticalScroll(scrollState)) { Text(c.message) }
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(c.message) }
                 if (c.neutralRes > 0) TextButton(onClick = {
-                    c.onNeutral?.invoke()
                     commonConfirm = null
+                    c.onNeutral?.invoke()
                 }) { Text(stringResource(c.neutralRes)) }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                c.onConfirm()
                 commonConfirm = null
+                c.onConfirm()
             }) { Text(stringResource(c.confirmRes)) }
         },
         dismissButton = { TextButton(onClick = {
-            c.onCancel()
             commonConfirm = null
+            c.onCancel()
         }) { Text(stringResource(c.cancelRes)) } }
     )
 }
@@ -436,8 +454,7 @@ fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boole
         AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showDialog.value = false },
             title = { if (titleRes != 0) Text(stringResource(titleRes)) },
             text = {
-                val scrollState = rememberScrollState()
-                Column(modifier = Modifier.verticalScroll(scrollState)) { Text(message) }
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(message) }
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -543,86 +560,85 @@ fun SelectLowerAllUpper(selectedList: MutableList<MutableState<Boolean>>, lowerC
     }
 }
 
+enum class TagType { Feed, Episode }
+
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun TagSettingDialog(allTags: Set<String>, commonTags: Set<String>, multiples: Boolean = false, isFeed: Boolean = true, onDismiss: () -> Unit, cb: (List<String>)->Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.tags_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
-                var text by remember { mutableStateOf("") }
-                var filteredSuggestions = remember { allTags.toList() }
-                var showSuggestions by remember { mutableStateOf(false) }
-                val tags = remember { commonTags.toMutableStateList() }
+fun TagSettingDialog(tagType: TagType, existingTags: Set<String>, multiples: Boolean = false, onDismiss: () -> Unit, cb: (List<String>)->Unit) {
+    CommonDialogSurface(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(stringResource(R.string.tags_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
+            var text by remember { mutableStateOf("") }
+            val allTags = remember { if (tagType == TagType.Feed) appAttribs.feedTags else appAttribs.episodeTags }
+            var suggestedTags by remember { mutableStateOf(listOf<String>()) }
+            var showSuggestions by remember { mutableStateOf(false) }
+            val tags = remember { existingTags.toMutableStateList() }
 
-                if (multiples) Text(stringResource(R.string.tagging_multiple_sum))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    tags.forEach { FilterChip(onClick = {  }, label = { Text(it) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
-                        modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { tags.remove(it) })) }) }
-                }
-                ExposedDropdownMenuBox(expanded = showSuggestions, onExpandedChange = { }) {
-                    TextField(value = text, placeholder = { Text("Type something...") }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                        textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
-                        modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true), // Material3 requirement
-                        onValueChange = {
-                            text = it
-                            filteredSuggestions = tags.filter { item -> item.contains(text, ignoreCase = true) && item !in tags }
-                            showSuggestions = text.isNotEmpty() && filteredSuggestions.isNotEmpty()
-                        },
-                        keyboardActions = KeyboardActions(
-                            onDone = {
-                                if (text.isNotBlank()) {
-                                    if (text !in tags) tags.add(text)
-                                    text = ""
-                                }
+            if (multiples) Text(stringResource(R.string.tagging_multiple_sum))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                tags.forEach { FilterChip(onClick = {  }, label = { Text(it) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon",
+                    modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { tags.remove(it) })) }) }
+            }
+            ExposedDropdownMenuBox(expanded = showSuggestions, onExpandedChange = { }) {
+                TextField(value = text, placeholder = { Text("Type something...") }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                    textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true), // Material3 requirement
+                    onValueChange = {
+                        text = it
+                        suggestedTags = tags.filter { item -> item.contains(text, ignoreCase = true) && item !in tags }
+                        showSuggestions = text.isNotEmpty() && suggestedTags.isNotEmpty()
+                    },
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            if (text.isNotBlank()) {
+                                if (text !in tags) tags.add(text)
+                                text = ""
                             }
-                        ),
-                        trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon",
-                            modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
-                                if (text.isNotBlank()) {
-                                    if (text !in tags) tags.add(text)
-                                    text = ""
-                                }
-                            })) }
-                    )
-                    ExposedDropdownMenu(expanded = showSuggestions, onDismissRequest = { showSuggestions = false }) {
-                        for (i in filteredSuggestions.indices) {
-                            DropdownMenuItem(text = { Text(filteredSuggestions[i]) },
-                                onClick = {
-                                    text = filteredSuggestions[i]
-                                    showSuggestions = false
-                                }
-                            )
                         }
+                    ),
+                    trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon",
+                        modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = {
+                            if (text.isNotBlank()) {
+                                if (text !in tags) tags.add(text)
+                                text = ""
+                            }
+                        })) }
+                )
+                ExposedDropdownMenu(expanded = showSuggestions, onDismissRequest = { showSuggestions = false }) {
+                    for (i in suggestedTags.indices) {
+                        DropdownMenuItem(text = { Text(suggestedTags[i]) },
+                            onClick = {
+                                text = suggestedTags[i]
+                                showSuggestions = false
+                            }
+                        )
                     }
                 }
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    allTags.forEach { FilterChip(onClick = { tags.add(it) }, label = { Text(it) }, selected = false ) }
-                }
-                Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
-                    Button(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
-                    Spacer(Modifier.weight(1f))
-                    Button(onClick = {
-                        Logd("TagsSettingDialog", "tags: [${tags.joinToString()}] commonTags: [${commonTags.joinToString()}]")
-                        cb(tags)
-                        if (isFeed) {
-                            val tagsSet = appAttribs.feedTags.toMutableSet() + tags
-                            upsertBlk(appAttribs) {
-                                it.feedTags.clear()
-                                it.feedTags.addAll(tagsSet)
-                                it.feedTags.sort()
-                            }
-                        } else {
-                            val tagsSet = appAttribs.episodeTags.toMutableSet() + tags
-                            upsertBlk(appAttribs) {
-                                it.episodeTags.clear()
-                                it.episodeTags.addAll(tagsSet)
-                                it.episodeTags.sort()
-                            }
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                allTags.forEach { FilterChip(onClick = { tags.add(it) }, label = { Text(it) }, selected = false ) }
+            }
+            Row(Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp)) {
+                Button(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
+                Spacer(Modifier.weight(1f))
+                Button(onClick = {
+                    Logd("TagsSettingDialog", "tags: [${tags.joinToString()}] commonTags: [${existingTags.joinToString()}]")
+                    cb(tags)
+                    if (tagType == TagType.Feed) {
+                        val tagsSet = appAttribs.feedTags.toMutableSet() + tags
+                        upsertBlk(appAttribs) {
+                            it.feedTags.clear()
+                            it.feedTags.addAll(tagsSet)
                         }
-                        onDismiss()
-                    }) { Text(stringResource(R.string.confirm_label)) }
-                }
+                    } else {
+                        val tagsSet = appAttribs.episodeTags.toMutableSet() + tags
+                        upsertBlk(appAttribs) {
+                            it.episodeTags.clear()
+                            it.episodeTags.addAll(tagsSet)
+                        }
+                    }
+                    onDismiss()
+                }) { Text(stringResource(R.string.confirm_label)) }
             }
         }
     }

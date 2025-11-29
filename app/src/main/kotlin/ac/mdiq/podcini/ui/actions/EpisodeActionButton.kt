@@ -18,7 +18,6 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActiv
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
-import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -31,6 +30,7 @@ import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.utils.mergeAudios
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.TTSObj
 import ac.mdiq.podcini.ui.screens.TTSObj.ensureTTS
@@ -39,6 +39,7 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.utils.openInBrowser
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -46,27 +47,20 @@ import android.net.Uri
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import androidx.annotation.OptIn
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.core.text.HtmlCompat
 import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.delay
@@ -215,8 +209,9 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         while (TTSObj.ttsWorking) runBlocking { delay(100) }
                         TTSObj.ttsWorking = true
                         if (!item.feed?.languages.isNullOrEmpty()) {
-                            val result = TTSObj.tts?.setLanguage(Locale(item.feed!!.languages[0]))
-                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " ${item.feed!!.languages[0]} $result")
+                            val lang = item.feed!!.languages.first()
+                            val result = TTSObj.tts?.setLanguage(Locale(lang))
+                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " ${lang} $result")
                         }
 
                         var j = 0
@@ -356,57 +351,55 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
     @UnstableApi
     @Composable
     fun AltActionsDialog(context: Context, onDismiss: () -> Unit) {
-        Dialog(onDismissRequest = onDismiss) {
-            Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Logd(TAG, "button label: $type")
-                    if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
-                        IconButton(onClick = {
-                            val btn = EpisodeActionButton(item, ButtonTypes.PLAY)
-                            btn.onClick(context)
-                            type = btn.type
-                            onDismiss()
-                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_play_24dp), contentDescription = "Play") }
-                    }
-                    if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
-                        IconButton(onClick = {
-                            val btn = EpisodeActionButton(item, ButtonTypes.STREAM)
-                            btn.onClick(context)
-                            type = btn.type
-                            onDismiss()
-                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_stream), contentDescription = "Stream") }
-                    }
-                    if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
-                        IconButton(onClick = {
-                            val btn = EpisodeActionButton(item, ButtonTypes.DOWNLOAD)
-                            btn.onClick(context)
-                            type = btn.type
-                            onDismiss()
-                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_download), contentDescription = "Download") }
-                    }
-                    if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
-                        IconButton(onClick = {
-                            val btn = EpisodeActionButton(item, ButtonTypes.DELETE)
-                            btn.onClick(context)
-                            type = btn.type
-                            onDismiss()
-                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "Delete") }
-                    }
-                    if (type != ButtonTypes.WEBSITE) {
-                        IconButton(onClick = {
-                            val btn = EpisodeActionButton(item, ButtonTypes.WEBSITE)
-                            btn.onClick(context)
-                            onDismiss()
-                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "Web") }
-                    }
-                    if (type != ButtonTypes.TTS) {
-                        IconButton(onClick = {
-                            val btn = EpisodeActionButton(item, ButtonTypes.TTS)
-                            btn.onClick(context)
-                            type = btn.type
-                            onDismiss()
-                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech), contentDescription = "TTS") }
-                    }
+        CommonDialogSurface(onDismissRequest = onDismiss) {
+            Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Logd(TAG, "button label: $type")
+                if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.PLAY)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_play_24dp), contentDescription = "Play") }
+                }
+                if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.STREAM)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_stream), contentDescription = "Stream") }
+                }
+                if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.DOWNLOAD)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_download), contentDescription = "Download") }
+                }
+                if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.DELETE)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "Delete") }
+                }
+                if (type != ButtonTypes.WEBSITE) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.WEBSITE)
+                        btn.onClick(context)
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "Web") }
+                }
+                if (type != ButtonTypes.TTS) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.TTS)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech), contentDescription = "TTS") }
                 }
             }
         }

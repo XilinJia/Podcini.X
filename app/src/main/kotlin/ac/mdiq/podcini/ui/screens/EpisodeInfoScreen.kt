@@ -10,9 +10,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.storage.database.addToAssOrActQueue
-import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -40,11 +38,13 @@ import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
+import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.ShownotesCleaner
+import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.openInBrowser
 import android.content.ContextWrapper
@@ -266,7 +266,7 @@ fun EpisodeInfoScreen() {
             CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},
                 onSave = { upsertBlk(episode!!) { it.addComment(commentText.text, false) } })
         }
-        if (showTagsSettingDialog) TagSettingDialog(appAttribs.episodeTags.toSet(), episode!!.tags, isFeed = false, onDismiss = { showTagsSettingDialog = false }) { tags ->
+        if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, episode!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
             upsertBlk(episode!!) { it.tags.addAll(tags) }
         }
     }
@@ -319,9 +319,10 @@ fun EpisodeInfoScreen() {
                                 tts = TextToSpeech(context) { status: Int ->
                                     if (status == TextToSpeech.SUCCESS) {
                                         if (!episode?.feed?.languages.isNullOrEmpty()) {
-                                            val result = tts?.setLanguage(Locale(episode!!.feed!!.languages[0]))
+                                            val lang = episode!!.feed!!.languages.first()
+                                            val result = tts?.setLanguage(Locale(lang))
                                             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED)
-                                                Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + episode?.feed?.languages[0])
+                                                Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + lang)
                                         }
                                         Logt(TAG, "TTS init success")
                                     } else Loge(TAG, context.getString(R.string.tts_init_failed))
@@ -577,8 +578,7 @@ fun EpisodeInfoScreen() {
                         if (episode?.downloadUrl.isNullOrBlank()) Text("noMediaLabel", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.BottomStart))
                     }
                 }
-                val scrollState = rememberScrollState()
-                Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
+                Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                     if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
                     Text("Tags: ${episode?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
                     Text(stringResource(R.string.my_opinion_label) + if (episode?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })

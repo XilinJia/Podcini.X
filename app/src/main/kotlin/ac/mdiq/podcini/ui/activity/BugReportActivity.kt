@@ -89,8 +89,7 @@ class BugReportActivity : ComponentActivity() {
     fun MainView() {
         val textColor = MaterialTheme.colorScheme.onSurface
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-            val scrollState = rememberScrollState()
-            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 10.dp).verticalScroll(scrollState)) {
+            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(horizontal = 10.dp).verticalScroll(rememberScrollState())) {
                 if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                 ComfirmDialog(0, stringResource(R.string.confirm_export_log_dialog_message), showConfirmExport) {
                     exportLog()

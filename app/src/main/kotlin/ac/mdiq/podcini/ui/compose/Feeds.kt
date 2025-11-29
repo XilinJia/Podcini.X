@@ -21,13 +21,10 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
 import ac.mdiq.podcini.preferences.OpmlTransporter
-import ac.mdiq.podcini.storage.database.appAttribs
-import ac.mdiq.podcini.storage.database.compileTags
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getPreserveSyndicate
-import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.shelveToFeed
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
@@ -38,8 +35,8 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
-import ac.mdiq.podcini.ui.screens.feedScreenMode
 import ac.mdiq.podcini.ui.screens.feedOnDisplay
+import ac.mdiq.podcini.ui.screens.feedScreenMode
 import ac.mdiq.podcini.ui.screens.setOnlineFeedUrl
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -68,14 +65,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -84,18 +78,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -119,7 +108,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -144,17 +132,15 @@ import kotlin.math.round
 
 @Composable
 fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
-    Dialog(onDismissRequest = onDismissRequest) {
-        Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                for (rating in Rating.entries.reversed()) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
-                        for (item in selected) upsertBlk(item) { it.rating = rating.code }
-                        onDismissRequest()
-                    }) {
-                        Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
-                        Text(rating.name, Modifier.padding(start = 4.dp))
-                    }
+    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            for (rating in Rating.entries.reversed()) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
+                    for (item in selected) upsertBlk(item) { it.rating = rating.code }
+                    onDismissRequest()
+                }) {
+                    Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
+                    Text(rating.name, Modifier.padding(start = 4.dp))
                 }
             }
         }
@@ -171,54 +157,52 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
     var textState by remember { mutableStateOf(TextFieldValue("")) }
     val context = LocalContext.current
 
-    Dialog(onDismissRequest = onDismissRequest) {
-        Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                var saveImportant by remember { mutableStateOf(true) }
-                Text(message)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = saveImportant, onCheckedChange = { saveImportant = it })
-                    Text(text = stringResource(R.string.shelve_important), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
-                }
-                Text(stringResource(R.string.reason_to_delete_msg))
-                BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
-                Button(onClick = {
-                    callback()
-                    CoroutineScope(Dispatchers.IO).launch {
-                        try {
-                            val preserveFeed = if (saveImportant) getPreserveSyndicate() else null
-                            for (f in feeds) {
-                                if (saveImportant) {
-                                    val eList = f.getWorthyEpisodes()
-                                    if (eList.isNotEmpty()) shelveToFeed(eList, preserveFeed!!)
+    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            var saveImportant by remember { mutableStateOf(true) }
+            Text(message)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = saveImportant, onCheckedChange = { saveImportant = it })
+                Text(text = stringResource(R.string.shelve_important), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
+            }
+            Text(stringResource(R.string.reason_to_delete_msg))
+            BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+            Button(onClick = {
+                callback()
+                CoroutineScope(Dispatchers.IO).launch {
+                    try {
+                        val preserveFeed = if (saveImportant) getPreserveSyndicate() else null
+                        for (f in feeds) {
+                            if (saveImportant) {
+                                val eList = f.getWorthyEpisodes()
+                                if (eList.isNotEmpty()) shelveToFeed(eList, preserveFeed!!)
+                            }
+                            if (!f.isSynthetic()) {
+                                val sLog = SubscriptionLog(f.id, f.title ?: "", f.downloadUrl ?: "", f.link ?: "", SubscriptionLog.Type.Feed.name)
+                                upsert(sLog) {
+                                    it.rating = f.rating
+                                    it.comment = if (f.comment.isBlank()) "" else (f.comment + "\n")
+                                    it.comment += localDateTimeString() + "\nReason to remove:\n" + textState.text
+                                    it.cancelDate = Date().time
                                 }
-                                if (!f.isSynthetic()) {
-                                    val sLog = SubscriptionLog(f.id, f.title ?: "", f.downloadUrl ?: "", f.link ?: "", SubscriptionLog.Type.Feed.name)
+                            } else {
+                                for (e in f.episodes) {
+                                    val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
                                     upsert(sLog) {
-                                        it.rating = f.rating
-                                        it.comment = if (f.comment.isBlank()) "" else (f.comment + "\n")
+                                        it.rating = e.rating
+                                        it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
                                         it.comment += localDateTimeString() + "\nReason to remove:\n" + textState.text
                                         it.cancelDate = Date().time
                                     }
-                                } else {
-                                    for (e in f.episodes) {
-                                        val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
-                                        upsert(sLog) {
-                                            it.rating = e.rating
-                                            it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
-                                            it.comment += localDateTimeString() + "\nReason to remove:\n" + textState.text
-                                            it.cancelDate = Date().time
-                                        }
-                                    }
                                 }
-                                deleteFeed(context, f.id, false)
                             }
-                            EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))
-                        } catch (e: Throwable) { Logs("RemoveFeedDialog", e) }
-                    }
-                    onDismissRequest()
-                }) { Text(stringResource(R.string.confirm_label)) }
-            }
+                            deleteFeed(context, f.id, false)
+                        }
+                        EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))
+                    } catch (e: Throwable) { Logs("RemoveFeedDialog", e) }
+                }
+                onDismissRequest()
+            }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
 }
@@ -232,16 +216,14 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
     @Composable
     fun confirmSubscribe(feed: PodcastSearchResult, showDialog: Boolean, onDismissRequest: () -> Unit) {
         if (showDialog) {
-            Dialog(onDismissRequest = { onDismissRequest() }) {
-                Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-                    val textColor = MaterialTheme.colorScheme.onSurface
-                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
-                        Text("Subscribe: \"${feed.title}\" ?", color = textColor, modifier = Modifier.padding(bottom = 10.dp))
-                        Button(onClick = {
-                            gearbox.subscribeFeed(feed, context)
-                            onDismissRequest()
-                        }) { Text(stringResource(R.string.confirm_label)) }
-                    }
+            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                val textColor = MaterialTheme.colorScheme.onSurface
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
+                    Text("Subscribe: \"${feed.title}\" ?", color = textColor, modifier = Modifier.padding(bottom = 10.dp))
+                    Button(onClick = {
+                        gearbox.subscribeFeed(feed, context)
+                        onDismissRequest()
+                    }) { Text(stringResource(R.string.confirm_label)) }
                 }
             }
         }
@@ -297,38 +279,36 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
 
 @Composable
 fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Unit) {
-    Dialog(onDismissRequest = { onDismissRequest() }) {
-        Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            val textColor = MaterialTheme.colorScheme.onSurface
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
-                var name by remember { mutableStateOf("") }
-                TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
-                var hasVideo by remember { mutableStateOf(true) }
-                var isYoutube by remember { mutableStateOf(false) }
-                if (feed_ == null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = hasVideo, onCheckedChange = { hasVideo = it })
-                        Text(text = stringResource(R.string.has_video), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = isYoutube, onCheckedChange = { isYoutube = it })
-                        Text(text = stringResource(R.string.youtube), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
-                    }
+    CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+        val textColor = MaterialTheme.colorScheme.onSurface
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
+            var name by remember { mutableStateOf("") }
+            TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.new_namee)) })
+            var hasVideo by remember { mutableStateOf(true) }
+            var isYoutube by remember { mutableStateOf(false) }
+            if (feed_ == null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = hasVideo, onCheckedChange = { hasVideo = it })
+                    Text(text = stringResource(R.string.has_video), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
                 }
-                Row {
-                    Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
-                    Spacer(Modifier.weight(1f))
-                    Button({
-                        val feed = feed_ ?: createSynthetic(0, name, hasVideo)
-                        if (feed_ == null) {
-                            feed.type = if (isYoutube) Feed.FeedType.YOUTUBE.name else Feed.FeedType.RSS.name
-                            if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW_VIEW
-                        }
-                        upsertBlk(feed) { if (feed_ != null) it.setCustomTitle1(name) }
-                        onDismissRequest()
-                    }) { Text(stringResource(R.string.confirm_label)) }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = isYoutube, onCheckedChange = { isYoutube = it })
+                    Text(text = stringResource(R.string.youtube), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
                 }
+            }
+            Row {
+                Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
+                Spacer(Modifier.weight(1f))
+                Button({
+                    val feed = feed_ ?: createSynthetic(0, name, hasVideo)
+                    if (feed_ == null) {
+                        feed.type = if (isYoutube) Feed.FeedType.YOUTUBE.name else Feed.FeedType.RSS.name
+                        if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW_VIEW
+                    }
+                    upsertBlk(feed) { if (feed_ != null) it.setCustomTitle1(name) }
+                    onDismissRequest()
+                }) { Text(stringResource(R.string.confirm_label)) }
             }
         }
     }
@@ -447,8 +427,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
         Card(modifier = Modifier.fillMaxWidth().wrapContentHeight().padding(top = 10.dp, bottom = 10.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            val scrollState = rememberScrollState()
-            Column(modifier = Modifier.fillMaxWidth().verticalScroll(scrollState)) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 var speed by remember { mutableFloatStateOf(curPBSpeed) }
                 val speeds = remember { readPlaybackSpeedArray(getPrefOrNull<String>(AppPrefs.prefPlaybackSpeedArray, null)).toMutableStateList() }
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -644,22 +623,20 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
 @Composable
 fun VideoModeDialog(initMode: VideoMode?, onDismissRequest: () -> Unit, callback: (VideoMode) -> Unit) {
     var selectedOption by remember { mutableStateOf(initMode?.tag ?: VideoMode.NONE.tag) }
-    Dialog(onDismissRequest = { onDismissRequest() }) {
-        Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Column {
-                    VideoMode.entries.forEach { mode ->
-                        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            val text = remember { mode.tag }
-                            Checkbox(checked = (text == selectedOption), onCheckedChange = {
-                                if (text != selectedOption) {
-                                    selectedOption = text
-                                    callback(mode)
-                                    onDismissRequest()
-                                }
-                            })
-                            Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
-                        }
+    CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column {
+                VideoMode.entries.forEach { mode ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        val text = remember { mode.tag }
+                        Checkbox(checked = (text == selectedOption), onCheckedChange = {
+                            if (text != selectedOption) {
+                                selectedOption = text
+                                callback(mode)
+                                onDismissRequest()
+                            }
+                        })
+                        Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
                     }
                 }
             }

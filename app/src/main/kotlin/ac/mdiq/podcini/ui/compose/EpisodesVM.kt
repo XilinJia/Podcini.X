@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.smartRemoveFromActQueue
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -29,6 +30,7 @@ import ac.mdiq.podcini.storage.utils.getDurationStringLong
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.SwipeAction
+import ac.mdiq.podcini.ui.actions.SwipeAction.Companion.onEpisode
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
 import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
@@ -216,6 +218,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
 
     var showChooseRatingDialog by remember { mutableStateOf(false) }
     var showAddCommentDialog by remember { mutableStateOf(false) }
+    var showEditTagsDialog by remember { mutableStateOf(false) }
     var showIgnoreDialog by remember { mutableStateOf(false) }
     var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
@@ -230,6 +233,9 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
         gearbox.ConfirmAddEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
         if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
         if (showAddCommentDialog) AddCommentDialog(selected) { showAddCommentDialog = false }
+        if (showEditTagsDialog) TagSettingDialog(TagType.Episode, setOf(), onDismiss = { showEditTagsDialog = false }) { tags ->
+            runOnIOScope { for (e in selected) upsert(e) { it.tags.addAll(tags) }  }
+        }
         if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { futureState = it }, { showIgnoreDialog = true })
         if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
         if (showShelveDialog) ShelveDialog(selected) { showShelveDialog = false }
@@ -260,6 +266,12 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), "Set rating")
                 Text(stringResource(id = R.string.set_rating_label)) } },
+            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                onSelected()
+                showEditTagsDialog = true
+            }, verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_label_24), "Edit tags")
+                Text(stringResource(id = R.string.edit_tags)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 showAddCommentDialog = true

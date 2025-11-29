@@ -18,7 +18,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
-import ac.mdiq.podcini.storage.database.compileTags
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.monitorFeedList
 import ac.mdiq.podcini.storage.database.runOnIOScope

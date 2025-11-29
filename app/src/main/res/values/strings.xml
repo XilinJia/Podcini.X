@@ -223,6 +223,8 @@
     <string name="confirm_mobile_feed_refresh_dialog_message">Refreshing podcasts over mobile data connection is disabled in the settings.\n\nDo you want to refresh anyway\?</string>
     <string name="confirm_mobile_feed_refresh_dialog_message_vpn">Your VPN app pretends to be a mobile network (metered connection). Refreshing podcasts over mobile data connection is disabled in the settings.\n\nDo you want to refresh anyway\? If you want this problem to be fixed, contact the creators of your VPN app.</string>
 
+    <string name="mobile_feed_refresh_message">Refreshing podcasts over mobile data connection is disabled in the settings. Reschedule for later.</string>
+
     <!-- actions on feeditems -->
     <string name="download_label">Download</string>
     <string name="TTS_label">Speak</string>

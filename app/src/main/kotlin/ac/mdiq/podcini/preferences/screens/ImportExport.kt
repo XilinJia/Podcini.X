@@ -427,8 +427,7 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
             }
         }
     }
-    val scrollState = rememberScrollState()
-    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(scrollState)) {
+    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
         TitleSummarySwitchPrefRow(R.string.pref_backup_on_google_title, R.string.pref_backup_on_google_sum, AppPrefs.prefOPMLBackup) {
             putPref(AppPrefs.prefOPMLBackup, it)
             val intent = activity.packageManager?.getLaunchIntentForPackage(activity.packageName)
