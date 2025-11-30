@@ -32,7 +32,6 @@ import io.github.xilinjia.krdb.dynamic.getValueList
 import io.github.xilinjia.krdb.dynamic.getValueSet
 import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.ext.toRealmList
-import io.github.xilinjia.krdb.ext.toRealmSet
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
@@ -301,28 +300,31 @@ val config: RealmConfiguration by lazy {
                 Logd(TAG, "migrating DB from below 72")
                 val appAttribs = newRealm.query("AppAttribs").find()
                 if (appAttribs.isNotEmpty()) {
-                    val aa = appAttribs[0]
                     val feedsOld = oldRealm.query("Feed").find()
                     val tagsSet = mutableSetOf<String>()
                     val langsSet = mutableSetOf<String>()
                     for (f in feedsOld) {
                         val id = f.getValue<Long>("id")
                         val lang = f.getNullableValue<String>("language") ?: ""
+                        Logd(TAG, "migrating languages [$lang]")
+                        langsSet.add(lang)
+
                         Logd(TAG, "migrating feed language [$lang]")
                         val fNew = newRealm.query("Feed", "id == $id").first().find()
                         if (fNew != null) {
                             val langs = fNew.getValueList<String>("languages")
                             langs.add(lang)
                         }
-                        Logd(TAG, "migrating languages [$lang]")
-                        langsSet.add(lang)
 
                         val tags = f.getValueSet<String>("tags").toRealmList()
                         Logd(TAG, "migrating tags [$tags]")
                         tagsSet.addAll(tags)
                     }
+                    val aa = appAttribs[0]
+                    Logd(TAG, "migrating all tags")
                     val fTags = aa.getValueList<String>("feedTags")
                     fTags.addAll(tagsSet.toRealmList())
+                    Logd(TAG, "migrating all languages")
                     val languages = aa.getValueList<String>("languages")
                     languages.addAll(langsSet.toRealmList())
                 }

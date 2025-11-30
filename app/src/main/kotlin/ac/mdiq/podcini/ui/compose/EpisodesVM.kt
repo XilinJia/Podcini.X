@@ -13,13 +13,11 @@ import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToActQueue
 import ac.mdiq.podcini.storage.database.addToAssOrActQueue
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
-
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.smartRemoveFromActQueue
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
@@ -30,7 +28,6 @@ import ac.mdiq.podcini.storage.utils.getDurationStringLong
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.SwipeAction
-import ac.mdiq.podcini.ui.actions.SwipeAction.Companion.onEpisode
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
 import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
@@ -233,7 +230,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
         gearbox.ConfirmAddEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
         if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
         if (showAddCommentDialog) AddCommentDialog(selected) { showAddCommentDialog = false }
-        if (showEditTagsDialog) TagSettingDialog(TagType.Episode, setOf(), onDismiss = { showEditTagsDialog = false }) { tags ->
+        if (showEditTagsDialog) TagSettingDialog(TagType.Episode, setOf(), multiples = true, onDismiss = { showEditTagsDialog = false }) { tags ->
             runOnIOScope { for (e in selected) upsert(e) { it.tags.addAll(tags) }  }
         }
         if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { futureState = it }, { showIgnoreDialog = true })

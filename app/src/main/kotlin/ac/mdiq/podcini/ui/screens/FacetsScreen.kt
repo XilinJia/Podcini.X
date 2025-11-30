@@ -447,8 +447,10 @@ fun FacetsScreen() {
                     }
                 }
             }
-            buildFlow()
-            withContext(Dispatchers.Main) { progressing = false }
+            withContext(Dispatchers.Main) {
+                buildFlow()
+                progressing = false
+            }
         }
     }
 

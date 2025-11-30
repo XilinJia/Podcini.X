@@ -1,3 +1,10 @@
+# 9.4.1
+
+* when editing tags for multiple episodes, note existing tags not shown
+* fixed crash when doing reconcile in Facets screen
+* added tags filter in Episodes lists
+* amended feeds refresh routine to filter out feeds not set to update when refreshing single or multiple feeds
+
 # 9.4.0
 
 * list in Add to queue dialog is sorted

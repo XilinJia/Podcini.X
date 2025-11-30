@@ -713,48 +713,47 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                     HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                 }
                 var selectNone by remember { mutableStateOf(false) }
-//                if (appAttribs.episodeTags.isNotEmpty()) {
-//                    val tagList = remember { appAttribs.episodeTags.toList().sorted() }
-//                    Column(modifier = Modifier.fillMaxWidth()) {
-//                        val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
-////                        LaunchedEffect(reset) {
-////                            Logd(TAG, "LaunchedEffect(reset) tag")
-////                            for (index in selectedList.indices) {
-////                                if (tagList[index] in subPrefs.tagsSel) selectedList[index].value = true
-////                                tagsFull = selectedList.count { it.value } == selectedList.size
-////                            }
-////                        }
-//                        val tagsSel = remember { mutableStateListOf<String>() }
-//                        var tagsFull by remember { mutableStateOf(tagsSel.size == appAttribs.episodeTags.size) }
-//                        var expandRow by remember { mutableStateOf(false) }
-//                        Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-//                            Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (tagsFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
-//                            if (expandRow) {
-//                                val cb = {
-//                                    val tagsSel = mutableSetOf<String>()
-//                                    for (i in tagList.indices) {
-//                                        if (selectedList[i].value) tagsSel.add(tagList[i])
-//                                    }
-////                                    upsertBlk(subPrefs) { it.tagsSel = tagsSel.toRealmSet() }
-////                                    feedsFiltered += 1
-//                                }
-//                                SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
+                if (appAttribs.episodeTags.isNotEmpty()) {
+                    val tagList = remember { appAttribs.episodeTags.toList().sorted() }
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
+//                        LaunchedEffect(reset) {
+//                            Logd(TAG, "LaunchedEffect(reset) tag")
+//                            for (index in selectedList.indices) {
+//                                if (tagList[index] in subPrefs.tagsSel) selectedList[index].value = true
+//                                tagsFull = selectedList.count { it.value } == selectedList.size
 //                            }
 //                        }
-//                        if (expandRow) NonlazyGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-//                            OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
-//                                onClick = {
-//                                    selectedList[index].value = !selectedList[index].value
-////                                    val tagsSel = subPrefs.tagsSel.toMutableSet()
-//                                    if (selectedList[index].value) tagsSel.add(tagList[index])
-//                                    else tagsSel.remove(tagList[index])
-////                                    upsertBlk(subPrefs) { it.tagsSel = tagsSel.toRealmSet() }
-////                                    feedsFiltered += 1
-//                                },
-//                            ) { Text(text = tagList[index], maxLines = 1, color = textColor) }
-//                        }
-//                    }
-//                }
+                        val tagsSel = remember { mutableStateListOf<String>() }
+                        var tagsFull by remember { mutableStateOf(tagsSel.size == appAttribs.episodeTags.size) }
+                        var expandRow by remember { mutableStateOf(false) }
+                        Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                            Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (tagsFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                            if (expandRow) {
+                                val cb = {
+                                    for (i in tagList.indices) {
+                                        if (selectedList[i].value) filter.addTag(tagList[i])
+                                        else filter.removeTag(tagList[i])
+                                    }
+                                    onFilterChanged(filter)
+                                }
+                                SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
+                            }
+                        }
+                        if (expandRow) NonlazyGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                            LaunchedEffect(Unit) { if (filter.containsTag(tagList[index])) selectedList[index].value = true }
+                            OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
+                                onClick = {
+                                    selectNone = false
+                                    selectedList[index].value = !selectedList[index].value
+                                    if (selectedList[index].value) filter.addTag(tagList[index])
+                                    else filter.removeTag(tagList[index])
+                                    onFilterChanged(filter)
+                                },
+                            ) { Text(text = tagList[index], maxLines = 1, color = textColor) }
+                        }
+                    }
+                }
                 for (item in EpisodesFilterGroup.entries) {
                     if (item in disabledSet) continue
                     if (item.properties.size == 2) {
@@ -882,8 +881,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                                     filter.remove(item.properties[i].filterId)
                                                 }
                                             }
-                                        }
-                                        else filter.remove(item.properties[index].filterId)
+                                        } else filter.remove(item.properties[index].filterId)
                                         onFilterChanged(filter)
                                     },
                                 ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }

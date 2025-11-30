@@ -25,26 +25,42 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         propertySet.removeAll(properties_.flatMap { it.split(",") }.map { it.trim() }.filter { it.isNotEmpty() }.toSet())
     }
 
+    fun addTag(tag: String) {
+        propertySet.add("${States.tags.name} $tag")
+    }
+
+    fun removeTag(tag: String) {
+        propertySet.remove("${States.tags.name} $tag")
+    }
+
+    fun containsTag(tag: String): Boolean {
+        return "${States.tags.name} $tag" in propertySet
+    }
+
     fun queryString(): String {
-        Logd("EpisodeFilter", "queryString propertySet: ${propertySet.size} $propertySet")
-        Logd("EpisodeFilter", "actual type: ${propertySet::class}")
-        propertySet.forEach { Logd("EpisodeFilter", "element: [$it] hash=${it.hashCode()}") }
+        Logd(TAG, "queryString propertySet: ${propertySet.size} $propertySet")
+        Logd(TAG, "actual type: ${propertySet::class}")
+        propertySet.forEach { Logd(TAG, "element: [$it] hash=${it.hashCode()}") }
 
         val statements: MutableList<String> = mutableListOf()
+        fun assembleSubQueries(qSet: List<String>) {
+            if (qSet.isNotEmpty()) {
+                val query = StringBuilder(" (" + qSet[0])
+                if (qSet.size > 1) for (r in qSet.subList(1, qSet.size)) {
+                    query.append(" OR ")
+                    query.append(r)
+                }
+                query.append(") ")
+                statements.add(query.toString())
+            }
+        }
+
         val mediaTypeQuerys = mutableListOf<String>()
         if (propertySet.contains(States.unknown.name)) mediaTypeQuerys.add(" mimeType == nil OR mimeType == '' ")
         if (propertySet.contains(States.audio.name)) mediaTypeQuerys.add(" mimeType BEGINSWITH 'audio' ")
         if (propertySet.contains(States.video.name)) mediaTypeQuerys.add(" mimeType BEGINSWITH 'video' ")
         if (propertySet.contains(States.audio_app.name)) mediaTypeQuerys.add(" mimeType IN {\"application/ogg\", \"application/opus\", \"application/x-flac\"} ")
-        if (mediaTypeQuerys.isNotEmpty()) {
-            val query = StringBuilder(" (" + mediaTypeQuerys[0])
-            if (mediaTypeQuerys.size > 1) for (r in mediaTypeQuerys.subList(1, mediaTypeQuerys.size)) {
-                query.append(" OR ")
-                query.append(r)
-            }
-            query.append(") ")
-            statements.add(query.toString())
-        }
+        assembleSubQueries(mediaTypeQuerys)
 
         val ratingQuerys = mutableListOf<String>()
         if (propertySet.contains(States.unrated.name)) ratingQuerys.add(" rating == ${Rating.UNRATED.code} ")
@@ -53,15 +69,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         if (propertySet.contains(States.neutral.name)) ratingQuerys.add(" rating == ${Rating.OK.code} ")
         if (propertySet.contains(States.good.name)) ratingQuerys.add(" rating == ${Rating.GOOD.code} ")
         if (propertySet.contains(States.superb.name)) ratingQuerys.add(" rating == ${Rating.SUPER.code} ")
-        if (ratingQuerys.isNotEmpty()) {
-            val query = StringBuilder(" (" + ratingQuerys[0])
-            if (ratingQuerys.size > 1) for (r in ratingQuerys.subList(1, ratingQuerys.size)) {
-                query.append(" OR ")
-                query.append(r)
-            }
-            query.append(") ")
-            statements.add(query.toString())
-        }
+        assembleSubQueries(ratingQuerys)
 
         val stateQuerys = mutableListOf<String>()
         if (propertySet.contains(States.unspecified.name)) stateQuerys.add(" playState == ${EpisodeState.UNSPECIFIED.code} ")
@@ -78,15 +86,13 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         if (propertySet.contains(States.played.name)) stateQuerys.add(" playState == ${EpisodeState.PLAYED.code} ")
         if (propertySet.contains(States.passed.name)) stateQuerys.add(" playState == ${EpisodeState.PASSED.code} ")
         if (propertySet.contains(States.ignored.name)) stateQuerys.add(" playState == ${EpisodeState.IGNORED.code} ")
-        if (stateQuerys.isNotEmpty()) {
-            val query = StringBuilder(" (" + stateQuerys[0])
-            if (stateQuerys.size > 1) for (r in stateQuerys.subList(1, stateQuerys.size)) {
-                query.append(" OR ")
-                query.append(r)
-            }
-            query.append(") ")
-            statements.add(query.toString())
-        }
+        assembleSubQueries(stateQuerys)
+
+        val tagsQuerys = mutableListOf<String>()
+        val tags = propertySet.filter { it.startsWith(States.tags.name) }
+            .mapNotNull { it.removePrefix("${States.tags.name} ").takeIf(String::isNotBlank) }
+        for (t in tags) tagsQuerys.add(" ANY tags == '$t' ")
+        assembleSubQueries(tagsQuerys)
 
         when {
             propertySet.contains(States.paused.name) -> statements.add(" position > 0 ")
@@ -119,7 +125,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             propertySet.contains(States.no_marks.name) -> statements.add("marks.@count == 0 ")
         }
 
-        Logd("EpisodeFilter", "titleText: $titleText")
+        Logd(TAG, "titleText: $titleText")
         if (titleText.isNotBlank()) {
             when {
                 propertySet.contains(States.title_off.name) -> {}
@@ -132,18 +138,9 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         if (propertySet.contains(States.lower.name)) durationQuerys.add("duration < $durationFloor ")
         if (propertySet.contains(States.middle.name)) durationQuerys.add("duration >= $durationFloor AND duration <= $durationCeiling ")
         if (propertySet.contains(States.higher.name)) durationQuerys.add("duration > $durationCeiling ")
-        if (durationQuerys.isNotEmpty()) {
-            Logd("EpisodeFilter", "durationFloor: $durationFloor durationCeiling: $durationCeiling")
-            val query = StringBuilder(" (" + durationQuerys[0])
-            if (durationQuerys.size > 1) for (r in durationQuerys.subList(1, durationQuerys.size)) {
-                query.append(" OR ")
-                query.append(r)
-            }
-            query.append(") ")
-            statements.add(query.toString())
-        }
+        assembleSubQueries(durationQuerys)
 
-        Logd("EpisodeFilter", "queryString ${propertySet.contains(States.has_comments.name)} ${States.has_comments.name} $propertySet")
+        Logd(TAG, "queryString ${propertySet.contains(States.has_comments.name)} ${States.has_comments.name} $propertySet")
         when {
             propertySet.contains(States.has_comments.name) -> statements.add(" comment != '' ")
             propertySet.contains(States.no_comments.name) -> statements.add(" comment == '' ")
@@ -161,7 +158,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             query.append(r)
         }
         query.append(") ")
-        Logd("EpisodeFilter", "queryString: $query")
+        Logd(TAG, "queryString: $query")
         return query.toString()
     }
 
@@ -232,7 +229,9 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         duration,
         lower,
         middle,
-        higher
+        higher,
+
+        tags
     }
 
     enum class EpisodesFilterGroup(val nameRes: Int, vararg values_: FilterProperties, val exclusive: Boolean = false) {
@@ -298,6 +297,8 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
     }
 
     companion object {
+        private const val TAG = "EpisodeFilter"
+
         fun unfiltered(): EpisodeFilter = EpisodeFilter("")
     }
 }
