@@ -127,8 +127,6 @@ class MainActivity : BaseActivity() {
     private var lastTheme = 0
 //    private var navigationBarInsets = Insets.NONE
 
-//    val prefs: SharedPreferences by lazy { getSharedPreferences("MainActivityPrefs", MODE_PRIVATE) }
-
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
         Logt(TAG, getString(R.string.notification_permission_text))
         if (isGranted) {
@@ -172,8 +170,6 @@ class MainActivity : BaseActivity() {
             StrictMode.setThreadPolicy(builder.build())
         }
 
-//        lifecycleScope.launch((Dispatchers.IO)) { compileTags() }
-
         super.onCreate(savedInstanceState)
         handleNavIntent()
 
@@ -195,12 +191,13 @@ class MainActivity : BaseActivity() {
         else checkAndRequestUnrestrictedBackgroundActivity()
 
         val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
-        val lastScheduledVersion = getPref(AppPreferences.AppPrefs.lastVersion, "0")
-        if (currentVersion != lastScheduledVersion) {
-            WorkManager.getInstance(applicationContext).cancelUniqueWork(feedUpdateWorkId)
-            scheduleUpdateTaskOnce(applicationContext, true)
-            putPref(AppPreferences.AppPrefs.lastVersion, currentVersion)
-        } else scheduleUpdateTaskOnce(applicationContext, false)
+//        val lastScheduledVersion = getPref(AppPreferences.AppPrefs.lastVersion, "0")
+//        if (currentVersion != lastScheduledVersion) {
+//            WorkManager.getInstance(applicationContext).cancelUniqueWork(feedUpdateWorkId)
+//            scheduleUpdateTaskOnce(applicationContext, true)
+//            putPref(AppPreferences.AppPrefs.lastVersion, currentVersion)
+//        }
+//        else scheduleUpdateTaskOnce(applicationContext, false)
 
         runOnIOScope {  SynchronizationQueueSink.syncNowIfNotSyncedRecently() }
 

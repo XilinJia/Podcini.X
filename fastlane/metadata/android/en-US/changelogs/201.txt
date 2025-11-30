@@ -4,3 +4,4 @@
 * fixed crash when doing reconcile in Facets screen
 * added tags filter in Episodes lists
 * amended feeds refresh routine to filter out feeds not set to update when refreshing single or multiple feeds
+* not rescheduling feeds refresh on first start
