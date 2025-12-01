@@ -1,20 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- Activity and fragment titles -->
+    <string name="languages">Languages</string>
     <string name="feed_update_receiver_name">Update subscriptions</string>
     <string name="feeds">Feeds</string>
-
     <string name="statistics_label">Statistics</string>
     <string name="add_feed_label">Add podcast</string>
     <string name="online_episodes_label">Online episodes</string>
+    <string name="feed">Feed</string>
+    <string name="facets">Facets</string>
     <string name="episodes_label">Episodes</string>
-
+    <string name="queue_label">Queues</string>
     <string name="settings_label">Settings</string>
     <string name="downloads_label">Downloads</string>
     <string name="logs_label">Logs</string>
     <string name="subscriptions_label">Subscriptions</string>
     <string name="cancel_download_label">Cancel download</string>
     <string name="playback_history_label">History</string>
+    <string name="overview">Overview</string>
     <string name="months_statistics_label">Months</string>
     <string name="notification_pref_fragment">Notifications</string>
     <string name="current_episode">Current</string>
@@ -40,7 +43,8 @@
     <string name="language_not_supported_by_tts">The language is not supported by TTS</string>
     <string name="tts_init_failed">TTS init failed</string>
     <string name="episode_has_no_content">Episode has not content</string>
-    <string name="unrestricted_background_permission_text">In order to successfully play a list of episodes in the background, Podcini needs Permission for Unrestricted Background Activity. Note on some brands, there are sustomized settings for this, please ensure to set them accordingly.</string>
+    <string name="unrestricted_background_permission_text">In order to successfully play a list of episodes in the background, Podcini needs Permission for Unrestricted Background Activity. Note on some brands, there are customized settings for this, please ensure to set them accordingly.</string>
+    <string name="notification_check_permission">Check permission</string>
     <string name="notification_permission_text">Since Android 13, top level notification is needed for normal refresh and playback. You may disallow notifications of sub-catergories at your wish.</string>
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">Total size of episodes on the device</string>
@@ -67,24 +71,48 @@
     <string name="reset">Reset</string>
     <string name="global_default">Global default</string>
     <string name="url_label">URL</string>
+    <string name="last_full_update">Last full update</string>
     <string name="support_funding_label">Support</string>
     <string name="support_podcast">Support this podcast</string>
     <string name="error_label">Error</string>
     <string name="error_msg_prefix">An error occurred:</string>
     <string name="refresh_label">Refresh</string>
+    <string name="full_refresh_label">Refresh full</string>
+    <string name="clean_up">Clean up</string>
+    <string name="fetch_size">Fetch size</string>
+    <string name="clear_cache">Clear from cache</string>
+    <string name="clear_all_cache">Clear all caches</string>
     <string name="new_synth_label">New synthetic feed</string>
     <string name="toggle_grid_list">Toggle grid list</string>
+    <string name="preparing">Preparing</string>
     <string name="refreshing_label">Refreshing</string>
+    <string name="post_refreshing">Post refreshing</string>
     <string name="clear_new_label">Clear new</string>
     <string name="reconcile_label">Reconcile</string>
     <string name="chapters_label">Chapters</string>
+    <string name="clips">Clips</string>
+    <string name="ask_remove_clip">Do you want to remove clip: %1$s ?</string>
+    <string name="marks">Marks</string>
+    <string name="ask_remove_mark">Do you want to remove mark: %1$s ?</string>
+    <string name="play_mark_msg">The mark can be sought to when the episode is being played.</string>
     <string name="chapter_duration0">Duration: </string>
     <string name="description_label">Description</string>
     <string name="episodes_suffix">\u0020episodes</string>
     <string name="close_label">Close</string>
     <string name="retry_label">Retry</string>
+    <string name="auto_colon">Auto: </string>
+    <string name="enqueue">Enqueue</string>
+    <string name="download">Download</string>
+    <string name="auto_enqueue_sum">Enabling auto-enqueue adds qualified episodes to associated queue (on (auto-)refreshing).</string>
+    <string name="auto_enqueue_sum1">Auto-enqueue requires associated queue not set to None.</string>
+    <string name="auto_download_sum">Enabling auto-download downloads of qualified episodes and add them to associated queue (when it\'s not be set to None on (auto-)refreshing).</string>
+    <string name="limit_episodes_to">Limit episodes to</string>
+    <string name="limit_episodes_to_sum">Sugegst a maximum number of episodes to keep. When exceeded, older episodes are erased. Specially marked episodes will be kept.</string>
+    <string name="skip_first_hint">Skip first (seconds)</string>
+    <string name="skip_last_hint">Skip last (seconds)</string>
     <string name="auto_download_label">Include in auto downloads</string>
     <string name="auto_delete_episode">Auto delete episode</string>
+    <string name="auto_delete_sum">Delete after marked played</string>
     <string name="feed_volume_adapdation">Volume adaptation</string>
     <string name="feed_volume_adaptation_summary">Turn volume for episodes of this podcast up or down: %1$s</string>
     <string name="feed_volume_reduction_off">No adaption</string>
@@ -99,11 +127,13 @@
     <string name="feed_video_mode_window">Window mode</string>
     <string name="feed_video_mode_fullscreen">Full screen</string>
     <string name="feed_video_mode_audioonly">Audio only</string>
-
+    <string name="feed_automation_policy">Automation policy</string>
     <string name="feed_auto_dleq_new">Only new items</string>
     <string name="replace">Replace</string>
     <string name="feed_auto_dleq_newer">Newest unplayed</string>
     <string name="feed_auto_dleq_older">Oldest unplayed</string>
+    <string name="feed_auto_dleq_discretion">Discretionary</string>
+    <string name="feed_auto_dleq_filter_sort">Current filter and sort</string>
     <string name="put_in_queue_label">Add to queue…</string>
     <string name="remove_from_other_queues">Remove from other queues</string>
     <string name="create_synthetic_first_note">You need to create some synthetic feeds first</string>
@@ -121,6 +151,8 @@
     <string name="share_label">Share</string>
     <string name="share_file_label">Share file</string>
     <string name="share_notes_label">Share notes</string>
+    <string name="repeat_episodes_msg">Please specify a repeat interval for the episodes.</string>
+    <string name="ignore_episodes_confirmation_msg">Please confirm that you want to ignore episodes.</string>
     <string name="erase_episodes_confirmation_msg">Please confirm that you want to erase episodes.</string>
     <string name="feed_delete_confirmation_msg">Please confirm that you want to delete the podcast \"%1$s\", ALL its episodes (including downloaded episodes), and its statistics.</string>
     <string name="feed_delete_confirmation_msg_batch">Please confirm that you want to remove the selected podcasts, ALL their episodes (including downloaded episodes), and its statistics.</string>
@@ -139,6 +171,7 @@
     <string name="confirm_delete_logs_message">This will delete all the logs seen here from the database and can not be undone. Are you sure?</string>
     <string name="confirm_mobile_feed_refresh_dialog_message">Refreshing podcasts over mobile data connection is disabled in the settings.\n\nDo you want to refresh anyway\?</string>
     <string name="confirm_mobile_feed_refresh_dialog_message_vpn">Your VPN app pretends to be a mobile network (metered connection). Refreshing podcasts over mobile data connection is disabled in the settings.\n\nDo you want to refresh anyway\? If you want this problem to be fixed, contact the creators of your VPN app.</string>
+    <string name="mobile_feed_refresh_message">Refreshing podcasts over mobile data connection is disabled in the settings. Reschedule for later.</string>
     <!-- actions on feeditems -->
     <string name="download_label">Download</string>
     <string name="TTS_label">Speak</string>
@@ -146,22 +179,27 @@
     <string name="pause_label">Pause</string>
     <string name="stream_label">Stream</string>
     <string name="erase_episodes_label">Erase episodes</string>
+    <string name="alarm_episodes_label">Play episodes at time</string>
     <string name="reserve_episodes_label">Reserve episodes</string>
     <string name="null_label">Null</string>
+    <string name="null_zap_label">Null</string>
     <string name="delete_label">Delete</string>
     <string name="delete_failed_simple">Unable to delete file.</string>
     <string name="delete_local_failed">Unable to delete file. Try re-connecting the local folder from the podcast info screen.</string>
     <string name="delete_episode_label">Delete episode media</string>
+    <string name="set_related">Set episodes related</string>
     <string name="no_action_label">No action</string>
     <string name="my_opinion_label">My opinion</string>
     <string name="add_opinion_label">Add opinion</string>
     <string name="cancelled_on_label">Cancelled on</string>
+    <string name="related">Related</string>
     <string name="choose_tab">Choose a tab in the channel</string>
     <string name="set_play_state_label">Set played state</string>
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Shelve to synthetic</string>
     <string name="add_to_queue_label">Add to active queue</string>
-
+    <string name="add_to_associated_queue">Add to associated queue</string>
+    <string name="remove_from_all_queues">Remove from all queues</string>
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
     <string name="audio">Audio</string>
@@ -174,6 +212,8 @@
     <string name="OK">OK</string>
     <string name="good">Good</string>
     <string name="Super">Super</string>
+    <string name="search_selected">Search selected</string>
+    <string name="select_text_to_search">Select any text to search</string>
     <string name="set_rating_label">Set rating</string>
     <string name="playstate">Play state</string>
     <string name="unspecified">Unspecified</string>
@@ -184,13 +224,16 @@
     <string name="soon">Soon</string>
     <string name="in_queue">In queue</string>
     <string name="in_progress">In progress</string>
+    <string name="total">Total</string>
     <string name="skipped">Skipped</string>
     <string name="played">Played</string>
+    <string name="passed">Passed</string>
     <string name="again">Again</string>
     <string name="forever">Forever</string>
     <string name="ignored">Ignored</string>
     <string name="visit_website_label">Visit website</string>
     <string name="delete_local_feed_warning_body">Warning: you are deleting local episodes. It will delete the media files from your device storage. It cannot be downloaded again through Podcini. Continue?</string>
+    <string name="delete_repeat_warning_msg">Do you really want to delete episodes set for repeats?</string>
     <string name="share_existing">existing</string>
     <!-- Download messages and labels -->
     <string name="download_successful">successful</string>
@@ -243,7 +286,6 @@
     <string name="confirm_mobile_streaming_button_always">Always</string>
     <string name="confirm_mobile_streaming_button_once">Once</string>
     <!-- Mediaplayer messages -->
-
     <string name="no_media_playing_label">No media playing</string>
     <string name="unknown_media_key">Podcini - Unknown media key: %1$d</string>
     <string name="error_file_not_found">File not found</string>
@@ -251,25 +293,37 @@
     <string name="lock_queue">Lock queue</string>
     <string name="queue_locked">Queue locked</string>
     <string name="queue_unlocked">Queue unlocked</string>
-
     <!--    <string name="switch_queue">Switch active queue</string>-->
     <string name="checkbox_do_not_show_again">Do not show again</string>
     <string name="clear_queue_label">Clear queue</string>
     <string name="clear_bin_label">Clear bin</string>
+    <string name="bin_limit">Bin limit</string>
     <string name="undo">Undo</string>
     <string name="sort">Sort</string>
     <string name="rename">Rename</string>
     <string name="add_queue">Add queue</string>
     <string name="publish_date">Publish date</string>
     <string name="download_date">Download date</string>
+    <string name="total_duration">Total duration</string>
+    <string name="average_duration">Average duration</string>
+    <string name="min_duration">Min duration</string>
+    <string name="max_duration">Max duration</string>
     <string name="view_count">View count</string>
+    <string name="like_count">Like count</string>
+    <string name="view_speed">Views per day</string>
     <string name="date">Date</string>
+    <string name="time">Time</string>
     <string name="count">Count</string>
     <string name="last_comment_date">Comment date</string>
     <string name="last_played_date">Played date</string>
+    <string name="time_in_queue">Time in queue</string>
+    <string name="time_out_queue">Time out queue</string>
+    <string name="between_dates">Between dates</string>
     <string name="completed_date">Completed date</string>
     <string name="duration">Duration</string>
     <string name="spent">Spent</string>
+    <string name="started">Started</string>
+    <string name="daily_average">Daily average</string>
     <string name="episode_title">Episode title</string>
     <string name="feed_title">Podcast title</string>
     <string name="show_criteria">Show criteria</string>
@@ -279,10 +333,8 @@
     <string name="smart_shuffle">Smart shuffle</string>
     <string name="size">Size</string>
     <string name="clear_queue_confirmation_msg">Please confirm that you want to clear the queue of ALL of the episodes in it</string>
-    <!--  Variable Speed -->
     <!-- Empty list labels -->
     <string name="no_shownotes_label">This episode has no shownotes.</string>
-
     <!-- Preferences -->
     <string name="project_pref">Project</string>
     <string name="synchronization_pref">Synchronization</string>
@@ -318,7 +370,6 @@
     <string name="button_action_rewind">Rewind</string>
     <string name="button_action_skip_episode">Skip episode</string>
     <string name="button_action_restart_episode">Restart episode</string>
-    <string name="pref_followQueue_sum">Jump to next queue item when playback completes</string>
     <string name="pref_custom_media_dir_title">Use custom media folder</string>
     <string name="pref_custom_media_dir_sum">Choose a custom folder for downloaded media. You can always reset. A restart is needed.</string>
     <string name="pref_custom_media_dir_sum1">Custom media folder is set. Want to change?</string>
@@ -336,19 +387,18 @@
     <string name="pref_keeps_important_episodes_title">Keep important episodes</string>
     <string name="playback_pref">Playback</string>
     <string name="playback_pref_sum">Headphone controls, Skip intervals, Queue</string>
-
+    <string name="network_pref">Network</string>
     <string name="downloads_pref_sum">Update interval, Mobile data, Automatic download, Automatic deletion</string>
     <string name="feed_refresh_title">Refresh podcasts</string>
-
-
-
-
-
-
-
-
-
+    <string name="feed_refresh_sum">Specify an interval (in minutes, 0 means never) at which Podcini looks for new episodes automatically.</string>
+    <string name="feed_refresh_start">Start</string>
+    <string name="feed_refresh_start_sum">Set start hour (0-23) and minute (0-59) for the periodic refresh interval (exact time may be tempered by Android). Leaving the fields empty means the interval starts now.</string>
+    <string name="feed_next_refresh_time">Next refresh time around:</string>
+    <string name="before">before</string>
+    <string name="alarm_start_time">Alarm start time</string>
+    <string name="alarm_start_time_sum">Set start hour (0-23) and minute (0-59) for the episode to be played. Leaving the fields empty means the alarm is not set.</string>
     <string name="pref_followQueue_title">Continuous playback</string>
+    <string name="pref_followQueue_sum">Jump to next queue item when playback completes</string>
     <string name="pref_pauseOnHeadsetDisconnect_title">Headphones or Bluetooth disconnect</string>
     <string name="pref_unpauseOnHeadsetReconnect_title">Headphones reconnect</string>
     <string name="pref_unpauseOnBluetoothReconnect_title">Bluetooth reconnect</string>
@@ -358,6 +408,7 @@
     <string name="pref_low_quality_on_mobile_sum">On metered network, only low quality media (if available) is fetched</string>
     <string name="pref_use_adaptive_progress_title">Update progress adaptively</string>
     <string name="pref_use_adaptive_progress_sum">Update the progress in an adaptive interval set as the higher of 5 seconds or 2 percent of the media duration. This saves some energy. Otherwise it\'s updated every 5 seconds.</string>
+    <string name="pref_autodl_queues_title">Queues to include</string>
     <string name="pref_metered_network_title">Metered network settings</string>
     <string name="pref_mobileUpdate_sum">Select what should be allowed over the mobile data connection</string>
     <string name="pref_mobileUpdate_refresh">Podcast refresh</string>
@@ -373,14 +424,20 @@
     <string name="pref_automatic_download_sum">Configure the automatic download of episodes</string>
     <string name="pref_automatic_download_on_battery_title">Download when not charging</string>
     <string name="pref_automatic_download_on_battery_sum">Allow automatic download when the battery is not charging</string>
+    <string name="pref_disable_wifilock_title">Disable using WifiLock</string>
+    <string name="pref_disable_wifilock_sum">WifiLock routines are deprecated and not functional on modern Android. Try disable it.</string>
+    <string name="pref_autodl_queue_empty_title">Launch when queue gets empty</string>
+    <string name="pref_autodl_queue_empty_sum">When a queue becomes empty, automatic download starts for associated feeds where the policy is other than \"Only new items\"</string>
+    <string name="pref_auto_download_include_queues_title">Include queue items</string>
+    <string name="pref_auto_download_include_queues_sum">Episodes not downloaded in the selected queues will be included for download during auto-download process (at refresh time). Default setting includes all queues.</string>
+    <string name="pref_auto_download_include_soon_title">Include \"Soon\"</string>
+    <string name="pref_auto_download_include_soon_summary">Set to include episodes with play status set to Soon.</string>
     <string name="pref_episode_cache_title">Episode cache</string>
     <string name="pref_episode_cache_summary">Total number of downloaded episodes cached on the device (0 means unlimited). Automatic download will be suspended if this number is reached.</string>
     <string name="pref_auto_download_counting_played_title">Counting played</string>
     <string name="pref_auto_download_counting_played_summary">Set if downloaded episodes already played count into the episode cache</string>
     <string name="pref_episode_cover_title">Use episode cover</string>
     <string name="pref_episode_cover_summary">Use the episode specific cover in lists whenever available. If unchecked, the app will always use the podcast cover image.</string>
-
-
     <string name="pref_theme_title_automatic">Automatic</string>
     <string name="pref_theme_title_light">Light</string>
     <string name="pref_theme_title_dark">Dark</string>
@@ -388,6 +445,8 @@
     <string name="pref_feed_playback_speed_sum">The speed to use when starting audio playback for episodes in this podcast</string>
     <string name="pref_feed_skip">Auto skip</string>
     <string name="pref_feed_skip_sum">Skip introductions and ending credits.</string>
+    <string name="pref_feed_intervals">Repeat intervals</string>
+    <string name="pref_feed_intervals_sum">Used for auto-download or auto-enqueue episodes set to Again.</string>
     <string name="pref_feed_audio_type">Audio type</string>
     <string name="pref_feed_audio_type_sum">Either Speech, Music or Movie for improved processing.</string>
     <string name="pref_feed_audio_quality">Audio quality</string>
@@ -398,8 +457,6 @@
     <string name="pref_feed_associated_queue_sum">The queue to which epiosdes in the feed will added by default</string>
     <string name="pref_feed_skip_ending_toast">Skipped last %d seconds</string>
     <string name="pref_feed_skip_intro_toast">Skipped first %d seconds</string>
-
-
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>
@@ -408,16 +465,14 @@
     <string name="pref_fast_forward_sum">Customize the number of seconds to jump forward when the fast forward button is clicked</string>
     <string name="pref_rewind">Rewind skip time</string>
     <string name="pref_rewind_sum">Customize the number of seconds to jump backwards when the rewind button is clicked</string>
+    <string name="pref_stream_cache">Streaming cache size</string>
+    <string name="pref_stream_cache_sum">Customize the cache size (minimum 10MD) of streamed media for better local rewind and replay. App will restart after change.</string>
     <string name="pref_playback_video_mode">Video play mode</string>
     <string name="pref_playback_video_mode_sum">Choose how video episode is played by default</string>
     <string name="pref_swipe_refresh_title">Swipe to refresh</string>
     <string name="pref_swipe_refresh_sum">Swipe down to refresh all subscriptions</string>
     <string name="pref_feedGridLayout_title">Subscriptions use grid layout </string>
     <string name="pref_feedGridLayout_sum">When set, Subscriptions view use a grid layout, otherwise list layout</string>
-
-
-
-
     <string name="pref_show_notification_skip_title">Show skip on notification</string>
     <string name="pref_show_notification_skip_sum">Toggle the skip button on the notification panel</string>
     <string name="pref_enqueue_location_title">Enqueue location</string>
@@ -426,6 +481,8 @@
     <string name="enqueue_location_front">Front</string>
     <string name="enqueue_location_after_current">After current episode</string>
     <string name="enqueue_location_random">Random</string>
+    <string name="remove_queue">Remove queue</string>
+    <string name="remove_queue_sum">Removes the queue, episodes in the queue will be set to Unplayed, and associated feeds will associate with the Default queue.</string>
     <string name="documentation_support">Documentation &amp; support</string>
     <string name="visit_user_forum">User forum</string>
     <string name="bug_report_title">Report bug</string>
@@ -440,6 +497,7 @@
     <string name="pref_enqueue_downloaded_title">Enqueue downloaded</string>
     <string name="pref_enqueue_downloaded_summary">Add downloaded episodes to the queue</string>
     <string name="pref_skip_silence_title">Skip silence in audio</string>
+    <string name="pref_skip_silence_sum">Whether silence in playback is skipped</string>
     <string name="behavior">Behavior</string>
     <string name="pref_select_properties">Select properties</string>
     <string name="pref_import_media_files_later">Media files can only be imported after importing the database.</string>
@@ -447,6 +505,12 @@
     <string name="pref_default_page_sum">Screen that is opened when starting Podcini</string>
     <string name="pref_back_button_opens_drawer">Back button opens drawer</string>
     <string name="pref_back_button_opens_drawer_summary">Pressing the back button on the default page opens the navigation drawer</string>
+    <string name="pref_show_error_toasts">Show error toasts</string>
+    <string name="pref_show_error_toasts_sum">Toggles if error messages are shown as toasts.</string>
+    <string name="pref_print_logs">Print debug logs</string>
+    <string name="pref_print_logs_sum">Toggles if debug messages are logged.  This can degrade performance. Turn this on only when preparing to report issues.</string>
+    <string name="pref_dont_ask_restricted">Don\'t ask again for restricted background</string>
+    <string name="pref_dont_ask_restricted_sum">Request for restricted background permission is prompted in case the permission is not granted. This disables the prompts. Please ensure the permission is granted, otherwise, continued playback and feeds updates in background don\'t function properly.</string>
     <string name="remember_last_page">Remember last page</string>
     <string name="pref_delete_removes_from_queue_title">Delete removes from queue</string>
     <string name="pref_delete_removes_from_queue_sum">Automatically remove an episode from the queue when it is deleted</string>
@@ -463,6 +527,7 @@
     <!-- Search -->
     <string name="search_status_no_results">No results were found</string>
     <string name="search_label">Search</string>
+    <string name="search_delimit">Search (delimit by comma or space)</string>
     <string name="no_results_for_query">No results were found for \"%1$s\"</string>
     <string name="search_online">Search online</string>
     <!-- Synchronization -->
@@ -514,7 +579,7 @@
     <string name="favorites_export_label">Favorites export</string>
     <string name="favorites_export_summary">Export saved favorites to file</string>
     <string name="restore_subscriptions_label">Restore subscriptions</string>
-
+    <string name="restore_subscriptions_summary">Previously backed up %d subscriptions can be restores.  Would you like to restore them?</string>
     <!-- Sleep timer -->
     <string name="set_sleeptimer_label">Set sleep timer</string>
     <string name="disable_sleeptimer_label">Disable sleep timer</string>
@@ -526,6 +591,10 @@
     <string name="timer_vibration_label">Vibrate shortly before end</string>
     <string name="time_minutes">minutes</string>
     <string name="time_hours">hours</string>
+    <string name="time_days">days</string>
+    <string name="time_weeks">weeks</string>
+    <string name="floor_seconds">Floor(seconds)</string>
+    <string name="ceiling_seconds">Ceiling(seconds)</string>
     <plurals name="time_minutes_quantified">
         <item quantity="other">%d minutes</item>
     </plurals>
@@ -536,6 +605,7 @@
         <item quantity="other">%d days</item>
     </plurals>
     <string name="auto_enable_label">Automatically activate the sleep timer when pressing play</string>
+    <string name="auto_enable_sum">Enter the \"From\" hour and the \"To\" hour in the two boxes, then press the setting button. Hours are from 0 to 23.</string>
     <!-- Synchronisation -->
     <string name="wifi_sync">Sync with device on Wifi</string>
     <string name="wifi_sync_summary_unchoosen">You can connect two devices on the same wifi network to synchronize your episodes play states</string>
@@ -558,8 +628,6 @@
     <string name="gpodnetauth_login_butLabel">Login</string>
     <string name="username_label">Username</string>
     <string name="password_label">Password</string>
-
-
     <string name="synchronization_sync_changes_title">Synchronize now</string>
     <string name="synchronization_sync_summary">Synchronize subscription and episode state changes</string>
     <string name="synchronization_full_sync_title">Force full synchronization</string>
@@ -580,24 +648,28 @@
     <string name="authentication_descr">Change your username and password for this podcast and its episodes.</string>
     <string name="tags_label">Tags</string>
     <string name="feed_tags_summary">Change the tags of this podcast to help organize your subscriptions</string>
-
+    <string name="tagging_multiple_sum">Existing tags are not shown when editing for multiple entities.</string>
     <string name="auto_download_settings_label">Auto download settings</string>
     <string name="episode_filters_label">Episode filter</string>
+    <string name="join_categories_with">Join categories with</string>
     <string name="episode_inclusive_filters_label">Episode inclusive filter</string>
     <string name="episode_exclusive_filters_label">Episode exclusive filter</string>
     <string name="episode_filters_description">List of terms used to decide if an episode should be included or excluded when auto downloading</string>
-
+    <string name="add_term_hint">Add term with + button or Return</string>
     <string name="exclude_terms">Exclude episodes containing any of the terms below</string>
     <string name="include_terms">Include only episodes containing any of the terms below</string>
-
+    <string name="exclude_longer_than">Exclude longer than</string>
+    <string name="exclude_shorter_than">Exclude shorter than</string>
     <string name="mark_excluded_episodes_played">Mark excluded episodes played</string>
     <string name="use_wide_layout">Use wide layout</string>
     <string name="use_wide_layout_summary">Wide layout on episode list shows larger image, more suitable for video contents.</string>
+    <string name="use_episode_image">Use episode image</string>
+    <string name="use_episode_image_summary">When both this and use episode cover in global setting are set, episode image is shown on episodes lists.</string>
     <string name="keep_updated">Keep updated</string>
     <string name="keep_updated_summary">Include this podcast when (auto-)refreshing all podcasts</string>
     <string name="audo_add_new_queue">Auto add new to queue</string>
     <string name="audo_add_new_queue_summary">Automatically add new episodes in this podcast to the designated queue when (auto-)refreshing</string>
-
+    <string name="auto_download_disabled_sum">Auto download here can be enabled when auto-download is enabled in the global settings and streaming is not preferred in the feed.</string>
     <string name="statistics_length_played">Duration of all started:</string>
     <string name="statistics_time_played">Time played:</string>
     <string name="statistics_time_spent">Time spent:</string>
@@ -605,8 +677,8 @@
     <string name="statistics_episodes_on_device">Episodes on the device:</string>
     <string name="statistics_space_used">Space used:</string>
     <string name="statistics_episodes_started_total">Episodes started/total:</string>
-
-
+    <string name="this_podcast">This podcast</string>
+    <string name="all_podcasts">All podcasts</string>
     <string name="feeds_related_to_author">Feeds likely related to the author »</string>
     <string name="edit_url_menu">Edit feed URL</string>
     <string name="edit_url_confirmation_msg">Changing the RSS address can easily break the playback state and episode listings of the podcast. We do NOT recommend changing it and will NOT provide support if anything goes wrong. This cannot be undone. The broken subscription CANNOT be repaired by simply changing the address back. We suggest creating a backup before continuing.</string>
@@ -617,7 +689,6 @@
     <string name="search_vistaguide_label">Search YouTube channels</string>
     <string name="search_itunes_label">Search Apple Podcasts</string>
     <string name="search_podcastindex_label">Search Podcast Index</string>
-
     <string name="advanced">Advanced</string>
     <string name="discover">Discover</string>
     <string name="discover_hide">Hide</string>
@@ -638,23 +709,34 @@
     <string name="auto_downloadable_label">Auto downloadable</string>
     <string name="has_chapters">Has chapters</string>
     <string name="filename">File name</string>
+    <string name="lower">Lower</string>
+    <string name="middle">Middle</string>
+    <string name="higher">Higher</string>
+    <string name="include">Include</string>
+    <string name="exclude">Exclude</string>
+    <string name="off">Off</string>
     <string name="play_speed">Play speed</string>
     <string name="global_speed">Global</string>
     <string name="custom_speed">Custom</string>
     <string name="has_skips">Skips set</string>
     <string name="commented">Commented</string>
+    <string name="add_comment">Add comment (auto save 10s)</string>
     <string name="feed_type">Feed type</string>
     <string name="synthetic">Synthetic</string>
     <string name="normal">Normal</string>
     <string name="feed_origin">Feed origin</string>
+    <string name="shelve_important">Shelve important episodes</string>
     <string name="youtube">Youtube</string>
     <string name="rss">RSS</string>
     <string name="has_video">Has video</string>
+    <string name="tagged">Tagged</string>
     <string name="has_comments">Has commented</string>
-
+    <string name="has_clips">Has clips</string>
+    <string name="has_marks">Has marks</string>
     <string name="always">Always</string>
     <string name="never">Never</string>
     <string name="auto_download">Auto download</string>
+    <string name="auto_enqueue">Auto enqueue</string>
     <!-- Share episode dialog -->
     <string name="share_playback_position_dialog_label">Include playback position</string>
     <string name="share_dialog_episode_website_label">Episode webpage</string>
@@ -683,6 +765,8 @@
     <string name="notification_group_errors">Errors</string>
     <string name="notification_channel_user_action">Action required</string>
     <string name="notification_channel_user_action_description">Shown if your action is required, for example if you need to enter a password.</string>
+    <string name="notification_channel_refreshing">Refreshing</string>
+    <string name="notification_channel_refreshing_description">Shown while updating feeds.</string>
     <string name="notification_channel_downloading">Downloading</string>
     <string name="notification_channel_downloading_description">Shown while currently downloading.</string>
     <string name="notification_channel_playing">Currently playing</string>
