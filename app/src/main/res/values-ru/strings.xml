@@ -401,6 +401,7 @@
     <string name="feed_refresh_start_sum">Set start hour (0-23) and minute (0-59) for the periodic refresh interval (exact time may be tempered by Android). Leaving the fields empty means the interval starts now.</string>
     <string name="feed_next_refresh_time">Next refresh time around:</string>
     <string name="before">before</string>
+    <string name="refresh_associates">Refresh associates</string>
     <string name="alarm_start_time">Alarm start time</string>
     <string name="alarm_start_time_sum">Set start hour (0-23) and minute (0-59) for the episode to be played. Leaving the fields empty means the alarm is not set.</string>
     <string name="pref_followQueue_title">Continuous playback</string>
@@ -533,7 +534,7 @@
     <!-- Search -->
     <string name="search_status_no_results">No results were found</string>
     <string name="search_label">Search</string>
-    <string name="search_delimit">Search (delimit by comma or space)</string>
+    <string name="search_hint">delimit by comma, prefix phrase with \'-\' to exclude</string>
     <string name="no_results_for_query">No results were found for \"%1$s\"</string>
     <string name="search_online">Поиск в сети</string>
     <!-- Synchronization -->
@@ -664,6 +665,7 @@
     <string name="tags_label">Tags</string>
     <string name="feed_tags_summary">Change the tags of this podcast to help organize your subscriptions</string>
     <string name="tagging_multiple_sum">Existing tags are not shown when editing for multiple entities.</string>
+    <string name="text_label">Text</string>
     <string name="auto_download_settings_label">Auto download settings</string>
     <string name="episode_filters_label">Episode filter</string>
     <string name="join_categories_with">Join categories with</string>
