@@ -635,7 +635,7 @@ fun QueuesScreen() {
                         EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions,
                             refreshCB = {
                                 commonConfirm = CommonConfirmAttrib(
-                                    title = context.getString(R.string.feed_refresh_title) + "?",
+                                    title = context.getString(R.string.refresh_associates) + "?",
                                     message = "",
                                     confirmRes = R.string.confirm_label,
                                     cancelRes = R.string.cancel_label,

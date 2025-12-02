@@ -1351,7 +1351,7 @@ fun FeedDetailsScreen() {
                     isBSExpanded = false
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
                 IconButton(onClick = {
-                    setSearchTerms(feed = feed)
+//                    setSearchTerms(feed = feed)
                     navController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = {

@@ -43,6 +43,10 @@ import ac.mdiq.podcini.storage.utils.getDurationStringLocalized
 import ac.mdiq.podcini.storage.utils.getDurationStringLong
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
+import ac.mdiq.podcini.ui.screens.SearchBy
+import ac.mdiq.podcini.ui.screens.SearchByGrid
+import ac.mdiq.podcini.ui.screens.searchEpisodesQuery
+import ac.mdiq.podcini.ui.screens.setSearchByAll
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -713,17 +717,38 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                     HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                 }
                 var selectNone by remember { mutableStateOf(false) }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    var expandRow by remember { mutableStateOf(false) }
+                    var queryText by remember { mutableStateOf(filter.extractText()) }
+                    var showSearchBy by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) { setSearchByAll() }
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                        Text(stringResource(R.string.text_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (queryText.isBlank()) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                        Spacer(Modifier.width(20.dp))
+                        if (expandRow) Text(stringResource(R.string.show_criteria), color = buttonColor, modifier = Modifier.clickable(
+                            onClick = {showSearchBy = !showSearchBy}
+                        ))
+                    }
+                    if (expandRow) {
+                        SearchBarRow(R.string.search_hint, defaultText = queryText, modifier = Modifier.padding(start = 10.dp)) { query ->
+                            Logd(TAG, "SearchBarRow cb query: $query")
+                            if (query.isNotBlank()) {
+                                selectNone = false
+                                val queryWords = (if (query.contains(",")) query.split(",").map { it.trim() } else query.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
+                                val queryString = searchEpisodesQuery(0L, queryWords)
+                                Logd(TAG, "SearchBarRow cb queryString: $queryString")
+                                filter.addTextQuery(queryString)
+                            } else filter.addTextQuery("")
+                            queryText = query
+                            onFilterChanged(filter)
+                        }
+                        if (showSearchBy) SearchByGrid(setOf(SearchBy.AUTHOR))
+                    }
+                }
                 if (appAttribs.episodeTags.isNotEmpty()) {
                     val tagList = remember { appAttribs.episodeTags.toList().sorted() }
                     Column(modifier = Modifier.fillMaxWidth()) {
                         val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
-//                        LaunchedEffect(reset) {
-//                            Logd(TAG, "LaunchedEffect(reset) tag")
-//                            for (index in selectedList.indices) {
-//                                if (tagList[index] in subPrefs.tagsSel) selectedList[index].value = true
-//                                tagsFull = selectedList.count { it.value } == selectedList.size
-//                            }
-//                        }
                         val tagsSel = remember { mutableStateListOf<String>() }
                         var tagsFull by remember { mutableStateOf(tagsSel.size == appAttribs.episodeTags.size) }
                         var expandRow by remember { mutableStateOf(false) }

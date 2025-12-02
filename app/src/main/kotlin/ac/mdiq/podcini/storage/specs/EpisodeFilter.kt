@@ -37,6 +37,11 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         return "${States.tags.name} $tag" in propertySet
     }
 
+    fun addTextQuery(query: String) {
+        propertySet.removeIf { it.startsWith(States.text.name) }
+        if (query.isNotBlank()) propertySet.add("${States.text.name} $query")
+    }
+
     fun queryString(): String {
         Logd(TAG, "queryString propertySet: ${propertySet.size} $propertySet")
         Logd(TAG, "actual type: ${propertySet::class}")
@@ -94,6 +99,17 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         for (t in tags) tagsQuerys.add(" ANY tags == '$t' ")
         assembleSubQueries(tagsQuerys)
 
+        val textQuerys = mutableListOf<String>()
+        val tqs = propertySet.filter { it.startsWith(States.text.name) }
+            .mapNotNull { it.removePrefix("${States.text.name} ").takeIf(String::isNotBlank) }
+        Logd(TAG, "tqs: ${tqs.size}")
+        for (tq in tqs) {
+            Logd(TAG, "tq: $tq")
+            textQuerys.add(tq)
+        }
+        assembleSubQueries(textQuerys)
+        Logd(TAG, "queryString statements after textQuerys: $statements")
+
         when {
             propertySet.contains(States.paused.name) -> statements.add(" position > 0 ")
             propertySet.contains(States.not_paused.name) -> statements.add(" position == 0 ")
@@ -125,7 +141,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             propertySet.contains(States.no_marks.name) -> statements.add("marks.@count == 0 ")
         }
 
-        Logd(TAG, "titleText: $titleText")
+        Logd(TAG, "queryString titleText: $titleText")
         if (titleText.isNotBlank()) {
             when {
                 propertySet.contains(States.title_off.name) -> {}
@@ -158,8 +174,33 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             query.append(r)
         }
         query.append(") ")
-        Logd(TAG, "queryString: $query")
+        Logd(TAG, "queryString query: $query")
         return query.toString()
+    }
+
+    fun extractText(): String {
+        val tqs = propertySet.filter { it.startsWith(States.text.name) }
+            .mapNotNull { it.removePrefix("${States.text.name} ").takeIf(String::isNotBlank) }
+        if (tqs.isEmpty()) return ""
+
+        val regex = Regex("""(?i)(\bNOT\b)?\s*\(?\s*[^()]*?\bcontains\[[^\]]*]\s*'([^']+)'""")
+        val termPositivity = LinkedHashMap<String, Boolean>()
+
+        for (m in regex.findAll(tqs[0])) {
+            val notGroup = m.groups[1]?.value
+            val value = m.groups[2]!!.value.trim()
+            val isNegated = notGroup != null && notGroup.isNotBlank()
+            val isPositive = !isNegated
+
+            val prev = termPositivity[value]
+            termPositivity[value] = when {
+                prev == null -> isPositive
+                prev -> true
+                else -> isPositive
+            }
+        }
+
+        return termPositivity.map { (term, positive) -> if (positive) term else "-$term" }.joinToString(", ")
     }
 
     @Suppress("EnumEntryName")
@@ -231,7 +272,8 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         middle,
         higher,
 
-        tags
+        tags,
+        text
     }
 
     enum class EpisodesFilterGroup(val nameRes: Int, vararg values_: FilterProperties, val exclusive: Boolean = false) {

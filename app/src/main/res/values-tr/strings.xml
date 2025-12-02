@@ -579,7 +579,6 @@
     <string name="search_status_no_results">Sonuç bulunamadı</string>
 
     <string name="search_label">Ara</string>
-    <string name="search_delimit">Ara (virgül veya boşlukla ayır)</string>
     <string name="no_results_for_query">\"%1$s\" için sonuç bulunamadı</string>
     <string name="search_online">Çevrimiçi ara</string>
 

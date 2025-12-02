@@ -23,8 +23,6 @@ import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.SearchBarRow
-import ac.mdiq.podcini.utils.EventFlow
-import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
@@ -45,7 +43,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -55,17 +52,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
@@ -102,62 +96,110 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
 
 private var curSearchString by mutableStateOf("")
-private var feedToSearchIn by mutableStateOf<Feed?>(null)
-fun setSearchTerms(query: String? = null, feed: Feed? = null) {
-    Logd("setSearchTerms", "query: $query feed: ${feed?.id}")
+fun setSearchTerms(query: String? = null) {
+    Logd("setSearchTerms", "query: $query")
     if (query != null) curSearchString = query
-    feedToSearchIn = feed
+}
+
+private val searchBIES = SearchBy.entries.toMutableSet()
+fun setSearchByAll() {
+    searchBIES.addAll(SearchBy.entries)
+}
+private fun isSelected(by: SearchBy) = searchBIES.contains(by)
+private fun setSelected(by: SearchBy, selected: Boolean) {
+    if (selected) searchBIES.add(by) else searchBIES.remove(by)
+}
+
+fun contains(s: String): String {
+    return if (s.startsWith('-')) {
+        val s1 = s.substring(1).trim()
+        "contains[c] '$s1'"
+    } else "contains[c] '$s'"
+}
+
+fun searchEpisodesQuery(feedID: Long, queryWords: List<String>): String {
+    Logd("searchEpisodesQuery", "searchEpisodes called")
+    val sb = StringBuilder()
+    for (i in queryWords.indices) {
+        val sb1 = StringBuilder()
+        var isStart = true
+        val qw = queryWords[i]
+        val exl = qw.startsWith('-')
+        val command = contains(qw)
+        if (isSelected(SearchBy.TITLE)) {
+            if (exl) sb1.append("NOT " )
+            sb1.append("(title $command)")
+            isStart = false
+        }
+        if (isSelected(SearchBy.DESCRIPTION)) {
+            if (!isStart) sb1.append(if (exl) " AND " else " OR ")
+            if (exl) sb1.append("NOT ")
+            sb1.append("(description $command)")
+            if (exl) sb1.append(" AND ") else sb1.append(" OR ")
+            if (exl) sb1.append("NOT ")
+            sb1.append("(transcript $command)")
+            isStart = false
+        }
+        if (isSelected(SearchBy.COMMENT)) {
+            if (!isStart) sb1.append(if (exl) " AND " else " OR ")
+            if (exl) sb1.append("NOT ")
+            sb1.append("(comment $command)")
+        }
+        if (sb1.isEmpty()) continue
+        sb.append("(")
+        sb.append(sb1)
+        sb.append(") ")
+        if (i != queryWords.size - 1) sb.append("AND ")
+    }
+    if (sb.isEmpty()) return ""
+
+    var queryString = sb.toString()
+    if (feedID != 0L) queryString = "(feedId == $feedID) AND $queryString"
+    Logd(TAG, "searchEpisodes queryString: $queryString")
+
+    return queryString
+}
+
+@Composable
+fun SearchByGrid(exl: Set<SearchBy> = setOf()) {
+    NonlazyGrid(columns = 2, itemCount = SearchBy.entries.size) { index ->
+        val c = SearchBy.entries[index]
+        if (c !in exl) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
+            var isChecked by remember { mutableStateOf(isSelected(c)) }
+            Checkbox(checked = isChecked,
+                onCheckedChange = { newValue ->
+                    setSelected(c, newValue)
+                    isChecked = newValue
+                }
+            )
+            Spacer(modifier = Modifier.width(2.dp))
+            Text(stringResource(c.nameRes))
+        }
+    }
 }
 
 class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     internal var automaticSearchDebouncer: Handler
 
     internal val pafeeds = mutableStateListOf<PAFeed>()
-
-    internal var feedId: Long = 0
     internal val feeds = mutableStateListOf<Feed>()
 
     var episodesFlow by mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow())
     var listIdentity by mutableStateOf("")
 
-    internal var searchInFeed by mutableStateOf(false)
     internal var queryText by mutableStateOf("")
 
     init {
         Logd(TAG, "init $curSearchString")
+        setSearchByAll()
         queryText = curSearchString
-        if (feedToSearchIn != null) {
-            this.searchInFeed = true
-            feedId = feedToSearchIn!!.id
-        }
         automaticSearchDebouncer = Handler(Looper.getMainLooper())
-    }
-
-    private var eventSink: Job?     = null
-    private var eventStickySink: Job? = null
-    internal fun cancelFlowEvents() {
-        eventSink?.cancel()
-        eventSink = null
-        eventStickySink?.cancel()
-        eventStickySink = null
-    }
-    internal fun procFlowEvents() {
-        if (eventSink == null) eventSink = lcScope.launch {
-            EventFlow.events.collectLatest { event ->
-                Logd(TAG, "Received event: ${event.TAG}")
-                when (event) {
-                    is FlowEvent.FeedListEvent -> search(queryText)
-                    else -> {}
-                }
-            }
-        }
     }
 
     data class Triplet(val episodes:  Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
@@ -165,31 +207,38 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
     private var searchJob: Job? = null
     @SuppressLint("StringFormatMatches")
     internal fun search(query: String) {
-        fun searchFeeds(queryWords: Array<String>): List<Feed> {
-            Logd(TAG, "searchFeeds called ${SearchBy.AUTHOR.selected}")
+        fun searchFeeds(queryWords: List<String>): List<Feed> {
             val sb = StringBuilder()
             for (i in queryWords.indices) {
                 var isStart = true
                 val sb1 = StringBuilder()
-                if (SearchBy.TITLE.selected) {
-                    sb1.append("eigenTitle contains[c] '${queryWords[i]}'")
-                    sb1.append(" OR ")
-                    sb1.append("customTitle contains[c] '${queryWords[i]}'")
+                val qw = queryWords[i]
+                val exl = qw.startsWith('-')
+                val command = contains(qw)
+                if (isSelected(SearchBy.TITLE)) {
+                    if (exl) sb1.append("NOT ")
+                    sb1.append("(eigenTitle $command)")
+                    if (exl) sb1.append(" AND ") else sb1.append(" OR ")
+                    if (exl) sb1.append("NOT ")
+                    sb1.append("(customTitle $command)")
                     isStart = false
                 }
-                if (SearchBy.AUTHOR.selected) {
-                    if (!isStart) sb1.append(" OR ")
-                    sb1.append("author contains[c] '${queryWords[i]}'")
+                if (isSelected(SearchBy.AUTHOR)) {
+                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
+                    if (exl) sb1.append("NOT ")
+                    sb1.append("(author $command)")
                     isStart = false
                 }
-                if (SearchBy.DESCRIPTION.selected) {
-                    if (!isStart) sb1.append(" OR ")
-                    sb1.append("description contains[c] '${queryWords[i]}'")
+                if (isSelected(SearchBy.DESCRIPTION)) {
+                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
+                    if (exl) sb1.append("NOT ")
+                    sb1.append("(description $command)")
                     isStart = false
                 }
-                if (SearchBy.COMMENT.selected) {
-                    if (!isStart) sb1.append(" OR ")
-                    sb1.append("comment contains[c] '${queryWords[i]}'")
+                if (isSelected(SearchBy.COMMENT)) {
+                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
+                    if (exl) sb1.append("NOT ")
+                    sb1.append("(comment $command)")
                 }
                 if (sb1.isEmpty()) continue
                 sb.append("(")
@@ -202,31 +251,30 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
             Logd(TAG, "searchFeeds queryString: $queryString")
             return realm.query(Feed::class).query(queryString).find()
         }
-
-        fun searchPAFeeds(queryWords: Array<String>): List<PAFeed> {
-            Logd(TAG, "searchFeeds called ${SearchBy.AUTHOR.selected}")
+        fun searchPAFeeds(queryWords: List<String>): List<PAFeed> {
             val sb = StringBuilder()
             for (i in queryWords.indices) {
                 var isStart = true
                 val sb1 = StringBuilder()
-                if (SearchBy.TITLE.selected) {
-                    sb1.append("name contains[c] '${queryWords[i]}'")
+                val qw = queryWords[i]
+                val exl = qw.startsWith('-')
+                val command = contains(qw)
+                if (isSelected(SearchBy.TITLE)) {
+                    if (exl) sb1.append("NOT ")
+                    sb1.append("(name $command)")
                     isStart = false
                 }
-                if (SearchBy.AUTHOR.selected) {
-                    if (!isStart) sb1.append(" OR ")
-                    sb1.append("author contains[c] '${queryWords[i]}'")
+                if (isSelected(SearchBy.AUTHOR)) {
+                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
+                    if (exl) sb1.append("NOT ")
+                    sb1.append("(author $command)")
                     isStart = false
                 }
-                if (SearchBy.DESCRIPTION.selected) {
-                    if (!isStart) sb1.append(" OR ")
-                    sb1.append("description contains[c] '${queryWords[i]}'")
-                    //                isStart = false
+                if (isSelected(SearchBy.DESCRIPTION)) {
+                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
+                    if (exl) sb1.append("NOT ")
+                    sb1.append("(description $command)")
                 }
-                //            if (SearchBy.COMMENT.selected) {
-                //                if (!isStart) sb1.append(" OR ")
-                //                sb1.append("comment contains[c] '${queryWords[i]}'")
-                //            }
                 if (sb1.isEmpty()) continue
                 sb.append("(")
                 sb.append(sb1)
@@ -238,39 +286,9 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
             Logd(TAG, "searchFeeds queryString: $queryString")
             return realm.query(PAFeed::class).query(queryString).find()
         }
-
-        fun searchEpisodes(feedID: Long, queryWords: Array<String>): Flow<ResultsChange<Episode>> {
-            Logd(TAG, "searchEpisodes called")
-            val sb = StringBuilder()
-            for (i in queryWords.indices) {
-                val sb1 = StringBuilder()
-                var isStart = true
-                if (SearchBy.TITLE.selected) {
-                    sb1.append("title contains[c] '${queryWords[i]}'" )
-                    isStart = false
-                }
-                if (SearchBy.DESCRIPTION.selected) {
-                    if (!isStart) sb1.append(" OR ")
-                    sb1.append("description contains[c] '${queryWords[i]}'")
-                    sb1.append(" OR ")
-                    sb1.append("transcript contains[c] '${queryWords[i]}'")
-                    isStart = false
-                }
-                if (SearchBy.COMMENT.selected) {
-                    if (!isStart) sb1.append(" OR ")
-                    sb1.append("comment contains[c] '${queryWords[i]}'")
-                }
-                if (sb1.isEmpty()) continue
-                sb.append("(")
-                sb.append(sb1)
-                sb.append(") ")
-                if (i != queryWords.size - 1) sb.append("AND ")
-            }
-            if (sb.isEmpty()) return emptyFlow()
-
-            var queryString = sb.toString()
-            if (feedID != 0L) queryString = "(feedId == $feedID) AND $queryString"
-            Logd(TAG, "searchEpisodes queryString: $queryString")
+        fun searchEpisodes(feedID: Long, queryWords: List<String>): Flow<ResultsChange<Episode>> {
+            val queryString = searchEpisodesQuery(feedID, queryWords)
+            if (queryString.isBlank()) return emptyFlow()
             return realm.query(Episode::class).query(queryString).sort(sortPairOf(EpisodeSortOrder.DATE_DESC)).asFlow()
         }
 
@@ -283,9 +301,9 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                 val results_ = withContext(Dispatchers.IO) {
                     if (query.isEmpty()) Triplet(emptyFlow(), listOf(), listOf())
                     else {
-                        val queryWords = (if (query.contains(",")) query.split(",").map { it.trim() } else query.split("\\s+".toRegex())).dropWhile { it.isEmpty() }.toTypedArray()
+                        val queryWords = (if (query.contains(",")) query.split(",").map { it.trim() } else query.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
                         listIdentity = "Search.${queryWords.joinToString()}"
-                        val items = searchEpisodes(feedId, queryWords)
+                        val items = searchEpisodes(0L, queryWords)
                         val feeds: List<Feed> = searchFeeds(queryWords)
                         val pafeeds = searchPAFeeds(queryWords)
 //                        Logd(TAG, "performSearch items: ${items.size} feeds: ${feeds.size} pafeeds: ${pafeeds.size}")
@@ -294,10 +312,8 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
                 }
                 withContext(Dispatchers.Main) {
                     episodesFlow = results_.episodes
-                    if (feedId == 0L) {
-                        feeds.clear()
-                        if (results_.feeds.isNotEmpty()) feeds.addAll(results_.feeds)
-                    } else feeds.clear()
+                    feeds.clear()
+                    if (results_.feeds.isNotEmpty()) feeds.addAll(results_.feeds)
                     pafeeds.clear()
                     if (results_.pafeeds.isNotEmpty()) pafeeds.addAll(results_.pafeeds)
                 }
@@ -312,6 +328,7 @@ fun SearchScreen() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val navController = LocalNavController.current
+    val textColor = MaterialTheme.colorScheme.onSurface
     val vm = remember { SearchVM(context, scope) }
 
     var swipeActions by remember { mutableStateOf(SwipeActions(context, TAG)) }
@@ -321,12 +338,11 @@ fun SearchScreen() {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
-                    if (vm.feedId > 0L) vm.searchInFeed = true
                     if (vm.queryText.isNotBlank()) vm.search(vm.queryText)
                 }
-                Lifecycle.Event.ON_START -> vm.procFlowEvents()
+                Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
-                Lifecycle.Event.ON_STOP -> vm.cancelFlowEvents()
+                Lifecycle.Event.ON_STOP -> {}
                 Lifecycle.Event.ON_DESTROY -> {}
                 else -> {}
             }
@@ -343,50 +359,13 @@ fun SearchScreen() {
     fun MyTopAppBar() {
         Box {
             TopAppBar(title = {
-                SearchBarRow(R.string.search_delimit, defaultText = vm.queryText) {
+                SearchBarRow(R.string.search_hint, defaultText = vm.queryText) {
                     curSearchString = it
                     vm.queryText = it
                     vm.search(vm.queryText)
                 }
             }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
-        }
-    }
-
-    @Composable
-    fun CriteriaList() {
-        val textColor = MaterialTheme.colorScheme.onSurface
-        var showGrid by remember { mutableStateOf(false) }
-        Column {
-            Row {
-                Button(onClick = {showGrid = !showGrid}) { Text(stringResource(R.string.show_criteria)) }
-                Spacer(Modifier.weight(1f))
-                Button(onClick = {
-                    val query = vm.queryText
-                    if (query.matches("http[s]?://.*".toRegex())) {
-                        setOnlineFeedUrl(query)
-                        navController.navigate(Screens.OnlineFeed.name)
-                        return@Button
-                    }
-                    setOnlineSearchTerms(CombinedSearcher::class.java, query)
-                    navController.navigate(Screens.OnlineResults.name)
-                }) { Text(stringResource(R.string.search_online)) }
-            }
-            if (showGrid) NonlazyGrid(columns = 2, itemCount = SearchBy.entries.size) { index ->
-                val c = SearchBy.entries[index]
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
-                    var isChecked by remember { mutableStateOf(true) }
-                    Checkbox(
-                        checked = isChecked,
-                        onCheckedChange = { newValue ->
-                            c.selected = newValue
-                            isChecked = newValue
-                        }
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(stringResource(c.nameRes), color = textColor)
-                }
-            }
         }
     }
 
@@ -489,21 +468,24 @@ fun SearchScreen() {
     val selectedTabIndex = remember { mutableIntStateOf(0) }
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            if (vm.searchInFeed) {
-                val feedName = remember(feedToSearchIn) { feedToSearchIn?.title ?: "Feed has no title" }
-                FilterChip(onClick = { }, label = { Text(feedName) }, selected = vm.searchInFeed,
-                    trailingIcon = {
-                        Icon(imageVector = Icons.Filled.Close, contentDescription = "Close icon", modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = {
-                            vm.feedId = 0
-                            vm.searchInFeed = false
-                        }))
+            var showSearchBy by remember { mutableStateOf(false) }
+            Row {
+                OutlinedButton(onClick = {showSearchBy = !showSearchBy}) { Text(stringResource(R.string.show_criteria)) }
+                Spacer(Modifier.weight(1f))
+                OutlinedButton(onClick = {
+                    val query = vm.queryText
+                    if (query.matches("http[s]?://.*".toRegex())) {
+                        setOnlineFeedUrl(query)
+                        navController.navigate(Screens.OnlineFeed.name)
+                        return@OutlinedButton
                     }
-                )
+                    setOnlineSearchTerms(CombinedSearcher::class.java, query)
+                    navController.navigate(Screens.OnlineResults.name)
+                }) { Text(stringResource(R.string.search_online)) }
             }
-            CriteriaList()
+            if (showSearchBy) SearchByGrid()
             Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                 tabTitles.forEachIndexed { index, titleRes ->
-//                    Tab(text = { Text(stringResource(titleRes) + "(${tabCounts[index]})") }, selected = selectedTabIndex.intValue == index, onClick = { selectedTabIndex.intValue = index })
                     Tab(modifier = Modifier.wrapContentWidth().padding(horizontal = 2.dp, vertical = 4.dp).background(shape = RoundedCornerShape(8.dp),
                         color = if (selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }),
                         selected = selectedTabIndex.intValue == index,
@@ -543,11 +525,11 @@ fun SearchScreen() {
     }
 }
 
-enum class SearchBy(val nameRes: Int, var selected: Boolean = true) {
+enum class SearchBy(val nameRes: Int) {
     TITLE(R.string.title),
-    AUTHOR(R.string.author),
     DESCRIPTION(R.string.description_label),
     COMMENT(R.string.my_opinion_label),
+    AUTHOR(R.string.author),
 }
 
 //    private fun showInputMethod(view: View) {

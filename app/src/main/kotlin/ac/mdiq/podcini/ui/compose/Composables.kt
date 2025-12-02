@@ -468,17 +468,16 @@ fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boole
 }
 
 @Composable
-fun SearchBarRow(hintTextRes: Int, defaultText: String, performSearch: (String) -> Unit) {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        Logd("SearchBarRow", "defaultText: $defaultText")
+fun SearchBarRow(hintTextRes: Int, defaultText: String, modifier: Modifier = Modifier, performSearch: (String) -> Unit) {
+    val buttonColor = MaterialTheme.colorScheme.tertiary
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()) {
         var queryText by remember { mutableStateOf(defaultText) }
-        TextField(value = queryText, onValueChange = { queryText = it },
+        TextField(value = queryText, onValueChange = { queryText = it }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
             textStyle = TextStyle(fontSize = 16.sp), label = { Text(stringResource(hintTextRes)) },
-            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { performSearch(queryText) }), modifier = Modifier.weight(1f))
-        Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), tint = textColor, contentDescription = "right_action_icon",
-            modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable(onClick = { performSearch(queryText) }))
+            keyboardActions = KeyboardActions(onDone = { performSearch(queryText) }), modifier = Modifier.weight(1f),
+            trailingIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), tint = buttonColor, contentDescription = "search",
+                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable(onClick = { performSearch(queryText) }))
+            })
     }
 }
 

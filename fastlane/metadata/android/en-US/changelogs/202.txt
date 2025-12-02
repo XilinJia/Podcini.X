@@ -1,0 +1,9 @@
+# 9.5.0
+
+* amended search search routine to add exclude capability:
+	* same as before, search terms can be separate by space (for single words), or by comma (for phrase)
+	* use '-' before a word/phrase will exclude the word/phrase
+	* e.g. "wordA wordB, -wordC wordD" (no need for the quote signs), searches for phrase "wordA wordB" and excludes phrase "wordC wordD"
+* added Text filter in Episodes filters, usage is same as above, the results are shown in the same screen, not in Search screen
+* in FeedDetails, the search button now starts the Search screen to search in all feeds
+* Search screen no long search in a single feed, and no long reacts to feed list changes
