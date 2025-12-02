@@ -160,11 +160,14 @@ enum class LayoutMode {
     Normal, WideImage, FeedTitle
 }
 
+enum class StatusRowMode {
+    Normal, Comment, Tags
+}
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
 fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = null, layoutMode: Int = LayoutMode.Normal.ordinal,
                       showCoverImage: Boolean = true, forceFeedImage: Boolean = false,
-                      showActionButtons: Boolean = true, showComment: Boolean = false,
+                      showActionButtons: Boolean = true, statusRowMode: StatusRowMode = StatusRowMode.Normal,
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       swipeActions: SwipeActions? = null,
                       refreshCB: (()->Unit)? = null,
@@ -454,7 +457,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
 
                 @Composable
                 fun MainRow(index: Int, yOffset: Float, onDragStart: () -> Unit, onDrag: (Float) -> Unit, onDragEnd: () -> Unit) {
-                    val titleMaxLines = if (layoutMode == LayoutMode.Normal.ordinal) if (showComment) 1 else 2 else 3
+                    val titleMaxLines = if (layoutMode == LayoutMode.Normal.ordinal) { if (statusRowMode == StatusRowMode.Comment) 1 else 2 } else 3
                     @Composable
                     fun TitleColumn(index: Int, modifier: Modifier) {
                         Column(modifier.padding(start = 6.dp, end = 6.dp).combinedClickable(
@@ -482,8 +485,23 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             Text(episode.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = titleMaxLines, overflow = TextOverflow.Ellipsis)
                             @Composable
                             fun Comment() {
-                                val comment = remember { stripDateTimeLines(episode.comment).replace("\n", "  ") }
-                                Text(comment, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
+                                    Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
+                                    if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
+                                    val comment = remember(episode) { stripDateTimeLines(episode.comment).replace("\n", "  ") }
+                                    Text(comment, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 3, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                            @Composable
+                            fun Tags() {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
+                                    Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
+                                    if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
+                                    val tags = remember(episode) { episode.tags.joinToString(",") }
+                                    Text(tags, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                }
                             }
                             @Composable
                             fun StatusRow() {
@@ -504,8 +522,11 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             }
                             when (layoutMode) {
                                 LayoutMode.Normal.ordinal -> {
-                                    if (showComment) Comment()
-                                    else StatusRow()
+                                    when (statusRowMode) {
+                                        StatusRowMode.Comment -> Comment()
+                                        StatusRowMode.Tags -> Tags()
+                                        else -> StatusRow()
+                                    }
                                 }
                                 LayoutMode.WideImage.ordinal -> {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -533,8 +554,11 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                 }
                                 LayoutMode.FeedTitle.ordinal -> {
                                     Text(episode.feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                    if (showComment) Comment()
-                                    else StatusRow()
+                                    when (statusRowMode) {
+                                        StatusRowMode.Comment -> Comment()
+                                        StatusRowMode.Tags -> Tags()
+                                        else -> StatusRow()
+                                    }
                                 }
                             }
                             when (episode.playState) {

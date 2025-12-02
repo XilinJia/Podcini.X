@@ -37,6 +37,7 @@ import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
+import ac.mdiq.podcini.ui.compose.StatusRowMode
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
 import android.content.Context
@@ -558,12 +559,18 @@ fun FacetsScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
         else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            val showComment by remember(facetsMode) { mutableStateOf(facetsMode == QuickAccess.Commented) }
+            val statusMode by remember(facetsMode) { mutableStateOf(
+                when (facetsMode) {
+                    QuickAccess.Commented -> StatusRowMode.Comment
+                    QuickAccess.Tagged -> StatusRowMode.Tags
+                    else -> StatusRowMode.Normal
+                })
+            }
             val info = remember(infoBarText, progressing, facetsMode) { mutableStateOf(
                 (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + infoBarText + (if (progressing) " - ${context.getString(R.string.progressing_label)}" else "")
             ) }
             InforBar(info, swipeActions)
-            EpisodeLazyColumn(context, episodes, showComment = showComment, showActionButtons = !showComment, swipeActions = swipeActions, actionButton_ = actionButtonToPass,
+            EpisodeLazyColumn(context, episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButton_ = actionButtonToPass,
                 actionButtonCB = { e, type ->
                     if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
                         if (virQueue.identity != listIdentity) {

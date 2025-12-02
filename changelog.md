@@ -7,6 +7,9 @@
 * added Text filter in Episodes filters, usage is same as above, the results are shown in the same screen, not in Search screen
 * in FeedDetails, the search button now starts the Search screen to search in all feeds
 * Search screen no long search in a single feed, and no long reacts to feed list changes
+* in Facets screen
+	* in Commented mode, playstate and rating are shown with the comments
+	* in Tagged mode, playstate and rating are shown with the tags
 
 # 9.4.1
 
