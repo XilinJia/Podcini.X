@@ -405,6 +405,7 @@
     <string name="feed_refresh_start_sum">تعيين ساعة البدء (0-23) والدقيقة (0-59) لفترة التحديث الدورية (يمكن تخفيف الوقت بالضبط بواسطة أندرويد). ترك الحقول فارغة يعني أن الفاصل الزمني يبدأ الآن.</string>
     <string name="feed_next_refresh_time">وقت التحديث التالي حول:</string>
     <string name="before">قبل</string>
+    <string name="refresh_associates">Refresh associates</string>
     <string name="alarm_start_time">وقت بدء المنبه</string>
     <string name="alarm_start_time_sum">تعيين ساعة البدء (0-23) والدقيقة (0-59) للحلقة التي سيتم تشغيلها. ترك الحقول فارغة يعني أن التنبيه غير معين.</string>
     <string name="pref_followQueue_title">تشغيل مستمر</string>
@@ -537,7 +538,7 @@
     <!-- Search -->
     <string name="search_status_no_results">لم يتم العثور على نتائج</string>
     <string name="search_label">البحث</string>
-    <string name="search_delimit">البحث (تعيين الحدود بفاصلة أو مساحة)</string>
+    <string name="search_hint">delimit by comma, prefix phrase with \'-\' to exclude</string>
     <string name="no_results_for_query">لم يتم العثور على أي نتائج ل \"%1$s\"</string>
     <string name="search_online">البحث عبر الإنترنت</string>
     <!-- Synchronization -->
@@ -674,6 +675,7 @@
     <string name="tags_label">الوسوم</string>
     <string name="feed_tags_summary">قم بتغيير العلامات لهذا البث الصوتي للمساعدة في تنظيم اشتراكاتك</string>
     <string name="tagging_multiple_sum">العلامات الموجودة لا تظهر عند التحرير لكيانات متعددة.</string>
+    <string name="text_label">Text</string>
     <string name="auto_download_settings_label">إعدادات التحميل التلقائي</string>
     <string name="episode_filters_label">فلتر الحلقة</string>
     <string name="join_categories_with">الانضمام إلى الفئات مع</string>
