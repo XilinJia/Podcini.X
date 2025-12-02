@@ -395,6 +395,7 @@
     <string name="feed_refresh_start_sum">定期的な更新間隔に開始時間(0-23)と分(0-59)を設定します(正確な時間はAndroidで調節される可能性があります)。 フィールドを空のままにすると、間隔が今始まります。</string>
     <string name="feed_next_refresh_time">次回の更新時刻:</string>
     <string name="before">前</string>
+    <string name="refresh_associates">Refresh associates</string>
     <string name="alarm_start_time">アラームの開始時刻</string>
     <string name="alarm_start_time_sum">エピソードを再生するには、開始時間(0-23)と分(0-59)を設定します。フィールドを空白のままにすると、アラームは設定されません。</string>
     <string name="pref_followQueue_title">連続再生</string>
@@ -527,7 +528,7 @@
     <!-- Search -->
     <string name="search_status_no_results">結果が見つかりませんでした</string>
     <string name="search_label">検索</string>
-    <string name="search_delimit">検索 (カンマまたはスペースで区切る)</string>
+    <string name="search_hint">delimit by comma, prefix phrase with \'-\' to exclude</string>
     <string name="no_results_for_query">\"%1$s\" の結果は見つかりませんでした</string>
     <string name="search_online">オンラインで検索</string>
     <!-- Synchronization -->
@@ -649,6 +650,7 @@
     <string name="tags_label">タグ</string>
     <string name="feed_tags_summary">このポッドキャストのタグを変更して、サブスクリプションの整理に役立ちます</string>
     <string name="tagging_multiple_sum">複数のエンティティを編集する場合、既存のタグは表示されません。</string>
+    <string name="text_label">Text</string>
     <string name="auto_download_settings_label">自動ダウンロード設定</string>
     <string name="episode_filters_label">エピソードフィルタ</string>
     <string name="join_categories_with">カテゴリに参加する</string>
