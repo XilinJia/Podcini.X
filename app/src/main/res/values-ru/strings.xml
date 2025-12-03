@@ -43,7 +43,7 @@
     <string name="language_not_supported_by_tts">The language is not supported by TTS</string>
     <string name="tts_init_failed">TTS init failed</string>
     <string name="episode_has_no_content">Episode has not content</string>
-    <string name="unrestricted_background_permission_text">Для успешного воспроизведения списка эпизодов в фоновом режиме, Podcini требуется разрешение на неограниченную фоновую активность. В операционных системах на разных устройствах эти настройки могут называться по-разному и находиться в разных местах.</string>
+    <string name="unrestricted_background_permission_text">Для успешного воспроизведения списка выпусков в фоновом режиме, Podcini требуется разрешение на неограниченную фоновую активность. В операционных системах на разных устройствах эти настройки могут называться по-разному и находиться в разных местах.</string>
     <string name="notification_check_permission">Check permission</string>
     <string name="notification_permission_text">Since Android 13, top level notification is needed for normal refresh and playback. You may disallow notifications of sub-catergories at your wish.</string>
     <!-- Download Statistics fragment -->
@@ -107,7 +107,7 @@
     <string name="auto_enqueue_sum1">Auto-enqueue requires associated queue not set to None.</string>
     <string name="auto_download_sum">Enabling auto-download downloads of qualified episodes and add them to associated queue (when it\'s not be set to None on (auto-)refreshing).</string>
     <string name="limit_episodes_to">Максимум выпусков:</string>
-    <string name="limit_episodes_to_sum">Выделите максимальное количество выпусков для хранения. Если количество будет превышено, то старые эпизоды будут стерты. При этом специально помеченные выпуски удаляться не будут.</string>
+    <string name="limit_episodes_to_sum">Выделите максимальное количество выпусков для хранения. Если количество будет превышено, то старые выпуски будут стерты. При этом специально помеченные выпуски удаляться не будут.</string>
     <string name="skip_first_hint">Skip first (seconds)</string>
     <string name="skip_last_hint">Skip last (seconds)</string>
     <string name="auto_download_label">Добавить в автозакачки</string>
@@ -559,21 +559,21 @@
     <string name="opml_import_label">Импорт OPML</string>
     <string name="opml_add_podcast_label">Импортировать список подкастов (OPML)</string>
     <string name="opml_reader_error">An error has occurred while reading the file. Make sure that you have actually selected an OPML file and that the file is valid.</string>
-    <string name="progress_export_label">Экспорт прогресса эпизодов</string>
-    <string name="progress_import_label">Импорт прогресса эпизодов</string>
+    <string name="progress_export_label">Экспорт прогресса выпусков</string>
+    <string name="progress_import_label">Импорт прогресса выпусков</string>
     <string name="progress_export_summary">Перенос истории воспроизведения в другую установку Podcini. Обратите внимание, что вы можете просто перенести .son-файл базы данных.</string>
     <string name="progress_import_summary">Импорт истории воспроизведения из другой установки Podcini. Обратите внимание, что это не требуется, если вы уже импортировали файл базы данных. </string>
     <string name="progress_import_warning">Импорт заменит всю текущую историю воспроизведения. Вы должны сперва экспортировать текущую историю как резервную копию. Вы точно хотите импортировать прямо сейчас\? Если да, на следующем экране выберите желаемый .json-файл. Процесс может занять пару минут в зависимости от размера и быстродействия устройства. После завершения, будет показано всплывающее окно с отчётом выполнения.</string>
     <string name="opml_export_label">OPML export</string>
     <string name="html_export_label">HTML export</string>
-    <string name="import_SQLite_message">Импортированные подписки с эпизодами и историей воспроизведения будут добавлены в существующую БД. Если согласны, то выберите ранее экспортированную базу данных в формате sqlite\".</string>
+    <string name="import_SQLite_message">Импортированные подписки с выпусками и историей воспроизведения будут добавлены в существующую БД. Если согласны, то выберите ранее экспортированную базу данных в формате sqlite\".</string>
     <string name="combo_import_warning">Импорт любого из выбранных элементов заменит те, которые находятся в текущем хранилище. Если согласны, выберите ранее экспортированный каталог с именем, содержащим «Podcini-Backups»</string>
     <string name="combo_export_label">Combo export</string>
     <string name="combo_import_label">Combo import</string>
     <string name="import_AP_label">Импорт базы данных AntennaPod</string>
     <string name="import_PA_label">Импорт резервной копии Podcast Addict</string>
     <string name="import_PA_DB_label">Импорт подписок</string>
-    <string name="import_PA_DB_message">Импортированные подписки с эпизодами и историей воспроизведения будут добавлены в базу данных Podcini\".</string>
+    <string name="import_PA_DB_message">Импортированные подписки с выпусками и историей воспроизведения будут добавлены в базу данных Podcini\".</string>
     <string name="import_PA_directory_label">Каталог импорта</string>
     <string name="import_PA_directory_message">Импорт каталога подкастов для офлайн-поиска\".</string>
     <string name="import_PA_message">Если согласны, то выберите экспортированную ранее резервную копию Podcast Addict</string>
