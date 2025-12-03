@@ -89,7 +89,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     private var oldStatus: PlayerStatus? = null
     internal var prevMedia: Episode? = null
 
-    protected var curPosition = Episode.INVALID_TIME
+//    protected var curPosition = Episode.INVALID_TIME
 
     protected var mediaSource: MediaSource? = null
     protected var mediaItem: MediaItem? = null
@@ -304,12 +304,9 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      * @param delta offset from current position (positive or negative)
      */
     fun seekDelta(delta: Int) {
-        if (curPosition == Episode.INVALID_TIME) curPosition = getPosition()
-        if (curPosition != Episode.INVALID_TIME) {
-            curPosition += delta
-            seekTo(curPosition)
-        } else Loge(TAG, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
-//        curPosition = Episode.INVALID_TIME
+        val curPosition = getPosition()
+        if (curPosition != Episode.INVALID_TIME) seekTo(curPosition + delta)
+        else Loge(TAG, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
     }
 
     /**

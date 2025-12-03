@@ -144,6 +144,7 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
 }
 
 class ItunesPodcastSearcher : PodcastSearcher {
+    private val TAG = "ItunesPodcastSearcher"
     override suspend fun search(query: String): List<PodcastSearchResult> {
         /**
          * Constructs a Podcast instance from a iTunes search result
@@ -159,7 +160,7 @@ class ItunesPodcastSearcher : PodcastSearcher {
         }
 
         val encodedQuery = try { withContext(Dispatchers.IO) { URLEncoder.encode(query, "UTF-8") } } catch (e: UnsupportedEncodingException) {
-            Logs("ItunesPodcastSearcher", e)
+            Logs(TAG, e)
             query
         }
         val formattedUrl = String.format(ITUNES_API_URL, encodedQuery)
@@ -195,6 +196,9 @@ class ItunesPodcastSearcher : PodcastSearcher {
         val response = client.newCall(httpReq).execute()
         if (!response.isSuccessful) throw IOException(response.toString())
         val resultString = response.body.string()
+        if (resultString.trim().startsWith('<')) return url     // XML already
+
+        Logd(TAG, "lookupUrl resultString: $resultString")
         val result = JSONObject(resultString)
         val results = result.getJSONArray("results").getJSONObject(0)
         val feedUrlName = "feedUrl"
@@ -207,7 +211,9 @@ class ItunesPodcastSearcher : PodcastSearcher {
     }
 
     override fun urlNeedsLookup(url: String): Boolean {
-        return url.contains("itunes.apple.com") || url.matches(PATTERN_BY_ID.toRegex())
+        Logd(TAG, "urlNeedsLookup url: $url")
+        // TODO: may also need to check podcasts.apple.com?
+        return url.contains("//itunes.apple.com") || url.matches(PATTERN_BY_ID.toRegex())
     }
 
     override val name: String

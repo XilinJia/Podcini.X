@@ -637,9 +637,14 @@ fun QueuesScreen() {
                                 commonConfirm = CommonConfirmAttrib(
                                     title = context.getString(R.string.refresh_associates) + "?",
                                     message = "",
-                                    confirmRes = R.string.confirm_label,
                                     cancelRes = R.string.cancel_label,
-                                    onConfirm = { runOnceOrAsk(context, feeds = feedsAssociated)  },
+                                    confirmRes = R.string.enqueue,
+                                    onConfirm = {
+                                        autoenqueueForQueue(curQueue)
+                                        if (curQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), curQueue)
+                                    },
+                                    neutralRes = R.string.refresh_label,
+                                    onNeutral = { runOnceOrAsk(context, feeds = feedsAssociated)  }
                                 )
                             },
                             isDraggable = dragDropEnabled, dragCB = { iFrom, iTo ->

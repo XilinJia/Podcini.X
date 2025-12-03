@@ -41,6 +41,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player.COMMAND_GET_CURRENT_MEDIA_ITEM
 import androidx.media3.common.Player.DISCONTINUITY_REASON_SEEK
 import androidx.media3.common.Player.DiscontinuityReason
 import androidx.media3.common.Player.Listener
@@ -76,7 +77,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     @Volatile
     private var videoSize: Pair<Int, Int>? = null
-//    private var seekLatch: CountDownLatch? = null
 
     private var trackSelector: DefaultTrackSelector? = null
 
@@ -116,7 +116,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                         STATE_ENDED -> {
                             setPlayerStatus(PlayerStatus.STOPPED, null)
                             exoPlayer?.seekTo(C.TIME_UNSET)
-                            audioCompletionListener?.invoke()
+//                            audioCompletionListener?.invoke()
+                            endPlayback(hasEnded = true, wasSkipped = false)
                         }
                         STATE_BUFFERING -> bufferingUpdateListener?.invoke(BUFFERING_STARTED)
                         else -> bufferingUpdateListener?.invoke(BUFFERING_ENDED)
@@ -407,13 +408,10 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         when  {
             isPlaying || isPaused || isPrepared -> {
                 Logd(TAG, "seekTo t: $t")
-//                if (seekLatch != null && seekLatch!!.count > 0) try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
-//                seekLatch = CountDownLatch(1)
                 val statusBeforeSeeking = status
                 exoPlayer?.seekTo(t.toLong())
                 audioSeekCompleteListener?.invoke()
                 if (statusBeforeSeeking == PlayerStatus.PREPARED && curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(t) }
-//                try { seekLatch!!.await(3, TimeUnit.SECONDS) } catch (e: InterruptedException) { Logs(TAG, e) }
             }
             isInitialized -> {
                 if (curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(t) }
@@ -428,8 +426,9 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         var retVal = Episode.INVALID_TIME
 //        showStackTrace()
 //        if (exoPlayer != null && status.isAtLeast(PlayerStatus.PREPARED)) retVal = exoPlayer!!.currentPosition.toInt()
-        if (exoPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logt(TAG, "player status ${exoPlayer?.playbackState} $status")
-        if (exoPlayer?.playbackState in listOf(STATE_BUFFERING, STATE_READY, STATE_ENDED)) retVal = exoPlayer!!.currentPosition.toInt()
+        if (exoPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logt(TAG, "exoPlayer playbackState ${exoPlayer?.playbackState} player status $status")
+//        if (exoPlayer?.playbackState in listOf(STATE_BUFFERING, STATE_READY, STATE_ENDED)) retVal = exoPlayer!!.currentPosition.toInt()
+        if (exoPlayer?.isCommandAvailable(COMMAND_GET_CURRENT_MEDIA_ITEM) == true) retVal = exoPlayer!!.currentPosition.toInt()
 //        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
 //        Logd(TAG, "getPosition final position: $retVal")
@@ -564,8 +563,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             }
             audioSeekCompleteListener = {
                 Logd(TAG, "audioSeekCompleteListener $status ${exoPlayer?.isPlaying}")
-                curPosition = Episode.INVALID_TIME
-//                seekLatch?.countDown()
+//                curPosition = Episode.INVALID_TIME
 //                if ((status == PlayerStatus.PLAYING && exoPlayer?.isPlaying != true) && curEpisode != null) onPlaybackStart(curEpisode!!, getPosition())
             }
             bufferingUpdateListener = { percent: Int ->
@@ -642,8 +640,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         var exoPlayer: ExoPlayer? = null
 
         private var exoplayerListener: Listener? = null
-        private var audioSeekCompleteListener: (()->Unit)? = null
-        private var audioCompletionListener: (()->Unit)? = null
+        private var audioSeekCompleteListener: (()->Unit)? = null       // not used
+        private var audioCompletionListener: (()->Unit)? = null     // not used
         private var audioErrorListener: ((String) -> Unit)? = null
         private var bufferingUpdateListener: ((Int) -> Unit)? = null
         private var loudnessEnhancer: LoudnessEnhancer? = null

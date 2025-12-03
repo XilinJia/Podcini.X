@@ -26,7 +26,7 @@ import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
-import ac.mdiq.podcini.ui.compose.ChaptersDialog
+import ac.mdiq.podcini.ui.compose.ChaptersColumn
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -259,7 +259,7 @@ fun EpisodeInfoScreen() {
         if (showPlayStateDialog) PlayStateDialog(listOf(episode!!), onDismissRequest = { showPlayStateDialog = false }, { futureState = it },{ showIgnoreDialog = true })
         if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(episode!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
         if (showShareDialog && episode != null && actMain != null) ShareDialog(episode!!, actMain) { showShareDialog = false }
-        if (showChaptersDialog && episode != null) ChaptersDialog(media = episode!!, onDismissRequest = {showChaptersDialog = false})
+//        if (showChaptersDialog && episode != null) ChaptersDialog(media = episode!!, onDismissRequest = {showChaptersDialog = false})
         if (showOnDemandConfigDialog) OnDemandConfigDialog { showOnDemandConfigDialog = false }
         if (showEditComment && episode != null) {
             var commentText by remember { mutableStateOf(TextFieldValue(episode?.compileCommentText() ?: "")) }
@@ -579,12 +579,13 @@ fun EpisodeInfoScreen() {
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
                     Text("Tags: ${episode?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
                     Text(stringResource(R.string.my_opinion_label) + if (episode?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
                     Text(episode?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                     EpisodeMarks(episode)
                     EpisodeClips(episode, playerLocal)
+//                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
+                    if (!episode?.chapters.isNullOrEmpty()) ChaptersColumn(episode!!)
                     AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
                         ShownotesWebView(context).apply {
                             setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }

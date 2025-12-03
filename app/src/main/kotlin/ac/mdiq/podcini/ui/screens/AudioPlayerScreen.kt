@@ -57,7 +57,7 @@ import ac.mdiq.podcini.storage.utils.getDurationStringLong
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
-import ac.mdiq.podcini.ui.compose.ChaptersDialog
+import ac.mdiq.podcini.ui.compose.ChaptersColumn
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
@@ -66,7 +66,6 @@ import ac.mdiq.podcini.ui.compose.EpisodeMarks
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
-import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.utils.EventFlow
@@ -76,6 +75,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import android.content.ComponentName
@@ -101,14 +101,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -144,10 +141,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.zIndex
 import androidx.core.app.ShareCompat
 import androidx.core.text.HtmlCompat
@@ -823,8 +818,6 @@ fun AudioPlayerScreen(navController: NavController) {
     fun DetailUI(modifier: Modifier) {
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(vm.curItem!!)) { showChooseRatingDialog = false }
-        var showChaptersDialog by remember { mutableStateOf(false) }
-        if (showChaptersDialog) ChaptersDialog(media = vm.curItem!!, onDismissRequest = {showChaptersDialog = false})
 
         Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             gearbox.PlayerDetailedGearPanel(vm.curItem, resetPlayer) { resetPlayer = it }
@@ -871,33 +864,7 @@ fun AudioPlayerScreen(navController: NavController) {
             }, update = { webView -> webView.loadDataWithBaseURL("https://127.0.0.1", if (cleanedNotes.isNullOrBlank()) "No notes" else cleanedNotes!!, "text/html", "utf-8", "about:blank") })
             EpisodeMarks(vm.curItem)
             EpisodeClips(vm.curItem, playerLocal)
-
-            if (vm.displayedChapterIndex >= 0) {
-                @androidx.annotation.OptIn(UnstableApi::class)
-                fun seekToPrevChapter() {
-                    val curr = vm.curChapter
-                    if (curr == null || vm.displayedChapterIndex == -1) return
-                    when {
-                        vm.displayedChapterIndex < 1 -> mPlayer?.seekTo(0)
-                        (curPositionFB - 10000 * curPBSpeed) < curr.start -> {
-                            refreshChapterData(vm.displayedChapterIndex - 1)
-                            if (!vm.curItem?.chapters.isNullOrEmpty()) mPlayer?.seekTo(vm.curItem!!.chapters[vm.displayedChapterIndex].start.toInt())
-                        }
-                        else -> mPlayer?.seekTo(curr.start.toInt())
-                    }
-                }
-                @androidx.annotation.OptIn(UnstableApi::class)
-                fun seekToNextChapter() {
-                    if (vm.curItem?.chapters.isNullOrEmpty() || vm.displayedChapterIndex == -1 || vm.displayedChapterIndex + 1 >= vm.curItem!!.chapters.size) return
-                    refreshChapterData(vm.displayedChapterIndex + 1)
-                    mPlayer?.seekTo(vm.curItem!!.chapters[vm.displayedChapterIndex].start.toInt())
-                }
-                Row(modifier = Modifier.padding(start = 20.dp, end = 20.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_prev), tint = textColor, contentDescription = "prev_chapter", modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { seekToPrevChapter() }))
-                    Text("Ch " + vm.displayedChapterIndex.toString() + ": " + vm.curChapter?.title, color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f).padding(start = 10.dp, end = 10.dp).clickable(onClick = { showChaptersDialog = true }))
-                    if (hasNextChapter) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chapter_next), tint = textColor, contentDescription = "next_chapter", modifier = Modifier.width(36.dp).height(36.dp).clickable(onClick = { seekToNextChapter() }))
-                }
-            }
+            if (!vm.curItem?.chapters.isNullOrEmpty()) ChaptersColumn(vm.curItem!!)
             AsyncImage(model = imgLocLarge, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
             if (hasRelations) {
                 var showTodayStats by remember { mutableStateOf(false) }

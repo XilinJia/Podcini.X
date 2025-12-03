@@ -211,7 +211,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         if (!item.feed?.languages.isNullOrEmpty()) {
                             val lang = item.feed!!.languages.first()
                             val result = TTSObj.tts?.setLanguage(Locale(lang))
-                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " ${lang} $result")
+                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " $lang $result")
                         }
 
                         var j = 0

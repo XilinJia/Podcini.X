@@ -77,6 +77,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -145,7 +146,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal val feedId: Long
         get() {
             if (feeds == null) return 0
-            for (f in feeds!!) if (f.downloadUrl == selectedDownloadUrl || f.title == feed?.title) return f.id
+            for (f in feeds!!) if (gearbox.isSameFeed(f, selectedDownloadUrl, feed?.title)) return f.id
             return 0
         }
 
@@ -198,9 +199,9 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun lookupUrlAndBuild(url: String) {
         CoroutineScope(Dispatchers.IO).launch {
             urlToLog = url
-            val urlString = PodcastSearcherRegistry.lookupUrl1(url)
-            Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
             try {
+                val urlString = PodcastSearcherRegistry.lookupUrl1(url)
+                Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
                 feeds = getFeedList()
                 gearbox.buildFeed(urlString, username ?: "", password ?: "", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
             } catch (e: FeedUrlNotFoundException) { tryToRetrieveFeedUrlBySearch(e)
@@ -592,11 +593,13 @@ fun OnlineFeedScreen() {
                         }
                     }
                     Text(vm.feed?.mostRecentItem?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                    var info by remember { mutableStateOf("") }
-                    if (!vm.feed?.languages.isNullOrEmpty()) {
-                        for (l in vm.feed!!.languages) info += "$l "
+                    val info by remember(vm.feed) {
+                        derivedStateOf {
+                            if (vm.feed == null) return@derivedStateOf ""
+                            val languageString = vm.feed!!.languages.joinToString(" ")
+                            "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
+                        }
                     }
-                    info += "${vm.feed?.type ?: ""} ${vm.feed?.lastUpdate ?: ""}"
                     Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))

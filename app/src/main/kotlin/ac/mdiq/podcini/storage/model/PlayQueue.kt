@@ -28,7 +28,7 @@ class PlayQueue : RealmObject {
 
     var enqueueLocation: Int = EnqueueLocation.BACK.code
 
-    var launchAutoEQDlWhenEmpty: Boolean = true
+    var launchAutoEQDlWhenEmpty: Boolean = true     // this means to auto-download, enqueue is done anyway
 
     var autoDownloadEpisodes: Boolean = false       // TODO: need to rethink
 

@@ -133,7 +133,7 @@ fun monitorFeedList(scope: CoroutineScope) {
                         changes.deletions.isNotEmpty() -> {
                             val ids = feedIds.value.toMutableList()
                             for (i in changes.deletions) {
-                                Logd(TAG, "monitorFeedList deleted feed: ${feeds[i].title}")
+//                                Logd(TAG, "monitorFeedList deleted feed: ${feeds[i].title}")  // this can't be printed
                                 EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, ids[i]))
                                 ids.removeAt(i)
                             }

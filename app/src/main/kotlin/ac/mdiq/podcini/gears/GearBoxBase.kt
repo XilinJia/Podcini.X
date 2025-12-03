@@ -80,6 +80,8 @@ open class GearBoxBase {
     @Composable
     open fun ShowTabsDialog(fbb: FeedBuilderBase, onDismissRequest: () -> Unit, handleFeed: (Feed, Map<String, String>)->Unit) {}
 
+    open fun isSameFeed(feed: Feed, url: String?, title: String?): Boolean = feed.downloadUrl == url
+
     open fun subscribeFeed(feed: PodcastSearchResult, context: Context) {
         if (feed.feedUrl == null) return
         val url = feed.feedUrl
