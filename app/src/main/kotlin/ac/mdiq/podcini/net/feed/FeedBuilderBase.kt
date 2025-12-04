@@ -44,7 +44,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
                     //                TODO: should show all as options
                     for (element in linkElements) {
                         val rssUrl = element.attr("href")
-                        Logd(TAG, "RSS URL: $rssUrl")
+                        Logd(TAG, "buildPodcast RSS URL: $rssUrl")
                         buildPodcast(rssUrl, username, password) { feed, map -> handleFeed(feed, map) }
                     }
                 } catch (e: Throwable) { Loge(TAG, "buildPodcast error: ${e.message}")}
@@ -100,7 +100,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             feed.isBuilding = false
             result
         } catch (e: FeedHandler.UnsupportedFeedtypeException) {
-            Logd(TAG, "Unsupported feed type detected")
+            Logd(TAG, "doParseFeed Unsupported feed type detected")
             if ("html".equals(e.rootElement, ignoreCase = true)) {
                 if (selectedDownloadUrl != null) {
 //                    val doc = Jsoup.connect(selectedDownloadUrl).get()
@@ -124,7 +124,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             throw e
         } finally {
             val rc = destinationFile.delete()
-            Logd(TAG, "Deleted feed source file. Result: $rc")
+            Logd(TAG, "doParseFeed Deleted feed source file. Result: $rc")
         }
     }
 
@@ -140,7 +140,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             showError(e.message, "")
         } finally { connection.disconnect() }
         if (type == null) return null
-        Logd(TAG, "connection type: $type")
+        Logd(TAG, "htmlOrXml connection type: $type")
         return when {
             type.contains("html", ignoreCase = true) -> "HTML"
             type.contains("xml", ignoreCase = true) -> "XML"

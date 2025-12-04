@@ -99,6 +99,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.text.NumberFormat
 
 private var curSearchString by mutableStateOf("")
@@ -427,24 +429,21 @@ fun SearchScreen() {
         val lazyListState = rememberLazyListState()
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
+                fun navToOnlineFeed() {
+                    if (feed.feedUrl.isNotBlank()) navController.navigate("${Screens.OnlineFeed.name}/${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}")
+                }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                     AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
                         modifier = Modifier.width(60.dp).height(60.dp).clickable(onClick = {
                             Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}] [$]")
-                            if (feed.feedUrl.isNotBlank()) {
-                                setOnlineFeedUrl(feed.feedUrl)
-                                navController.navigate(Screens.OnlineFeed.name)
-                            }
+                            navToOnlineFeed()
                         })
                     )
                     val textColor = MaterialTheme.colorScheme.onSurface
                     Column(Modifier.weight(1f).padding(start = 10.dp).clickable(onClick = {
                         Logd(TAG, "feedUrl: ${feed.name} [${feed.feedUrl}]")
-                        if (feed.feedUrl.isNotBlank()) {
-                            setOnlineFeedUrl(feed.feedUrl)
-                            navController.navigate(Screens.OnlineFeed.name)
-                        }
+                        navToOnlineFeed()
                     })) {
                         Text(feed.name, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
@@ -475,12 +474,11 @@ fun SearchScreen() {
                 OutlinedButton(onClick = {
                     val query = vm.queryText
                     if (query.matches("http[s]?://.*".toRegex())) {
-                        setOnlineFeedUrl(query)
-                        navController.navigate(Screens.OnlineFeed.name)
+                        navController.navigate("${Screens.OnlineFeed.name}/${URLEncoder.encode(query, StandardCharsets.UTF_8.name())}")
                         return@OutlinedButton
                     }
                     setOnlineSearchTerms(CombinedSearcher::class.java, query)
-                    navController.navigate(Screens.OnlineResults.name)
+                    navController.navigate(Screens.OnlineSearch.name)
                 }) { Text(stringResource(R.string.search_online)) }
             }
             if (showSearchBy) SearchByGrid()

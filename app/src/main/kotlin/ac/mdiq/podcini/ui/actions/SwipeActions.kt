@@ -606,7 +606,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         if (sa.tag != Screens.Queues.name) keys = keys.filter { a: SwipeAction -> a !is RemoveFromQueue }
                         when (sa.tag) {
                             Screens.Facets.name -> context.getString(R.string.facets)
-                            Screens.OnlineEpisodes.name -> context.getString(R.string.online_episodes_label)
+                            Screens.OnlineFeed.name -> context.getString(R.string.online_episodes_label)
                             Screens.Search.name -> context.getString(R.string.search_label)
                             Screens.FeedDetails.name -> {
                                 keys = keys.filter { a: SwipeAction -> a !is RemoveFromHistory }

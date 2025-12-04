@@ -1,0 +1,12 @@
+# 9.6.0
+
+* merged and reworked OnlineSearch and OnlineResults screens
+* migrated Discovery screen to TopChartFeeds, showing top lists based on selected genre and country (from Apple)
+	* limit of top list set to 100, including subscribed with marks
+	* if no podcasts exist for the selected country, return nothing, rather than getting the US list
+* in OnlineFeed screen, added and inline row and link for "Feeds likely related to the author" for further research
+* likely fixed an issue that could cause app collection of languages and tags to be set empty
+* amended screen navigation with arguments
+* Player use episode image regardless of image setting
+* enlarged the cover image in PlayDetailed view
+* fixed the image in EpisodeInfo, and added large image at the end of details, both use episode image regardless of image setting

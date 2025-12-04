@@ -18,6 +18,8 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.storage.database.addDownloadStatus
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.compileLanguages
+import ac.mdiq.podcini.storage.database.compileTags
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getFeedDownloadLog
 import ac.mdiq.podcini.storage.database.getFeedList
@@ -167,6 +169,9 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             feedIdsToRefresh.removeAt(0)
             upsertBlk(appAttribs) { it.feedIdsToRefresh = feedIdsToRefresh.toRealmSet()}
         }
+        // TODO: not sure these need to be here
+        compileLanguages()
+        compileTags()
     }
 
     @Throws(Exception::class)

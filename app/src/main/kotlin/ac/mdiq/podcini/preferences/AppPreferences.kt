@@ -187,7 +187,7 @@ object AppPreferences {
         Subscriptions(R.string.subscriptions_label),
         Queues(R.string.queue_label),
         Facets(R.string.facets),
-        OnlineSearch(R.string.add_feed_label),
+        OnlineResults(R.string.add_feed_label),
         Statistics(R.string.statistics_label),
         Remember(R.string.remember_last_page);
     }

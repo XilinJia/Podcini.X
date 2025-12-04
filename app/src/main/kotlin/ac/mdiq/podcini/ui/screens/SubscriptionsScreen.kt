@@ -9,6 +9,8 @@ import ac.mdiq.podcini.preferences.ExportTypes
 import ac.mdiq.podcini.preferences.ExportWorker
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.compileLanguages
+import ac.mdiq.podcini.storage.database.compileTags
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope

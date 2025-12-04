@@ -511,7 +511,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                     if (episode.comment.isNotBlank()) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_comment_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "comment", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                     if (episode.getMediaType() == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
-                                    val dateSizeText = remember {
+                                    val dateSizeText = remember(episode) {
                                         " · " + formatDateTimeFlex(Date(episode.pubDate)) + " · " + getDurationStringLong(episode.duration) +
                                                 (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") +
                                                 (if (episode.viewCount > 0) " · " + formatLargeInteger(episode.viewCount) else "") +
@@ -570,7 +570,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     }
                                 }
                                 EpisodeState.SKIPPED.code -> {
-                                    val dateSizeText = remember {
+                                    val dateSizeText = remember(episode) {
                                         (if (episode.lastPlayedTime > 0) "P:" + formatDateTimeFlex(episode.lastPlayedDate) else "") +
                                                 (if (episode.playbackCompletionTime > 0) " · C:" + formatDateTimeFlex(episode.playbackCompletionDate) else "") +
                                                 (if (episode.playStateSetTime > 0) " · S:" + formatDateTimeFlex(episode.playStateSetDate) else "") +
@@ -594,33 +594,26 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                         }
                         if (showCoverImage && (feed == null || !useFeedImage)) {
                             val img = remember(episode.id) { ImageRequest.Builder(context).data(episode.imageLocation(forceFeedImage)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                            AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(imageWidth).height(imageHeight)
-                                .clickable(onClick = {
-                                    Logd(TAG, "icon clicked!")
-                                    when {
-                                        selectMode -> toggleSelected(episode)
-                                        feed == null && episode.feed?.isSynthetic() != true -> {
-                                            feedOnDisplay = episode.feed!!
-                                            feedScreenMode = FeedScreenMode.Info
-                                            navController.navigate(Screens.FeedDetails.name)
-                                        }
-                                        else -> {
-                                            episodeOnDisplay = episode
-                                            navController.navigate(Screens.EpisodeInfo.name)
-                                        }
+                            AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(imageWidth).height(imageHeight).clickable(onClick = {
+                                Logd(TAG, "icon clicked!")
+                                when {
+                                    selectMode -> toggleSelected(episode)
+                                    feed == null && episode.feed?.isSynthetic() != true -> {
+                                        feedOnDisplay = episode.feed!!
+                                        feedScreenMode = FeedScreenMode.Info
+                                        navController.navigate(Screens.FeedDetails.name)
                                     }
-                                }))
+                                    else -> {
+                                        episodeOnDisplay = episode
+                                        navController.navigate(Screens.EpisodeInfo.name)
+                                    }
+                                }
+                            }))
                         }
                         Box(Modifier.weight(1f).wrapContentHeight()) {
                             TitleColumn(index, modifier = Modifier.fillMaxWidth())
                             if (showActionButtons) {
                                 if (actionButton_ == null) {
-//                                    LaunchedEffect(playerStat) {
-//                                        if (episode.id == curMediaId) {
-//                                            if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
-//                                            else actionButton.update(episode)
-//                                        } else if (actionButton.type == ButtonTypes.PAUSE) actionButton.update(episode)
-//                                    }
                                     if (episode.id == curMediaId) {
                                         if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
                                         else actionButton.update(episode)
@@ -690,8 +683,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                     Column {
                         var yOffset by remember { mutableFloatStateOf(0f) }
                         var draggedIndex by remember { mutableStateOf<Int?>(null) }
-                        MainRow(index,
-                            yOffset = if (draggedIndex == index) yOffset else 0f,
+                        MainRow(index, yOffset = if (draggedIndex == index) yOffset else 0f,
                             onDragStart = {
                                 Logd(TAG, "MainRow onDragStart")
                                 isDragging = true

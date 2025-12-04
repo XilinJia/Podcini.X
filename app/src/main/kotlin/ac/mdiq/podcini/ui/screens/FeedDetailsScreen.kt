@@ -1448,7 +1448,7 @@ fun FeedDetailsScreen() {
                         Text("Languages: ")
                         for (l in feed!!.languages) Text(l, modifier = Modifier.padding(end = 2.dp))
                     }
-                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -1460,17 +1460,18 @@ fun FeedDetailsScreen() {
                 })
             if (!feed?.comment.isNullOrBlank()) SelectionContainer { Text(feed?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp)) }
 
-            Text(stringResource(R.string.statistics_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+            Text(stringResource(R.string.statistics_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
             Row {
                 TextButton({ showFeedStats = true }) { Text(stringResource(R.string.this_podcast)) }
                 Spacer(Modifier.width(20.dp))
                 TextButton({ navController.navigate(Screens.Statistics.name) }) { Text(stringResource(R.string.all_podcasts)) }
             }
             if (feed?.isSynthetic() == false) {
-                TextButton(modifier = Modifier.padding(top = 10.dp), onClick = {
-                    setOnlineSearchTerms(CombinedSearcher::class.java, "${feed?.author} podcasts")
-                    navController.navigate(Screens.OnlineResults.name)
-                }) { Text(stringResource(R.string.feeds_related_to_author)) }
+                Text(stringResource(R.string.feeds_related_to_author), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 10.dp).clickable(onClick = {
+                        setOnlineSearchTerms(CombinedSearcher::class.java, "${feed?.author} podcasts")
+                        navController.navigate(Screens.OnlineSearch.name)
+                    }))
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(Date(feed?.lastFullUpdateTime?:0L))}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(text = feed?.downloadUrl ?: "", color = textColor, modifier = Modifier.padding(bottom = 15.dp).combinedClickable(

@@ -623,8 +623,8 @@
     <string name="search_podcastindex_label">Search Podcast Index</string>
 
     <string name="advanced">Advanced</string>
-    <string name="discover">Discover</string>
-    <string name="discover_hide">Hide</string>
+
+
     <string name="discover_is_hidden">You selected to hide suggestions.</string>
     <string name="discover_more">more »</string>
     <string name="discover_powered_by_itunes">Suggestions by Apple Podcasts</string>

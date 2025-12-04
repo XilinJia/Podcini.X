@@ -74,14 +74,18 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 private const val TAG = "NavDrawerScreen"
 
@@ -290,9 +294,7 @@ enum class Screens {
     Search,
     OnlineSearch,
     OnlineFeed,
-    OnlineEpisodes,
-    Discovery,
-    OnlineResults,
+    TopChartFeeds,
     Logs,
     Statistics
 }
@@ -306,26 +308,41 @@ private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.OnlineSearch.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
 )
 
-private val navHostMap: MutableMap<Screens, @Composable ()->Unit> = mutableMapOf(
-    Screens.Subscriptions to { SubscriptionsScreen() },
-    Screens.FeedDetails to { FeedDetailsScreen() },
-    Screens.EpisodeInfo to { EpisodeInfoScreen() },
-    Screens.Facets to { FacetsScreen() },
-    Screens.Queues to { QueuesScreen() },
-    Screens.Search to { SearchScreen() },
-    Screens.OnlineSearch to { OnlineSearchScreen() },
-    Screens.Discovery to { DiscoveryScreen() },
-    Screens.OnlineFeed to { OnlineFeedScreen() },
-    Screens.OnlineResults to { OnlineResultsScreen() },
-    Screens.Logs to { LogsScreen() },
-    Screens.Statistics to { StatisticsScreen() }
-)
-
 @Composable
 fun Navigate(navController: NavHostController, startScreen: String = "") {
     Logd(TAG, "Navigate startScreen: $startScreen")
     NavHost(navController = navController, startDestination = startScreen.ifBlank { defaultScreen }) {
-        for (nv in navHostMap.entries) composable(nv.key.name) { nv.value() }
+        composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
+        composable(Screens.FeedDetails.name) { FeedDetailsScreen() }
+        composable(Screens.EpisodeInfo.name) { EpisodeInfoScreen() }
+        composable(Screens.Facets.name) { FacetsScreen() }
+        composable(Screens.Queues.name) { QueuesScreen() }
+        composable(Screens.Search.name) { SearchScreen() }
+        composable(Screens.TopChartFeeds.name) { TopChartFeeds() }
+        composable(
+            route = "${Screens.OnlineFeed.name}/{url}?source={source}&shared={shared}",
+            arguments = listOf(
+                navArgument("url") { type = NavType.StringType },
+                navArgument("source") {
+                    type = NavType.StringType
+                    defaultValue = ""
+                },
+                navArgument("shared") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+//            val url = backStackEntry.arguments?.getString("url") ?: "Error"
+            val encodedUrl = backStackEntry.arguments?.getString("url") ?: "Error"
+            val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.name())
+            val source = backStackEntry.arguments?.getString("source") ?: ""
+            val shared = backStackEntry.arguments?.getBoolean("shared") ?: false
+            OnlineFeedScreen(url, source, shared)
+        }
+        composable(Screens.OnlineSearch.name) { OnlineSearchScreen() }
+        composable(Screens.Logs.name) { LogsScreen() }
+        composable(Screens.Statistics.name) { StatisticsScreen() }
     }
 }
 

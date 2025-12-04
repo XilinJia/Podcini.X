@@ -7,8 +7,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
-import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
+import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -42,7 +42,6 @@ import androidx.media3.common.Format
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player.COMMAND_GET_CURRENT_MEDIA_ITEM
-import androidx.media3.common.Player.DISCONTINUITY_REASON_SEEK
 import androidx.media3.common.Player.DiscontinuityReason
 import androidx.media3.common.Player.Listener
 import androidx.media3.common.Player.PositionInfo
@@ -116,7 +115,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                         STATE_ENDED -> {
                             setPlayerStatus(PlayerStatus.STOPPED, null)
                             exoPlayer?.seekTo(C.TIME_UNSET)
-//                            audioCompletionListener?.invoke()
                             endPlayback(hasEnded = true, wasSkipped = false)
                         }
                         STATE_BUFFERING -> bufferingUpdateListener?.invoke(BUFFERING_STARTED)
@@ -132,17 +130,20 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 override fun onPlayerError(error: PlaybackException) {
                     Logd(TAG, "onPlayerError ${error.message}")
                     setPlayerStatus(PlayerStatus.ERROR, curEpisode)
-                    if (wasDownloadBlocked(error)) audioErrorListener?.invoke(context.getString(R.string.download_error_blocked))
-                    else {
+                    if (wasDownloadBlocked(error)) {
+                        Loge(TAG, "audioErrorListener: ${context.getString(R.string.download_error_blocked)}")
+                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
+                    } else {
                         var cause = error.cause
                         if (cause is HttpDataSourceException && cause.cause != null) cause = cause.cause
                         if (cause != null && "Source error" == cause.message) cause = cause.cause
-                        audioErrorListener?.invoke((if (cause != null) cause.message else error.message) ?:"no message")
+                        Loge(TAG, "audioErrorListener: ${if (cause != null) cause.message else error.message}")
+                        setPlayerStatus(PlayerStatus.ERROR, curEpisode)
                     }
                 }
                 override fun onPositionDiscontinuity(oldPosition: PositionInfo, newPosition: PositionInfo, reason: @DiscontinuityReason Int) {
                     Logd(TAG, "onPositionDiscontinuity ${oldPosition.positionMs} ${newPosition.positionMs} $reason")
-                    if (reason == DISCONTINUITY_REASON_SEEK) audioSeekCompleteListener?.invoke()
+//                    if (reason == DISCONTINUITY_REASON_SEEK) audioSeekCompleteListener?.invoke()
                 }
                 override fun onAudioSessionIdChanged(audioSessionId: Int) {
                     Logd(TAG, "onAudioSessionIdChanged $audioSessionId")
@@ -220,9 +221,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         Logd(TAG, "release() called")
         exoPlayer?.stop()
         exoPlayer?.seekTo(0L)
-        audioSeekCompleteListener = null
-        audioCompletionListener = null
-        audioErrorListener = null
         bufferingUpdateListener = null
     }
 
@@ -401,7 +399,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (t >= getDuration()) {
             Logd(TAG, "Seek reached end of file, skipping to next episode")
             exoPlayer?.seekTo(t.toLong())   // can set curMedia to null
-            audioSeekCompleteListener?.invoke()
             endPlayback(true, wasSkipped = true)
             t = getPosition()
         }
@@ -410,7 +407,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 Logd(TAG, "seekTo t: $t")
                 val statusBeforeSeeking = status
                 exoPlayer?.seekTo(t.toLong())
-                audioSeekCompleteListener?.invoke()
                 if (statusBeforeSeeking == PlayerStatus.PREPARED && curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(t) }
             }
             isInitialized -> {
@@ -467,11 +463,11 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 //        Logd(TAG, "setVolume 1: $volumeLeft $volumeRight")
         if (volumeLeft > 1) {
             exoPlayer?.volume = 1f
-            loudnessEnhancer?.setEnabled(true)
+            loudnessEnhancer?.enabled = true
             loudnessEnhancer?.setTargetGain((1000 * (volumeLeft - 1)).toInt())
         } else {
             exoPlayer?.volume = volumeLeft
-            loudnessEnhancer?.setEnabled(false)
+            loudnessEnhancer?.enabled = false
         }
         Logd(TAG, "Media player volume was set to $volumeLeft $volumeRight")
     }
@@ -479,10 +475,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     override fun shutdown() {
         Logd(TAG, "shutdown() called")
         try {
-            audioCompletionListener = {}
-            audioSeekCompleteListener = {}
             bufferingUpdateListener = { }
-            audioErrorListener = {}
 //            TODO: should use: exoPlayer!!.playWhenReady ?
             if (exoPlayer?.isPlaying == true) exoPlayer?.stop()
         } catch (e: Exception) { Logs(TAG, e) }
@@ -557,15 +550,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         exoPlayer?.setAudioAttributes(b.build(), true)
 
         if (curEpisode != null) {
-            audioCompletionListener = {
-                Logd(TAG, "audioCompletionListener called")
-                endPlayback(hasEnded = true, wasSkipped = false)
-            }
-            audioSeekCompleteListener = {
-                Logd(TAG, "audioSeekCompleteListener $status ${exoPlayer?.isPlaying}")
-//                curPosition = Episode.INVALID_TIME
-//                if ((status == PlayerStatus.PLAYING && exoPlayer?.isPlaying != true) && curEpisode != null) onPlaybackStart(curEpisode!!, getPosition())
-            }
             bufferingUpdateListener = { percent: Int ->
                 Logd(TAG, "bufferingUpdateListener $percent")
                 when (percent) {
@@ -573,10 +557,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     BUFFERING_ENDED -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.ended())
                     else -> EventFlow.postEvent(FlowEvent.BufferUpdateEvent.progressUpdate(0.01f * percent))
                 }
-            }
-            audioErrorListener = { message: String ->
-                Loge(TAG, "audioErrorListener: $message")
-                setPlayerStatus(PlayerStatus.ERROR, curEpisode)
             }
         }
     }
@@ -635,14 +615,9 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         const val BUFFERING_STARTED: Int = -1
         const val BUFFERING_ENDED: Int = -2
 
-//        var streaming: Boolean? = getPref(AppPrefs.prefStreamOverDownload, false)
-
         var exoPlayer: ExoPlayer? = null
 
         private var exoplayerListener: Listener? = null
-        private var audioSeekCompleteListener: (()->Unit)? = null       // not used
-        private var audioCompletionListener: (()->Unit)? = null     // not used
-        private var audioErrorListener: ((String) -> Unit)? = null
         private var bufferingUpdateListener: ((Int) -> Unit)? = null
         private var loudnessEnhancer: LoudnessEnhancer? = null
 
@@ -659,7 +634,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     val newEnhancer = LoudnessEnhancer(audioStreamId)
                     val oldEnhancer = loudnessEnhancer
                     if (oldEnhancer != null) {
-                        newEnhancer.setEnabled(oldEnhancer.enabled)
+                        newEnhancer.enabled = oldEnhancer.enabled
                         if (oldEnhancer.enabled) newEnhancer.setTargetGain(oldEnhancer.targetGain.toInt())
                         oldEnhancer.release()
                     }
@@ -671,9 +646,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         fun cleanup() {
             if (exoplayerListener != null) exoPlayer?.removeListener(exoplayerListener!!)
             exoplayerListener = null
-            audioSeekCompleteListener = null
-            audioCompletionListener = null
-            audioErrorListener = null
             bufferingUpdateListener = null
             loudnessEnhancer = null
             httpDataSourceFactory = null

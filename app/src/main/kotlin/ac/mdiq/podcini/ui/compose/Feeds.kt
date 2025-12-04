@@ -37,7 +37,6 @@ import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.feedOnDisplay
 import ac.mdiq.podcini.ui.screens.feedScreenMode
-import ac.mdiq.podcini.ui.screens.setOnlineFeedUrl
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -124,6 +123,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONException
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Date
@@ -213,24 +214,18 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
     val context = LocalContext.current
     val navController = LocalNavController.current
     val showSubscribeDialog = remember { mutableStateOf(false) }
-    @Composable
-    fun confirmSubscribe(feed: PodcastSearchResult, showDialog: Boolean, onDismissRequest: () -> Unit) {
-        if (showDialog) {
-            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
-                val textColor = MaterialTheme.colorScheme.onSurface
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
-                    Text("Subscribe: \"${feed.title}\" ?", color = textColor, modifier = Modifier.padding(bottom = 10.dp))
-                    Button(onClick = {
-                        gearbox.subscribeFeed(feed, context)
-                        onDismissRequest()
-                    }) { Text(stringResource(R.string.confirm_label)) }
-                }
-            }
+    if (showSubscribeDialog.value) CommonDialogSurface(onDismissRequest = { showSubscribeDialog.value = false }) {
+        val textColor = MaterialTheme.colorScheme.onSurface
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
+            Text("Subscribe: \"${feed.title}\" ?", color = textColor, modifier = Modifier.padding(bottom = 10.dp))
+            Button(onClick = {
+                gearbox.subscribeFeed(feed, context)
+                showSubscribeDialog.value = false
+            }) { Text(stringResource(R.string.confirm_label)) }
         }
     }
-    if (showSubscribeDialog.value) confirmSubscribe(feed, showSubscribeDialog.value, onDismissRequest = { showSubscribeDialog.value = false })
 
-    Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 4.dp).combinedClickable(
+    Column(Modifier.padding(start = 5.dp, end = 5.dp, top = 4.dp, bottom = 4.dp).combinedClickable(
         onClick = {
             if (feed.feedUrl != null) {
                 if (feed.feedId > 0) {
@@ -238,32 +233,28 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
                     feedOnDisplay = feed_
                     feedScreenMode = FeedScreenMode.List
                     navController.navigate(Screens.FeedDetails.name)
-                } else {
-                    setOnlineFeedUrl(feed.feedUrl, source = feed.source)
-                    navController.navigate(Screens.OnlineFeed.name)
-                }
+                } else navController.navigate("${Screens.OnlineFeed.name}/${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}?source=${feed.source}")
             }
         }, onLongClick = { showSubscribeDialog.value = true })) {
         val textColor = MaterialTheme.colorScheme.onSurface
-        Text(feed.title, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
         Row {
-            Box(modifier = Modifier.width(56.dp).height(56.dp)) {
+            Box(modifier = Modifier.width(80.dp).height(80.dp)) {
                 val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                 AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                 if (feed.feedId > 0 || log != null) {
                     Logd("OnlineFeedItem", "${feed.feedId} $log")
-                    val alpha = 1.0f
-                    val iRes = if (feed.feedId > 0) R.drawable.ic_check else R.drawable.baseline_clear_24
-                    Icon(imageVector = ImageVector.vectorResource(iRes), tint = textColor, contentDescription = "played_mark", modifier = Modifier.background(Color.Green).alpha(alpha).align(Alignment.BottomEnd))
+                    val iRes = remember(feed) { if (feed.feedId > 0) R.drawable.ic_check else R.drawable.baseline_clear_24 }
+                    Icon(imageVector = ImageVector.vectorResource(iRes), tint = textColor, contentDescription = "played_mark", modifier = Modifier.background(Color.Green).alpha(1.0f).align(Alignment.BottomEnd))
                 }
             }
             Column(Modifier.padding(start = 10.dp)) {
-                var authorText by remember { mutableStateOf("") }
-                authorText = when {
-                    !feed.author.isNullOrBlank() -> feed.author.trim { it <= ' ' }
-                    feed.feedUrl != null && !feed.feedUrl.contains("itunes.apple.com") -> feed.feedUrl
-                    else -> ""
-                }
+                Text(feed.title, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(bottom = 4.dp))
+                val authorText by remember(feed) { mutableStateOf(
+                    when {
+                        !feed.author.isNullOrBlank() -> feed.author.trim { it <= ' ' }
+                        feed.feedUrl != null && !feed.feedUrl.contains("itunes.apple.com") -> feed.feedUrl
+                        else -> ""
+                    }) }
                 if (authorText.isNotEmpty()) Text(authorText, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 if (feed.subscriberCount > 0) Text(formatLargeInteger(feed.subscriberCount) + " subscribers", color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Row {
@@ -271,7 +262,7 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
                     Spacer(Modifier.weight(1f))
                     if (feed.update != null) Text(feed.update, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
-                Text(feed.source + ": " + feed.feedUrl, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
+                Text(feed.source + ": " + feed.feedUrl, color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
             }
         }
     }

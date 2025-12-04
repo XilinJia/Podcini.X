@@ -2,7 +2,6 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.utils.Logd
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 
@@ -58,7 +57,7 @@ class SubscriptionLog: RealmObject {
             val logs = realm.query(SubscriptionLog::class).query("type == $0", "Feed").find()
             val map = mutableMapOf<String, SubscriptionLog>()
             for (l in logs) {
-                Logd(TAG, "getFeedLogMap ${l.title} ${l.url}")
+//                Logd(TAG, "getFeedLogMap ${l.title} ${l.url}")
                 map[l.title] = l
                 if (!l.url.isNullOrEmpty()) map[l.url!!] = l
                 if (!l.link.isNullOrEmpty()) map[l.link!!] = l

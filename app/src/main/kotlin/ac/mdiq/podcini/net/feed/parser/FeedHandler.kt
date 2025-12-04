@@ -44,7 +44,7 @@ class FeedHandler {
 
             val inputStreamReader: Reader = XmlStreamReader(File(feed.fileUrl!!))
             val inputSource = InputSource(inputStreamReader)
-            Logd("FeedHandler", "starting saxParser.parse")
+            Logd("FeedHandler", "parseFeed starting saxParser.parse")
             saxParser.parse(inputSource, handler)
             inputStreamReader.close()
         }
@@ -70,7 +70,7 @@ class FeedHandler {
                         when (val tag = xpp.name) {
                             ATOM_ROOT -> {
                                 feed.type = Feed.FeedType.ATOM1.name
-                                Logd(TAG, "Recognized type Atom")
+                                Logd(TAG, "getType Recognized type Atom")
                                 val strLang = xpp.getAttributeValue("http://www.w3.org/XML/1998/namespace", "lang")
                                 if (strLang != null) feed.languages.add(strLang)
                                 return Type.ATOM
@@ -80,23 +80,23 @@ class FeedHandler {
                                 when (strVersion) {
                                     null -> {
                                         feed.type = Feed.FeedType.RSS.name
-                                        Logd(TAG, "Assuming type RSS 2.0")
+                                        Logd(TAG, "getType Assuming type RSS 2.0")
                                         return Type.RSS20
                                     }
                                     "2.0" -> {
                                         feed.type = Feed.FeedType.RSS.name
-                                        Logd(TAG, "Recognized type RSS 2.0")
+                                        Logd(TAG, "getType Recognized type RSS 2.0")
                                         return Type.RSS20
                                     }
                                     "0.91", "0.92" -> {
-                                        Logd(TAG, "Recognized type RSS 0.91/0.92")
+                                        Logd(TAG, "getType Recognized type RSS 0.91/0.92")
                                         return Type.RSS091
                                     }
                                     else -> throw UnsupportedFeedtypeException("Unsupported rss version")
                                 }
                             }
                             else -> {
-                                Logd(TAG, "Type is invalid")
+                                Logd(TAG, "getType Type is invalid")
                                 throw UnsupportedFeedtypeException(Type.INVALID, tag)
                             }
                         }
@@ -123,7 +123,7 @@ class FeedHandler {
                 }
             }
         }
-        Logd(TAG, "Type is invalid")
+        Logd(TAG, "getType Type is invalid")
         throw UnsupportedFeedtypeException(Type.INVALID)
     }
 
@@ -259,33 +259,33 @@ class FeedHandler {
                             DEFAULT_PREFIX -> state.defaultNamespaces.push(Atom())
                             Atom.NSTAG -> {
                                 state.namespaces[uri] = Atom()
-                                Logd(TAG, "Recognized Atom namespace")
+//                                Logd(TAG, "startPrefixMapping Recognized Atom namespace")
                             }
                         }
                     }
                     uri == Content.NSURI && prefix == Content.NSTAG -> {
                         state.namespaces[uri] = Content()
-                        Logd(TAG, "Recognized Content namespace")
+//                        Logd(TAG, "startPrefixMapping Recognized Content namespace")
                     }
                     uri == Itunes.NSURI && prefix == Itunes.NSTAG -> {
                         state.namespaces[uri] = Itunes()
-                        Logd(TAG, "Recognized ITunes namespace")
+//                        Logd(TAG, "startPrefixMapping Recognized ITunes namespace")
                     }
                     uri == SimpleChapters.NSURI && prefix.matches(SimpleChapters.NSTAG.toRegex()) -> {
                         state.namespaces[uri] = SimpleChapters()
-                        Logd(TAG, "Recognized SimpleChapters namespace")
+//                        Logd(TAG, "startPrefixMapping Recognized SimpleChapters namespace")
                     }
                     uri == Media.NSURI && prefix == Media.NSTAG -> {
                         state.namespaces[uri] = Media()
-                        Logd(TAG, "Recognized media namespace")
+//                        Logd(TAG, "startPrefixMapping Recognized media namespace")
                     }
                     uri == DublinCore.NSURI && prefix == DublinCore.NSTAG -> {
                         state.namespaces[uri] = DublinCore()
-                        Logd(TAG, "Recognized DublinCore namespace")
+//                        Logd(TAG, "startPrefixMapping Recognized DublinCore namespace")
                     }
                     uri == PodcastIndex.NSURI || uri == PodcastIndex.NSURI2 && prefix == PodcastIndex.NSTAG -> {
                         state.namespaces[uri] = PodcastIndex()
-                        Logd(TAG, "Recognized PodcastIndex namespace")
+//                        Logd(TAG, "startPrefixMapping Recognized PodcastIndex namespace")
                     }
                     else -> Logd(TAG, "startPrefixMapping can not handle uri: $uri")
                 }
@@ -339,9 +339,9 @@ class FeedHandler {
     }
 
     class FeedHandlerResult(
-             val feed: Feed,
-             val alternateFeedUrls: Map<String, String>,
-            val redirectUrl: String)
+        val feed: Feed,
+        val alternateFeedUrls: Map<String, String>,
+        val redirectUrl: String)
 
     abstract class Namespace {
         /** Called by a Feedhandler when in startElement and it detects a namespace element

@@ -68,3 +68,10 @@ val sleepPrefsJob = CoroutineScope(Dispatchers.Default).launch {
         }
     }
 }
+
+fun cancelAppPrefs() {
+    sleepPrefsJob.cancel()
+    facetsPrefsJob.cancel()
+    subPrefsJob.cancel()
+    appAttribsJob.cancel()
+}

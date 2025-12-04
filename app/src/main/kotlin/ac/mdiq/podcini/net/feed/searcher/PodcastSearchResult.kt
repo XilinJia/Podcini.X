@@ -16,10 +16,4 @@ class PodcastSearchResult internal constructor(
 
     // feedId will be positive if already subscribed
     var feedId by mutableLongStateOf(0L)
-
-    companion object {
-        fun dummy(): PodcastSearchResult {
-            return PodcastSearchResult("", "", "", "", 0, "", -1, "dummy")
-        }
-    }
 }

@@ -102,6 +102,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -119,6 +120,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.Dispatchers
@@ -557,9 +560,9 @@ fun EpisodeInfoScreen() {
                     val txtvPodcast by remember(episode) { mutableStateOf( if (episode?.feed != null) (if (episode!!.feed!!.isSynthetic() && episode!!.origFeedTitle != null) episode!!.origFeedTitle!! else episode!!.feed!!.title ?: "") else "") }
                     SelectionContainer { Text(txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { openPodcast() }) }
                 }
+                val img = remember(episode?.imageUrl) { ImageRequest.Builder(context).data(episode?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                 Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    val imgLoc = episode?.imageLocation()
-                    AsyncImage(model = imgLoc, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { openPodcast() }))
+                    AsyncImage(model = img, contentDescription = "imgvCover",  modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { openPodcast() }))
                     Box(Modifier.weight(1f).padding(start = 10.dp).height(80.dp)) {
                         Column {
                             SelectionContainer { Text(episode?.title?:"", color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis) }
@@ -605,6 +608,7 @@ fun EpisodeInfoScreen() {
                         if (showTodayStats) RelatedEpisodesDialog(episode!!) { showTodayStats = false }
                         Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
                     }
+                    AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
                 }
             }
         }

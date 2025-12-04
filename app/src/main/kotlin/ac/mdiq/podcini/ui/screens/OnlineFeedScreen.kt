@@ -6,6 +6,7 @@ import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
+import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
@@ -46,6 +47,8 @@ import android.text.style.ForegroundColorSpan
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -56,6 +59,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -80,6 +85,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -91,6 +97,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -99,6 +106,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
+import coil.request.CachePolicy
+import coil.request.ImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -106,16 +115,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.util.Date
-
-private var onlineFeedUrl by mutableStateOf("")
-private var onlineFeedSource by mutableStateOf("")
-private var isOnlineFeedShared by mutableStateOf(false)
-fun setOnlineFeedUrl(url: String, source: String = "", shared: Boolean = false) {
-    onlineFeedUrl = url
-    onlineFeedSource = source
-    isOnlineFeedShared = shared
-}
 
 /**
  * Downloads a feed from a feed URL and parses it. Subclasses can display the
@@ -126,13 +128,12 @@ fun setOnlineFeedUrl(url: String, source: String = "", shared: Boolean = false) 
  */
 class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     var feedSource: String = ""
-
     internal var feedUrl: String = ""
+    internal var isShared: Boolean = false
+
     internal var urlToLog: String = ""
     internal lateinit var feedBuilder: FeedBuilderBase
     internal var showTabsDialog by mutableStateOf(false)
-
-    internal var isShared: Boolean = false
 
     internal var showEpisodes by mutableStateOf(false)
     internal var showFeedDisplay by mutableStateOf(false)
@@ -145,23 +146,15 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal val feedId: Long
         get() {
-            if (feeds == null) return 0
+            if (feeds == null) feeds = getFeedList()
             for (f in feeds!!) if (gearbox.isSameFeed(f, selectedDownloadUrl, feed?.title)) return f.id
             return 0
         }
 
     internal var infoBarText = mutableStateOf("")
-    internal var swipeActions: SwipeActions
+    internal var swipeActions: SwipeActions = SwipeActions(context, TAG)
 
     internal var episodes = mutableListOf<Episode>()
-//    internal val vms = mutableStateListOf<EpisodeVM>()
-
-    init {
-        feedSource = onlineFeedSource
-        feedUrl = onlineFeedUrl
-        isShared = isOnlineFeedShared
-        swipeActions = SwipeActions(context, TAG)
-    }
 
     @Volatile
     internal var feeds: List<Feed>? = null
@@ -177,11 +170,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 
     internal var dialog: Dialog? = null
 
-//    internal fun buildMoreItems() {
-////        val nextItems = (vms.size until min(vms.size + VMS_CHUNK_SIZE, episodes.size)).map { EpisodeVM(episodes[it], TAG) }
-//        val nextItems = (vms.size until (vms.size + VMS_CHUNK_SIZE).coerceAtMost(episodes.size)).map { EpisodeVM(episodes[it], TAG) }
-//        if (nextItems.isNotEmpty()) vms.addAll(nextItems)
-//    }
+    val relatedFeeds = mutableStateListOf<PodcastSearchResult>()
 
     internal fun handleFeed(feed_: Feed, map: Map<String, String>) {
         selectedDownloadUrl = feedBuilder.selectedDownloadUrl
@@ -193,49 +182,48 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
                 it.author = feed_.author
             }
         }
+        relatedFeeds.clear()
+        lcScope.launch(Dispatchers.IO) {
+            val fl = CombinedSearcher::class.java.getDeclaredConstructor().newInstance().search("${feed?.author} podcasts")
+            withContext(Dispatchers.Main) { if (fl.isNotEmpty()) relatedFeeds.addAll(fl) }
+        }
         showFeedInformation(feed_, map)
     }
 
     internal fun lookupUrlAndBuild(url: String) {
-        CoroutineScope(Dispatchers.IO).launch {
+        lcScope.launch(Dispatchers.IO) {
             urlToLog = url
             try {
                 val urlString = PodcastSearcherRegistry.lookupUrl1(url)
                 Logd(TAG, "lookupUrlAndBuild: urlString: $urlString")
-                feeds = getFeedList()
                 gearbox.buildFeed(urlString, username ?: "", password ?: "", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
-            } catch (e: FeedUrlNotFoundException) { tryToRetrieveFeedUrlBySearch(e)
+            } catch (error: FeedUrlNotFoundException) {
+                Logd(TAG, "lookupUrlAndBuild in error, trying to Retrieve FeedUrl By Search")
+                var url: String? = null
+                val searcher = CombinedSearcher()
+                val query = "${error.trackName} ${error.artistName}"
+                val results = searcher.search(query)
+                if (results.isEmpty()) return@launch
+                for (result in results) {
+                    if (result.feedUrl != null && result.author != null && result.author.equals(error.artistName, ignoreCase = true)
+                        && result.title.equals(error.trackName, ignoreCase = true)) {
+                        url = result.feedUrl
+                        break
+                    }
+                }
+                if (url != null) {
+                    urlToLog = url
+                    Logd(TAG, "Successfully retrieve feed url")
+                    isFeedFoundBySearch = true
+                    //                feeds = getFeedList()
+                    gearbox.buildFeed(url, username?:"", password?:"", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
+                } else {
+                    withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
+                    Logd(TAG, "Failed to retrieve feed url")
+                }
             } catch (e: Throwable) {
                 Logs(TAG, e)
                 withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
-            }
-        }
-    }
-
-    private fun tryToRetrieveFeedUrlBySearch(error: FeedUrlNotFoundException) {
-        Logd(TAG, "Unable to retrieve feed url, trying to retrieve feed url from search")
-        CoroutineScope(Dispatchers.IO).launch {
-            var url: String? = null
-            val searcher = CombinedSearcher()
-            val query = "${error.trackName} ${error.artistName}"
-            val results = searcher.search(query)
-            if (results.isEmpty()) return@launch
-            for (result in results) {
-                if (result.feedUrl != null && result.author != null && result.author.equals(error.artistName, ignoreCase = true)
-                        && result.title.equals(error.trackName, ignoreCase = true)) {
-                    url = result.feedUrl
-                    break
-                }
-            }
-            if (url != null) {
-                urlToLog = url
-                Logd(TAG, "Successfully retrieve feed url")
-                isFeedFoundBySearch = true
-                feeds = getFeedList()
-                gearbox.buildFeed(url, username?:"", password?:"", feedBuilder, handleFeed = { feed_, map -> handleFeed(feed_, map) }) { showTabsDialog = true }
-            } else {
-                withContext(Dispatchers.Main) { showNoPodcastFoundDialog = true }
-                Logd(TAG, "Failed to retrieve feed url")
             }
         }
     }
@@ -270,7 +258,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     private fun onFeedListChanged(event: FlowEvent.FeedListEvent) {
-        lcScope.launch {
+        lcScope.launch(Dispatchers.IO) {
             try {
                 val feeds_ = withContext(Dispatchers.IO) { getFeedList() }
                 withContext(Dispatchers.Main) {
@@ -331,8 +319,6 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     internal fun showEpisodes() {
         if (feed == null) return
         episodes = feed!!.episodes
-//        vms.clear()
-//        buildMoreItems()
         infoBarText.value = "${episodes.size} episodes"
 
         Logd(TAG, "showEpisodes ${episodes.size}")
@@ -389,12 +375,16 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 }
 
 @Composable
-fun OnlineFeedScreen() {
+fun OnlineFeedScreen(url: String, source: String = "", shared: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val textColor = MaterialTheme.colorScheme.onSurface
     val navController = LocalNavController.current
     val vm = remember { OnlineFeedVM(context, scope) }
+    vm.feedUrl = url
+    vm.feedSource = source
+    vm.isShared = shared
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -425,8 +415,6 @@ fun OnlineFeedScreen() {
                 Lifecycle.Event.ON_START -> {
                     vm.isPaused = false
                     vm.procFlowEvents()
-//                    vm.vms.clear()
-//                    vm.buildMoreItems()
                     vm.infoBarText.value = "${vm.episodes.size} episodes"
                 }
                 Lifecycle.Event.ON_STOP -> {
@@ -443,14 +431,11 @@ fun OnlineFeedScreen() {
         onDispose {
             vm.feeds = null
             vm.episodes.clear()
-//            vm.vms.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    val textColor = MaterialTheme.colorScheme.onSurface
     if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = { vm.showTabsDialog = false }) { feed, map -> vm.handleFeed(feed, map) }
-    val feedLogsMap_ = feedLogsMap!!
     if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
         title = { Text(stringResource(R.string.error_label)) },
         text = { Text(stringResource(R.string.null_value_podcast_error)) },
@@ -485,10 +470,8 @@ fun OnlineFeedScreen() {
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        if (vm.showProgress) Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(innerPadding).fillMaxSize()) {
-            CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.Center))
-        } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
-            if (vm.showFeedDisplay) ConstraintLayout(modifier = Modifier.fillMaxWidth().height(100.dp).background(MaterialTheme.colorScheme.surface)) {
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
+            ConstraintLayout(modifier = Modifier.fillMaxWidth().height(100.dp).background(MaterialTheme.colorScheme.surface)) {
                 val (coverImage, taColumn, buttons) = createRefs()
                 AsyncImage(model = vm.feed?.imageUrl ?: "", contentDescription = "coverImage", error = painterResource(R.mipmap.ic_launcher),
                     modifier = Modifier.width(100.dp).height(100.dp).padding(start = 10.dp, end = 16.dp, bottom = 10.dp).constrainAs(coverImage) {
@@ -508,7 +491,7 @@ fun OnlineFeedScreen() {
                     end.linkTo(parent.end)
                 }) {
                     Spacer(modifier = Modifier.weight(0.2f))
-                    if (vm.enableSubscribe) Button(onClick = {
+                    if (vm.showFeedDisplay && vm.enableSubscribe) Button(onClick = {
                         if (vm.feedId != 0L || isSubscribed(vm.feed!!)) {
                             if (vm.isShared) {
                                 val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
@@ -575,9 +558,9 @@ fun OnlineFeedScreen() {
                 }
                 Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
                     Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
-                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
-                    val sLog = remember { feedLogsMap_[vm.feed?.downloadUrl ?: ""] ?: feedLogsMap_[vm.feed?.title ?: ""] }
+                    val sLog = remember { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
                     if (sLog != null) {
                         val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
                         val context = LocalContext.current
@@ -592,7 +575,26 @@ fun OnlineFeedScreen() {
                             Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                         }
                     }
-                    Text(vm.feed?.mostRecentItem?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    if (!vm.feed?.episodes.isNullOrEmpty()) {
+                        Text(stringResource(R.string.recent_episode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                        Text(vm.feed?.episodes[0]?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    }
+
+                    Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 10.dp).clickable(onClick = {
+                            setOnlineSearchTerms(CombinedSearcher::class.java, "${vm.feed?.author} podcasts")
+                            navController.navigate(Screens.OnlineSearch.name)
+
+                        }))
+                    LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        items(vm.relatedFeeds.size) { index ->
+                            val feed = remember(index) { vm.relatedFeeds[index] }
+                            val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                            AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable(onClick = {
+                                navController.navigate("${Screens.OnlineFeed.name}/${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}?source=${feed.source}")
+                            }))
+                        }
+                    }
                     val info by remember(vm.feed) {
                         derivedStateOf {
                             if (vm.feed == null) return@derivedStateOf ""
@@ -600,14 +602,16 @@ fun OnlineFeedScreen() {
                             "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
                         }
                     }
-                    Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
                     Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                 }
             }
         }
+        if (vm.showProgress) Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(innerPadding).fillMaxSize()) {
+            CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.Center))
+        }
     }
 }
 
-const val ARG_WAS_MANUAL_URL: String = "manual_url"
-private const val TAG: String = "OnlineFeedScreen"
+private val TAG: String = Screens.OnlineFeed.name

@@ -136,8 +136,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextAlign
@@ -308,16 +308,17 @@ fun AudioPlayerScreen(navController: NavController) {
 
     fun refreshChapterData(chapterIndex: Int) {
         Logd(TAG, "in refreshChapterData $chapterIndex")
-        if (vm.curItem != null && chapterIndex > -1) {
-            if (vm.curItem!!.position > vm.curItem!!.duration || chapterIndex >= (vm.curItem?.chapters?: listOf()).size - 1) {
-                vm.displayedChapterIndex = vm.curItem!!.chapters.size - 1
-                hasNextChapter = false
-            } else {
-                vm.displayedChapterIndex = chapterIndex
-                hasNextChapter = true
-            }
-        }
         if (vm.curItem != null) {
+            if (chapterIndex > -1) {
+                if (vm.curItem!!.position > vm.curItem!!.duration || chapterIndex >= (vm.curItem?.chapters?: listOf()).size - 1) {
+                    vm.displayedChapterIndex = vm.curItem!!.chapters.size - 1
+                    hasNextChapter = false
+                } else {
+                    vm.displayedChapterIndex = chapterIndex
+                    hasNextChapter = true
+                }
+            }
+
             imgLocLarge =
                 if (vm.displayedChapterIndex == -1 || vm.curItem?.chapters.isNullOrEmpty() || vm.curItem!!.chapters[vm.displayedChapterIndex].imageUrl.isNullOrEmpty()) vm.curItem!!.imageLocation()
                 else EmbeddedChapterImage.getModelFor(vm.curItem!!, vm.displayedChapterIndex)?.toString()
@@ -864,13 +865,14 @@ fun AudioPlayerScreen(navController: NavController) {
             }, update = { webView -> webView.loadDataWithBaseURL("https://127.0.0.1", if (cleanedNotes.isNullOrBlank()) "No notes" else cleanedNotes!!, "text/html", "utf-8", "about:blank") })
             EpisodeMarks(vm.curItem)
             EpisodeClips(vm.curItem, playerLocal)
-            if (!vm.curItem?.chapters.isNullOrEmpty()) ChaptersColumn(vm.curItem!!)
-            AsyncImage(model = imgLocLarge, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
             if (hasRelations) {
                 var showTodayStats by remember { mutableStateOf(false) }
                 if (showTodayStats) RelatedEpisodesDialog(vm.curItem!!) { showTodayStats = false }
                 Text(stringResource(R.string.related), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
             }
+            if (!vm.curItem?.chapters.isNullOrEmpty()) ChaptersColumn(vm.curItem!!)
+            val img = remember(imgLocLarge) { ImageRequest.Builder(context).data(imgLocLarge).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+            AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
         }
     }
 
@@ -882,7 +884,7 @@ fun AudioPlayerScreen(navController: NavController) {
         setItem(curEpisode)
         updateUi()
         updateTimeline()
-        imgLoc = curEpisode?.imageLocation()
+        imgLoc = curEpisode?.imageUrl
     }
 
     Box(modifier = Modifier.fillMaxWidth().then(if (!isBSExpanded) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())) {

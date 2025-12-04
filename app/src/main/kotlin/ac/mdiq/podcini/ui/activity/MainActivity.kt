@@ -15,6 +15,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
+import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.monitorFeedList
@@ -34,7 +35,6 @@ import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.drawerState
 import ac.mdiq.podcini.ui.screens.feedOnDisplay
 import ac.mdiq.podcini.ui.screens.feedScreenMode
-import ac.mdiq.podcini.ui.screens.setOnlineFeedUrl
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
@@ -120,6 +120,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 class MainActivity : BaseActivity() {
     private var lastTheme = 0
@@ -394,6 +396,7 @@ class MainActivity : BaseActivity() {
         super.onStop()
         cancelFlowEvents()
         cancelMonitorFeeds()
+        cancelAppPrefs()
     }
 
     override fun onResume() {
@@ -460,14 +463,11 @@ class MainActivity : BaseActivity() {
             intent.hasExtra(Extras.fragment_feed_url.name) -> {
                 val feedurl = intent.getStringExtra(Extras.fragment_feed_url.name)
                 val isShared = intent.getBooleanExtra(Extras.isShared.name, false)
-                if (feedurl != null) {
-                    setOnlineFeedUrl(feedurl, shared = isShared)
-                    setIntentScreen(Screens.OnlineFeed.name)
-                }
+                if (feedurl != null) setIntentScreen("${Screens.OnlineFeed.name}/${URLEncoder.encode(feedurl, StandardCharsets.UTF_8.name())}?shared=${isShared}")
             }
             intent.hasExtra(Extras.search_string.name) -> {
                 setOnlineSearchTerms(CombinedSearcher::class.java, intent.getStringExtra(Extras.search_string.name))
-                setIntentScreen(Screens.OnlineResults.name)
+                setIntentScreen(Screens.OnlineSearch.name)
             }
             intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> isBSExpanded = true
             else -> {
