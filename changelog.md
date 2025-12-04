@@ -1,3 +1,7 @@
+# 9.6.1
+
+* fixed queue not changing ieeur
+
 # 9.6.0
 
 * merged and reworked OnlineSearch and OnlineResults screens

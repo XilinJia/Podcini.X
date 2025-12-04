@@ -231,8 +231,11 @@ fun QueuesScreen() {
     val spinnerTexts = remember(queues, actQueue) { queues.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" } }
     var actIndex by remember(queues) {  mutableIntStateOf(queues.indexOfFirst { it.id == actQueue.id } ) }
 
-    LaunchedEffect(queues) { curIndex = queues.indexOfFirst { it.id == appAttribs.curQueueId }  }
-    LaunchedEffect(curIndex, queues) { if (curIndex >= 0 && queues.isNotEmpty()) curQueue = queues[curIndex] }
+    LaunchedEffect(queues) {
+        Logd(TAG, "LaunchedEffect(queues)")
+        curIndex = queues.indexOfFirst { it.id == appAttribs.curQueueId }
+        if (curIndex >= 0 && queues.isNotEmpty()) curQueue = queues[curIndex]
+    }
 
     var dragDropEnabled by remember(curQueue.id) { mutableStateOf(!(curQueue.isSorted || curQueue.isLocked)) }
 
