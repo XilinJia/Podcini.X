@@ -22,7 +22,6 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
-import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -445,22 +444,15 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         return retVal
     }
 
-    override fun setVolume(volumeLeft: Float, volumeRight: Float) {
+    override fun setVolume(volumeLeft: Float, volumeRight: Float, adaptionFactor: Float) {
         var volumeLeft = volumeLeft
         var volumeRight = volumeRight
-//        Logd(TAG, "setVolume: $volumeLeft $volumeRight")
-        if (curEpisode != null) {
-            val adaptionFactor = when {
-                curEpisode?.volumeAdaptionSetting != VolumeAdaptionSetting.OFF -> curEpisode!!.volumeAdaptionSetting.adaptionFactor
-                curEpisode!!.feed != null -> curEpisode!!.feed!!.volumeAdaptionSetting.adaptionFactor
-                else -> 1f
-            }
-            if (adaptionFactor != 1f) {
-                volumeLeft *= adaptionFactor
-                volumeRight *= adaptionFactor
-            }
+        Logd(TAG, "setVolume: $volumeLeft $volumeRight $adaptionFactor")
+        if (adaptionFactor != 1f) {
+            volumeLeft *= adaptionFactor
+            volumeRight *= adaptionFactor
         }
-//        Logd(TAG, "setVolume 1: $volumeLeft $volumeRight")
+        Logd(TAG, "setVolume 1: $volumeLeft $volumeRight")
         if (volumeLeft > 1) {
             exoPlayer?.volume = 1f
             loudnessEnhancer?.enabled = true

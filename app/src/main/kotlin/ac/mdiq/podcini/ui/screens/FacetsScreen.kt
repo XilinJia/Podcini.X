@@ -534,9 +534,7 @@ fun FacetsScreen() {
                             start.linkTo(parent.start)
                         }.combinedClickable(onClick = {
                             Logd(TAG, "clicked: ${feed.title}")
-                            feedOnDisplay = feed
-                            feedScreenMode = FeedScreenMode.List
-                            navController.navigate(Screens.FeedDetails.name)
+                            navController.navigate("${Screens.FeedDetails.name}/${feed.id}")
                         }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
                     Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,

@@ -35,9 +35,6 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
-import ac.mdiq.podcini.ui.screens.episodeOnDisplay
-import ac.mdiq.podcini.ui.screens.feedOnDisplay
-import ac.mdiq.podcini.ui.screens.feedScreenMode
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
@@ -464,10 +461,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             onClick = {
                                 Logd(TAG, "clicked: ${episode.title}")
                                 if (selectMode) toggleSelected(episode)
-                                else {
-                                    episodeOnDisplay = episode
-                                    navController.navigate(Screens.EpisodeInfo.name)
-                                }
+                                else navController.navigate("${Screens.EpisodeInfo.name}/${episode.id}")
                             },
                             onLongClick = {
                                 selectMode = !selectMode
@@ -598,15 +592,8 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                 Logd(TAG, "icon clicked!")
                                 when {
                                     selectMode -> toggleSelected(episode)
-                                    feed == null && episode.feed?.isSynthetic() != true -> {
-                                        feedOnDisplay = episode.feed!!
-                                        feedScreenMode = FeedScreenMode.Info
-                                        navController.navigate(Screens.FeedDetails.name)
-                                    }
-                                    else -> {
-                                        episodeOnDisplay = episode
-                                        navController.navigate(Screens.EpisodeInfo.name)
-                                    }
+                                    feed == null && episode.feed?.isSynthetic() != true -> navController.navigate("${Screens.FeedDetails.name}/${episode.feed!!.id}?modeName=${FeedScreenMode.Info.name}")
+                                    else -> navController.navigate("${Screens.EpisodeInfo.name}/${episode.id}")
                                 }
                             }))
                         }

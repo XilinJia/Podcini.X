@@ -31,7 +31,7 @@ enum class DownloadError( val code: Int) {
         /** Return DownloadError from its associated code.  */
         
         fun fromCode(code: Int): DownloadError {
-            return enumValues<DownloadError>().firstOrNull { it.code == code } ?: throw IllegalArgumentException("unknown code: $code")
+            return DownloadError.entries.firstOrNull { it.code == code } ?: throw IllegalArgumentException("unknown code: $code")
         }
     }
 }

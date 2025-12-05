@@ -521,7 +521,7 @@ class Feed : RealmObject {
         FILTER_SORT(4, R.string.feed_auto_dleq_filter_sort, false);
 
         companion object {
-            fun fromCode(code: Int): AutoDownloadPolicy = enumValues<AutoDownloadPolicy>().firstOrNull { it.code == code } ?: ONLY_NEW
+            fun fromCode(code: Int): AutoDownloadPolicy = AutoDownloadPolicy.entries.firstOrNull { it.code == code } ?: ONLY_NEW
         }
     }
 
@@ -531,8 +531,8 @@ class Feed : RealmObject {
         NEVER(2, "never");
 
         companion object {
-            fun fromCode(code: Int): AutoDeleteAction = enumValues<AutoDeleteAction>().firstOrNull { it.code == code } ?: NEVER
-            fun fromTag(tag: String): AutoDeleteAction = enumValues<AutoDeleteAction>().firstOrNull { it.tag == tag } ?: NEVER
+            fun fromCode(code: Int): AutoDeleteAction = AutoDeleteAction.entries.firstOrNull { it.code == code } ?: NEVER
+            fun fromTag(tag: String): AutoDeleteAction = AutoDeleteAction.entries.firstOrNull { it.tag == tag } ?: NEVER
         }
     }
 
@@ -543,8 +543,8 @@ class Feed : RealmObject {
         MOVIE(C.AUDIO_CONTENT_TYPE_MOVIE, "Movie");
 
         companion object {
-            fun fromCode(code: Int): AudioType = enumValues<AudioType>().firstOrNull { it.code == code } ?: SPEECH
-            fun fromTag(tag: String): AudioType = enumValues<AudioType>().firstOrNull { it.tag == tag } ?: SPEECH
+            fun fromCode(code: Int): AudioType = AudioType.entries.firstOrNull { it.code == code } ?: SPEECH
+            fun fromTag(tag: String): AudioType = AudioType.entries.firstOrNull { it.tag == tag } ?: SPEECH
         }
     }
 
@@ -555,8 +555,8 @@ class Feed : RealmObject {
         HIGH(10, "High");
 
         companion object {
-            fun fromCode(code: Int): AVQuality = enumValues<AVQuality>().firstOrNull { it.code == code } ?: GLOBAL
-            fun fromTag(tag: String): AVQuality = enumValues<AVQuality>().firstOrNull { it.tag == tag } ?: GLOBAL
+            fun fromCode(code: Int): AVQuality = AVQuality.entries.firstOrNull { it.code == code } ?: GLOBAL
+            fun fromTag(tag: String): AVQuality = AVQuality.entries.firstOrNull { it.tag == tag } ?: GLOBAL
         }
     }
 

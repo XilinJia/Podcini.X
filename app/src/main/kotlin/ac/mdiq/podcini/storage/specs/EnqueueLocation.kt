@@ -10,7 +10,7 @@ enum class EnqueueLocation(val code: Int, val res: Int) {
 
     companion object {
         fun fromCode(code: Int): EnqueueLocation {
-            return enumValues<EnqueueLocation>().firstOrNull { it.code == code } ?: BACK
+            return EnqueueLocation.entries.firstOrNull { it.code == code } ?: BACK
         }
     }
 }

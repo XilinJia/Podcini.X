@@ -6,7 +6,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.getEpisodesCount
-import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedCount
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -102,7 +101,7 @@ val defaultScreen: String
             if (value.isBlank()) value = Screens.Subscriptions.name
             if (value == Screens.FeedDetails.name) {
                 val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
-                if (feedId != null) feedOnDisplay = getFeed(feedId) ?: Feed()
+                if (feedId != null) value = "${Screens.FeedDetails.name}/${feedId}"
             }
         }
         Logd(TAG, "get defaultScreen: [$value]")
@@ -172,19 +171,16 @@ fun NavDrawerScreen(navController: NavController) {
         Logd(TAG, "loadScreen(tag: $tag, args: $args, popto: $popto)")
         when (tag) {
             Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Facets.name, Screens.Statistics.name -> {
-                if (popto) navController.navigate(tag) { popUpTo(0) { inclusive = true } }
+                if (popto) navController.navigate(tag) { popUpTo(defaultScreen) { inclusive = true } }
                 else navController.navigate(tag)
             }
             Screens.FeedDetails.name -> {
                 if (args == null) {
                     val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
                     if (feedId != null) {
-                        val feed = getFeed(feedId)
-                        if (feed != null) {
-                            feedOnDisplay = feed
-                            if (popto) navController.navigate(tag) { popUpTo(0) { inclusive = true } }
-                            else navController.navigate(tag)
-                        }
+                        val navStr = "${Screens.FeedDetails.name}/${feedId}"
+                        if (popto) navController.navigate(navStr) { popUpTo(defaultScreen) { inclusive = true } }
+                        else navController.navigate(navStr)
                     } else navController.navigate(Screens.Subscriptions.name)
                 } else navController.navigate(Screens.Subscriptions.name)
             }
@@ -233,7 +229,7 @@ fun NavDrawerScreen(navController: NavController) {
                 for (nav in navMap.entries) {
                     if (nav.value.show) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         navController.navigate(nav.key) {
-                            if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
+                            if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(defaultScreen) { inclusive = true }
                             else popUpTo(nav.key) { inclusive = true }
                         }
                         closeDrawer()
@@ -249,9 +245,7 @@ fun NavDrawerScreen(navController: NavController) {
                 LazyColumn(state = lazyListState) {
                     itemsIndexed(vm.feeds) { _, f ->
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp).clickable {
-                            feedOnDisplay = f
-                            feedScreenMode = FeedScreenMode.List
-                            navController.navigate(Screens.FeedDetails.name) { popUpTo(Screens.FeedDetails.name) { inclusive = true } }
+                            navController.navigate("${Screens.FeedDetails.name}/${f.id}") { popUpTo(defaultScreen) { inclusive = true } }
                             closeDrawer()
                             isBSExpanded = false
                         }) {
@@ -313,10 +307,37 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
     Logd(TAG, "Navigate startScreen: $startScreen")
     NavHost(navController = navController, startDestination = startScreen.ifBlank { defaultScreen }) {
         composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
-        composable(Screens.FeedDetails.name) { FeedDetailsScreen() }
-        composable(Screens.EpisodeInfo.name) { EpisodeInfoScreen() }
+        composable(
+            route = "${Screens.FeedDetails.name}/{feedId}?modeName={modeName}",
+            arguments = listOf(
+                navArgument("feedId") { type = NavType.LongType },
+                navArgument("modeName") {
+                    type = NavType.StringType
+                    defaultValue = FeedScreenMode.List.name
+                })
+        ) { entry ->
+            val feedId = entry.arguments?.getLong("feedId") ?: -1L
+            val modeName = entry.arguments?.getString("modeName") ?: FeedScreenMode.List.name
+            FeedDetailsScreen(feedId, modeName)
+        }
+        composable(
+            route = "${Screens.EpisodeInfo.name}/{episodeId}",
+            arguments = listOf(navArgument("episodeId") { type = NavType.LongType })
+        ) { entry ->
+            val episodeId = entry.arguments?.getLong("episodeId") ?: -1L
+            EpisodeInfoScreen(episodeId)
+        }
         composable(Screens.Facets.name) { FacetsScreen() }
-        composable(Screens.Queues.name) { QueuesScreen() }
+        composable(
+            route = "${Screens.Queues.name}?index={index}",
+            arguments = listOf(navArgument("index") {
+                type = NavType.LongType
+                defaultValue = -1L
+            })
+        ) { entry ->
+            val index = entry.arguments?.getLong("index") ?: -1L
+            QueuesScreen(index)
+        }
         composable(Screens.Search.name) { SearchScreen() }
         composable(Screens.TopChartFeeds.name) { TopChartFeeds() }
         composable(
@@ -332,12 +353,11 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
                     defaultValue = false
                 }
             )
-        ) { backStackEntry ->
-//            val url = backStackEntry.arguments?.getString("url") ?: "Error"
-            val encodedUrl = backStackEntry.arguments?.getString("url") ?: "Error"
+        ) { entry ->
+            val encodedUrl = entry.arguments?.getString("url") ?: "Error"
             val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.name())
-            val source = backStackEntry.arguments?.getString("source") ?: ""
-            val shared = backStackEntry.arguments?.getBoolean("shared") ?: false
+            val source = entry.arguments?.getString("source") ?: ""
+            val shared = entry.arguments?.getBoolean("shared") ?: false
             OnlineFeedScreen(url, source, shared)
         }
         composable(Screens.OnlineSearch.name) { OnlineSearchScreen() }
@@ -350,10 +370,8 @@ fun saveLastNavScreen(tag: String?, arg: String? = null) {
     Logd(TAG, "saveLastNavScreen(tag: $tag)")
     upsertBlk(appAttribs) {
         it.prefLastScreen = tag ?: ""
-        if (arg == null && tag == Screens.FeedDetails.name) {
-            val arg_ = feedOnDisplay.id.toString()
-            it.prefLastScreenArg = arg_
-        } else it.prefLastScreenArg = arg ?: ""
+        if (arg == null && tag == Screens.FeedDetails.name) it.prefLastScreenArg = "${Screens.FeedDetails.name}/${feedIdOnDisplay}"
+        else it.prefLastScreenArg = arg ?: ""
     }
 }
 

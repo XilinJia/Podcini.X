@@ -12,9 +12,8 @@ enum class VolumeAdaptionSetting(val value: Int,  val adaptionFactor: Float, val
     HEAVY_BOOST(5, 3.6f, R.string.feed_volume_boost_heavy);
 
     companion object {
-
         fun fromInteger(value: Int): VolumeAdaptionSetting {
-            val vs = enumValues<VolumeAdaptionSetting>().firstOrNull { it.value == value }
+            val vs = VolumeAdaptionSetting.entries.firstOrNull { it.value == value }
             if (vs == null) {
                 Loge("VolumeAdaptionSetting", "Cannot map value to VolumeAdaptionSetting: $value resort to OFF")
                 return OFF

@@ -242,18 +242,12 @@ fun LogsScreen() {
                         when(log.type) {
                             ShareLog.Type.YTMedia.name, "youtube media" -> {
                                 val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
-                                if (episode != null) {
-                                    episodeOnDisplay = episode
-                                    navController.navigate(Screens.EpisodeInfo.name)
-                                } else hasError = true
+                                if (episode != null) navController.navigate("${Screens.EpisodeInfo.name}/${episode.id}")
+                                else hasError = true
                             }
                             ShareLog.Type.Podcast.name, "podcast" -> {
                                 val feed = getFeedByTitleAndAuthor(log.title?:"", log.author?:"")
-                                if (feed != null) {
-                                    feedOnDisplay = feed
-                                    feedScreenMode = FeedScreenMode.Info
-                                    navController.navigate(Screens.FeedDetails.name)
-                                }
+                                if (feed != null) navController.navigate("${Screens.FeedDetails.name}/${feed.id}?modeName=${FeedScreenMode.Info.name}")
                                 else hasError = true
                             }
                             else -> {

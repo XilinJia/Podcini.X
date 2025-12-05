@@ -321,7 +321,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      * Sets the playback volume.
      * This method is executed on an internal executor service.
      */
-    abstract fun setVolume(volumeLeft: Float, volumeRight: Float)
+    abstract fun setVolume(volumeLeft: Float, volumeRight: Float, adaptionFactor: Float = 1.0f)
 
     /**
      * Releases internally used resources. This method should only be called when the object is not used anymore.

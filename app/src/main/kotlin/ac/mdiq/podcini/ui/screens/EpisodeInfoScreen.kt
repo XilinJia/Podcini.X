@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
+import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.preferences.AppPreferences
@@ -138,12 +139,12 @@ private const val TAG: String = "EpisodeInfoScreen"
 
 private const val MAX_CHUNK_LENGTH = 2000
 
-var episodeOnDisplay by mutableStateOf(Episode())
+//var episodeOnDisplay by mutableStateOf(Episode())
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
-fun EpisodeInfoScreen() {
+fun EpisodeInfoScreen(episodeId: Long) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -168,7 +169,7 @@ fun EpisodeInfoScreen() {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> episodeFlow = realm.query<Episode>("id == $0", episodeOnDisplay.id).first().asFlow()
+                Lifecycle.Event.ON_CREATE -> episodeFlow = realm.query<Episode>("id == $0", episodeId).first().asFlow()
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -186,7 +187,7 @@ fun EpisodeInfoScreen() {
     }
 
     val episodeChange by episodeFlow.collectAsState(initial = null)
-    LaunchedEffect(episodeChange, episodeOnDisplay.id) {
+    LaunchedEffect(episodeChange, episodeId) {
         episode = episodeChange?.obj ?: return@LaunchedEffect
 
         actionButton = EpisodeActionButton(episode!!)
@@ -350,7 +351,7 @@ fun EpisodeInfoScreen() {
             val observer = LifecycleEventObserver { _, event ->
                 when (event) {
                     Lifecycle.Event.ON_CREATE -> {
-                        episode = episodeOnDisplay
+//                        episode = episodeOnDisplay
                         if (!episode?.link.isNullOrEmpty()) prepareContent()
                         else Loge(TAG, context.getString(R.string.web_content_not_available))
                     }
@@ -505,7 +506,7 @@ fun EpisodeInfoScreen() {
                 IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode?.rating ?: Rating.UNRATED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                 if (!episode?.link.isNullOrEmpty()) IconButton(onClick = {
                     showHomeScreen = true
-                    episodeOnDisplay = episode!!
+//                    episodeOnDisplay = episode!!
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
                 IconButton(onClick = {
                     val url = episode?.getLinkWithFallback()
@@ -535,9 +536,7 @@ fun EpisodeInfoScreen() {
 
     fun openPodcast() {
         if (episode?.feedId == null) return
-        feedOnDisplay = episode?.feed ?: Feed()
-        feedScreenMode = FeedScreenMode.List
-        navController.navigate(Screens.FeedDetails.name)
+        navController.navigate("${Screens.FeedDetails.name}/${episode?.feedId}")
     }
 
     if (showHomeScreen) EpisodeTextScreen()
@@ -595,6 +594,12 @@ fun EpisodeInfoScreen() {
                             setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
                         }
                     }, update = { it.loadDataWithBaseURL("https://127.0.0.1", webviewData, "text/html", "utf-8", "about:blank") })
+                    if (!episode?.related.isNullOrEmpty()) {
+                        var showTodayStats by remember { mutableStateOf(false) }
+                        if (showTodayStats) RelatedEpisodesDialog(episode!!) { showTodayStats = false }
+                        Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
+                    }
+                    AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
                     Text(episode?.link ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable(onClick = {
                         if (!episode?.link.isNullOrBlank()) openInBrowser(context, episode!!.link!!)
                     }))
@@ -603,12 +608,6 @@ fun EpisodeInfoScreen() {
                         Spacer(Modifier.width(50.dp))
                         Text("Played duration: " + getDurationStringShort(episode?.playedDuration?.toLong() ?: 0L, true))
                     }
-                    if (!episode?.related.isNullOrEmpty()) {
-                        var showTodayStats by remember { mutableStateOf(false) }
-                        if (showTodayStats) RelatedEpisodesDialog(episode!!) { showTodayStats = false }
-                        Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
-                    }
-                    AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
                 }
             }
         }

@@ -199,9 +199,9 @@ enum class ADLIncExc {
     EXCLUDE
 }
 
-var feedScreenMode by mutableStateOf(FeedScreenMode.List)
-
-var feedOnDisplay by mutableStateOf(Feed())
+//var feedOnDisplay by mutableStateOf(Feed())
+var feedIdOnDisplay: Long = 0L
+    private set
 
 val queueSettingOptions = listOf("Default", "Active", "None", "Custom")
 
@@ -218,14 +218,15 @@ val queueSettingOptions = listOf("Default", "Active", "None", "Custom")
 //    notificationPermissionDenied = true
 //}
 
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun FeedDetailsScreen() {
+fun FeedDetailsScreen(feedId: Long, modeName: String = FeedScreenMode.List.name) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val navController = LocalNavController.current
+
+    var feedScreenMode by remember { mutableStateOf(FeedScreenMode.valueOf(modeName)) }
 
     val swipeActions = remember { SwipeActions(context, TAG) }
 
@@ -258,7 +259,8 @@ fun FeedDetailsScreen() {
             Logd(TAG, "DisposableEffect LifecycleEventObserver: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    feedFlow = realm.query<Feed>("id == $0", feedOnDisplay.id).first().asFlow()
+                    feedIdOnDisplay = feedId
+                    feedFlow = realm.query<Feed>("id == $0", feedId).first().asFlow()
 //                    val testNum = 1
 //                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
 //                    Logd(TAG, "test eList: ${eList.size}")
@@ -295,8 +297,8 @@ fun FeedDetailsScreen() {
 
     val feedChange by feedFlow.collectAsState(initial = null)
     feed = feedChange?.obj
-    LaunchedEffect(feedChange, feedOnDisplay.id) {
-        Logd(TAG, "LaunchedEffect(feedResult, feedOnDisplay.id)")
+    LaunchedEffect(feedChange, feedId) {
+        Logd(TAG, "LaunchedEffect(feedResult, feedId)")
         isFiltered = !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty()
     }
 
@@ -497,8 +499,8 @@ fun FeedDetailsScreen() {
 
         @Composable
         fun AutoDeleteDialog(onDismissRequest: () -> Unit) {
-            val (selectedOption, onOptionSelected) = remember { mutableStateOf(autoDeletePolicy) }
             CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                val (selectedOption, onOptionSelected) = remember { mutableStateOf(autoDeletePolicy) }
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FeedAutoDeleteOptions.forEach { text ->
                         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -527,8 +529,8 @@ fun FeedDetailsScreen() {
 
         @Composable
         fun VolumeAdaptionDialog(onDismissRequest: () -> Unit) {
-            val (selectedOption, onOptionSelected) = remember { mutableStateOf(feed?.volumeAdaptionSetting ?: VolumeAdaptionSetting.OFF) }
             CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                val (selectedOption, onOptionSelected) = remember { mutableStateOf(feed?.volumeAdaptionSetting ?: VolumeAdaptionSetting.OFF) }
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     VolumeAdaptionSetting.entries.forEach { item ->
                         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -551,8 +553,8 @@ fun FeedDetailsScreen() {
 
         @Composable
         fun SetAudioType(selectedOption: String, onDismissRequest: () -> Unit) {
-            var selected by remember {mutableStateOf(selectedOption)}
             CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                var selected by remember {mutableStateOf(selectedOption)}
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Feed.AudioType.entries.forEach { option ->
                         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -1345,9 +1347,7 @@ fun FeedDetailsScreen() {
                     }
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
                 IconButton(onClick = {
-                    val q = feed?.queue
-                    if (q != null && q != curQueue) curQueue = q
-                    navController.navigate(Screens.Queues.name)
+                    navController.navigate("${Screens.Queues.name}?id=${feed?.queue?.id ?: -1L}")
                     isBSExpanded = false
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
                 IconButton(onClick = {
@@ -1355,11 +1355,7 @@ fun FeedDetailsScreen() {
                     navController.navigate(Screens.Search.name)
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                 IconButton(onClick = {
-                    if (feed != null) {
-                        feedOnDisplay = feed!!
-//                        navController.navigate(Screens.FeedSettings.name)
-                        feedScreenMode = FeedScreenMode.Settings
-                    }
+                    if (feed != null) feedScreenMode = FeedScreenMode.Settings
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), contentDescription = "butShowSettings") }
                 if (feed != null) {
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }

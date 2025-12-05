@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.playback.cast
 
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
@@ -12,12 +13,12 @@ import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.specs.MediaType
-import ac.mdiq.podcini.utils.EventFlow
-import ac.mdiq.podcini.utils.FlowEvent
-import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.storage.utils.MediaType
+import ac.mdiq.podcini.util.EventFlow
+import ac.mdiq.podcini.util.FlowEvent
+import ac.mdiq.podcini.util.Logd
+import ac.mdiq.podcini.util.Loge
+import ac.mdiq.podcini.util.Logs
 import android.annotation.SuppressLint
 import android.app.UiModeManager
 import android.content.ContentResolver
@@ -43,7 +44,6 @@ import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.images.WebImage
 import java.io.IOException
 import java.util.Calendar
-import java.util.Date
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import kotlin.math.min
@@ -219,7 +219,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             var nextPlayable: Episode? = playable
             do {
                 prevPlayable = nextPlayable
-                nextPlayable = getNextInQueue(nextPlayable)
+                nextPlayable = getNextInQueue(nextPlayable) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
             } while (nextPlayable != null && nextPlayable.id != prevPlayable?.id && !isCastable(nextPlayable, castContext?.sessionManager?.currentCastSession))
             if (nextPlayable != null) prepareMedia(nextPlayable, streaming, startWhenPrepared, prepareImmediately, forceReset)
             return
@@ -231,7 +231,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             return
         }
         if (curEpisode != null && doPostPlayback) {
-            if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, ended = false, skipped = false, playingNext = true)
+            if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, false, false, true)
             setPlayerStatus(PlayerStatus.INDETERMINATE, null)
         }
 
@@ -337,7 +337,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         return remoteMediaClient?.mediaStatus?.playbackRate?.toFloat() ?: 1.0f
     }
 
-    override fun setVolume(volumeLeft: Float, volumeRight: Float) {
+    override fun setVolume(volumeLeft: Float, volumeRight: Float, adaptionFactor: Float) {
         Logd(TAG, "Setting the Stream volume on Remote Media Player")
         remoteMediaClient?.setStreamVolume(volumeLeft.toDouble())
     }
@@ -361,7 +361,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         val currentMedia = curEpisode
         when {
             shouldContinue -> {
-                val nextMedia = getNextInQueue(currentMedia)
+                var nextMedia = getNextInQueue(currentMedia) { showStreamingNotAllowedDialog(context, PlaybackStarter(context, it).intent) }
                 val playNextEpisode = isPlaying && nextMedia != null
                 when {
                     playNextEpisode -> Logd(TAG, "Playback of next episode will start immediately.")
@@ -401,25 +401,26 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         fun from(media: Episode?): MediaInfo? {
             if (media == null) return null
             val metadata = MediaMetadata(MediaMetadata.MEDIA_TYPE_GENERIC)
+            val feedItem = media
             metadata.putString(MediaMetadata.KEY_TITLE, media.getEpisodeTitle())
             val subtitle = media.feed?.title?:""
             metadata.putString(MediaMetadata.KEY_SUBTITLE, subtitle)
 
-            val feed: Feed? = media.feed
+            val feed: Feed? = feedItem.feed
             // Manual because cast does not support embedded images
-            val url: String = if (media.imageUrl == null && feed != null) feed.imageUrl?:"" else media.imageUrl?:""
+            val url: String = if (feedItem.imageUrl == null && feed != null) feed.imageUrl?:"" else feedItem.imageUrl?:""
             if (url.isNotEmpty()) metadata.addImage(WebImage(url.toUri()))
             val calendar = Calendar.getInstance()
-            calendar.time = Date(media.pubDate)
+            calendar.time = feedItem.getPubDate()
             metadata.putDate(MediaMetadata.KEY_RELEASE_DATE, calendar)
             if (feed != null) {
                 if (!feed.author.isNullOrEmpty()) metadata.putString(MediaMetadata.KEY_ARTIST, feed.author!!)
                 if (!feed.downloadUrl.isNullOrEmpty()) metadata.putString(KEY_FEED_URL, feed.downloadUrl!!)
                 if (!feed.link.isNullOrEmpty()) metadata.putString(KEY_FEED_WEBSITE, feed.link!!)
             }
-            if (!media.identifier.isNullOrEmpty()) metadata.putString(KEY_EPISODE_IDENTIFIER, media.identifier!!)
+            if (!feedItem.identifier.isNullOrEmpty()) metadata.putString(KEY_EPISODE_IDENTIFIER, feedItem.identifier!!)
             else metadata.putString(KEY_EPISODE_IDENTIFIER, media.downloadUrl ?: "")
-            if (!media.link.isNullOrEmpty()) metadata.putString(KEY_EPISODE_LINK, media.link!!)
+            if (!feedItem.link.isNullOrEmpty()) metadata.putString(KEY_EPISODE_LINK, feedItem.link!!)
 
             // This field only identifies the id on the device that has the original version.
             // Idea is to perhaps, on a first approach, check if the version on the local DB with the
@@ -431,7 +432,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             metadata.putInt(KEY_FORMAT_VERSION, FORMAT_VERSION_VALUE)
             metadata.putString(KEY_STREAM_URL, media.downloadUrl!!)
 
-            Logd(TAG, "media: ${media.id} ${media.title}")
+            Logd(TAG, "media: ${media.id} ${feedItem.title}")
             Logd(TAG, "url: ${media.getMediaType()} $media.effectUrl")
             val builder = MediaInfo.Builder(media.effectUrl)
                 .setEntity(media.id.toString())
@@ -479,6 +480,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 }
                 else -> false
             }
+            return false
         }
         
         /**

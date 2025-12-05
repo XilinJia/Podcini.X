@@ -1,6 +1,15 @@
+# 9.6.2
+
+* fixed again queue not changing issue
+* made Queues, FeedDetails, and EpisodeInfo screens parameterized
+* fixed queue lock mismatch in Queues
+* updated code in Player screen for better integration with Compose
+* episode volume adaptation is persisted
+* some code refactoring
+
 # 9.6.1
 
-* fixed queue not changing ieeur
+* fixed queue not changing issue
 
 # 9.6.0
 

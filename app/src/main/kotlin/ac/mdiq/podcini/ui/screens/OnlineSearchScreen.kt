@@ -241,13 +241,7 @@ fun OnlineSearchScreen() {
                     Logd(TAG, "addLocalFolderLauncher fromDatabase episodes: ${fd?.episodes?.size}")
                     fd
                 }
-                withContext(Dispatchers.Main) {
-                    if (feed != null) {
-                        feedOnDisplay = feed
-                        feedScreenMode = FeedScreenMode.List
-                        navController.navigate(Screens.FeedDetails.name)
-                    }
-                }
+                withContext(Dispatchers.Main) { if (feed != null) navController.navigate("${Screens.FeedDetails.name}/${feed.id}") }
             } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
         }
     }

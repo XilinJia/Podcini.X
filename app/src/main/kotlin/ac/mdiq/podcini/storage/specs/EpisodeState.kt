@@ -22,7 +22,7 @@ enum class EpisodeState(val code: Int, val res: Int, val color: Color?, val user
 
     companion object {
         fun fromCode(code: Int): EpisodeState {
-            return enumValues<EpisodeState>().firstOrNull { it.code == code } ?: UNSPECIFIED
+            return EpisodeState.entries.firstOrNull { it.code == code } ?: UNSPECIFIED
         }
     }
 }

@@ -874,11 +874,7 @@ fun SubscriptionsScreen() {
                                 Logd(TAG, "clicked: ${feed.title}")
                                 if (!feed.isBuilding) {
                                     if (selectMode) toggleSelected()
-                                    else {
-                                        feedOnDisplay = feed
-                                        feedScreenMode = FeedScreenMode.List
-                                        navController.navigate(Screens.FeedDetails.name)
-                                    }
+                                    else navController.navigate("${Screens.FeedDetails.name}/${feed.id}")
                                 }
                             }, onLongClick = {
                                 if (!feed.isBuilding) {
@@ -945,11 +941,7 @@ fun SubscriptionsScreen() {
                                     Logd(TAG, "icon clicked!")
                                     if (!feed.isBuilding) {
                                         if (selectMode) toggleSelected()
-                                        else {
-                                            feedOnDisplay = feed
-                                            feedScreenMode = FeedScreenMode.Info
-                                            navController.navigate(Screens.FeedDetails.name)
-                                        }
+                                        else navController.navigate("${Screens.FeedDetails.name}/${feed.id}?modeName=${FeedScreenMode.Info.name}")
                                     }
                                 })
                             )
@@ -957,11 +949,7 @@ fun SubscriptionsScreen() {
                                 Logd(TAG, "clicked: ${feed.title}")
                                 if (!feed.isBuilding) {
                                     if (selectMode) toggleSelected()
-                                    else {
-                                        feedOnDisplay = feed
-                                        feedScreenMode = FeedScreenMode.List
-                                        navController.navigate(Screens.FeedDetails.name)
-                                    }
+                                    else navController.navigate("${Screens.FeedDetails.name}/${feed.id}")
                                 }
                             }, onLongClick = {
                                 if (!feed.isBuilding) {

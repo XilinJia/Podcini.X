@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.feed.parser.media.id3.ID3ReaderException
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentChapterReader
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
+import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
@@ -250,8 +251,16 @@ class Episode : RealmObject {
             field = value
             volumeAdaption = field.value
         }
-    @Ignore
     var volumeAdaption: Int = 0
+
+    @Ignore
+    val adaptionFactor: Float
+        get() = when {
+            volumeAdaptionSetting != VolumeAdaptionSetting.OFF -> volumeAdaptionSetting.adaptionFactor
+            feed != null -> feed!!.volumeAdaptionSetting.adaptionFactor
+            else -> 1f
+        }
+
 
     // if null: unknown, will be checked
     // TODO: what to do with this? can be expensive

@@ -498,11 +498,7 @@ fun OnlineFeedScreen(url: String, source: String = "", shared: Boolean = false) 
                                 if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.ordinal }
                             }
                             val feed = getFeedByTitleAndAuthor(vm.feed?.eigenTitle ?: "", vm.feed?.author ?: "")
-                            if (feed != null) {
-                                feedOnDisplay = feed
-                                feedScreenMode = FeedScreenMode.Info
-                                navController.navigate(Screens.FeedDetails.name)
-                            }
+                            if (feed != null) navController.navigate("${Screens.FeedDetails.name}/${feed!!.id}?modeName=${FeedScreenMode.Info.name}")
                         } else {
                             vm.enableSubscribe = false
                             vm.enableEpisodes = false

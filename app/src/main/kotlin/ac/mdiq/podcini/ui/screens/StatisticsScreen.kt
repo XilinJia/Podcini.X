@@ -277,9 +277,7 @@ fun StatisticsScreen() {
                     val img = remember(feedStats) { ImageRequest.Builder(context).data(feedStats.feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                     AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), contentScale = ContentScale.FillBounds,
                         modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable(onClick = {
-                            feedOnDisplay = feedStats.feed
-                            feedScreenMode = FeedScreenMode.Info
-                            navController.navigate(Screens.FeedDetails.name)
+                            navController.navigate("${Screens.FeedDetails.name}/${feedStats.feed.id}?modeName=${FeedScreenMode.Info.name}")
                         })
                     )
                     Column(modifier = Modifier.clickable(onClick = {
@@ -863,11 +861,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
             }
         },
         confirmButton = { if (showOpenFeed) TextButton(onClick = {
-            val feed = getFeed(feedId)
-            if (feed != null) {
-                feedOnDisplay = feed
-                navController.navigate(Screens.FeedDetails.name)
-            }
+            navController.navigate("${Screens.FeedDetails.name}/${feedId}")
             onDismissRequest()
         }) { Text(stringResource(R.string.open_podcast))} },
         dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }

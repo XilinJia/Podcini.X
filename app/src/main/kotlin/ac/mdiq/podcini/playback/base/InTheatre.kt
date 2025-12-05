@@ -148,7 +148,6 @@ object InTheatre {
                             onCurChangedUICB?.invoke(e, f)
                         }
                     }, onInit = { e ->
-                        //                        curEpisode = e
                         onCurInitUICB?.invoke(e)
                     }))
                 }

@@ -71,7 +71,7 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
 //            throw IllegalArgumentException("Unsupported code: $code")
         }
 
-        fun fromCode(code: Int): EpisodeSortOrder = enumValues<EpisodeSortOrder>().firstOrNull { it.code == code } ?: EPISODE_TITLE_ASC
+        fun fromCode(code: Int): EpisodeSortOrder = EpisodeSortOrder.entries.firstOrNull { it.code == code } ?: EPISODE_TITLE_ASC
 
         fun toCodeString(sortOrder: EpisodeSortOrder): String = sortOrder.code.toString()
 

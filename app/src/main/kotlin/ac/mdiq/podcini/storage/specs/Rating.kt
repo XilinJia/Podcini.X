@@ -12,7 +12,7 @@ enum class Rating(val code: Int, val res: Int) {
 
     companion object {
         fun fromCode(code: Int): Rating {
-            return enumValues<Rating>().firstOrNull { it.code == code } ?: OK
+            return Rating.entries.firstOrNull { it.code == code } ?: OK
         }
     }
 }

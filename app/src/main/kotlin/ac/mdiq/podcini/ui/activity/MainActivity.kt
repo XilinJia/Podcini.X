@@ -17,10 +17,8 @@ import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
-import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.monitorFeedList
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
@@ -28,13 +26,10 @@ import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
-import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.NavDrawerScreen
 import ac.mdiq.podcini.ui.screens.Navigate
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.drawerState
-import ac.mdiq.podcini.ui.screens.feedOnDisplay
-import ac.mdiq.podcini.ui.screens.feedScreenMode
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
@@ -453,11 +448,7 @@ class MainActivity : BaseActivity() {
             intent.hasExtra(Extras.fragment_feed_id.name) -> {
                 val feedId = intent.getLongExtra(Extras.fragment_feed_id.name, 0)
                 Logd(TAG, "handleNavIntent: feedId: $feedId")
-                if (feedId > 0) {
-                    feedOnDisplay = getFeed(feedId) ?: Feed()
-                    feedScreenMode = FeedScreenMode.List
-                    setIntentScreen(Screens.FeedDetails.name)
-                }
+                if (feedId > 0) setIntentScreen("${Screens.FeedDetails.name}/${feedId}")
                 isBSExpanded = false
             }
             intent.hasExtra(Extras.fragment_feed_url.name) -> {

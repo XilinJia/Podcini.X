@@ -10,10 +10,10 @@ enum class VideoMode(val code: Int, val tag: String) {
         val videoModeTags = VideoMode.entries.map { it.tag }
 
         fun fromCode(code: Int): VideoMode {
-            return enumValues<VideoMode>().firstOrNull { it.code == code } ?: NONE
+            return VideoMode.entries.firstOrNull { it.code == code } ?: NONE
         }
         fun fromTag(tag: String): VideoMode {
-            return enumValues<VideoMode>().firstOrNull { it.tag == tag } ?: NONE
+            return VideoMode.entries.firstOrNull { it.tag == tag } ?: NONE
         }
     }
 }

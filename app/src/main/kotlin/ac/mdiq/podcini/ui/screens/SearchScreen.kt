@@ -382,21 +382,13 @@ fun SearchScreen() {
                     AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
                         modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
                             Logd(TAG, "icon clicked!")
-                            if (!feed.isBuilding) {
-                                feedOnDisplay = feed
-                                feedScreenMode = FeedScreenMode.Info
-                                navController.navigate(Screens.FeedDetails.name)
-                            }
+                            if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}/${feed.id}?modeName=${FeedScreenMode.Info.name}")
                         })
                     )
                     val textColor = MaterialTheme.colorScheme.onSurface
                     Column(Modifier.weight(1f).padding(start = 10.dp).clickable(onClick = {
                         Logd(TAG, "clicked: ${feed.title}")
-                        if (!feed.isBuilding) {
-                            feedOnDisplay = feed
-                            feedScreenMode = FeedScreenMode.List
-                            navController.navigate(Screens.FeedDetails.name)
-                        }
+                        if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}/${feed.id}")
                     })) {
                         Row {
                             if (feed.rating != Rating.UNRATED.code)
