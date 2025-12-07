@@ -23,6 +23,7 @@
     <string name="current_episode">現在</string>
     <string name="current_podcast">ポッドキャスト</string>
     <string name="global">グローバル</string>
+    <string name="no_more_screens_back">No more screens back</string>
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" が見つかりません</string>
     <!-- SwipeActions -->
@@ -529,7 +530,7 @@
     <!-- Search -->
     <string name="search_status_no_results">結果が見つかりませんでした</string>
     <string name="search_label">検索</string>
-    <string name="search_hint">delimit by comma, prefix phrase with \'-\' to exclude</string>
+    <string name="search_hint">delimit by comma, prefix with \'-\' to exclude</string>
     <string name="no_results_for_query">\"%1$s\" の結果は見つかりませんでした</string>
     <string name="search_online">オンラインで検索</string>
     <!-- Synchronization -->
