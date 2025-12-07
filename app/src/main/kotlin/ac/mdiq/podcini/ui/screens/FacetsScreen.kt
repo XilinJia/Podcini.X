@@ -7,7 +7,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.virQueue
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.buildListInfo
-import ac.mdiq.podcini.storage.database.facetsPrefs
 import ac.mdiq.podcini.storage.database.feedIdsOfAllEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
@@ -20,6 +19,7 @@ import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.FacetsPrefs
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
@@ -84,6 +84,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -102,7 +103,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import io.github.xilinjia.krdb.notifications.DeletedObject
+import io.github.xilinjia.krdb.notifications.InitialObject
+import io.github.xilinjia.krdb.notifications.PendingObject
 import io.github.xilinjia.krdb.notifications.ResultsChange
+import io.github.xilinjia.krdb.notifications.SingleQueryChange
+import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.query.RealmQuery
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -132,6 +138,8 @@ private val TAG = Screens.Facets.name
 class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     var tag = TAG+QuickAccess.entries[0]
 
+    var facetsPrefs: FacetsPrefs = realm.query(FacetsPrefs::class).first().find() ?: FacetsPrefs()
+
     internal var sortOrder: EpisodeSortOrder
         get() = EpisodeSortOrder.fromCode(facetsPrefs.sortCodesMap[facetsMode.name] ?: EpisodeSortOrder.DATE_DESC.code)
         set(s) {
@@ -149,9 +157,11 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
 fun FacetsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val vm = remember {  FacetsVM(context, scope) }
     val navController = LocalNavController.current
+
+    var facetsPrefsJob: Job? = remember { null }
 
     var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
 
@@ -241,7 +251,7 @@ fun FacetsScreen() {
             }
             else -> {
                 listIdentity += ".${vm.sortOrder.name}"
-                getEpisodesAsFlow(EpisodeFilter(facetsPrefs.filtersMap[QuickAccess.All.name] ?: ""), vm.sortOrder)
+                getEpisodesAsFlow(EpisodeFilter(vm.facetsPrefs.filtersMap[QuickAccess.All.name] ?: ""), vm.sortOrder)
             }
         }
     }
@@ -268,10 +278,21 @@ fun FacetsScreen() {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
+                    if (facetsPrefsJob == null) facetsPrefsJob = scope.launch(Dispatchers.IO) {
+                        val flow = realm.query(FacetsPrefs::class).first().asFlow()
+                        flow.collect { changes: SingleQueryChange<FacetsPrefs> ->
+                            when (changes) {
+                                is InitialObject -> vm.facetsPrefs = changes.obj
+                                is UpdatedObject -> vm.facetsPrefs = changes.obj
+                                is DeletedObject -> {}
+                                is PendingObject -> {}
+                            }
+                        }
+                    }
                     if (facetsMode != QuickAccess.Custom) {
-                        curIndex = facetsPrefs.prefFacetsCurIndex
+                        curIndex = vm.facetsPrefs.prefFacetsCurIndex
                         facetsMode = QuickAccess.valueOf(spinnerTexts[curIndex])
-                        vm.filter = EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: "")
+                        vm.filter = EpisodeFilter(vm.facetsPrefs.filtersMap[facetsMode.name] ?: "")
                     } else curIndex = QuickAccess.Custom.ordinal
                     vm.tag = TAG+QuickAccess.entries[curIndex]
                     updateToolbar()
@@ -287,6 +308,8 @@ fun FacetsScreen() {
         onDispose {
             feedsAssociated.clear()
             facetsMode = QuickAccess.New
+            facetsPrefsJob?.cancel()
+            facetsPrefsJob = null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -328,7 +351,7 @@ fun FacetsScreen() {
         }
         if (showFilterDialog) EpisodesFilterDialog(filter_ = vm.filter, disabledSet = filtersDisabled(), showAndOr = facetsMode in listOf(QuickAccess.All, QuickAccess.Custom), onDismissRequest = { showFilterDialog = false }) { filter ->
             vm.filter = filter
-            upsertBlk(facetsPrefs) { it.filtersMap[facetsMode.name] = StringUtils.join(vm.filter.propertySet, ",") }
+            upsertBlk(vm.facetsPrefs) { it.filtersMap[facetsMode.name] = StringUtils.join(vm.filter.propertySet, ",") }
             buildFlow()
         }
         if (showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, onDismissRequest = { showSortDialog = false }) { order ->
@@ -388,7 +411,7 @@ fun FacetsScreen() {
             progressing = true
             nameEpisodeMap.clear()
             MediaFilesTransporter("").updateDB(context)
-            var eList = getEpisodes(EpisodeFilter(facetsPrefs.filtersMap[QuickAccess.Downloaded.name] ?: EpisodeFilter.States.downloaded.name), vm.sortOrder, copy=false)
+            var eList = getEpisodes(EpisodeFilter(vm.facetsPrefs.filtersMap[QuickAccess.Downloaded.name] ?: EpisodeFilter.States.downloaded.name), vm.sortOrder, copy=false)
             for (e in eList) {
                 var fileUrl = e.fileUrl
                 if (fileUrl.isNullOrBlank()) continue
@@ -468,7 +491,7 @@ fun FacetsScreen() {
                     curIndex = index
                     facetsMode = QuickAccess.valueOf(spinnerTexts[curIndex])
                     vm.tag = TAG + QuickAccess.entries[curIndex]
-                    upsertBlk(facetsPrefs) { it.prefFacetsCurIndex = index}
+                    upsertBlk(vm.facetsPrefs) { it.prefFacetsCurIndex = index}
                     actionButtonToPass = if (facetsMode == QuickAccess.Downloaded) { it -> EpisodeActionButton(it, ButtonTypes.DELETE) } else null
                     buildFlow()
                 }
@@ -534,7 +557,7 @@ fun FacetsScreen() {
                             start.linkTo(parent.start)
                         }.combinedClickable(onClick = {
                             Logd(TAG, "clicked: ${feed.title}")
-                            navController.navigate("${Screens.FeedDetails.name}/${feed.id}")
+                            navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
                         }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
                     Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,

@@ -15,16 +15,19 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.monitorFeedList
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.dialog.RatingDialog
+import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
 import ac.mdiq.podcini.ui.screens.NavDrawerScreen
 import ac.mdiq.podcini.ui.screens.Navigate
@@ -103,7 +106,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavController
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -152,6 +156,19 @@ class MainActivity : BaseActivity() {
 
     private var hasFeedUpdateObserverStarted = false
     private var hasDownloadObserverStarted = false
+
+    private var hasInitialized = mutableStateOf(false)
+
+    private var initScreen by mutableStateOf<String?>(null)
+    private var intendedScreen by mutableStateOf("")
+
+    private var navStackJob: Job? = null
+
+    fun setIntentScreen(screen: String) {
+        Logd(Companion.TAG, "setIntentScreen screen: $screen initScreen: $initScreen")
+        if (initScreen == null) initScreen = screen
+        else intendedScreen = screen
+    }
 
     public override fun onCreate(savedInstanceState: Bundle?) {
         lastTheme = getNoTitleTheme(this)
@@ -215,11 +232,33 @@ class MainActivity : BaseActivity() {
         observeDownloads()
     }
 
+    fun monitorNavStack(navController: NavHostController) {
+        fun NavBackStackEntry.resolvedRoute(): String {
+            val template = destination.route ?: return ""
+            var resolved = template
+            arguments?.keySet()?.forEach { key ->
+                val value = arguments?.get(key)?.toString() ?: ""
+                resolved = resolved.replace("{$key}", value)
+            }
+            return resolved
+        }
+        if (navStackJob != null) navStackJob = CoroutineScope(Dispatchers.Default).launch {
+            navController.currentBackStackEntryFlow.collect { entry ->
+                val resolved = entry.resolvedRoute()
+                runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = resolved } }
+                Logd(TAG, "currentBackStackEntryFlow Now at: $resolved")
+            }
+        }
+    }
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MainActivityUI() {
         lcScope = rememberCoroutineScope()
         val navController = rememberNavController()
+        val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
+        LaunchedEffect(Unit) { monitorNavStack(navController) }
+
         val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Hidden, skipHiddenState = false))
 
         if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
@@ -249,8 +288,8 @@ class MainActivity : BaseActivity() {
         val drawerState_ = rememberDrawerState(DrawerValue.Closed)
         drawerState = drawerState_
         //        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
-        ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen(navController) }) {
-            BottomSheetScaffold(sheetContent = { AudioPlayerScreen(navController) },
+        ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen(navigator) }) {
+            BottomSheetScaffold(sheetContent = { AudioPlayerScreen(navigator) },
                 scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp,
                 sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}
             ) { paddingValues ->
@@ -262,16 +301,15 @@ class MainActivity : BaseActivity() {
                     )) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-                    CompositionLocalProvider(LocalNavController provides navController) {
+                    CompositionLocalProvider(LocalNavController provides navigator) {
                         Navigate(navController, initScreen?:"")
-//                        initScreen = ""
                     }
                 }
             }
             LaunchedEffect(intendedScreen) {
                 Logd(TAG, "LaunchedEffect intendedScreen: $intendedScreen")
                 if (intendedScreen.isNotBlank()) {
-                    navController.navigate(intendedScreen) {
+                    navigator.navigate(intendedScreen) {
                         popUpTo(0) { inclusive = true }
                         launchSingleTop = true
                     }
@@ -377,6 +415,9 @@ class MainActivity : BaseActivity() {
         Logd(TAG, "onDestroy")
         WorkManager.getInstance(this).pruneWork()
         WorkManager.getInstance(applicationContext).pruneWork()
+        cancelAppPrefs()
+        navStackJob?.cancel()
+        navStackJob = null
         super.onDestroy()
     }
 
@@ -391,7 +432,6 @@ class MainActivity : BaseActivity() {
         super.onStop()
         cancelFlowEvents()
         cancelMonitorFeeds()
-        cancelAppPrefs()
     }
 
     override fun onResume() {
@@ -448,13 +488,13 @@ class MainActivity : BaseActivity() {
             intent.hasExtra(Extras.fragment_feed_id.name) -> {
                 val feedId = intent.getLongExtra(Extras.fragment_feed_id.name, 0)
                 Logd(TAG, "handleNavIntent: feedId: $feedId")
-                if (feedId > 0) setIntentScreen("${Screens.FeedDetails.name}/${feedId}")
+                if (feedId > 0) setIntentScreen("${Screens.FeedDetails.name}?feedId=${feedId}")
                 isBSExpanded = false
             }
             intent.hasExtra(Extras.fragment_feed_url.name) -> {
                 val feedurl = intent.getStringExtra(Extras.fragment_feed_url.name)
                 val isShared = intent.getBooleanExtra(Extras.isShared.name, false)
-                if (feedurl != null) setIntentScreen("${Screens.OnlineFeed.name}/${URLEncoder.encode(feedurl, StandardCharsets.UTF_8.name())}?shared=${isShared}")
+                if (feedurl != null) setIntentScreen("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feedurl, StandardCharsets.UTF_8.name())}&shared=${isShared}")
             }
             intent.hasExtra(Extras.search_string.name) -> {
                 setOnlineSearchTerms(CombinedSearcher::class.java, intent.getStringExtra(Extras.search_string.name))
@@ -515,23 +555,13 @@ class MainActivity : BaseActivity() {
 
         private const val INIT_KEY = "app_init_state"
 
-        var hasInitialized = mutableStateOf(false)
         val downloadStates = mutableStateMapOf<String, DownloadStatus>()
 
-        var initScreen by mutableStateOf<String?>(null)
-        var intendedScreen by mutableStateOf("")
-        fun setIntentScreen(screen: String) {
-            Logd(TAG, "setIntentScreen screen: $screen initScreen: $initScreen")
-            if (initScreen == null) initScreen = screen
-            else intendedScreen = screen
-        }
-
-        val LocalNavController = staticCompositionLocalOf<NavController> { error("NavController not provided") }
+        val LocalNavController = staticCompositionLocalOf<AppNavigator> { error("NavController not provided") }
 
         var lcScope: CoroutineScope? = null
 
         var isBSExpanded by mutableStateOf(false)
-
         
         fun getIntentToOpenFeed(context: Context, feedId: Long): Intent {
             val intent = Intent(context.applicationContext, MainActivity::class.java)

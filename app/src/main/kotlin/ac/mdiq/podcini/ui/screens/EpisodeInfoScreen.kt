@@ -7,7 +7,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.preferences.AppPreferences
@@ -17,7 +16,6 @@ import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.getDurationStringLong
@@ -98,6 +96,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -105,7 +104,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
@@ -139,15 +137,13 @@ private const val TAG: String = "EpisodeInfoScreen"
 
 private const val MAX_CHUNK_LENGTH = 2000
 
-//var episodeOnDisplay by mutableStateOf(Episode())
-
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
-fun EpisodeInfoScreen(episodeId: Long) {
+fun EpisodeInfoScreen(episodeId: Long = 0L) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
 
@@ -351,7 +347,6 @@ fun EpisodeInfoScreen(episodeId: Long) {
             val observer = LifecycleEventObserver { _, event ->
                 when (event) {
                     Lifecycle.Event.ON_CREATE -> {
-//                        episode = episodeOnDisplay
                         if (!episode?.link.isNullOrEmpty()) prepareContent()
                         else Loge(TAG, context.getString(R.string.web_content_not_available))
                     }
@@ -496,7 +491,8 @@ fun EpisodeInfoScreen(episodeId: Long) {
         var expanded by remember { mutableStateOf(false) }
         val buttonColor = Color(0xDDFFD700)
         Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } }, actions = {
+            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = {
+                if (navController.previousBackStackEntry != null) navController.popBackStack() else openDrawer() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } }, actions = {
                 IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(episode?.playState ?: EpisodeState.UNSPECIFIED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                 if (episode != null) {
                     val inQueue by remember(episode) { mutableStateOf(if (episode == null) false else (episode!!.feed?.queue ?: actQueue).contains(episode!!)) }
@@ -536,7 +532,7 @@ fun EpisodeInfoScreen(episodeId: Long) {
 
     fun openPodcast() {
         if (episode?.feedId == null) return
-        navController.navigate("${Screens.FeedDetails.name}/${episode?.feedId}")
+        navController.navigate("${Screens.FeedDetails.name}?feedId=${episode?.feedId}")
     }
 
     if (showHomeScreen) EpisodeTextScreen()

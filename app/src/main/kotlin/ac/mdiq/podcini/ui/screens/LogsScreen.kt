@@ -34,7 +34,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.os.Build
 import android.text.format.DateUtils
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,15 +46,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Card
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -72,6 +68,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,7 +79,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -159,7 +155,7 @@ class LogsVM(val context: Context, val lcScope: CoroutineScope) {
 fun LogsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val vm = remember { LogsVM(context, scope) }
 
@@ -183,7 +179,6 @@ fun LogsScreen() {
     @Composable
     fun SharedDetailDialog(status: ShareLog, showDialog: Boolean, onDismissRequest: () -> Unit) {
         if (showDialog) {
-            val context = LocalContext.current
             val message = when (status.status) {
                 ShareLog.Status.ERROR.ordinal -> status.details
                 ShareLog.Status.SUCCESS.ordinal -> stringResource(R.string.download_successful)
@@ -215,7 +210,6 @@ fun LogsScreen() {
 
     @Composable
      fun SharedLogView() {
-        val context = LocalContext.current
         val lazyListState = rememberLazyListState()
         val showSharedDialog = remember { mutableStateOf(false) }
         val sharedlogState = remember { mutableStateOf(ShareLog()) }
@@ -242,12 +236,12 @@ fun LogsScreen() {
                         when(log.type) {
                             ShareLog.Type.YTMedia.name, "youtube media" -> {
                                 val episode = realm.query(Episode::class).query("title == $0", log.title).first().find()
-                                if (episode != null) navController.navigate("${Screens.EpisodeInfo.name}/${episode.id}")
+                                if (episode != null) navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${episode.id}")
                                 else hasError = true
                             }
                             ShareLog.Type.Podcast.name, "podcast" -> {
                                 val feed = getFeedByTitleAndAuthor(log.title?:"", log.author?:"")
-                                if (feed != null) navController.navigate("${Screens.FeedDetails.name}/${feed.id}?modeName=${FeedScreenMode.Info.name}")
+                                if (feed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
                                 else hasError = true
                             }
                             else -> {
@@ -362,7 +356,6 @@ fun LogsScreen() {
     @Composable
     fun DownlaodDetailDialog(status: DownloadResult, showDialog: Boolean, onDismissRequest: () -> Unit) {
         if (showDialog) {
-            val context = LocalContext.current
             var url = "unknown"
             when (status.feedfileType) {
                 Episode.FEEDFILETYPE_FEEDMEDIA -> {
@@ -404,7 +397,6 @@ fun LogsScreen() {
 
     @Composable
      fun DownloadLogView() {
-        val context = LocalContext.current
         val lazyListState = rememberLazyListState()
         val showDialog = remember { mutableStateOf(false) }
         val dialogParam = remember { mutableStateOf(DownloadResult()) }

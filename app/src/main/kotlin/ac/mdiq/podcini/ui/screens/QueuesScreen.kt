@@ -107,6 +107,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -158,7 +159,7 @@ enum class QueuesScreenMode {
 fun QueuesScreen(id: Long = -1L) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
 
     var browserFuture: ListenableFuture<MediaBrowser>? = remember { null }
@@ -227,14 +228,14 @@ fun QueuesScreen(id: Long = -1L) {
     val spinnerTexts = remember(queues, actQueue) { queues.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" } }
 
     LaunchedEffect(queues.size) {
-        Logd(TAG, "LaunchedEffect(queues)")
+        Logd(TAG, "LaunchedEffect(queues) curIndex: $curIndex $id")
         if (curIndex < 0) {
             val qid = if (id >= 0) id else appAttribs.curQueueId
             curIndex = queues.indexOfFirst { it.id == qid }
         }
     }
 
-    val curQueue = if (queues.isNotEmpty()) { if (curIndex >= 0 && curIndex < queues.size) queues[curIndex] else queues[0]} else PlayQueue()
+    val curQueue = remember(curIndex) { if (queues.isNotEmpty()) { if (curIndex >= 0 && curIndex < queues.size) queues[curIndex] else queues[0]} else PlayQueue() }
     var title by remember(queuesMode, curQueue) { mutableStateOf(if (queuesMode == QueuesScreenMode.Bin) curQueue.name + " Bin" else "") }
 
     DisposableEffect(queuesMode) {
@@ -351,7 +352,6 @@ fun QueuesScreen(id: Long = -1L) {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
         val buttonColor = Color(0xDDFFD700)
         Box {
@@ -545,10 +545,8 @@ fun QueuesScreen(id: Long = -1L) {
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun FeedsGrid() {
-        val context = LocalContext.current
-        val lazyGridState = rememberLazyGridState()
         Logd(TAG, "FeedsGrid")
-        LazyVerticalGrid(state = lazyGridState, columns = GridCells.Adaptive(80.dp),
+        LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
             items(feedsAssociated.size, key = {index -> feedsAssociated[index].id}) { index ->
@@ -563,7 +561,7 @@ fun QueuesScreen(id: Long = -1L) {
                             start.linkTo(parent.start)
                         }.combinedClickable(onClick = {
                             Logd(TAG, "clicked: ${feed.title}")
-                            navController.navigate("${Screens.FeedDetails.name}/${feed.id}")
+                            navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
                         }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
                     Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,
@@ -599,7 +597,7 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Logd(TAG, "Scaffold screenMode: $queuesMode")
+//        Logd(TAG, "Scaffold screenMode: $queuesMode")
         when (queuesMode) {
             QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
             QueuesScreenMode.Settings -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { Settings() }

@@ -43,7 +43,6 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
@@ -152,7 +151,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -224,7 +222,7 @@ class AudioPlayerVM(val context: Context, val lcScope: CoroutineScope) {
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
-fun AudioPlayerScreen(navController: NavController) {
+fun AudioPlayerScreen(navController: AppNavigator) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -261,21 +259,22 @@ fun AudioPlayerScreen(navController: NavController) {
 
     var recordingStartTime by remember { mutableStateOf<Long?>(null) }
 
+    var volumeAdaption: VolumeAdaptionSetting by remember { mutableStateOf(VolumeAdaptionSetting.OFF) }
+
     val episodeChange by episodeFlow.collectAsState(initial = null)
     var curItem = episodeChange?.obj
-//    rememberUpdatedState
 
     //    private var chapterControlVisible by mutableStateOf(false)
     var displayedChapterIndex by remember { mutableIntStateOf(-1) }
-    val curChapter = remember(curItem, displayedChapterIndex) { if (curItem?.chapters.isNullOrEmpty() || displayedChapterIndex == -1) null else curItem!!.chapters[displayedChapterIndex] }
+    val curChapter = remember(curItem, displayedChapterIndex) { if (curItem?.chapters.isNullOrEmpty() || displayedChapterIndex == -1) null else curItem.chapters[displayedChapterIndex] }
     var hasNextChapter by remember { mutableStateOf(true) }
 
     fun refreshChapterData(chapterIndex: Int) {
         Logd(TAG, "in refreshChapterData $chapterIndex")
         if (curItem != null) {
             if (chapterIndex > -1) {
-                if (curItem!!.position > curItem!!.duration || chapterIndex >= (curItem?.chapters?: listOf()).size - 1) {
-                    displayedChapterIndex = curItem!!.chapters.size - 1
+                if (curItem.position > curItem.duration || chapterIndex >= curItem.chapters.size - 1) {
+                    displayedChapterIndex = curItem.chapters.size - 1
                     hasNextChapter = false
                 } else {
                     displayedChapterIndex = chapterIndex
@@ -284,18 +283,19 @@ fun AudioPlayerScreen(navController: NavController) {
             }
 
             imgLocLarge =
-                if (displayedChapterIndex == -1 || curItem?.chapters.isNullOrEmpty() || curItem!!.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) curItem!!.imageLocation()
-                else EmbeddedChapterImage.getModelFor(curItem!!, displayedChapterIndex)?.toString()
+                if (displayedChapterIndex == -1 || curItem.chapters.isEmpty() || curItem.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) curItem.imageLocation()
+                else EmbeddedChapterImage.getModelFor(curItem, displayedChapterIndex)?.toString()
         }
     }
 
     LaunchedEffect(key1 = curMediaId) {
-        Logd(TAG, "LaunchedEffect curItem: ${curItem?.title}")
+        Logd(TAG, "LaunchedEffect curMediaId: ${curItem?.title}")
         episodeFlow = realm.query<Episode>("id == $0", curMediaId).first().asFlow()
         showHomeText = false
         //            homeText = null
         cleanedNotes = null
         imgLocLarge = null
+        volumeAdaption = VolumeAdaptionSetting.OFF
         vm.txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
         vm.curPlaybackSpeed = curPBSpeed
         if (isPlayingVideoLocally && curItem?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY) isBSExpanded = false
@@ -329,11 +329,9 @@ fun AudioPlayerScreen(navController: NavController) {
                     for (i in chapters.indices) dividerPos[i] = chapters[i].start / curDurationFB.toFloat()
                 }
                 displayedChapterIndex = -1
-                refreshChapterData(curItem!!.getCurrentChapterIndex(curItem!!.position))
+                refreshChapterData(curItem!!.getCurrentChapterIndex(curItem.position))
                 vm.sleepTimerActive = isSleepTimerActive()
-            }.invokeOnCompletion { throwable ->
-                if (throwable != null) Logs(TAG, throwable)
-            }
+            }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
         }
     }
 
@@ -373,18 +371,19 @@ fun AudioPlayerScreen(navController: NavController) {
     var showSleepTimeDialog by remember { mutableStateOf(false) }
 
     if (showVolumeDialog) CommonDialogSurface(onDismissRequest = { showVolumeDialog = false }) {
-        var selectedOption by remember { mutableStateOf(curItem?.volumeAdaptionSetting ?: VolumeAdaptionSetting.OFF) }
+        fun adaptionFactor(): Float = when {
+            volumeAdaption != VolumeAdaptionSetting.OFF -> volumeAdaption.adaptionFactor
+            curItem?.feed != null -> curItem.feed!!.volumeAdaptionSetting.adaptionFactor
+            else -> 1f
+        }
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             VolumeAdaptionSetting.entries.forEach { setting ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = (setting == selectedOption),
+                    Checkbox(checked = (setting == volumeAdaption),
                         onCheckedChange = { _ ->
-                            if (setting != selectedOption) {
-                                selectedOption = setting
-                                if (curItem != null) {
-                                    val curItem_ = upsertBlk(curItem!!) { it.volumeAdaption = setting.value }
-                                    mPlayer?.setVolume(1.0f, 1.0f, curItem_.adaptionFactor)
-                                }
+                            if (setting != volumeAdaption) {
+                                volumeAdaption = setting
+                                mPlayer?.setVolume(1.0f, 1.0f, adaptionFactor())
                                 showVolumeDialog = false
                             }
                         }
@@ -420,7 +419,7 @@ fun AudioPlayerScreen(navController: NavController) {
         Row {
             fun ensureService() {
                 if (curItem == null) return
-                if (playbackService == null) PlaybackStarter(context, curItem!!).start()
+                if (playbackService == null) PlaybackStarter(context, curItem).start()
             }
             val img = remember(curItem?.imageUrl) { ImageRequest.Builder(context).data(curItem?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
             AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, buttonColor)).padding(start = 5.dp).combinedClickable(
@@ -444,7 +443,7 @@ fun AudioPlayerScreen(navController: NavController) {
                 },
                 onLongClick = {
                     if (curItem?.feed != null) {
-                        navController.navigate("${Screens.FeedDetails.name}/${curItem!!.feed!!.id}")
+                        navController.navigate("${Screens.FeedDetails.name}?feedId=${curItem.feed!!.id}")
                         isBSExpanded = false
                     }
                 }))
@@ -472,8 +471,8 @@ fun AudioPlayerScreen(navController: NavController) {
                     onLongClick = {
                         if (curItem != null && exoPlayer != null && isPlaying) {
                             val pos = exoPlayer!!.currentPosition
-                            runOnIOScope { upsert(curItem!!) { it.marks.add(pos) } }
-                            Logt(TAG, "position $pos marked for ${curItem?.title}")
+                            runOnIOScope { upsert(curItem) { it.marks.add(pos) } }
+                            Logt(TAG, "position $pos marked for ${curItem.title}")
                         } else Loge(TAG, "Marking position only works during playback.")
                     }))
             Spacer(Modifier.weight(0.1f))
@@ -500,7 +499,7 @@ fun AudioPlayerScreen(navController: NavController) {
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
                 onClick = {
                     if (curItem != null) {
-                        val media = curItem!!
+                        val media = curItem
                         showPlayButton = !showPlayButton
                         if (showPlayButton && recordingStartTime != null) {
                             saveClipInOriginalFormat(recordingStartTime!!, exoPlayer!!.currentPosition)
@@ -508,7 +507,7 @@ fun AudioPlayerScreen(navController: NavController) {
                         }
                         if (media.getMediaType() == MediaType.VIDEO && !isPlaying && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                             playPause()
-                            context.startActivity(getPlayerActivityIntent(context, curItem!!.getMediaType()))
+                            context.startActivity(getPlayerActivityIntent(context, curItem.getMediaType()))
                         } else {
                             Logd(TAG, "Play button clicked: status: $status is ready: ${playbackService?.isServiceReady()}")
                             PlaybackStarter(context, media).shouldStreamThisTime(null).start()
@@ -576,14 +575,14 @@ fun AudioPlayerScreen(navController: NavController) {
             var showTimeLeft by remember { mutableIntStateOf(getPref(AppPrefs.prefShowTimeLeft, 0)) }
             val txtvLengthText by remember(showTimeLeft,curItem?.position) { mutableStateOf( run {
                 if (curItem == null) return@run ""
-                val remainingTime = max((curItem!!.duration - curItem!!.position), 0)
+                val remainingTime = max((curItem.duration - curItem.position), 0)
                 when (showTimeLeft) {
                     TimeLeftMode.TimeLeft.ordinal -> (if (remainingTime > 0) "-" else "") + getDurationStringLong(remainingTime)
                     TimeLeftMode.TimeLeftOnSpeed.ordinal -> {
                         val onSpeed = convertOnSpeed(remainingTime, curPBSpeed)
                         (if (onSpeed > 0) "*-" else "") + getDurationStringLong(onSpeed)
                     }
-                    else -> getDurationStringLong(curItem!!.duration)
+                    else -> getDurationStringLong(curItem.duration)
                 } }) }
             Text(txtvLengthText, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
                 showTimeLeft++
@@ -610,27 +609,27 @@ fun AudioPlayerScreen(navController: NavController) {
         val mediaType = curItem?.getMediaType()
         val notAudioOnly = curItem?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY
         var showShareDialog by remember { mutableStateOf(false) }
-        if (showShareDialog && curItem != null && actMain != null) ShareDialog(curItem!!, actMain) {showShareDialog = false }
+        if (showShareDialog && curItem != null && actMain != null) ShareDialog(curItem, actMain) {showShareDialog = false }
         Row(modifier = Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { isBSExpanded = false })
             if (curItem != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = textColor, contentDescription = "Open podcast",
                 modifier = Modifier.clickable {
-                    if (curItem?.feed != null) {
-                        navController.navigate("${Screens.FeedDetails.name}/${curItem!!.feed!!.id}")
+                    if (curItem.feed != null) {
+                        navController.navigate("${Screens.FeedDetails.name}?feedId=${curItem.feed!!.id}")
                         isBSExpanded = false
                     }
                 })
             val homeIcon by remember { mutableIntStateOf(R.drawable.outline_home_24)}
             Icon(imageVector = ImageVector.vectorResource(homeIcon), tint = textColor, contentDescription = "Home", modifier = Modifier.clickable {
                 if (curItem != null) {
-                    navController.navigate("${Screens.EpisodeInfo.name}/${curItem!!.id}")
+                    navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${curItem.id}")
                     isBSExpanded = false
                 }
             })
             if (mediaType == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
-                    if (!notAudioOnly && curItem?.forceVideo != true) {
-                        curItem?.forceVideo = true
+                    if (!notAudioOnly && !curItem.forceVideo) {
+                        curItem.forceVideo = true
                         status = PlayerStatus.STOPPED
                         mPlayer?.pause(reinit = true)
                         playbackService?.recreateMediaPlayer()
@@ -653,7 +652,7 @@ fun AudioPlayerScreen(navController: NavController) {
             IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
             DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.clear_cache)) }, onClick = {
-                    runOnIOScope { if (curItem != null) getCache(context).removeResource(curItem!!.id.toString()) }
+                    runOnIOScope { if (curItem != null) getCache(context).removeResource(curItem.id.toString()) }
                     expanded = false
                 })
                 DropdownMenuItem(text = { Text(stringResource(R.string.clear_all_cache)) }, onClick = {
@@ -683,7 +682,7 @@ fun AudioPlayerScreen(navController: NavController) {
                 val ratingIconRes by remember(curItem?.rating) { mutableStateOf( Rating.fromCode(curItem?.rating ?: Rating.UNRATED.code).res) }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { showChooseRatingDialog = true }))
                 Spacer(modifier = Modifier.weight(0.4f))
-                val episodeDate by remember(curItem) { mutableStateOf(if (curItem == null) "" else formatDateTimeFlex(Date(curItem!!.pubDate)).trim()) }
+                val episodeDate by remember(curItem) { mutableStateOf(if (curItem == null) "" else formatDateTimeFlex(Date(curItem.pubDate)).trim()) }
                 Text(episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.weight(0.6f))
             }
@@ -723,10 +722,10 @@ fun AudioPlayerScreen(navController: NavController) {
             EpisodeClips(curItem, playerLocal)
             if (!curItem?.related.isNullOrEmpty()) {
                 var showTodayStats by remember { mutableStateOf(false) }
-                if (showTodayStats) RelatedEpisodesDialog(curItem!!) { showTodayStats = false }
+                if (showTodayStats) RelatedEpisodesDialog(curItem) { showTodayStats = false }
                 Text(stringResource(R.string.related), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
             }
-            if (!curItem?.chapters.isNullOrEmpty()) ChaptersColumn(curItem!!)
+            if (!curItem?.chapters.isNullOrEmpty()) ChaptersColumn(curItem)
             if (imgLocLarge != null) {
                 val img = remember(imgLocLarge) { ImageRequest.Builder(context).data(imgLocLarge).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                 AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))

@@ -56,6 +56,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
@@ -89,7 +90,7 @@ class DiscoveryVM(val context: Context, val lcScope: CoroutineScope) {
 fun TopChartFeeds() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val vm = remember { DiscoveryVM(context, scope) }
 
@@ -253,7 +254,7 @@ fun TopChartFeeds() {
                     Spacer(Modifier.weight(1f))
                     Text(countryCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=20.dp).clickable(onClick = { showSelectCounrty = true }))
                 } },
-                navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } }, )
+                navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else openDrawer() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } }, )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

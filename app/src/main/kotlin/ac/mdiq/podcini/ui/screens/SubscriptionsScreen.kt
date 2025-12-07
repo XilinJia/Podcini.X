@@ -9,12 +9,9 @@ import ac.mdiq.podcini.preferences.ExportTypes
 import ac.mdiq.podcini.preferences.ExportWorker
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.storage.database.appAttribs
-import ac.mdiq.podcini.storage.database.compileLanguages
-import ac.mdiq.podcini.storage.database.compileTags
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.subPrefs
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -22,6 +19,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.FeedFilter
@@ -35,10 +33,10 @@ import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
+import ac.mdiq.podcini.ui.compose.ScrollRowGrid
 import ac.mdiq.podcini.ui.compose.SelectLowerAllUpper
 import ac.mdiq.podcini.ui.compose.SimpleSwitchDialog
 import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
@@ -148,12 +146,18 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import io.github.xilinjia.krdb.ext.toRealmSet
+import io.github.xilinjia.krdb.notifications.DeletedObject
+import io.github.xilinjia.krdb.notifications.InitialObject
+import io.github.xilinjia.krdb.notifications.PendingObject
 import io.github.xilinjia.krdb.notifications.ResultsChange
+import io.github.xilinjia.krdb.notifications.SingleQueryChange
+import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import java.text.NumberFormat
@@ -167,15 +171,18 @@ private const val TAG = "SubscriptionsScreen"
 fun SubscriptionsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
+    var subPrefs: SubscriptionsPrefs = remember { realm.query(SubscriptionsPrefs::class).first().find() ?: SubscriptionsPrefs() }
+
+    var subPrefsJob: Job? = remember { null }
+
     val queueNames = remember { mutableStateListOf<String>() }
     val queueIds = remember { mutableListOf<Long>() }
-
 
     var isFiltered by remember { mutableStateOf(false) }
 
@@ -218,266 +225,6 @@ fun SubscriptionsScreen() {
     val feedsChange by feedsFlow.collectAsState(initial = null)
     val feeds = feedsChange?.list ?: emptyList()
 
-    fun feedFetchQString(): String {
-        fun languagesQS() : String {
-            var qrs  = ""
-            when {
-                subPrefs.langsSel.isEmpty() -> qrs = " (languages.@count > 0) "
-                subPrefs.langsSel.size == appAttribs.languages.size -> qrs = ""
-                else -> {
-                    for (l in subPrefs.langsSel) {
-                        qrs += if (qrs.isEmpty()) " ( ANY languages == '$l' " else " OR ANY languages == '$l' "
-                    }
-                    if (qrs.isNotEmpty()) qrs += " ) "
-                }
-            }
-            Logd(TAG, "languagesQS: $qrs")
-            return qrs
-        }
-        fun tagsQS() : String {
-            var qrs  = ""
-            when {
-                subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
-                subPrefs.tagsSel.size == appAttribs.feedTags.size -> qrs = ""
-                else -> {
-                    for (t in subPrefs.tagsSel) {
-                        qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
-                    }
-                    if (qrs.isNotEmpty()) qrs += " ) "
-                }
-            }
-            Logd(TAG, "tagsQS: $qrs")
-            return qrs
-        }
-        fun queuesQS() : String {
-            val qSelIds_ = subPrefs.queueSelIds.toMutableSet()
-            if (qSelIds_.isEmpty()) qSelIds_.add(-2)
-            else {
-                if ((queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
-                else qSelIds_.remove(-2)
-            }
-            var qrs  = ""
-            for (id in qSelIds_) {
-                qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
-            }
-            if (qrs.isNotEmpty()) qrs += " ) "
-            Logd(TAG, "queuesQS: $qrs")
-            return qrs
-        }
-
-        var fQueryStr = FeedFilter(subPrefs.feedsFilter).queryString()
-        val langsQueryStr = languagesQS()
-        if (langsQueryStr.isNotEmpty())  fQueryStr += " AND $langsQueryStr"
-        val tagsQueryStr = tagsQS()
-        if (tagsQueryStr.isNotEmpty())  fQueryStr += " AND $tagsQueryStr"
-        val queuesQueryStr = queuesQS()
-        if (queuesQueryStr.isNotEmpty())  fQueryStr += " AND $queuesQueryStr"
-
-        Logd(TAG, "fQueryStr: $fQueryStr")
-        return fQueryStr
-    }
-
-    suspend fun prepareSort() {
-        Logd(TAG, "prepareSort feeds: ${feeds.size}")
-        if (feeds.isEmpty()) return
-
-        when (sortIndex) {
-            FeedSortIndex.Title.ordinal -> {
-                sortDir = if (titleAscending) Sort.ASCENDING else Sort.DESCENDING
-                sortPair = Pair("eigenTitle", sortDir)
-            }
-            FeedSortIndex.Date.ordinal -> {
-                sortDir = if (dateAscending) Sort.ASCENDING else Sort.DESCENDING
-                when (dateSortIndex) {
-                    FeedDateSortIndex.Publish.ordinal -> {  // date publish
-                        var playStateQueries = ""
-                        for (i in episodeStateSort.indices) {
-                            if (episodeStateSort[i].value) {
-                                if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
-                                playStateQueries += " playState == ${EpisodeState.entries[i].code} "
-                            }
-                        }
-                        var queryString = "feedId == $0"
-                        if (playStateQueries.isNotEmpty()) queryString += " AND ($playStateQueries)"
-                        queryString += " SORT(pubDate DESC)"
-                        Logd(TAG, "prepareSort queryString: $queryString")
-                        realm.write {
-                            for (f_ in feeds) {
-                                val f = findLatest(f_) ?: continue
-                                val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.pubDate ?: 0L
-                                f.sortValue = d
-                                f.sortInfo = formatDateTimeFlex(Date(d))
-                            }
-                        }
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                    FeedDateSortIndex.Downloaded.ordinal -> {  // date downloaded
-                        val queryString = "feedId == $0 SORT(downloadTime DESC)"
-                        realm.write {
-                            for (f_ in feeds) {
-                                val f = findLatest(f_) ?: continue
-                                val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.downloadTime ?: 0L
-                                f.sortValue = d
-                                f.sortInfo = "D: ${formatDateTimeFlex(Date(d))}"
-                            }
-                        }
-                        Logd(TAG, "prepareSort queryString: $queryString")
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                    FeedDateSortIndex.Played.ordinal -> {  // date last played
-                        val queryString = "feedId == $0 SORT(lastPlayedTime DESC)"
-                        realm.write {
-                            for (f_ in feeds) {
-                                val f = findLatest(f_) ?: continue
-                                val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.lastPlayedTime ?: 0L
-                                f.sortValue = d
-                                f.sortInfo = "P: ${formatDateTimeFlex(Date(d))}"
-                            }
-                        }
-                        Logd(TAG, "prepareSort queryString: $queryString")
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                    FeedDateSortIndex.Commented.ordinal -> {  // date last commented
-                        val queryString = "feedId == $0 SORT(commentTime DESC)"
-                        realm.write {
-                            for (f_ in feeds) {
-                                val f = findLatest(f_) ?: continue
-                                val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.commentTime ?: 0L
-                                f.sortValue = d
-                                f.sortInfo = "C: ${formatDateTimeFlex(Date(d))}"
-                            }
-                        }
-                        Logd(TAG, "prepareSort queryString: $queryString")
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                    else -> {
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                }
-            }
-            FeedSortIndex.Count.ordinal -> {   // count
-                sortDir = if (countAscending) Sort.ASCENDING else Sort.DESCENDING
-                var playStateQueries = ""
-                for (i in episodeStateSort.indices) {
-                    if (episodeStateSort[i].value) {
-                        if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
-                        playStateQueries += " playState == ${EpisodeState.entries[i].code} "
-                    }
-                }
-                var ratingQueries = ""
-                for (i in ratingSort.indices) {
-                    if (ratingSort[i].value) {
-                        if (ratingQueries.isNotEmpty()) ratingQueries += " OR "
-                        ratingQueries += " rating == ${Rating.entries[i].code} "
-                    }
-                }
-                val downloadedQuery = if (downlaodedSortIndex == 0) " downloaded == true " else if (downlaodedSortIndex == 1) " downloaded == false " else ""
-                val commentedQuery = if (commentedSortIndex == 0) " comment != '' " else if (commentedSortIndex == 1) " comment == '' " else ""
-
-                var queryString = "feedId == $0"
-                if (playStateQueries.isNotEmpty()) queryString += " AND ($playStateQueries)"
-                if (ratingQueries.isNotEmpty()) queryString += " AND ($ratingQueries)"
-                if (downloadedQuery.isNotEmpty()) queryString += " AND ($downloadedQuery)"
-                if (commentedQuery.isNotEmpty()) queryString += " AND ($commentedQuery)"
-                Logd(TAG, "prepareSort queryString: $queryString")
-                realm.write {
-                    for (f_ in feeds) {
-                        val f = findLatest(f_) ?: continue
-                        val c = realm.query(Episode::class).query(queryString, f.id).count().find()
-                        f.sortValue = c
-                        f.sortInfo = "$c counts"
-                    }
-                }
-                sortPair = Pair("sortValue", sortDir)
-            }
-            else -> {
-                sortDir = if (timeAscending) Sort.ASCENDING else Sort.DESCENDING
-                when (timeSortIndex) {
-                    FeedTimeSortIndex.Total.ordinal -> { // total duration
-                        realm.write {
-                            for (f_ in feeds) {
-                                val f = findLatest(f_) ?: continue
-                                f.sortValue = f.totleDuration
-                                f.sortInfo = "Total D: ${getDurationStringShort(f.totleDuration, true)}"
-                            }
-                        }
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                    FeedTimeSortIndex.Min.ordinal -> {  // min duration
-                        val queryString = "feedId == $0 SORT(duration ASC)"
-                        realm.write {
-                            for (f_ in feeds) {
-                                val f = findLatest(f_) ?: continue
-                                val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
-                                f.sortValue = d
-                                f.sortInfo = "Min D: ${getDurationStringLong(d.toInt())}"
-                            }
-                        }
-                        Logd(TAG, "prepareSort queryString: $queryString")
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                    FeedTimeSortIndex.Max.ordinal -> {  // max duration
-                        val queryString = "feedId == $0 SORT(duration DESC)"
-                        realm.write {
-                            for (f_ in feeds) {
-                                val f = findLatest(f_) ?: continue
-                                val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
-                                f.sortValue = d
-                                f.sortInfo = "Max D: ${getDurationStringShort(d, true)}"
-                            }
-                        }
-                        Logd(TAG, "prepareSort queryString: $queryString")
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                    FeedTimeSortIndex.Average.ordinal -> {  // average duration
-                        realm.write {
-                            for (f_ in feeds) {
-                                val f = findLatest(f_) ?: continue
-                                val ln = f.episodes.size
-                                val aveDur = if (ln > 0) f.totleDuration/ln else 0
-                                f.sortValue = aveDur
-                                f.sortInfo = "Ave D: ${getDurationStringShort(aveDur, true)}"
-                            }
-                        }
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                    else -> {
-                        sortPair = Pair("sortValue", sortDir)
-                    }
-                }
-            }
-        }
-        Logd(TAG, "prepareSort $sortPair")
-        withContext(Dispatchers.Main) {
-            feedsSorted++
-        }
-    }
-
-    fun saveSortingPrefs() {
-        playStateCodeSet.clear()
-        for (i in episodeStateSort.indices) {
-            if (episodeStateSort[i].value) playStateCodeSet.add(EpisodeState.entries[i].code.toString())
-        }
-        ratingCodeSet.clear()
-        for (i in ratingSort.indices) {
-            if (ratingSort[i].value) ratingCodeSet.add(Rating.entries[i].code.toString())
-        }
-
-        upsertBlk(subPrefs) {
-            it.sortIndex = sortIndex
-            it.titleAscending = titleAscending
-            it.dateAscending = dateAscending
-            it.countAscending = countAscending
-            it.dateSortIndex = dateSortIndex
-            it.downlaodedSortIndex = downlaodedSortIndex
-            it.commentedSortIndex = commentedSortIndex
-            it.playStateCodeSet = playStateCodeSet.toRealmSet()
-            it.ratingCodeSet = ratingCodeSet.toRealmSet()
-            it.sortProperty = sortPair.first
-            it.sortDirCode = sortPair.second.ordinal
-        }
-    }
-
     fun getSortingPrefs() {
         sortIndex = subPrefs.sortIndex
         titleAscending = subPrefs.titleAscending
@@ -501,24 +248,97 @@ fun SubscriptionsScreen() {
     }
 
     fun buildFlow() {
+        fun feedFetchQString(): String {
+            fun languagesQS() : String {
+                var qrs  = ""
+                when {
+                    subPrefs.langsSel.isEmpty() -> qrs = " (languages.@count > 0) "
+                    subPrefs.langsSel.size == appAttribs.languages.size -> qrs = ""
+                    else -> {
+                        for (l in subPrefs.langsSel) {
+                            qrs += if (qrs.isEmpty()) " ( ANY languages == '$l' " else " OR ANY languages == '$l' "
+                        }
+                        if (qrs.isNotEmpty()) qrs += " ) "
+                    }
+                }
+                Logd(TAG, "languagesQS: $qrs")
+                return qrs
+            }
+            fun tagsQS() : String {
+                var qrs  = ""
+                when {
+                    subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
+                    subPrefs.tagsSel.size == appAttribs.feedTags.size -> qrs = ""
+                    else -> {
+                        for (t in subPrefs.tagsSel) {
+                            qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
+                        }
+                        if (qrs.isNotEmpty()) qrs += " ) "
+                    }
+                }
+                Logd(TAG, "tagsQS: $qrs")
+                return qrs
+            }
+            fun queuesQS() : String {
+                val qSelIds_ = subPrefs.queueSelIds.toMutableSet()
+                if (qSelIds_.isEmpty()) qSelIds_.add(-2)
+                else {
+                    if ((queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
+                    else qSelIds_.remove(-2)
+                }
+                var qrs  = ""
+                for (id in qSelIds_) {
+                    qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
+                }
+                if (qrs.isNotEmpty()) qrs += " ) "
+                Logd(TAG, "queuesQS: $qrs")
+                return qrs
+            }
+
+            var fQueryStr = FeedFilter(subPrefs.feedsFilter).queryString()
+            val langsQueryStr = languagesQS()
+            if (langsQueryStr.isNotEmpty())  fQueryStr += " AND $langsQueryStr"
+            val tagsQueryStr = tagsQS()
+            if (tagsQueryStr.isNotEmpty())  fQueryStr += " AND $tagsQueryStr"
+            val queuesQueryStr = queuesQS()
+            if (queuesQueryStr.isNotEmpty())  fQueryStr += " AND $queuesQueryStr"
+
+            Logd(TAG, "fQueryStr: $fQueryStr")
+            return fQueryStr
+        }
         feedsFlow = realm.query(Feed::class).query(feedFetchQString()).sort(sortPair).asFlow()
         isFiltered = subPrefs.feedsFilter.isNotEmpty() || subPrefs.tagsSel.size != appAttribs.feedTags.size || subPrefs.langsSel.size != appAttribs.languages.size || subPrefs.queueSelIds.size != queueIds.size
     }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
+            Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
+                    if (subPrefsJob == null) subPrefsJob = scope.launch(Dispatchers.IO) {
+                        val flow = realm.query(SubscriptionsPrefs::class).first().asFlow()
+                        flow.collect { changes: SingleQueryChange<SubscriptionsPrefs> ->
+                            when (changes) {
+                                is InitialObject -> {
+                                    Logd(TAG, "subPrefsJob InitialObject")
+                                    subPrefs = changes.obj
+                                }
+                                is UpdatedObject -> {
+                                    Logd(TAG, "subPrefsJob UpdatedObject")
+                                    subPrefs = changes.obj
+                                }
+                                is DeletedObject -> {}
+                                is PendingObject -> {}
+                            }
+                        }
+                    }
                     getSortingPrefs()
-                    //                    if (arguments != null) displayedFolder = requireArguments().getString(ARGUMENT_FOLDER, null)
                     val queues = realm.query(PlayQueue::class).find()
                     queueIds.addAll(queues.map { it.id })
                     queueNames.addAll(queues.map { it.name })
                     buildFlow()
                 }
-                Lifecycle.Event.ON_START -> {
-                    gearbox.cleanGearData()
-                }
+                Lifecycle.Event.ON_START -> gearbox.cleanGearData()
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
                 Lifecycle.Event.ON_DESTROY -> {}
@@ -527,12 +347,214 @@ fun SubscriptionsScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
+            Logd(TAG, "Lifecycle.Event onDispose")
+            subPrefsJob?.cancel()
+            subPrefsJob = null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
     var sortingJob = remember<Job?> { null }
     fun sortRoutine() {
+        suspend fun prepareSort() {
+            Logd(TAG, "prepareSort feeds: ${feeds.size}")
+            if (feeds.isEmpty()) return
+
+            when (sortIndex) {
+                FeedSortIndex.Title.ordinal -> {
+                    sortDir = if (titleAscending) Sort.ASCENDING else Sort.DESCENDING
+                    sortPair = Pair("eigenTitle", sortDir)
+                }
+                FeedSortIndex.Date.ordinal -> {
+                    sortDir = if (dateAscending) Sort.ASCENDING else Sort.DESCENDING
+                    when (dateSortIndex) {
+                        FeedDateSortIndex.Publish.ordinal -> {  // date publish
+                            var playStateQueries = ""
+                            for (i in episodeStateSort.indices) {
+                                if (episodeStateSort[i].value) {
+                                    if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
+                                    playStateQueries += " playState == ${EpisodeState.entries[i].code} "
+                                }
+                            }
+                            var queryString = "feedId == $0"
+                            if (playStateQueries.isNotEmpty()) queryString += " AND ($playStateQueries)"
+                            queryString += " SORT(pubDate DESC)"
+                            Logd(TAG, "prepareSort queryString: $queryString")
+                            realm.write {
+                                for (f_ in feeds) {
+                                    val f = findLatest(f_) ?: continue
+                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.pubDate ?: 0L
+                                    f.sortValue = d
+                                    f.sortInfo = formatDateTimeFlex(Date(d))
+                                }
+                            }
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                        FeedDateSortIndex.Downloaded.ordinal -> {  // date downloaded
+                            val queryString = "feedId == $0 SORT(downloadTime DESC)"
+                            realm.write {
+                                for (f_ in feeds) {
+                                    val f = findLatest(f_) ?: continue
+                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.downloadTime ?: 0L
+                                    f.sortValue = d
+                                    f.sortInfo = "D: ${formatDateTimeFlex(Date(d))}"
+                                }
+                            }
+                            Logd(TAG, "prepareSort queryString: $queryString")
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                        FeedDateSortIndex.Played.ordinal -> {  // date last played
+                            val queryString = "feedId == $0 SORT(lastPlayedTime DESC)"
+                            realm.write {
+                                for (f_ in feeds) {
+                                    val f = findLatest(f_) ?: continue
+                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.lastPlayedTime ?: 0L
+                                    f.sortValue = d
+                                    f.sortInfo = "P: ${formatDateTimeFlex(Date(d))}"
+                                }
+                            }
+                            Logd(TAG, "prepareSort queryString: $queryString")
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                        FeedDateSortIndex.Commented.ordinal -> {  // date last commented
+                            val queryString = "feedId == $0 SORT(commentTime DESC)"
+                            realm.write {
+                                for (f_ in feeds) {
+                                    val f = findLatest(f_) ?: continue
+                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.commentTime ?: 0L
+                                    f.sortValue = d
+                                    f.sortInfo = "C: ${formatDateTimeFlex(Date(d))}"
+                                }
+                            }
+                            Logd(TAG, "prepareSort queryString: $queryString")
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                        else -> {
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                    }
+                }
+                FeedSortIndex.Count.ordinal -> {   // count
+                    sortDir = if (countAscending) Sort.ASCENDING else Sort.DESCENDING
+                    var playStateQueries = ""
+                    for (i in episodeStateSort.indices) {
+                        if (episodeStateSort[i].value) {
+                            if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
+                            playStateQueries += " playState == ${EpisodeState.entries[i].code} "
+                        }
+                    }
+                    var ratingQueries = ""
+                    for (i in ratingSort.indices) {
+                        if (ratingSort[i].value) {
+                            if (ratingQueries.isNotEmpty()) ratingQueries += " OR "
+                            ratingQueries += " rating == ${Rating.entries[i].code} "
+                        }
+                    }
+                    val downloadedQuery = if (downlaodedSortIndex == 0) " downloaded == true " else if (downlaodedSortIndex == 1) " downloaded == false " else ""
+                    val commentedQuery = if (commentedSortIndex == 0) " comment != '' " else if (commentedSortIndex == 1) " comment == '' " else ""
+
+                    var queryString = "feedId == $0"
+                    if (playStateQueries.isNotEmpty()) queryString += " AND ($playStateQueries)"
+                    if (ratingQueries.isNotEmpty()) queryString += " AND ($ratingQueries)"
+                    if (downloadedQuery.isNotEmpty()) queryString += " AND ($downloadedQuery)"
+                    if (commentedQuery.isNotEmpty()) queryString += " AND ($commentedQuery)"
+                    Logd(TAG, "prepareSort queryString: $queryString")
+                    realm.write {
+                        for (f_ in feeds) {
+                            val f = findLatest(f_) ?: continue
+                            val c = realm.query(Episode::class).query(queryString, f.id).count().find()
+                            f.sortValue = c
+                            f.sortInfo = "$c counts"
+                        }
+                    }
+                    sortPair = Pair("sortValue", sortDir)
+                }
+                else -> {
+                    sortDir = if (timeAscending) Sort.ASCENDING else Sort.DESCENDING
+                    when (timeSortIndex) {
+                        FeedTimeSortIndex.Total.ordinal -> { // total duration
+                            realm.write {
+                                for (f_ in feeds) {
+                                    val f = findLatest(f_) ?: continue
+                                    f.sortValue = f.totleDuration
+                                    f.sortInfo = "Total D: ${getDurationStringShort(f.totleDuration, true)}"
+                                }
+                            }
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                        FeedTimeSortIndex.Min.ordinal -> {  // min duration
+                            val queryString = "feedId == $0 SORT(duration ASC)"
+                            realm.write {
+                                for (f_ in feeds) {
+                                    val f = findLatest(f_) ?: continue
+                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
+                                    f.sortValue = d
+                                    f.sortInfo = "Min D: ${getDurationStringLong(d.toInt())}"
+                                }
+                            }
+                            Logd(TAG, "prepareSort queryString: $queryString")
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                        FeedTimeSortIndex.Max.ordinal -> {  // max duration
+                            val queryString = "feedId == $0 SORT(duration DESC)"
+                            realm.write {
+                                for (f_ in feeds) {
+                                    val f = findLatest(f_) ?: continue
+                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
+                                    f.sortValue = d
+                                    f.sortInfo = "Max D: ${getDurationStringShort(d, true)}"
+                                }
+                            }
+                            Logd(TAG, "prepareSort queryString: $queryString")
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                        FeedTimeSortIndex.Average.ordinal -> {  // average duration
+                            realm.write {
+                                for (f_ in feeds) {
+                                    val f = findLatest(f_) ?: continue
+                                    val ln = f.episodes.size
+                                    val aveDur = if (ln > 0) f.totleDuration/ln else 0
+                                    f.sortValue = aveDur
+                                    f.sortInfo = "Ave D: ${getDurationStringShort(aveDur, true)}"
+                                }
+                            }
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                        else -> {
+                            sortPair = Pair("sortValue", sortDir)
+                        }
+                    }
+                }
+            }
+            Logd(TAG, "prepareSort $sortPair")
+            withContext(Dispatchers.Main) {
+                feedsSorted++
+            }
+        }
+        fun saveSortingPrefs() {
+            playStateCodeSet.clear()
+            for (i in episodeStateSort.indices) {
+                if (episodeStateSort[i].value) playStateCodeSet.add(EpisodeState.entries[i].code.toString())
+            }
+            ratingCodeSet.clear()
+            for (i in ratingSort.indices) {
+                if (ratingSort[i].value) ratingCodeSet.add(Rating.entries[i].code.toString())
+            }
+
+            upsertBlk(subPrefs) {
+                it.sortIndex = sortIndex
+                it.titleAscending = titleAscending
+                it.dateAscending = dateAscending
+                it.countAscending = countAscending
+                it.dateSortIndex = dateSortIndex
+                it.downlaodedSortIndex = downlaodedSortIndex
+                it.commentedSortIndex = commentedSortIndex
+                it.playStateCodeSet = playStateCodeSet.toRealmSet()
+                it.ratingCodeSet = ratingCodeSet.toRealmSet()
+                it.sortProperty = sortPair.first
+                it.sortDirCode = sortPair.second.ordinal
+            }
+        }
         sortingJob?.cancel()
         sortingJob = runOnIOScope {
             prepareSort()
@@ -874,7 +896,7 @@ fun SubscriptionsScreen() {
                                 Logd(TAG, "clicked: ${feed.title}")
                                 if (!feed.isBuilding) {
                                     if (selectMode) toggleSelected()
-                                    else navController.navigate("${Screens.FeedDetails.name}/${feed.id}")
+                                    else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
                                 }
                             }, onLongClick = {
                                 if (!feed.isBuilding) {
@@ -941,7 +963,7 @@ fun SubscriptionsScreen() {
                                     Logd(TAG, "icon clicked!")
                                     if (!feed.isBuilding) {
                                         if (selectMode) toggleSelected()
-                                        else navController.navigate("${Screens.FeedDetails.name}/${feed.id}?modeName=${FeedScreenMode.Info.name}")
+                                        else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
                                     }
                                 })
                             )
@@ -949,7 +971,7 @@ fun SubscriptionsScreen() {
                                 Logd(TAG, "clicked: ${feed.title}")
                                 if (!feed.isBuilding) {
                                     if (selectMode) toggleSelected()
-                                    else navController.navigate("${Screens.FeedDetails.name}/${feed.id}")
+                                    else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
                                 }
                             }, onLongClick = {
                                 if (!feed.isBuilding) {
@@ -1232,7 +1254,7 @@ fun SubscriptionsScreen() {
                                     }
                                     Spacer(Modifier.weight(1f))
                                 }
-                                if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                     if (selectNone) episodeStateSort[index].value = false
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (episodeStateSort[index].value) buttonAltColor else buttonColor),
                                         onClick = {
@@ -1293,7 +1315,7 @@ fun SubscriptionsScreen() {
                                     }
                                     Spacer(Modifier.weight(1f))
                                 }
-                                if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                     if (selectNone) ratingSort[index].value = false
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (ratingSort[index].value) buttonAltColor else buttonColor),
                                         onClick = {
@@ -1356,7 +1378,7 @@ fun SubscriptionsScreen() {
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
                                     }
-                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = langs.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                    if (expandRow) ScrollRowGrid(columns = 3, itemCount = langs.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                         OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
@@ -1394,7 +1416,7 @@ fun SubscriptionsScreen() {
                                         SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                     }
                                 }
-                                if (expandRow) NonlazyGrid(columns = 3, itemCount = queueNames.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                if (expandRow) ScrollRowGrid(columns = 3, itemCount = queueNames.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                         onClick = {
                                             selectedList[index].value = !selectedList[index].value
@@ -1433,7 +1455,7 @@ fun SubscriptionsScreen() {
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
                                     }
-                                    if (expandRow) NonlazyGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                    if (expandRow) ScrollRowGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                         OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
@@ -1524,7 +1546,7 @@ fun SubscriptionsScreen() {
                                                 SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                             }
                                         }
-                                        if (expandRow) NonlazyGrid(columns = 3, itemCount = item.values.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                        if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.values.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                                             if (selectNone) selectedList[index].value = false
                                             OutlinedButton(
                                                 modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),

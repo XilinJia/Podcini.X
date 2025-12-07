@@ -8,8 +8,6 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeedCount
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
@@ -21,9 +19,10 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.lcScope
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -56,6 +55,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -71,8 +71,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavController
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavDestination
 import androidx.navigation.NavHostController
+import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -88,22 +90,26 @@ import java.nio.charset.StandardCharsets
 
 private const val TAG = "NavDrawerScreen"
 
+val isRemember: Boolean
+    get() = getPref(AppPrefs.prefDefaultPage, "") == AppPreferences.DefaultPages.Remember.name
+
 val defaultScreen: String
     get() {
         var value = getPref(AppPrefs.prefDefaultPage, "")
+        Logd(TAG, "get defaultScreen 0: [$value]")
         val isValid = try {
             Screens.valueOf(value)
             true
         } catch (_: Throwable) { false }
-        if (value.isBlank() || !isValid) value = Screens.Subscriptions.name
         if (value == AppPreferences.DefaultPages.Remember.name) {
             value = appAttribs.prefLastScreen
+            Logd(TAG, "get defaultScreen 1: [$value]")
             if (value.isBlank()) value = Screens.Subscriptions.name
             if (value == Screens.FeedDetails.name) {
                 val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
-                if (feedId != null) value = "${Screens.FeedDetails.name}/${feedId}"
+                if (feedId != null) value = "${Screens.FeedDetails.name}?feedId=${feedId}"
             }
-        }
+        } else if (value.isBlank() || !isValid) value = Screens.Subscriptions.name
         Logd(TAG, "get defaultScreen: [$value]")
         return value
     }
@@ -136,10 +142,10 @@ class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
 }
 
 @Composable
-fun NavDrawerScreen(navController: NavController) {
+fun NavDrawerScreen(navigator: AppNavigator) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val vm = remember { NavDrawerVM(context, scope) }
     val textColor = MaterialTheme.colorScheme.onSurface
     var curruntRoute: String
@@ -166,54 +172,41 @@ fun NavDrawerScreen(navController: NavController) {
         if (drawerState.isOpen) vm.loadData()
     }
 
-    fun loadScreen(tag: String?, args: Bundle?, popto: Boolean = false) {
-        var tag = tag
-        Logd(TAG, "loadScreen(tag: $tag, args: $args, popto: $popto)")
-        when (tag) {
-            Screens.Subscriptions.name, Screens.Queues.name, Screens.Logs.name, Screens.OnlineSearch.name, Screens.Facets.name, Screens.Statistics.name -> {
-                if (popto) navController.navigate(tag) { popUpTo(defaultScreen) { inclusive = true } }
-                else navController.navigate(tag)
-            }
-            Screens.FeedDetails.name -> {
-                if (args == null) {
-                    val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
-                    if (feedId != null) {
-                        val navStr = "${Screens.FeedDetails.name}/${feedId}"
-                        if (popto) navController.navigate(navStr) { popUpTo(defaultScreen) { inclusive = true } }
-                        else navController.navigate(navStr)
-                    } else navController.navigate(Screens.Subscriptions.name)
-                } else navController.navigate(Screens.Subscriptions.name)
-            }
-            else -> {
-                tag = Screens.Subscriptions.name
-                navController.navigate(tag)
-            }
+    fun haveCommonPrefix(a: String, b: String): Boolean {
+        val min = minOf(a.length, b.length)
+        var count = 0
+        for (i in 0 until min) {
+            if (a[i] != b[i]) break
+            count++
         }
-        runOnIOScope { saveLastNavScreen(tag) }
+        return count > 0
     }
 
+
     BackHandler(enabled = !subscreenHandleBack.value) {
-        Logd(TAG, "BackHandler: $isBSExpanded")
+        Logd(TAG, "BackHandler isBSExpanded: $isBSExpanded")
         val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
         val defPage = defaultScreen
-        val currentDestination = navController.currentDestination
+        val currentDestination = navigator.currentDestination
         curruntRoute = currentDestination?.route ?: ""
-        Logd(TAG, "BackHandler curruntRoute0: $curruntRoute")
+        Logd(TAG, "BackHandler curruntRoute0: $curruntRoute defPage: $defPage")
         when {
             drawerState.isOpen -> closeDrawer()
             isBSExpanded -> isBSExpanded = false
-            navController.previousBackStackEntry != null -> {
-                navController.popBackStack()
+            navigator.previousBackStackEntry != null -> {
+                Logd(TAG, "nav to back")
+                navigator.popBackStack()
                 curruntRoute = currentDestination?.route ?: ""
-                runOnIOScope { saveLastNavScreen(curruntRoute) }
                 Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")
             }
-            defPage.isNotBlank() && curruntRoute.isNotBlank() && curruntRoute != defPage -> {
-                loadScreen(defPage, null, true)
+            !isRemember && defPage.isNotBlank() && curruntRoute.isNotBlank() && !haveCommonPrefix(curruntRoute, defPage) -> {
+                Logd(TAG, "nav to defPage: $defPage")
+                navigator.navigate(defPage) { popUpTo(0) { inclusive = true } }
                 curruntRoute = currentDestination?.route ?: ""
                 Logd(TAG, "BackHandler curruntRoute1: [$curruntRoute]")
             }
             openDrawer -> openDrawer()
+            else -> Logt(TAG, context.getString(R.string.no_more_screens_back))
         }
     }
 
@@ -228,8 +221,9 @@ fun NavDrawerScreen(navController: NavController) {
                 verticalArrangement = Arrangement.spacedBy(15.dp)) {
                 for (nav in navMap.entries) {
                     if (nav.value.show) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
-                        navController.navigate(nav.key) {
-                            if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(defaultScreen) { inclusive = true }
+                        Logd(TAG, "nav.key: ${nav.key}")
+                        navigator.navigate(nav.key) {
+                            if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
                             else popUpTo(nav.key) { inclusive = true }
                         }
                         closeDrawer()
@@ -245,7 +239,7 @@ fun NavDrawerScreen(navController: NavController) {
                 LazyColumn(state = lazyListState) {
                     itemsIndexed(vm.feeds) { _, f ->
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp).clickable {
-                            navController.navigate("${Screens.FeedDetails.name}/${f.id}") { popUpTo(defaultScreen) { inclusive = true } }
+                            navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
                             closeDrawer()
                             isBSExpanded = false
                         }) {
@@ -302,58 +296,73 @@ private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.OnlineSearch.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
 )
 
+fun isValid(fullRoute: String): Boolean {
+    val pathEndIndex = fullRoute.indexOf('/')
+    if (pathEndIndex > 0) return false
+
+    val queryStartIndex = fullRoute.indexOf('?')
+    val endIndex = when {
+        pathEndIndex != -1 && queryStartIndex != -1 -> minOf(pathEndIndex, queryStartIndex)
+        pathEndIndex != -1 -> pathEndIndex
+        queryStartIndex != -1 -> queryStartIndex
+        else -> -1
+    }
+    val r = if (endIndex != -1) fullRoute.take(endIndex) else { fullRoute }
+    return (Screens.entries.any { it.name == r })
+}
+
 @Composable
 fun Navigate(navController: NavHostController, startScreen: String = "") {
     Logd(TAG, "Navigate startScreen: $startScreen")
-    NavHost(navController = navController, startDestination = startScreen.ifBlank { defaultScreen }) {
+    var startScreen = startScreen
+    if (startScreen.isBlank()) {
+        val dfs = defaultScreen
+        startScreen = if (isValid(dfs)) dfs else Screens.Subscriptions.name
+    }
+    Logd(TAG, "Navigate startScreen 1: $startScreen")
+    NavHost(navController = navController, startDestination = startScreen) { // TODO: defaultScreen
         composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
-        composable(
-            route = "${Screens.FeedDetails.name}/{feedId}?modeName={modeName}",
-            arguments = listOf(
-                navArgument("feedId") { type = NavType.LongType },
-                navArgument("modeName") {
-                    type = NavType.StringType
-                    defaultValue = FeedScreenMode.List.name
-                })
-        ) { entry ->
+        composable(route = "${Screens.FeedDetails.name}?feedId={feedId}&modeName={modeName}", arguments = listOf(
+            navArgument("feedId") {
+                type = NavType.LongType
+                defaultValue = -1L
+            }, navArgument("modeName") {
+                type = NavType.StringType
+                defaultValue = FeedScreenMode.List.name
+        })) { entry ->
             val feedId = entry.arguments?.getLong("feedId") ?: -1L
             val modeName = entry.arguments?.getString("modeName") ?: FeedScreenMode.List.name
             FeedDetailsScreen(feedId, modeName)
         }
-        composable(
-            route = "${Screens.EpisodeInfo.name}/{episodeId}",
-            arguments = listOf(navArgument("episodeId") { type = NavType.LongType })
-        ) { entry ->
+        composable(route = "${Screens.EpisodeInfo.name}?episodeId={episodeId}", arguments = listOf(
+            navArgument("episodeId") {
+                type = NavType.LongType
+                defaultValue = -1L
+            })) { entry ->
             val episodeId = entry.arguments?.getLong("episodeId") ?: -1L
             EpisodeInfoScreen(episodeId)
         }
         composable(Screens.Facets.name) { FacetsScreen() }
-        composable(
-            route = "${Screens.Queues.name}?index={index}",
-            arguments = listOf(navArgument("index") {
-                type = NavType.LongType
-                defaultValue = -1L
-            })
-        ) { entry ->
+        composable(route = "${Screens.Queues.name}?index={index}", arguments = listOf(navArgument("index") {
+            type = NavType.LongType
+            defaultValue = -1L
+        })) { entry ->
             val index = entry.arguments?.getLong("index") ?: -1L
             QueuesScreen(index)
         }
         composable(Screens.Search.name) { SearchScreen() }
         composable(Screens.TopChartFeeds.name) { TopChartFeeds() }
-        composable(
-            route = "${Screens.OnlineFeed.name}/{url}?source={source}&shared={shared}",
-            arguments = listOf(
-                navArgument("url") { type = NavType.StringType },
-                navArgument("source") {
-                    type = NavType.StringType
-                    defaultValue = ""
-                },
-                navArgument("shared") {
-                    type = NavType.BoolType
-                    defaultValue = false
-                }
-            )
-        ) { entry ->
+        composable(route = "${Screens.OnlineFeed.name}?url={url}&source={source}&shared={shared}", arguments = listOf(
+            navArgument("url") {
+                type = NavType.StringType
+                defaultValue = ""
+            }, navArgument("source") {
+                type = NavType.StringType
+                defaultValue = ""
+            }, navArgument("shared") {
+                type = NavType.BoolType
+                defaultValue = false
+            })) { entry ->
             val encodedUrl = entry.arguments?.getString("url") ?: "Error"
             val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.name())
             val source = entry.arguments?.getString("source") ?: ""
@@ -366,15 +375,6 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
     }
 }
 
-fun saveLastNavScreen(tag: String?, arg: String? = null) {
-    Logd(TAG, "saveLastNavScreen(tag: $tag)")
-    upsertBlk(appAttribs) {
-        it.prefLastScreen = tag ?: ""
-        if (arg == null && tag == Screens.FeedDetails.name) it.prefLastScreenArg = "${Screens.FeedDetails.name}/${feedIdOnDisplay}"
-        else it.prefLastScreenArg = arg ?: ""
-    }
-}
-
 var drawerState by mutableStateOf(DrawerState(initialValue = DrawerValue.Closed))
 
 fun openDrawer() {
@@ -383,4 +383,54 @@ fun openDrawer() {
 
 fun closeDrawer() {
     lcScope?.launch { drawerState.close() }
+}
+
+fun NavHostController.safeNavigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
+    try {
+        this.navigate(route, builder)
+    } catch (e: IllegalArgumentException) {
+        Loge(TAG, "Navigation failed: ${e.message}")
+        this.navigate(Screens.Subscriptions.name, builder)
+    }
+}
+
+fun NavHostController.routeExists(route: String): Boolean {
+    return try {
+        this.graph.findNode(route) != null
+    } catch (e: Exception) {
+        false
+    }
+}
+
+class AppNavigator(
+    private val navController: NavHostController,
+    private val onNavigated: (String) -> Unit
+) {
+    fun navigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
+        var route = route
+        if (!navController.routeExists(route)) {
+            Loge(TAG, "navigate invalid route: $route. Open Subscriptions")
+            route = Screens.Subscriptions.name
+        }
+        onNavigated(route)
+        navController.safeNavigate(route, builder)
+    }
+
+    val currentDestination:  NavDestination?
+        get() = navController.currentDestination
+
+    val previousBackStackEntry: NavBackStackEntry?
+        get() = navController.previousBackStackEntry
+
+    fun popBackStack(): Boolean {
+        return navController.popBackStack()
+    }
+
+    fun popBackStack(
+        route: String,
+        inclusive: Boolean,
+        saveState: Boolean = false
+    ): Boolean {
+        return navController.popBackStack(route, inclusive, saveState)
+    }
 }

@@ -96,17 +96,15 @@ fun UIPreferencesScreen(activity: PreferenceActivity) {
         TitleSummarySwitchPrefRow(R.string.pref_show_notification_skip_title, R.string.pref_show_notification_skip_sum, AppPrefs.prefShowSkip)
         Text(stringResource(R.string.behavior), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
         var showDefaultPageOptions by remember { mutableStateOf(false) }
-        var tempSelectedOption by remember { mutableStateOf(getPref(AppPrefs.prefDefaultPage, DefaultPages.Subscriptions.name)) }
         TitleSummaryActionColumn(R.string.pref_default_page, R.string.pref_default_page_sum) { showDefaultPageOptions = true }
         if (showDefaultPageOptions) {
+            var tempSelectedOption by remember { mutableStateOf(getPref(AppPrefs.prefDefaultPage, DefaultPages.Subscriptions.name)) }
             AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showDefaultPageOptions = false },
                 title = { Text(stringResource(R.string.pref_default_page), style = CustomTextStyles.titleCustom) },
                 text = {
                     Column {
                         DefaultPages.entries.forEach { option ->
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { tempSelectedOption = option.name }) {
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable { tempSelectedOption = option.name }) {
                                 Checkbox(checked = tempSelectedOption == option.name, onCheckedChange = { tempSelectedOption = option.name })
                                 Text(stringResource(option.res), modifier = Modifier.padding(start = 16.dp), style = MaterialTheme.typography.bodyMedium)
                             }

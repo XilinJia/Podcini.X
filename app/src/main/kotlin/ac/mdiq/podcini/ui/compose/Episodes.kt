@@ -115,6 +115,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -296,7 +297,7 @@ fun ChaptersColumn(media: Episode) {
 @Composable
 fun EpisodeMarks(episode: Episode?) {
     if (!episode?.marks.isNullOrEmpty()) {
-        val context = LocalContext.current
+        val context by rememberUpdatedState(LocalContext.current)
         var markToRemove by remember { mutableLongStateOf(0L) }
         if (markToRemove != 0L) {
             AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { markToRemove = 0L },
@@ -796,7 +797,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                 SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                             }
                         }
-                        if (expandRow) NonlazyGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                        if (expandRow) ScrollRowGrid(columns = 3, itemCount = tagList.size, modifier = Modifier.padding(start = 10.dp)) { index ->
                             LaunchedEffect(Unit) { if (filter.containsTag(tagList[index])) selectedList[index].value = true }
                             OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                 onClick = {
@@ -920,7 +921,7 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                                     }
                                 }
                             }
-                            if (expandRow) NonlazyGrid(columns = 3, itemCount = item.properties.size) { index ->
+                            if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size) { index ->
                                 if (selectNone) selectedList[index].value = false
                                 LaunchedEffect(Unit) {
                                     if (item.properties[index].filterId in filter.propertySet) selectedList[index].value = true
@@ -975,7 +976,7 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder?, includeConditionals: List<Ep
             var order by remember { mutableStateOf(initOrder) }
             var sortIndex by remember { mutableIntStateOf(if (initOrder != null) initOrder.ordinal/2 else -1) }
             Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).verticalScroll(rememberScrollState())) {
-                NonlazyGrid(columns = 2, itemCount = orderList.size) { index ->
+                ScrollRowGrid(columns = 2, itemCount = orderList.size) { index ->
                     var dir by remember { mutableStateOf(if (sortIndex == index) initOrder!!.ordinal % 2 == 0 else true) }
                     OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) buttonColor else buttonAltColor),
                         onClick = {
@@ -984,7 +985,7 @@ fun EpisodeSortDialog(initOrder: EpisodeSortOrder?, includeConditionals: List<Ep
                             order = EpisodeSortOrder.entries[2 * index + if (dir) 0 else 1]
                             onSelectionChanged(order)
                         }
-                    ) { Text(text = stringResource(orderList[index].res) + if (dir) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                    ) { Text(text = stringResource(orderList[index].res) + if (dir) "\u00A0▲" else "\u00A0▼", color = textColor, maxLines = 1) }
                 }
             }
         }

@@ -220,7 +220,7 @@ val queueSettingOptions = listOf("Default", "Active", "None", "Custom")
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun FeedDetailsScreen(feedId: Long, modeName: String = FeedScreenMode.List.name) {
+fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.name) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -264,7 +264,6 @@ fun FeedDetailsScreen(feedId: Long, modeName: String = FeedScreenMode.List.name)
 //                    val testNum = 1
 //                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
 //                    Logd(TAG, "test eList: ${eList.size}")
-                    saveLastNavScreen(TAG, feed?.id?.toString())
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
                 }
                 Lifecycle.Event.ON_START -> {}

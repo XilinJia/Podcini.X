@@ -366,7 +366,7 @@ fun SearchScreen() {
                     vm.queryText = it
                     vm.search(vm.queryText)
                 }
-            }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
+            }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else openDrawer()  }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -382,13 +382,13 @@ fun SearchScreen() {
                     AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
                         modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
                             Logd(TAG, "icon clicked!")
-                            if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}/${feed.id}?modeName=${FeedScreenMode.Info.name}")
+                            if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
                         })
                     )
                     val textColor = MaterialTheme.colorScheme.onSurface
                     Column(Modifier.weight(1f).padding(start = 10.dp).clickable(onClick = {
                         Logd(TAG, "clicked: ${feed.title}")
-                        if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}/${feed.id}")
+                        if (!feed.isBuilding) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
                     })) {
                         Row {
                             if (feed.rating != Rating.UNRATED.code)
@@ -422,7 +422,7 @@ fun SearchScreen() {
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.pafeeds, key = { _, feed -> feed.id }) { index, feed ->
                 fun navToOnlineFeed() {
-                    if (feed.feedUrl.isNotBlank()) navController.navigate("${Screens.OnlineFeed.name}/${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}")
+                    if (feed.feedUrl.isNotBlank()) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}")
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
@@ -466,7 +466,7 @@ fun SearchScreen() {
                 OutlinedButton(onClick = {
                     val query = vm.queryText
                     if (query.matches("http[s]?://.*".toRegex())) {
-                        navController.navigate("${Screens.OnlineFeed.name}/${URLEncoder.encode(query, StandardCharsets.UTF_8.name())}")
+                        navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(query, StandardCharsets.UTF_8.name())}")
                         return@OutlinedButton
                     }
                     setOnlineSearchTerms(CombinedSearcher::class.java, query)

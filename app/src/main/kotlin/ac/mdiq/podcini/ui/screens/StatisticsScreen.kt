@@ -72,6 +72,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -193,7 +194,7 @@ class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
 fun StatisticsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val vm = remember { StatisticsVM(context, scope) }
 
@@ -277,7 +278,7 @@ fun StatisticsScreen() {
                     val img = remember(feedStats) { ImageRequest.Builder(context).data(feedStats.feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                     AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), contentScale = ContentScale.FillBounds,
                         modifier = Modifier.width(40.dp).height(90.dp).padding(end = 5.dp).clickable(onClick = {
-                            navController.navigate("${Screens.FeedDetails.name}/${feedStats.feed.id}?modeName=${FeedScreenMode.Info.name}")
+                            navController.navigate("${Screens.FeedDetails.name}?feedId=${feedStats.feed.id}&modeName=${FeedScreenMode.Info.name}")
                         })
                     )
                     Column(modifier = Modifier.clickable(onClick = {
@@ -861,7 +862,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
             }
         },
         confirmButton = { if (showOpenFeed) TextButton(onClick = {
-            navController.navigate("${Screens.FeedDetails.name}/${feedId}")
+            navController.navigate("${Screens.FeedDetails.name}?feedId=${feedId}")
             onDismissRequest()
         }) { Text(stringResource(R.string.open_podcast))} },
         dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }

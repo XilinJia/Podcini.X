@@ -89,6 +89,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -375,10 +376,10 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 }
 
 @Composable
-fun OnlineFeedScreen(url: String, source: String = "", shared: Boolean = false) {
+fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val textColor = MaterialTheme.colorScheme.onSurface
     val navController = LocalNavController.current
     val vm = remember { OnlineFeedVM(context, scope) }
@@ -498,7 +499,7 @@ fun OnlineFeedScreen(url: String, source: String = "", shared: Boolean = false) 
                                 if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.ordinal }
                             }
                             val feed = getFeedByTitleAndAuthor(vm.feed?.eigenTitle ?: "", vm.feed?.author ?: "")
-                            if (feed != null) navController.navigate("${Screens.FeedDetails.name}/${feed!!.id}?modeName=${FeedScreenMode.Info.name}")
+                            if (feed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
                         } else {
                             vm.enableSubscribe = false
                             vm.enableEpisodes = false
@@ -587,7 +588,7 @@ fun OnlineFeedScreen(url: String, source: String = "", shared: Boolean = false) 
                             val feed = remember(index) { vm.relatedFeeds[index] }
                             val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                             AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable(onClick = {
-                                navController.navigate("${Screens.OnlineFeed.name}/${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}?source=${feed.source}")
+                                navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}&source=${feed.source}")
                             }))
                         }
                     }

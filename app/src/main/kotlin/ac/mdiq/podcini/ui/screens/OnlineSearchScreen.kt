@@ -70,6 +70,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -153,7 +154,7 @@ class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
 fun OnlineSearchScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val vm = remember { OnlineSearchVM(context, scope) }
 
@@ -200,7 +201,7 @@ fun OnlineSearchScreen() {
             TopAppBar(title = {
                 SearchBarRow(R.string.search_podcast_hint, searchText) { queryText ->
                     if (queryText.isBlank()) return@SearchBarRow
-                    if (queryText.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}/${URLEncoder.encode(queryText, StandardCharsets.UTF_8.name())}")
+                    if (queryText.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(queryText, StandardCharsets.UTF_8.name())}")
                     else vm.search(queryText)
                 }
             }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
@@ -241,7 +242,7 @@ fun OnlineSearchScreen() {
                     Logd(TAG, "addLocalFolderLauncher fromDatabase episodes: ${fd?.episodes?.size}")
                     fd
                 }
-                withContext(Dispatchers.Main) { if (feed != null) navController.navigate("${Screens.FeedDetails.name}/${feed.id}") }
+                withContext(Dispatchers.Main) { if (feed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}") }
             } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
         }
     }

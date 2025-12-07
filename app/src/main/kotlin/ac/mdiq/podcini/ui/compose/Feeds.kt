@@ -224,8 +224,8 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
     Column(Modifier.padding(start = 5.dp, end = 5.dp, top = 4.dp, bottom = 4.dp).combinedClickable(
         onClick = {
             if (feed.feedUrl != null) {
-                if (feed.feedId > 0) navController.navigate("${Screens.FeedDetails.name}/${feed.feedId}")
-                else navController.navigate("${Screens.OnlineFeed.name}/${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}?source=${feed.source}")
+                if (feed.feedId > 0) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.feedId}")
+                else navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}&source=${feed.source}")
             }
         }, onLongClick = { showSubscribeDialog.value = true })) {
         val textColor = MaterialTheme.colorScheme.onSurface

@@ -8,6 +8,9 @@ import java.util.Locale
 import kotlin.collections.iterator
 
 enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolean = false) {
+    TIME_IN_QUEUE_ASC(21, R.string.time_in_queue, true),
+    TIME_IN_QUEUE_DESC(22, R.string.time_in_queue, true),
+
     DATE_ASC(1, R.string.publish_date),
     DATE_DESC(2, R.string.publish_date),
 
@@ -28,9 +31,6 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
     DOWNLOAD_DATE_DESC(16, R.string.download_date),
     COMMENT_DATE_ASC(19, R.string.last_comment_date),
     COMMENT_DATE_DESC(20, R.string.last_comment_date),
-
-    TIME_IN_QUEUE_ASC(21, R.string.time_in_queue, true),
-    TIME_IN_QUEUE_DESC(22, R.string.time_in_queue, true),
 
     TIME_OUT_QUEUE_ASC(23, R.string.time_out_queue, true),
     TIME_OUT_QUEUE_DESC(24, R.string.time_out_queue, true),

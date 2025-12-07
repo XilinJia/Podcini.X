@@ -11,13 +11,17 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -27,6 +31,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -318,15 +324,57 @@ fun CommentEditingDialog(textState: TextFieldValue, autoSave: Boolean = true, on
 
 @Composable
 fun NonlazyGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, content: @Composable (Int) -> Unit) {
+    val rows = remember {
+        var r = itemCount / columns
+        if (itemCount.mod(columns) > 0) r += 1
+        r
+    }
     Column(modifier = modifier) {
-        var rows = (itemCount / columns)
-        if (itemCount.mod(columns) > 0) rows += 1
         for (rowId in 0 until rows) {
-            val firstIndex = rowId * columns
+            val firstIndex = remember { rowId * columns }
             Row {
                 for (columnId in 0 until columns) {
-                    val index = firstIndex + columnId
+                    val index = remember { firstIndex + columnId }
                     Box(modifier = Modifier.fillMaxWidth().weight(1f)) { if (index < itemCount) content(index) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ScrollRowGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, content: @Composable (Int) -> Unit) {
+    val rows = remember {
+        var r = itemCount / columns
+        if (itemCount.mod(columns) > 0) r += 1
+        r
+    }
+    Column(modifier = modifier) {
+        for (rowId in 0 until rows) {
+            val firstIndex = remember { rowId * columns }
+            Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                for (cid in 0 until columns) {
+                    val index = remember { firstIndex + cid }
+                    val mod = if (cid < columns-1) Modifier.padding(end = 10.dp) else Modifier
+                    Box(modifier = mod) { if (index < itemCount) content(index) }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+fun AlignedGrid(columnsData: List<List<String>>, content: @Composable (Int) -> Unit) {
+    LazyRow(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 8.dp)) {
+        itemsIndexed(columnsData) { _, columnItems ->
+            Column(modifier = Modifier.fillMaxHeight().padding(horizontal = 4.dp)) {
+                columnItems.forEach { itemText ->
+                    Box(modifier = Modifier.width(IntrinsicSize.Max)) {
+                        OutlinedButton(onClick = {}) {
+                            Text(itemText)
+                        }
+                    }
                 }
             }
         }
@@ -453,9 +501,7 @@ fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boole
     if (showDialog.value) {
         AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showDialog.value = false },
             title = { if (titleRes != 0) Text(stringResource(titleRes)) },
-            text = {
-                Column(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(message) }
-            },
+            text = { Column(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(message) } },
             confirmButton = {
                 TextButton(onClick = {
                     onConfirm()

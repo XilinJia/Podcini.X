@@ -244,24 +244,6 @@ class Episode : RealmObject {
         }
     var playbackCompletionTime: Long = 0
 
-    @Ignore
-    var volumeAdaptionSetting: VolumeAdaptionSetting = VolumeAdaptionSetting.OFF
-        get() = fromInteger(volumeAdaption)
-        set(value) {
-            field = value
-            volumeAdaption = field.value
-        }
-    var volumeAdaption: Int = 0
-
-    @Ignore
-    val adaptionFactor: Float
-        get() = when {
-            volumeAdaptionSetting != VolumeAdaptionSetting.OFF -> volumeAdaptionSetting.adaptionFactor
-            feed != null -> feed!!.volumeAdaptionSetting.adaptionFactor
-            else -> 1f
-        }
-
-
     // if null: unknown, will be checked
     // TODO: what to do with this? can be expensive
     @Ignore
@@ -284,9 +266,6 @@ class Episode : RealmObject {
             this.repeatTime = value?.time ?: 0L
         }
     var repeatTime: Long = 0L
-
-    @Ignore
-    var webviewData by mutableStateOf<String?>(null)
 
     @Ignore
     val isWorthy: Boolean

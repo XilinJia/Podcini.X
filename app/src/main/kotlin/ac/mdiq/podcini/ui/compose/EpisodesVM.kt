@@ -176,7 +176,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
     val scope = rememberCoroutineScope()
     val lazyListState = rememberLazyListState()
     var longPressIndex by remember { mutableIntStateOf(-1) }
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
@@ -461,7 +461,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             onClick = {
                                 Logd(TAG, "clicked: ${episode.title}")
                                 if (selectMode) toggleSelected(episode)
-                                else navController.navigate("${Screens.EpisodeInfo.name}/${episode.id}")
+                                else navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${episode.id}")
                             },
                             onLongClick = {
                                 selectMode = !selectMode
@@ -592,8 +592,8 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                 Logd(TAG, "icon clicked!")
                                 when {
                                     selectMode -> toggleSelected(episode)
-                                    feed == null && episode.feed?.isSynthetic() != true -> navController.navigate("${Screens.FeedDetails.name}/${episode.feed!!.id}?modeName=${FeedScreenMode.Info.name}")
-                                    else -> navController.navigate("${Screens.EpisodeInfo.name}/${episode.id}")
+                                    feed == null && episode.feed?.isSynthetic() != true -> navController.navigate("${Screens.FeedDetails.name}?feedId=${episode.feed!!.id}&modeName=${FeedScreenMode.Info.name}")
+                                    else -> navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${episode.id}")
                                 }
                             }))
                         }
