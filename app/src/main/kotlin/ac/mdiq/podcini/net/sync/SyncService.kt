@@ -212,7 +212,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         val queuedEpisodeActions: MutableList<EpisodeAction> = synchronizationQueueStorage.queuedEpisodeActions
         if (lastSync == 0L) {
             EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_upload_played))
-            val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_DESC)
+            val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.PLAYED.name), EpisodeSortOrder.DATE_DESC)
             Logd(TAG, "First sync. Upload state for all " + readItems.size + " played episodes")
             for (item in readItems) {
                 val played = EpisodeAction.Builder(item, EpisodeAction.PLAY)

@@ -13,7 +13,6 @@ import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
@@ -142,23 +141,17 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import io.github.xilinjia.krdb.ext.toRealmSet
-import io.github.xilinjia.krdb.notifications.DeletedObject
-import io.github.xilinjia.krdb.notifications.InitialObject
-import io.github.xilinjia.krdb.notifications.PendingObject
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
-import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.query.Sort
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -177,137 +170,96 @@ fun SubscriptionsScreen() {
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
-    var subPrefs: SubscriptionsPrefs = remember { realm.query(SubscriptionsPrefs::class).first().find() ?: SubscriptionsPrefs() }
-
-    var subPrefsJob: Job? = remember { null }
+    var prefsFlow by remember { mutableStateOf<Flow<SingleQueryChange<SubscriptionsPrefs>>>(emptyFlow()) }
 
     val queueNames = remember { mutableStateListOf<String>() }
     val queueIds = remember { mutableListOf<Long>() }
 
-    var isFiltered by remember { mutableStateOf(false) }
-
     //    TODO: currently not used
     var displayedFolder by remember { mutableStateOf("") }
 
-    var feedsSorted by remember { mutableIntStateOf(0) }
-
-    var feedsFiltered by remember { mutableIntStateOf(0) }
-
-    var sortIndex by remember { mutableIntStateOf(0) }
-
-    var sortDir by remember { mutableStateOf(Sort.ASCENDING) }
-
-    var sortPair by remember { mutableStateOf(Pair("eigenTitle", Sort.ASCENDING)) }
-
-    var titleAscending by remember { mutableStateOf(true) }
-    var dateAscending by remember { mutableStateOf(true) }
-    var timeAscending by remember { mutableStateOf(true) }
-    var countAscending by remember { mutableStateOf(true) }
-    var dateSortIndex by remember { mutableIntStateOf(0) }
-    var timeSortIndex by remember { mutableIntStateOf(0) }
     val episodeStateSort = remember { MutableList(EpisodeState.entries.size) { mutableStateOf(false) } }
-    val playStateCodeSet = remember { mutableSetOf<String>() }
     val ratingSort = remember { MutableList(Rating.entries.size) { mutableStateOf(false) } }
-    val ratingCodeSet = remember { mutableSetOf<String>() }
-    var downlaodedSortIndex by remember { mutableIntStateOf(-1) }
-    var commentedSortIndex by remember { mutableIntStateOf(-1) }
 
     var feedsFlow by remember { mutableStateOf<Flow<ResultsChange<Feed>>>(emptyFlow()) }
 
-    var showFilterDialog by remember {  mutableStateOf(false) }
+    var filterSorted by remember { mutableStateOf(false) }
+    var showFilterDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
     var showNewSynthetic by remember { mutableStateOf(false) }
-
-    var useGrid by remember { mutableStateOf(subPrefs.prefFeedGridLayout) }
-
     var selectMode by remember { mutableStateOf(false) }
+
+    val prefsChange by prefsFlow.collectAsState(initial = null)
+    val subPrefs = prefsChange?.obj ?: realm.query(SubscriptionsPrefs::class).first().find() ?: SubscriptionsPrefs()
+    var prefsReset by remember { mutableStateOf(false) }
 
     val feedsChange by feedsFlow.collectAsState(initial = null)
     val feeds = feedsChange?.list ?: emptyList()
 
-    fun getSortingPrefs() {
-        sortIndex = subPrefs.sortIndex
-        titleAscending = subPrefs.titleAscending
-        dateAscending = subPrefs.dateAscending
-        countAscending = subPrefs.countAscending
-        dateSortIndex = subPrefs.dateSortIndex
-        downlaodedSortIndex = subPrefs.downlaodedSortIndex
-        commentedSortIndex = subPrefs.commentedSortIndex
-        playStateCodeSet.clear()
-        playStateCodeSet.addAll(subPrefs.playStateCodeSet)
-        ratingCodeSet.clear()
-        ratingCodeSet.addAll(subPrefs.ratingCodeSet)
-        val sortProperty = subPrefs.sortProperty.ifBlank { "eigenTitle" }
-        val sortDirCode = subPrefs.sortDirCode
-        sortPair = Pair(sortProperty, if (sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
-
-        for (i in episodeStateSort.indices) episodeStateSort[i].value = false
-        for (c in playStateCodeSet) episodeStateSort[EpisodeState.fromCode(c.toInt()).ordinal].value = true
-        for (i in ratingSort.indices) ratingSort[i].value = false
-        for (c in ratingCodeSet) ratingSort[Rating.fromCode(c.toInt()).ordinal].value = true
-    }
-
-    fun buildFlow() {
-        fun feedFetchQString(): String {
-            fun languagesQS() : String {
-                var qrs  = ""
-                when {
-                    subPrefs.langsSel.isEmpty() -> qrs = " (languages.@count > 0) "
-                    subPrefs.langsSel.size == appAttribs.languages.size -> qrs = ""
-                    else -> {
-                        for (l in subPrefs.langsSel) {
-                            qrs += if (qrs.isEmpty()) " ( ANY languages == '$l' " else " OR ANY languages == '$l' "
-                        }
-                        if (qrs.isNotEmpty()) qrs += " ) "
-                    }
-                }
-                Logd(TAG, "languagesQS: $qrs")
-                return qrs
-            }
-            fun tagsQS() : String {
-                var qrs  = ""
-                when {
-                    subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
-                    subPrefs.tagsSel.size == appAttribs.feedTags.size -> qrs = ""
-                    else -> {
-                        for (t in subPrefs.tagsSel) {
-                            qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
-                        }
-                        if (qrs.isNotEmpty()) qrs += " ) "
-                    }
-                }
-                Logd(TAG, "tagsQS: $qrs")
-                return qrs
-            }
-            fun queuesQS() : String {
-                val qSelIds_ = subPrefs.queueSelIds.toMutableSet()
-                if (qSelIds_.isEmpty()) qSelIds_.add(-2)
-                else {
-                    if ((queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
-                    else qSelIds_.remove(-2)
-                }
-                var qrs  = ""
-                for (id in qSelIds_) {
-                    qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
+    fun languagesQS() : String {
+        var qrs  = ""
+        when {
+            subPrefs.langsSel.isEmpty() -> qrs = " (languages.@count > 0) "
+            subPrefs.langsSel.size == appAttribs.languages.size -> qrs = ""
+            else -> {
+                for (l in subPrefs.langsSel) {
+                    qrs += if (qrs.isEmpty()) " ( ANY languages == '$l' " else " OR ANY languages == '$l' "
                 }
                 if (qrs.isNotEmpty()) qrs += " ) "
-                Logd(TAG, "queuesQS: $qrs")
-                return qrs
             }
+        }
+        Logd(TAG, "languagesQS: $qrs")
+        return qrs
+    }
+    fun tagsQS() : String {
+        var qrs  = ""
+        when {
+            subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
+            subPrefs.tagsSel.size == appAttribs.feedTags.size -> qrs = ""
+            else -> {
+                for (t in subPrefs.tagsSel) {
+                    qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
+                }
+                if (qrs.isNotEmpty()) qrs += " ) "
+            }
+        }
+        Logd(TAG, "tagsQS: $qrs")
+        return qrs
+    }
+    fun queuesQS() : String {
+        val qSelIds_ = subPrefs.queueSelIds.toMutableSet()
+        if (qSelIds_.isEmpty()) qSelIds_.add(-2)
+        else {
+            if ((queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
+            else qSelIds_.remove(-2)
+        }
+        var qrs  = ""
+        for (id in qSelIds_) {
+            qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
+        }
+        if (qrs.isNotEmpty()) qrs += " ) "
+        Logd(TAG, "queuesQS: $qrs")
+        return qrs
+    }
 
-            var fQueryStr = FeedFilter(subPrefs.feedsFilter).queryString()
-            val langsQueryStr = languagesQS()
+    val langsQueryStr by remember(subPrefs.langsSel.size) { mutableStateOf(languagesQS()) }
+    val tagsQueryStr by remember(subPrefs.tagsSel.size) { mutableStateOf(tagsQS()) }
+    val queuesQueryStr by remember(subPrefs.queueSelIds.size) { mutableStateOf(queuesQS()) }
+    val filterQueryStr by remember(subPrefs.feedsFilter) { mutableStateOf(FeedFilter(subPrefs.feedsFilter).queryString()) }
+
+    fun buildFlow() {
+        Logd(TAG, "buildFlow")
+        fun feedFetchQString(): String {
+            var fQueryStr = filterQueryStr
             if (langsQueryStr.isNotEmpty())  fQueryStr += " AND $langsQueryStr"
-            val tagsQueryStr = tagsQS()
             if (tagsQueryStr.isNotEmpty())  fQueryStr += " AND $tagsQueryStr"
-            val queuesQueryStr = queuesQS()
             if (queuesQueryStr.isNotEmpty())  fQueryStr += " AND $queuesQueryStr"
-
-            Logd(TAG, "fQueryStr: $fQueryStr")
             return fQueryStr
         }
-        feedsFlow = realm.query(Feed::class).query(feedFetchQString()).sort(sortPair).asFlow()
-        isFiltered = subPrefs.feedsFilter.isNotEmpty() || subPrefs.tagsSel.size != appAttribs.feedTags.size || subPrefs.langsSel.size != appAttribs.languages.size || subPrefs.queueSelIds.size != queueIds.size
+        val fetchQS = feedFetchQString()
+        val sortPair = Pair(subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
+        Logd(TAG, "fetchQS: $fetchQS ${sortPair.first} ${sortPair.second.name}")
+        feedsFlow = realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
     }
 
     DisposableEffect(lifecycleOwner) {
@@ -315,28 +267,20 @@ fun SubscriptionsScreen() {
             Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    if (subPrefsJob == null) subPrefsJob = scope.launch(Dispatchers.IO) {
-                        val flow = realm.query(SubscriptionsPrefs::class).first().asFlow()
-                        flow.collect { changes: SingleQueryChange<SubscriptionsPrefs> ->
-                            when (changes) {
-                                is InitialObject -> {
-                                    Logd(TAG, "subPrefsJob InitialObject")
-                                    subPrefs = changes.obj
-                                }
-                                is UpdatedObject -> {
-                                    Logd(TAG, "subPrefsJob UpdatedObject")
-                                    subPrefs = changes.obj
-                                }
-                                is DeletedObject -> {}
-                                is PendingObject -> {}
+                    if (!prefsReset) {
+                        Logd(TAG, "prefsReset: $prefsReset")
+                        prefsReset = true
+                        runOnIOScope {
+                            upsert(subPrefs) {
+                                it.feedsSorted = 0
+                                it.feedsFiltered = 0
                             }
                         }
                     }
-                    getSortingPrefs()
+                    prefsFlow = realm.query(SubscriptionsPrefs::class).first().asFlow()
                     val queues = realm.query(PlayQueue::class).find()
                     queueIds.addAll(queues.map { it.id })
                     queueNames.addAll(queues.map { it.name })
-                    buildFlow()
                 }
                 Lifecycle.Event.ON_START -> gearbox.cleanGearData()
                 Lifecycle.Event.ON_RESUME -> {}
@@ -348,226 +292,228 @@ fun SubscriptionsScreen() {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             Logd(TAG, "Lifecycle.Event onDispose")
-            subPrefsJob?.cancel()
-            subPrefsJob = null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    var sortingJob = remember<Job?> { null }
-    fun sortRoutine() {
-        suspend fun prepareSort() {
-            Logd(TAG, "prepareSort feeds: ${feeds.size}")
-            if (feeds.isEmpty()) return
+    var playStateQueries by remember { mutableStateOf("") }
+    var ratingQueries by remember { mutableStateOf("") }
 
-            when (sortIndex) {
-                FeedSortIndex.Title.ordinal -> {
-                    sortDir = if (titleAscending) Sort.ASCENDING else Sort.DESCENDING
-                    sortPair = Pair("eigenTitle", sortDir)
-                }
-                FeedSortIndex.Date.ordinal -> {
-                    sortDir = if (dateAscending) Sort.ASCENDING else Sort.DESCENDING
-                    when (dateSortIndex) {
-                        FeedDateSortIndex.Publish.ordinal -> {  // date publish
-                            var playStateQueries = ""
-                            for (i in episodeStateSort.indices) {
-                                if (episodeStateSort[i].value) {
-                                    if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
-                                    playStateQueries += " playState == ${EpisodeState.entries[i].code} "
-                                }
-                            }
-                            var queryString = "feedId == $0"
-                            if (playStateQueries.isNotEmpty()) queryString += " AND ($playStateQueries)"
-                            queryString += " SORT(pubDate DESC)"
-                            Logd(TAG, "prepareSort queryString: $queryString")
-                            realm.write {
-                                for (f_ in feeds) {
-                                    val f = findLatest(f_) ?: continue
-                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.pubDate ?: 0L
-                                    f.sortValue = d
-                                    f.sortInfo = formatDateTimeFlex(Date(d))
-                                }
-                            }
-                            sortPair = Pair("sortValue", sortDir)
-                        }
-                        FeedDateSortIndex.Downloaded.ordinal -> {  // date downloaded
-                            val queryString = "feedId == $0 SORT(downloadTime DESC)"
-                            realm.write {
-                                for (f_ in feeds) {
-                                    val f = findLatest(f_) ?: continue
-                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.downloadTime ?: 0L
-                                    f.sortValue = d
-                                    f.sortInfo = "D: ${formatDateTimeFlex(Date(d))}"
-                                }
-                            }
-                            Logd(TAG, "prepareSort queryString: $queryString")
-                            sortPair = Pair("sortValue", sortDir)
-                        }
-                        FeedDateSortIndex.Played.ordinal -> {  // date last played
-                            val queryString = "feedId == $0 SORT(lastPlayedTime DESC)"
-                            realm.write {
-                                for (f_ in feeds) {
-                                    val f = findLatest(f_) ?: continue
-                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.lastPlayedTime ?: 0L
-                                    f.sortValue = d
-                                    f.sortInfo = "P: ${formatDateTimeFlex(Date(d))}"
-                                }
-                            }
-                            Logd(TAG, "prepareSort queryString: $queryString")
-                            sortPair = Pair("sortValue", sortDir)
-                        }
-                        FeedDateSortIndex.Commented.ordinal -> {  // date last commented
-                            val queryString = "feedId == $0 SORT(commentTime DESC)"
-                            realm.write {
-                                for (f_ in feeds) {
-                                    val f = findLatest(f_) ?: continue
-                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.commentTime ?: 0L
-                                    f.sortValue = d
-                                    f.sortInfo = "C: ${formatDateTimeFlex(Date(d))}"
-                                }
-                            }
-                            Logd(TAG, "prepareSort queryString: $queryString")
-                            sortPair = Pair("sortValue", sortDir)
-                        }
-                        else -> {
-                            sortPair = Pair("sortValue", sortDir)
-                        }
-                    }
-                }
-                FeedSortIndex.Count.ordinal -> {   // count
-                    sortDir = if (countAscending) Sort.ASCENDING else Sort.DESCENDING
-                    var playStateQueries = ""
-                    for (i in episodeStateSort.indices) {
-                        if (episodeStateSort[i].value) {
-                            if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
-                            playStateQueries += " playState == ${EpisodeState.entries[i].code} "
-                        }
-                    }
-                    var ratingQueries = ""
-                    for (i in ratingSort.indices) {
-                        if (ratingSort[i].value) {
-                            if (ratingQueries.isNotEmpty()) ratingQueries += " OR "
-                            ratingQueries += " rating == ${Rating.entries[i].code} "
-                        }
-                    }
-                    val downloadedQuery = if (downlaodedSortIndex == 0) " downloaded == true " else if (downlaodedSortIndex == 1) " downloaded == false " else ""
-                    val commentedQuery = if (commentedSortIndex == 0) " comment != '' " else if (commentedSortIndex == 1) " comment == '' " else ""
+    val downloadedQuery by remember(subPrefs.downlaodedSortIndex) { mutableStateOf(if (subPrefs.downlaodedSortIndex == 0) " downloaded == true " else if (subPrefs.downlaodedSortIndex == 1) " downloaded == false " else "") }
+    val commentedQuery by remember(subPrefs.commentedSortIndex) { mutableStateOf( if (subPrefs.commentedSortIndex == 0) " comment != '' " else if (subPrefs.commentedSortIndex == 1) " comment == '' " else "") }
 
+    fun prepareDateSort(subIndex: FeedDateSortIndex? = null) {
+        val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.dateSortIndex
+        Logd(TAG, "prepareDateSort")
+        suspend fun persistDateSort() {
+            upsert(subPrefs) {
+                it.sortIndex = FeedSortIndex.Date.ordinal
+                it.dateSortIndex = subIndexOrdinal
+                it.sortProperty = "sortValue"
+                it.feedsSorted++
+            }
+        }
+        runOnIOScope {
+            when (subIndexOrdinal) {
+                FeedDateSortIndex.Publish.ordinal -> {  // date publish
                     var queryString = "feedId == $0"
                     if (playStateQueries.isNotEmpty()) queryString += " AND ($playStateQueries)"
-                    if (ratingQueries.isNotEmpty()) queryString += " AND ($ratingQueries)"
-                    if (downloadedQuery.isNotEmpty()) queryString += " AND ($downloadedQuery)"
-                    if (commentedQuery.isNotEmpty()) queryString += " AND ($commentedQuery)"
+                    queryString += " SORT(pubDate DESC)"
                     Logd(TAG, "prepareSort queryString: $queryString")
                     realm.write {
                         for (f_ in feeds) {
                             val f = findLatest(f_) ?: continue
-                            val c = realm.query(Episode::class).query(queryString, f.id).count().find()
-                            f.sortValue = c
-                            f.sortInfo = "$c counts"
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.pubDate ?: 0L
+                            f.sortValue = d
+                            f.sortInfo = formatDateTimeFlex(Date(d))
                         }
                     }
-                    sortPair = Pair("sortValue", sortDir)
+                    persistDateSort()
                 }
-                else -> {
-                    sortDir = if (timeAscending) Sort.ASCENDING else Sort.DESCENDING
-                    when (timeSortIndex) {
-                        FeedTimeSortIndex.Total.ordinal -> { // total duration
-                            realm.write {
-                                for (f_ in feeds) {
-                                    val f = findLatest(f_) ?: continue
-                                    f.sortValue = f.totleDuration
-                                    f.sortInfo = "Total D: ${getDurationStringShort(f.totleDuration, true)}"
-                                }
-                            }
-                            sortPair = Pair("sortValue", sortDir)
-                        }
-                        FeedTimeSortIndex.Min.ordinal -> {  // min duration
-                            val queryString = "feedId == $0 SORT(duration ASC)"
-                            realm.write {
-                                for (f_ in feeds) {
-                                    val f = findLatest(f_) ?: continue
-                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
-                                    f.sortValue = d
-                                    f.sortInfo = "Min D: ${getDurationStringLong(d.toInt())}"
-                                }
-                            }
-                            Logd(TAG, "prepareSort queryString: $queryString")
-                            sortPair = Pair("sortValue", sortDir)
-                        }
-                        FeedTimeSortIndex.Max.ordinal -> {  // max duration
-                            val queryString = "feedId == $0 SORT(duration DESC)"
-                            realm.write {
-                                for (f_ in feeds) {
-                                    val f = findLatest(f_) ?: continue
-                                    val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
-                                    f.sortValue = d
-                                    f.sortInfo = "Max D: ${getDurationStringShort(d, true)}"
-                                }
-                            }
-                            Logd(TAG, "prepareSort queryString: $queryString")
-                            sortPair = Pair("sortValue", sortDir)
-                        }
-                        FeedTimeSortIndex.Average.ordinal -> {  // average duration
-                            realm.write {
-                                for (f_ in feeds) {
-                                    val f = findLatest(f_) ?: continue
-                                    val ln = f.episodes.size
-                                    val aveDur = if (ln > 0) f.totleDuration/ln else 0
-                                    f.sortValue = aveDur
-                                    f.sortInfo = "Ave D: ${getDurationStringShort(aveDur, true)}"
-                                }
-                            }
-                            sortPair = Pair("sortValue", sortDir)
-                        }
-                        else -> {
-                            sortPair = Pair("sortValue", sortDir)
+                FeedDateSortIndex.Downloaded.ordinal -> {  // date downloaded
+                    val queryString = "feedId == $0 SORT(downloadTime DESC)"
+                    realm.write {
+                        for (f_ in feeds) {
+                            val f = findLatest(f_) ?: continue
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.downloadTime ?: 0L
+                            f.sortValue = d
+                            f.sortInfo = "D: ${formatDateTimeFlex(Date(d))}"
                         }
                     }
+                    Logd(TAG, "prepareSort queryString: $queryString")
+                    persistDateSort()
                 }
-            }
-            Logd(TAG, "prepareSort $sortPair")
-            withContext(Dispatchers.Main) {
-                feedsSorted++
+                FeedDateSortIndex.Played.ordinal -> {  // date last played
+                    val queryString = "feedId == $0 SORT(lastPlayedTime DESC)"
+                    realm.write {
+                        for (f_ in feeds) {
+                            val f = findLatest(f_) ?: continue
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.lastPlayedTime ?: 0L
+                            f.sortValue = d
+                            f.sortInfo = "P: ${formatDateTimeFlex(Date(d))}"
+                        }
+                    }
+                    Logd(TAG, "prepareSort queryString: $queryString")
+                    persistDateSort()
+                }
+                FeedDateSortIndex.Commented.ordinal -> {  // date last commented
+                    val queryString = "feedId == $0 SORT(commentTime DESC)"
+                    realm.write {
+                        for (f_ in feeds) {
+                            val f = findLatest(f_) ?: continue
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.commentTime ?: 0L
+                            f.sortValue = d
+                            f.sortInfo = "C: ${formatDateTimeFlex(Date(d))}"
+                        }
+                    }
+                    Logd(TAG, "prepareSort queryString: $queryString")
+                    persistDateSort()
+                }
+                else -> Loge(TAG, "No such date sorting ${subPrefs.dateSortIndex}")
             }
         }
-        fun saveSortingPrefs() {
-            playStateCodeSet.clear()
-            for (i in episodeStateSort.indices) {
-                if (episodeStateSort[i].value) playStateCodeSet.add(EpisodeState.entries[i].code.toString())
-            }
-            ratingCodeSet.clear()
-            for (i in ratingSort.indices) {
-                if (ratingSort[i].value) ratingCodeSet.add(Rating.entries[i].code.toString())
-            }
-
-            upsertBlk(subPrefs) {
-                it.sortIndex = sortIndex
-                it.titleAscending = titleAscending
-                it.dateAscending = dateAscending
-                it.countAscending = countAscending
-                it.dateSortIndex = dateSortIndex
-                it.downlaodedSortIndex = downlaodedSortIndex
-                it.commentedSortIndex = commentedSortIndex
-                it.playStateCodeSet = playStateCodeSet.toRealmSet()
-                it.ratingCodeSet = ratingCodeSet.toRealmSet()
-                it.sortProperty = sortPair.first
-                it.sortDirCode = sortPair.second.ordinal
-            }
-        }
-        sortingJob?.cancel()
-        sortingJob = runOnIOScope {
-            prepareSort()
-            saveSortingPrefs()
-        }.apply { invokeOnCompletion { sortingJob = null } }
     }
+
+    fun prepareTimeSort(subIndex: FeedTimeSortIndex? = null) {
+        val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.timeSortIndex
+        Logd(TAG, "prepareTimeSort")
+        suspend fun persistTimeSort() {
+            upsert(subPrefs) {
+                it.sortIndex = FeedSortIndex.Time.ordinal
+                it.timeSortIndex = subIndexOrdinal
+                it.sortProperty = "sortValue"
+//                it.timeAscending = !it.timeAscending
+                it.feedsSorted++
+            }
+        }
+        runOnIOScope {
+            when (subIndexOrdinal) {
+                FeedTimeSortIndex.Total.ordinal -> { // total duration
+                    realm.write {
+                        for (f_ in feeds) {
+                            val f = findLatest(f_) ?: continue
+                            f.sortValue = f.totleDuration
+                            f.sortInfo = "Total D: ${getDurationStringShort(f.totleDuration, true)}"
+                        }
+                    }
+                    persistTimeSort()
+                }
+                FeedTimeSortIndex.Min.ordinal -> {  // min duration
+                    val queryString = "feedId == $0 SORT(duration ASC)"
+                    realm.write {
+                        for (f_ in feeds) {
+                            val f = findLatest(f_) ?: continue
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
+                            f.sortValue = d
+                            f.sortInfo = "Min D: ${getDurationStringLong(d.toInt())}"
+                        }
+                    }
+                    Logd(TAG, "prepareSort queryString: $queryString")
+                    persistTimeSort()
+                }
+                FeedTimeSortIndex.Max.ordinal -> {  // max duration
+                    val queryString = "feedId == $0 SORT(duration DESC)"
+                    realm.write {
+                        for (f_ in feeds) {
+                            val f = findLatest(f_) ?: continue
+                            val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
+                            f.sortValue = d
+                            f.sortInfo = "Max D: ${getDurationStringShort(d, true)}"
+                        }
+                    }
+                    Logd(TAG, "prepareSort queryString: $queryString")
+                    persistTimeSort()
+                }
+                FeedTimeSortIndex.Average.ordinal -> {  // average duration
+                    realm.write {
+                        for (f_ in feeds) {
+                            val f = findLatest(f_) ?: continue
+                            val ln = f.episodes.size
+                            val aveDur = if (ln > 0) f.totleDuration/ln else 0
+                            f.sortValue = aveDur
+                            f.sortInfo = "Ave D: ${getDurationStringShort(aveDur, true)}"
+                        }
+                    }
+                    persistTimeSort()
+                }
+                else -> Loge(TAG, "No such time sorting ${subPrefs.timeSortIndex}")
+            }
+        }
+    }
+
+    fun prepareCountSort() {
+        Logd(TAG, "prepareCountSort")
+        runOnIOScope {
+            var queryString = "feedId == $0"
+            if (playStateQueries.isNotEmpty()) queryString += " AND ($playStateQueries)"
+            if (ratingQueries.isNotEmpty()) queryString += " AND ($ratingQueries)"
+            if (downloadedQuery.isNotEmpty()) queryString += " AND ($downloadedQuery)"
+            if (commentedQuery.isNotEmpty()) queryString += " AND ($commentedQuery)"
+            Logd(TAG, "prepareSort queryString: $queryString")
+            realm.write {
+                for (f_ in feeds) {
+                    val f = findLatest(f_) ?: continue
+                    val c = realm.query(Episode::class).query(queryString, f.id).count().find()
+                    f.sortValue = c
+                    f.sortInfo = "$c counts"
+                }
+            }
+            upsert(subPrefs) {
+                it.sortIndex = FeedSortIndex.Count.ordinal
+                it.sortProperty = "sortValue"
+//                it.countAscending = !it.countAscending
+                it.feedsSorted++
+            }
+        }
+    }
+
+    LaunchedEffect(subPrefs.playStateCodeSet) {
+        playStateQueries = ""
+        Logd(TAG, "LaunchedEffect subPrefs.playStateCodeSet")
+        for (i in episodeStateSort.indices) episodeStateSort[i].value = false
+        for (c in subPrefs.playStateCodeSet) episodeStateSort[EpisodeState.fromCode(c.toInt()).ordinal].value = true
+        for (i in episodeStateSort.indices) {
+            if (episodeStateSort[i].value) {
+                if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
+                playStateQueries += " playState == ${EpisodeState.entries[i].code} "
+            }
+        }
+        when (subPrefs.sortIndex) {
+            FeedSortIndex.Date.ordinal -> prepareDateSort()
+            FeedSortIndex.Count.ordinal -> prepareCountSort()
+            else -> {}
+        }
+    }
+    LaunchedEffect(subPrefs.ratingCodeSet) {
+        ratingQueries = ""
+        Logd(TAG, "LaunchedEffect subPrefs.ratingCodeSet")
+        for (i in ratingSort.indices) ratingSort[i].value = false
+        for (c in subPrefs.ratingCodeSet) ratingSort[Rating.fromCode(c.toInt()).ordinal].value = true
+        for (i in ratingSort.indices) {
+            if (ratingSort[i].value) {
+                if (ratingQueries.isNotEmpty()) ratingQueries += " OR "
+                ratingQueries += " rating == ${Rating.entries[i].code} "
+            }
+        }
+        when (subPrefs.sortIndex) {
+            FeedSortIndex.Count.ordinal -> prepareCountSort()
+            else -> {}
+        }
+    }
+
+    LaunchedEffect(downloadedQuery, commentedQuery) { prepareCountSort() }
 
     LaunchedEffect(feedOperationText, feeds.size) {
         Logd(TAG, "LaunchedEffect feedOperationText: $feedOperationText feeds.size: ${feeds.size}")
-        if (feedOperationText.isBlank()) sortRoutine()
+        if (feedOperationText.isBlank()) when (subPrefs.sortIndex) {
+            FeedSortIndex.Date.ordinal -> prepareDateSort()
+            FeedSortIndex.Time.ordinal -> prepareTimeSort()
+            FeedSortIndex.Count.ordinal -> prepareCountSort()
+            else -> {}
+        }
     }
 
-    LaunchedEffect(feedsFiltered, sortPair.first, sortPair) {
+    LaunchedEffect(subPrefs.feedsFiltered, subPrefs.feedsSorted) {
         Logd(TAG, "LaunchedEffect feedsFiltered, sortPair.first, sortPair")
         buildFlow()
     }
@@ -576,6 +522,7 @@ fun SubscriptionsScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
+        val isFiltered by remember(subPrefs.feedsFilter, subPrefs.tagsSel.size, subPrefs.langsSel.size, subPrefs.queueSelIds.size) { mutableStateOf(subPrefs.feedsFilter.isNotEmpty() || subPrefs.tagsSel.size != appAttribs.feedTags.size || subPrefs.langsSel.size != appAttribs.languages.size || subPrefs.queueSelIds.size != queueIds.size) }
         Box {
             TopAppBar(title = {
                 Row {
@@ -611,8 +558,7 @@ fun SubscriptionsScreen() {
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
-                            useGrid = !useGrid
-                            upsertBlk(subPrefs) { it.prefFeedGridLayout = useGrid }
+                            runOnIOScope { upsert(subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
                             expanded = false
                         })
                     }
@@ -631,7 +577,16 @@ fun SubscriptionsScreen() {
 
         @SuppressLint("LocalContextResourcesRead")
         fun saveFeed(cbBlock: (Feed)->Unit) {
-            runOnIOScope { for (feed in selected) upsert(feed) { cbBlock(it) } }
+            runOnIOScope {
+                runOnIOScope {
+                    realm.write {
+                        for (f_ in selected) {
+                            val f = findLatest(f_)
+                            if (f != null) cbBlock(f)
+                        }
+                    }
+                }
+            }
             val numItems = selected.size
             Logt(TAG, context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems))
         }
@@ -737,7 +692,14 @@ fun SubscriptionsScreen() {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         for (rating in Rating.entries.reversed()) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
-                                for (item in selected) upsertBlk(item) { it.rating = rating.code }
+                                runOnIOScope {
+                                    realm.write {
+                                        for (f_ in selected) {
+                                            val f = findLatest(f_)
+                                            if (f != null) f.rating = rating.code
+                                        }
+                                    }
+                                }
                                 onDismissRequest()
                             }) {
                                 Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
@@ -754,7 +716,14 @@ fun SubscriptionsScreen() {
             if (showAssociateDialog) SetAssociateQueueDialog {showAssociateDialog = false}
             if (showKeepUpdateDialog) SetKeepUpdateDialog {showKeepUpdateDialog = false}
             if (showTagsSettingDialog) TagSettingDialog(TagType.Feed, setOf(), multiples = true, { showTagsSettingDialog = false } ) { tags ->
-                for (f in selected) upsertBlk(f) { it.tags.addAll(tags) }
+                runOnIOScope {
+                    realm.write {
+                        for (f_ in selected) {
+                            val f = findLatest(f_)
+                            if (f != null) f.tags.addAll(tags)
+                        }
+                    }
+                }
             }
             if (showSpeedDialog) PlaybackSpeedDialog(selected, initSpeed = 1f, maxSpeed = 3f, onDismiss = {showSpeedDialog = false}) { newSpeed ->
                 saveFeed { it: Feed -> it.playSpeed = newSpeed }
@@ -876,16 +845,12 @@ fun SubscriptionsScreen() {
             refreshing = false
         }) {
             val context = LocalContext.current
-            if (useGrid) {
-                val lazyGridState = rememberLazyGridState()
-                LazyVerticalGrid(state = lazyGridState, columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
+            Logd(TAG, "PullToRefreshBox ")
+            if (subPrefs.prefFeedGridLayout) {
+                LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
                     items(feeds.size, key = {index -> feeds[index].id}) { index ->
                         val feed by remember { mutableStateOf(feeds[index]) }
-                        var isSelected by remember { mutableStateOf(false) }
-                        LaunchedEffect(key1 = selectMode, key2 = selectedSize) {
-                            Logd(TAG, "LaunchedEffect(key1 = selectMode, key2 = selectedSize)")
-                            isSelected = selectMode && feed in selected
-                        }
+                        var isSelected by remember(selectMode, selectedSize, feed.id) { mutableStateOf(selectMode && feed in selected) }
                         fun toggleSelected() {
                             isSelected = !isSelected
                             if (isSelected) selected.add(feed)
@@ -933,7 +898,6 @@ fun SubscriptionsScreen() {
                                             start.linkTo(coverImage.start)
                                             bottom.linkTo(coverImage.bottom)
                                         })
-                                //                                TODO: need to use state
                                 if (feed.lastUpdateFailed) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error",
                                     modifier = Modifier.background(Color.Gray).constrainAs(error) {
                                         end.linkTo(parent.end)
@@ -945,8 +909,53 @@ fun SubscriptionsScreen() {
                     }
                 }
             } else {
-                val lazyListState = rememberLazyListState()
-                LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val listState = rememberLazyListState()
+                var restored by remember { mutableStateOf(false) }
+                DisposableEffect(LocalLifecycleOwner.current) {
+                    onDispose {
+                        val index = listState.firstVisibleItemIndex
+                        val offset = listState.firstVisibleItemScrollOffset
+                        Logd(TAG, "DisposableEffect onDispose save positions: $index $offset")
+                        runOnIOScope {
+                            upsert(subPrefs) {
+                                it.positionIndex = index
+                                it.positionOffset = offset
+                            }
+                        }
+                    }
+                }
+
+                val currentEntry = navController.navController.currentBackStackEntryAsState().value
+                LaunchedEffect(feeds.size) {
+                    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>("returned") ?: false
+                    Logd(TAG, "LaunchedEffect(feeds.size) cameBack: $cameBack")
+                    if (!restored && feeds.isNotEmpty()) {
+                        if (!cameBack) {
+                            scope.launch {
+                                val (index, offset) = Pair(subPrefs.positionIndex, subPrefs.positionOffset)
+                                val safeIndex = index.coerceIn(0, feeds.size - 1)
+                                val safeOffset = if (safeIndex == index) offset else 0
+                                listState.scrollToItem(safeIndex, safeOffset)
+                                currentEntry?.savedStateHandle?.remove<Boolean>("comingBack")
+                            }
+                        } else {
+                            scope.launch {
+                                listState.scrollToItem(
+                                    listState.firstVisibleItemIndex,
+                                    listState.firstVisibleItemScrollOffset
+                                )
+                            }
+                        }
+                        restored = true
+                    }
+                }
+                LaunchedEffect(filterSorted) {
+                    Logd(TAG, "LaunchedEffect(filterSorted) $filterSorted")
+                    if (feeds.isNotEmpty() && filterSorted) scope.launch { listState.scrollToItem(0) }
+                    filterSorted = false
+                }
+
+                LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     itemsIndexed(feeds, key = { _, feed -> feed.id}) { index, feed_ ->
                         val feed by rememberUpdatedState(feed_)
                         var isSelected by remember(key1 = selectMode, key2 = selectedSize) { mutableStateOf(selectMode && feed in selected) }
@@ -1000,7 +1009,6 @@ fun SubscriptionsScreen() {
                                     Text(feed.sortInfo, color = textColor, style = MaterialTheme.typography.bodyMedium)
                                 }
                             }
-                            //                                TODO: need to use state
                             if (feed.lastUpdateFailed) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error")
                         }
                     }
@@ -1055,123 +1063,145 @@ fun SubscriptionsScreen() {
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != FeedSortIndex.Title.ordinal) buttonColor else buttonAltColor),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.sortIndex != FeedSortIndex.Title.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
-                                    if (sortIndex == FeedSortIndex.Title.ordinal) titleAscending = !titleAscending
-                                    sortIndex = FeedSortIndex.Title.ordinal
-                                    sortRoutine()
+                                    runOnIOScope {
+                                        upsert(subPrefs) {
+                                            if (it.sortIndex == FeedSortIndex.Title.ordinal) {
+                                                it.titleAscending = !it.titleAscending
+                                                it.sortDirCode = if (it.titleAscending) 0 else 1
+                                            }
+                                            else {
+                                                it.sortIndex = FeedSortIndex.Title.ordinal
+                                                it.sortProperty = "eigenTitle"
+                                            }
+                                            it.feedsSorted += 1
+                                        }
+                                    }
                                 }
-                            ) { Text(text = stringResource(FeedSortIndex.Title.res) + if (titleAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != FeedSortIndex.Date.ordinal) buttonColor else buttonAltColor),
+                            ) { Text(text = stringResource(FeedSortIndex.Title.res) + if (subPrefs.titleAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.sortIndex != FeedSortIndex.Date.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
-                                    if (sortIndex == FeedSortIndex.Date.ordinal) dateAscending = !dateAscending
-                                    sortIndex = FeedSortIndex.Date.ordinal
-                                    sortRoutine()
+                                    if (subPrefs.sortIndex == FeedSortIndex.Date.ordinal)
+                                        runOnIOScope {
+                                            upsert(subPrefs) {
+                                                it.dateAscending = !it.dateAscending
+                                                it.sortDirCode = if (it.dateAscending) 0 else 1
+                                                it.feedsSorted += 1
+                                            }
+                                        }
+                                    else prepareDateSort()
                                 }
-                            ) { Text(text = stringResource(FeedSortIndex.Date.res) + if (dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != FeedSortIndex.Time.ordinal) buttonColor else buttonAltColor),
+                            ) { Text(text = stringResource(FeedSortIndex.Date.res) + if (subPrefs.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.sortIndex != FeedSortIndex.Time.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
-                                    if (sortIndex == FeedSortIndex.Time.ordinal) timeAscending = !timeAscending
-                                    sortIndex = FeedSortIndex.Time.ordinal
-                                    sortRoutine()
+                                    if (subPrefs.sortIndex == FeedSortIndex.Time.ordinal)
+                                        runOnIOScope {
+                                            upsert(subPrefs) {
+                                                it.timeAscending = !it.timeAscending
+                                                it.sortDirCode = if (it.timeAscending) 0 else 1
+                                                it.feedsSorted += 1
+                                            }
+                                        }
+                                    else prepareTimeSort()
                                 }
-                            ) { Text(text = stringResource(FeedSortIndex.Time.res) + if (timeAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != FeedSortIndex.Count.ordinal) buttonColor else buttonAltColor),
+                            ) { Text(text = stringResource(FeedSortIndex.Time.res) + if (subPrefs.timeAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.sortIndex != FeedSortIndex.Count.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
-                                    if (sortIndex == FeedSortIndex.Count.ordinal) countAscending = !countAscending
-                                    sortIndex = FeedSortIndex.Count.ordinal
-                                    sortRoutine()
+                                    if (subPrefs.sortIndex == FeedSortIndex.Count.ordinal)
+                                        runOnIOScope {
+                                            upsert(subPrefs) {
+                                                it.countAscending = !it.countAscending
+                                                it.sortDirCode = if (it.countAscending) 0 else 1
+                                                it.feedsSorted += 1
+                                            }
+                                        }
+                                    else prepareCountSort()
                                 }
-                            ) { Text(text = stringResource(FeedSortIndex.Count.res) + if (countAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                            ) { Text(text = stringResource(FeedSortIndex.Count.res) + if (subPrefs.countAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
-                        if (sortIndex == FeedSortIndex.Date.ordinal) {
+                        if (subPrefs.sortIndex == FeedSortIndex.Date.ordinal) {
                             Row {
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (dateSortIndex != FeedDateSortIndex.Played.ordinal) buttonColor else buttonAltColor),
-                                    onClick = {
-                                        dateSortIndex = FeedDateSortIndex.Played.ordinal
-                                        sortRoutine()
-                                    }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.dateSortIndex != FeedDateSortIndex.Played.ordinal) buttonColor else buttonAltColor),
+                                    onClick = { prepareDateSort(FeedDateSortIndex.Played) }
                                 ) { Text(stringResource(FeedDateSortIndex.Played.res)) }
                                 Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) buttonColor else buttonAltColor),
-                                    onClick = {
-                                        dateSortIndex = FeedDateSortIndex.Downloaded.ordinal
-                                        sortRoutine()
-                                    }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) buttonColor else buttonAltColor),
+                                    onClick = { prepareDateSort(FeedDateSortIndex.Downloaded) }
                                 ) { Text(stringResource(FeedDateSortIndex.Downloaded.res)) }
                                 Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (dateSortIndex != FeedDateSortIndex.Commented.ordinal) buttonColor else buttonAltColor),
-                                    onClick = {
-                                        dateSortIndex = FeedDateSortIndex.Commented.ordinal
-                                        sortRoutine()
-                                    }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.dateSortIndex != FeedDateSortIndex.Commented.ordinal) buttonColor else buttonAltColor),
+                                    onClick = { prepareDateSort(FeedDateSortIndex.Commented) }
                                 ) { Text(stringResource(FeedDateSortIndex.Commented.res)) }
                             }
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (dateSortIndex != FeedDateSortIndex.Publish.ordinal) buttonColor else buttonAltColor),
-                                onClick = {
-                                    dateSortIndex = FeedDateSortIndex.Publish.ordinal
-                                    sortRoutine()
-                                }
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.dateSortIndex != FeedDateSortIndex.Publish.ordinal) buttonColor else buttonAltColor),
+                                onClick = { prepareDateSort(FeedDateSortIndex.Publish) }
                             ) { Text(stringResource(FeedDateSortIndex.Publish.res)) }
-                        } else if (sortIndex == FeedSortIndex.Time.ordinal) {
+                        } else if (subPrefs.sortIndex == FeedSortIndex.Time.ordinal) {
                             Row {
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (timeSortIndex != 1) buttonColor else buttonAltColor),
-                                    onClick = {
-                                        timeSortIndex = 1
-                                        sortRoutine()
-                                    }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != 1) buttonColor else buttonAltColor),
+                                    onClick = { prepareTimeSort(FeedTimeSortIndex.Min) }
                                 ) { Text(stringResource(R.string.min_duration)) }
                                 Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (timeSortIndex != 2) buttonColor else buttonAltColor),
-                                    onClick = {
-                                        timeSortIndex = 2
-                                        sortRoutine()
-                                    }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != 2) buttonColor else buttonAltColor),
+                                    onClick = { prepareTimeSort(FeedTimeSortIndex.Max) }
                                 ) { Text(stringResource(R.string.max_duration)) }
                             }
                             Row {
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (timeSortIndex != 0) buttonColor else buttonAltColor),
-                                    onClick = {
-                                        timeSortIndex = 0
-                                        sortRoutine()
-                                    }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != 0) buttonColor else buttonAltColor),
+                                    onClick = { prepareTimeSort(FeedTimeSortIndex.Total) }
                                 ) { Text(stringResource(R.string.total_duration)) }
                                 Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (timeSortIndex != 3) buttonColor else buttonAltColor),
-                                    onClick = {
-                                        timeSortIndex = 3
-                                        sortRoutine()
-                                    }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != 3) buttonColor else buttonAltColor),
+                                    onClick = { prepareTimeSort(FeedTimeSortIndex.Average) }
                                 ) { Text(stringResource(R.string.average_duration)) }
                             }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
                         Column(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                            if (sortIndex == FeedSortIndex.Count.ordinal) {
+                            if (subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
                                 Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                     val item = EpisodeFilter.EpisodesFilterGroup.DOWNLOADED
                                     var selectNone by remember { mutableStateOf(false) }
-                                    if (selectNone) downlaodedSortIndex = -1
+                                    LaunchedEffect(selectNone) {
+                                        if (selectNone) runOnIOScope {
+                                            upsert(subPrefs) {
+                                                it.downlaodedSortIndex = -1
+//                                                it.feedsSorted += 1
+                                            }
+//                                            prepareCountSort()
+                                        }
+                                    }
                                     Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                     Spacer(Modifier.weight(0.3f))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (downlaodedSortIndex != 0) buttonColor else buttonAltColor),
+                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.downlaodedSortIndex != 0) buttonColor else buttonAltColor),
                                         onClick = {
-                                            if (downlaodedSortIndex != 0) {
-                                                selectNone = false
-                                                downlaodedSortIndex = 0
-                                            } else downlaodedSortIndex = -1
-                                            sortRoutine()
+                                            runOnIOScope {
+                                                upsert(subPrefs) {
+                                                    if (it.downlaodedSortIndex != 0) {
+                                                        it.downlaodedSortIndex = 0
+                                                    } else it.downlaodedSortIndex = -1
+//                                                    it.feedsSorted += 1
+                                                }
+//                                                prepareCountSort()
+                                            }
+                                            selectNone = false
                                         },
                                     ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                     Spacer(Modifier.weight(0.1f))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (downlaodedSortIndex != 1) buttonColor else buttonAltColor),
+                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.downlaodedSortIndex != 1) buttonColor else buttonAltColor),
                                         onClick = {
-                                            if (downlaodedSortIndex != 1) {
-                                                selectNone = false
-                                                downlaodedSortIndex = 1
-                                            } else downlaodedSortIndex = -1
-                                            sortRoutine()
+                                            runOnIOScope {
+                                                upsert(subPrefs) {
+                                                    if (it.downlaodedSortIndex != 1) {
+                                                        selectNone = false
+                                                        it.downlaodedSortIndex = 1
+                                                    } else it.downlaodedSortIndex = -1
+//                                                    it.feedsSorted += 1
+                                                }
+//                                                prepareCountSort()
+                                            }
                                         },
                                     ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
                                     Spacer(Modifier.weight(0.5f))
@@ -1179,32 +1209,63 @@ fun SubscriptionsScreen() {
                                 Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                     val item = EpisodeFilter.EpisodesFilterGroup.OPINION
                                     var selectNone by remember { mutableStateOf(false) }
-                                    if (selectNone) commentedSortIndex = -1
+                                    LaunchedEffect(selectNone) {
+                                        if (selectNone) runOnIOScope {
+                                            upsert(subPrefs) {
+                                                it.commentedSortIndex = -1
+//                                                it.feedsSorted += 1
+                                            }
+//                                            prepareCountSort()
+                                        }
+                                    }
                                     Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                     Spacer(Modifier.weight(0.3f))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (commentedSortIndex != 0) buttonColor else buttonAltColor),
+                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.commentedSortIndex != 0) buttonColor else buttonAltColor),
                                         onClick = {
-                                            if (commentedSortIndex != 0) {
-                                                selectNone = false
-                                                commentedSortIndex = 0
-                                            } else commentedSortIndex = -1
-                                            sortRoutine()
+                                            runOnIOScope {
+                                                upsert(subPrefs) {
+                                                    if (it.commentedSortIndex != 0) {
+                                                        selectNone = false
+                                                        it.commentedSortIndex = 0
+                                                    } else it.commentedSortIndex = -1
+//                                                    it.feedsSorted += 1
+                                                }
+//                                                prepareCountSort()
+                                            }
                                         },
                                     ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                     Spacer(Modifier.weight(0.1f))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (commentedSortIndex != 1) buttonColor else buttonAltColor),
+                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.commentedSortIndex != 1) buttonColor else buttonAltColor),
                                         onClick = {
-                                            if (commentedSortIndex != 1) {
-                                                selectNone = false
-                                                commentedSortIndex = 1
-                                            } else commentedSortIndex = -1
-                                            sortRoutine()
+                                            runOnIOScope {
+                                                upsert(subPrefs) {
+                                                    if (it.commentedSortIndex != 1) {
+                                                        selectNone = false
+                                                        it.commentedSortIndex = 1
+                                                    } else it.commentedSortIndex = -1
+//                                                    it.feedsSorted += 1
+                                                }
+//                                                prepareCountSort()
+                                            }
                                         },
                                     ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
                                     Spacer(Modifier.weight(0.5f))
                                 }
                             }
-                            if ((sortIndex == FeedSortIndex.Date.ordinal && dateSortIndex == FeedDateSortIndex.Publish.ordinal) || sortIndex == FeedSortIndex.Count.ordinal) {
+                            if ((subPrefs.sortIndex == FeedSortIndex.Date.ordinal && subPrefs.dateSortIndex == FeedDateSortIndex.Publish.ordinal) || subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
+                                fun persistStateSort() {
+                                    runOnIOScope {
+                                        runOnIOScope {
+                                            upsert(subPrefs) {
+                                                it.playStateCodeSet.clear()
+                                                for (i in episodeStateSort.indices) {
+                                                    if (episodeStateSort[i].value) it.playStateCodeSet.add(EpisodeState.entries[i].code.toString())
+                                                }
+//                                                it.feedsSorted += 1
+                                            }
+                                        }
+                                    }
+                                }
                                 val item = EpisodeFilter.EpisodesFilterGroup.PLAY_STATE
                                 var selectNone by remember { mutableStateOf(false) }
                                 var expandRow by remember { mutableStateOf(false) }
@@ -1226,7 +1287,7 @@ fun SubscriptionsScreen() {
                                                     episodeStateSort[hIndex].value = true
                                                 }
                                                 lowerSelected = !lowerSelected
-                                                sortRoutine()
+                                                persistStateSort()
                                             })
                                         Spacer(Modifier.weight(1f))
                                         Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
@@ -1235,7 +1296,7 @@ fun SubscriptionsScreen() {
                                                 lowerSelected = selectAll
                                                 higherSelected = selectAll
                                                 for (i in item.properties.indices) episodeStateSort[i].value = selectAll
-                                                sortRoutine()
+                                                persistStateSort()
                                             })
                                         Spacer(Modifier.weight(1f))
                                         Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
@@ -1249,23 +1310,38 @@ fun SubscriptionsScreen() {
                                                     episodeStateSort[lIndex].value = true
                                                 }
                                                 higherSelected = !higherSelected
-                                                sortRoutine()
+                                                persistStateSort()
                                             })
                                     }
                                     Spacer(Modifier.weight(1f))
                                 }
                                 if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+//                                    val stateName = EpisodeFilter.EpisodesFilterGroup.PLAY_STATE.properties[index_].filterId
+////                                    Logd(TAG, "index_: $index_ stateName: $stateName")
+//                                    val index = EpisodeState.entries.indexOfFirst { it.name == stateName }
                                     if (selectNone) episodeStateSort[index].value = false
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (episodeStateSort[index].value) buttonAltColor else buttonColor),
                                         onClick = {
                                             selectNone = false
                                             episodeStateSort[index].value = !episodeStateSort[index].value
-                                            sortRoutine()
+                                            persistStateSort()
                                         },
                                     ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
                                 }
                             }
-                            if (sortIndex == FeedSortIndex.Count.ordinal) {
+                            if (subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
+                                fun persistRatingSort() {
+                                    runOnIOScope {
+                                        upsert(subPrefs) {
+                                            it.ratingCodeSet.clear()
+                                            for (i in ratingSort.indices) {
+                                                if (ratingSort[i].value) it.ratingCodeSet.add(Rating.entries[i].code.toString())
+                                            }
+//                                            it.feedsSorted += 1
+                                        }
+//                                        prepareCountSort()
+                                    }
+                                }
                                 val item = EpisodeFilter.EpisodesFilterGroup.RATING
                                 var selectNone by remember { mutableStateOf(false) }
                                 var expandRow by remember { mutableStateOf(false) }
@@ -1287,7 +1363,7 @@ fun SubscriptionsScreen() {
                                                     ratingSort[hIndex].value = true
                                                 }
                                                 lowerSelected = !lowerSelected
-                                                sortRoutine()
+                                                persistRatingSort()
                                             })
                                         Spacer(Modifier.weight(1f))
                                         Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
@@ -1296,7 +1372,7 @@ fun SubscriptionsScreen() {
                                                 lowerSelected = selectAll
                                                 higherSelected = selectAll
                                                 for (i in item.properties.indices) ratingSort[i].value = selectAll
-                                                sortRoutine()
+                                                persistRatingSort()
                                             })
                                         Spacer(Modifier.weight(1f))
                                         Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
@@ -1310,7 +1386,7 @@ fun SubscriptionsScreen() {
                                                     ratingSort[lIndex].value = true
                                                 }
                                                 higherSelected = !higherSelected
-                                                sortRoutine()
+                                                persistRatingSort()
                                             })
                                     }
                                     Spacer(Modifier.weight(1f))
@@ -1321,7 +1397,7 @@ fun SubscriptionsScreen() {
                                         onClick = {
                                             selectNone = false
                                             ratingSort[index].value = !ratingSort[index].value
-                                            sortRoutine()
+                                            persistRatingSort()
                                         },
                                     ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
                                 }
@@ -1336,13 +1412,17 @@ fun SubscriptionsScreen() {
         fun FilterDialog(filter: FeedFilter? = null, onDismissRequest: () -> Unit) {
             val filterValues = remember { filter?.properties ?: mutableSetOf() }
             var reset by remember { mutableIntStateOf(0) }
-            var langFull by remember { mutableStateOf(subPrefs.langsSel.size == appAttribs.languages.size) }
-            var tagsFull by remember { mutableStateOf(subPrefs.tagsSel.size == appAttribs.feedTags.size) }
-            var queuesFull by remember { mutableStateOf(subPrefs.queueSelIds.size == queueNames.size) }
+            var langFull by remember(subPrefs.langsSel.size) { mutableStateOf(subPrefs.langsSel.size == appAttribs.languages.size) }
+            var tagsFull by remember(subPrefs.tagsSel.size) { mutableStateOf(subPrefs.tagsSel.size == appAttribs.feedTags.size) }
+            var queuesFull by remember(subPrefs.queueSelIds.size) { mutableStateOf(subPrefs.queueSelIds.size == queueNames.size) }
             fun onFilterChanged(newFilterValues: Set<String>) {
-                upsertBlk(subPrefs) { it.feedsFilter = StringUtils.join(newFilterValues, ",") }
+                runOnIOScope {
+                    upsert(subPrefs) {
+                        it.feedsFilter = StringUtils.join(newFilterValues, ",")
+                        it.feedsFiltered++
+                    }
+                }
                 Logd(TAG, "onFilterChanged: ${subPrefs.feedsFilter}")
-                feedsFiltered++
             }
             Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
                 val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
@@ -1367,12 +1447,16 @@ fun SubscriptionsScreen() {
                                         Text(stringResource(R.string.languages) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (langFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                         if (expandRow) {
                                             val cb = {
-                                                val langsSel = mutableSetOf<String>()
-                                                for (i in langs.indices) {
-                                                    if (selectedList[i].value) langsSel.add(langs[i])
+                                                runOnIOScope {
+                                                    val langsSel = mutableSetOf<String>()
+                                                    for (i in langs.indices) {
+                                                        if (selectedList[i].value) langsSel.add(langs[i])
+                                                    }
+                                                    upsert(subPrefs) {
+                                                        it.langsSel = langsSel.toRealmSet()
+                                                        it.feedsFiltered += 1
+                                                    }
                                                 }
-                                                upsertBlk(subPrefs) { it.langsSel = langsSel.toRealmSet() }
-                                                feedsFiltered += 1
                                                 Logd(TAG, "langsSel: ${subPrefs.langsSel.size} ${langs.size}")
                                             }
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
@@ -1382,11 +1466,15 @@ fun SubscriptionsScreen() {
                                         OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
-                                                val langsSel = subPrefs.langsSel.toMutableSet()
-                                                if (selectedList[index].value) langsSel.add(langs[index])
-                                                else langsSel.remove(langs[index])
-                                                upsertBlk(subPrefs) { it.langsSel = langsSel.toRealmSet() }
-                                                feedsFiltered += 1
+                                                runOnIOScope {
+                                                    val langsSel = subPrefs.langsSel.toMutableSet()
+                                                    if (selectedList[index].value) langsSel.add(langs[index])
+                                                    else langsSel.remove(langs[index])
+                                                    upsert(subPrefs) {
+                                                        it.langsSel = langsSel.toRealmSet()
+                                                        it.feedsFiltered += 1
+                                                    }
+                                                }
                                             },
                                         ) { Text(text = langs[index], maxLines = 1, color = textColor) }
                                     }
@@ -1406,12 +1494,17 @@ fun SubscriptionsScreen() {
                                     Text(stringResource(R.string.queue_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (queuesFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                     if (expandRow) {
                                         val cb = {
-                                            val qSelIds = mutableSetOf<Long>()
-                                            for (i in queueNames.indices) {
-                                                if (selectedList[i].value) qSelIds.add(queueIds[i])
+                                            runOnIOScope {
+                                                val qSelIds = mutableSetOf<Long>()
+                                                for (i in queueNames.indices) {
+                                                    if (selectedList[i].value) qSelIds.add(queueIds[i])
+                                                }
+                                                upsert(subPrefs) {
+                                                    it.queueSelIds = qSelIds.toRealmSet()
+                                                    it.feedsFiltered += 1
+                                                }
                                             }
-                                            upsertBlk(subPrefs) { it.queueSelIds = qSelIds.toRealmSet() }
-                                            feedsFiltered += 1
+                                            Unit
                                         }
                                         SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                     }
@@ -1420,11 +1513,15 @@ fun SubscriptionsScreen() {
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                         onClick = {
                                             selectedList[index].value = !selectedList[index].value
-                                            val qSelIds = subPrefs.queueSelIds.toMutableSet()
-                                            if (selectedList[index].value) qSelIds.add(queueIds[index])
-                                            else qSelIds.remove(queueIds[index])
-                                            upsertBlk(subPrefs) { it.queueSelIds = qSelIds.toRealmSet() }
-                                            feedsFiltered += 1
+                                            runOnIOScope {
+                                                val qSelIds = subPrefs.queueSelIds.toMutableSet()
+                                                if (selectedList[index].value) qSelIds.add(queueIds[index])
+                                                else qSelIds.remove(queueIds[index])
+                                                upsert(subPrefs) {
+                                                    it.queueSelIds = qSelIds.toRealmSet()
+                                                    it.feedsFiltered += 1
+                                                }
+                                            }
                                         },
                                     ) { Text(text = queueNames[index], maxLines = 1, color = textColor) }
                                 }
@@ -1445,12 +1542,17 @@ fun SubscriptionsScreen() {
                                         Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (tagsFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                         if (expandRow) {
                                             val cb = {
-                                                val tagsSel = mutableSetOf<String>()
-                                                for (i in tagList.indices) {
-                                                    if (selectedList[i].value) tagsSel.add(tagList[i])
+                                                runOnIOScope {
+                                                    val tagsSel = mutableSetOf<String>()
+                                                    for (i in tagList.indices) {
+                                                        if (selectedList[i].value) tagsSel.add(tagList[i])
+                                                    }
+                                                    upsert(subPrefs) {
+                                                        it.tagsSel = tagsSel.toRealmSet()
+                                                        it.feedsFiltered += 1
+                                                    }
                                                 }
-                                                upsertBlk(subPrefs) { it.tagsSel = tagsSel.toRealmSet() }
-                                                feedsFiltered += 1
+                                                Unit
                                             }
                                             SelectLowerAllUpper(selectedList, lowerCB = cb, allCB = cb, upperCB = cb)
                                         }
@@ -1459,11 +1561,15 @@ fun SubscriptionsScreen() {
                                         OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (selectedList[index].value) buttonAltColor else buttonColor),
                                             onClick = {
                                                 selectedList[index].value = !selectedList[index].value
-                                                val tagsSel = subPrefs.tagsSel.toMutableSet()
-                                                if (selectedList[index].value) tagsSel.add(tagList[index])
-                                                else tagsSel.remove(tagList[index])
-                                                upsertBlk(subPrefs) { it.tagsSel = tagsSel.toRealmSet() }
-                                                feedsFiltered += 1
+                                                runOnIOScope {
+                                                    val tagsSel = subPrefs.tagsSel.toMutableSet()
+                                                    if (selectedList[index].value) tagsSel.add(tagList[index])
+                                                    else tagsSel.remove(tagList[index])
+                                                    upsert(subPrefs) {
+                                                        it.tagsSel = tagsSel.toRealmSet()
+                                                        it.feedsFiltered += 1
+                                                    }
+                                                }
                                             },
                                         ) { Text(text = tagList[index], maxLines = 1, color = textColor) }
                                     }
@@ -1473,15 +1579,14 @@ fun SubscriptionsScreen() {
                             for (item in FeedFilter.FeedFilterGroup.entries) {
                                 if (item.values.size == 2) {
                                     Row(modifier = Modifier.padding(start = 5.dp).fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.Absolute.Left, verticalAlignment = Alignment.CenterVertically) {
-                                        var selectedIndex by remember { mutableIntStateOf(-1) }
-                                        if (selectNone) selectedIndex = -1
-                                        LaunchedEffect(Unit) {
-                                            Logd(TAG, "LaunchedEffect(Unit) filter")
-                                            if (filter != null) {
-                                                if (item.values[0].filterId in filter.properties) selectedIndex = 0
-                                                else if (item.values[1].filterId in filter.properties) selectedIndex = 1
-                                            }
-                                        }
+                                        var selectedIndex by remember(selectNone) { mutableIntStateOf(
+                                            if (selectNone) -1
+                                            else if (filter != null) {
+                                                if (item.values[0].filterId in filter.properties) 0
+                                                else if (item.values[1].filterId in filter.properties) 1
+                                                else -1
+                                            } else -1
+                                        ) }
                                         Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                         Spacer(Modifier.width(30.dp))
                                         OutlinedButton(
@@ -1567,10 +1672,13 @@ fun SubscriptionsScreen() {
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 Spacer(Modifier.weight(0.3f))
                                 Button(onClick = {
-                                    upsertBlk(subPrefs) {
-                                        it.tagsSel = appAttribs.feedTags.toRealmSet()
-                                        it.queueSelIds = queueIds.toRealmSet()
-                                        it.langsSel = appAttribs.languages.toRealmSet()
+                                    runOnIOScope {
+                                        upsert(subPrefs) {
+                                            it.tagsSel = appAttribs.feedTags.toRealmSet()
+                                            it.queueSelIds = queueIds.toRealmSet()
+                                            it.langsSel = appAttribs.languages.toRealmSet()
+                                            it.feedsFiltered += 1
+                                        }
                                     }
                                     selectNone = true
                                     reset++
@@ -1586,8 +1694,20 @@ fun SubscriptionsScreen() {
             }
         }
 
-        if (showFilterDialog) FilterDialog(FeedFilter(subPrefs.feedsFilter)) { showFilterDialog = false }
-        if (showSortDialog) SortDialog { showSortDialog = false }
+        if (showFilterDialog) {
+            filterSorted = true
+            FilterDialog(FeedFilter(subPrefs.feedsFilter)) {
+                filterSorted = false
+                showFilterDialog = false
+            }
+        }
+        if (showSortDialog) {
+            filterSorted = true
+            SortDialog {
+                filterSorted = false
+                showSortDialog = false
+            }
+        }
         if (showNewSynthetic) RenameOrCreateSyntheticFeed { showNewSynthetic = false }
     }
 

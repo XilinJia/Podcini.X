@@ -164,9 +164,9 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
             val dlFilter = if (dl) {
                 if (f.countingPlayed) EpisodeFilter(EpisodeFilter.States.downloaded.name)
                 else EpisodeFilter(EpisodeFilter.States.downloaded.name,
-                    EpisodeFilter.States.unplayed.name, EpisodeFilter.States.inQueue.name,
-                    EpisodeFilter.States.inProgress.name, EpisodeFilter.States.skipped.name)
-            } else EpisodeFilter(EpisodeFilter.States.inQueue.name)
+                    EpisodeFilter.States.UNPLAYED.name, EpisodeFilter.States.QUEUE.name,
+                    EpisodeFilter.States.PROGRESS.name, EpisodeFilter.States.SKIPPED.name)
+            } else EpisodeFilter(EpisodeFilter.States.QUEUE.name)
             val downloadedCount = if (dl) getEpisodesCount(dlFilter, f.id) else f.queue?.episodes?.filter { it.feedId == f.id }?.size ?: 0
             var allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount
             Logd(TAG, "assembleFeedsCandidates ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")

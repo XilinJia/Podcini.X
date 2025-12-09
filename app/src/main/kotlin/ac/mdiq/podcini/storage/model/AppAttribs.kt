@@ -19,6 +19,8 @@ class AppAttribs: RealmObject {
 
     var curQueueId: Long = 0L
 
+    var queuesMode: String = ""
+
     var languages: RealmList<String> = realmListOf()
 
     var feedTags: RealmList<String> = realmListOf()

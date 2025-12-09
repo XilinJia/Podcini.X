@@ -161,7 +161,7 @@ fun FacetsScreen() {
     val vm = remember {  FacetsVM(context, scope) }
     val navController = LocalNavController.current
 
-    var facetsPrefsJob: Job? = remember { null }
+    var facetsPrefsJob: Job? by remember { mutableStateOf(null) }
 
     var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
 
@@ -187,7 +187,7 @@ fun FacetsScreen() {
     var showDatesFilterDialog by remember { mutableStateOf(false) }
     val showClearHistoryDialog = remember { mutableStateOf(false) }
 
-    var historyStartDate = remember { 0L }
+    var historyStartDate by remember { mutableStateOf(0L) }
     var historyEndDate = remember { Date().time }
 
     val episodesChange by episodesFlow.collectAsState(initial = null)
@@ -202,15 +202,15 @@ fun FacetsScreen() {
         episodesFlow = when (facetsMode) {
             QuickAccess.New -> {
                 listIdentity += ".${vm.sortOrder.name}"
-                getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.new.name).add(vm.filter), vm.sortOrder)
+                getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.NEW.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Planned -> {
                 listIdentity += ".${vm.sortOrder.name}"
-                getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.soon.name, EpisodeFilter.States.later.name).add(vm.filter), vm.sortOrder)
+                getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.SOON.name, EpisodeFilter.States.LATER.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Repeats -> {
                 listIdentity += ".${vm.sortOrder.name}"
-                getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.again.name, EpisodeFilter.States.forever.name).add(vm.filter), vm.sortOrder)
+                getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.AGAIN.name, EpisodeFilter.States.FOREVER.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Liked -> {
                 listIdentity += ".${vm.sortOrder.name}"
@@ -229,7 +229,7 @@ fun FacetsScreen() {
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.has_clips.name, EpisodeFilter.States.has_marks.name, andOr = "OR"), vm.sortOrder)
             }
             QuickAccess.Queued -> {
-                val qstr = EpisodeFilter(EpisodeFilter.States.inQueue.name).add(vm.filter).queryString()
+                val qstr = EpisodeFilter(EpisodeFilter.States.QUEUE.name).add(vm.filter).queryString()
                 val ids = inQueueEpisodeIdSet()
                 val sortPair = sortPairOf(vm.sortOrder)
                 listIdentity += ".${vm.sortOrder.name}"

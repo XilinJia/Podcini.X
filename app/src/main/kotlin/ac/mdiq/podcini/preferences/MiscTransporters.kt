@@ -72,7 +72,7 @@ class EpisodesProgressWriter : ExportWriter {
         Logd(TAG, "Starting to write document")
         val queuedEpisodeActions: MutableList<EpisodeAction> = mutableListOf()
         val pausedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.paused.name), EpisodeSortOrder.DATE_DESC)
-        val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.played.name), EpisodeSortOrder.DATE_DESC)
+        val readItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.PLAYED.name), EpisodeSortOrder.DATE_DESC)
         val favoriteItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.superb.name), EpisodeSortOrder.DATE_DESC)
         val comItems = mutableSetOf<Episode>()
         comItems.addAll(pausedItems)

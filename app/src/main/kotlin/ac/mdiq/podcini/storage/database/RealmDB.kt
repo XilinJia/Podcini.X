@@ -66,7 +66,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(74)
+    )).name("Podcini.realm").schemaVersion(77)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -388,11 +388,11 @@ suspend fun <T : TypedRealmObject> update(entity: T, block: MutableRealm.(T) -> 
 }
 
 suspend fun <T : RealmObject> upsert(entity: T, block: MutableRealm.(T) -> Unit) : T {
-    //        if (BuildConfig.DEBUG) {
-    //            val stackTrace = Thread.currentThread().stackTrace
-    //            val caller = if (stackTrace.size > 3) stackTrace[3] else null
-    //            Logd(TAG, "${caller?.className}.${caller?.methodName} upsert: ${entity.javaClass.simpleName} ${entity.isManaged()}")
-    //        }
+//    if (BuildConfig.DEBUG) {
+//        val stackTrace = Thread.currentThread().stackTrace
+//        val caller = if (stackTrace.size > 3) stackTrace[3] else null
+//        Logd(TAG, "${caller?.className}.${caller?.methodName} upsert: ${entity.javaClass.simpleName} ${entity.isManaged()}")
+//    }
     return realm.write {
         var result: T = entity
         if (entity.isManaged()) {
@@ -416,11 +416,11 @@ suspend fun <T : RealmObject> upsert(entity: T, block: MutableRealm.(T) -> Unit)
 }
 
 fun <T : RealmObject> upsertBlk(entity: T, block: MutableRealm.(T) -> Unit) : T {
-    //        if (BuildConfig.DEBUG) {
-    //            val stackTrace = Thread.currentThread().stackTrace
-    //            val caller = if (stackTrace.size > 3) stackTrace[3] else null
-    //            Logd(TAG, "${caller?.className}.${caller?.methodName} upsertBlk: ${entity.javaClass.simpleName}")
-    //        }
+//    if (BuildConfig.DEBUG) {
+//        val stackTrace = Thread.currentThread().stackTrace
+//        val caller = if (stackTrace.size > 3) stackTrace[3] else null
+//        Logd(TAG, "${caller?.className}.${caller?.methodName} upsertBlk: ${entity.javaClass.simpleName}")
+//    }
     return realm.writeBlocking {
         var result: T = entity
         if (entity.isManaged()) {

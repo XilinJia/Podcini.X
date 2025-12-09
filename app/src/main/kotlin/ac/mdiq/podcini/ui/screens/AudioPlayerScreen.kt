@@ -232,12 +232,11 @@ fun AudioPlayerScreen(navController: AppNavigator) {
 
     val actMain: MainActivity? = remember { generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull() }
     
-    var playerLocal: ExoPlayer? = remember { null }
+    var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
 
     var episodeFlow by remember { mutableStateOf<Flow<SingleQueryChange<Episode>>>(emptyFlow()) }
 
-
-    var playButInit = remember { false }
+    var playButInit by remember { mutableStateOf(false) }
 
     var resetPlayer by remember { mutableStateOf(false) }
 
@@ -252,10 +251,10 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     val shownotesCleaner: ShownotesCleaner = remember { ShownotesCleaner(context) }
 
     var cleanedNotes by remember { mutableStateOf<String?>(null) }
-    var showHomeText = remember { false }
+    var showHomeText by remember { mutableStateOf(false) }
     // TODO: somehow, these 2 are not used?
     //     var homeText: String? = remember { null }
-    var readerhtml: String? = remember { null }
+    var readerhtml: String? by remember { mutableStateOf(null) }
 
     var recordingStartTime by remember { mutableStateOf<Long?>(null) }
 

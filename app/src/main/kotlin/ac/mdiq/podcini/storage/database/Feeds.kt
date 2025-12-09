@@ -49,7 +49,7 @@ import kotlin.math.abs
 private const val TAG: String = "Feeds"
 var feedOperationText by mutableStateOf("")
 
-var feeds = listOf<Feed>()
+//var feeds = listOf<Feed>()
 
 @Synchronized
 fun getFeedList(queryString: String = ""): List<Feed> {
@@ -91,14 +91,11 @@ fun compileTags() {
 }
 
 private val feedIds = MutableStateFlow<List<Long>>(emptyList())
-private var monitoringJob: Job? = null
 
 private var monitorJob: Job? = null
 fun cancelMonitorFeeds() {
     monitorJob?.cancel()
     monitorJob = null
-    monitoringJob?.cancel()
-    monitoringJob = null
 }
 
 fun monitorFeedList(scope: CoroutineScope) {
@@ -109,7 +106,7 @@ fun monitorFeedList(scope: CoroutineScope) {
     val feedQuery = realm.query(Feed::class)
     monitorJob = scope.launch(Dispatchers.IO) {
         feedQuery.asFlow().collect { changes: ResultsChange<Feed> ->
-            feeds = changes.list
+            val feeds = changes.list
 //            Logd(TAG, "monitorFeedList feeds size: ${feeds.size}")
             when (changes) {
                 is UpdatedResults -> {

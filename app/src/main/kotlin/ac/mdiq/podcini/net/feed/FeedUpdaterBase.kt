@@ -61,7 +61,7 @@ import java.io.IOException
 import java.util.Date
 import javax.xml.parsers.ParserConfigurationException
 
-open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false) {
+open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false) {
     protected val TAG = "FeedUpdaterBase"
     protected val context = getAppContext()
     private val notificationManager = NotificationManagerCompat.from(context)
@@ -74,8 +74,12 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     fun startRefresh(context: Context) {
+        Logd(TAG, "startRefresh doItAnyway: $doItAnyway")
         val ready = prepare()
-        if (!ready) return
+        if (!ready) {
+            Loge(TAG, "startRefresh but not ready")
+            return
+        }
         when {
 //            feed != null && feed.isLocalFeed -> scope.launch { doWork() }   // TODO
             !networkAvailable() -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
@@ -111,7 +115,8 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         val itr = feedsToUpdate.iterator()
         while (itr.hasNext()) {
             val feed = itr.next()
-            if (!feed.keepUpdated) {
+            if (!feed.keepUpdated && !doItAnyway) {
+                Logt(TAG, "feed set not to update, igored: ${feed.title}")
                 if (feed.autoEnqueue) feedsToOnlyEnqueue.add(feed)
                 else if (feed.autoDownload) feedsToOnlyDownload.add(feed)
                 itr.remove()

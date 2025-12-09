@@ -87,6 +87,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -115,6 +116,7 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -162,12 +164,14 @@ enum class StatusRowMode {
 }
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
-fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = null, layoutMode: Int = LayoutMode.Normal.ordinal,
+fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = null, scrollToOnStart: Int = -1,
+                      layoutMode: Int = LayoutMode.Normal.ordinal,
                       showCoverImage: Boolean = true, forceFeedImage: Boolean = false,
-                      showActionButtons: Boolean = true, statusRowMode: StatusRowMode = StatusRowMode.Normal,
+                      statusRowMode: StatusRowMode = StatusRowMode.Normal,
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       swipeActions: SwipeActions? = null,
                       refreshCB: (()->Unit)? = null,
+                      showActionButtons: Boolean = true,
                       actionButton_: ((Episode)->EpisodeActionButton)? = null, actionButtonCB: ((Episode, ButtonTypes)->Unit)? = null) {
 
     var selectMode by remember { mutableStateOf(false) }
@@ -181,6 +185,8 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val localTime = System.currentTimeMillis()
+
+    val currentEntry = navController.navController.currentBackStackEntryAsState().value
 
     fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
         return when (aboveOrBelow) {
@@ -408,22 +414,13 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
         }
 
         val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
-//        var forceRecomposeKey by remember { mutableIntStateOf(0) }
         val lifecycleOwner = LocalLifecycleOwner.current
+        val lifecycleState by lifecycleOwner.lifecycle.currentStateFlow.collectAsState()
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 Logd(TAG, "LifecycleEventObserver: $event")
                 when (event) {
-                    Lifecycle.Event.ON_START -> {
-                        scope.launch {
-                            lazyListState.scrollToItem(
-                                lazyListState.firstVisibleItemIndex,
-                                lazyListState.firstVisibleItemScrollOffset
-                            )
-                            //                        forceRecomposeKey++
-                            Logd(TAG, "Screen on, triggered scroll for recomposition")
-                        }
-                    }
+                    Lifecycle.Event.ON_START -> {}
                     Lifecycle.Event.ON_STOP -> {}
                     else -> {}
                 }
@@ -435,6 +432,23 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
             }
         }
 
+        val cameBack = currentEntry?.savedStateHandle?.get<Boolean>("returned") ?: false
+        LaunchedEffect(cameBack, scrollToOnStart, lifecycleState) {
+            if (lifecycleState >= Lifecycle.State.RESUMED) {
+                Logd(TAG, "LaunchedEffect(scrollToOnStart) $scrollToOnStart $cameBack ${lazyListState.firstVisibleItemIndex}")
+                if (cameBack || scrollToOnStart < 0) {
+                    scope.launch {
+                        lazyListState.scrollToItem(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset)
+                        Logd(TAG, "Screen on, triggered scroll for recomposition") //                    currentEntry?.savedStateHandle?.remove<Boolean>("comingBack")
+                    }
+                } else {
+                    scope.launch {
+                        lazyListState.scrollToItem(scrollToOnStart)
+                        Logd(TAG, "on start, triggered scroll for recomposition: $scrollToOnStart")
+                    }
+                }
+            }
+        }
         val swipeVelocityThreshold = 1500f
         val swipeDistanceThreshold = with(LocalDensity.current) { 100.dp.toPx() }
         val useFeedImage = remember(feed) { feed?.useFeedImage() == true }

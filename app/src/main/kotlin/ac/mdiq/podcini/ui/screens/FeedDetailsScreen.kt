@@ -8,11 +8,13 @@ import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
+import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.virQueue
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.FeedAssistant
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
@@ -143,6 +145,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
@@ -172,6 +175,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.ext.toRealmList
@@ -199,10 +203,6 @@ enum class ADLIncExc {
     EXCLUDE
 }
 
-//var feedOnDisplay by mutableStateOf(Feed())
-var feedIdOnDisplay: Long = 0L
-    private set
-
 val queueSettingOptions = listOf("Default", "Active", "None", "Custom")
 
 //private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
@@ -223,7 +223,7 @@ val queueSettingOptions = listOf("Default", "Active", "None", "Custom")
 fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.name) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
 
     var feedScreenMode by remember { mutableStateOf(FeedScreenMode.valueOf(modeName)) }
@@ -240,26 +240,27 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         if (uri == null) return
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                withContext(Dispatchers.IO) {
-                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    val documentFile = DocumentFile.fromTreeUri(context, uri)
-                    requireNotNull(documentFile) { "Unable to retrieve document tree" }
-                    feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
-                    if (feed != null) updateFeedFull(context, feed!!, removeUnlistedItems = true)
-                }
-                withContext(Dispatchers.Main) { Logt(TAG, context.getString(R.string.OK)) }
-            } catch (e: Throwable) { withContext(Dispatchers.Main) { Loge(TAG, e.localizedMessage?:"No message") } }
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                val documentFile = DocumentFile.fromTreeUri(context, uri)
+                requireNotNull(documentFile) { "Unable to retrieve document tree" }
+                feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
+                if (feed != null) updateFeedFull(context, feed!!, removeUnlistedItems = true)
+                Logt(TAG, context.getString(R.string.OK))
+            } catch (e: Throwable) { Loge(TAG, e.localizedMessage?:"No message") }
         }
     }
     val addLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? -> addLocalFolderResult(uri) }
-    
+
+    val currentEntry = navController.navController.currentBackStackEntryAsState().value
+
     DisposableEffect(lifecycleOwner) {
         Logd(TAG, "in DisposableEffect")
         val observer = LifecycleEventObserver { _, event ->
             Logd(TAG, "DisposableEffect LifecycleEventObserver: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    feedIdOnDisplay = feedId
+                    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>("returned") ?: false
+                    Logd(TAG, "prefLastScreen: ${appAttribs.prefLastScreen} cameBack: $cameBack")
                     feedFlow = realm.query<Feed>("id == $0", feedId).first().asFlow()
 //                    val testNum = 1
 //                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
@@ -285,6 +286,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+
+    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>("returned") ?: false
+    LaunchedEffect(cameBack) { if (cameBack) feedScreenMode = FeedScreenMode.List }
 
     var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
 
@@ -407,7 +411,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     fun FeedSettingsScreen() {
         val lifecycleOwner = LocalLifecycleOwner.current
 
-        var queues: List<PlayQueue>? = remember { null }
+        var queues: List<PlayQueue>? by remember { mutableStateOf(null) }
 
         var audioType by remember { mutableStateOf(feed?.audioTypeSetting?.tag ?: Feed.AudioType.SPEECH.tag) }
 
@@ -418,7 +422,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         var autoDeleteSummaryResId by remember { mutableIntStateOf(R.string.global_default) }
         var curPrefQueue by remember { mutableStateOf(feed?.queueTextExt ?: "Default") }
-        var autoDeletePolicy = remember { AutoDeleteAction.GLOBAL.name }
+        var autoDeletePolicy by remember { mutableStateOf(AutoDeleteAction.GLOBAL.name) }
         var videoModeSummaryResId by remember { mutableIntStateOf(R.string.global_default) }
 
         fun refresh() {
@@ -453,12 +457,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             val observer = LifecycleEventObserver { _, event ->
                 Logd(TAG, "LifecycleEventObserver event: $event")
                 when (event) {
-                    Lifecycle.Event.ON_CREATE -> {
-//                        refresh()
-                    }
-                    Lifecycle.Event.ON_START -> {
-                        //                    procFlowEvents()
-                    }
+                    Lifecycle.Event.ON_CREATE -> {}
+                    Lifecycle.Event.ON_START -> {}
                     Lifecycle.Event.ON_STOP -> {}
                     Lifecycle.Event.ON_DESTROY -> {}
                     else -> {}
@@ -466,7 +466,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             }
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose {
-                //            cancelFlowEvents()
 //                feed = null
                 queues = null
                 lifecycleOwner.lifecycle.removeObserver(observer)
@@ -487,10 +486,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         Text(text = stringResource(R.string.feed_settings_label), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                         if (!feed?.title.isNullOrBlank()) Text(text = feed!!.title!!, fontSize = 16.sp)
                     }
-                }, navigationIcon = {
-                    IconButton(onClick = {
-                        feedScreenMode = FeedScreenMode.List
-                    }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
+                }, navigationIcon = { IconButton(onClick = { feedScreenMode = FeedScreenMode.List }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
                 })
                 HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
             }
@@ -1300,6 +1296,15 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher),
                     modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
                         if (feed != null) feedScreenMode = if (feedScreenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info
+//                        if (feed != null) {
+//                            if (feedScreenMode == FeedScreenMode.Info) {
+//                                feedScreenMode = FeedScreenMode.List
+//                                runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = it.prefLastScreen.replace("modeName=Info", "modeName=List") } }
+//                            } else {
+//                                feedScreenMode = FeedScreenMode.Info
+//                                runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = it.prefLastScreen.replace("modeName=List", "modeName=Info") } }
+//                            }
+//                        }
                     }))
                 if (feed != null) Column(modifier = Modifier.padding(start = 10.dp, top = 4.dp)) {
                     Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -1321,103 +1326,105 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        val context = LocalContext.current
+        val context by rememberUpdatedState(LocalContext.current)
         var expanded by remember { mutableStateOf(false) }
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
         Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } }, actions = {
-                if (feedScreenMode == FeedScreenMode.List) {
-                    IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
-                    val filterButtonColor by remember { derivedStateOf { if (enableFilter) if (isFiltered) buttonAltColor else textColor else Color.Red } }
-                    if (feed != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = filterButtonColor, contentDescription = "butFilter", modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(onClick = { if (enableFilter) showFilterDialog = true }, onLongClick = {
-                        if (isFiltered) {
-                            enableFilter = !enableFilter
+            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = {
+                if (navController.previousBackStackEntry != null) {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("returned", true)
+                    navController.popBackStack()
+                } else openDrawer()
+            }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } },
+                actions = {
+                    if (feedScreenMode == FeedScreenMode.List) {
+                        IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort") }
+                        val filterButtonColor by remember { derivedStateOf { if (enableFilter) if (isFiltered) buttonAltColor else textColor else Color.Red } }
+                        if (feed != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter_white), tint = filterButtonColor, contentDescription = "butFilter", modifier = Modifier.padding(horizontal = 5.dp).combinedClickable(onClick = { if (enableFilter) showFilterDialog = true }, onLongClick = {
+                            if (isFiltered) {
+                                enableFilter = !enableFilter
+                            }
+                        }))
+                    }
+                    val histColor by remember(feedScreenMode) { derivedStateOf { if (feedScreenMode != FeedScreenMode.History) textColor else buttonAltColor } }
+                    if (feedScreenMode == FeedScreenMode.List && feed != null) IconButton(onClick = {
+                        feedScreenMode = when(feedScreenMode) {
+                            FeedScreenMode.List -> FeedScreenMode.History
+                            FeedScreenMode.History -> FeedScreenMode.List
+                            else -> FeedScreenMode.List
                         }
-                    }))
-                }
-                val histColor by remember(feedScreenMode) { derivedStateOf { if (feedScreenMode != FeedScreenMode.History) textColor else buttonAltColor } }
-                if (feedScreenMode == FeedScreenMode.List && feed != null) IconButton(onClick = {
-                    feedScreenMode = when(feedScreenMode) {
-                        FeedScreenMode.List -> FeedScreenMode.History
-                        FeedScreenMode.History -> FeedScreenMode.List
-                        else -> FeedScreenMode.List
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
+                    if (feed?.queue != null) IconButton(onClick = {
+                        navController.navigate("${Screens.Queues.name}?id=${feed?.queue?.id ?: -1L}")
+                        isBSExpanded = false
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
+                    IconButton(onClick = { navController.navigate(Screens.Search.name)
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                    IconButton(onClick = { if (feed != null) feedScreenMode = FeedScreenMode.Settings
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), contentDescription = "butShowSettings") }
+                    if (feed != null) {
+                        IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                        DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                            if (!feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
+                                shareLink(context, feed?.downloadUrl ?: "")
+                                expanded = false
+                            })
+                            if (!feed?.link.isNullOrBlank() && isCallable) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
+                                openInBrowser(context, feed!!.link!!)
+                                expanded = false
+                            })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.rename_feed_label)) }, onClick = {
+                                showRenameDialog = true
+                                expanded = false
+                            })
+                            if (feed?.isLocalFeed == true) DropdownMenuItem(text = { Text(stringResource(R.string.reconnect_local_folder)) }, onClick = {
+                                showConnectLocalFolderConfirm.value = true
+                                expanded = false
+                            }) else DropdownMenuItem(text = { Text(stringResource(R.string.edit_url_menu)) }, onClick = {
+                                showEditUrlSettingsDialog = true
+                                expanded = false
+                            })
+                            if (!feed?.episodes.isNullOrEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
+                                feedOperationText = context.getString(R.string.fetch_size)
+                                scope.launch {
+                                    for (e in feed!!.episodes) e.fetchMediaSize(force = true)
+                                    withContext(Dispatchers.Main) { feedOperationText = "" }
+                                }
+                                expanded = false
+                            })
+                            if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.clean_up)) }, onClick = {
+                                feedOperationText = context.getString(R.string.clean_up)
+                                runOnIOScope {
+                                    val f = realm.copyFromRealm(feed!!)
+                                    FeedAssistant(f).clear()
+                                    upsert(f) {}
+                                    withContext(Dispatchers.Main) { feedOperationText = "" }
+                                }
+                                expanded = false
+                            })
+                            if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
+                                gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).startRefresh(context)
+                                expanded = false
+                            })
+                            if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
+                                if (feed != null) gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, true).startRefresh(context)
+                                expanded = false
+                            })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
+                                showRemoveFeedDialog = true
+                                expanded = false
+                            })
+                        }
                     }
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = histColor, contentDescription = "history") }
-                IconButton(onClick = {
-                    navController.navigate("${Screens.Queues.name}?id=${feed?.queue?.id ?: -1L}")
-                    isBSExpanded = false
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
-                IconButton(onClick = {
-//                    setSearchTerms(feed = feed)
-                    navController.navigate(Screens.Search.name)
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                IconButton(onClick = {
-                    if (feed != null) feedScreenMode = FeedScreenMode.Settings
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), contentDescription = "butShowSettings") }
-                if (feed != null) {
-                    IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                        if (!feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
-                            shareLink(context, feed?.downloadUrl ?: "")
-                            expanded = false
-                        })
-                        if (!feed?.link.isNullOrBlank() && isCallable) DropdownMenuItem(text = { Text(stringResource(R.string.visit_website_label)) }, onClick = {
-                            openInBrowser(context, feed!!.link!!)
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.rename_feed_label)) }, onClick = {
-                            showRenameDialog = true
-                            expanded = false
-                        })
-                        if (feed?.isLocalFeed == true) DropdownMenuItem(text = { Text(stringResource(R.string.reconnect_local_folder)) }, onClick = {
-                            showConnectLocalFolderConfirm.value = true
-                            expanded = false
-                        }) else DropdownMenuItem(text = { Text(stringResource(R.string.edit_url_menu)) }, onClick = {
-                            showEditUrlSettingsDialog = true
-                            expanded = false
-                        })
-                        if (!feed?.episodes.isNullOrEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
-                            feedOperationText = context.getString(R.string.fetch_size)
-                            scope.launch {
-                                for (e in feed!!.episodes) e.fetchMediaSize(force = true)
-                                withContext(Dispatchers.Main) { feedOperationText = "" }
-                            }
-                            expanded = false
-                        })
-                        if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.clean_up)) }, onClick = {
-                            feedOperationText = context.getString(R.string.clean_up)
-                            runOnIOScope {
-                                val f = realm.copyFromRealm(feed!!)
-                                FeedAssistant(f).clear()
-                                upsert(f) {}
-                                withContext(Dispatchers.Main) { feedOperationText = "" }
-                            }
-                            expanded = false
-                        })
-                        if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                            gearbox.feedUpdater(listOf(feed!!)).startRefresh(context)
-                            expanded = false
-                        })
-                        if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                            if (feed != null) gearbox.feedUpdater(listOf(feed!!), fullUpdate = true).startRefresh(context)
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
-                            showRemoveFeedDialog = true
-                            expanded = false
-                        })
-                    }
-                }
-            })
+                })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 
     @Composable
     fun DetailUI() {
-        val context = LocalContext.current
         var showEditComment by remember { mutableStateOf(false) }
         val localTime = remember { System.currentTimeMillis() }
         var editCommentText by remember { mutableStateOf(TextFieldValue(feed?.comment ?: "")) }
@@ -1581,9 +1588,13 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                 FeedDetailsHeader()
                 if (feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
+                    var scrollToOnStart by remember(episodes, curEpisode) { mutableIntStateOf(run {
+                        if (curEpisode?.feedId == feedId) episodes.indexOfFirst { it.id == curEpisode?.id } else -1
+                    }) }
                     infoBarText.value = "$listInfoText $feedOperationText"
                     InforBar(infoBarText, swipeActions)
                     EpisodeLazyColumn(context, episodes, feed = feed, layoutMode = layoutModeIndex, swipeActions = swipeActions,
+                        scrollToOnStart = scrollToOnStart,
                         refreshCB = {
                             if (feed != null) runOnceOrAsk(context, feeds = listOf(feed!!))
                             else Logt(TAG, "feed is null, can not refresh")

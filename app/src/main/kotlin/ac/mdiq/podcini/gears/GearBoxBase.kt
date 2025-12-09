@@ -66,7 +66,7 @@ open class GearBoxBase {
 
     open fun getSearcher(): PodcastSearcher = CombinedSearcher()
 
-    open fun feedUpdater(feeds: List<Feed>, fullUpdate: Boolean = false) : FeedUpdaterBase = FeedUpdaterBase(feeds, fullUpdate)
+    open fun feedUpdater(feeds: List<Feed>, fullUpdate: Boolean = false, doItAnyway: Boolean = false) : FeedUpdaterBase = FeedUpdaterBase(feeds, fullUpdate, doItAnyway)
 
     open fun formFeedBuilder(url: String, feedSource: String, context: Context, showError: (String?, String) -> Unit): FeedBuilderBase {
         return FeedBuilderBase(context, showError)

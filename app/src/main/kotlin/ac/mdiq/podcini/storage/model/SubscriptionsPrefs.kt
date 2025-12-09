@@ -25,9 +25,13 @@ class SubscriptionsPrefs: RealmObject {
 
     var dateAscending: Boolean = false
 
+    var timeAscending: Boolean = false
+
     var countAscending: Boolean = false
 
     var dateSortIndex: Int = 0
+
+    var timeSortIndex: Int = 0
 
     var downlaodedSortIndex: Int = 0
 
@@ -41,4 +45,11 @@ class SubscriptionsPrefs: RealmObject {
 
     var sortDirCode: Int = 0
 
+    var feedsSorted: Int = 0
+
+    var feedsFiltered: Int = 0
+
+    var positionIndex: Int = 0
+
+    var positionOffset: Int = 0
 }

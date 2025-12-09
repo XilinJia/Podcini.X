@@ -93,6 +93,8 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -153,7 +155,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
 
     lateinit var shownotesCleaner: ShownotesCleaner
 
-    var playerLocal: ExoPlayer? = remember {  null }
+    var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
 
     var episode by remember { mutableStateOf<Episode?>(null) }   // managed
 
@@ -275,12 +277,12 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     fun EpisodeTextScreen() {
         val lifecycleOwner = LocalLifecycleOwner.current
 
-        var startIndex = remember { 0 }
-        var ttsSpeed = remember { 1.0f }
+        var startIndex by remember { mutableIntStateOf(0) }
+        var ttsSpeed by remember { mutableFloatStateOf(1.0f) }
 
-        var readerText: String? = remember { null }
+        var readerText: String? by remember { mutableStateOf(null) }
         var cleanedNotes by remember { mutableStateOf<String?>(null) }
-        var readerhtml: String? = remember { null }
+        var readerhtml: String? by remember { mutableStateOf(null) }
         var readMode by remember { mutableStateOf(true) }
 
         var ttsPlaying by remember {  mutableStateOf(false) }
@@ -487,45 +489,47 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
-        val context = LocalContext.current
         var expanded by remember { mutableStateOf(false) }
         val buttonColor = Color(0xDDFFD700)
         Box {
             TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = {
-                if (navController.previousBackStackEntry != null) navController.popBackStack() else openDrawer() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } }, actions = {
-                IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(episode?.playState ?: EpisodeState.UNSPECIFIED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                if (episode != null) {
-                    val inQueue by remember(episode) { mutableStateOf(if (episode == null) false else (episode!!.feed?.queue ?: actQueue).contains(episode!!)) }
-                    if (!inQueue) IconButton(onClick = { runOnIOScope { addToAssOrActQueue(episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                    else IconButton(onClick = { runOnIOScope { removeFromQueue(episode!!.feed?.queue ?: actQueue, listOf(episode!!), EpisodeState.UNPLAYED) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_remove), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                }
-                IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode?.rating ?: Rating.UNRATED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                if (!episode?.link.isNullOrEmpty()) IconButton(onClick = {
-                    showHomeScreen = true
-//                    episodeOnDisplay = episode!!
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
-                IconButton(onClick = {
-                    val url = episode?.getLinkWithFallback()
-                    if (url != null) openInBrowser(context, url)
-                }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
-                IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                    if (episode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
-                        val notes = episode!!.description
-                        if (!notes.isNullOrEmpty()) {
-                            val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                            val context = context
-                            val intent = ShareCompat.IntentBuilder(context).setType("text/plain").setText(shareText).setChooserTitle(R.string.share_notes_label).createChooserIntent()
-                            context.startActivity(intent)
-                        }
-                        expanded = false
-                    })
-                    if (episode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
-                        showShareDialog = true
-                        expanded = false
-                    })
-                }
-            })
+                if (navController.previousBackStackEntry != null) {
+                    navController.previousBackStackEntry?.savedStateHandle?.set("returned", true)
+                    navController.popBackStack()
+                } else openDrawer()
+            }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
+                actions = {
+                    IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(episode?.playState ?: EpisodeState.UNSPECIFIED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                    if (episode != null) {
+                        val inQueue by remember(episode) { mutableStateOf(if (episode == null) false else (episode!!.feed?.queue ?: actQueue).contains(episode!!)) }
+                        if (!inQueue) IconButton(onClick = { runOnIOScope { addToAssOrActQueue(episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_format_list_bulleted_add_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                        else IconButton(onClick = { runOnIOScope { removeFromQueue(episode!!.feed?.queue ?: actQueue, listOf(episode!!), EpisodeState.UNPLAYED) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_remove), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                    }
+                    IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode?.rating ?: Rating.UNRATED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                    if (!episode?.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
+                    IconButton(onClick = {
+                        val url = episode?.getLinkWithFallback()
+                        if (url != null) openInBrowser(context, url)
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "web") }
+                    IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                        if (episode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_notes_label)) }, onClick = {
+                            val notes = episode!!.description
+                            if (!notes.isNullOrEmpty()) {
+                                val shareText = HtmlCompat.fromHtml(notes, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                                val context = context
+                                val intent = ShareCompat.IntentBuilder(context).setType("text/plain").setText(shareText).setChooserTitle(R.string.share_notes_label).createChooserIntent()
+                                context.startActivity(intent)
+                            }
+                            expanded = false
+                        })
+                        if (episode != null) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
+                            showShareDialog = true
+                            expanded = false
+                        })
+                    }
+                })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

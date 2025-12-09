@@ -77,20 +77,21 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         assembleSubQueries(ratingQuerys)
 
         val stateQuerys = mutableListOf<String>()
-        if (propertySet.contains(States.unspecified.name)) stateQuerys.add(" playState == ${EpisodeState.UNSPECIFIED.code} ")
-        if (propertySet.contains(States.building.name)) stateQuerys.add(" playState == ${EpisodeState.BUILDING.code} ")
-        if (propertySet.contains(States.new.name)) stateQuerys.add(" playState == ${EpisodeState.NEW.code} ")
-        if (propertySet.contains(States.unplayed.name)) stateQuerys.add(" playState == ${EpisodeState.UNPLAYED.code} ")
-        if (propertySet.contains(States.later.name)) stateQuerys.add(" playState == ${EpisodeState.LATER.code} ")
-        if (propertySet.contains(States.soon.name)) stateQuerys.add(" playState == ${EpisodeState.SOON.code} ")
-        if (propertySet.contains(States.inQueue.name)) stateQuerys.add(" playState == ${EpisodeState.QUEUE.code} ")
-        if (propertySet.contains(States.inProgress.name)) stateQuerys.add(" playState == ${EpisodeState.PROGRESS.code} ")
-        if (propertySet.contains(States.again.name)) stateQuerys.add(" playState == ${EpisodeState.AGAIN.code} ")
-        if (propertySet.contains(States.forever.name)) stateQuerys.add(" playState == ${EpisodeState.FOREVER.code} ")
-        if (propertySet.contains(States.skipped.name)) stateQuerys.add(" playState == ${EpisodeState.SKIPPED.code} ")
-        if (propertySet.contains(States.played.name)) stateQuerys.add(" playState == ${EpisodeState.PLAYED.code} ")
-        if (propertySet.contains(States.passed.name)) stateQuerys.add(" playState == ${EpisodeState.PASSED.code} ")
-        if (propertySet.contains(States.ignored.name)) stateQuerys.add(" playState == ${EpisodeState.IGNORED.code} ")
+        if (propertySet.contains(States.UNSPECIFIED.name)) stateQuerys.add(" playState == ${EpisodeState.UNSPECIFIED.code} ")
+        if (propertySet.contains(States.ERROR.name)) stateQuerys.add(" playState == ${EpisodeState.ERROR.code} ")
+        if (propertySet.contains(States.BUILDING.name)) stateQuerys.add(" playState == ${EpisodeState.BUILDING.code} ")
+        if (propertySet.contains(States.NEW.name)) stateQuerys.add(" playState == ${EpisodeState.NEW.code} ")
+        if (propertySet.contains(States.UNPLAYED.name)) stateQuerys.add(" playState == ${EpisodeState.UNPLAYED.code} ")
+        if (propertySet.contains(States.LATER.name)) stateQuerys.add(" playState == ${EpisodeState.LATER.code} ")
+        if (propertySet.contains(States.SOON.name)) stateQuerys.add(" playState == ${EpisodeState.SOON.code} ")
+        if (propertySet.contains(States.QUEUE.name)) stateQuerys.add(" playState == ${EpisodeState.QUEUE.code} ")
+        if (propertySet.contains(States.PROGRESS.name)) stateQuerys.add(" playState == ${EpisodeState.PROGRESS.code} ")
+        if (propertySet.contains(States.AGAIN.name)) stateQuerys.add(" playState == ${EpisodeState.AGAIN.code} ")
+        if (propertySet.contains(States.FOREVER.name)) stateQuerys.add(" playState == ${EpisodeState.FOREVER.code} ")
+        if (propertySet.contains(States.SKIPPED.name)) stateQuerys.add(" playState == ${EpisodeState.SKIPPED.code} ")
+        if (propertySet.contains(States.PLAYED.name)) stateQuerys.add(" playState == ${EpisodeState.PLAYED.code} ")
+        if (propertySet.contains(States.PASSED.name)) stateQuerys.add(" playState == ${EpisodeState.PASSED.code} ")
+        if (propertySet.contains(States.IGNORED.name)) stateQuerys.add(" playState == ${EpisodeState.IGNORED.code} ")
         assembleSubQueries(stateQuerys)
 
         val tagsQuerys = mutableListOf<String>()
@@ -205,20 +206,21 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
 
     @Suppress("EnumEntryName")
     enum class States {
-        unspecified,
-        building,
-        new,
-        unplayed,
-        later,
-        soon,
-        inQueue,
-        inProgress,
-        again,
-        forever,
-        skipped,
-        played,
-        passed,
-        ignored,
+        UNSPECIFIED,
+        ERROR,
+        BUILDING,
+        NEW,
+        UNPLAYED,
+        LATER,
+        SOON,
+        QUEUE,
+        PROGRESS,
+        AGAIN,
+        FOREVER,
+        SKIPPED,
+        PLAYED,
+        PASSED,
+        IGNORED,
 
         has_chapters,
         no_chapters,
@@ -288,20 +290,21 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         ),
         PLAY_STATE(
             R.string.playstate,
-            FilterProperties(R.string.unspecified, States.unspecified.name),
-            FilterProperties(R.string.building, States.building.name),
-            FilterProperties(R.string.new_label, States.new.name),
-            FilterProperties(R.string.unplayed, States.unplayed.name),
-            FilterProperties(R.string.later, States.later.name),
-            FilterProperties(R.string.soon, States.soon.name),
-            FilterProperties(R.string.in_queue, States.inQueue.name),
-            FilterProperties(R.string.in_progress, States.inProgress.name),
-            FilterProperties(R.string.again, States.again.name),
-            FilterProperties(R.string.forever, States.forever.name),
-            FilterProperties(R.string.skipped, States.skipped.name),
-            FilterProperties(R.string.played, States.played.name),
-            FilterProperties(R.string.passed, States.passed.name),
-            FilterProperties(R.string.ignored, States.ignored.name),
+            FilterProperties(R.string.unspecified, States.UNSPECIFIED.name),
+            FilterProperties(R.string.error_label, States.ERROR.name),
+            FilterProperties(R.string.building, States.BUILDING.name),
+            FilterProperties(R.string.new_label, States.NEW.name),
+            FilterProperties(R.string.unplayed, States.UNPLAYED.name),
+            FilterProperties(R.string.later, States.LATER.name),
+            FilterProperties(R.string.soon, States.SOON.name),
+            FilterProperties(R.string.in_queue, States.QUEUE.name),
+            FilterProperties(R.string.in_progress, States.PROGRESS.name),
+            FilterProperties(R.string.again, States.AGAIN.name),
+            FilterProperties(R.string.forever, States.FOREVER.name),
+            FilterProperties(R.string.skipped, States.SKIPPED.name),
+            FilterProperties(R.string.played, States.PLAYED.name),
+            FilterProperties(R.string.passed, States.PASSED.name),
+            FilterProperties(R.string.ignored, States.IGNORED.name),
         ),
         OPINION(R.string.has_comments, FilterProperties(R.string.yes, States.has_comments.name), FilterProperties(R.string.no, States.no_comments.name), exclusive = true),
 
@@ -333,7 +336,8 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         ),
         AUTO_DOWNLOADABLE(R.string.auto_downloadable_label, FilterProperties(R.string.yes, States.auto_downloadable.name), FilterProperties(R.string.no, States.not_auto_downloadable.name), exclusive = true);
 
-        val properties: Array<FilterProperties> = arrayOf(*values_)
+//        val properties: Array<FilterProperties> = arrayOf(*values_)
+        val properties: Array<out FilterProperties> = values_
 
         class FilterProperties(val displayName: Int, val filterId: String)
     }

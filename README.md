@@ -1,4 +1,4 @@
-# Podcini
+# Podcini.X
 
 <img width="100" src="https://raw.githubusercontent.com/xilinjia/podcini/main/images/icon 256x256.png" align="left" style="margin-right:15px"/>
 

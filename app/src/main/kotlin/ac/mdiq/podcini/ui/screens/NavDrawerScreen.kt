@@ -8,6 +8,8 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeedCount
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
@@ -83,6 +85,7 @@ import coil.compose.AsyncImage
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
@@ -195,6 +198,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
             isBSExpanded -> isBSExpanded = false
             navigator.previousBackStackEntry != null -> {
                 Logd(TAG, "nav to back")
+                navigator.previousBackStackEntry?.savedStateHandle?.set("returned", true)
                 navigator.popBackStack()
                 curruntRoute = currentDestination?.route ?: ""
                 Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")
@@ -385,6 +389,31 @@ fun closeDrawer() {
     lcScope?.launch { drawerState.close() }
 }
 
+private var navStackJob: Job? = null
+fun monitorNavStack(navController: NavHostController) {
+    fun NavBackStackEntry.resolvedRoute(): String {
+        val template = destination.route ?: return ""
+        var resolved = template
+        arguments?.keySet()?.forEach { key ->
+            val value = arguments?.get(key)?.toString() ?: ""
+            resolved = resolved.replace("{$key}", value)
+        }
+        return resolved
+    }
+    if (navStackJob == null) navStackJob = CoroutineScope(Dispatchers.Default).launch {
+        navController.currentBackStackEntryFlow.collect { entry ->
+            val resolved = entry.resolvedRoute()
+            runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = resolved } }
+            Logd(TAG, "currentBackStackEntryFlow Now at: $resolved")
+        }
+    }
+}
+
+fun cancelMonitornavStack() {
+    navStackJob?.cancel()
+    navStackJob = null
+}
+
 fun NavHostController.safeNavigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
     try {
         this.navigate(route, builder)
@@ -403,7 +432,7 @@ fun NavHostController.routeExists(route: String): Boolean {
 }
 
 class AppNavigator(
-    private val navController: NavHostController,
+    val navController: NavHostController,
     private val onNavigated: (String) -> Unit
 ) {
     fun navigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {

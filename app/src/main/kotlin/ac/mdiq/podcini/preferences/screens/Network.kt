@@ -81,6 +81,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -233,7 +234,7 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
     fun WifiAuthenticationDialog(onDismissRequest: ()->Unit) {
         val TAG = "WifiAuthenticationDialog"
         val textColor = MaterialTheme.colorScheme.onSurface
-        val context = LocalContext.current
+        val context by rememberUpdatedState(LocalContext.current)
         var progressMessage by remember { mutableStateOf("") }
         var errorMessage by remember { mutableStateOf("") }
         val scope = rememberCoroutineScope()

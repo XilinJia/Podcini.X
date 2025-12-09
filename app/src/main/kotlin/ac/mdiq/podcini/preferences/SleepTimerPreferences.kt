@@ -39,9 +39,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,13 +82,13 @@ object SleepTimerPreferences {
     @Composable
     fun SleepTimerDialog(onDismiss: () -> Unit) {
         val lcScope = rememberCoroutineScope()
-        val timeLeft = remember { sleepManager?.sleepTimerTimeLeft?:0 }
+        val timeLeft by remember { mutableLongStateOf(sleepManager?.sleepTimerTimeLeft?:0) }
         var showTimeDisplay by remember { mutableStateOf(false) }
         var showTimeSetup by remember { mutableStateOf(true) }
         var timerText by remember { mutableStateOf(getDurationStringLong(timeLeft.toInt())) }
-        val context = LocalContext.current
+        val context by rememberUpdatedState(LocalContext.current)
 
-        var eventSink: Job? = remember { null }
+        var eventSink: Job? by remember { mutableStateOf(null) }
         fun cancelFlowEvents() {
             eventSink?.cancel()
             eventSink = null

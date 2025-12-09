@@ -571,7 +571,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             val context = LocalContext.current
             val textColor = MaterialTheme.colorScheme.onSurface
 
-            var actions = remember { sa.actions }
+            var actions by remember { mutableStateOf(sa.actions) }
             val leftAction = remember { mutableStateOf(actions.left[0]) }
             val rightAction = remember { mutableStateOf(actions.right[0]) }
             var keys by remember { mutableStateOf(sa.actionsList) }

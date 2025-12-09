@@ -15,12 +15,9 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
-import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
-import ac.mdiq.podcini.storage.database.monitorFeedList
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
@@ -32,7 +29,9 @@ import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
 import ac.mdiq.podcini.ui.screens.NavDrawerScreen
 import ac.mdiq.podcini.ui.screens.Navigate
 import ac.mdiq.podcini.ui.screens.Screens
+import ac.mdiq.podcini.ui.screens.cancelMonitornavStack
 import ac.mdiq.podcini.ui.screens.drawerState
+import ac.mdiq.podcini.ui.screens.monitorNavStack
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
@@ -106,8 +105,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
@@ -161,8 +158,6 @@ class MainActivity : BaseActivity() {
 
     private var initScreen by mutableStateOf<String?>(null)
     private var intendedScreen by mutableStateOf("")
-
-    private var navStackJob: Job? = null
 
     fun setIntentScreen(screen: String) {
         Logd(Companion.TAG, "setIntentScreen screen: $screen initScreen: $initScreen")
@@ -230,25 +225,6 @@ class MainActivity : BaseActivity() {
                 EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(isRefreshingFeeds))
             }
         observeDownloads()
-    }
-
-    fun monitorNavStack(navController: NavHostController) {
-        fun NavBackStackEntry.resolvedRoute(): String {
-            val template = destination.route ?: return ""
-            var resolved = template
-            arguments?.keySet()?.forEach { key ->
-                val value = arguments?.get(key)?.toString() ?: ""
-                resolved = resolved.replace("{$key}", value)
-            }
-            return resolved
-        }
-        if (navStackJob != null) navStackJob = CoroutineScope(Dispatchers.Default).launch {
-            navController.currentBackStackEntryFlow.collect { entry ->
-                val resolved = entry.resolvedRoute()
-                runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = resolved } }
-                Logd(TAG, "currentBackStackEntryFlow Now at: $resolved")
-            }
-        }
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -416,8 +392,7 @@ class MainActivity : BaseActivity() {
         WorkManager.getInstance(this).pruneWork()
         WorkManager.getInstance(applicationContext).pruneWork()
         cancelAppPrefs()
-        navStackJob?.cancel()
-        navStackJob = null
+        cancelMonitornavStack()
         super.onDestroy()
     }
 
@@ -425,7 +400,7 @@ class MainActivity : BaseActivity() {
         super.onStart()
         procFlowEvents()
         RatingDialog.init(this)
-        monitorFeedList(lifecycleScope)
+//        monitorFeedList(lifecycleScope)   // TODO: test
     }
 
     override fun onStop() {
