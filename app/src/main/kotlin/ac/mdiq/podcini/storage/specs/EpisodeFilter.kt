@@ -45,7 +45,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
     fun queryString(): String {
         Logd(TAG, "queryString propertySet: ${propertySet.size} $propertySet")
         Logd(TAG, "actual type: ${propertySet::class}")
-        propertySet.forEach { Logd(TAG, "element: [$it] hash=${it.hashCode()}") }
+//        propertySet.forEach { Logd(TAG, "element: [$it] hash=${it.hashCode()}") }
 
         val statements: MutableList<String> = mutableListOf()
         fun assembleSubQueries(qSet: List<String>) {
@@ -103,11 +103,7 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         val textQuerys = mutableListOf<String>()
         val tqs = propertySet.filter { it.startsWith(States.text.name) }
             .mapNotNull { it.removePrefix("${States.text.name} ").takeIf(String::isNotBlank) }
-        Logd(TAG, "tqs: ${tqs.size}")
-        for (tq in tqs) {
-            Logd(TAG, "tq: $tq")
-            textQuerys.add(tq)
-        }
+        for (tq in tqs) textQuerys.add(tq)
         assembleSubQueries(textQuerys)
         Logd(TAG, "queryString statements after textQuerys: $statements")
 

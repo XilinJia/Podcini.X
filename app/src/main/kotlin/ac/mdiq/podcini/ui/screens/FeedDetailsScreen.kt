@@ -307,6 +307,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     val isCallable = remember(feed) { if (!feed?.link.isNullOrEmpty()) isCallable(context, Intent(Intent.ACTION_VIEW, feed!!.link!!.toUri())) else false }
 
+    var showHeader by remember { mutableStateOf(true) }
+
     val showConnectLocalFolderConfirm = remember { mutableStateOf(false) }
     var showEditConfirmDialog by remember { mutableStateOf(false) }
     var editedUrl by remember { mutableStateOf("") }
@@ -388,16 +390,28 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         if (showRemoveFeedDialog) RemoveFeedDialog(listOf(feed!!), onDismissRequest = { showRemoveFeedDialog = false }) { navController.navigate(defaultScreen) }
 
-        if (feed != null && showFilterDialog) EpisodesFilterDialog(filter_ = feed!!.episodeFilter, onDismissRequest = { showFilterDialog = false }) { filter ->
-            Logd(TAG, "persist Episode Filter(): feedId = [${feed?.id}], andOr = ${filter.andOr}, ${filter.propertySet.size} filterValues = ${filter.propertySet}")
-            runOnIOScope { upsert(feed!!) { it.episodeFilter = filter } }
+        if (feed != null && showFilterDialog) {
+            showHeader = false
+            EpisodesFilterDialog(filter_ = feed!!.episodeFilter, onDismissRequest = {
+                showHeader = true
+                showFilterDialog = false
+            }) { filter ->
+                Logd(TAG, "persist Episode Filter(): feedId = [${feed?.id}], andOr = ${filter.andOr}, ${filter.propertySet.size} filterValues = ${filter.propertySet}")
+                runOnIOScope { upsert(feed!!) { it.episodeFilter = filter } }
+            }
         }
 
         if (showRenameDialog) RenameOrCreateSyntheticFeed(feed) { showRenameDialog = false }
 
-        if (feed != null && showSortDialog) EpisodeSortDialog(initOrder = feed!!.episodeSortOrder, onDismissRequest = { showSortDialog = false }) { order ->
-            Logd(TAG, "persist Episode SortOrder_")
-            runOnIOScope { upsert(feed!!) { it.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC } }
+        if (feed != null && showSortDialog) {
+            showHeader = false
+            EpisodeSortDialog(initOrder = feed!!.episodeSortOrder, onDismissRequest = {
+                showHeader = true
+                showSortDialog = false
+            }) { order ->
+                Logd(TAG, "persist Episode SortOrder_")
+                runOnIOScope { upsert(feed!!) { it.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC } }
+            }
         }
 
         swipeActions.ActionOptionsDialog()
@@ -1586,7 +1600,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     else {
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                FeedDetailsHeader()
+                if (showHeader) FeedDetailsHeader()
                 if (feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
                     var scrollToOnStart by remember(episodes, curEpisode) { mutableIntStateOf(run {
                         if (curEpisode?.feedId == feedId) episodes.indexOfFirst { it.id == curEpisode?.id } else -1

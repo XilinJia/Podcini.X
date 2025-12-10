@@ -1,0 +1,6 @@
+# 9.8.1
+
+* fixed episodes sorting category mismatch issue
+* in FeedDetails screen, when opening filter or sort dialog, the header is hidden
+* in sort dialog of Subscriptions, multi-item sub-categories (under Count) are colored with selections, like on filter dialog
+* tuned and cleaned some code

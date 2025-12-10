@@ -38,6 +38,7 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.EpisodesFilterGroup
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.getDurationStringLocalized
@@ -963,26 +964,25 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
 }
 
 @Composable
-fun EpisodeSortDialog(initOrder: EpisodeSortOrder?, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
+fun EpisodeSortDialog(initOrder: EpisodeSortOrder, includeConditionals: List<EpisodeSortOrder> = listOf(), onDismissRequest: () -> Unit, onSelectionChanged: (EpisodeSortOrder?) -> Unit) {
     val orderList = remember { EpisodeSortOrder.entries.filterIndexed { index, f -> index % 2 != 0 && (!f.conditional || f in includeConditionals || f in gearbox.includeExtraSort()) } }
+    val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
         dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
-        Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(250.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
-            val textColor = MaterialTheme.colorScheme.onSurface
+        Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(250.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             var order by remember { mutableStateOf(initOrder) }
-            var sortIndex by remember { mutableIntStateOf(if (initOrder != null) initOrder.ordinal/2 else -1) }
+            var sortIndex by remember { mutableIntStateOf(orderList.indexOfFirst { it.code == order.code || it.code == order.code+1 }) }
             Column(Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp).verticalScroll(rememberScrollState())) {
                 ScrollRowGrid(columns = 2, itemCount = orderList.size) { index ->
-                    var dir by remember { mutableStateOf(if (sortIndex == index) initOrder!!.ordinal % 2 == 0 else true) }
+                    var dir by remember { mutableStateOf(order.code != orderList[sortIndex].code) }
                     OutlinedButton(modifier = Modifier.padding(2.dp), elevation = null, border = BorderStroke(2.dp, if (sortIndex != index) buttonColor else buttonAltColor),
                         onClick = {
                             if (sortIndex == index) dir = !dir
                             sortIndex = index
-                            order = EpisodeSortOrder.entries[2 * index + if (dir) 0 else 1]
+                            order = fromCode(orderList[index].code - if (dir) 1 else 0)
                             onSelectionChanged(order)
                         }
                     ) { Text(text = stringResource(orderList[index].res) + if (dir) "\u00A0▲" else "\u00A0▼", color = textColor, maxLines = 1) }

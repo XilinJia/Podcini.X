@@ -183,7 +183,7 @@ fun SubscriptionsScreen() {
 
     var feedsFlow by remember { mutableStateOf<Flow<ResultsChange<Feed>>>(emptyFlow()) }
 
-    var filterSorted by remember { mutableStateOf(false) }
+    var filterAndSort by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
     var showNewSynthetic by remember { mutableStateOf(false) }
@@ -195,72 +195,6 @@ fun SubscriptionsScreen() {
 
     val feedsChange by feedsFlow.collectAsState(initial = null)
     val feeds = feedsChange?.list ?: emptyList()
-
-    fun languagesQS() : String {
-        var qrs  = ""
-        when {
-            subPrefs.langsSel.isEmpty() -> qrs = " (languages.@count > 0) "
-            subPrefs.langsSel.size == appAttribs.languages.size -> qrs = ""
-            else -> {
-                for (l in subPrefs.langsSel) {
-                    qrs += if (qrs.isEmpty()) " ( ANY languages == '$l' " else " OR ANY languages == '$l' "
-                }
-                if (qrs.isNotEmpty()) qrs += " ) "
-            }
-        }
-        Logd(TAG, "languagesQS: $qrs")
-        return qrs
-    }
-    fun tagsQS() : String {
-        var qrs  = ""
-        when {
-            subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
-            subPrefs.tagsSel.size == appAttribs.feedTags.size -> qrs = ""
-            else -> {
-                for (t in subPrefs.tagsSel) {
-                    qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
-                }
-                if (qrs.isNotEmpty()) qrs += " ) "
-            }
-        }
-        Logd(TAG, "tagsQS: $qrs")
-        return qrs
-    }
-    fun queuesQS() : String {
-        val qSelIds_ = subPrefs.queueSelIds.toMutableSet()
-        if (qSelIds_.isEmpty()) qSelIds_.add(-2)
-        else {
-            if ((queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
-            else qSelIds_.remove(-2)
-        }
-        var qrs  = ""
-        for (id in qSelIds_) {
-            qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
-        }
-        if (qrs.isNotEmpty()) qrs += " ) "
-        Logd(TAG, "queuesQS: $qrs")
-        return qrs
-    }
-
-    val langsQueryStr by remember(subPrefs.langsSel.size) { mutableStateOf(languagesQS()) }
-    val tagsQueryStr by remember(subPrefs.tagsSel.size) { mutableStateOf(tagsQS()) }
-    val queuesQueryStr by remember(subPrefs.queueSelIds.size) { mutableStateOf(queuesQS()) }
-    val filterQueryStr by remember(subPrefs.feedsFilter) { mutableStateOf(FeedFilter(subPrefs.feedsFilter).queryString()) }
-
-    fun buildFlow() {
-        Logd(TAG, "buildFlow")
-        fun feedFetchQString(): String {
-            var fQueryStr = filterQueryStr
-            if (langsQueryStr.isNotEmpty())  fQueryStr += " AND $langsQueryStr"
-            if (tagsQueryStr.isNotEmpty())  fQueryStr += " AND $tagsQueryStr"
-            if (queuesQueryStr.isNotEmpty())  fQueryStr += " AND $queuesQueryStr"
-            return fQueryStr
-        }
-        val fetchQS = feedFetchQString()
-        val sortPair = Pair(subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
-        Logd(TAG, "fetchQS: $fetchQS ${sortPair.first} ${sortPair.second.name}")
-        feedsFlow = realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
-    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -301,6 +235,7 @@ fun SubscriptionsScreen() {
 
     val downloadedQuery by remember(subPrefs.downlaodedSortIndex) { mutableStateOf(if (subPrefs.downlaodedSortIndex == 0) " downloaded == true " else if (subPrefs.downlaodedSortIndex == 1) " downloaded == false " else "") }
     val commentedQuery by remember(subPrefs.commentedSortIndex) { mutableStateOf( if (subPrefs.commentedSortIndex == 0) " comment != '' " else if (subPrefs.commentedSortIndex == 1) " comment == '' " else "") }
+
 
     fun prepareDateSort(subIndex: FeedDateSortIndex? = null) {
         val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.dateSortIndex
@@ -444,12 +379,13 @@ fun SubscriptionsScreen() {
     fun prepareCountSort() {
         Logd(TAG, "prepareCountSort")
         runOnIOScope {
-            var queryString = "feedId == $0"
-            if (playStateQueries.isNotEmpty()) queryString += " AND ($playStateQueries)"
-            if (ratingQueries.isNotEmpty()) queryString += " AND ($ratingQueries)"
-            if (downloadedQuery.isNotEmpty()) queryString += " AND ($downloadedQuery)"
-            if (commentedQuery.isNotEmpty()) queryString += " AND ($commentedQuery)"
-            Logd(TAG, "prepareSort queryString: $queryString")
+            val sb = StringBuilder("feedId == $0")
+            if (playStateQueries.isNotEmpty()) sb.append(" AND ($playStateQueries)")
+            if (ratingQueries.isNotEmpty()) sb.append(" AND ($ratingQueries)")
+            if (downloadedQuery.isNotEmpty()) sb.append(" AND ($downloadedQuery)")
+            if (commentedQuery.isNotEmpty()) sb.append(" AND ($commentedQuery)")
+            val queryString = sb.toString()
+            Logd(TAG, "prepareCountSort queryString: $queryString")
             realm.write {
                 for (f_ in feeds) {
                     val f = findLatest(f_) ?: continue
@@ -467,40 +403,6 @@ fun SubscriptionsScreen() {
         }
     }
 
-    LaunchedEffect(subPrefs.playStateCodeSet) {
-        playStateQueries = ""
-        Logd(TAG, "LaunchedEffect subPrefs.playStateCodeSet")
-        for (i in episodeStateSort.indices) episodeStateSort[i].value = false
-        for (c in subPrefs.playStateCodeSet) episodeStateSort[EpisodeState.fromCode(c.toInt()).ordinal].value = true
-        for (i in episodeStateSort.indices) {
-            if (episodeStateSort[i].value) {
-                if (playStateQueries.isNotEmpty()) playStateQueries += " OR "
-                playStateQueries += " playState == ${EpisodeState.entries[i].code} "
-            }
-        }
-        when (subPrefs.sortIndex) {
-            FeedSortIndex.Date.ordinal -> prepareDateSort()
-            FeedSortIndex.Count.ordinal -> prepareCountSort()
-            else -> {}
-        }
-    }
-    LaunchedEffect(subPrefs.ratingCodeSet) {
-        ratingQueries = ""
-        Logd(TAG, "LaunchedEffect subPrefs.ratingCodeSet")
-        for (i in ratingSort.indices) ratingSort[i].value = false
-        for (c in subPrefs.ratingCodeSet) ratingSort[Rating.fromCode(c.toInt()).ordinal].value = true
-        for (i in ratingSort.indices) {
-            if (ratingSort[i].value) {
-                if (ratingQueries.isNotEmpty()) ratingQueries += " OR "
-                ratingQueries += " rating == ${Rating.entries[i].code} "
-            }
-        }
-        when (subPrefs.sortIndex) {
-            FeedSortIndex.Count.ordinal -> prepareCountSort()
-            else -> {}
-        }
-    }
-
     LaunchedEffect(downloadedQuery, commentedQuery) { prepareCountSort() }
 
     LaunchedEffect(feedOperationText, feeds.size) {
@@ -513,9 +415,67 @@ fun SubscriptionsScreen() {
         }
     }
 
+    fun languagesQS() : String {
+        var qrs  = ""
+        when {
+            subPrefs.langsSel.isEmpty() -> qrs = " (languages.@count > 0) "
+            subPrefs.langsSel.size == appAttribs.languages.size -> qrs = ""
+            else -> {
+                for (l in subPrefs.langsSel) {
+                    qrs += if (qrs.isEmpty()) " ( ANY languages == '$l' " else " OR ANY languages == '$l' "
+                }
+                if (qrs.isNotEmpty()) qrs += " ) "
+            }
+        }
+        Logd(TAG, "languagesQS: $qrs")
+        return qrs
+    }
+    fun tagsQS() : String {
+        var qrs  = ""
+        when {
+            subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
+            subPrefs.tagsSel.size == appAttribs.feedTags.size -> qrs = ""
+            else -> {
+                for (t in subPrefs.tagsSel) {
+                    qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
+                }
+                if (qrs.isNotEmpty()) qrs += " ) "
+            }
+        }
+        Logd(TAG, "tagsQS: $qrs")
+        return qrs
+    }
+    fun queuesQS() : String {
+        val qSelIds_ = subPrefs.queueSelIds.toMutableSet()
+        if (qSelIds_.isEmpty()) qSelIds_.add(-2)
+        else {
+            if ((queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
+            else qSelIds_.remove(-2)
+        }
+        var qrs  = ""
+        for (id in qSelIds_) {
+            qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
+        }
+        if (qrs.isNotEmpty()) qrs += " ) "
+        Logd(TAG, "queuesQS: $qrs")
+        return qrs
+    }
+
+    val langsQueryStr by remember(subPrefs.langsSel.size) { mutableStateOf(languagesQS()) }
+    val tagsQueryStr by remember(subPrefs.tagsSel.size) { mutableStateOf(tagsQS()) }
+    val queuesQueryStr by remember(subPrefs.queueSelIds.size) { mutableStateOf(queuesQS()) }
+    val filterQueryStr by remember(subPrefs.feedsFilter) { mutableStateOf(FeedFilter(subPrefs.feedsFilter).queryString()) }
+
     LaunchedEffect(subPrefs.feedsFiltered, subPrefs.feedsSorted) {
         Logd(TAG, "LaunchedEffect feedsFiltered, sortPair.first, sortPair")
-        buildFlow()
+        val sb = StringBuilder(filterQueryStr)
+        if (langsQueryStr.isNotEmpty())  sb.append(" AND $langsQueryStr")
+        if (tagsQueryStr.isNotEmpty())  sb.append(" AND $tagsQueryStr")
+        if (queuesQueryStr.isNotEmpty())  sb.append(" AND $queuesQueryStr")
+        val fetchQS = sb.toString()
+        val sortPair = Pair(subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
+        Logd(TAG, "fetchQS: $fetchQS ${sortPair.first} ${sortPair.second.name}")
+        feedsFlow = realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -949,10 +909,10 @@ fun SubscriptionsScreen() {
                         restored = true
                     }
                 }
-                LaunchedEffect(filterSorted) {
-                    Logd(TAG, "LaunchedEffect(filterSorted) $filterSorted")
-                    if (feeds.isNotEmpty() && filterSorted) scope.launch { listState.scrollToItem(0) }
-                    filterSorted = false
+                LaunchedEffect(filterAndSort) {
+                    Logd(TAG, "LaunchedEffect(filterSorted) $filterAndSort")
+                    if (feeds.isNotEmpty() && filterAndSort) scope.launch { listState.scrollToItem(0) }
+                    filterAndSort = false
                 }
 
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -977,7 +937,6 @@ fun SubscriptionsScreen() {
                                 })
                             )
                             Column(Modifier.weight(1f).padding(start = 10.dp).combinedClickable(onClick = {
-                                Logd(TAG, "clicked: ${feed.title}")
                                 if (!feed.isBuilding) {
                                     if (selectMode) toggleSelected()
                                     else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
@@ -995,7 +954,6 @@ fun SubscriptionsScreen() {
                                         longPressIndex = -1
                                     }
                                 }
-                                Logd(TAG, "long clicked: ${feed.title}")
                             })) {
                                 Row {
                                     if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.width(20.dp).height(20.dp).background(MaterialTheme.colorScheme.tertiaryContainer))
@@ -1124,37 +1082,37 @@ fun SubscriptionsScreen() {
                         if (subPrefs.sortIndex == FeedSortIndex.Date.ordinal) {
                             Row {
                                 OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.dateSortIndex != FeedDateSortIndex.Played.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { prepareDateSort(FeedDateSortIndex.Played) }
+                                    onClick = { if (subPrefs.dateSortIndex != FeedDateSortIndex.Played.ordinal) prepareDateSort(FeedDateSortIndex.Played) }
                                 ) { Text(stringResource(FeedDateSortIndex.Played.res)) }
                                 Spacer(Modifier.weight(1f))
                                 OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { prepareDateSort(FeedDateSortIndex.Downloaded) }
+                                    onClick = { if (subPrefs.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) prepareDateSort(FeedDateSortIndex.Downloaded) }
                                 ) { Text(stringResource(FeedDateSortIndex.Downloaded.res)) }
                                 Spacer(Modifier.weight(1f))
                                 OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.dateSortIndex != FeedDateSortIndex.Commented.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { prepareDateSort(FeedDateSortIndex.Commented) }
+                                    onClick = { if (subPrefs.dateSortIndex != FeedDateSortIndex.Commented.ordinal) prepareDateSort(FeedDateSortIndex.Commented) }
                                 ) { Text(stringResource(FeedDateSortIndex.Commented.res)) }
                             }
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.dateSortIndex != FeedDateSortIndex.Publish.ordinal) buttonColor else buttonAltColor),
-                                onClick = { prepareDateSort(FeedDateSortIndex.Publish) }
+                                onClick = { if (subPrefs.dateSortIndex != FeedDateSortIndex.Publish.ordinal)  prepareDateSort(FeedDateSortIndex.Publish) }
                             ) { Text(stringResource(FeedDateSortIndex.Publish.res)) }
                         } else if (subPrefs.sortIndex == FeedSortIndex.Time.ordinal) {
                             Row {
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != 1) buttonColor else buttonAltColor),
-                                    onClick = { prepareTimeSort(FeedTimeSortIndex.Min) }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != FeedTimeSortIndex.Min.ordinal) buttonColor else buttonAltColor),
+                                    onClick = { if (subPrefs.timeSortIndex != FeedTimeSortIndex.Min.ordinal) prepareTimeSort(FeedTimeSortIndex.Min) }
                                 ) { Text(stringResource(R.string.min_duration)) }
                                 Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != 2) buttonColor else buttonAltColor),
-                                    onClick = { prepareTimeSort(FeedTimeSortIndex.Max) }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != FeedTimeSortIndex.Max.ordinal) buttonColor else buttonAltColor),
+                                    onClick = { if (subPrefs.timeSortIndex != FeedTimeSortIndex.Max.ordinal) prepareTimeSort(FeedTimeSortIndex.Max) }
                                 ) { Text(stringResource(R.string.max_duration)) }
                             }
                             Row {
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != 0) buttonColor else buttonAltColor),
-                                    onClick = { prepareTimeSort(FeedTimeSortIndex.Total) }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != FeedTimeSortIndex.Total.ordinal) buttonColor else buttonAltColor),
+                                    onClick = { if (subPrefs.timeSortIndex != FeedTimeSortIndex.Total.ordinal) prepareTimeSort(FeedTimeSortIndex.Total) }
                                 ) { Text(stringResource(R.string.total_duration)) }
                                 Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != 3) buttonColor else buttonAltColor),
-                                    onClick = { prepareTimeSort(FeedTimeSortIndex.Average) }
+                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.timeSortIndex != FeedTimeSortIndex.Average.ordinal) buttonColor else buttonAltColor),
+                                    onClick = { if (subPrefs.timeSortIndex != FeedTimeSortIndex.Average.ordinal) prepareTimeSort(FeedTimeSortIndex.Average) }
                                 ) { Text(stringResource(R.string.average_duration)) }
                             }
                         }
@@ -1163,240 +1121,248 @@ fun SubscriptionsScreen() {
                             if (subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
                                 Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                     val item = EpisodeFilter.EpisodesFilterGroup.DOWNLOADED
-                                    var selectNone by remember { mutableStateOf(false) }
-                                    LaunchedEffect(selectNone) {
-                                        if (selectNone) runOnIOScope {
-                                            upsert(subPrefs) {
-                                                it.downlaodedSortIndex = -1
-//                                                it.feedsSorted += 1
-                                            }
-//                                            prepareCountSort()
-                                        }
-                                    }
                                     Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                     Spacer(Modifier.weight(0.3f))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.downlaodedSortIndex != 0) buttonColor else buttonAltColor),
-                                        onClick = {
-                                            runOnIOScope {
-                                                upsert(subPrefs) {
-                                                    if (it.downlaodedSortIndex != 0) {
-                                                        it.downlaodedSortIndex = 0
-                                                    } else it.downlaodedSortIndex = -1
-//                                                    it.feedsSorted += 1
-                                                }
-//                                                prepareCountSort()
+                                    fun persistDLSort(i: Int) {
+                                        runOnIOScope {
+                                            upsert(subPrefs) {
+                                                if (it.downlaodedSortIndex != i) {
+                                                    it.downlaodedSortIndex = i
+                                                } else it.downlaodedSortIndex = -1
                                             }
-                                            selectNone = false
-                                        },
+                                        }
+                                    }
+                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.downlaodedSortIndex != 0) buttonColor else buttonAltColor),
+                                        onClick = { persistDLSort(0) },
                                     ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                     Spacer(Modifier.weight(0.1f))
                                     OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.downlaodedSortIndex != 1) buttonColor else buttonAltColor),
-                                        onClick = {
-                                            runOnIOScope {
-                                                upsert(subPrefs) {
-                                                    if (it.downlaodedSortIndex != 1) {
-                                                        selectNone = false
-                                                        it.downlaodedSortIndex = 1
-                                                    } else it.downlaodedSortIndex = -1
-//                                                    it.feedsSorted += 1
-                                                }
-//                                                prepareCountSort()
-                                            }
-                                        },
+                                        onClick = { persistDLSort(1) },
                                     ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
                                     Spacer(Modifier.weight(0.5f))
                                 }
                                 Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                                     val item = EpisodeFilter.EpisodesFilterGroup.OPINION
-                                    var selectNone by remember { mutableStateOf(false) }
-                                    LaunchedEffect(selectNone) {
-                                        if (selectNone) runOnIOScope {
-                                            upsert(subPrefs) {
-                                                it.commentedSortIndex = -1
-//                                                it.feedsSorted += 1
-                                            }
-//                                            prepareCountSort()
-                                        }
-                                    }
                                     Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
                                     Spacer(Modifier.weight(0.3f))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.commentedSortIndex != 0) buttonColor else buttonAltColor),
-                                        onClick = {
-                                            runOnIOScope {
-                                                upsert(subPrefs) {
-                                                    if (it.commentedSortIndex != 0) {
-                                                        selectNone = false
-                                                        it.commentedSortIndex = 0
-                                                    } else it.commentedSortIndex = -1
-//                                                    it.feedsSorted += 1
-                                                }
-//                                                prepareCountSort()
+                                    fun persistCommentSort(i: Int) {
+                                        runOnIOScope {
+                                            upsert(subPrefs) {
+                                                if (it.commentedSortIndex != i) {
+                                                    it.commentedSortIndex = i
+                                                } else it.commentedSortIndex = -1
                                             }
-                                        },
+                                        }
+                                    }
+                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.commentedSortIndex != 0) buttonColor else buttonAltColor),
+                                        onClick = { persistCommentSort(0) },
                                     ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
                                     Spacer(Modifier.weight(0.1f))
                                     OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.commentedSortIndex != 1) buttonColor else buttonAltColor),
-                                        onClick = {
-                                            runOnIOScope {
-                                                upsert(subPrefs) {
-                                                    if (it.commentedSortIndex != 1) {
-                                                        selectNone = false
-                                                        it.commentedSortIndex = 1
-                                                    } else it.commentedSortIndex = -1
-//                                                    it.feedsSorted += 1
-                                                }
-//                                                prepareCountSort()
-                                            }
-                                        },
+                                        onClick = { persistCommentSort(1) },
                                     ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
                                     Spacer(Modifier.weight(0.5f))
                                 }
                             }
                             if ((subPrefs.sortIndex == FeedSortIndex.Date.ordinal && subPrefs.dateSortIndex == FeedDateSortIndex.Publish.ordinal) || subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
+                                var allOrNone by remember { mutableStateOf(false) }
+                                LaunchedEffect(Unit) {
+                                    for (i in episodeStateSort.indices) {
+                                        if (EpisodeState.entries[i].code.toString() in subPrefs.playStateCodeSet) episodeStateSort[i].value = true
+                                    }
+                                    val c = episodeStateSort.count { it.value }
+                                    allOrNone = c == 0 || c == episodeStateSort.size
+                                }
                                 fun persistStateSort() {
                                     runOnIOScope {
-                                        runOnIOScope {
-                                            upsert(subPrefs) {
-                                                it.playStateCodeSet.clear()
-                                                for (i in episodeStateSort.indices) {
-                                                    if (episodeStateSort[i].value) it.playStateCodeSet.add(EpisodeState.entries[i].code.toString())
-                                                }
-//                                                it.feedsSorted += 1
+                                        val sb = StringBuilder()
+                                        val playStateCodeSet = mutableSetOf<String>()
+                                        for (i in episodeStateSort.indices) {
+                                            if (episodeStateSort[i].value) {
+                                                playStateCodeSet.add(EpisodeState.entries[i].code.toString())
+                                                if (sb.isNotEmpty()) sb.append(" OR ")
+                                                sb.append(" playState == ${EpisodeState.entries[i].code} ")
                                             }
+                                        }
+                                        playStateQueries = sb.toString()
+                                        upsert(subPrefs) {
+                                            it.playStateCodeSet.clear()
+                                            it.playStateCodeSet.addAll(playStateCodeSet)
+                                        }
+                                        when (subPrefs.sortIndex) {
+                                            FeedSortIndex.Date.ordinal -> prepareDateSort()
+                                            FeedSortIndex.Count.ordinal -> prepareCountSort()
+                                            else -> {}
                                         }
                                     }
                                 }
                                 val item = EpisodeFilter.EpisodesFilterGroup.PLAY_STATE
-                                var selectNone by remember { mutableStateOf(false) }
                                 var expandRow by remember { mutableStateOf(false) }
                                 Row {
-                                    Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor,
-                                        modifier = Modifier.clickable { expandRow = !expandRow })
+                                    Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = if (allOrNone) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                     if (expandRow) {
                                         var lowerSelected by remember { mutableStateOf(false) }
                                         var higherSelected by remember { mutableStateOf(false) }
                                         Spacer(Modifier.weight(1f))
                                         Text("<<<", color = if (lowerSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
                                             modifier = Modifier.clickable {
-                                                val hIndex = episodeStateSort.indexOfLast { it.value }
-                                                if (hIndex < 0) return@clickable
-                                                if (!lowerSelected) {
-                                                    for (i in 0..hIndex) episodeStateSort[i].value = true
-                                                } else {
-                                                    for (i in 0..hIndex) episodeStateSort[i].value = false
-                                                    episodeStateSort[hIndex].value = true
+                                                runOnIOScope {
+                                                    val hIndex = episodeStateSort.indexOfLast { it.value }
+                                                    if (hIndex < 0) return@runOnIOScope
+                                                    if (!lowerSelected) {
+                                                        for (i in 0..hIndex) episodeStateSort[i].value = true
+                                                    } else {
+                                                        for (i in 0..hIndex) episodeStateSort[i].value = false
+                                                        episodeStateSort[hIndex].value = true
+                                                    }
+                                                    val c = episodeStateSort.count { it.value }
+                                                    allOrNone = c == 0 || c == episodeStateSort.size
+                                                    lowerSelected = !lowerSelected
+                                                    persistStateSort()
                                                 }
-                                                lowerSelected = !lowerSelected
-                                                persistStateSort()
                                             })
                                         Spacer(Modifier.weight(1f))
                                         Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
                                             modifier = Modifier.clickable {
-                                                val selectAll = !(lowerSelected && higherSelected)
-                                                lowerSelected = selectAll
-                                                higherSelected = selectAll
-                                                for (i in item.properties.indices) episodeStateSort[i].value = selectAll
-                                                persistStateSort()
+                                                runOnIOScope {
+                                                    val selectAll = !(lowerSelected && higherSelected)
+                                                    lowerSelected = selectAll
+                                                    higherSelected = selectAll
+                                                    for (i in item.properties.indices) episodeStateSort[i].value = selectAll
+                                                    val c = episodeStateSort.count { it.value }
+                                                    allOrNone = c == 0 || c == episodeStateSort.size
+                                                    persistStateSort()
+                                                }
                                             })
                                         Spacer(Modifier.weight(1f))
                                         Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
                                             modifier = Modifier.clickable {
-                                                val lIndex = episodeStateSort.indexOfFirst { it.value }
-                                                if (lIndex < 0) return@clickable
-                                                if (!higherSelected) {
-                                                    for (i in lIndex..<item.properties.size) episodeStateSort[i].value = true
-                                                } else {
-                                                    for (i in lIndex..<item.properties.size) episodeStateSort[i].value = false
-                                                    episodeStateSort[lIndex].value = true
+                                                runOnIOScope {
+                                                    val lIndex = episodeStateSort.indexOfFirst { it.value }
+                                                    if (lIndex < 0) return@runOnIOScope
+                                                    if (!higherSelected) {
+                                                        for (i in lIndex..<item.properties.size) episodeStateSort[i].value = true
+                                                    } else {
+                                                        for (i in lIndex..<item.properties.size) episodeStateSort[i].value = false
+                                                        episodeStateSort[lIndex].value = true
+                                                    }
+                                                    val c = episodeStateSort.count { it.value }
+                                                    allOrNone = c == 0 || c == episodeStateSort.size
+                                                    higherSelected = !higherSelected
+                                                    persistStateSort()
                                                 }
-                                                higherSelected = !higherSelected
-                                                persistStateSort()
                                             })
                                     }
                                     Spacer(Modifier.weight(1f))
                                 }
                                 if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-//                                    val stateName = EpisodeFilter.EpisodesFilterGroup.PLAY_STATE.properties[index_].filterId
-////                                    Logd(TAG, "index_: $index_ stateName: $stateName")
-//                                    val index = EpisodeState.entries.indexOfFirst { it.name == stateName }
-                                    if (selectNone) episodeStateSort[index].value = false
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (episodeStateSort[index].value) buttonAltColor else buttonColor),
                                         onClick = {
-                                            selectNone = false
                                             episodeStateSort[index].value = !episodeStateSort[index].value
+                                            val c = episodeStateSort.count { it.value }
+                                            allOrNone = c == 0 || c == episodeStateSort.size
                                             persistStateSort()
                                         },
                                     ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
                                 }
                             }
                             if (subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
+                                var allOrNone by remember { mutableStateOf(false) }
+                                LaunchedEffect(Unit) {
+                                    for (i in ratingSort.indices) {
+                                        if (Rating.entries[i].code.toString() in subPrefs.ratingCodeSet) ratingSort[i].value = true
+                                    }
+                                    val c = ratingSort.count { it.value }
+                                    allOrNone = c == 0 || c == ratingSort.size
+                                }
                                 fun persistRatingSort() {
                                     runOnIOScope {
+                                        val sb = StringBuilder()
+                                        val ratingCodeSet = mutableSetOf<String>()
+                                        for (i in ratingSort.indices) {
+                                            if (ratingSort[i].value) {
+                                                ratingCodeSet.add(Rating.entries[i].code.toString())
+                                                if (sb.isNotEmpty()) sb.append(" OR ")
+                                                sb.append(" rating == ${Rating.entries[i].code} ")
+                                            }
+                                        }
+                                        ratingQueries = sb.toString()
                                         upsert(subPrefs) {
                                             it.ratingCodeSet.clear()
-                                            for (i in ratingSort.indices) {
-                                                if (ratingSort[i].value) it.ratingCodeSet.add(Rating.entries[i].code.toString())
-                                            }
-//                                            it.feedsSorted += 1
+                                            it.ratingCodeSet.addAll(ratingCodeSet)
                                         }
-//                                        prepareCountSort()
+                                        when (subPrefs.sortIndex) {
+                                            FeedSortIndex.Count.ordinal -> prepareCountSort()
+                                            else -> {}
+                                        }
                                     }
                                 }
                                 val item = EpisodeFilter.EpisodesFilterGroup.RATING
-                                var selectNone by remember { mutableStateOf(false) }
                                 var expandRow by remember { mutableStateOf(false) }
                                 Row {
-                                    Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor,
-                                        modifier = Modifier.clickable { expandRow = !expandRow })
+                                    Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = if (allOrNone) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                                     if (expandRow) {
                                         var lowerSelected by remember { mutableStateOf(false) }
                                         var higherSelected by remember { mutableStateOf(false) }
                                         Spacer(Modifier.weight(1f))
                                         Text("<<<", color = if (lowerSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
                                             modifier = Modifier.clickable {
-                                                val hIndex = ratingSort.indexOfLast { it.value }
-                                                if (hIndex < 0) return@clickable
-                                                if (!lowerSelected) {
-                                                    for (i in 0..hIndex) ratingSort[i].value = true
-                                                } else {
-                                                    for (i in 0..hIndex) ratingSort[i].value = false
-                                                    ratingSort[hIndex].value = true
+                                                runOnIOScope {
+                                                    val hIndex = ratingSort.indexOfLast { it.value }
+                                                    if (hIndex < 0) return@runOnIOScope
+                                                    if (!lowerSelected) {
+                                                        for (i in 0..hIndex) ratingSort[i].value = true
+                                                    } else {
+                                                        for (i in 0..hIndex) ratingSort[i].value = false
+                                                        ratingSort[hIndex].value = true
+                                                    }
+                                                    val c = ratingSort.count { it.value }
+                                                    allOrNone = c == 0 || c == ratingSort.size
+                                                    lowerSelected = !lowerSelected
+                                                    persistRatingSort()
                                                 }
-                                                lowerSelected = !lowerSelected
-                                                persistRatingSort()
                                             })
                                         Spacer(Modifier.weight(1f))
                                         Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
                                             modifier = Modifier.clickable {
-                                                val selectAll = !(lowerSelected && higherSelected)
-                                                lowerSelected = selectAll
-                                                higherSelected = selectAll
-                                                for (i in item.properties.indices) ratingSort[i].value = selectAll
-                                                persistRatingSort()
+                                                runOnIOScope {
+                                                    val selectAll = !(lowerSelected && higherSelected)
+                                                    lowerSelected = selectAll
+                                                    higherSelected = selectAll
+                                                    for (i in item.properties.indices) ratingSort[i].value = selectAll
+                                                    val c = ratingSort.count { it.value }
+                                                    allOrNone = c == 0 || c == ratingSort.size
+                                                    persistRatingSort()
+                                                }
                                             })
                                         Spacer(Modifier.weight(1f))
                                         Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
                                             modifier = Modifier.clickable {
-                                                val lIndex = ratingSort.indexOfFirst { it.value }
-                                                if (lIndex < 0) return@clickable
-                                                if (!higherSelected) {
-                                                    for (i in lIndex..<item.properties.size) ratingSort[i].value = true
-                                                } else {
-                                                    for (i in lIndex..<item.properties.size) ratingSort[i].value = false
-                                                    ratingSort[lIndex].value = true
+                                                runOnIOScope {
+                                                    val lIndex = ratingSort.indexOfFirst { it.value }
+                                                    if (lIndex >= 0) {
+                                                        if (!higherSelected) {
+                                                            for (i in lIndex..<item.properties.size) ratingSort[i].value = true
+                                                        } else {
+                                                            for (i in lIndex..<item.properties.size) ratingSort[i].value = false
+                                                            ratingSort[lIndex].value = true
+                                                        }
+                                                        val c = ratingSort.count { it.value }
+                                                        allOrNone = c == 0 || c == ratingSort.size
+                                                        higherSelected = !higherSelected
+                                                        persistRatingSort()
+                                                    }
                                                 }
-                                                higherSelected = !higherSelected
-                                                persistRatingSort()
                                             })
                                     }
                                     Spacer(Modifier.weight(1f))
                                 }
                                 if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                    if (selectNone) ratingSort[index].value = false
                                     OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (ratingSort[index].value) buttonAltColor else buttonColor),
                                         onClick = {
-                                            selectNone = false
                                             ratingSort[index].value = !ratingSort[index].value
+                                            val c = ratingSort.count { it.value }
+                                            allOrNone = c == 0 || c == ratingSort.size
                                             persistRatingSort()
                                         },
                                     ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
@@ -1449,9 +1415,7 @@ fun SubscriptionsScreen() {
                                             val cb = {
                                                 runOnIOScope {
                                                     val langsSel = mutableSetOf<String>()
-                                                    for (i in langs.indices) {
-                                                        if (selectedList[i].value) langsSel.add(langs[i])
-                                                    }
+                                                    for (i in langs.indices) if (selectedList[i].value) langsSel.add(langs[i])
                                                     upsert(subPrefs) {
                                                         it.langsSel = langsSel.toRealmSet()
                                                         it.feedsFiltered += 1
@@ -1496,9 +1460,7 @@ fun SubscriptionsScreen() {
                                         val cb = {
                                             runOnIOScope {
                                                 val qSelIds = mutableSetOf<Long>()
-                                                for (i in queueNames.indices) {
-                                                    if (selectedList[i].value) qSelIds.add(queueIds[i])
-                                                }
+                                                for (i in queueNames.indices) if (selectedList[i].value) qSelIds.add(queueIds[i])
                                                 upsert(subPrefs) {
                                                     it.queueSelIds = qSelIds.toRealmSet()
                                                     it.feedsFiltered += 1
@@ -1544,9 +1506,7 @@ fun SubscriptionsScreen() {
                                             val cb = {
                                                 runOnIOScope {
                                                     val tagsSel = mutableSetOf<String>()
-                                                    for (i in tagList.indices) {
-                                                        if (selectedList[i].value) tagsSel.add(tagList[i])
-                                                    }
+                                                    for (i in tagList.indices) if (selectedList[i].value) tagsSel.add(tagList[i])
                                                     upsert(subPrefs) {
                                                         it.tagsSel = tagsSel.toRealmSet()
                                                         it.feedsFiltered += 1
@@ -1695,16 +1655,16 @@ fun SubscriptionsScreen() {
         }
 
         if (showFilterDialog) {
-            filterSorted = true
+            filterAndSort = true
             FilterDialog(FeedFilter(subPrefs.feedsFilter)) {
-                filterSorted = false
+                filterAndSort = false
                 showFilterDialog = false
             }
         }
         if (showSortDialog) {
-            filterSorted = true
+            filterAndSort = true
             SortDialog {
-                filterSorted = false
+                filterAndSort = false
                 showSortDialog = false
             }
         }
