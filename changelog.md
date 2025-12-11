@@ -1,3 +1,12 @@
+# 9.8.2
+
+* on first start, set actQueue to where curEpisode is
+* fixed auto-scroll issues in Queues screen
+* in episodes lists, enlarged the effective area of the action button a bit
+* when adding a list to virtual queue, it starts with the played episode
+* on auto refreshing, only handle feeds set to keep updated
+* some code refactoring and cleaning
+
 # 9.8.1
 
 * fixed episodes sorting category mismatch issue

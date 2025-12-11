@@ -141,7 +141,7 @@ fun InforBar(text: State<String>, swipeActions: SwipeActions) {
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val leftAction = swipeActions.actions.left[0]
     val rightAction = swipeActions.actions.right[0]
-    Logd("InforBar", "textState: ${text.value}")
+//    Logd("InforBar", "textState: ${text.value}")
     Row {
         Icon(imageVector = ImageVector.vectorResource(leftAction.iconRes), tint = buttonColor, contentDescription = "left_action_icon",
             modifier = Modifier.width(24.dp).height(24.dp).clickable(onClick = {  showSwipeActionsDialog = true }))
@@ -433,13 +433,14 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
         }
 
         val cameBack = currentEntry?.savedStateHandle?.get<Boolean>("returned") ?: false
-        LaunchedEffect(cameBack, scrollToOnStart, lifecycleState) {
+        LaunchedEffect(cameBack, scrollToOnStart) {
+            Logd(TAG, "LaunchedEffect(scrollToOnStart) $scrollToOnStart $cameBack ${lazyListState.firstVisibleItemIndex} $lifecycleState")
             if (lifecycleState >= Lifecycle.State.RESUMED) {
-                Logd(TAG, "LaunchedEffect(scrollToOnStart) $scrollToOnStart $cameBack ${lazyListState.firstVisibleItemIndex}")
                 if (cameBack || scrollToOnStart < 0) {
                     scope.launch {
                         lazyListState.scrollToItem(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset)
-                        Logd(TAG, "Screen on, triggered scroll for recomposition") //                    currentEntry?.savedStateHandle?.remove<Boolean>("comingBack")
+                        Logd(TAG, "Screen on, triggered scroll for recomposition")
+                    //                    currentEntry?.savedStateHandle?.remove<Boolean>("comingBack")
                     }
                 } else {
                     scope.launch {
@@ -453,7 +454,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
         val swipeDistanceThreshold = with(LocalDensity.current) { 100.dp.toPx() }
         val useFeedImage = remember(feed) { feed?.useFeedImage() == true }
 
-        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(episodes, key = { _, e -> e.id }) { index, episode_ ->
                 val episode by rememberUpdatedState(episode_)
                 var actionButton by remember(episode.id) { mutableStateOf(EpisodeActionButton(episode)) }
@@ -621,7 +622,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     } else if (actionButton.type == ButtonTypes.PAUSE) actionButton.update(episode)
                                     LaunchedEffect(episode.downloaded) { actionButton.update(episode) }
                                 } else LaunchedEffect(Unit) { actionButton = actionButton_(episode) }
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(40.dp).padding(end = 10.dp).align(Alignment.BottomEnd).pointerInput(Unit) {
+                                Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).align(Alignment.BottomEnd).pointerInput(Unit) {
                                     detectTapGestures(
                                         onLongPress = { showAltActionsDialog = true },
                                         onTap = {

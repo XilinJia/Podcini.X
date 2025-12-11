@@ -138,8 +138,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
@@ -185,7 +183,6 @@ fun QueuesScreen(id: Long = -1L) {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     queuesFlow = realm.query<PlayQueue>().sort("name").asFlow()
-//                    curIndex = id
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
@@ -252,26 +249,21 @@ fun QueuesScreen(id: Long = -1L) {
         feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
     }
 
-    LaunchedEffect(curQueue, queuesFlow, queuesMode, dragged) {
+    LaunchedEffect(curQueue, queuesMode, dragged) {
         Logd(TAG, "LaunchedEffect(curQueue, queuesFlow, screenMode, dragged)")
         lifecycleOwner.lifecycle.removeObserver(swipeActions)
         when (queuesMode) {
             QueuesScreenMode.Bin -> {
                 swipeActions = SwipeActions(context, "${TAG}_Bin")
                 lifecycleOwner.lifecycle.addObserver(swipeActions)
-                episodesFlow = queuesFlow.mapNotNull { resultsChange -> resultsChange.list.firstOrNull { it.id == curQueue.id }?.idsBinList
-                }.flatMapLatest { ids ->
-                    realm.query(Episode::class, "id IN $0", ids).sort(Pair("timeOutQueue", Sort.DESCENDING)).asFlow()
-                }
+                episodesFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).sort(Pair("timeOutQueue", Sort.DESCENDING)).asFlow()
+
                 title = curQueue.name + " Bin"
             }
             QueuesScreenMode.Queue -> {
                 swipeActions = SwipeActions(context, TAG)
                 lifecycleOwner.lifecycle.addObserver(swipeActions)
-                episodesFlow = queuesFlow.mapNotNull { resultsChange -> resultsChange.list.firstOrNull { it.id == curQueue.id }?.episodeIds
-                }.flatMapLatest { ids ->
-                    realm.query(Episode::class).query("id IN $0", ids).sort(sortPairOf(curQueue.sortOrder)).asFlow()
-                }
+                episodesFlow = realm.query(Episode::class).query("id IN $0", curQueue.episodeIds).sort(sortPairOf(curQueue.sortOrder)).asFlow()
                 title = ""
             }
             QueuesScreenMode.Feed -> {
@@ -586,7 +578,7 @@ fun QueuesScreen(id: Long = -1L) {
 
     OpenDialogs()
 
-    fun moveInQueue(from: Int, to: Int) {
+    fun moveItemInQueue(from: Int, to: Int) {
         val episodes = curQueue.episodes.toMutableList()
         if (episodes.isNotEmpty()) {
             if ((from in 0 ..< episodes.size) && (to in 0..<episodes.size)) {
@@ -608,14 +600,14 @@ fun QueuesScreen(id: Long = -1L) {
             else -> {
                 val episodesChange by episodesFlow.collectAsState(initial = null)
                 val episodes = episodesChange?.list ?: emptyList()
-                var scrollToOnStart by remember(episodes, curQueue, actQueue) { mutableIntStateOf(run {
+                var scrollToOnStart by remember(curQueue, episodes.size) { mutableIntStateOf(run {
                     Logd(TAG, "scrollToOnStart ${curQueue.id == actQueue.id}")
                     if (curQueue.id == actQueue.id) episodes.indexOfFirst { it.id == curEpisode?.id } else -1
                 }) }
                 Logd(TAG, "Scaffold scrollToOnStart: $scrollToOnStart")
 
                 LaunchedEffect(episodes.size) {
-                    Logd(TAG, "LaunchedEffect(episodes.size)")
+                    Logd(TAG, "LaunchedEffect(episodes.size) ${episodes.size}")
                     scope.launch(Dispatchers.IO) {
                         val info = buildListInfo(episodes)
                         withContext(Dispatchers.Main) {
@@ -653,19 +645,13 @@ fun QueuesScreen(id: Long = -1L) {
                             },
                             isDraggable = dragDropEnabled, dragCB = { iFrom, iTo ->
                                 runOnIOScope {
-                                    moveInQueue(iFrom, iTo)
+                                    moveItemInQueue(iFrom, iTo)
                                     withContext(Dispatchers.Main) { dragged++ }
                                 }
                             },
                             actionButtonCB = { e, type ->
                                 if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
-                                    if (actQueue.id != curQueue.id) {
-                                        actQueue = curQueue
-//                                        upsertBlk(virQueue) { q ->
-//                                            q.identity = ""
-//                                            q.episodeIds = realmListOf()
-//                                        }
-                                    }
+                                    if (actQueue.id != curQueue.id) actQueue = curQueue
                                 }
                             }
                         )

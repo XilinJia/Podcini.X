@@ -5,7 +5,6 @@ import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.EXTRA_ALLOW_STREAM_THIS_TIME
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPrepared
@@ -31,14 +30,6 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
     private val TAG = "PlaybackStarter"
 
     private var shouldStreamThisTime = false
-
-    val intent: Intent
-        @UnstableApi
-        get() {
-            val launchIntent = Intent(context, PlaybackService::class.java)
-            launchIntent.putExtra(EXTRA_ALLOW_STREAM_THIS_TIME, shouldStreamThisTime)
-            return launchIntent
-        }
 
     fun shouldStreamThisTime(shouldStreamThisTime: Boolean?): PlaybackStarter {
         if (shouldStreamThisTime == null) {
@@ -66,13 +57,13 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
                 when {
                     isPlaying -> playPause()
                     isPaused || isPrepared -> mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
-                    isStopped -> ContextCompat.startForegroundService(context, intent)
+                    isStopped -> ContextCompat.startForegroundService(context, Intent(context, PlaybackService::class.java))
                     else -> mPlayer?.reinit()
                 }
                 sleepManager?.restartSleepTimer()
             } else {
                 Logd(TAG, "starting PlaybackService")
-                ContextCompat.startForegroundService(context, intent)
+                ContextCompat.startForegroundService(context, Intent(context, PlaybackService::class.java))
             }
         }
     }

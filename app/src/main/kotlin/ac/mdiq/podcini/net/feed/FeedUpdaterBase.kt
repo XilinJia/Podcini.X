@@ -107,7 +107,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             if (feedIds.isNotEmpty()) {
                 Logt(TAG, "Partial refresh of ${feedIds.size} feeds")
                 feedsToUpdate = realm.query(Feed::class, "id IN $0", feedIds).find().toMutableList()
-            } else feedsToUpdate = getFeedList().toMutableList()
+            } else feedsToUpdate = getFeedList("keepUpdated == true").toMutableList()
         } else {
             feedsToUpdate = feeds.toMutableList()
             force = true

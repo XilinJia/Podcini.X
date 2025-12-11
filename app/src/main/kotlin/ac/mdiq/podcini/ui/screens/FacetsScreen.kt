@@ -2,9 +2,6 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
-import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.virQueue
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedIdsOfAllEpisodes
@@ -14,6 +11,7 @@ import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
 import ac.mdiq.podcini.storage.database.inQueueEpisodeIdSet
+import ac.mdiq.podcini.storage.database.queueToVirtual
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -80,6 +78,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -187,7 +186,7 @@ fun FacetsScreen() {
     var showDatesFilterDialog by remember { mutableStateOf(false) }
     val showClearHistoryDialog = remember { mutableStateOf(false) }
 
-    var historyStartDate by remember { mutableStateOf(0L) }
+    var historyStartDate by remember { mutableLongStateOf(0L) }
     var historyEndDate = remember { Date().time }
 
     val episodesChange by episodesFlow.collectAsState(initial = null)
@@ -593,22 +592,8 @@ fun FacetsScreen() {
             InforBar(info, swipeActions)
             EpisodeLazyColumn(context, episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButton_ = actionButtonToPass,
                 actionButtonCB = { e, type ->
-                    if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
-                        if (virQueue.identity != listIdentity) {
-                            runOnIOScope {
-                                virQueue = upsert(virQueue) { q ->
-                                    q.identity = listIdentity
-                                    q.playInSequence = true
-                                    q.sortOrder = vm.sortOrder
-                                    q.episodeIds.clear()
-                                    q.episodeIds.addAll(episodes.take(VIRTUAL_QUEUE_SIZE).map { it.id })
-                                }
-                                virQueue.episodes.clear()
-                                actQueue = virQueue
-                            }
-                            Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
-                        }
-                    }
+                    if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM))
+                        runOnIOScope { queueToVirtual(e, episodes, listIdentity, vm.sortOrder) }
                 })
         }
     }

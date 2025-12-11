@@ -4,10 +4,12 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.automation.autodownloadForQueue
 import ac.mdiq.podcini.automation.autoenqueueForQueue
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
+import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
+import ac.mdiq.podcini.playback.base.InTheatre.virQueue
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayQueue
@@ -19,6 +21,7 @@ import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent.QueueEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logt
 import java.util.Date
 import kotlin.random.Random
 
@@ -103,6 +106,26 @@ private fun applySortOrder(queueItems: MutableList<Episode>, queue: PlayQueue) {
     if (queue.enqueueLocation != EnqueueLocation.BACK.code) resetInQueueTime(queueItems)
     if (queue.sortOrder !in listOf(EpisodeSortOrder.TIME_IN_QUEUE_ASC, EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1)) {
         getPermutor(queue.sortOrder).reorder(queueItems)
+    }
+}
+
+suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdentity: String, sortOrder: EpisodeSortOrder, playInSequence: Boolean = true) {
+    if (virQueue.identity != listIdentity && !virQueue.episodeIds.contains(episode.id)) {
+        val eIdsToQueue = mutableListOf<Long>()
+        val index = episodes.indexOfFirst { it.id == episode.id }
+        if (index > 0) {
+            eIdsToQueue.addAll(episodes.subList(index, index+VIRTUAL_QUEUE_SIZE).map { it.id })
+        }
+        virQueue = upsert(virQueue) { q ->
+            q.identity = listIdentity
+            q.playInSequence = playInSequence
+            q.sortOrder = sortOrder
+            q.episodeIds.clear()
+            q.episodeIds.addAll(eIdsToQueue)
+        }
+        virQueue.episodes.clear()
+        actQueue = virQueue
+        Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
     }
 }
 

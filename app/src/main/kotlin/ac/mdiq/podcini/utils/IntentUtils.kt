@@ -30,7 +30,6 @@ fun sendLocalBroadcast(context: Context, action: String?) {
     context.sendBroadcast(Intent(action).setPackage(context.packageName))
 }
 
-
 fun openInBrowser(context: Context, url: String) {
     Logd(TAG, "url: $url")
     try {

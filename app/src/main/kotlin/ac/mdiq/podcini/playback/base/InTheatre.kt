@@ -46,6 +46,7 @@ object InTheatre {
 
     internal var aCtrlFuture: ListenableFuture<MediaController>? = null
     var aController: MediaController? = null
+
     internal var vCtrlFuture: ListenableFuture<MediaController>? = null
     var vController: MediaController? = null
 
@@ -92,7 +93,6 @@ object InTheatre {
                         vq.name = "Virtual"
                         upsertBlk(vq) {}
                     }
-            actQueue = if (virQueue.size() == 0) queues[0] else virQueue
 
             Logd(TAG, "starting curState")
             val curState_ = realm.query(CurrentState::class).first().find()
@@ -101,7 +101,15 @@ object InTheatre {
                 Logd(TAG, "creating new curState")
                 upsert(curState) {}
             }
-            playableFromPreferences()
+            restoreMediaFromPreferences()
+            if (curEpisode != null) {
+                for (q in queues) {
+                    if (q.episodeIds.contains(curEpisode!!.id)) {
+                        actQueue = q
+                        break
+                    }
+                }
+            }
         }
         monitorState()
     }
@@ -128,6 +136,7 @@ object InTheatre {
         }
     }
 
+    // TODO: these appear not needed
     var onCurInitUICB: (suspend (e: Episode)->Unit)? = null
     var onCurChangedUICB: (suspend (e: Episode, fields: Array<String>)->Unit)? = null
 
@@ -141,15 +150,17 @@ object InTheatre {
                 curEpisode = episode
                 Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")
                 runOnIOScope {
-                    subscribeEpisode(curEpisode!!, MonitorEntity(TAG, onChanges = { e, f ->
-                        if (e.id == curEpisode?.id) {
-                            curEpisode = e
-                            Logd(TAG, "setCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
-                            onCurChangedUICB?.invoke(e, f)
-                        }
-                    }, onInit = { e ->
-                        onCurInitUICB?.invoke(e)
-                    }))
+                    subscribeEpisode(curEpisode!!,
+                        MonitorEntity(TAG,
+                            onInit = { e -> onCurInitUICB?.invoke(e) },
+                            onChanges = { e, f ->
+                                if (e.id == curEpisode?.id) {
+                                    curEpisode = e
+                                    Logd(TAG, "setCurEpisode updating curEpisode [${curEpisode?.title}] ${f.joinToString()}")
+                                    onCurChangedUICB?.invoke(e, f)
+                                }
+                            }
+                        ))
                 }
                 curMediaId = episode.id
             }
@@ -197,7 +208,7 @@ object InTheatre {
      * depending on the type of playable that was restored.
      * @return The restored EpisodeMedia object
      */
-    fun playableFromPreferences() {
+    fun restoreMediaFromPreferences() {
         Logd(TAG, "loadPlayableFromPreferences currentlyPlayingType: $curState.curMediaType")
         if (curState.curMediaType != NO_MEDIA_PLAYING) {
             val type = curState.curMediaType.toInt()
@@ -212,7 +223,6 @@ object InTheatre {
         return isCurMedia(media) && PlaybackService.isRunning && isPlaying
     }
 
-    
     fun isCurMedia(media: Episode?): Boolean {
         return media != null && curEpisode?.id == media.id
     }

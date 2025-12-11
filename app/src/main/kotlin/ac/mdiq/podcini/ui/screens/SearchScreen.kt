@@ -2,12 +2,9 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
-import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
-import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.virQueue
+import ac.mdiq.podcini.storage.database.queueToVirtual
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
@@ -25,7 +22,6 @@ import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatLargeInteger
 import android.annotation.SuppressLint
 import android.content.Context
@@ -490,22 +486,8 @@ fun SearchScreen() {
                     InforBar(infoBarText, swipeActions)
                     EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions,
                         actionButtonCB = { e, type ->
-                            if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
-                                if (virQueue.identity != vm.listIdentity) {
-                                    runOnIOScope {
-                                        virQueue = upsert(virQueue) { q ->
-                                            q.identity = vm.listIdentity
-                                            q.playInSequence = true
-                                            q.sortOrder = EpisodeSortOrder.DATE_DESC
-                                            q.episodeIds.clear()
-                                            q.episodeIds.addAll(episodes.take(VIRTUAL_QUEUE_SIZE).map { it.id })
-                                        }
-                                        virQueue.episodes.clear()
-                                        actQueue = virQueue
-                                    }
-                                    Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
-                                }
-                            }
+                            if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM))
+                                runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, EpisodeSortOrder.DATE_DESC) }
                         })
                 }
                 1 -> FeedsColumn()

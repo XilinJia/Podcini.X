@@ -178,9 +178,6 @@ fun SubscriptionsScreen() {
     //    TODO: currently not used
     var displayedFolder by remember { mutableStateOf("") }
 
-    val episodeStateSort = remember { MutableList(EpisodeState.entries.size) { mutableStateOf(false) } }
-    val ratingSort = remember { MutableList(Rating.entries.size) { mutableStateOf(false) } }
-
     var feedsFlow by remember { mutableStateOf<Flow<ResultsChange<Feed>>>(emptyFlow()) }
 
     var filterAndSort by remember { mutableStateOf(false) }
@@ -191,7 +188,6 @@ fun SubscriptionsScreen() {
 
     val prefsChange by prefsFlow.collectAsState(initial = null)
     val subPrefs = prefsChange?.obj ?: realm.query(SubscriptionsPrefs::class).first().find() ?: SubscriptionsPrefs()
-    var prefsReset by remember { mutableStateOf(false) }
 
     val feedsChange by feedsFlow.collectAsState(initial = null)
     val feeds = feedsChange?.list ?: emptyList()
@@ -201,14 +197,10 @@ fun SubscriptionsScreen() {
             Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    if (!prefsReset) {
-                        Logd(TAG, "prefsReset: $prefsReset")
-                        prefsReset = true
-                        runOnIOScope {
-                            upsert(subPrefs) {
-                                it.feedsSorted = 0
-                                it.feedsFiltered = 0
-                            }
+                    runOnIOScope {
+                        upsert(subPrefs) {
+                            it.feedsSorted = 0
+                            it.feedsFiltered = 0
                         }
                     }
                     prefsFlow = realm.query(SubscriptionsPrefs::class).first().asFlow()
@@ -1164,6 +1156,8 @@ fun SubscriptionsScreen() {
                                     Spacer(Modifier.weight(0.5f))
                                 }
                             }
+                            val episodeStateSort = remember { MutableList(EpisodeState.entries.size) { mutableStateOf(false) } }
+                            val ratingSort = remember { MutableList(Rating.entries.size) { mutableStateOf(false) } }
                             if ((subPrefs.sortIndex == FeedSortIndex.Date.ordinal && subPrefs.dateSortIndex == FeedDateSortIndex.Publish.ordinal) || subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
                                 var allOrNone by remember { mutableStateOf(false) }
                                 LaunchedEffect(Unit) {

@@ -49,8 +49,6 @@ import kotlin.math.abs
 private const val TAG: String = "Feeds"
 var feedOperationText by mutableStateOf("")
 
-//var feeds = listOf<Feed>()
-
 @Synchronized
 fun getFeedList(queryString: String = ""): List<Feed> {
     return if (queryString.isEmpty()) realm.query(Feed::class).find()

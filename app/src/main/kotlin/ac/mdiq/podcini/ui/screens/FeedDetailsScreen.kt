@@ -6,10 +6,7 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
-import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
-import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.virQueue
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
@@ -19,6 +16,7 @@ import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
+import ac.mdiq.podcini.storage.database.queueToVirtual
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
@@ -112,7 +110,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -1618,18 +1615,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             if (e.feed?.id == feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
                                 runOnIOScope {
                                     upsert(feed!!) { it.lastPlayed = Date().time }
-                                    if (virQueue.identity != listIdentity) {
-                                        virQueue = upsert(virQueue) { q ->
-                                            q.identity = listIdentity
-                                            q.playInSequence = feed?.queue != null
-                                            q.sortOrder = feed!!.episodeSortOrder
-                                            q.episodeIds.clear()
-                                            q.episodeIds.addAll(episodes.take(VIRTUAL_QUEUE_SIZE).map { it.id })
-                                        }
-                                        virQueue.episodes.clear()
-                                        actQueue = virQueue
-                                        Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
-                                    }
+                                    queueToVirtual(e, episodes, listIdentity, feed!!.episodeSortOrder, feed?.queue != null)
                                 }
                             }
                         },

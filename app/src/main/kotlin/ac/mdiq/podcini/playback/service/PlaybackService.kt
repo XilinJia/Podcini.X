@@ -1,20 +1,16 @@
 package ac.mdiq.podcini.playback.service
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowStreaming
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
-import ac.mdiq.podcini.playback.base.InTheatre.playableFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.monitorState
+import ac.mdiq.podcini.playback.base.InTheatre.restoreMediaFromPreferences
 import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
-import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.isStreaming
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.EXTRA_ALLOW_STREAM_ALWAYS
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.EXTRA_ALLOW_STREAM_THIS_TIME
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.buildMediaItem
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentMediaType
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isInitialized
@@ -70,6 +66,7 @@ import android.os.Vibrator
 import android.view.KeyEvent
 import android.view.KeyEvent.KEYCODE_MEDIA_STOP
 import android.view.ViewConfiguration
+import android.webkit.URLUtil
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
@@ -96,7 +93,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.math.min
 
 @UnstableApi
@@ -520,10 +516,7 @@ class PlaybackService : MediaLibraryService() {
                 val notification = NotificationCompat.Builder(this, CHANNEL_ID).setSmallIcon(android.R.drawable.ic_media_play).setOngoing(true).setContentTitle("").setContentText("").build()
                 startForeground(1, notification)
                 recreateMediaSessionIfNeeded()
-                val allowStreamThisTime = intent?.getBooleanExtra(EXTRA_ALLOW_STREAM_THIS_TIME, false) == true
-                val allowStreamAlways = intent?.getBooleanExtra(EXTRA_ALLOW_STREAM_ALWAYS, false) == true
-                if (allowStreamAlways) mobileAllowStreaming = true
-                startPlaying(allowStreamThisTime || allowStreamAlways)
+                startPlaying()
                 return START_STICKY
             }
             else -> Logd(TAG, "onStartCommand case when not (keycode != -1 and playable != null)")
@@ -536,8 +529,14 @@ class PlaybackService : MediaLibraryService() {
      */
     private fun handleKeycode(keycode: Int, notificationButton: Boolean): Boolean {
         Logt(TAG, "Handling keycode: $keycode")
-//        val info = mPlayer?.playerInfo
-//        val status = info?.playerStatus
+        // TODO: check out this
+        fun startPlayingFromPreferences() {
+            recreateMediaSessionIfNeeded()
+            try {
+                restoreMediaFromPreferences()
+                startPlaying()
+            } catch (e: Throwable) { Logs(TAG, e, "EpisodeMedia was not loaded from preferences. Stopping service.") }
+        }
         when (keycode) {
             KeyEvent.KEYCODE_HEADSETHOOK, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
                 when {
@@ -618,28 +617,15 @@ class PlaybackService : MediaLibraryService() {
         return false
     }
 
-    // TODO: check out this
-    private fun startPlayingFromPreferences() {
-        recreateMediaSessionIfNeeded()
-        scope.launch {
-            try {
-                withContext(Dispatchers.IO) { playableFromPreferences() }
-                withContext(Dispatchers.Main) { startPlaying(false) }
-            } catch (e: Throwable) { Logs(TAG, e, "EpisodeMedia was not loaded from preferences. Stopping service.") }
+    private fun startPlaying() {
+        Logd(TAG, "startPlaying called")
+        if (curEpisode == null) {
+            Logt(TAG, "startPlaying: No media to play")
+            return
         }
-    }
-
-    private fun startPlaying(allowStreamThisTime: Boolean) {
-        Logd(TAG, "startPlaying called allowStreamThisTime: $allowStreamThisTime")
-        val media = curEpisode ?: return
-//        val localFeed = URLUtil.isContentUrl(media.downloadUrl)
-        val streaming = isStreaming(media)
-//        if (streaming!! && !localFeed && !isStreamingAllowed && !allowStreamThisTime) {
-//            showStreamingNotAllowedDialog(this, PlaybackStarter(this, media).intent)
-//            writeNoMediaPlaying()
-//            return
-//        }
-        mPlayer?.prepareMedia(playable = media, streaming = streaming!!, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
+        val media = curEpisode!!
+        val needStreaming = !media.localFileAvailable() || URLUtil.isNetworkUrl(media.downloadUrl)
+        mPlayer?.prepareMedia(playable = media, streaming = needStreaming, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
     }
 
     private var eventSink: Job?     = null

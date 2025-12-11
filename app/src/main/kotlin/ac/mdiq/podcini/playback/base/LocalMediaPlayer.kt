@@ -34,7 +34,6 @@ import android.content.res.Configuration
 import android.media.audiofx.LoudnessEnhancer
 import android.util.Pair
 import android.view.SurfaceHolder
-import android.webkit.URLUtil
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -612,8 +611,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         private var exoplayerListener: Listener? = null
         private var bufferingUpdateListener: ((Int) -> Unit)? = null
         private var loudnessEnhancer: LoudnessEnhancer? = null
-
-        fun isStreaming(media: Episode): Boolean = !media.localFileAvailable() || URLUtil.isContentUrl(media.downloadUrl)
 
 //        fun resetMemoryBuffer() {
 //            val memoryBufferSize = (128 * 1024 / 8) * BufferDurationSeconds
