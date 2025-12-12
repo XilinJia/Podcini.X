@@ -472,7 +472,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
         Box {
             TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { IconButton(onClick = {
                 if (navController.previousBackStackEntry != null) {
-                    navController.previousBackStackEntry?.savedStateHandle?.set("returned", true)
+                    navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
                 } else openDrawer()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } })

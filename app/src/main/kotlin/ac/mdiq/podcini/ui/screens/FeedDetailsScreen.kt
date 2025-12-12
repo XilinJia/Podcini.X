@@ -256,7 +256,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             Logd(TAG, "DisposableEffect LifecycleEventObserver: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>("returned") ?: false
+                    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
                     Logd(TAG, "prefLastScreen: ${appAttribs.prefLastScreen} cameBack: $cameBack")
                     feedFlow = realm.query<Feed>("id == $0", feedId).first().asFlow()
 //                    val testNum = 1
@@ -284,7 +284,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         }
     }
 
-    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>("returned") ?: false
+    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
     LaunchedEffect(cameBack) { if (cameBack) feedScreenMode = FeedScreenMode.List }
 
     var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
@@ -1345,7 +1345,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         Box {
             TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = {
                 if (navController.previousBackStackEntry != null) {
-                    navController.previousBackStackEntry?.savedStateHandle?.set("returned", true)
+                    navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
                 } else openDrawer()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } },

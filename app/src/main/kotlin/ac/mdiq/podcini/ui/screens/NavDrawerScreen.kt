@@ -93,6 +93,8 @@ import java.nio.charset.StandardCharsets
 
 private const val TAG = "NavDrawerScreen"
 
+const val COME_BACK = "comeback"
+
 val isRemember: Boolean
     get() = getPref(AppPrefs.prefDefaultPage, "") == AppPreferences.DefaultPages.Remember.name
 
@@ -198,7 +200,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
             isBSExpanded -> isBSExpanded = false
             navigator.previousBackStackEntry != null -> {
                 Logd(TAG, "nav to back")
-                navigator.previousBackStackEntry?.savedStateHandle?.set("returned", true)
+                navigator.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                 navigator.popBackStack()
                 curruntRoute = currentDestination?.route ?: ""
                 Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")

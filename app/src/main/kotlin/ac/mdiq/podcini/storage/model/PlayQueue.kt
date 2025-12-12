@@ -58,6 +58,8 @@ class PlayQueue : RealmObject {
             return field
         }
 
+    var scrollPosition: Int = 0
+
     var idsBinList: RealmList<Long> = realmListOf()
 
     var binLimit: Int = 0

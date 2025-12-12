@@ -1,3 +1,8 @@
+# 9.8.3
+
+* amended Queues screen to fix issues with sorting and remove-from-queue
+* every queue has its own scroll-to position, persisted upon exit
+
 # 9.8.2
 
 * on first start, set actQueue to where curEpisode is

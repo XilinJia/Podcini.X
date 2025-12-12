@@ -879,24 +879,19 @@ fun SubscriptionsScreen() {
 
                 val currentEntry = navController.navController.currentBackStackEntryAsState().value
                 LaunchedEffect(feeds.size) {
-                    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>("returned") ?: false
+                    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
                     Logd(TAG, "LaunchedEffect(feeds.size) cameBack: $cameBack")
-                    if (!restored && feeds.isNotEmpty()) {
+                    if (!restored && feeds.size > 5) {
                         if (!cameBack) {
                             scope.launch {
                                 val (index, offset) = Pair(subPrefs.positionIndex, subPrefs.positionOffset)
                                 val safeIndex = index.coerceIn(0, feeds.size - 1)
                                 val safeOffset = if (safeIndex == index) offset else 0
                                 listState.scrollToItem(safeIndex, safeOffset)
-                                currentEntry?.savedStateHandle?.remove<Boolean>("comingBack")
+                                currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
                             }
                         } else {
-                            scope.launch {
-                                listState.scrollToItem(
-                                    listState.firstVisibleItemIndex,
-                                    listState.firstVisibleItemScrollOffset
-                                )
-                            }
+                            scope.launch { listState.scrollToItem(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
                         }
                         restored = true
                     }

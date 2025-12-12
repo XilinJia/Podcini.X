@@ -52,7 +52,6 @@ var feedOperationText by mutableStateOf("")
 @Synchronized
 fun getFeedList(queryString: String = ""): List<Feed> {
     return if (queryString.isEmpty()) realm.query(Feed::class).find()
-//    return if (queryString.isEmpty()) feeds
     else realm.query(Feed::class, queryString).find()
 }
 

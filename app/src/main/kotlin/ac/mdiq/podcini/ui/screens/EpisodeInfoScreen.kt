@@ -494,7 +494,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
         Box {
             TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = {
                 if (navController.previousBackStackEntry != null) {
-                    navController.previousBackStackEntry?.savedStateHandle?.set("returned", true)
+                    navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
                 } else openDrawer()
             }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
