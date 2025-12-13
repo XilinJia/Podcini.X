@@ -24,7 +24,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.FeedFilter
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationInHours
-import ac.mdiq.podcini.storage.utils.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
@@ -332,7 +332,7 @@ fun SubscriptionsScreen() {
                             val f = findLatest(f_) ?: continue
                             val d = realm.query(Episode::class).query(queryString, f.id).first().find()?.duration?.toLong() ?: 0L
                             f.sortValue = d
-                            f.sortInfo = "Min D: ${getDurationStringLong(d.toInt())}"
+                            f.sortInfo = "Min D: ${durationStringFull(d.toInt())}"
                         }
                     }
                     Logd(TAG, "prepareSort queryString: $queryString")

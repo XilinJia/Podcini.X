@@ -283,7 +283,6 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         runOnIOScope {
             removeFromQueue(actQueue, updatedItems)
             for (episode in updatedItems) upsert(episode) {}
-//            EventFlow.postEvent(FlowEvent.EpisodeEvent(updatedItems))
         }
     }
 

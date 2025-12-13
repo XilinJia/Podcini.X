@@ -15,7 +15,7 @@ class AppAttribs: RealmObject {
 
     var prefLastScreen: String = ""
 
-    var prefLastScreenArg: String = ""
+    var prefLastScreenArg: String = ""      // TODO: not really used now?
 
     var curQueueId: Long = 0L
 

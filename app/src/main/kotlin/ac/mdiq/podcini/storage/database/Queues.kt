@@ -113,9 +113,7 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
     if (virQueue.identity != listIdentity && !virQueue.episodeIds.contains(episode.id)) {
         val eIdsToQueue = mutableListOf<Long>()
         val index = episodes.indexOfFirst { it.id == episode.id }
-        if (index > 0) {
-            eIdsToQueue.addAll(episodes.subList(index, index+VIRTUAL_QUEUE_SIZE).map { it.id })
-        }
+        if (index > 0) eIdsToQueue.addAll(episodes.subList(index, index + VIRTUAL_QUEUE_SIZE).map { it.id })
         virQueue = upsert(virQueue) { q ->
             q.identity = listIdentity
             q.playInSequence = playInSequence
@@ -126,10 +124,10 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
         virQueue.episodes.clear()
         actQueue = virQueue
         Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
-    }
+    } else actQueue = virQueue
 }
 
-suspend fun smartRemoveFromActQueue(item_: Episode) {
+suspend fun smartRemoveFromAllQueues(item_: Episode) {
     var item = item_
     val almostEnded = item.hasAlmostEnded()
     if (almostEnded && item.playState < EpisodeState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayState(EpisodeState.PLAYED, item, resetMediaPosition = true, removeFromQueue = false)
@@ -138,7 +136,15 @@ suspend fun smartRemoveFromActQueue(item_: Episode) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED
         item = setPlayState(stat, item, resetMediaPosition = false, removeFromQueue = false)
     }
-    removeFromAllQueues(listOf(item))
+    val queues = realm.query(PlayQueue::class).find()
+    for (q in queues) if (q.id != actQueue.id && q.episodeIds.contains(item.id)) removeFromQueue(q, listOf(item))
+    //        ensure actQueue is last updated
+    if (actQueue.size() > 0 && actQueue.episodeIds.contains(item.id)) removeFromQueue(actQueue, listOf(item))
+    else upsertBlk(actQueue) { it.update() }
+    if (actQueue.size() == 0 && !actQueue.isVirtual()) {
+        autoenqueueForQueue(actQueue)
+        if(actQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), actQueue)
+    }
 }
 
 fun trimBin(queue: PlayQueue) {

@@ -18,7 +18,7 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.storage.utils.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
@@ -502,12 +502,11 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                     IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(episode?.playState ?: EpisodeState.UNSPECIFIED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     if (episode != null) {
                         val inQueue by remember(episode) { mutableStateOf(if (episode == null) false else (episode!!.feed?.queue ?: actQueue).contains(episode!!)) }
-                        if (!inQueue) IconButton(onClick = { runOnIOScope { addToAssOrActQueue(episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_format_list_bulleted_add_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                        if (!inQueue) IconButton(onClick = { runOnIOScope { addToAssOrActQueue(episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_playlist_add_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                         else IconButton(onClick = { runOnIOScope { removeFromQueue(episode!!.feed?.queue ?: actQueue, listOf(episode!!), EpisodeState.UNPLAYED) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_remove), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     }
                     IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode?.rating ?: Rating.UNRATED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                    if (!episode?.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
+                    if (!episode?.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
                     IconButton(onClick = {
                         val url = episode?.getLinkWithFallback()
                         if (url != null) openInBrowser(context, url)
@@ -566,7 +565,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                         Column {
                             SelectionContainer { Text(episode?.title?:"", color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis) }
                             val pubTimeText by remember(episode) { mutableStateOf( if (episode?.pubDate != null) formatDateTimeFlex(Date(episode!!.pubDate)) else "" ) }
-                            val txtvDuration by remember(episode) { mutableStateOf(if ((episode?.duration ?: 0) > 0) getDurationStringLong(episode!!.duration) else "") }
+                            val txtvDuration by remember(episode) { mutableStateOf(if ((episode?.duration ?: 0) > 0) durationStringFull(episode!!.duration) else "") }
                             Text("$pubTimeText · $txtvDuration · $txtvSize", color = textColor, style = MaterialTheme.typography.bodyMedium)
                         }
                         if (actionButton != null && episode != null) {

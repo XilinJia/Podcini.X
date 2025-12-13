@@ -13,10 +13,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.TimeLeftMode
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
@@ -285,7 +283,6 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                         e.playState <= EpisodeState.AGAIN.code -> {
                             e.setPlayState(EpisodeState.IGNORED)
                             e.addComment(comment)
-//                            EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(e))
                         }
                         episode.playState == EpisodeState.IGNORED.code -> { }
                         else -> {
@@ -294,11 +291,7 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                                 it.addComment(comment)
                                 it
                             }
-                            m?.let {
-                                //                                    media = it
-                                updated = true
-//                                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(it))
-                            }
+                            m?.let { updated = true }
                             Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
                         }
                     }
@@ -340,7 +333,8 @@ fun buildListInfo(episodes: List<Episode>): String {
     Logd(TAG, "buildListInfo")
     var infoText = String.format(Locale.getDefault(), "%d", episodes.size)
     if (episodes.isNotEmpty()) {
-        val useSpeed = getPref(AppPrefs.prefShowTimeLeft, 0) == TimeLeftMode.TimeLeftOnSpeed.ordinal
+//        val useSpeed = getPref(AppPrefs.prefShowTimeLeft, 0) == TimeLeftMode.TimeLeftOnSpeed.ordinal
+        val useSpeed = true
         var timeLeft: Long = 0
         for (item in episodes) {
             var playbackSpeed = 1f

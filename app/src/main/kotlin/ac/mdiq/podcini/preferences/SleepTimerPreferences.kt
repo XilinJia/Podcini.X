@@ -8,8 +8,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.sleepPrefs
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.convertOnSpeed
-import ac.mdiq.podcini.storage.utils.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -85,7 +84,7 @@ object SleepTimerPreferences {
         val timeLeft by remember { mutableLongStateOf(sleepManager?.sleepTimerTimeLeft?:0) }
         var showTimeDisplay by remember { mutableStateOf(false) }
         var showTimeSetup by remember { mutableStateOf(true) }
-        var timerText by remember { mutableStateOf(getDurationStringLong(timeLeft.toInt())) }
+        var timerText by remember { mutableStateOf(durationStringFull(timeLeft.toInt())) }
         val context by rememberUpdatedState(LocalContext.current)
 
         var eventSink: Job? by remember { mutableStateOf(null) }
@@ -101,7 +100,7 @@ object SleepTimerPreferences {
                         is FlowEvent.SleepTimerUpdatedEvent -> {
                             showTimeDisplay = !event.isOver && !event.isCancelled
                             showTimeSetup = event.isOver || event.isCancelled
-                            timerText = getDurationStringLong(event.getTimeLeft().toInt())
+                            timerText = durationStringFull(event.getTimeLeft().toInt())
                         }
                         else -> {}
                     }
@@ -135,7 +134,7 @@ object SleepTimerPreferences {
                                 return@Button
                             }
                             try {
-                                val time = if (!toEnd) etxtTime.toLong() else TimeUnit.MILLISECONDS.toMinutes(convertOnSpeed(max(((curEpisode?.duration ?: 0) - (curEpisode?.position ?: 0)), 0), curPBSpeed).toLong()) // ms to minutes
+                                val time = if (!toEnd) etxtTime.toLong() else TimeUnit.MILLISECONDS.toMinutes((max(((curEpisode?.duration ?: 0) - (curEpisode?.position ?: 0)), 0) / curPBSpeed).toLong()) // ms to minutes
                                 Logd("SleepTimerDialog", "Sleep timer set: $time")
                                 if (time == 0L) throw NumberFormatException("Timer must not be zero")
                                 upsertBlk(sleepPrefs) { it.LastValue = time }

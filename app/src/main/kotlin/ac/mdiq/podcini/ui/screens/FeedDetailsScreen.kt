@@ -1615,7 +1615,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             if (e.feed?.id == feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
                                 runOnIOScope {
                                     upsert(feed!!) { it.lastPlayed = Date().time }
-                                    queueToVirtual(e, episodes, listIdentity, feed!!.episodeSortOrder, feed?.queue != null)
+                                    queueToVirtual(e, episodes, listIdentity, feed!!.episodeSortOrder, true)
                                 }
                             }
                         },

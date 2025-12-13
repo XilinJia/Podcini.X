@@ -42,7 +42,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.getDurationStringLocalized
-import ac.mdiq.podcini.storage.utils.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton.Companion.playVideoIfNeeded
@@ -243,7 +243,7 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
                         //                                    modifier = Modifier.width(56.dp).height(56.dp))
                         //                            }
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(getDurationStringLong(ch.start.toInt()), color = textColor)
+                            Text(durationStringFull(ch.start.toInt()), color = textColor)
                             Text(ch.title ?: "No title", color = textColor, fontWeight = FontWeight.Bold)
                             //                                Text(ch.link?: "")
                             val duration = if (index + 1 < chapters.size) chapters[index + 1].start - ch.start
@@ -286,7 +286,7 @@ fun ChaptersColumn(media: Episode) {
                 mPlayer?.seekTo(ch.start.toInt())
                 curChapterIndex = index
             })) {
-                Text(getDurationStringLong(ch.start.toInt()), color = buttonColor, modifier = Modifier.padding(end = 5.dp))
+                Text(durationStringFull(ch.start.toInt()), color = buttonColor, modifier = Modifier.padding(end = 5.dp))
                 Text(ch.title ?: "No title", color = textColor, fontWeight = if (index == curChapterIndex) FontWeight.Bold else FontWeight.Normal)
             }
         }

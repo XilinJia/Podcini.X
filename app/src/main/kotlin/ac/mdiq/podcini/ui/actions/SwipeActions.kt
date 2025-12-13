@@ -10,7 +10,7 @@ import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
-import ac.mdiq.podcini.storage.database.smartRemoveFromActQueue
+import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -89,6 +89,7 @@ abstract class SwipeAction {
     @Composable
     open fun ActionOptions() {}
     open fun performAction(e: Episode) {
+        Logd("SwipeAction", "performAction: ${e.title}")
         onEpisode = e
     }
     companion object {
@@ -482,7 +483,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
         override fun performAction(e: Episode) {
             super.performAction(e)
-            runOnIOScope { smartRemoveFromActQueue(e) }
+            runOnIOScope { smartRemoveFromAllQueues(e) }
         }
     }
 

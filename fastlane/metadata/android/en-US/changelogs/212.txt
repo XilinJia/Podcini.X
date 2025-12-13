@@ -1,0 +1,12 @@
+# 9.8.4
+
+* when playing an episode in some list, if it's already in Virtual queue, set actQueue to Virtual queue
+* when playing from FeedDetails, playInSequence is set to true for the virtual queue regardless of associated queue
+* in episodes list, when long-press Play or Stream button, there is a "PlayOnce" or "StreamOnce" button, for playing a single episode
+* in EpisodeInfo, icon of "add to queue" is changed
+* fixed issue of curQueue not updating when changing queue from the spinner
+* fixed issue of possible wrong next-in-queue
+* enhanced smartRemoveFromAllQueues routine
+* on PlayerUI, changed display of time left, showing all of "time left" (if speed is not 1), "remaining duration", and "duration"
+* elsewhere, any reference to "time left" has speed factored in
+* after media is downloaded, if parsing for duration fails, only reset the duration is the original is less than 30s or longer than 5h.

@@ -32,12 +32,8 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActiv
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideoLocally
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.TimeLeftMode
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.storage.database.realm
@@ -50,8 +46,7 @@ import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
-import ac.mdiq.podcini.storage.utils.convertOnSpeed
-import ac.mdiq.podcini.storage.utils.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.durationStringAdapt
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
@@ -168,6 +163,7 @@ import kotlinx.coroutines.withContext
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Date
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.sin
@@ -392,7 +388,6 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             }
         }
     }
-
     if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
 
     @OptIn(ExperimentalFoundationApi::class)
@@ -567,27 +562,17 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f), modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
         }
         Row {
-            Text(getDurationStringLong(curItem?.position?:0), color = textColor, style = MaterialTheme.typography.bodySmall)
+            Text(durationStringAdapt(curItem?.position?:0), color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
             if (bitrate > 0) Text(formatLargeInteger(bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
-            var showTimeLeft by remember { mutableIntStateOf(getPref(AppPrefs.prefShowTimeLeft, 0)) }
-            val txtvLengthText by remember(showTimeLeft,curItem?.position) { mutableStateOf( run {
+            val txtvLengthText by remember(curItem?.position) { mutableStateOf( run {
                 if (curItem == null) return@run ""
                 val remainingTime = max((curItem.duration - curItem.position), 0)
-                when (showTimeLeft) {
-                    TimeLeftMode.TimeLeft.ordinal -> (if (remainingTime > 0) "-" else "") + getDurationStringLong(remainingTime)
-                    TimeLeftMode.TimeLeftOnSpeed.ordinal -> {
-                        val onSpeed = convertOnSpeed(remainingTime, curPBSpeed)
-                        (if (onSpeed > 0) "*-" else "") + getDurationStringLong(onSpeed)
-                    }
-                    else -> getDurationStringLong(curItem.duration)
-                } }) }
-            Text(txtvLengthText, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall, modifier = Modifier.clickable {
-                showTimeLeft++
-                if (showTimeLeft > TimeLeftMode.TimeLeftOnSpeed.ordinal) showTimeLeft = TimeLeftMode.Duration.ordinal
-                putPref(AppPrefs.prefShowTimeLeft, showTimeLeft)
-            })
+                val onSpeed = if (curPBSpeed > 0 && abs(curPBSpeed-1f) > 0.001) (remainingTime / curPBSpeed).toInt() else 0
+                (if (onSpeed > 0) "*" + durationStringAdapt(onSpeed) else "") + " -" + durationStringAdapt(remainingTime) + " ·" + durationStringAdapt(curItem.duration)
+            }) }
+            Text(txtvLengthText, color = textColor, style = MaterialTheme.typography.bodySmall)
         }
     }
 

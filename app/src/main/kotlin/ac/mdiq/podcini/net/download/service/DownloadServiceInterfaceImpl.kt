@@ -310,8 +310,8 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                             }
                         } catch (e: NumberFormatException) { Logs(TAG, e, "Invalid file duration: $durationStr")
                         } catch (e: Exception) {
-                            Logs(TAG, e, "Get duration failed. Reset to 30sc")
-                            it.duration = 30000
+                            Logs(TAG, e, "Get duration failed. current duration is ${it.duration}. If lower than 30sc or higher than 5h, reset to 30sc")
+                            if (it.duration !in 30000..18000000) it.duration = 30000
                         }
                     } else {
                         Loge(TAG, "Get duration failed. fileUrl: ${it.fileUrl} Reset to 30sc")
@@ -321,7 +321,6 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                     it.disableAutoDownload()
                 }
                 // TODO: need to post two events?
-//                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
 //                if (broadcastUnreadStateUpdate) EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.updated(item))
                 if (isProviderConnected) {
                     Logd(TAG, "enqueue synch")

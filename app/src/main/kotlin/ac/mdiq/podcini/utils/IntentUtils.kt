@@ -2,7 +2,7 @@ package ac.mdiq.podcini.utils
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.utils.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.durationStringFull
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -58,7 +58,7 @@ fun shareFeedItemLinkWithDownloadLink(context: Context, item: Episode, withPosit
                 ${context.resources.getString(R.string.share_starting_position_label)}: 
                 """.trimIndent()
         pos = item.position
-        text += getDurationStringLong(pos)
+        text += durationStringFull(pos)
     }
 
     if (item.getLinkWithFallback() != null) {

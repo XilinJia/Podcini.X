@@ -2,9 +2,6 @@ package ac.mdiq.podcini.storage.utils
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.TimeLeftMode
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import java.util.Locale
 
 /** Provides methods for converting various units.  */
@@ -15,12 +12,24 @@ private const val SECONDS_MIL = 1000
 /**
  * Converts milliseconds to a string containing hours, minutes and seconds.
  */
-
-fun getDurationStringLong(duration: Int): String {
+fun durationStringFull(duration: Int): String {
     if (duration <= 0) return "00:00:00"
     else {
         val hms = millisecondsToHms(duration.toLong())
         return String.format(Locale.getDefault(), "%02d:%02d:%02d", hms[0], hms[1], hms[2])
+    }
+}
+
+fun durationStringAdapt(ms: Int): String {
+    val totalSeconds = (ms / 1000).coerceAtLeast(0)
+    val hours = totalSeconds / 3600
+    val minutes = (totalSeconds % 3600) / 60
+    val seconds = totalSeconds % 60
+
+    return if (hours > 0) {
+        String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
     }
 }
 
@@ -97,14 +106,7 @@ fun getDurationStringLocalized(duration: Long): String {
  * @param time The time in seconds
  * @return "HH:MM hours"
  */
-
 fun durationInHours(time: Long, showHoursText: Boolean = true): String {
     val hours = time.toFloat() / 3600f
     return String.format(Locale.getDefault(), "%.2f ", hours) + if (showHoursText) getAppContext().getString(R.string.time_hours) else ""
 }
-
-fun convertOnSpeed(time: Int, speed: Float): Int {
-    if (time > 0 && speed > 0 && getPref(AppPrefs.prefShowTimeLeft, 0) == TimeLeftMode.TimeLeftOnSpeed.ordinal) return (time / speed).toInt()
-    return time
-}
-

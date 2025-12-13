@@ -281,8 +281,4 @@ object AppPreferences {
     enum class ThemePreference {
         LIGHT, DARK, BLACK, SYSTEM
     }
-
-    enum class TimeLeftMode {
-        Duration, TimeLeft, TimeLeftOnSpeed
-    }
 }

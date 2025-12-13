@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
@@ -25,6 +26,7 @@ import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.utils.mergeAudios
@@ -100,10 +102,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
             ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInBrowser(context, item.link!!)
             ButtonTypes.CANCEL -> {
                 DownloadServiceInterface.impl?.cancel(context, item)
-                if (AppPreferences.isAutodownloadEnabled) {
-                    val item_ = upsertBlk(item) { it.disableAutoDownload() }
-//                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item_))
-                }
+                if (AppPreferences.isAutodownloadEnabled) upsertBlk(item) { it.disableAutoDownload() }
                 type = ButtonTypes.DOWNLOAD
             }
             ButtonTypes.PLAY -> {
@@ -117,6 +116,19 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 PlaybackStarter(context, item).start()
                 playVideoIfNeeded(context, item)
 //                type = ButtonTypes.PAUSE  leave it to playerStat
+            }
+            ButtonTypes.PLAYONCE -> {
+                if (!item.fileExists()) {
+                    Loge(TAG, context.getString(R.string.error_file_not_found) + ": ${item.title}")
+                    val episode_ = upsertBlk(item) { it.setfileUrlOrNull(null) }
+                    EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode_))
+                    update(episode_)
+                    return
+                }
+                PlaybackStarter(context, item).start()
+                playVideoIfNeeded(context, item)
+                actQueue = PlayQueue()
+                //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM -> {
                 fun stream() {
@@ -138,9 +150,16 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         },
                         onNeutral = { stream() })
                     return
-                }
-                stream()
+                } else stream()
 //                type = ButtonTypes.PAUSE  leave it to playerStat
+            }
+            ButtonTypes.STREAMONCE -> {
+                //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
+                UsageStatistics.logAction(UsageStatistics.ACTION_STREAM)
+                PlaybackStarter(context, item).shouldStreamThisTime(true).start()
+                playVideoIfNeeded(context, item)
+                actQueue = PlayQueue()
+                //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.DELETE -> {
                 runOnIOScope { deleteEpisodesWarnLocalRepeat(context, listOf(item)) }
@@ -187,7 +206,6 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 }
                 processing = 1
                 item = upsertBlk(item) { it.setPlayState(EpisodeState.BUILDING) }
-//                EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                 ensureTTS(context)
                 var readerText: String?
                 runOnIOScope {
@@ -201,11 +219,9 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     } else readerText = HtmlCompat.fromHtml(item.transcript!!, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                     Logd(TAG, "readerText: [$readerText]")
                     processing = 1
-//                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                     if (!readerText.isNullOrEmpty()) {
                         while (!TTSObj.ttsReady) runBlocking { delay(100) }
                         processing = 15
-//                        EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                         while (TTSObj.ttsWorking) runBlocking { delay(100) }
                         TTSObj.ttsWorking = true
                         if (!item.feed?.languages.isNullOrEmpty()) {
@@ -251,10 +267,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                             i++
                             while (i - j > 0) runBlocking { delay(100) }
                             processing = 15 + 70 * startIndex / readerText!!.length
-//                            EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                         }
                         processing = 85
-//                        EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                         if (status == TextToSpeech.SUCCESS) {
                             mergeAudios(parts.toTypedArray(), mediaFile.absolutePath, null)
                             val retriever = MediaMetadataRetriever()
@@ -281,11 +295,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         }
                         TTSObj.ttsWorking = false
                     } else Loge(TAG, context.getString(R.string.episode_has_no_content))
-
                     item = upsertBlk(item) { it.setPlayState(EpisodeState.UNPLAYED) }
-
                     processing = 100
-//                    EventFlow.postEvent(FlowEvent.EpisodeEvent.updated(item))
                 }
                 type = ButtonTypes.PLAY
             }
@@ -362,6 +373,14 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         onDismiss()
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_play_24dp), contentDescription = "Play") }
                 }
+                if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.PLAYONCE)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_play_pause_24), contentDescription = "PlayOnce") }
+                }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
                     IconButton(onClick = {
                         val btn = EpisodeActionButton(item, ButtonTypes.STREAM)
@@ -369,6 +388,14 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         type = btn.type
                         onDismiss()
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_stream), contentDescription = "Stream") }
+                }
+                if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.STREAMONCE)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_stream), contentDescription = "StreamOnce") }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
                     IconButton(onClick = {
@@ -421,6 +448,8 @@ enum class ButtonTypes(val label: Int, val drawable: Int) {
     CANCEL(R.string.cancel_download_label, R.drawable.ic_cancel),
     PLAY(R.string.play_label, R.drawable.ic_play_24dp),
     STREAM(R.string.stream_label, R.drawable.ic_stream),
+    PLAYONCE(R.string.play_once, R.drawable.outline_play_pause_24),
+    STREAMONCE(R.string.stream_once, R.drawable.ic_stream),
     DELETE(R.string.delete_label, R.drawable.ic_delete),
     NULL(R.string.null_label, R.drawable.ic_questionmark),
 //    NULLZAP(R.string.null_zap_label, R.drawable.ic_close_white),

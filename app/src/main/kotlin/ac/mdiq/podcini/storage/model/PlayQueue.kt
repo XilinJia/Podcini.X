@@ -4,6 +4,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
@@ -53,8 +54,8 @@ class PlayQueue : RealmObject {
     val episodes: MutableList<Episode> = mutableListOf()
         get() {
             if (field.isEmpty() && episodeIds.isNotEmpty())
-                field.addAll(realm.query(Episode::class, "id IN $0", episodeIds).find().sortedBy { episodeIds.indexOf(it.id) })
-//            size = episodeIds.size
+                field.addAll(realm.query(Episode::class).query("id IN $0", episodeIds).sort(sortPairOf(sortOrder)).find())
+            //            size = episodeIds.size
             return field
         }
 

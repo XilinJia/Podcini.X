@@ -16,7 +16,7 @@ import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
-import ac.mdiq.podcini.storage.database.smartRemoveFromActQueue
+import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
@@ -24,7 +24,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.storage.utils.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.SwipeAction
@@ -322,7 +322,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 Text(stringResource(id = R.string.put_in_queue_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
-                runOnIOScope { for (e in selected) smartRemoveFromActQueue(e) }
+                runOnIOScope { for (e in selected) smartRemoveFromAllQueues(e) }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), "Remove from active queue")
                 Text(stringResource(id = R.string.remove_from_all_queues)) } },
@@ -534,7 +534,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     if (episode.comment.isNotBlank()) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_comment_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "comment", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                     if (episode.getMediaType() == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
                                     val dateSizeText = remember(episode) {
-                                        " · " + formatDateTimeFlex(Date(episode.pubDate)) + " · " + getDurationStringLong(episode.duration) +
+                                        " · " + formatDateTimeFlex(Date(episode.pubDate)) + " · " + durationStringFull(episode.duration) +
                                                 (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") +
                                                 (if (episode.viewCount > 0) " · " + formatLargeInteger(episode.viewCount) else "") +
                                                 (if (episode.likeCount > 0) " · " + formatLargeInteger(episode.likeCount) else "")
@@ -556,7 +556,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                         Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                                         if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                         if (episode.getMediaType() == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
-                                        val dateSizeText = remember { " · " + getDurationStringLong(episode.duration) + (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") }
+                                        val dateSizeText = remember { " · " + durationStringFull(episode.duration) + (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") }
                                         Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     }
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -596,7 +596,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                         (if (episode.lastPlayedTime > 0) "P:" + formatDateTimeFlex(episode.lastPlayedDate) else "") +
                                                 (if (episode.playbackCompletionTime > 0) " · C:" + formatDateTimeFlex(episode.playbackCompletionDate) else "") +
                                                 (if (episode.playStateSetTime > 0) " · S:" + formatDateTimeFlex(episode.playStateSetDate) else "") +
-                                                (if (episode.playedDuration > 0) " · " + getDurationStringLong(episode.playedDuration) else "") }
+                                                (if (episode.playedDuration > 0) " · " + durationStringFull(episode.playedDuration) else "") }
                                     Text(dateSizeText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
                                 else -> {}
@@ -723,8 +723,8 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                 return if (dur > 0 && pos >= 0 && dur >= pos) 1f * pos / dur else 0f
                             }
                             val prog by remember(episode.id, episode.position) { mutableFloatStateOf(calcProg()) }
-                            val posText by remember(episode.id, episode.position) { mutableStateOf(getDurationStringLong(episode.position)) }
-                            val durText = remember(episode.id) { getDurationStringLong(episode.duration) }
+                            val posText by remember(episode.id, episode.position) { mutableStateOf(durationStringFull(episode.position)) }
+                            val durText = remember(episode.id) { durationStringFull(episode.duration) }
                             Row {
                                 Text(posText, color = textColor, style = MaterialTheme.typography.bodySmall)
                                 LinearProgressIndicator(progress = { prog }, modifier = Modifier.weight(1f).height(4.dp).align(Alignment.CenterVertically))

@@ -2,7 +2,7 @@ package ac.mdiq.podcini.ui.utils
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.utils.NetworkUtils
-import ac.mdiq.podcini.storage.utils.getDurationStringLong
+import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
@@ -129,7 +129,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         if (selectedUrl == null) return
         if (ShownotesCleaner.isTimecodeLink(selectedUrl) || ShownotesCleaner.isHTTPTimecodeLink(selectedUrl)) {
             menu.add(Menu.NONE, R.id.go_to_position_item, Menu.NONE, R.string.go_to_position_label)
-            menu.setHeaderTitle(getDurationStringLong(ShownotesCleaner.getTimecodeLinkTime(selectedUrl)))
+            menu.setHeaderTitle(durationStringFull(ShownotesCleaner.getTimecodeLinkTime(selectedUrl)))
         } else {
             val uri = selectedUrl!!.toUri()
             val intent = Intent(Intent.ACTION_VIEW, uri)

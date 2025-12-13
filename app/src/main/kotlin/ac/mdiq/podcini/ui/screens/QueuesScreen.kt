@@ -111,6 +111,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -139,10 +140,12 @@ import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
+import kotlin.time.Duration.Companion.milliseconds
 
 private val TAG = Screens.Queues.name
 
@@ -190,6 +193,7 @@ fun QueuesScreen(id: Long = -1L) {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     queuesFlow = realm.query<PlayQueue>().sort("name").asFlow()
+                    curQueueFlow = realm.query<PlayQueue>("id == $0", appAttribs.curQueueId).first().asFlow()
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
@@ -249,13 +253,10 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
 
-    LaunchedEffect(appAttribs.curQueueId) {
-        Logd(TAG, "LaunchedEffect(appAttribs.curQueueId)")
-        curQueueFlow = realm.query<PlayQueue>("id == $0", appAttribs.curQueueId).first().asFlow()
-    }
-
     val queueChange by curQueueFlow.collectAsState(initial = null)
-    curQueue = queueChange?.obj ?: PlayQueue()
+    if (queueChange?.obj != null) curQueue = queueChange?.obj!!
+    var curQueuePosition by remember {  mutableIntStateOf(curQueue.scrollPosition) }
+    Logd(TAG, "curQueuePosition: $curQueuePosition")
 
     var title by remember(queuesMode, curQueue) { mutableStateOf(if (queuesMode == QueuesScreenMode.Bin) curQueue.name + " Bin" else "") }
 
@@ -266,6 +267,7 @@ fun QueuesScreen(id: Long = -1L) {
 
     LaunchedEffect(curQueue.id) {
         Logd(TAG, "LaunchedEffect(curQueue.id)")
+        curQueuePosition = curQueue.scrollPosition
         feedsAssociated.clear()
         feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
     }
@@ -375,7 +377,8 @@ fun QueuesScreen(id: Long = -1L) {
                         upsert(queues[index]) { it.update() }
                         upsert(appAttribs) { it.curQueueId = queues[index].id }
                     }
-//                    playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
+                    curQueueFlow = realm.query<PlayQueue>("id == $0", queues[index].id).first().asFlow()
+                    //                    playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
                 } else Text(title)
             }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
                 actions = {
@@ -623,11 +626,19 @@ fun QueuesScreen(id: Long = -1L) {
             else -> {
                 val episodesChange by episodesFlow.collectAsState(initial = null)
                 val episodes = episodesChange?.list ?: emptyList()
+                LaunchedEffect(lazyListState) {
+                    snapshotFlow { lazyListState.firstVisibleItemIndex to lazyListState.firstVisibleItemScrollOffset }
+                        .debounce(500.milliseconds)
+                        .collect { (index, _) ->
+                            Logd(TAG, "snapshotFlow index: $index")
+                            curQueuePosition = index
+                         }
+                }
                 var scrollToOnStart by remember(curQueue, episodes.size) { mutableIntStateOf(run {
-                    Logd(TAG, "scrollToOnStart ${curQueue.id == actQueue.id} ${curQueue.scrollPosition}")
-                    if (curQueue.id == actQueue.id) episodes.indexOfFirst { it.id == curEpisode?.id } else curQueue.scrollPosition
+                    Logd(TAG, "scrollToOnStart ${curQueue.id == actQueue.id} $curQueuePosition ${curQueue.scrollPosition}")
+                    if (curQueue.id == actQueue.id && curQueuePosition == curQueue.scrollPosition) episodes.indexOfFirst { it.id == curEpisode?.id } else curQueuePosition
                 }) }
-                Logd(TAG, "Scaffold scrollToOnStart: $scrollToOnStart")
+                Logd(TAG, "Scaffold scrollToOnStart: $scrollToOnStart $curQueuePosition")
 
                 LaunchedEffect(episodes.size) {
                     Logd(TAG, "LaunchedEffect(episodes.size) ${episodes.size}")
