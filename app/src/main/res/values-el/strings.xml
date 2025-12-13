@@ -179,8 +179,10 @@
     <string name="download_label">Download</string>
     <string name="TTS_label">Speak</string>
     <string name="play_label">Play</string>
+    <string name="play_once">Play once</string>
     <string name="pause_label">Pause</string>
     <string name="stream_label">Stream</string>
+    <string name="stream_once">Stream once</string>
     <string name="erase_episodes_label">Erase episodes</string>
     <string name="alarm_episodes_label">Play episodes at time</string>
     <string name="reserve_episodes_label">Reserve episodes</string>
