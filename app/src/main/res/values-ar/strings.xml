@@ -183,8 +183,10 @@
     <string name="download_label">تنزيل</string>
     <string name="TTS_label">التحدث</string>
     <string name="play_label">تشغيل</string>
+    <string name="play_once">Play once</string>
     <string name="pause_label">إيقاف</string>
     <string name="stream_label">البث</string>
+    <string name="stream_once">Stream once</string>
     <string name="erase_episodes_label">مسح الحلقات</string>
     <string name="alarm_episodes_label">تشغيل الحلقات في الوقت المناسب</string>
     <string name="reserve_episodes_label">حجز الحلقات</string>
