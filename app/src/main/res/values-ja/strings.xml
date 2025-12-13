@@ -178,8 +178,10 @@
     <string name="download_label">ダウンロード</string>
     <string name="TTS_label">話す</string>
     <string name="play_label">再生</string>
+    <string name="play_once">Play once</string>
     <string name="pause_label">一時停止</string>
     <string name="stream_label">ストリーム</string>
+    <string name="stream_once">Stream once</string>
     <string name="erase_episodes_label">エピソードを消去</string>
     <string name="alarm_episodes_label">エピソードを同時に再生</string>
     <string name="reserve_episodes_label">エピソードを予約</string>
