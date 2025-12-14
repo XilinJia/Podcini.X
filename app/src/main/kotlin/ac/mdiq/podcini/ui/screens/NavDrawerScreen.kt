@@ -86,6 +86,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -158,10 +159,10 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                     realm.query(SubscriptionLog::class).count().find().toInt() +
                     realm.query(DownloadResult::class).count().find().toInt()
             val feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(8).find()
-//            withContext(Dispatchers.Main) {
+            withContext(Dispatchers.Main) {
                 feedBriefs.clear()
                 for (f in feeds_) feedBriefs.add(FeedBrief(f.id, f.title, f.imageUrl))
-//            }
+            }
         }
     }
 
