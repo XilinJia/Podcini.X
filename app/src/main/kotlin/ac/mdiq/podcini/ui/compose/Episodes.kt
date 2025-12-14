@@ -20,6 +20,7 @@ import ac.mdiq.podcini.storage.database.addToAssOrActQueue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.deleteMedia
+import ac.mdiq.podcini.storage.database.queues
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.removeFromAllQueuesQuiet
@@ -478,7 +479,6 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
 
 @Composable
 fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    val queues = realm.query(PlayQueue::class).sort("name").find()
     CommonDialogSurface(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             var removeChecked by remember { mutableStateOf(false) }

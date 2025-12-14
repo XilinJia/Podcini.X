@@ -9,7 +9,9 @@ import ac.mdiq.podcini.preferences.ExportTypes
 import ac.mdiq.podcini.preferences.ExportWorker
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
+import ac.mdiq.podcini.storage.database.queues
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -17,7 +19,6 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
-import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeState
@@ -110,7 +111,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -141,6 +141,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
@@ -186,10 +187,10 @@ fun SubscriptionsScreen() {
     var showNewSynthetic by remember { mutableStateOf(false) }
     var selectMode by remember { mutableStateOf(false) }
 
-    val prefsChange by prefsFlow.collectAsState(initial = null)
-    val subPrefs = prefsChange?.obj ?: realm.query(SubscriptionsPrefs::class).first().find() ?: SubscriptionsPrefs()
+    val prefsChange by prefsFlow.collectAsStateWithLifecycle(initialValue = null)
+    val subPrefs = prefsChange?.obj ?: realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?: SubscriptionsPrefs()
 
-    val feedsChange by feedsFlow.collectAsState(initial = null)
+    val feedsChange by feedsFlow.collectAsStateWithLifecycle(initialValue = null)
     val feeds = feedsChange?.list ?: emptyList()
 
     DisposableEffect(lifecycleOwner) {
@@ -197,14 +198,14 @@ fun SubscriptionsScreen() {
             Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
+//                    Logd(TAG, "check subPrefs count: ${realm.query(SubscriptionsPrefs::class).count().find()}")
                     runOnIOScope {
                         upsert(subPrefs) {
                             it.feedsSorted = 0
                             it.feedsFiltered = 0
                         }
                     }
-                    prefsFlow = realm.query(SubscriptionsPrefs::class).first().asFlow()
-                    val queues = realm.query(PlayQueue::class).find()
+                    prefsFlow = realm.query(SubscriptionsPrefs::class).query("id == 0").first().asFlow()
                     queueIds.addAll(queues.map { it.id })
                     queueNames.addAll(queues.map { it.name })
                 }
@@ -607,7 +608,6 @@ fun SubscriptionsScreen() {
                             }
                         }
                         if (selectedOption == "Custom") {
-                            val queues = realm.query(PlayQueue::class).find()
                             SpinnerExternalSet(items = queues.map { it.name }, selectedIndex = 0) { index ->
                                 Logd(TAG, "Queue selected: ${queues[index]}")
                                 saveFeed { it: Feed -> it.queueId = queues[index].id }

@@ -4,6 +4,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.MonitorEntity
 import ac.mdiq.podcini.storage.database.getEpisode
+import ac.mdiq.podcini.storage.database.queues
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.subscribeEpisode
@@ -52,8 +53,6 @@ object InTheatre {
 
     var curIndexInQueue = -1
 
-    var virQueue by mutableStateOf(PlayQueue())
-
     var actQueue by mutableStateOf(PlayQueue())
 
     var curEpisode: Episode? = null     // manged
@@ -72,7 +71,6 @@ object InTheatre {
         curState = CurrentState()
         CoroutineScope(Dispatchers.IO).launch {
             Logd(TAG, "starting queues")
-            var queues = realm.query(PlayQueue::class).find()
             if (queues.isEmpty()) {
                 for (i in 0..4) {
                     val q = PlayQueue()
@@ -85,17 +83,9 @@ object InTheatre {
                     upsert(q) {}
                 }
             }
-            queues = realm.query(PlayQueue::class).find()
-            virQueue = realm.query(PlayQueue::class).query("name == 'Virtual'").first().find() ?:
-                    run {
-                        val vq = PlayQueue()
-                        vq.id = VIRTUAL_QUEUE_ID
-                        vq.name = "Virtual"
-                        upsertBlk(vq) {}
-                    }
 
             Logd(TAG, "starting curState")
-            val curState_ = realm.query(CurrentState::class).first().find()
+            val curState_ = realm.query(CurrentState::class).query("id == 0").first().find()
             if (curState_ != null) curState = curState_
             else {
                 Logd(TAG, "creating new curState")

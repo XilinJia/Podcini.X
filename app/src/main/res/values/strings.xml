@@ -129,6 +129,7 @@
     <string name="chapter_duration0">Duration: </string>
 
     <string name="description_label">Description</string>
+    <string name="transcript">Transcript</string>
 
     <string name="episodes_suffix">\u0020episodes</string>
     <string name="close_label">Close</string>
@@ -349,6 +350,8 @@
     <string name="download_type_media">Media file</string>
     <string name="null_value_podcast_error">No podcast was provided that could be shown.</string>
     <string name="no_feed_url_podcast_found_by_search">The suggested podcast did not have an RSS link, Podcini found a podcast that could match</string>
+
+    <string name="choose_tts_source">Choose text source to speech</string>
 
     <string name="confirm_mobile_download_dialog_title">Confirm mobile download</string>
     <string name="confirm_mobile_download_dialog_message">Downloading over mobile data connection is disabled in the settings. Podcini can download the episode later automatically when Wi-Fi is available.</string>

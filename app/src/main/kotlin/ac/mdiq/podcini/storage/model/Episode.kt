@@ -7,15 +7,13 @@ import ac.mdiq.podcini.net.feed.parser.media.id3.ID3ReaderException
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentChapterReader
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
-import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
-import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting.Companion.fromInteger
 import ac.mdiq.podcini.storage.utils.ChapterStartTimeComparator
 import ac.mdiq.podcini.storage.utils.MEDIA_DOWNLOADPATH
 import ac.mdiq.podcini.storage.utils.customMediaUriString
@@ -31,7 +29,6 @@ import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
 import android.content.ContentResolver
 import android.content.Context
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.URLUtil.guessFileName
@@ -58,6 +55,7 @@ import org.apache.commons.io.FilenameUtils.getExtension
 import org.apache.commons.io.input.CountingInputStream
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
+import wseemann.media.FFmpegMediaMetadataRetriever
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
@@ -736,7 +734,6 @@ class Episode : RealmObject {
     fun isSizeSetUnknown(): Boolean = (CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() == this.size)
 
     fun hasEmbeddedPicture(): Boolean {
-//        TODO: checkEmbeddedPicture needs to update current copy
         if (hasEmbeddedPicture == null) checkEmbeddedPicture()
         return hasEmbeddedPicture == true
     }
@@ -889,29 +886,14 @@ class Episode : RealmObject {
     fun checkEmbeddedPicture(persist: Boolean = true) {
         if (!localFileAvailable()) hasEmbeddedPicture = false
         else {
-            // TODO: what to do with this
-//            try {
-//                MediaMetadataRetrieverCompat().use { mmr ->
-//                    mmr.setDataSource(getAppContext(), Uri.parse(fileUrl))
-//                    val image = mmr.embeddedPicture
-//                    hasEmbeddedPicture = image != null
-//                }
-//            } catch (e: Exception) {
-//                Logs(TAG, e)
-//                hasEmbeddedPicture = false
-//            }
+            var retriever: FFmpegMediaMetadataRetriever? = null
+            try {
+                retriever = FFmpegMediaMetadataRetriever()
+                retriever.setDataSource(fileUrl?.toUri().toString())
+                hasEmbeddedPicture = (retriever.embeddedPicture != null)
+            } catch (e: Exception) { Logs(TAG, e, "checkEmbeddedPicture failed.") } finally { retriever?.release() }
         }
-        // TODO
-//        if (persist && episode != null) upsertBlk(episode!!) {}
-    }
-
-    /**
-     * On SDK<29, this class does not have a close method yet, so the app crashes when using try-with-resources.
-     */
-    class MediaMetadataRetrieverCompat : MediaMetadataRetriever(), AutoCloseable {
-        override fun close() {
-            try { release() } catch (e: IOException) { Logs(TAG, e, "MediaMetadataRetriever failed") }
-        }
+        if (persist) upsertBlk(this) {}
     }
 
     // above from EpisodeMedia

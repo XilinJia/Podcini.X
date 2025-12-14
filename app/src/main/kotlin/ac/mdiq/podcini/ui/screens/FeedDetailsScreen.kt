@@ -135,7 +135,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -172,6 +171,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import io.github.xilinjia.krdb.ext.query
@@ -180,6 +180,7 @@ import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -275,11 +276,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         onDispose {
             Logd(TAG, "DisposableEffect onDispose")
             feed = null
-            TTSObj.tts?.stop()
-            TTSObj.tts?.shutdown()
-            TTSObj.ttsWorking = false
-            TTSObj.ttsReady = false
-            TTSObj.tts = null
+            TTSObj.closeTTS()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -295,7 +292,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     var isFiltered by remember { mutableStateOf(false) }
 
-    val feedChange by feedFlow.collectAsState(initial = null)
+    val feedChange by feedFlow.collectAsStateWithLifecycle(initialValue = null)
     feed = feedChange?.obj
     LaunchedEffect(feedChange, feedId) {
         Logd(TAG, "LaunchedEffect(feedResult, feedId)")
@@ -319,7 +316,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     val infoBarText = remember { mutableStateOf("") }
 
-    val episodesChange by episodesFlow.collectAsState(initial = null)
+    val episodesChange by episodesFlow.collectAsStateWithLifecycle(initialValue = null)
     val episodes = episodesChange?.list ?: listOf()
 
     var listInfoText by remember { mutableStateOf("") }
@@ -826,7 +823,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 }
                             }
                             if (selected == "Custom") {
-                                if (queues == null) queues = realm.query(PlayQueue::class).find()
                                 Logd(TAG, "queues: ${queues?.size}")
                                 Spinner(items = queues!!.map { it.name }, selectedItem = feed?.queue?.name ?: "Default") { index ->
                                     Logd(TAG, "Queue selected: ${queues!![index].name}")
@@ -1641,6 +1637,17 @@ object TTSObj {
                     Logt(TAG, "TTS init success")
                 } else Loge(TAG, context.getString(R.string.tts_init_failed))
             }
+        }
+    }
+
+    fun closeTTS() {
+        if (ttsWorking) CoroutineScope(Dispatchers.Default).launch {
+            while (ttsWorking) delay(10000)
+            tts?.stop()
+            tts?.shutdown()
+            ttsWorking = false
+            ttsReady = false
+            tts = null
         }
     }
 }

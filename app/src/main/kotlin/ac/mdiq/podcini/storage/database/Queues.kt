@@ -9,10 +9,10 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
-import ac.mdiq.podcini.playback.base.InTheatre.virQueue
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
@@ -22,14 +22,55 @@ import ac.mdiq.podcini.utils.FlowEvent.QueueEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import io.github.xilinjia.krdb.notifications.ResultsChange
+import io.github.xilinjia.krdb.notifications.UpdatedResults
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.util.Date
 import kotlin.random.Random
 
 private const val TAG: String = "Queues"
 
+val queuesFlow = realm.query(PlayQueue::class).sort("name").asFlow()
+var queues = realm.query(PlayQueue::class).sort("name").find()
+    private set
+
+val queuesJob = CoroutineScope(Dispatchers.Default).launch {
+    queuesFlow.collect { changes: ResultsChange<PlayQueue> ->
+        queues = changes.list
+        Logd(TAG, "queues updated")
+        when (changes) {
+            is UpdatedResults -> {
+                when {
+                    changes.insertions.isNotEmpty() -> {}
+                    changes.changes.isNotEmpty() -> {}
+                    changes.deletions.isNotEmpty() -> {}
+                    else -> {}
+                }
+            }
+            else -> {}
+        }
+    }
+}
+
+fun cancelQueuesJob() {
+    queuesJob.cancel()
+}
+
+var virQueue by mutableStateOf(realm.query(PlayQueue::class).query("name == 'Virtual'").first().find() ?:
+run {
+    val vq = PlayQueue()
+    vq.id = VIRTUAL_QUEUE_ID
+    vq.name = "Virtual"
+    upsertBlk(vq) {}
+})
+
 fun inQueueEpisodeIdSet(): Set<Long> {
     Logd(TAG, "getQueueIDList() called")
-    val queues = realm.query(PlayQueue::class).find()
     val ids = mutableSetOf<Long>()
     for (queue in queues) ids.addAll(queue.episodeIds)
     return ids
@@ -136,7 +177,6 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED
         item = setPlayState(stat, item, resetMediaPosition = false, removeFromQueue = false)
     }
-    val queues = realm.query(PlayQueue::class).find()
     for (q in queues) if (q.id != actQueue.id && q.episodeIds.contains(item.id)) removeFromQueue(q, listOf(item))
     //        ensure actQueue is last updated
     if (actQueue.size() > 0 && actQueue.episodeIds.contains(item.id)) removeFromQueue(actQueue, listOf(item))
@@ -159,11 +199,16 @@ fun trimBin(queue: PlayQueue) {
 
 fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? = null) {
     Logd(TAG, "removeFromAllQueuesSync called ")
-    val queues = realm.query(PlayQueue::class).find()
-    for (q in queues) if (q.id != actQueue.id) removeFromQueue(q, episodes, playState)
+    for (e in episodes) {
+        for (q in queues) {
+            if (q.id != actQueue.id && q.episodeIds.contains(e.id)) removeFromQueue(q, listOf(e), playState)
+        }
+    }
     //        ensure actQueue is last updated
-    if (actQueue.size() > 0) removeFromQueue(actQueue, episodes, playState)
-    else upsertBlk(actQueue) { it.update() }
+    for (e in episodes) {
+        if (actQueue.size() > 0 && actQueue.episodeIds.contains(e.id)) removeFromQueue(actQueue, listOf(e), playState)
+    }
+    upsertBlk(actQueue) { it.update() }
     if (actQueue.size() == 0 && !actQueue.isVirtual()) {
         autoenqueueForQueue(actQueue)
         if(actQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), actQueue)
@@ -190,16 +235,15 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
     val eList = episodes.toList()
     val t = System.currentTimeMillis()
     var c = 0L
-    for (i in qItems.indices) {
-        val episode = qItems[i]
-        if (eList.indexWithId(episode.id) >= 0) {
-            Logd(TAG, "removing from queue: ${episode.id} ${episode.title}")
+    for (e in eList) {
+        val i = qItems.indexWithId(e.id)
+        if (i >= 0) {
             indicesToRemove.add(i)
-            upsertBlk(episode) {
+            upsertBlk(e) {
                 it.timeOutQueue = t+c++
                 if (playState != null && it.playState == EpisodeState.QUEUE.code) it.setPlayState(playState)
             }
-            if (queue.id == actQueue.id) removeFromActQueue.add(episode)
+            if (queue.id == actQueue.id) removeFromActQueue.add(e)
         }
     }
     if (indicesToRemove.isNotEmpty()) {
@@ -267,7 +311,6 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
         }
     }
 
-    val queues = realm.query(PlayQueue::class).find()
     for (q in queues) {
         if (q.id == actQueue.id) continue
         doit(q)

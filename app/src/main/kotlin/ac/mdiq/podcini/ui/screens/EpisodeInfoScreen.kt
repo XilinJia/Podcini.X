@@ -91,7 +91,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -118,6 +117,7 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import coil.compose.AsyncImage
@@ -184,7 +184,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
         }
     }
 
-    val episodeChange by episodeFlow.collectAsState(initial = null)
+    val episodeChange by episodeFlow.collectAsStateWithLifecycle(initialValue = null)
     LaunchedEffect(episodeChange, episodeId) {
         episode = episodeChange?.obj ?: return@LaunchedEffect
 

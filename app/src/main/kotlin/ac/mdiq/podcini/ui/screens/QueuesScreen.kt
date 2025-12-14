@@ -12,6 +12,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.mediaBrowser
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
+import ac.mdiq.podcini.storage.database.queuesFlow
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.resetIds
 import ac.mdiq.podcini.storage.database.resetInQueueTime
@@ -101,7 +102,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -125,6 +125,7 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
@@ -168,19 +169,12 @@ fun QueuesScreen(id: Long = -1L) {
 
     var browserFuture: ListenableFuture<MediaBrowser>? by remember { mutableStateOf(null) }
     
-    val feedsAssociated = remember {  mutableStateListOf<Feed>() }
+    val feedsAssociated = remember { mutableStateListOf<Feed>() }
 
     var swipeActions by remember { mutableStateOf(SwipeActions(context, TAG)) }
-    var listInfoText by remember { mutableStateOf("") }
-    val infoBarText = remember { mutableStateOf("") }
-
-    var showSortDialog by remember { mutableStateOf(false) }
-    val showClearQueueDialog = remember { mutableStateOf(false) }
-    val showAddQueueDialog = remember { mutableStateOf(false) }
 
     var queuesMode by remember { mutableStateOf( if (appAttribs.queuesMode.isNotBlank()) QueuesScreenMode.valueOf(appAttribs.queuesMode) else QueuesScreenMode.Queue) }
 
-    var queuesFlow by remember { mutableStateOf<Flow<ResultsChange<PlayQueue>>>(emptyFlow()) }
     var curQueueFlow by remember { mutableStateOf<Flow<SingleQueryChange<PlayQueue>>>(emptyFlow()) }
 
     var curIndex by remember {  mutableIntStateOf(-1) }
@@ -192,7 +186,6 @@ fun QueuesScreen(id: Long = -1L) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    queuesFlow = realm.query<PlayQueue>().sort("name").asFlow()
                     curQueueFlow = realm.query<PlayQueue>("id == $0", appAttribs.curQueueId).first().asFlow()
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
@@ -237,13 +230,12 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
-    var dragged by remember { mutableIntStateOf(0) }
 
-    val queuesResults by queuesFlow.collectAsState(initial = null)
+    val queuesResults by queuesFlow.collectAsStateWithLifecycle(initialValue = null)
     val queues = queuesResults?.list ?: emptyList()
 
-    val queueNames = remember(queues) { queues.map { it.name } }
-    val spinnerTexts = remember(queues, actQueue) { queues.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" } }
+    val queueNames = remember(queues.size) { queues.map { it.name } }
+    val spinnerTexts = remember(queues, actQueue.id) { queues.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" } }
 
     LaunchedEffect(queues.size) {
         Logd(TAG, "LaunchedEffect(queues) curIndex: $curIndex $id")
@@ -253,12 +245,12 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
 
-    val queueChange by curQueueFlow.collectAsState(initial = null)
+    val queueChange by curQueueFlow.collectAsStateWithLifecycle(initialValue = null)
     if (queueChange?.obj != null) curQueue = queueChange?.obj!!
     var curQueuePosition by remember {  mutableIntStateOf(curQueue.scrollPosition) }
     Logd(TAG, "curQueuePosition: $curQueuePosition")
 
-    var title by remember(queuesMode, curQueue) { mutableStateOf(if (queuesMode == QueuesScreenMode.Bin) curQueue.name + " Bin" else "") }
+    var title by remember { mutableStateOf("") }
 
     DisposableEffect(queuesMode) {
         subscreenHandleBack.value = queuesMode != QueuesScreenMode.Queue
@@ -272,20 +264,34 @@ fun QueuesScreen(id: Long = -1L) {
         feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
     }
 
-    LaunchedEffect(curQueue, queuesMode) {
+    fun initBinFlow() {
+        episodesFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).sort(Pair("timeOutQueue", Sort.DESCENDING)).asFlow()
+    }
+    fun initQueueFlow() {
+        episodesFlow = realm.query(Episode::class).query("id IN $0", curQueue.episodeIds).sort(sortPairOf(curQueue.sortOrder)).asFlow()
+    }
+    LaunchedEffect(curQueue.id, curQueue.idsBinList.size) {
+        Logd(TAG, "LaunchedEffect(curQueue.id, curQueue.idsBinList.size)")
+        if (queuesMode == QueuesScreenMode.Bin) initBinFlow()
+    }
+    LaunchedEffect(curQueue.id, curQueue.episodeIds.size, curQueue.sortOrderCode) {
+        Logd(TAG, "LaunchedEffect(curQueue.id, curQueue.episodeIds.size, curQueue.sortOrder)")
+        if (queuesMode == QueuesScreenMode.Queue) initQueueFlow()
+    }
+    LaunchedEffect( queuesMode) {
         Logd(TAG, "LaunchedEffect(curQueue, screenMode, dragged)")
         lifecycleOwner.lifecycle.removeObserver(swipeActions)
         when (queuesMode) {
             QueuesScreenMode.Bin -> {
                 swipeActions = SwipeActions(context, "${TAG}_Bin")
                 lifecycleOwner.lifecycle.addObserver(swipeActions)
-                episodesFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).sort(Pair("timeOutQueue", Sort.DESCENDING)).asFlow()
+                initBinFlow()
                 title = curQueue.name + " Bin"
             }
             QueuesScreenMode.Queue -> {
                 swipeActions = SwipeActions(context, TAG)
                 lifecycleOwner.lifecycle.addObserver(swipeActions)
-                episodesFlow = realm.query(Episode::class).query("id IN $0", curQueue.episodeIds).sort(sortPairOf(curQueue.sortOrder)).asFlow()
+                initQueueFlow()
                 title = ""
             }
             QueuesScreenMode.Feed -> {
@@ -297,6 +303,10 @@ fun QueuesScreen(id: Long = -1L) {
             }
         }
     }
+
+    var showSortDialog by remember { mutableStateOf(false) }
+    val showClearQueueDialog = remember { mutableStateOf(false) }
+    val showAddQueueDialog = remember { mutableStateOf(false) }
 
     @Composable
     fun OpenDialogs() {
@@ -624,7 +634,7 @@ fun QueuesScreen(id: Long = -1L) {
             QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
             QueuesScreenMode.Settings -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { Settings() }
             else -> {
-                val episodesChange by episodesFlow.collectAsState(initial = null)
+                val episodesChange by episodesFlow.collectAsStateWithLifecycle(initialValue = null)
                 val episodes = episodesChange?.list ?: emptyList()
                 LaunchedEffect(lazyListState) {
                     snapshotFlow { lazyListState.firstVisibleItemIndex to lazyListState.firstVisibleItemScrollOffset }
@@ -639,6 +649,9 @@ fun QueuesScreen(id: Long = -1L) {
                     if (curQueue.id == actQueue.id && curQueuePosition == curQueue.scrollPosition) episodes.indexOfFirst { it.id == curEpisode?.id } else curQueuePosition
                 }) }
                 Logd(TAG, "Scaffold scrollToOnStart: $scrollToOnStart $curQueuePosition")
+
+                var listInfoText by remember { mutableStateOf("") }
+                val infoBarText = remember { mutableStateOf("") }
 
                 LaunchedEffect(episodes.size) {
                     Logd(TAG, "LaunchedEffect(episodes.size) ${episodes.size}")
@@ -677,12 +690,7 @@ fun QueuesScreen(id: Long = -1L) {
                                     onNeutral = { runOnceOrAsk(context, feeds = feedsAssociated)  }
                                 )
                             },
-                            isDraggable = dragDropEnabled, dragCB = { iFrom, iTo ->
-                                runOnIOScope {
-                                    moveItemInQueue(iFrom, iTo)
-                                    withContext(Dispatchers.Main) { dragged++ }
-                                }
-                            },
+                            isDraggable = dragDropEnabled, dragCB = { iFrom, iTo -> runOnIOScope { moveItemInQueue(iFrom, iTo) } },
                             actionButtonCB = { e, type ->
                                 if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM))
                                     if (actQueue.id != curQueue.id) actQueue = curQueue

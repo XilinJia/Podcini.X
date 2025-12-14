@@ -275,8 +275,7 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
         val duplicates = query(Episode::class, "title == $0 OR downloadUrl == $1", episode.title, episode.downloadUrl).find()
         if (duplicates.size > 1) {
             Logt(TAG, "Found ${duplicates.size - 1} duplicate episodes, setting to Ignored")
-            val localTime = System.currentTimeMillis()
-            val comment = fullDateTimeString(localTime) + ":\nduplicate"
+            val comment = "duplicate"
             for (e in duplicates) {
                 if (e.id != episode.id) {
                     when {
@@ -292,7 +291,7 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
                                 it
                             }
                             m?.let { updated = true }
-                            Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title}")
+                            Logt(TAG, "Duplicate item was previously set to ${fromCode(e.playState).name} ${e.title} ${e.downloadUrl}")
                         }
                     }
                 }

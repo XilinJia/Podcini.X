@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.storage.utils
 
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream
@@ -47,7 +48,10 @@ fun mergeAudios(selection: Array<String>, outpath: String?, callback: OperationC
                 try {
                     dataBytes[0] = mergeFilesStream[b]!!.readByte()
                     dataBytes[1] = mergeFilesStream[b]!!.readByte()
-                } catch (e: EOFException) { amplifyOutputStream.close() }
+                } catch (e: EOFException) {
+                    amplifyOutputStream.close()
+                    Loge(TAG, "mergeAudios error: ${e.message}")
+                }
 
                 val dataInShort = ByteBuffer.wrap(dataBytes).order(ByteOrder.LITTLE_ENDIAN).getShort()
                 val dataInFloat = dataInShort.toFloat() / 37268.0f

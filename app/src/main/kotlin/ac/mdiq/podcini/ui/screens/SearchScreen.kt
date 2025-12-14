@@ -62,7 +62,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -84,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -445,7 +445,7 @@ fun SearchScreen() {
         }
     }
 
-    val episodesChange by vm.episodesFlow.collectAsState(initial = null)
+    val episodesChange by vm.episodesFlow.collectAsStateWithLifecycle(initialValue = null)
     val episodes = episodesChange?.list ?: emptyList()
     val infoBarText = remember(episodes) { mutableStateOf("${episodes.size} episodes") }
 

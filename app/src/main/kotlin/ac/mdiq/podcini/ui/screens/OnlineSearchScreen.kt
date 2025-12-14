@@ -14,6 +14,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
+import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.updateFeedFull

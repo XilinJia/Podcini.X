@@ -372,7 +372,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 if (pos > 0) seekTo(pos)
                 if (curEpisode != null && curEpisode!!.duration <= 0) {
                     Logd(TAG, "Setting duration of media")
-                    upsertBlk(curEpisode!!) { it.duration = (if (exoPlayer?.duration == C.TIME_UNSET) Episode.INVALID_TIME else exoPlayer!!.duration.toInt()) }
+                    val dur = if (exoPlayer?.duration == C.TIME_UNSET) Episode.INVALID_TIME else exoPlayer!!.duration.toInt()
+                    if (dur > 0) upsertBlk(curEpisode!!) { it.duration = dur }
                 }
             }
             setPlayerStatus(PlayerStatus.PREPARED, curEpisode)

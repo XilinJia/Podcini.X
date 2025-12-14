@@ -112,7 +112,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -142,6 +141,7 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
@@ -256,8 +256,8 @@ fun AudioPlayerScreen(navController: AppNavigator) {
 
     var volumeAdaption: VolumeAdaptionSetting by remember { mutableStateOf(VolumeAdaptionSetting.OFF) }
 
-    val episodeChange by episodeFlow.collectAsState(initial = null)
-    var curItem = episodeChange?.obj
+    val episodeChange by episodeFlow.collectAsStateWithLifecycle(initialValue = null)
+    val curItem = episodeChange?.obj
 
     //    private var chapterControlVisible by mutableStateOf(false)
     var displayedChapterIndex by remember { mutableIntStateOf(-1) }
@@ -557,22 +557,26 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         Box(modifier = Modifier.fillMaxWidth()) {
             var sliderValue by remember(curItem?.position) { mutableFloatStateOf((curItem?.position?:0).toFloat()) }
             Slider(colors = SliderDefaults.colors(activeTrackColor = MaterialTheme.colorScheme.tertiary), modifier = Modifier.height(12.dp).padding(top = 2.dp, bottom = 2.dp),
-                value = sliderValue, valueRange = 0f..(curItem?.duration?:0).toFloat(),
+                value = sliderValue, valueRange = 0f..( if (curItem?.duration?:0 > 0) curItem?.duration?:0 else 30000).toFloat(),
                 onValueChange = { sliderValue = it }, onValueChangeFinished = { mPlayer?.seekTo(sliderValue.toInt()) })
             if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f), modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
         }
         Row {
-            Text(durationStringAdapt(curItem?.position?:0), color = textColor, style = MaterialTheme.typography.bodySmall)
+            val pastText by remember(curItem?.position) { mutableStateOf( run {
+                if (curItem == null) return@run ""
+                durationStringAdapt(curItem.position) + " *" + durationStringAdapt(curItem.timeSpent.toInt())
+            } ) }
+            Text(pastText, color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
             if (bitrate > 0) Text(formatLargeInteger(bitrate) + "bits", color = textColor, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.weight(1f))
-            val txtvLengthText by remember(curItem?.position) { mutableStateOf( run {
+            val lengthText by remember(curItem?.position) { mutableStateOf( run {
                 if (curItem == null) return@run ""
                 val remainingTime = max((curItem.duration - curItem.position), 0)
                 val onSpeed = if (curPBSpeed > 0 && abs(curPBSpeed-1f) > 0.001) (remainingTime / curPBSpeed).toInt() else 0
                 (if (onSpeed > 0) "*" + durationStringAdapt(onSpeed) else "") + " -" + durationStringAdapt(remainingTime) + " ·" + durationStringAdapt(curItem.duration)
             }) }
-            Text(txtvLengthText, color = textColor, style = MaterialTheme.typography.bodySmall)
+            Text(lengthText, color = textColor, style = MaterialTheme.typography.bodySmall)
         }
     }
 

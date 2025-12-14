@@ -827,7 +827,6 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         /**
          * Returns the currently configured playback speed for the specified media.
          */
-        
         fun getCurrentPlaybackSpeed(media: Episode?): Float {
             var playbackSpeed = Feed.SPEED_USE_GLOBAL
             if (media != null) {

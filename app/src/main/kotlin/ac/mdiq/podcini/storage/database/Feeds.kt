@@ -25,6 +25,7 @@ import ac.mdiq.podcini.utils.Logt
 import android.app.backup.BackupManager
 import android.content.Context
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
@@ -49,13 +50,17 @@ import kotlin.math.abs
 private const val TAG: String = "Feeds"
 var feedOperationText by mutableStateOf("")
 
+var feedCount by mutableIntStateOf(-1)
+
 @Synchronized
 fun getFeedList(queryString: String = ""): List<Feed> {
     return if (queryString.isEmpty()) realm.query(Feed::class).find()
     else realm.query(Feed::class, queryString).find()
 }
 
-fun getFeedCount(): Int = realm.query(Feed::class).count().find().toInt()
+//fun updateFeedCount() {
+//    feedCount = realm.query(Feed::class).count().find().toInt()
+//}
 
 fun compileLanguages() {
     val langsSet = mutableSetOf<String>()
@@ -104,6 +109,7 @@ fun monitorFeedList(scope: CoroutineScope) {
     monitorJob = scope.launch(Dispatchers.IO) {
         feedQuery.asFlow().collect { changes: ResultsChange<Feed> ->
             val feeds = changes.list
+            feedCount = feeds.size
 //            Logd(TAG, "monitorFeedList feeds size: ${feeds.size}")
             when (changes) {
                 is UpdatedResults -> {

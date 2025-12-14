@@ -17,6 +17,8 @@ import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
+import ac.mdiq.podcini.storage.database.cancelQueuesJob
+import ac.mdiq.podcini.storage.database.monitorFeedList
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
@@ -391,6 +393,7 @@ class MainActivity : BaseActivity() {
         Logd(TAG, "onDestroy")
         WorkManager.getInstance(this).pruneWork()
         WorkManager.getInstance(applicationContext).pruneWork()
+        cancelQueuesJob()
         cancelAppPrefs()
         cancelMonitornavStack()
         super.onDestroy()
@@ -400,7 +403,7 @@ class MainActivity : BaseActivity() {
         super.onStart()
         procFlowEvents()
         RatingDialog.init(this)
-//        monitorFeedList(lifecycleScope)   // TODO: test
+        monitorFeedList(lifecycleScope)   // TODO: test
     }
 
     override fun onStop() {

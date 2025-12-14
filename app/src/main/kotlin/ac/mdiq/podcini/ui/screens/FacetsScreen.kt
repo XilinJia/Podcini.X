@@ -74,7 +74,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -99,6 +98,7 @@ import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -137,7 +137,7 @@ private val TAG = Screens.Facets.name
 class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
     var tag = TAG+QuickAccess.entries[0]
 
-    var facetsPrefs: FacetsPrefs = realm.query(FacetsPrefs::class).first().find() ?: FacetsPrefs()
+    var facetsPrefs: FacetsPrefs = realm.query(FacetsPrefs::class).query("id == 0").first().find() ?: FacetsPrefs()
 
     internal var sortOrder: EpisodeSortOrder
         get() = EpisodeSortOrder.fromCode(facetsPrefs.sortCodesMap[facetsMode.name] ?: EpisodeSortOrder.DATE_DESC.code)
@@ -189,7 +189,7 @@ fun FacetsScreen() {
     var historyStartDate by remember { mutableLongStateOf(0L) }
     var historyEndDate = remember { Date().time }
 
-    val episodesChange by episodesFlow.collectAsState(initial = null)
+    val episodesChange by episodesFlow.collectAsStateWithLifecycle(initialValue = null)
     val episodes = episodesChange?.list ?: emptyList()
 
     fun buildFlow() {

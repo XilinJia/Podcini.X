@@ -11,12 +11,10 @@ import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
-import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedByTitleAndAuthor
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.isSubscribed
-import ac.mdiq.podcini.storage.database.monitorFeedList
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -67,7 +65,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -395,7 +392,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     Logd(TAG, "feedUrl: ${vm.feedUrl}")
-                    monitorFeedList(scope)
+//                    monitorFeedList(scope)
                     vm.feedBuilder = gearbox.formFeedBuilder(vm.feedUrl, vm.feedSource, context) { message, details ->
                         vm.errorMessage = message ?: "No message"
                         vm.errorDetails = details
@@ -436,7 +433,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
         onDispose {
             vm.feeds = null
             vm.episodes.clear()
-            cancelMonitorFeeds()
+//            cancelMonitorFeeds()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }

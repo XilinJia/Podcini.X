@@ -5,14 +5,14 @@ import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.getEpisodesCount
-import ac.mdiq.podcini.storage.database.getFeedCount
+import ac.mdiq.podcini.storage.database.queues
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
-import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.Companion.unfiltered
@@ -23,7 +23,6 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
-import android.content.Context
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -87,7 +86,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -121,39 +119,17 @@ val defaultScreen: String
 
 var subscreenHandleBack = mutableStateOf(false)
 
-class NavDrawerVM(val context: Context, val lcScope: CoroutineScope) {
-    internal val feeds = mutableStateListOf<Feed>()
-
-    fun loadData() {
-        lcScope.launch {
-            var feeds_ = listOf<Feed>()
-            withContext(Dispatchers.IO) {
-                val numItems = getEpisodesCount(unfiltered())
-                feedCount = getFeedCount()
-                navMap[Screens.Queues.name]?.count = realm.query(PlayQueue::class).find().sumOf { it.size()}
-                navMap[Screens.Subscriptions.name]?.count = feedCount
-                navMap[Screens.Facets.name]?.count = numItems
-                navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +
-                        realm.query(SubscriptionLog::class).count().find().toInt() +
-                        realm.query(DownloadResult::class).count().find().toInt()
-                feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(8).find()
-            }
-            withContext(Dispatchers.Main) {
-                feeds.clear()
-                if (feeds_.isNotEmpty()) feeds.addAll(feeds_)
-            }
-        }
-    }
-}
+data class FeedBrief(val id: Long, val title: String?, val imageUrl: String?)
 
 @Composable
 fun NavDrawerScreen(navigator: AppNavigator) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
-    val vm = remember { NavDrawerVM(context, scope) }
     val textColor = MaterialTheme.colorScheme.onSurface
     var curruntRoute: String
+
+    val feedBriefs = remember { mutableStateListOf<FeedBrief>() }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -173,8 +149,20 @@ fun NavDrawerScreen(navigator: AppNavigator) {
     }
 
     LaunchedEffect(drawerState.currentValue) {
-        Logd(TAG, "drawerState: ${drawerState.isOpen}")
-        if (drawerState.isOpen) vm.loadData()
+        Logd(TAG, "LaunchedEffect(drawerState.currentValue): ${drawerState.isOpen}")
+        if (drawerState.isOpen) scope.launch(Dispatchers.IO) {
+            navMap[Screens.Queues.name]?.count = queues.sumOf { it.size()}
+            navMap[Screens.Subscriptions.name]?.count = feedCount
+            navMap[Screens.Facets.name]?.count = getEpisodesCount(unfiltered())
+            navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +
+                    realm.query(SubscriptionLog::class).count().find().toInt() +
+                    realm.query(DownloadResult::class).count().find().toInt()
+            val feeds_ = realm.query(Feed::class).sort("lastPlayed", sortOrder = Sort.DESCENDING).limit(8).find()
+//            withContext(Dispatchers.Main) {
+                feedBriefs.clear()
+                for (f in feeds_) feedBriefs.add(FeedBrief(f.id, f.title, f.imageUrl))
+//            }
+        }
     }
 
     fun haveCommonPrefix(a: String, b: String): Boolean {
@@ -186,7 +174,6 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         }
         return count > 0
     }
-
 
     BackHandler(enabled = !subscreenHandleBack.value) {
         Logd(TAG, "BackHandler isBSExpanded: $isBSExpanded")
@@ -223,8 +210,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
 
     Box(Modifier.width(drawerWidth).fillMaxHeight()) {
         Scaffold { innerPadding ->
-            Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).background(MaterialTheme.colorScheme.surface),
-                verticalArrangement = Arrangement.spacedBy(15.dp)) {
+            Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).background(MaterialTheme.colorScheme.surface), verticalArrangement = Arrangement.spacedBy(15.dp)) {
                 for (nav in navMap.entries) {
                     if (nav.value.show) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                         Logd(TAG, "nav.key: ${nav.key}")
@@ -241,9 +227,8 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                     }
                 }
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                val lazyListState = rememberLazyListState()
-                LazyColumn(state = lazyListState) {
-                    itemsIndexed(vm.feeds) { _, f ->
+                LazyColumn(state = rememberLazyListState()) {
+                    itemsIndexed(feedBriefs) { _, f ->
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp).clickable {
                             navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
                             closeDrawer()
@@ -267,12 +252,6 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         }
     }
 }
-
-var feedCount: Int = -1
-    get() {
-        if (field < 0) field = getFeedCount()
-        return field
-    }
 
 class NavItem(val iconRes: Int, val nameRes: Int) {
     var count by mutableIntStateOf(0)

@@ -44,7 +44,6 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.utils.openInBrowser
 import android.content.Context
-import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -65,9 +64,13 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.core.text.HtmlCompat
 import androidx.media3.common.util.UnstableApi
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import net.dankito.readability4j.Readability4J
+import wseemann.media.FFmpegMediaMetadataRetriever
 import java.io.File
 import java.util.Locale
 import kotlin.math.max
@@ -86,6 +89,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
             drawable = value.drawable
         }
 
+    var typeToCancel: ButtonTypes = ButtonTypes.DOWNLOAD
+
     var processing by mutableIntStateOf(-1)
 
     var label by mutableIntStateOf(typeInit.label)
@@ -95,15 +100,32 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
         if (type == ButtonTypes.NULL) update(item)
     }
 
+    val ttsTmpFiles = mutableListOf<String>()
+    var ttsJob: Job? = null
+
     @UnstableApi
     fun onClick(context: Context) {
         Logd(TAG, "onClick type: $type")
         when (type) {
             ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInBrowser(context, item.link!!)
             ButtonTypes.CANCEL -> {
-                DownloadServiceInterface.impl?.cancel(context, item)
-                if (AppPreferences.isAutodownloadEnabled) upsertBlk(item) { it.disableAutoDownload() }
-                type = ButtonTypes.DOWNLOAD
+                if (typeToCancel == ButtonTypes.DOWNLOAD) {
+                    DownloadServiceInterface.impl?.cancel(context, item)
+                    if (AppPreferences.isAutodownloadEnabled) upsertBlk(item) { it.disableAutoDownload() }
+                    type = ButtonTypes.DOWNLOAD
+                } else if (typeToCancel == ButtonTypes.TTS) {
+                    runOnIOScope {
+                        for (p in ttsTmpFiles) {
+                            val f = File(p)
+                            f.delete()
+                        }
+                    }
+                    TTSObj.ttsWorking = false
+                    processing = -1
+                    ttsJob?.cancel()
+                    ttsJob = null
+                    type = ButtonTypes.TTS
+                }
             }
             ButtonTypes.PLAY -> {
                 if (!item.fileExists()) {
@@ -185,6 +207,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 if (mobileAllowEpisodeDownload || !isNetworkRestricted) {
                     DownloadServiceInterface.impl?.downloadNow(context, item, false)
                     Logd(TAG, "downloading ${item.title}")
+                    typeToCancel = ButtonTypes.DOWNLOAD
                     type = ButtonTypes.CANCEL
                     return
                 }
@@ -204,101 +227,132 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     type = ButtonTypes.NULL
                     return
                 }
-                processing = 1
-                item = upsertBlk(item) { it.setPlayState(EpisodeState.BUILDING) }
-                ensureTTS(context)
-                var readerText: String?
-                runOnIOScope {
-                    if (item.transcript == null) {
-                        val url = item.link!!
-                        val htmlSource = NetworkUtils.fetchHtmlSource(url)
-                        val article = Readability4J(item.link!!, htmlSource).parse()
-                        readerText = article.textContent
-                        item = upsertBlk(item) { it.setTranscriptIfLonger(article.contentWithDocumentsCharsetOrUtf8) }
-                        Logd(TAG, "readability4J: ${readerText?.substring(max(0, readerText!!.length - 100), readerText!!.length)}")
-                    } else readerText = HtmlCompat.fromHtml(item.transcript!!, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
-                    Logd(TAG, "readerText: [$readerText]")
+                fun doTTS(textSourceIndex: Int) {
                     processing = 1
-                    if (!readerText.isNullOrEmpty()) {
-                        while (!TTSObj.ttsReady) runBlocking { delay(100) }
-                        processing = 15
-                        while (TTSObj.ttsWorking) runBlocking { delay(100) }
-                        TTSObj.ttsWorking = true
-                        if (!item.feed?.languages.isNullOrEmpty()) {
-                            val lang = item.feed!!.languages.first()
-                            val result = TTSObj.tts?.setLanguage(Locale(lang))
-                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " $lang $result")
-                        }
-
-                        var j = 0
-                        val mediaFile = File(item.getMediafilePath(), item.getMediafilename())
-                        TTSObj.tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                            override fun onStart(utteranceId: String?) {}
-                            override fun onDone(utteranceId: String?) {
-                                j++
-                            }
-                            @Deprecated("Deprecated in Java")
-                            override fun onError(utteranceId: String) {}    // deprecated but have to override
-                            override fun onError(utteranceId: String, errorCode: Int) {}
-                        })
-
-                        Logd(TAG, "readerText: ${readerText?.length}")
-                        var startIndex = 0
-                        var i = 0
-                        val parts = mutableListOf<String>()
-                        val chunkLength = TextToSpeech.getMaxSpeechInputLength() - 300  // TTS engine can't handle longer text
-                        var status = TextToSpeech.ERROR
-                        while (startIndex < readerText!!.length) {
-                            Logd(TAG, "working on chunk $i $startIndex")
-                            val endIndex = minOf(startIndex + chunkLength, readerText!!.length)
-                            val chunk = readerText!!.substring(startIndex, endIndex)
-                            Logd(TAG, "chunk: $chunk")
-                            try {
-                                val tempFile = File.createTempFile("tts_temp_${i}_", ".wav")
-                                parts.add(tempFile.absolutePath)
-                                status = TTSObj.tts?.synthesizeToFile(chunk, null, tempFile, tempFile.absolutePath) ?: 0
-                                Logd(TAG, "status: $status chunk: ${chunk.take(min(80, chunk.length))}")
-                                if (status == TextToSpeech.ERROR) {
-                                    Loge(TAG, "Error generating audio file ${tempFile.absolutePath}")
-                                    break
-                                }
-                            } catch (e: Exception) { Logs(TAG, e, "writing temp file error")}
-                            startIndex += chunkLength
-                            i++
-                            while (i - j > 0) runBlocking { delay(100) }
-                            processing = 15 + 70 * startIndex / readerText!!.length
-                        }
-                        processing = 85
-                        if (status == TextToSpeech.SUCCESS) {
-                            mergeAudios(parts.toTypedArray(), mediaFile.absolutePath, null)
-                            val retriever = MediaMetadataRetriever()
-                            retriever.setDataSource(mediaFile.absolutePath)
-                            val durationMs = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toInt() ?: 0
-
-                            retriever.release()
-                            val mFilename = mediaFile.absolutePath
-                            Logd(TAG, "saving TTS to file $mFilename")
-                            val item_ = realm.query(Episode::class).query("id = ${item.id}").first().find()
-                            if (item_ != null) {
-                                item = upsertBlk(item_) {
-                                    it.fillMedia(null, 0, "audio/*")
-                                    it.fileUrl = Uri.fromFile(mediaFile).toString()
-                                    it.duration = durationMs
-                                    it.setIsDownloaded()
-                                    it.setTranscriptIfLonger(readerText)
-                                }
+                    item = upsertBlk(item) { it.setPlayState(EpisodeState.BUILDING) }
+                    typeToCancel = ButtonTypes.TTS
+                    type = ButtonTypes.CANCEL
+                    ttsTmpFiles.clear()
+                    ensureTTS(context)
+                    ttsJob = runOnIOScope {
+                        var readerText: String? = null
+                        processing = 1
+                        when (textSourceIndex) {
+                            1 -> readerText = item.description?: ""
+                            2 -> {
+                                if (item.transcript == null) {
+                                    val url = item.link!!
+                                    val htmlSource = NetworkUtils.fetchHtmlSource(url)
+                                    val article = Readability4J(item.link!!, htmlSource).parse()
+                                    readerText = article.textContent
+                                    item = upsertBlk(item) { it.setTranscriptIfLonger(article.contentWithDocumentsCharsetOrUtf8) }
+                                    Logd(TAG, "readability4J: ${readerText?.substring(max(0, readerText.length - 100), readerText.length)}")
+                                } else readerText = HtmlCompat.fromHtml(item.transcript!!, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                             }
                         }
-                        for (p in parts) {
-                            val f = File(p)
-                            f.delete()
+
+                        Logd(TAG, "readerText: [$readerText]")
+                        if (!readerText.isNullOrBlank()) {
+                            processing = 5
+                            while (!TTSObj.ttsReady) { delay(100) }
+                            withContext(Dispatchers.Main) { processing = 15 }
+                            while (TTSObj.ttsWorking) { delay(100) }
+                            TTSObj.ttsWorking = true
+                            if (!item.feed?.languages.isNullOrEmpty()) {
+                                val lang = item.feed!!.languages.first()
+                                val result = TTSObj.tts?.setLanguage(Locale(lang))
+                                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " $lang $result")
+                            }
+
+                            var engineIndex = 0
+                            val mediaFile = File(item.getMediafilePath(), item.getMediafilename())
+                            TTSObj.tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                                override fun onStart(utteranceId: String?) {}
+                                override fun onDone(utteranceId: String?) { engineIndex++ }
+                                @Deprecated("Deprecated in Java")
+                                override fun onError(utteranceId: String) {}    // deprecated but have to override
+                                override fun onError(utteranceId: String, errorCode: Int) {}
+                            })
+
+                            Logd(TAG, "readerText length: ${readerText.length}")
+                            var startIndex = 0
+                            var i = 0
+                            val chunkLength = TextToSpeech.getMaxSpeechInputLength() / 2   // TTS engine can't handle longer text
+                            var status = TextToSpeech.ERROR
+                            while (startIndex < readerText.length) {
+                                Logd(TAG, "working on chunk $i $startIndex")
+                                val endIndex = minOf(startIndex + chunkLength, readerText.length)
+                                val chunk = readerText.substring(startIndex, endIndex)
+                                Logd(TAG, "chunk: $chunk")
+                                try {
+                                    val tempFile = File.createTempFile("tts_temp_${i}_", ".wav")
+                                    ttsTmpFiles.add(tempFile.absolutePath)
+                                    status = TTSObj.tts?.synthesizeToFile(chunk, null, tempFile, tempFile.absolutePath) ?: 0
+                                    Logd(TAG, "status: $status chunk: ${chunk.take(min(80, chunk.length))}")
+                                    if (status == TextToSpeech.ERROR) {
+                                        Loge(TAG, "Error generating audio file ${tempFile.absolutePath}")
+                                        break
+                                    }
+                                } catch (e: Exception) { Logs(TAG, e, "writing temp file error")}
+                                startIndex += chunkLength
+                                i++
+                                while (i - engineIndex > 0) delay(100)
+                                withContext(Dispatchers.Main) { processing = 15 + 70 * startIndex / readerText.length }
+                            }
+                            Logd(TAG, "chunks finished, status: $status")
+                            withContext(Dispatchers.Main) { processing = 85 }
+                            if (status == TextToSpeech.SUCCESS) {
+                                Logd(TAG, "TTS success, merging files to: ${mediaFile.absolutePath}")
+                                mergeAudios(ttsTmpFiles.toTypedArray(), mediaFile.absolutePath, null)
+                                var durationMs = 0
+                                var retriever: FFmpegMediaMetadataRetriever? = null
+                                try {
+                                    retriever = FFmpegMediaMetadataRetriever()
+                                    retriever.setDataSource(mediaFile.absolutePath)
+                                    val durationStr = retriever.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_KEY_DURATION)
+                                    if (durationStr != null) durationMs = durationStr.toInt()
+                                } catch (e: Exception) {
+                                    Logs(TAG, e, "Get duration failed.")
+                                    if (durationMs !in 30000..18000000) durationMs = 30000
+                                } finally { retriever?.release() }
+
+                                val mFilename = mediaFile.absolutePath
+                                Logd(TAG, "saving TTS to file $mFilename")
+                                val item_ = realm.query(Episode::class).query("id = ${item.id}").first().find()
+                                if (item_ != null) {
+                                    item = upsertBlk(item_) {
+                                        it.fillMedia(null, 0, "audio/*")
+                                        it.fileUrl = Uri.fromFile(mediaFile).toString()
+                                        it.duration = durationMs
+                                        it.setIsDownloaded()
+                                        it.setTranscriptIfLonger(readerText)
+                                    }
+                                }
+                            }
+                            for (p in ttsTmpFiles) {
+                                val f = File(p)
+                                f.delete()
+                            }
+                            TTSObj.ttsWorking = false
+                            item = upsertBlk(item) { it.setPlayState(EpisodeState.UNPLAYED) }
+                            withContext(Dispatchers.Main) { processing = -1 }
+                        } else {
+                            Loge(TAG, context.getString(R.string.episode_has_no_content))
+                            withContext(Dispatchers.Main) {
+                                processing = -1
+                                update(item)
+                            }
                         }
-                        TTSObj.ttsWorking = false
-                    } else Loge(TAG, context.getString(R.string.episode_has_no_content))
-                    item = upsertBlk(item) { it.setPlayState(EpisodeState.UNPLAYED) }
-                    processing = 100
+                    }
                 }
-                type = ButtonTypes.PLAY
+                commonConfirm = CommonConfirmAttrib(
+                    title = context.getString(R.string.choose_tts_source),
+                    message = "",
+                    confirmRes = R.string.description_label,
+                    cancelRes = R.string.cancel_label,
+                    neutralRes = R.string.transcript,
+                    onConfirm = { doTTS(1) },
+                    onNeutral = { doTTS(2) })
             }
             ButtonTypes.PLAYLOCAL -> {
                 if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
@@ -395,7 +449,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_stream), contentDescription = "StreamOnce") }
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.play_stream_svgrepo_com), contentDescription = "StreamOnce") }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
                     IconButton(onClick = {
@@ -422,9 +476,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 }
                 if (type != ButtonTypes.TTS) {
                     IconButton(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.TTS)
-                        btn.onClick(context)
-                        type = btn.type
+                        type = ButtonTypes.TTS
+                        onClick(context)
                         onDismiss()
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech), contentDescription = "TTS") }
                 }
