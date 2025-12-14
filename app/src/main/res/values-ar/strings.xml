@@ -98,6 +98,7 @@
     <string name="play_mark_msg">يمكن البحث عن العلامة عندما يتم عرض الحلقة.</string>
     <string name="chapter_duration0">المدة: </string>
     <string name="description_label">الوصف</string>
+    <string name="transcript">Transcript</string>
     <string name="episodes_suffix">\u0020episodes</string>
     <string name="close_label">أغلق</string>
     <string name="retry_label">إعادة المحاولة</string>
@@ -290,6 +291,7 @@
     <string name="download_type_media">ملف الوسائط</string>
     <string name="null_value_podcast_error">ولم يقدم أي بث صوتي يمكن إثباته.</string>
     <string name="no_feed_url_podcast_found_by_search">Podcini المقترح لم يكن لديه رابط RSS ، وجدت Podcini podcast يمكن أن يتطابق</string>
+    <string name="choose_tts_source">Choose text source to speech</string>
     <string name="confirm_mobile_download_dialog_title">تأكيد تنزيل الجوال</string>
     <string name="confirm_mobile_download_dialog_message">التنزيل عبر اتصال بيانات الجوال معطل في الإعدادات. يمكن Podcini تنزيل الحلقة تلقائياً في وقت لاحق عندما تكون Wi-Fi متاحة.</string>
     <string name="confirm_mobile_download_dialog_message_vpn">يتظاهر تطبيق VPN الخاص بك بأنه شبكة جوال (اتصال قياسي). التنزيل عبر اتصال بيانات الجوال معطل في الإعدادات. إذا كنت تريد إصلاح هذه المشكلة، فاتصل بمنشئي تطبيق VPN الخاص بك.</string>
