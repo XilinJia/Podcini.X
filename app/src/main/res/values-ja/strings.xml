@@ -98,6 +98,7 @@
     <string name="play_mark_msg">エピソードが再生されているときにマークを求めることができます。</string>
     <string name="chapter_duration0">期間: </string>
     <string name="description_label">説明</string>
+    <string name="transcript">Transcript</string>
     <string name="episodes_suffix">\u0020エピソード</string>
     <string name="close_label">閉じる</string>
     <string name="retry_label">再試行する</string>
@@ -280,6 +281,7 @@
     <string name="download_type_media">メディアファイル</string>
     <string name="null_value_podcast_error">表示できるポッドキャストはありませんでした。</string>
     <string name="no_feed_url_podcast_found_by_search">提案されたポッドキャストはRSSリンクを持っていませんでした。Podciniは一致する可能性のあるポッドキャストを見つけました。</string>
+    <string name="choose_tts_source">Choose text source to speech</string>
     <string name="confirm_mobile_download_dialog_title">モバイルダウンロードの確認</string>
     <string name="confirm_mobile_download_dialog_message">モバイルデータ接続経由のダウンロードは設定で無効になっています。PodciniはWi-Fiが利用可能な場合、後で自動的にエピソードをダウンロードできます。</string>
     <string name="confirm_mobile_download_dialog_message_vpn">VPN アプリはモバイルネットワークを装備しています（従量課金接続）。モバイルデータ接続経由のダウンロードは設定で無効になっています。 この問題を修正したい場合は、VPNアプリの作成者にお問い合わせください。</string>
