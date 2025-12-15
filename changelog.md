@@ -11,6 +11,7 @@
 	* fixed possible download issues since 9.8.5
 * fixed Playback service accessing network when playing downloaded media
 * added measure to quick streaming earlier when streaming is not possible
+* fixed issue of sometimes adding no episodes to Virtual queue
 
 # 9.8.5
 

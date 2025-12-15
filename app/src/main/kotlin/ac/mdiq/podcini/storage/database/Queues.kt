@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Date
 import kotlin.random.Random
+import kotlin.math.min
 
 private const val TAG: String = "Queues"
 
@@ -152,19 +153,20 @@ private fun applySortOrder(queueItems: MutableList<Episode>, queue: PlayQueue) {
 
 suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdentity: String, sortOrder: EpisodeSortOrder, playInSequence: Boolean = true) {
     if (virQueue.identity != listIdentity && !virQueue.episodeIds.contains(episode.id)) {
-        val eIdsToQueue = mutableListOf<Long>()
         val index = episodes.indexOfFirst { it.id == episode.id }
-        if (index > 0) eIdsToQueue.addAll(episodes.subList(index, index + VIRTUAL_QUEUE_SIZE).map { it.id })
-        virQueue = upsert(virQueue) { q ->
-            q.identity = listIdentity
-            q.playInSequence = playInSequence
-            q.sortOrder = sortOrder
-            q.episodeIds.clear()
-            q.episodeIds.addAll(eIdsToQueue)
+        if (index >= 0) {
+            val eIdsToQueue = episodes.subList(index, min(episodes.size, index + VIRTUAL_QUEUE_SIZE)).map { it.id }
+            virQueue = upsert(virQueue) { q ->
+                q.identity = listIdentity
+                q.playInSequence = playInSequence
+                q.sortOrder = sortOrder
+                q.episodeIds.clear()
+                q.episodeIds.addAll(eIdsToQueue)
+            }
+            virQueue.episodes.clear()
+            actQueue = virQueue
+            Logt(TAG, "first ${virQueue.size()} episodes are added to the Virtual queue")
         }
-        virQueue.episodes.clear()
-        actQueue = virQueue
-        Logt(TAG, "first $VIRTUAL_QUEUE_SIZE episodes are added to the Virtual queue")
     } else actQueue = virQueue
 }
 
