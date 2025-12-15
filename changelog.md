@@ -1,3 +1,7 @@
+# 9.8.7
+
+* likely fixed crash on EpisodeInfo screen
+
 # 9.8.6
 
 * ensure episode descriptions persist across multiple opens in PlayerDetails 
@@ -6,11 +10,11 @@
 	* speed is set to feed.playSpeed and unchangeable
 	* on play, a sticky dialog pops up showing the text being played and a Stop button to stop the playing
 * likely fixed Subscriptions screen often jumping to Count sort
-* large info are cached in EpisodeInfo screen for quicker display
+* large info are cached in EpisodeInfo screen for quicker reopen
 * revert back to Android MediaMetadataRetriever routine, FFmpegMediaMetadataRetriever full library is too big
 	* fixed possible download issues since 9.8.5
 * fixed Playback service accessing network when playing downloaded media
-* added measure to quick streaming earlier when streaming is not possible
+* added measure to quit streaming earlier when streaming is not possible
 * fixed issue of sometimes adding no episodes to Virtual queue
 
 # 9.8.5

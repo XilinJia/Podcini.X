@@ -125,10 +125,7 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import io.github.xilinjia.krdb.ext.query
-import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.extended.Readability4JExtended
@@ -154,25 +151,22 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
 
-    var episodeFlow by remember { mutableStateOf<Flow<SingleQueryChange<Episode>>>(emptyFlow()) }
+    val episodeFlow = remember { realm.query<Episode>("id == $0", episodeId).first().asFlow() }
 
     val actMain: MainActivity? = remember {  generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull() }
 
-    lateinit var shownotesCleaner: ShownotesCleaner
-
     var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
 
-    var episode by remember { mutableStateOf<Episode?>(null) }   // managed
+    var episode by remember { mutableStateOf<Episode?>(null) }
 
     var txtvSize by remember { mutableStateOf("") }
     var webviewData by remember { mutableStateOf("") }
     var showHomeScreen by remember { mutableStateOf(false) }
-    var actionButton by remember { mutableStateOf<EpisodeActionButton?>(null) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> episodeFlow = realm.query<Episode>("id == $0", episodeId).first().asFlow()
+                Lifecycle.Event.ON_CREATE -> {}
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -190,12 +184,9 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     }
 
     val episodeChange by episodeFlow.collectAsStateWithLifecycle(initialValue = null)
-    LaunchedEffect(episodeChange, episodeId) {
-        episode = episodeChange?.obj ?: return@LaunchedEffect
+    episode = episodeChange?.obj
 
-        actionButton = EpisodeActionButton(episode!!)
-        shownotesCleaner = ShownotesCleaner(context)
-
+    LaunchedEffect(episode, episodeId) {
         when {
             episode == null -> txtvSize = ""
             episode!!.size > 0 -> txtvSize = formatShortFileSize(context, episode!!.size)
@@ -213,9 +204,12 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
             if (webviewData.isBlank()) {
                 Logd(TAG, "description: ${episode?.description}")
                 scope.launch(Dispatchers.IO) {
-                    val webDataPair = gearbox.buildWebviewData(episode!!, shownotesCleaner) //                withContext(Dispatchers.Main) {
-                    webviewData = webDataPair?.second ?: shownotesCleaner.processShownotes(episode!!.description ?: "", episode!!.duration) //                }
-                    webDataCache.put(episode!!.id, webviewData)
+                    if (episode != null) {
+                        val shownotesCleaner = ShownotesCleaner(context)
+                        val webDataPair = gearbox.buildWebviewData(episode!!, shownotesCleaner)
+                        webviewData = webDataPair?.second ?: shownotesCleaner.processShownotes(episode?.description ?: "", episode!!.duration)
+                        if (episode != null && webviewData != null) webDataCache.put(episode!!.id, webviewData)
+                    }
                 }
             }
         }
@@ -552,8 +546,10 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
             val buttonColor = MaterialTheme.colorScheme.tertiary
             var showAltActionsDialog by remember { mutableStateOf(false) }
+            var actionButton by remember { mutableStateOf<EpisodeActionButton?>(null) }
             if (showAltActionsDialog) actionButton?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
             LaunchedEffect(key1 = status, episode) {
+                if (episode != null) actionButton = EpisodeActionButton(episode!!)
                 actionButton?.type = when {
                     InTheatre.isCurrentlyPlaying(episode) -> ButtonTypes.PAUSE
                     episode?.feed != null && episode!!.feed!!.isLocalFeed -> ButtonTypes.PLAYLOCAL
