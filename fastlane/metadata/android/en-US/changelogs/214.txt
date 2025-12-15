@@ -9,3 +9,5 @@
 * large info are cached in EpisodeInfo screen for quicker display
 * revert back to Android MediaMetadataRetriever routine, FFmpegMediaMetadataRetriever full library is too big
 	* fixed possible download issues since 9.8.5
+* fixed Playback service accessing network when playing downloaded media
+* added measure to quick streaming earlier when streaming is not possible

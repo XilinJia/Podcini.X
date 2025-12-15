@@ -5,6 +5,7 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
+import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -48,6 +49,7 @@ import android.net.wifi.WifiManager
 import android.service.quicksettings.TileService
 import android.util.Pair
 import android.view.SurfaceHolder
+import android.webkit.URLUtil
 import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -878,6 +880,18 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 }
                 else -> Loge(TAG, "Play/Pause button was pressed and PlaybackService state was unknown: $status")
             }
+        }
+
+        fun isStreamingCapable(media: Episode): Boolean {
+            if (!URLUtil.isNetworkUrl(media.downloadUrl)) {
+                Loge(TAG, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
+                return false
+            }
+            if (!networkAvailable()) {
+                Loge(TAG, "streaming media but network is not available, abort")
+                return false
+            }
+            return true
         }
 
         val isPlaying: Boolean

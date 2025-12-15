@@ -391,7 +391,6 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                                 val item_ = realm.query(Episode::class).query("id = ${item.id}").first().find()
                                 if (item_ != null) {
                                     item = upsertBlk(item_) {
-//                                        it.fillMedia(null, 0, "audio/*")
                                         it.size = 0
                                         it.mimeType = "audio/*"
                                         it.fileUrl = Uri.fromFile(mediaFile).toString()

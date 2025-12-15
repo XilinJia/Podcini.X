@@ -9,6 +9,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPrepared
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStopped
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStreamingCapable
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
@@ -52,7 +53,9 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
         Logd(TAG, "start: status: $status")
         aCtrlFuture?.let { future ->
             if (future.isDone && aController?.isConnected == true) {
-                Logd(TAG, "aController ready, play, $status")
+                Logd(TAG, "aController ready, play, $status $shouldStreamThisTime")
+                if (shouldStreamThisTime && !isStreamingCapable(media)) return
+
                 mPlayer?.isStreaming = shouldStreamThisTime
                 when {
                     isPlaying -> playPause()

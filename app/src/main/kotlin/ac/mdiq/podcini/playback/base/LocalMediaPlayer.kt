@@ -289,7 +289,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 when {
                     streaming -> {
                         val streamurl = curEpisode?.downloadUrl
-                        Logd(TAG, "streamurl: $streamurl")
+                        Logd(TAG, "prepareMedia streamurl: $streamurl")
                         if (!streamurl.isNullOrBlank()) {
                             mediaItem = null
                             mediaSource = null
@@ -298,6 +298,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     }
                     else -> {
                         val localMediaurl = curEpisode?.fileUrl
+                        Logd(TAG, "prepareMedia localMediaurl: $localMediaurl")
                         if (!localMediaurl.isNullOrBlank()) setDataSource(curEpisode!!, metadata, localMediaurl, null, null)
                         else throw IOException("Unable to read local file $localMediaurl")
                     }
@@ -585,12 +586,15 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     if (wasSkipped) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                     onPlaybackEnded(true)
                     val streaming = !nextMedia.localFileAvailable()
-                    if (streaming) acquireWifiLockIfNecessary()
-                    else releaseWifiLockIfNecessary()
+                    if (streaming) {
+                        if (!isStreamingCapable(nextMedia)) {
+                            if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, false)
+                            return
+                        } else acquireWifiLockIfNecessary()
+                    } else releaseWifiLockIfNecessary()
                     prepareMedia(playable = nextMedia, streaming = streaming, startWhenPrepared = isPlaying, prepareImmediately = isPlaying)
                 }
-                val hasNext = nextMedia != null
-                if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, hasNext)
+                if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, nextMedia != null)
             }
             isPlaying -> {
                 releaseWifiLockIfNecessary()

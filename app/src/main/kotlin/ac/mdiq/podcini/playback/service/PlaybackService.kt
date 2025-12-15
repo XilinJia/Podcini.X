@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.playback.service
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
@@ -18,6 +19,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPrepared
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPreparing
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStreamingCapable
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.releaseCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
@@ -624,7 +626,8 @@ class PlaybackService : MediaLibraryService() {
             return
         }
         val media = curEpisode!!
-        val needStreaming = !media.localFileAvailable() || URLUtil.isNetworkUrl(media.downloadUrl)
+        val needStreaming = !media.localFileAvailable()
+        if (needStreaming && !isStreamingCapable(media)) return
         mPlayer?.prepareMedia(playable = media, streaming = needStreaming, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
     }
 
