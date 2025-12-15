@@ -180,6 +180,7 @@
     <string name="mobile_feed_refresh_message">Refreshing podcasts over mobile data connection is disabled in the settings. Reschedule for later.</string>
     <!-- actions on feeditems -->
     <string name="download_label">Скачать</string>
+    <string name="just_TTS">Just TTS</string>
     <string name="TTS_label">Speak</string>
     <string name="play_label">Play</string>
     <string name="play_once">Play once</string>
@@ -239,6 +240,7 @@
     <string name="again">Again</string>
     <string name="forever">Forever</string>
     <string name="ignored">Ignored</string>
+    <string name="stop">Stop</string>
     <string name="visit_website_label">Visit website</string>
     <string name="delete_local_feed_warning_body">Warning: you are deleting local episodes. It will delete the media files from your device storage. It cannot be downloaded again through Podcini. Continue?</string>
     <string name="delete_repeat_warning_msg">Do you really want to delete episodes set for repeats?</string>
