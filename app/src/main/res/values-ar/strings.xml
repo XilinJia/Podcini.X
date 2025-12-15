@@ -182,6 +182,7 @@
     <string name="mobile_feed_refresh_message">تحديث podcasts عبر اتصال بيانات الجوال معطل في الإعدادات. إعادة الجدولة لاحقاً.</string>
     <!-- actions on feeditems -->
     <string name="download_label">تنزيل</string>
+    <string name="just_TTS">Just TTS</string>
     <string name="TTS_label">التحدث</string>
     <string name="play_label">تشغيل</string>
     <string name="play_once">Play once</string>
@@ -241,6 +242,7 @@
     <string name="again">مرة أخرى</string>
     <string name="forever">إلى الأبد</string>
     <string name="ignored">تجاهل</string>
+    <string name="stop">Stop</string>
     <string name="visit_website_label">زيارة الموقع</string>
     <string name="delete_local_feed_warning_body">تحذير: أنت تقوم بحذف الحلقات المحلية. سيتم حذف ملفات الوسائط من وحدة تخزين جهازك. لا يمكن تنزيلها مرة أخرى من خلال Podcini. هل تريد المتابعة؟</string>
     <string name="delete_repeat_warning_msg">هل تريد حقاً حذف الحلقات المحددة للتكرار؟</string>
