@@ -629,10 +629,14 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             TitleColumn(index, modifier = Modifier.fillMaxWidth())
                             if (showActionButtons) {
                                 if (actionButton_ == null) {
-                                    if (episode.id == curMediaId) {
-                                        if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
-                                        else actionButton.update(episode)
-                                    } else if (actionButton.type == ButtonTypes.PAUSE) actionButton.update(episode)
+                                    when {
+                                        episode.id == curMediaId -> {
+                                            if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
+                                            else actionButton.update(episode)
+                                        }
+                                        actionButton.speaking -> actionButton.type = ButtonTypes.PAUSE
+                                        actionButton.type == ButtonTypes.PAUSE -> actionButton.update(episode)
+                                    }
                                     LaunchedEffect(episode.downloaded) { actionButton.update(episode) }
                                 } else LaunchedEffect(Unit) { actionButton = actionButton_(episode) }
                                 Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).align(Alignment.BottomEnd).pointerInput(Unit) {

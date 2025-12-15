@@ -232,6 +232,7 @@
 
     <!-- actions on feeditems -->
     <string name="download_label">Download</string>
+    <string name="just_TTS">Just TTS</string>
     <string name="TTS_label">Speak</string>
     <string name="play_label">Play</string>
     <string name="play_once">Play once</string>
@@ -300,6 +301,8 @@
     <string name="again">Again</string>
     <string name="forever">Forever</string>
     <string name="ignored">Ignored</string>
+
+    <string name="stop">Stop</string>
 
     <string name="visit_website_label">Visit website</string>
 

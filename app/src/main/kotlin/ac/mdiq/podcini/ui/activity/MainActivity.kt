@@ -9,6 +9,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
+import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -24,7 +25,9 @@ import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
+import ac.mdiq.podcini.ui.compose.LargePoster
 import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
@@ -279,6 +282,7 @@ class MainActivity : BaseActivity() {
                     )) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+                    if (commonMessage != null) LargePoster(commonMessage!!)
                     CompositionLocalProvider(LocalNavController provides navigator) {
                         Navigate(navController, initScreen?:"")
                     }
@@ -393,6 +397,7 @@ class MainActivity : BaseActivity() {
         Logd(TAG, "onDestroy")
         WorkManager.getInstance(this).pruneWork()
         WorkManager.getInstance(applicationContext).pruneWork()
+        closeTTS()
         cancelQueuesJob()
         cancelAppPrefs()
         cancelMonitornavStack()

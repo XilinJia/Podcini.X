@@ -14,18 +14,19 @@ import ac.mdiq.podcini.storage.database.persistFeedLastUpdateFailed
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import org.apache.commons.io.input.CountingInputStream
-import wseemann.media.FFmpegMediaMetadataRetriever
 import java.io.BufferedInputStream
 import java.io.IOException
 import java.text.ParseException
@@ -142,11 +143,9 @@ private fun createEpisode(feed: Feed, file: FastDocumentFile, context: Context):
 }
 
 private fun loadMetadata(item: Episode, file: FastDocumentFile, context: Context) {
-    var retriever: FFmpegMediaMetadataRetriever? = null
-    try {
-        retriever = FFmpegMediaMetadataRetriever()
-        retriever.setDataSource(context, file.uri)
-        val dateStr = retriever.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_KEY_DATE)
+    MediaMetadataRetrieverCompat().use { mediaMetadataRetriever ->
+        mediaMetadataRetriever.setDataSource(context, file.uri)
+        val dateStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
         if (!dateStr.isNullOrEmpty() && "19040101T000000.000Z" != dateStr) {
             try {
                 val simpleDateFormat = SimpleDateFormat("yyyyMMdd'T'HHmmss", Locale.getDefault())
@@ -157,11 +156,11 @@ private fun loadMetadata(item: Episode, file: FastDocumentFile, context: Context
                 if (date != null) item.pubDate = date.time
             }
         }
-        val title = retriever.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_KEY_TITLE)
+        val title = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
         if (!title.isNullOrEmpty()) item.title = title
-        val durationStr = retriever.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_KEY_DURATION)
-        if (durationStr != null) item.duration = (durationStr.toLong().toInt())
-        item.hasEmbeddedPicture = (retriever.embeddedPicture != null)
+        val durationStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+        item.duration = (durationStr!!.toLong().toInt())
+        item.hasEmbeddedPicture = (mediaMetadataRetriever.embeddedPicture != null)
         try {
             context.contentResolver.openInputStream(file.uri).use { inputStream ->
                 val reader = Id3MetadataReader(CountingInputStream(BufferedInputStream(inputStream)))
@@ -189,9 +188,7 @@ private fun loadMetadata(item: Episode, file: FastDocumentFile, context: Context
             } catch (e2: IOException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ")
             } catch (e2: VorbisCommentReaderException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ") }
         }
-    } catch (e: Exception) {
-        Logs(TAG, e, "loadMetadata failed.")
-    } finally { retriever?.release() }
+    }
 }
 
 private fun reportError(feed: Feed, reasonDetailed: String?) {

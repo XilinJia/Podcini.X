@@ -30,7 +30,6 @@ import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
@@ -171,6 +170,7 @@ fun SubscriptionsScreen() {
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
+    var subPrefs by remember { mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?: SubscriptionsPrefs()) }
     var prefsFlow by remember { mutableStateOf<Flow<SingleQueryChange<SubscriptionsPrefs>>>(emptyFlow()) }
 
     val queueNames = remember { mutableStateListOf<String>() }
@@ -188,7 +188,7 @@ fun SubscriptionsScreen() {
     var selectMode by remember { mutableStateOf(false) }
 
     val prefsChange by prefsFlow.collectAsStateWithLifecycle(initialValue = null)
-    val subPrefs = prefsChange?.obj ?: realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?: SubscriptionsPrefs()
+    if (prefsChange?.obj != null) subPrefs = prefsChange?.obj!!
 
     val feedsChange by feedsFlow.collectAsStateWithLifecycle(initialValue = null)
     val feeds = feedsChange?.list ?: emptyList()
@@ -225,10 +225,8 @@ fun SubscriptionsScreen() {
 
     var playStateQueries by remember { mutableStateOf("") }
     var ratingQueries by remember { mutableStateOf("") }
-
-    val downloadedQuery by remember(subPrefs.downlaodedSortIndex) { mutableStateOf(if (subPrefs.downlaodedSortIndex == 0) " downloaded == true " else if (subPrefs.downlaodedSortIndex == 1) " downloaded == false " else "") }
-    val commentedQuery by remember(subPrefs.commentedSortIndex) { mutableStateOf( if (subPrefs.commentedSortIndex == 0) " comment != '' " else if (subPrefs.commentedSortIndex == 1) " comment == '' " else "") }
-
+    var downloadedQuery by remember { mutableStateOf("") }
+    var commentedQuery by remember { mutableStateOf("") }
 
     fun prepareDateSort(subIndex: FeedDateSortIndex? = null) {
         val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.dateSortIndex
@@ -395,8 +393,6 @@ fun SubscriptionsScreen() {
             }
         }
     }
-
-    LaunchedEffect(downloadedQuery, commentedQuery) { prepareCountSort() }
 
     LaunchedEffect(feedOperationText, feeds.size) {
         Logd(TAG, "LaunchedEffect feedOperationText: $feedOperationText feeds.size: ${feeds.size}")
@@ -683,7 +679,7 @@ fun SubscriptionsScreen() {
             if (showAutoDownloadSwitchDialog) SimpleSwitchDialog(stringResource(R.string.auto_download_settings_label), stringResource(R.string.auto_download_label), onDismissRequest = { showAutoDownloadSwitchDialog = false }) { enabled ->
                 saveFeed { it: Feed -> it.autoDownload = enabled }
             }
-            if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+//            if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
         }
 
         OpenDialogs()
@@ -1004,8 +1000,7 @@ fun SubscriptionsScreen() {
             Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
                 val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider
                 dialogWindowProvider?.window?.setGravity(Gravity.BOTTOM)
-                Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
+                Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (subPrefs.sortIndex != FeedSortIndex.Title.ordinal) buttonColor else buttonAltColor),
@@ -1112,11 +1107,14 @@ fun SubscriptionsScreen() {
                                     Spacer(Modifier.weight(0.3f))
                                     fun persistDLSort(i: Int) {
                                         runOnIOScope {
-                                            upsert(subPrefs) {
-                                                if (it.downlaodedSortIndex != i) {
-                                                    it.downlaodedSortIndex = i
-                                                } else it.downlaodedSortIndex = -1
+                                            val downlaodedSortIndex = if (subPrefs.downlaodedSortIndex != i) i else  -1
+                                            upsert(subPrefs) { it.downlaodedSortIndex = downlaodedSortIndex }
+                                            downloadedQuery = when (downlaodedSortIndex) {
+                                                0 -> " downloaded == true "
+                                                1 -> " downloaded == false "
+                                                else -> ""
                                             }
+                                            prepareCountSort()
                                         }
                                     }
                                     OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.downlaodedSortIndex != 0) buttonColor else buttonAltColor),
@@ -1134,11 +1132,14 @@ fun SubscriptionsScreen() {
                                     Spacer(Modifier.weight(0.3f))
                                     fun persistCommentSort(i: Int) {
                                         runOnIOScope {
-                                            upsert(subPrefs) {
-                                                if (it.commentedSortIndex != i) {
-                                                    it.commentedSortIndex = i
-                                                } else it.commentedSortIndex = -1
+                                            val commentedSortIndex = if (subPrefs.commentedSortIndex != i) i else -1
+                                            upsert(subPrefs) { it.commentedSortIndex = commentedSortIndex }
+                                            commentedQuery = when (subPrefs.commentedSortIndex) {
+                                                0 -> " comment != '' "
+                                                1 -> " comment == '' "
+                                                else -> ""
                                             }
+                                            prepareCountSort()
                                         }
                                     }
                                     OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (subPrefs.commentedSortIndex != 0) buttonColor else buttonAltColor),

@@ -496,6 +496,30 @@ fun CommonConfirmDialog(c: CommonConfirmAttrib) {
     )
 }
 
+var commonMessage by mutableStateOf<CommonMessageAttrib?>(null)
+data class CommonMessageAttrib(
+    val title: String,
+    val message: String,
+    val OKRes: Int,
+    val onOK: ()->Unit
+)
+
+@Composable
+fun LargePoster(c: CommonMessageAttrib) {
+    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { },
+        title = { Text(c.title) },
+        text = {
+            Box(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(c.message) }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                c.onOK()
+            }) { Text(stringResource(c.OKRes)) }
+        },
+        dismissButton = { }
+    )
+}
+
 @Composable
 fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boolean>, cancellable: Boolean = true, onConfirm: () -> Unit) {
     if (showDialog.value) {

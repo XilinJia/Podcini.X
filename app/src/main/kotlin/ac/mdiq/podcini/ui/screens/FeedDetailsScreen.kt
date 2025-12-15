@@ -77,7 +77,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.speech.tts.TextToSpeech
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
@@ -180,7 +179,6 @@ import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -276,7 +274,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         onDispose {
             Logd(TAG, "DisposableEffect onDispose")
             feed = null
-            TTSObj.closeTTS()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -1623,31 +1620,3 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 }
 
 private val TAG = Screens.FeedDetails.name
-object TTSObj {
-    var tts: TextToSpeech? = null
-    var ttsReady = false
-    var ttsWorking = false
-
-    fun ensureTTS(context: Context) {
-        if (!ttsReady && tts == null) CoroutineScope(Dispatchers.Default).launch {
-            Logd(TAG, "starting TTS")
-            tts = TextToSpeech(context) { status: Int ->
-                if (status == TextToSpeech.SUCCESS) {
-                    ttsReady = true
-                    Logt(TAG, "TTS init success")
-                } else Loge(TAG, context.getString(R.string.tts_init_failed))
-            }
-        }
-    }
-
-    fun closeTTS() {
-        if (ttsWorking) CoroutineScope(Dispatchers.Default).launch {
-            while (ttsWorking) delay(10000)
-            tts?.stop()
-            tts?.shutdown()
-            ttsWorking = false
-            ttsReady = false
-            tts = null
-        }
-    }
-}

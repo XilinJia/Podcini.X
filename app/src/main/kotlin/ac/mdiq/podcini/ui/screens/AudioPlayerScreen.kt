@@ -309,23 +309,25 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             Logd(TAG, "LaunchedEffect loading details ${curItem?.id} ${shownotesCleaner==null}")
             if (playerLocal == null) playerLocal = ExoPlayer.Builder(context).build()
             scope.launch {
-                var notes: String? = ""
-                withContext(Dispatchers.IO) {
-                    curItem?.let {
-                        it.loadChapters(context, false)
-                        if (cleanedNotes == null) notes = gearbox.buildCleanedNotes(it, shownotesCleaner).second
+                if (cleanedNotes == null) {
+                    var notes: String? = ""
+                    withContext(Dispatchers.IO) {
+                        curItem?.let {
+                            it.loadChapters(context, false)
+                            if (cleanedNotes == null) notes = gearbox.buildCleanedNotes(it, shownotesCleaner).second
+                        }
                     }
+                    cleanedNotes = notes
+                    Logd(TAG, "LaunchedEffect cleanedNotes: ${cleanedNotes?.length}")
+                    val chapters: List<Chapter> = curItem?.chapters ?: listOf()
+                    if (chapters.isNotEmpty()) {
+                        val dividerPos = FloatArray(chapters.size)
+                        for (i in chapters.indices) dividerPos[i] = chapters[i].start / curDurationFB.toFloat()
+                    }
+                    displayedChapterIndex = -1
+                    refreshChapterData(curItem!!.getCurrentChapterIndex(curItem.position))
+                    vm.sleepTimerActive = isSleepTimerActive()
                 }
-                cleanedNotes = notes
-                Logd(TAG, "LaunchedEffect cleanedNotes: ${cleanedNotes?.length}")
-                val chapters: List<Chapter> = curItem?.chapters ?: listOf()
-                if (chapters.isNotEmpty()) {
-                    val dividerPos = FloatArray(chapters.size)
-                    for (i in chapters.indices) dividerPos[i] = chapters[i].start / curDurationFB.toFloat()
-                }
-                displayedChapterIndex = -1
-                refreshChapterData(curItem!!.getCurrentChapterIndex(curItem.position))
-                vm.sleepTimerActive = isSleepTimerActive()
             }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
         }
     }

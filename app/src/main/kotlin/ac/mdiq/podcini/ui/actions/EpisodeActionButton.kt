@@ -13,6 +13,10 @@ import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
+import ac.mdiq.podcini.playback.base.TTSEngine
+import ac.mdiq.podcini.playback.base.TTSEngine.ensureTTS
+import ac.mdiq.podcini.playback.base.TTSEngine.tts
+import ac.mdiq.podcini.playback.base.TTSEngine.ttsReady
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
@@ -33,9 +37,9 @@ import ac.mdiq.podcini.storage.utils.mergeAudios
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonDialogSurface
+import ac.mdiq.podcini.ui.compose.CommonMessageAttrib
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.ui.screens.TTSObj
-import ac.mdiq.podcini.ui.screens.TTSObj.ensureTTS
+import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -44,6 +48,7 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.utils.openInBrowser
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
@@ -70,7 +75,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.Readability4J
-import wseemann.media.FFmpegMediaMetadataRetriever
 import java.io.File
 import java.util.Locale
 import kotlin.math.max
@@ -92,6 +96,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
     var typeToCancel: ButtonTypes = ButtonTypes.DOWNLOAD
 
     var processing by mutableIntStateOf(-1)
+
+    var speaking by mutableStateOf(false)
 
     var label by mutableIntStateOf(typeInit.label)
     var drawable by mutableIntStateOf(typeInit.drawable)
@@ -120,7 +126,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                             f.delete()
                         }
                     }
-                    TTSObj.ttsWorking = false
+                    TTSEngine.ttsWorking = false
                     processing = -1
                     ttsJob?.cancel()
                     ttsJob = null
@@ -192,6 +198,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     playPause()
                     update(item)
                 }
+                if (tts?.isSpeaking == true) tts?.stop()
             }
             ButtonTypes.DOWNLOAD -> {
                 fun shouldNotDownload(media: Episode?): Boolean {
@@ -220,25 +227,89 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     onConfirm = { DownloadServiceInterface.impl?.downloadNow(context, item, false) },
                     onNeutral = { DownloadServiceInterface.impl?.downloadNow(context, item, true) })
             }
+            ButtonTypes.JUSTTTS -> {
+                Logd("JUSTTTSButton", "onClick called")
+                type = ButtonTypes.PAUSE
+                ensureTTS()
+                fun doTTS(textSourceIndex: Int) {
+                    runOnIOScope {
+                        var readerText: String? = null
+                        when (textSourceIndex) { //                        1 -> readerText = HtmlCompat.fromHtml(ShownotesCleaner(context).processShownotes(item.description ?: "", item.duration), HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                            1 -> readerText = HtmlCompat.fromHtml(item.description ?: "", HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                            2 -> {
+                                if (item.transcript == null) {
+                                    runBlocking {
+                                        val url = item.link!!
+                                        val htmlSource = NetworkUtils.fetchHtmlSource(url)
+                                        val article = Readability4J(item.link!!, htmlSource).parse()
+                                        readerText = article.textContent ?: ""
+                                        item = upsertBlk(item) { it.setTranscriptIfLonger(article.contentWithDocumentsCharsetOrUtf8) }
+                                        Logd(TAG, "readability4J: ${readerText.substring(max(0, readerText.length - 100), readerText.length)}")
+                                    }
+                                } else readerText = HtmlCompat.fromHtml(item.transcript!!, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                            }
+                        }
+                        Logd(TAG, "readerText: $readerText")
+                        commonMessage = CommonMessageAttrib(
+                            title = "",
+                            message = readerText!!,
+                            OKRes = R.string.stop,
+                            onOK = {
+                                tts?.stop()
+                                commonMessage = null
+                            }
+                        )
+                        while (!ttsReady) delay(200)
+                        if (tts?.isSpeaking == true) tts?.stop()
+                        speaking = true
+                        if (!item.feed?.languages.isNullOrEmpty()) {
+                            val lang = item.feed!!.languages.first()
+                            val result = tts?.setLanguage(Locale(lang))
+                            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + lang)
+                        }
+                        var startIndex = 0
+                        tts?.setSpeechRate(item.feed?.playSpeed ?: 1.0f)
+                        val chunkLength = TextToSpeech.getMaxSpeechInputLength() / 2
+                        while (startIndex < readerText!!.length) {
+                            val endIndex = minOf(startIndex + chunkLength, readerText?.length ?: 0)
+                            Logd(TAG, "startIndex: $startIndex endIndex: $endIndex")
+                            val chunk = readerText?.substring(startIndex, endIndex) ?: ""
+                            Logd(TAG, "chunk: $chunk")
+                            tts?.speak(chunk, TextToSpeech.QUEUE_ADD, null, null)
+                            startIndex += chunkLength
+                        }
+                        while (tts?.isSpeaking == true) delay(1000)
+                        speaking = false
+                    }
+                }
+                commonConfirm = CommonConfirmAttrib(
+                    title = context.getString(R.string.choose_tts_source),
+                    message = "",
+                    confirmRes = R.string.description_label,
+                    cancelRes = R.string.cancel_label,
+                    neutralRes = R.string.transcript,
+                    onConfirm = { doTTS(1) },
+                    onNeutral = { doTTS(2) })
+            }
             ButtonTypes.TTS -> {
                 Logd("TTSActionButton", "onClick called")
-                if (item.link.isNullOrEmpty()) {
-                    Loge(TAG, context.getString(R.string.episode_has_no_content))
-                    type = ButtonTypes.NULL
-                    return
-                }
+//                if (item.link.isNullOrEmpty()) {
+//                    Loge(TAG, context.getString(R.string.episode_has_no_content))
+//                    type = ButtonTypes.NULL
+//                    return
+//                }
                 fun doTTS(textSourceIndex: Int) {
                     processing = 1
                     item = upsertBlk(item) { it.setPlayState(EpisodeState.BUILDING) }
                     typeToCancel = ButtonTypes.TTS
                     type = ButtonTypes.CANCEL
                     ttsTmpFiles.clear()
-                    ensureTTS(context)
+                    ensureTTS()
                     ttsJob = runOnIOScope {
                         var readerText: String? = null
                         processing = 1
                         when (textSourceIndex) {
-                            1 -> readerText = item.description?: ""
+                            1 -> readerText = HtmlCompat.fromHtml(item.description ?: "", HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                             2 -> {
                                 if (item.transcript == null) {
                                     val url = item.link!!
@@ -254,19 +325,19 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         Logd(TAG, "readerText: [$readerText]")
                         if (!readerText.isNullOrBlank()) {
                             processing = 5
-                            while (!TTSObj.ttsReady) { delay(100) }
+                            while (!ttsReady) { delay(100) }
                             withContext(Dispatchers.Main) { processing = 15 }
-                            while (TTSObj.ttsWorking) { delay(100) }
-                            TTSObj.ttsWorking = true
+                            while (TTSEngine.ttsWorking) { delay(100) }
+                            TTSEngine.ttsWorking = true
                             if (!item.feed?.languages.isNullOrEmpty()) {
                                 val lang = item.feed!!.languages.first()
-                                val result = TTSObj.tts?.setLanguage(Locale(lang))
+                                val result = tts?.setLanguage(Locale(lang))
                                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " $lang $result")
                             }
 
                             var engineIndex = 0
                             val mediaFile = File(item.getMediafilePath(), item.getMediafilename())
-                            TTSObj.tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                            tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                                 override fun onStart(utteranceId: String?) {}
                                 override fun onDone(utteranceId: String?) { engineIndex++ }
                                 @Deprecated("Deprecated in Java")
@@ -277,7 +348,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                             Logd(TAG, "readerText length: ${readerText.length}")
                             var startIndex = 0
                             var i = 0
-                            val chunkLength = TextToSpeech.getMaxSpeechInputLength() / 2   // TTS engine can't handle longer text
+                            val chunkLength = TextToSpeech.getMaxSpeechInputLength() / 5   // TTS engine can't handle longer text
                             var status = TextToSpeech.ERROR
                             while (startIndex < readerText.length) {
                                 Logd(TAG, "working on chunk $i $startIndex")
@@ -287,7 +358,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                                 try {
                                     val tempFile = File.createTempFile("tts_temp_${i}_", ".wav")
                                     ttsTmpFiles.add(tempFile.absolutePath)
-                                    status = TTSObj.tts?.synthesizeToFile(chunk, null, tempFile, tempFile.absolutePath) ?: 0
+                                    status = tts?.synthesizeToFile(chunk, null, tempFile, tempFile.absolutePath) ?: 0
                                     Logd(TAG, "status: $status chunk: ${chunk.take(min(80, chunk.length))}")
                                     if (status == TextToSpeech.ERROR) {
                                         Loge(TAG, "Error generating audio file ${tempFile.absolutePath}")
@@ -305,23 +376,24 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                                 Logd(TAG, "TTS success, merging files to: ${mediaFile.absolutePath}")
                                 mergeAudios(ttsTmpFiles.toTypedArray(), mediaFile.absolutePath, null)
                                 var durationMs = 0
-                                var retriever: FFmpegMediaMetadataRetriever? = null
+                                val retriever = Episode.MediaMetadataRetrieverCompat()
                                 try {
-                                    retriever = FFmpegMediaMetadataRetriever()
                                     retriever.setDataSource(mediaFile.absolutePath)
-                                    val durationStr = retriever.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_KEY_DURATION)
-                                    if (durationStr != null) durationMs = durationStr.toInt()
+                                    val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                                    if (!durationStr.isNullOrBlank()) durationMs = durationStr.toInt()
                                 } catch (e: Exception) {
                                     Logs(TAG, e, "Get duration failed.")
                                     if (durationMs !in 30000..18000000) durationMs = 30000
-                                } finally { retriever?.release() }
+                                } finally { retriever.release() }
 
                                 val mFilename = mediaFile.absolutePath
                                 Logd(TAG, "saving TTS to file $mFilename")
                                 val item_ = realm.query(Episode::class).query("id = ${item.id}").first().find()
                                 if (item_ != null) {
                                     item = upsertBlk(item_) {
-                                        it.fillMedia(null, 0, "audio/*")
+//                                        it.fillMedia(null, 0, "audio/*")
+                                        it.size = 0
+                                        it.mimeType = "audio/*"
                                         it.fileUrl = Uri.fromFile(mediaFile).toString()
                                         it.duration = durationMs
                                         it.setIsDownloaded()
@@ -333,7 +405,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                                 val f = File(p)
                                 f.delete()
                             }
-                            TTSObj.ttsWorking = false
+                            tts?.setOnUtteranceProgressListener(null)
+                            TTSEngine.ttsWorking = false
                             item = upsertBlk(item) { it.setPlayState(EpisodeState.UNPLAYED) }
                             withContext(Dispatchers.Main) { processing = -1 }
                         } else {
@@ -481,6 +554,13 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         onDismiss()
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech), contentDescription = "TTS") }
                 }
+                if (type != ButtonTypes.JUSTTTS) {
+                    IconButton(onClick = {
+                        type = ButtonTypes.JUSTTTS
+                        onClick(context)
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech_svgrepo_com), contentDescription = "JUSTTTS") }
+                }
             }
         }
     }
@@ -509,5 +589,6 @@ enum class ButtonTypes(val label: Int, val drawable: Int) {
     PAUSE(R.string.pause_label, R.drawable.ic_pause),
     DOWNLOAD(R.string.download_label, R.drawable.ic_download),
     TTS(R.string.TTS_label, R.drawable.text_to_speech),
+    JUSTTTS(R.string.just_TTS, R.drawable.text_to_speech_svgrepo_com),
     PLAYLOCAL(R.string.play_label, R.drawable.ic_play_24dp)
 }

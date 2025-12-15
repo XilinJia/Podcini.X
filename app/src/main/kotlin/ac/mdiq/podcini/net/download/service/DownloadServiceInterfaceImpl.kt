@@ -32,6 +32,7 @@ import ac.mdiq.podcini.utils.Logs
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
+import android.media.MediaMetadataRetriever
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.work.Constraints
@@ -54,7 +55,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import wseemann.media.FFmpegMediaMetadataRetriever
 import java.io.File
 import java.net.URI
 import java.util.Locale
@@ -296,22 +296,22 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                         it.size = if (file.exists()) file.length() else 0
                         Logd(TAG, "run() set size: ${it.size}")
                     }
-//                    it.checkEmbeddedPicture(false) // enforce check
+                    it.checkEmbeddedPicture(false) // enforce check
                     if (it.chapters.isEmpty()) it.setChapters(it.loadChaptersFromMediaFile(context))
                     if (!it.podcastIndexChapterUrl.isNullOrBlank()) loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
                     if (!it.fileUrl.isNullOrBlank()) {
                         var durationStr: String? = null
-                        var retriever: FFmpegMediaMetadataRetriever? = null
                         try {
-                            retriever = FFmpegMediaMetadataRetriever()
-                            retriever.setDataSource(context, it.fileUrl?.toUri())
-                            durationStr = retriever.extractMetadata(FFmpegMediaMetadataRetriever.METADATA_KEY_DURATION)
-                            if (durationStr != null) it.duration = durationStr.toInt()
-                            it.hasEmbeddedPicture = (retriever.embeddedPicture != null)
+                            Episode.MediaMetadataRetrieverCompat().use { mmr ->
+                                mmr.setDataSource(context, it.fileUrl?.toUri())
+                                durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+                                if (durationStr != null) it.duration = durationStr.toInt()
+                            }
+                        } catch (e: NumberFormatException) { Logs(TAG, e, "Invalid file duration: $durationStr")
                         } catch (e: Exception) {
                             Logs(TAG, e, "Get duration failed. current duration is ${it.duration}. If lower than 30sc or higher than 5h, reset to 30sc")
                             if (it.duration !in 30000..18000000) it.duration = 30000
-                        } finally { retriever?.release() }
+                        }
                     } else {
                         Loge(TAG, "Get duration failed. fileUrl: ${it.fileUrl} Reset to 30sc")
                         it.duration = 30000

@@ -1,3 +1,15 @@
+# 9.8.6
+
+* ensure episode descriptions persist across multiple opens in PlayerDetails 
+* when description is chosen for TTS, description text is first cleaned
+* added JustTTS to long-press menu to just play description or transcript without generating audio file, 
+	* speed is set to feed.playSpeed and unchangeable
+	* on play, a sticky dialog pops up showing the text being played and a Stop button to stop the playing
+* likely fixed Subscriptions screen often jumping to Count sort
+* large info are cached in EpisodeInfo screen for quicker display
+* revert back to Android MediaMetadataRetriever routine, FFmpegMediaMetadataRetriever full library is too big
+	* fixed possible download issues since 9.8.5
+
 # 9.8.5
 
 * made queues a globally monitored list

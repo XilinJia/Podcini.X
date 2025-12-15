@@ -52,6 +52,7 @@ import android.text.format.Formatter.formatShortFileSize
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.collection.LruCache
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -139,6 +140,10 @@ private const val TAG: String = "EpisodeInfoScreen"
 
 private const val MAX_CHUNK_LENGTH = 2000
 
+private val notesCache = LruCache<Long, String>(10)
+
+private val webDataCache = LruCache<Long, String>(10)
+
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -203,12 +208,14 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
             else -> txtvSize = ""
         }
 
-        if (episode != null && webviewData.isBlank()) {
-            Logd(TAG, "description: ${episode?.description}")
-            scope.launch(Dispatchers.IO) {
-                val webDataPair = gearbox.buildWebviewData(episode!!, shownotesCleaner)
-                withContext(Dispatchers.Main) {
-                    webviewData = webDataPair?.second ?: shownotesCleaner.processShownotes(episode!!.description ?: "", episode!!.duration)
+        if (episode != null) {
+            webviewData = webDataCache[episode!!.id] ?: ""
+            if (webviewData.isBlank()) {
+                Logd(TAG, "description: ${episode?.description}")
+                scope.launch(Dispatchers.IO) {
+                    val webDataPair = gearbox.buildWebviewData(episode!!, shownotesCleaner) //                withContext(Dispatchers.Main) {
+                    webviewData = webDataPair?.second ?: shownotesCleaner.processShownotes(episode!!.description ?: "", episode!!.duration) //                }
+                    webDataCache.put(episode!!.id, webviewData)
                 }
             }
         }
@@ -296,6 +303,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                 readMode -> {
                     runOnIOScope {
                         if (!episode?.link.isNullOrEmpty()) {
+                            cleanedNotes = notesCache[episode!!.id]
                             if (cleanedNotes == null) {
                                 if (episode?.transcript == null) {
                                     val url = episode!!.link!!
@@ -311,6 +319,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                                     val shownotesCleaner = ShownotesCleaner(context)
                                     cleanedNotes = shownotesCleaner.processShownotes(readerhtml!!, 0)
                                     episode = upsertBlk(episode!!) { it.setTranscriptIfLonger(readerhtml) }
+                                    notesCache.put(episode!!.id, cleanedNotes!!)
                                 }
                             }
                         }
