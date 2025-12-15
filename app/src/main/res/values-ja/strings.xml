@@ -177,6 +177,7 @@
     <string name="mobile_feed_refresh_message">モバイルデータ接続上のポッドキャストの更新は設定で無効になっています。後でリスケジュールを変更します。</string>
     <!-- actions on feeditems -->
     <string name="download_label">ダウンロード</string>
+    <string name="just_TTS">Just TTS</string>
     <string name="TTS_label">話す</string>
     <string name="play_label">再生</string>
     <string name="play_once">Play once</string>
@@ -236,6 +237,7 @@
     <string name="again">もう一度</string>
     <string name="forever">フォーエバー</string>
     <string name="ignored">無視</string>
+    <string name="stop">Stop</string>
     <string name="visit_website_label">ウェブサイトを開く</string>
     <string name="delete_local_feed_warning_body">警告：ローカルエピソードを削除しています。端末のストレージからメディアファイルを削除します。Podciniから再度ダウンロードすることはできません。続行しますか？</string>
     <string name="delete_repeat_warning_msg">繰り返しに設定されたエピソードを削除してもよろしいですか？</string>
