@@ -37,7 +37,13 @@ open class GearBoxBase {
     open fun includeExtraSort(): List<EpisodeSortOrder> = listOf()
 
     open fun cleanGearData() {}
-    open fun buildWebviewData(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
+
+    fun buildWebviewData(context: Context, episode: Episode): String? {
+        val shownotesCleaner = ShownotesCleaner(context)
+        val webDataPair = buildWebviewPair(episode, shownotesCleaner)
+        return webDataPair?.second ?: buildCleanedNotes(episode, shownotesCleaner).second
+    }
+    open fun buildWebviewPair(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
 
     open fun buildCleanedNotes(curItem: Episode, shownotesCleaner: ShownotesCleaner?): Pair<Episode, String?> {
         val cleanedNotes: String? = shownotesCleaner?.processShownotes(curItem.description ?: "", curItem.duration)

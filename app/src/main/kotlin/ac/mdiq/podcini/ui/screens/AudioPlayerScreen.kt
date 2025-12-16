@@ -39,6 +39,7 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
@@ -47,11 +48,13 @@ import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.durationStringAdapt
+import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.ChaptersColumn
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
+import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeClips
@@ -59,7 +62,10 @@ import ac.mdiq.podcini.ui.compose.EpisodeMarks
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
+import ac.mdiq.podcini.ui.compose.TagSettingDialog
+import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
+import ac.mdiq.podcini.ui.utils.distinctColorOf
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -132,6 +138,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -159,7 +167,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Date
@@ -246,7 +253,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
 
     val shownotesCleaner: ShownotesCleaner = remember { ShownotesCleaner(context) }
 
-    var cleanedNotes by remember { mutableStateOf<String?>(null) }
+    var webviewData by remember { mutableStateOf<String?>(null) }
     var showHomeText by remember { mutableStateOf(false) }
     // TODO: somehow, these 2 are not used?
     //     var homeText: String? = remember { null }
@@ -264,31 +271,12 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     val curChapter = remember(curItem, displayedChapterIndex) { if (curItem?.chapters.isNullOrEmpty() || displayedChapterIndex == -1) null else curItem.chapters[displayedChapterIndex] }
     var hasNextChapter by remember { mutableStateOf(true) }
 
-    fun refreshChapterData(chapterIndex: Int) {
-        Logd(TAG, "in refreshChapterData $chapterIndex")
-        if (curItem != null) {
-            if (chapterIndex > -1) {
-                if (curItem.position > curItem.duration || chapterIndex >= curItem.chapters.size - 1) {
-                    displayedChapterIndex = curItem.chapters.size - 1
-                    hasNextChapter = false
-                } else {
-                    displayedChapterIndex = chapterIndex
-                    hasNextChapter = true
-                }
-            }
-
-            imgLocLarge =
-                if (displayedChapterIndex == -1 || curItem.chapters.isEmpty() || curItem.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) curItem.imageLocation()
-                else EmbeddedChapterImage.getModelFor(curItem, displayedChapterIndex)?.toString()
-        }
-    }
-
     LaunchedEffect(key1 = curMediaId) {
         Logd(TAG, "LaunchedEffect curMediaId: ${curItem?.title}")
         episodeFlow = realm.query<Episode>("id == $0", curMediaId).first().asFlow()
         showHomeText = false
         //            homeText = null
-        cleanedNotes = null
+        webviewData = null
         imgLocLarge = null
         volumeAdaption = VolumeAdaptionSetting.OFF
         vm.txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
@@ -308,27 +296,39 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         if (isBSExpanded) {
             Logd(TAG, "LaunchedEffect loading details ${curItem?.id} ${shownotesCleaner==null}")
             if (playerLocal == null) playerLocal = ExoPlayer.Builder(context).build()
-            scope.launch {
-                if (cleanedNotes == null) {
-                    var notes: String? = ""
-                    withContext(Dispatchers.IO) {
+            if (curItem != null) {
+                webviewData = webDataCache[curItem!!.id]
+                scope.launch(Dispatchers.IO) {
+                    if (webviewData == null) {
                         curItem?.let {
                             it.loadChapters(context, false)
-                            if (cleanedNotes == null) notes = gearbox.buildCleanedNotes(it, shownotesCleaner).second
+                            webviewData = gearbox.buildWebviewData(context, it)
+                            if (webviewData != null) webDataCache.put(it.id, webviewData!!)
+                            Logd(TAG, "LaunchedEffect cleanedNotes: ${webviewData?.length}")
+                            val chapters: List<Chapter> = it.chapters ?: listOf()
+                            if (chapters.isNotEmpty()) {
+                                val dividerPos = FloatArray(chapters.size)
+                                for (i in chapters.indices) dividerPos[i] = chapters[i].start / curDurationFB.toFloat()
+                            }
+                            displayedChapterIndex = -1
+                            val chapterIndex = it.getCurrentChapterIndex(it.position)
+                            if (chapterIndex > -1) {
+                                if (it.position > it.duration || chapterIndex >= it.chapters.size - 1) {
+                                    displayedChapterIndex = it.chapters.size - 1
+                                    hasNextChapter = false
+                                } else {
+                                    displayedChapterIndex = chapterIndex
+                                    hasNextChapter = true
+                                }
+                            }
+                            imgLocLarge =
+                                if (displayedChapterIndex == -1 || it.chapters.isEmpty() || it.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) it.imageLocation()
+                                else EmbeddedChapterImage.getModelFor(it, displayedChapterIndex)?.toString()
+                            vm.sleepTimerActive = isSleepTimerActive()
                         }
                     }
-                    cleanedNotes = notes
-                    Logd(TAG, "LaunchedEffect cleanedNotes: ${cleanedNotes?.length}")
-                    val chapters: List<Chapter> = curItem?.chapters ?: listOf()
-                    if (chapters.isNotEmpty()) {
-                        val dividerPos = FloatArray(chapters.size)
-                        for (i in chapters.indices) dividerPos[i] = chapters[i].start / curDurationFB.toFloat()
-                    }
-                    displayedChapterIndex = -1
-                    refreshChapterData(curItem!!.getCurrentChapterIndex(curItem.position))
-                    vm.sleepTimerActive = isSleepTimerActive()
-                }
-            }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
+                }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
+            }
         }
     }
 
@@ -558,10 +558,14 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     fun ProgressBar() {
         Box(modifier = Modifier.fillMaxWidth()) {
             var sliderValue by remember(curItem?.position) { mutableFloatStateOf((curItem?.position?:0).toFloat()) }
-            Slider(colors = SliderDefaults.colors(activeTrackColor = MaterialTheme.colorScheme.tertiary), modifier = Modifier.height(12.dp).padding(top = 2.dp, bottom = 2.dp),
+            val actColor = MaterialTheme.colorScheme.tertiary
+            val inActColor = MaterialTheme.colorScheme.secondaryFixedDim
+            val distColor = remember { distinctColorOf(actColor, inActColor) }
+            Slider(colors = SliderDefaults.colors(activeTrackColor = actColor,  inactiveTrackColor = inActColor), modifier = Modifier.height(12.dp).padding(top = 2.dp),
                 value = sliderValue, valueRange = 0f..( if (curItem?.duration?:0 > 0) curItem?.duration?:0 else 30000).toFloat(),
                 onValueChange = { sliderValue = it }, onValueChangeFinished = { mPlayer?.seekTo(sliderValue.toInt()) })
-            if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f), modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
+            if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = MaterialTheme.colorScheme.primaryFixed.copy(alpha = 0.6f), trackColor = MaterialTheme.colorScheme.secondaryFixedDim, modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
+            Text(durationStringFull(curItem?.duration?:0), color = distColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
         }
         Row {
             val pastText by remember(curItem?.position) { mutableStateOf( run {
@@ -576,7 +580,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                 if (curItem == null) return@run ""
                 val remainingTime = max((curItem.duration - curItem.position), 0)
                 val onSpeed = if (curPBSpeed > 0 && abs(curPBSpeed-1f) > 0.001) (remainingTime / curPBSpeed).toInt() else 0
-                (if (onSpeed > 0) "*" + durationStringAdapt(onSpeed) else "") + " -" + durationStringAdapt(remainingTime) + " ·" + durationStringAdapt(curItem.duration)
+                (if (onSpeed > 0) "*" + durationStringAdapt(onSpeed) else "") + " -" + durationStringAdapt(remainingTime)
             }) }
             Text(lengthText, color = textColor, style = MaterialTheme.typography.bodySmall)
         }
@@ -663,6 +667,16 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     fun DetailUI(modifier: Modifier) {
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(curItem!!)) { showChooseRatingDialog = false }
+        var showEditComment by remember { mutableStateOf(false) }
+        var showTagsSettingDialog by remember { mutableStateOf(false) }
+        if (showEditComment && curItem != null) {
+            var commentText by remember { mutableStateOf(TextFieldValue(curItem?.compileCommentText() ?: "")) }
+            CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},
+                onSave = { upsertBlk(curItem!!) { it.addComment(commentText.text, false) } })
+        }
+        if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, curItem!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
+            upsertBlk(curItem!!) { it.tags.addAll(tags) }
+        }
 
         Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             gearbox.PlayerDetailedGearPanel(curItem, resetPlayer) { resetPlayer = it }
@@ -677,6 +691,11 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                 Spacer(modifier = Modifier.weight(0.6f))
             }
             SelectionContainer { Text(curItem?.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
+            Text("Tags: ${curItem?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
+            Text(stringResource(R.string.my_opinion_label) + if (curItem?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
+            Text(curItem?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+            EpisodeMarks(curItem)
+            EpisodeClips(curItem, playerLocal)
 
             //            fun restoreFromPreference(): Boolean {
             //                if ((context as MainActivity).bottomSheet.state != BottomSheetBehavior.STATE_EXPANDED) return false
@@ -701,15 +720,11 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
                 ShownotesWebView(context).apply {
                     setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
-                    // Restoring the scroll position might not always work
                     setPageFinishedListener {
-                        //                        postDelayed({ restoreFromPreference() }, 50)
                         postDelayed({ }, 50)
                     }
                 }
-            }, update = { webView -> webView.loadDataWithBaseURL("https://127.0.0.1", if (cleanedNotes.isNullOrBlank()) "No notes" else cleanedNotes!!, "text/html", "utf-8", "about:blank") })
-            EpisodeMarks(curItem)
-            EpisodeClips(curItem, playerLocal)
+            }, update = { webView -> webView.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank") })
             if (!curItem?.related.isNullOrEmpty()) {
                 var showTodayStats by remember { mutableStateOf(false) }
                 if (showTodayStats) RelatedEpisodesDialog(curItem) { showTodayStats = false }

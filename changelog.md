@@ -1,3 +1,9 @@
+# 9.8.8
+
+* EpisodeInfo and PlayerDetails show and share the same cached content
+* added tags and comment settings in PlayerDetails
+* amended the PlayerUI, duration text is now shown on the slider bar instead below it
+
 # 9.8.7
 
 * likely fixed crash on EpisodeInfo screen

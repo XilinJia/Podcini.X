@@ -139,7 +139,7 @@ private const val MAX_CHUNK_LENGTH = 2000
 
 private val notesCache = LruCache<Long, String>(10)
 
-private val webDataCache = LruCache<Long, String>(10)
+val webDataCache = LruCache<Long, String>(10)
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -160,7 +160,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     var episode by remember { mutableStateOf<Episode?>(null) }
 
     var txtvSize by remember { mutableStateOf("") }
-    var webviewData by remember { mutableStateOf("") }
+    var webviewData by remember { mutableStateOf<String?>("") }
     var showHomeScreen by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
@@ -200,15 +200,13 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
         }
 
         if (episode != null) {
-            webviewData = webDataCache[episode!!.id] ?: ""
-            if (webviewData.isBlank()) {
+            webviewData = webDataCache[episode!!.id]
+            if (webviewData.isNullOrBlank()) {
                 Logd(TAG, "description: ${episode?.description}")
                 scope.launch(Dispatchers.IO) {
-                    if (episode != null) {
-                        val shownotesCleaner = ShownotesCleaner(context)
-                        val webDataPair = gearbox.buildWebviewData(episode!!, shownotesCleaner)
-                        webviewData = webDataPair?.second ?: shownotesCleaner.processShownotes(episode?.description ?: "", episode!!.duration)
-                        if (episode != null && webviewData != null) webDataCache.put(episode!!.id, webviewData)
+                    episode?.let {
+                        webviewData = gearbox.buildWebviewData(context, it)
+                        if (webviewData != null) webDataCache.put(it.id, webviewData!!)
                     }
                 }
             }
@@ -220,12 +218,11 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
 
     var showShareDialog by remember { mutableStateOf(false) }
     var showOnDemandConfigDialog by remember { mutableStateOf(false) }
-    var showEditComment by remember { mutableStateOf(false) }
     var showChooseRatingDialog by remember { mutableStateOf(false) }
-    var showChaptersDialog by remember { mutableStateOf(false) }
     var showIgnoreDialog by remember { mutableStateOf(false) }
     var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
+    var showEditComment by remember { mutableStateOf(false) }
     var showTagsSettingDialog by remember { mutableStateOf(false) }
 
     @Composable
@@ -597,7 +594,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                             setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
                             setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
                         }
-                    }, update = { it.loadDataWithBaseURL("https://127.0.0.1", webviewData, "text/html", "utf-8", "about:blank") })
+                    }, update = { it.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank") })
                     if (!episode?.related.isNullOrEmpty()) {
                         var showTodayStats by remember { mutableStateOf(false) }
                         if (showTodayStats) RelatedEpisodesDialog(episode!!) { showTodayStats = false }
