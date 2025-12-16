@@ -2,6 +2,8 @@
 
 * EpisodeInfo and PlayerDetails show and share the same cached content
 * added tags and comment settings in PlayerDetails
+* PlayerDetails shows chapter image, otherwise episode image, otherwise feed image
+* player notification panel also shows episode image if available, otherwise the feed image
 * amended the PlayerUI, duration text is now shown on the slider bar instead below it
 
 # 9.8.7

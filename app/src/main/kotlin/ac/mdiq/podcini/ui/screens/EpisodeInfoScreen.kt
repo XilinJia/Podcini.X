@@ -560,7 +560,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                     val txtvPodcast by remember(episode) { mutableStateOf( if (episode?.feed != null) (if (episode!!.feed!!.isSynthetic() && episode!!.origFeedTitle != null) episode!!.origFeedTitle!! else episode!!.feed!!.title ?: "") else "") }
                     SelectionContainer { Text(txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { openPodcast() }) }
                 }
-                val img = remember(episode?.imageUrl) { ImageRequest.Builder(context).data(episode?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                val img = remember(episode?.id) { ImageRequest.Builder(context).data(episode?.imageUrl ?: episode?.feed?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                 Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     AsyncImage(model = img, contentDescription = "imgvCover",  modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { openPodcast() }))
                     Box(Modifier.weight(1f).padding(start = 10.dp).height(80.dp)) {

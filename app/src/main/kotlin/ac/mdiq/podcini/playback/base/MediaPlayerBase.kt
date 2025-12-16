@@ -794,7 +794,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 .setAlbumArtist(e.feed?.title?:"")
                 .setDisplayTitle(e.getEpisodeTitle())
                 .setSubtitle(e.feed?.title?:"")
-                .setArtworkUri((e.imageLocation() ?: "").toUri())
+                .setArtworkUri((e.imageUrl ?: e.feed?.imageUrl ?: "").toUri())
             return builder.build()
         }
 

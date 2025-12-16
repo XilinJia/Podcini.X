@@ -322,7 +322,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                                 }
                             }
                             imgLocLarge =
-                                if (displayedChapterIndex == -1 || it.chapters.isEmpty() || it.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) it.imageLocation()
+                                if (displayedChapterIndex == -1 || it.chapters.isEmpty() || it.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) it.imageUrl ?: it.feed?.imageUrl
                                 else EmbeddedChapterImage.getModelFor(it, displayedChapterIndex)?.toString()
                             vm.sleepTimerActive = isSleepTimerActive()
                         }
