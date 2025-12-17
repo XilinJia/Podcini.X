@@ -610,6 +610,14 @@
     <string name="time_weeks">weeks</string>
     <string name="floor_seconds">Floor(seconds)</string>
     <string name="ceiling_seconds">Ceiling(seconds)</string>
+    <string name="year">Year</string>
+    <string name="month">Month</string>
+    <string name="hour">Hour</string>
+    <string name="minute">Minute</string>
+    <string name="set_due_time">Set due time</string>
+    <string name="add_notes">Add notes</string>
+    <string name="show_done">Show done</string>
+    <string name="show">Show</string>
     <plurals name="time_minutes_quantified">
         <item quantity="one">1 minute</item>
         <item quantity="two">%d minutes</item>
