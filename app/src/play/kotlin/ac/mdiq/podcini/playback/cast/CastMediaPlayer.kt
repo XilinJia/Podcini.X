@@ -2,7 +2,7 @@ package ac.mdiq.podcini.playback.cast
 
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
@@ -84,7 +84,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (castContext == null) castContext = CastContext.getSharedInstance(context.applicationContext)
         remoteMediaClient = castContext!!.sessionManager.currentCastSession?.remoteMediaClient
         remoteMediaClient?.registerCallback(remoteMediaClientCallback)
-        setCurEpisode(null)
+        setAsCurEpisode(null)
         isStreaming = true
         isBuffering = AtomicBoolean(false)
         remoteState = MediaStatus.PLAYER_STATE_UNKNOWN
@@ -131,7 +131,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             return
         }
 //        var currentMedia = if (mediaChanged) toPlayable(mediaInfo) else curEpisode
-        if (mediaChanged) setCurEpisode(toPlayable(mediaInfo))
+        if (mediaChanged) setAsCurEpisode(toPlayable(mediaInfo))
 //        val oldMedia = curEpisode
         val position = mediaStatus.streamPosition.toInt()
         // check for incompatible states
@@ -187,7 +187,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     MediaStatus.IDLE_REASON_NONE -> setPlayerStatus(PlayerStatus.INITIALIZED, curEpisode)
                     MediaStatus.IDLE_REASON_FINISHED -> {
                         // This is our onCompletionListener...
-                        if (mediaChanged && curEpisode != null) setCurEpisode(curEpisode)
+                        if (mediaChanged && curEpisode != null) setAsCurEpisode(curEpisode)
                         endPlayback(true, wasSkipped = false)
                         return
                     }
@@ -235,7 +235,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             setPlayerStatus(PlayerStatus.INDETERMINATE, null)
         }
 
-        setCurEpisode(playable)
+        setAsCurEpisode(playable)
         this.mediaType = curEpisode!!.getMediaType()
         this.startWhenPrepared.set(startWhenPrepared)
 
