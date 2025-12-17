@@ -67,7 +67,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -78,7 +77,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.SubcomposeLayout
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
@@ -91,6 +89,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -106,14 +105,13 @@ fun CommonDialogSurface(onDismissRequest: () -> Unit, content: @Composable (() -
 }
 
 @Composable
-fun CommonDialogCard(onDismissRequest: () -> Unit, content: @Composable (() -> Unit)) {
-    Dialog(onDismissRequest = onDismissRequest) {
+fun CommonPopupCard(onDismissRequest: () -> Unit, content: @Composable (() -> Unit)) {
+    Popup(onDismissRequest = { onDismissRequest() }, properties = PopupProperties(focusable = true)) {
         Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             content()
         }
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,62 +142,6 @@ fun Spinner(items: List<String>, selectedItem: String, modifier: Modifier = Modi
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun Spinner(items: List<String>, selectedIndex: Int, modifier: Modifier = Modifier, onItemSelected: (Int) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    var curIndex by remember { mutableIntStateOf(selectedIndex) }
-    ExposedDropdownMenuBox(expanded = expanded, modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onExpandedChange = { expanded = it }) {
-        BasicTextField(readOnly = true, value = items.getOrNull(curIndex) ?: "Select Item", onValueChange = { },
-            textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
-            modifier = modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true), // Material3 requirement
-            decorationBox = { innerTextField ->
-                Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-                    innerTextField()
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                }
-            })
-        ExposedDropdownMenu(modifier = Modifier.heightIn(max = 340.dp), expanded = expanded, onDismissRequest = { expanded = false }) {
-            for (i in items.indices) {
-                DropdownMenuItem(text = { Text(items[i]) },
-                    onClick = {
-                        curIndex = i
-                        onItemSelected(i)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SpinnerExternalSet(items: List<String>, selectedIndex: Int, modifier: Modifier = Modifier, onItemSelected: (Int) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    ExposedDropdownMenuBox(expanded = expanded, modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onExpandedChange = { expanded = it }) {
-        BasicTextField(readOnly = true, value = items.getOrNull(selectedIndex) ?: "Select Item", onValueChange = { },
-            textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
-            modifier = modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true), // Material3 requirement
-            decorationBox = { innerTextField ->
-                Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-                    innerTextField()
-                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                }
-            })
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            for (i in items.indices) {
-                DropdownMenuItem(text = { Text(items[i]) },
-                    onClick = {
-                        onItemSelected(i)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-
 @Composable
 fun MeasureLongestWidth(items: List<String>, textStyle: TextStyle, content: @Composable (maxWidth: Int) -> Unit) {
     SubcomposeLayout { constraints ->
@@ -209,47 +151,6 @@ fun MeasureLongestWidth(items: List<String>, textStyle: TextStyle, content: @Com
         layout(placeable.width, placeable.height) { placeable.place(0, 0) }
     }
 }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun SpinnerExternalSet1(items: List<String>, selectedIndex: Int, modifier: Modifier = Modifier, onItemSelected: (Int) -> Unit) {
-    MeasureLongestWidth(items = items, textStyle = LocalTextStyle.current) { maxWidth ->
-        var expanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it },
-            modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)).width(with(LocalDensity.current) { maxWidth.toDp() })) {
-            BasicTextField(readOnly = true, value = items.getOrNull(selectedIndex) ?: "Select Item", onValueChange = { }, textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
-                modifier = modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true).width(with(LocalDensity.current) { maxWidth.toDp() }), // Material3 requirement
-                decorationBox = { innerTextField ->
-                    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-                        innerTextField()
-                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                    }
-                })
-            ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                for (i in items.indices) {
-                    DropdownMenuItem(text = { Text(items[i]) }, onClick = {
-                        onItemSelected(i)
-                        expanded = false
-                    })
-                }
-            }
-        }
-    }
-}
-
-//@Composable
-//fun CustomToast(message: String, durationMillis: Long = 2000L, onDismiss: () -> Unit) {
-//    LaunchedEffect(message) {
-//        delay(durationMillis)
-//        onDismiss()
-//    }
-//    Popup(alignment = Alignment.Center, onDismissRequest = { onDismiss() }) {
-//        val color = if (message.contains("Error", ignoreCase = true)) Color.Red else MaterialTheme.colorScheme.onSecondary
-//        Box(modifier = Modifier.background(MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)).padding(8.dp)) {
-//            Text(text = message, color = color, style = MaterialTheme.typography.bodyMedium)
-//        }
-//    }
-//}
 
 @Composable
 fun CustomToast(message: String, durationMillis: Long = 3000L, onDismiss: () -> Unit) {
@@ -567,13 +468,23 @@ fun NumberEditor(initVal: Int, label: String = "seconds", nz: Boolean = true, in
             showSet = false
         }
     }
-    TextField(value = inputVal, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(label) }, singleLine = true, modifier = modifier,
-        onValueChange = {
-            if (it.isEmpty() || it.toIntOrNull() != null) inputVal = it
-            if (it.toIntOrNull() != null) showSet = true
-            if (instant && showSet) set()
-        },
-        trailingIcon = { if (!instant && showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = { set() })) })
+    if (instant)
+        TextField(value = inputVal, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(label) }, singleLine = true, modifier = modifier,
+            onValueChange = {
+                if (it.isEmpty() || it.toIntOrNull() != null) inputVal = it
+                if (it.toIntOrNull() != null) showSet = true
+                if (instant && showSet) set()
+            },
+        )
+    else
+        TextField(value = inputVal, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(label) }, singleLine = true, modifier = modifier,
+            onValueChange = {
+                if (it.isEmpty() || it.toIntOrNull() != null) inputVal = it
+                if (it.toIntOrNull() != null) showSet = true
+                if (instant && showSet) set()
+            },
+            trailingIcon = { if (!instant && showSet) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(onClick = { set() })) }
+        )
 }
 
 @Composable
@@ -634,7 +545,7 @@ enum class TagType { Feed, Episode }
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun TagSettingDialog(tagType: TagType, existingTags: Set<String>, multiples: Boolean = false, onDismiss: () -> Unit, cb: (List<String>)->Unit) {
-    CommonDialogSurface(onDismissRequest = onDismiss) {
+    CommonPopupCard(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.tags_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
             var text by remember { mutableStateOf("") }

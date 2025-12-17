@@ -30,7 +30,7 @@ import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-import ac.mdiq.podcini.ui.compose.CommonDialogSurface
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
@@ -38,7 +38,6 @@ import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.ScrollRowGrid
 import ac.mdiq.podcini.ui.compose.SelectLowerAllUpper
 import ac.mdiq.podcini.ui.compose.SimpleSwitchDialog
-import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.commonConfirm
@@ -63,6 +62,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -94,6 +94,7 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -553,7 +554,7 @@ fun SubscriptionsScreen() {
         fun OpenDialogs() {
             @Composable
             fun AutoDeleteHandlerDialog(onDismissRequest: () -> Unit) {
-                CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         val (selectedOption, _) = remember { mutableStateOf("") }
                         FeedAutoDeleteOptions.forEach { text ->
@@ -574,40 +575,33 @@ fun SubscriptionsScreen() {
 
             @Composable
             fun SetAssociateQueueDialog(onDismissRequest: () -> Unit) {
-                CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         var selectedOption by remember {mutableStateOf("")}
-                        queueSettingOptions.forEach { option ->
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Checkbox(checked = option == selectedOption,
-                                    onCheckedChange = { isChecked ->
-                                        selectedOption = option
-                                        if (isChecked) Logd(TAG, "$option is checked")
-                                        when (selectedOption) {
-                                            "Default" -> {
-                                                saveFeed { it: Feed -> it.queueId = 0L }
-                                                onDismissRequest()
-                                            }
-                                            "Active" -> {
-                                                saveFeed { it: Feed -> it.queueId = -1L }
-                                                onDismissRequest()
-                                            }
-                                            "None" -> {
-                                                saveFeed { it: Feed -> it.queueId = -2L }
-                                                onDismissRequest()
-                                            }
-                                            "Custom" -> {}
-                                        }
-                                    }
-                                )
-                                Text(option)
-                            }
+                        val custom = "Custom"
+                        val none = "None"
+                        var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = none == selected,
+                                onCheckedChange = { isChecked ->
+                                    selected = none
+                                    saveFeed { it: Feed -> it.queueId = -2L }
+                                    onDismissRequest()
+                                })
+                            Text(none)
+                            Spacer(Modifier.width(50.dp))
+                            Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                            Text(custom)
                         }
-                        if (selectedOption == "Custom") {
-                            SpinnerExternalSet(items = queues.map { it.name }, selectedIndex = 0) { index ->
-                                Logd(TAG, "Queue selected: ${queues[index]}")
-                                saveFeed { it: Feed -> it.queueId = queues[index].id }
-                                onDismissRequest()
+                        if (selected == custom) {
+                            Logd(TAG, "queues: ${queues.size}")
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                for (index in queues.indices) {
+                                    FilterChip(onClick = {
+                                        saveFeed { it: Feed -> it.queueId = queues[index].id }
+                                        onDismissRequest()
+                                    }, label = { Text(queues[index].name) }, selected = false )
+                                }
                             }
                         }
                     }
@@ -616,7 +610,7 @@ fun SubscriptionsScreen() {
 
             @Composable
             fun SetKeepUpdateDialog(onDismissRequest: () -> Unit) {
-                CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
                         Row(Modifier.fillMaxWidth()) {
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_refresh), "")
@@ -636,7 +630,7 @@ fun SubscriptionsScreen() {
 
             @Composable
             fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
-                CommonDialogSurface(onDismissRequest = onDismissRequest) {
+                CommonPopupCard(onDismissRequest = onDismissRequest) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         for (rating in Rating.entries.reversed()) {
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {

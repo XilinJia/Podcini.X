@@ -7,7 +7,6 @@ import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
-import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -20,24 +19,30 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,7 +70,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.core.content.edit
 import androidx.lifecycle.Lifecycle
@@ -99,7 +107,7 @@ fun TopChartFeeds() {
     var countryCode by  remember { mutableStateOf("US") }
     var needsConfirm by remember { mutableStateOf(false) }
 
-    var searchResults = remember { mutableStateListOf<PodcastSearchResult>() }
+    val searchResults = remember { mutableStateListOf<PodcastSearchResult>() }
     var errorText by remember { mutableStateOf("") }
     var retryQerry by remember { mutableStateOf("") }
     var showProgress by remember { mutableStateOf(true) }
@@ -107,7 +115,7 @@ fun TopChartFeeds() {
 
     val spinnerTexts = remember { genres.keys.map { context.getString(it) } }
     var curIndex by remember {  mutableIntStateOf(0) }
-    var curGenre by remember(curIndex) { mutableStateOf(genres[curIndex] ?: 0) }
+    var curGenre by remember(curIndex) { mutableIntStateOf(genres[curIndex] ?: 0) }
 
     fun loadToplist(country: String?, genre: Int) {
         searchResults.clear()
@@ -237,6 +245,27 @@ fun TopChartFeeds() {
     var showSelectCounrty by remember { mutableStateOf(false) }
     if (showSelectCounrty) SelectCountryDialog { showSelectCounrty = false }
 
+    var showChooseGenre by remember { mutableStateOf(false) }
+    @Composable
+    fun ChooseGenre() {
+        Popup(onDismissRequest = { showChooseGenre = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
+            Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                    for (index in spinnerTexts.indices) {
+                        FilterChip(onClick = {
+                            curIndex = index
+                            curGenre = genres[genres.keys.toList()[index]] ?: 0
+                            Logd(TAG, "SpinnerExternalSet $curIndex curGenre: $curGenre")
+                            loadToplist(countryCode, curGenre)
+                            showChooseGenre = false
+                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                    }
+                }
+            }
+        }
+    }
+    if (showChooseGenre) ChooseGenre()
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
@@ -245,12 +274,7 @@ fun TopChartFeeds() {
         Box {
             TopAppBar(title = {
                 Row {
-                    SpinnerExternalSet(items = spinnerTexts, selectedIndex = curIndex) { index: Int ->
-                        curIndex = index
-                        curGenre = genres[genres.keys.toList()[index]] ?: 0
-                        Logd(TAG, "SpinnerExternalSet $curIndex curGenre: $curGenre")
-                        loadToplist(countryCode, curGenre)
-                    }
+                    Text(spinnerTexts[curIndex], maxLines=1, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clickable(onClick = { showChooseGenre = true }))
                     Spacer(Modifier.weight(1f))
                     Text(countryCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=20.dp).clickable(onClick = { showSelectCounrty = true }))
                 } },

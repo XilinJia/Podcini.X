@@ -3,7 +3,6 @@ package ac.mdiq.podcini.ui.activity
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
 import ac.mdiq.podcini.playback.base.InTheatre.vController
 import ac.mdiq.podcini.playback.base.InTheatre.vCtrlFuture
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer
@@ -30,13 +29,13 @@ import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.isLightTheme
-import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.utils.openInBrowser
 import ac.mdiq.podcini.utils.toastMassege
 import android.content.ComponentName
@@ -168,7 +167,7 @@ class VideoplayerActivity : BaseActivity() {
 
                 if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
 
-                LaunchedEffect(curMediaId) { cleanedNotes = null }
+                LaunchedEffect(curEpisode?.id) { cleanedNotes = null }
                 if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                 if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                 Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->

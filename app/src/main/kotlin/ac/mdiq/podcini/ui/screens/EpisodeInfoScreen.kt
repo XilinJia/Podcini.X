@@ -7,7 +7,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.storage.database.addToAssOrActQueue
@@ -16,6 +15,7 @@ import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
@@ -31,6 +31,7 @@ import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeClips
 import ac.mdiq.podcini.ui.compose.EpisodeMarks
+import ac.mdiq.podcini.ui.compose.EpisodeWebView
 import ac.mdiq.podcini.ui.compose.FutureStateDialog
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
@@ -38,7 +39,8 @@ import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
-import ac.mdiq.podcini.ui.utils.ShownotesWebView
+import ac.mdiq.podcini.ui.compose.TodoDialog
+import ac.mdiq.podcini.ui.compose.Todos
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
@@ -159,7 +161,6 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
 
     var episode by remember { mutableStateOf<Episode?>(null) }
 
-    var txtvSize by remember { mutableStateOf("") }
     var webviewData by remember { mutableStateOf<String?>("") }
     var showHomeScreen by remember { mutableStateOf(false) }
 
@@ -187,18 +188,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     episode = episodeChange?.obj
 
     LaunchedEffect(episode, episodeId) {
-        when {
-            episode == null -> txtvSize = ""
-            episode!!.size > 0 -> txtvSize = formatShortFileSize(context, episode!!.size)
-            isImageDownloadAllowed && !episode!!.isSizeSetUnknown() -> {
-                scope.launch {
-                    val sizeValue = if (episode?.feed?.prefStreamOverDownload == false) episode?.fetchMediaSize() ?: 0L else 0L
-                    txtvSize = if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
-                }
-            }
-            else -> txtvSize = ""
-        }
-
+        Logd(TAG, "LaunchedEffect(episode, episodeId)")
         if (episode != null) {
             webviewData = webDataCache[episode!!.id]
             if (webviewData.isNullOrBlank()) {
@@ -211,7 +201,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                 }
             }
         }
-        if (!episode?.clips.isNullOrEmpty()) playerLocal = ExoPlayer.Builder(context).build()
+        if (playerLocal == null && !episode?.clips.isNullOrEmpty()) playerLocal = ExoPlayer.Builder(context).build()
     }
 
     var offerStreaming by remember { mutableStateOf(false) }
@@ -224,6 +214,8 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     var showPlayStateDialog by remember { mutableStateOf(false) }
     var showEditComment by remember { mutableStateOf(false) }
     var showTagsSettingDialog by remember { mutableStateOf(false) }
+    var showTodoDialog by remember { mutableStateOf(false) }
+    var onTodo by remember { mutableStateOf<Todo?>(null) }
 
     @Composable
     fun OpenDialogs() {
@@ -269,6 +261,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
         if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, episode!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
             upsertBlk(episode!!) { it.tags.addAll(tags) }
         }
+        if (showTodoDialog) TodoDialog(episode!!, onTodo) { showTodoDialog = false}
     }
 
     @Composable
@@ -309,7 +302,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                                 if (!readerhtml.isNullOrEmpty()) {
                                     val shownotesCleaner = ShownotesCleaner(context)
                                     cleanedNotes = shownotesCleaner.processShownotes(readerhtml!!, 0)
-                                    episode = upsertBlk(episode!!) { it.setTranscriptIfLonger(readerhtml) }
+                                    upsertBlk(episode!!) { it.setTranscriptIfLonger(readerhtml) }
                                     notesCache.put(episode!!.id, cleanedNotes!!)
                                 }
                             }
@@ -566,8 +559,21 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                     Box(Modifier.weight(1f).padding(start = 10.dp).height(80.dp)) {
                         Column {
                             SelectionContainer { Text(episode?.title?:"", color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis) }
-                            val pubTimeText by remember(episode) { mutableStateOf( if (episode?.pubDate != null) formatDateTimeFlex(Date(episode!!.pubDate)) else "" ) }
-                            val txtvDuration by remember(episode) { mutableStateOf(if ((episode?.duration ?: 0) > 0) durationStringFull(episode!!.duration) else "") }
+                            val pubTimeText by remember(episode?.id) { mutableStateOf( if (episode?.pubDate != null) formatDateTimeFlex(Date(episode!!.pubDate)) else "" ) }
+                            val txtvDuration by remember(episode?.id) { mutableStateOf(if ((episode?.duration ?: 0) > 0) durationStringFull(episode!!.duration) else "") }
+                            val txtvSize by remember(episode?.id) { mutableStateOf(
+                                when {
+                                    episode == null -> ""
+                                    episode!!.size > 0 -> formatShortFileSize(context, episode!!.size)
+                                    isImageDownloadAllowed && !episode!!.isSizeSetUnknown() -> {
+                                        scope.launch {
+                                            val sizeValue = if (episode?.feed?.prefStreamOverDownload == false) episode?.fetchMediaSize() ?: 0L else 0L
+                                            if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
+                                        }
+                                    }
+                                    else -> ""
+                                } ) }
+
                             Text("$pubTimeText · $txtvDuration · $txtvSize", color = textColor, style = MaterialTheme.typography.bodyMedium)
                         }
                         if (actionButton != null && episode != null) {
@@ -582,19 +588,21 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    if (episode != null) Todos(episode!!, episodeFlow, {
+                        onTodo = null
+                        showTodoDialog = true
+                    }, { todo->
+                        onTodo = todo
+                        showTodoDialog = true
+                    })
                     Text("Tags: ${episode?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
                     Text(stringResource(R.string.my_opinion_label) + if (episode?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
-                    Text(episode?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                    Text(episode?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
                     EpisodeMarks(episode)
                     EpisodeClips(episode, playerLocal)
 //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
                     if (!episode?.chapters.isNullOrEmpty()) ChaptersColumn(episode!!)
-                    AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
-                        ShownotesWebView(context).apply {
-                            setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
-                            setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
-                        }
-                    }, update = { it.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank") })
+                    EpisodeWebView(webviewData)
                     if (!episode?.related.isNullOrEmpty()) {
                         var showTodayStats by remember { mutableStateOf(false) }
                         if (showTodayStats) RelatedEpisodesDialog(episode!!) { showTodayStats = false }

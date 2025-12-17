@@ -19,7 +19,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
-import ac.mdiq.podcini.ui.compose.CommonDialogSurface
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -185,7 +185,7 @@ fun LogsScreen() {
                 ShareLog.Status.EXISTING.ordinal -> stringResource(R.string.share_existing)
                 else -> ""
             }
-            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                 Column(modifier = Modifier.padding(10.dp)) {
                     val textColor = MaterialTheme.colorScheme.onSurface
                     Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
@@ -295,7 +295,7 @@ fun LogsScreen() {
     @Composable
     fun SubscriptionDetailDialog(log: SubscriptionLog, showDialog: Boolean, onDismissRequest: () -> Unit) {
         if (showDialog) {
-            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                 Column(modifier = Modifier.padding(10.dp)) {
                     val textColor = MaterialTheme.colorScheme.onSurface
                     Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
@@ -371,7 +371,7 @@ fun LogsScreen() {
             if (!status.isSuccessful) message = status.reasonDetailed
             val messageFull = context.getString(R.string.download_log_details_message, context.getString(from(status.reason)), message, url)
 
-            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                 Column(modifier = Modifier.padding(10.dp)) {
                     val textColor = MaterialTheme.colorScheme.onSurface
                     Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))

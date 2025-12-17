@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.automation
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.receiver.AlarmReceiver
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.utils.Logd
@@ -26,7 +27,8 @@ fun idFromTriggerTime(millis: Long): Int {
     }
 }
 
-fun playEpisodeAtTime(context: Context, triggerTime: Long, episode: Episode) {
+fun playEpisodeAtTime(triggerTime: Long, episode: Episode) {
+    val context = getAppContext()
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (!alarmManager.canScheduleExactAlarms()) {

@@ -1,3 +1,21 @@
+# 9.9.0
+
+* added Todo capabilities in EpisodeInfo and PlayerDetails screens
+	* Todo can be added, edited, removed, set/unset Done
+	* Todo can have optional note
+	* Todo can have a due time, once set, 
+		* the episode will be played at due time (hopefully Android doesn't betray the feature)
+		* due time is shown (highlighted if past due)
+* added a sub-screen in Facets for Todos
+	* only episodes with undone todos are shown
+	* title and due time if any of undone todos are shown separated with |
+* getNextInQueue do instant search for curEpisode
+* amended PlayerDetails to properly get current chapter index
+* reworked associated queue setting for Feed, got rid of the Spinner
+* in topbar of Queues, Facets and TopChartFeeds screens, replaced the spinner with a popup
+* many dialogs are replaced with light-weight popups
+* some code refactoring
+
 # 9.8.8
 
 * EpisodeInfo and PlayerDetails show and share the same cached content

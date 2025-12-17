@@ -23,7 +23,7 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
-import ac.mdiq.podcini.ui.compose.CommonDialogSurface
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.SearchBarRow
@@ -251,7 +251,7 @@ fun OnlineSearchScreen() {
     if (showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { showOpmlImportSelectionDialog = false }
 
     var showAdvanced by remember { mutableStateOf(false) }
-    if (showAdvanced) CommonDialogSurface({ showAdvanced = false }) {
+    if (showAdvanced) CommonPopupCard({ showAdvanced = false }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.search_combined_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = { setOnlineSearchTerms(CombinedSearcher::class.java) }))
             gearbox.GearSearchText()

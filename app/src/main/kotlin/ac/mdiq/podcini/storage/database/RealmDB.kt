@@ -14,6 +14,7 @@ import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SleepPrefs
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
+import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -35,6 +36,7 @@ import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
+import io.github.xilinjia.krdb.types.EmbeddedRealmObject
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.TypedRealmObject
 import kotlinx.coroutines.CoroutineScope
@@ -61,12 +63,13 @@ val config: RealmConfiguration by lazy {
         ShareLog::class,
         SubscriptionLog::class,
         Chapter::class,
+        Todo::class,
         PAFeed::class,
         AppAttribs::class,
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(78)
+    )).name("Podcini.realm").schemaVersion(79)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -442,6 +445,23 @@ fun <T : RealmObject> upsertBlk(entity: T, block: MutableRealm.(T) -> Unit) : T 
         result
     }
 }
+
+fun <T : EmbeddedRealmObject> upsertBlkEmb(entity: T, block: MutableRealm.(T) -> Unit) : T {
+    //    if (BuildConfig.DEBUG) {
+    //        val stackTrace = Thread.currentThread().stackTrace
+    //        val caller = if (stackTrace.size > 3) stackTrace[3] else null
+    //        Logd(TAG, "${caller?.className}.${caller?.methodName} upsertBlk: ${entity.javaClass.simpleName}")
+    //    }
+    return realm.writeBlocking {
+        var result: T = entity
+            result = findLatest(entity)?.let {
+                block(it)
+                it
+            } ?: entity
+        result
+    }
+}
+
 
 fun runOnIOScope(block: suspend () -> Unit) : Job {
     return ioScope.launch {

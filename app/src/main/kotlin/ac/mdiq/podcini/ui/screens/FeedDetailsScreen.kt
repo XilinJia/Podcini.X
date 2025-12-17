@@ -17,6 +17,7 @@ import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
 import ac.mdiq.podcini.storage.database.queueToVirtual
+import ac.mdiq.podcini.storage.database.queues
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
@@ -32,7 +33,6 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.FeedAutoDeleteOptions
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
-import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
@@ -47,7 +47,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
-import ac.mdiq.podcini.ui.compose.CommonDialogSurface
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
@@ -58,7 +58,6 @@ import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
-import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
@@ -198,8 +197,6 @@ enum class ADLIncExc {
     INCLUDE,
     EXCLUDE
 }
-
-val queueSettingOptions = listOf("Default", "Active", "None", "Custom")
 
 //private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
 //    if (isGranted) return@registerForActivityResult
@@ -416,8 +413,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     fun FeedSettingsScreen() {
         val lifecycleOwner = LocalLifecycleOwner.current
 
-        var queues: List<PlayQueue>? by remember { mutableStateOf(null) }
-
         var audioType by remember { mutableStateOf(feed?.audioTypeSetting?.tag ?: Feed.AudioType.SPEECH.tag) }
 
         var audioQuality by remember { mutableStateOf(feed?.audioQualitySetting?.tag ?: Feed.AVQuality.GLOBAL.tag) }
@@ -472,7 +467,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose {
 //                feed = null
-                queues = null
                 lifecycleOwner.lifecycle.removeObserver(observer)
             }
         }
@@ -499,7 +493,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         @Composable
         fun AutoDeleteDialog(onDismissRequest: () -> Unit) {
-            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                 val (selectedOption, onOptionSelected) = remember { mutableStateOf(autoDeletePolicy) }
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     FeedAutoDeleteOptions.forEach { text ->
@@ -529,7 +523,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         @Composable
         fun VolumeAdaptionDialog(onDismissRequest: () -> Unit) {
-            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                 val (selectedOption, onOptionSelected) = remember { mutableStateOf(feed?.volumeAdaptionSetting ?: VolumeAdaptionSetting.OFF) }
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     VolumeAdaptionSetting.entries.forEach { item ->
@@ -553,7 +547,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         @Composable
         fun SetAudioType(selectedOption: String, onDismissRequest: () -> Unit) {
-            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                 var selected by remember {mutableStateOf(selectedOption)}
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Feed.AudioType.entries.forEach { option ->
@@ -576,7 +570,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         @Composable
         fun SetAudioQuality(selectedOption: String, onDismissRequest: () -> Unit) {
-            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                 var selected by remember {mutableStateOf(selectedOption)}
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Feed.AVQuality.entries.forEach { option ->
@@ -598,7 +592,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         @Composable
         fun SetVideoQuality(selectedOption: String, onDismissRequest: () -> Unit) {
-            CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                 var selected by remember {mutableStateOf(selectedOption)}
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Feed.AVQuality.entries.forEach { option ->
@@ -620,7 +614,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         @Composable
         fun AuthenticationDialog(onDismiss: () -> Unit) {
-            CommonDialogSurface(onDismissRequest = onDismiss) {
+            CommonPopupCard(onDismissRequest = onDismiss) {
                 val context = LocalContext.current
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     val oldName = feed?.username?:""
@@ -647,7 +641,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         @Composable
         fun AutoSkipDialog(onDismiss: () -> Unit) {
-            CommonDialogSurface(onDismissRequest = onDismiss) {
+            CommonPopupCard(onDismissRequest = onDismiss) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     var intro by remember { mutableIntStateOf((feed?.introSkip ?: 0)) }
                     NumberEditor(intro, label = stringResource(R.string.skip_first_hint), nz = false, instant = true, modifier = Modifier) { intro = it }
@@ -666,7 +660,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
         @Composable
         fun RepeatIntervalsDialog(onDismiss: () -> Unit) {
-            CommonDialogSurface(onDismissRequest = onDismiss) {
+            CommonPopupCard(onDismissRequest = onDismiss) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     var intervals = remember { feed?.repeatIntervals?.toMutableList() }
                     if (intervals.isNullOrEmpty()) intervals = DEFAULT_INTERVALS.toMutableList()
@@ -783,50 +777,39 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 }
                 @Composable
                 fun SetAssociatedQueue(selectedOption: String, onDismissRequest: () -> Unit) {
-                    CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+                    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            var selected by remember {mutableStateOf(selectedOption)}
-                            queueSettingOptions.forEach { option ->
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Checkbox(checked = option == selected,
-                                        onCheckedChange = { isChecked ->
-                                            selected = option
-                                            if (isChecked) Logd(TAG, "$option is checked")
-                                            when (selected) {
-                                                "Default" -> {
-                                                    upsertBlk(feed!!) { it.queueId = 0L }
-                                                    curPrefQueue = selected
-                                                    onDismissRequest()
-                                                }
-                                                "Active" -> {
-                                                    upsertBlk(feed!!) { it.queueId = -1L }
-                                                    curPrefQueue = selected
-                                                    onDismissRequest()
-                                                }
-                                                "None" -> {
-                                                    upsertBlk(feed!!) {
-                                                        it.queueId = -2L
-                                                        it.autoDownload = false
-                                                        it.autoEnqueue = false
-                                                    }
-                                                    curPrefQueue = selected
-                                                    onDismissRequest()
-                                                }
-                                                "Custom" -> {}
-                                            }
+                            val custom = "Custom"
+                            val none = "None"
+                            var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Checkbox(checked = none == selected,
+                                    onCheckedChange = { isChecked ->
+                                        selected = none
+                                        upsertBlk(feed!!) {
+                                            it.queueId = -2L
+                                            it.autoDownload = false
+                                            it.autoEnqueue = false
                                         }
-                                    )
-                                    Text(option)
-                                }
+                                        curPrefQueue = selected
+                                        onDismissRequest()
+                                    })
+                                Text(none)
+                                Spacer(Modifier.width(50.dp))
+                                Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                                Text(custom)
                             }
-                            if (selected == "Custom") {
-                                Logd(TAG, "queues: ${queues?.size}")
-                                Spinner(items = queues!!.map { it.name }, selectedItem = feed?.queue?.name ?: "Default") { index ->
-                                    Logd(TAG, "Queue selected: ${queues!![index].name}")
-                                    val q = queues!![index]
-                                    upsertBlk(feed!!) { it.queue = q }
-                                    curPrefQueue = q.name
-                                    onDismissRequest()
+                            if (selected == custom) {
+                                Logd(TAG, "queues: ${queues.size}")
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    for (i in queues.indices) {
+                                        FilterChip(onClick = {
+                                            val q = queues[i]
+                                            upsertBlk(feed!!) { it.queue = q }
+                                            curPrefQueue = q.name
+                                            onDismissRequest()
+                                        }, label = { Text(queues[i].name) }, selected = false, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                                    }
                                 }
                             }
                         }
@@ -1021,7 +1004,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     var newCache by remember { mutableIntStateOf((feed?.autoDLMaxEpisodes ?: 2)) }
                     @Composable
                     fun SetAutoDLEQCacheDialog(onDismiss: () -> Unit) {
-                        CommonDialogSurface(onDismissRequest = onDismiss) {
+                        CommonPopupCard(onDismissRequest = onDismiss) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 NumberEditor(newCache, label = stringResource(R.string.max_episodes_cache), nz = false, instant = true, modifier = Modifier) { newCache = it }
                                 //                    counting played

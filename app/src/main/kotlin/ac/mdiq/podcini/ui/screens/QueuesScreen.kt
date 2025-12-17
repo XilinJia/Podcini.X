@@ -38,13 +38,12 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-import ac.mdiq.podcini.ui.compose.CommonDialogSurface
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
-import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
@@ -64,6 +63,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -79,17 +79,21 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -120,7 +124,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -341,7 +348,7 @@ fun QueuesScreen(id: Long = -1L) {
 
         ComfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = showClearQueueDialog) { clearQueue() }
 
-        if (showAddQueueDialog.value) CommonDialogSurface(onDismissRequest = { showAddQueueDialog.value = false }) {
+        if (showAddQueueDialog.value) CommonPopupCard(onDismissRequest = { showAddQueueDialog.value = false }) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 var newName by remember { mutableStateOf("") }
                 TextField(value = newName, onValueChange = { newName = it }, label = { Text("Add queue (Unique name only)") })
@@ -372,6 +379,30 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
 
+    var showChooseQueue by remember { mutableStateOf(false) }
+    @Composable
+    fun ChooseQueue() {
+        Popup(onDismissRequest = { showChooseQueue = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
+            Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                    for (index in queues.indices) {
+                        FilterChip(onClick = {
+                            upsertBlk(curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
+                            curIndex = index
+                            runOnIOScope {
+                                upsert(queues[index]) { it.update() }
+                                upsert(appAttribs) { it.curQueueId = queues[index].id }
+                            }
+                            curQueueFlow = realm.query<PlayQueue>("id == $0", queues[index].id).first().asFlow()
+                            showChooseQueue = false
+                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                    }
+                }
+            }
+        }
+    }
+    if (showChooseQueue) ChooseQueue()
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
@@ -379,17 +410,8 @@ fun QueuesScreen(id: Long = -1L) {
         val buttonColor = Color(0xDDFFD700)
         Box {
             TopAppBar(title = {
-                if (queuesMode == QueuesScreenMode.Queue) SpinnerExternalSet(items = spinnerTexts, selectedIndex = curIndex) { index: Int ->
-                    Logd(TAG, "Queue selected: ${queues[index].name} ${lazyListState.firstVisibleItemIndex}")
-                    upsertBlk(curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
-                    curIndex = index
-                    runOnIOScope {
-                        upsert(queues[index]) { it.update() }
-                        upsert(appAttribs) { it.curQueueId = queues[index].id }
-                    }
-                    curQueueFlow = realm.query<PlayQueue>("id == $0", queues[index].id).first().asFlow()
-                    //                    playbackService?.notifyCurQueueItemsChanged(max(prevQueueSize, curQueue.size()))
-                } else Text(title)
+                if (queuesMode == QueuesScreenMode.Queue) Text(curQueue.name, maxLines=1, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clickable(onClick = { showChooseQueue = true }))
+                else Text(title)
             }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
                 actions = {
                     val binIconRes by remember(queuesMode) { derivedStateOf { if (queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history } }

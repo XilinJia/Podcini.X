@@ -4,7 +4,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPrepared
@@ -47,7 +47,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
         if (curEpisode?.id != media.id) {
             media_ = checkAndMarkDuplicates(media)
             episodeChangedWhenScreenOff = true
-            setCurEpisode(media_)
+            setAsCurEpisode(media_)
             clearCurTempSpeed()
         }
         Logd(TAG, "start: status: $status")

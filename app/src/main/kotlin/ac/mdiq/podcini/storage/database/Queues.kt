@@ -7,7 +7,6 @@ import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.episodeChangedWhenScreenOff
 import ac.mdiq.podcini.storage.model.Episode
@@ -31,8 +30,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Date
-import kotlin.random.Random
 import kotlin.math.min
+import kotlin.random.Random
 
 private const val TAG: String = "Queues"
 
@@ -69,6 +68,8 @@ run {
     vq.name = "Virtual"
     upsertBlk(vq) {}
 })
+
+var curIndexInActQueue = -1
 
 fun inQueueEpisodeIdSet(): Set<Long> {
     Logd(TAG, "getQueueIDList() called")
@@ -181,6 +182,7 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
     }
     for (q in queues) if (q.id != actQueue.id && q.episodeIds.contains(item.id)) removeFromQueue(q, listOf(item))
     //        ensure actQueue is last updated
+    if (curEpisode != null && item.id == curEpisode!!.id) curIndexInActQueue = actQueue.episodes.indexWithId(curEpisode!!.id)
     if (actQueue.size() > 0 && actQueue.episodeIds.contains(item.id)) removeFromQueue(actQueue, listOf(item))
     else upsertBlk(actQueue) { it.update() }
     if (actQueue.size() == 0 && !actQueue.isVirtual()) {
@@ -208,6 +210,7 @@ fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? 
     }
     //        ensure actQueue is last updated
     for (e in episodes) {
+        if (curEpisode != null && e.id == curEpisode!!.id) curIndexInActQueue = actQueue.episodes.indexWithId(curEpisode!!.id)
         if (actQueue.size() > 0 && actQueue.episodeIds.contains(e.id)) removeFromQueue(actQueue, listOf(e), playState)
     }
     upsertBlk(actQueue) { it.update() }
@@ -342,24 +345,29 @@ fun resetInQueueTime(episodes: Collection<Episode>) {
 
 fun getNextInQueue(currentMedia: Episode?): Episode? {
     Logd(TAG, "getNextInQueue called currentMedia: ${currentMedia?.getEpisodeTitle()}")
-    val eList = actQueue.episodes
-    if (eList.isEmpty()) {
-        Logd(TAG, "getNextInQueue queue is empty")
-        savePlayerStatus(null)
-        return null
-    }
     if (!actQueue.playInSequence) {
         Logd(TAG, "getNextInQueue(), but follow queue is not enabled.")
         savePlayerStatus(null)
         return null
     }
-    Logd(TAG, "getNextInQueue curIndexInQueue: $curIndexInQueue ${eList.size}")
-    var nextItem = if (curIndexInQueue >= 0 && curIndexInQueue < eList.size) {
+    val eList = actQueue.episodes.toList()
+    if (eList.isEmpty()) {
+        Logd(TAG, "getNextInQueue queue is empty")
+        savePlayerStatus(null)
+        return null
+    }
+    var curIndex = if (currentMedia != null) eList.indexWithId(currentMedia.id) else 0
+    if (curIndex < 0 && curIndexInActQueue >= 0) {
+        curIndex = curIndexInActQueue
+        curIndexInActQueue = -1
+    }
+    Logd(TAG, "getNextInQueue curIndexInQueue: $curIndex ${eList.size}")
+    var nextItem = if (curIndex >= 0 && curIndex < eList.size) {
         when {
-            eList[curIndexInQueue].id != currentMedia?.id -> eList[curIndexInQueue]
+            eList[curIndex].id != currentMedia?.id -> eList[curIndex]
             eList.size == 1 -> return null
             else -> {
-                val j = if (curIndexInQueue < eList.size - 1) curIndexInQueue + 1 else 0
+                val j = if (curIndex < eList.size - 1) curIndex + 1 else 0
                 Logd(TAG, "getNextInQueue next j: $j")
                 eList[j]
             }

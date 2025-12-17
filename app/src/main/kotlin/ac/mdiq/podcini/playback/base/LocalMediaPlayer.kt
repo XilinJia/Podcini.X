@@ -6,16 +6,14 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curIndexInQueue
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
-import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.storage.database.getNextInQueue
-import ac.mdiq.podcini.storage.database.indexWithId
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -272,9 +270,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         var item = playable
         if (item.playState < EpisodeState.PROGRESS.code) item = runBlocking { setPlayState(EpisodeState.PROGRESS, item, false) }
 //        val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
-        curIndexInQueue = actQueue.episodes.indexWithId(item.id)
-        setCurEpisode(item)
-        Logd(TAG, "prepareMedia eList: ${actQueue.episodes.size} curIndexInQueue: $curIndexInQueue")
+        setAsCurEpisode(item)
+        Logd(TAG, "prepareMedia eList: ${actQueue.episodes.size}")
 
         this.isStreaming = streaming
         mediaType = curEpisode!!.getMediaType()
@@ -577,7 +574,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     Logd(TAG, "nextMedia is null. call callback.onPlaybackEnded true")
                     onPlaybackEnded(true)
                     releaseWifiLockIfNecessary()
-                    setCurEpisode(null)
+                    setAsCurEpisode(null)
                     exoPlayer?.stop()
                     if (isUnknown) setPlayerStatus(PlayerStatus.STOPPED, null)
                     else Logd(TAG, "Ignored call to stop: Current player state is: $status")

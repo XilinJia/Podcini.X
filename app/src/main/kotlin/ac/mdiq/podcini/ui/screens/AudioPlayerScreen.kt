@@ -6,11 +6,10 @@ import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
-import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
+import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curDurationFB
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCache
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
@@ -40,9 +39,9 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
@@ -55,17 +54,19 @@ import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.ChaptersColumn
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
-import ac.mdiq.podcini.ui.compose.CommonDialogSurface
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeClips
 import ac.mdiq.podcini.ui.compose.EpisodeMarks
+import ac.mdiq.podcini.ui.compose.EpisodeWebView
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
-import ac.mdiq.podcini.ui.utils.ShownotesWebView
-import ac.mdiq.podcini.ui.utils.distinctColorOf
+import ac.mdiq.podcini.ui.compose.TodoDialog
+import ac.mdiq.podcini.ui.compose.Todos
+import ac.mdiq.podcini.ui.compose.distinctColorOf
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -138,11 +139,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.core.app.ShareCompat
 import androidx.core.text.HtmlCompat
@@ -166,6 +165,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.NumberFormat
@@ -246,8 +246,6 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     var showPlayButton by remember { mutableStateOf(true) }
 
     var playButRes by remember(showPlayButton) { mutableIntStateOf(if (showPlayButton) R.drawable.ic_play_48dp else R.drawable.ic_pause) }
-    
-    var imgLocLarge by remember { mutableStateOf<String?>(null) }
 
     var showSpeedDialog by remember { mutableStateOf(false) }
 
@@ -267,22 +265,25 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     val curItem = episodeChange?.obj
 
     //    private var chapterControlVisible by mutableStateOf(false)
+    var chapterIndex by remember { mutableIntStateOf(-1) }
     var displayedChapterIndex by remember { mutableIntStateOf(-1) }
-    val curChapter = remember(curItem, displayedChapterIndex) { if (curItem?.chapters.isNullOrEmpty() || displayedChapterIndex == -1) null else curItem.chapters[displayedChapterIndex] }
-    var hasNextChapter by remember { mutableStateOf(true) }
+    val curChapter = remember(curItem?.id, displayedChapterIndex) { if (curItem?.chapters.isNullOrEmpty() || displayedChapterIndex == -1) null else curItem.chapters[displayedChapterIndex] }
+    var nextChapterStart by remember { mutableIntStateOf(Int.MAX_VALUE) }
 
-    LaunchedEffect(key1 = curMediaId) {
+    LaunchedEffect(key1 = curEpisode?.id) {
         Logd(TAG, "LaunchedEffect curMediaId: ${curItem?.title}")
-        episodeFlow = realm.query<Episode>("id == $0", curMediaId).first().asFlow()
-        showHomeText = false
-        //            homeText = null
+        if (curEpisode != null) episodeFlow = realm.query<Episode>("id == $0", curEpisode!!.id).first().asFlow()
+        showHomeText = false //            homeText = null
         webviewData = null
-        imgLocLarge = null
         volumeAdaption = VolumeAdaptionSetting.OFF
+        displayedChapterIndex = -1
         vm.txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
         vm.curPlaybackSpeed = curPBSpeed
         if (isPlayingVideoLocally && curItem?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY) isBSExpanded = false
+    }
 
+    LaunchedEffect(curItem?.id) {
+        Logd(TAG, "LaunchedEffect(isBSExpanded, curItem?.id) isBSExpanded: $isBSExpanded")
         if (curItem != null) {
             if (!playButInit && playButRes == R.drawable.ic_play_48dp) {
                 showPlayButton = !isCurrentlyPlaying(curItem)
@@ -297,7 +298,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             Logd(TAG, "LaunchedEffect loading details ${curItem?.id} ${shownotesCleaner==null}")
             if (playerLocal == null) playerLocal = ExoPlayer.Builder(context).build()
             if (curItem != null) {
-                webviewData = webDataCache[curItem!!.id]
+                webviewData = webDataCache[curItem.id]
                 scope.launch(Dispatchers.IO) {
                     if (webviewData == null) {
                         curItem?.let {
@@ -305,30 +306,19 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                             webviewData = gearbox.buildWebviewData(context, it)
                             if (webviewData != null) webDataCache.put(it.id, webviewData!!)
                             Logd(TAG, "LaunchedEffect cleanedNotes: ${webviewData?.length}")
-                            val chapters: List<Chapter> = it.chapters ?: listOf()
-                            if (chapters.isNotEmpty()) {
-                                val dividerPos = FloatArray(chapters.size)
-                                for (i in chapters.indices) dividerPos[i] = chapters[i].start / curDurationFB.toFloat()
-                            }
-                            displayedChapterIndex = -1
-                            val chapterIndex = it.getCurrentChapterIndex(it.position)
-                            if (chapterIndex > -1) {
-                                if (it.position > it.duration || chapterIndex >= it.chapters.size - 1) {
-                                    displayedChapterIndex = it.chapters.size - 1
-                                    hasNextChapter = false
-                                } else {
-                                    displayedChapterIndex = chapterIndex
-                                    hasNextChapter = true
-                                }
-                            }
-                            imgLocLarge =
-                                if (displayedChapterIndex == -1 || it.chapters.isEmpty() || it.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) it.imageUrl ?: it.feed?.imageUrl
-                                else EmbeddedChapterImage.getModelFor(it, displayedChapterIndex)?.toString()
                             vm.sleepTimerActive = isSleepTimerActive()
                         }
                     }
                 }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
             }
+        }
+    }
+
+    LaunchedEffect(curItem?.position) {
+        if (isBSExpanded && curItem != null) {
+            chapterIndex = curItem.getCurrentChapterIndex(curItem.position)
+            displayedChapterIndex = if (curItem.position > curItem.duration || chapterIndex >= curItem.chapters.size - 1) curItem.chapters.size - 1 else chapterIndex
+            Logd(TAG, "LaunchedEffect(curItem?.position) chapterIndex $chapterIndex $displayedChapterIndex")
         }
     }
 
@@ -367,7 +357,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     var showVolumeDialog by remember { mutableStateOf(false) }
     var showSleepTimeDialog by remember { mutableStateOf(false) }
 
-    if (showVolumeDialog) CommonDialogSurface(onDismissRequest = { showVolumeDialog = false }) {
+    if (showVolumeDialog) CommonPopupCard(onDismissRequest = { showVolumeDialog = false }) {
         fun adaptionFactor(): Float = when {
             volumeAdaption != VolumeAdaptionSetting.OFF -> volumeAdaption.adaptionFactor
             curItem?.feed != null -> curItem.feed!!.volumeAdaptionSetting.adaptionFactor
@@ -417,15 +407,14 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                 if (curItem == null) return
                 if (playbackService == null) PlaybackStarter(context, curItem).start()
             }
-            val img = remember(curItem?.imageUrl) { ImageRequest.Builder(context).data(curItem?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+            val img = remember(curItem?.id) { ImageRequest.Builder(context).data(curItem?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
             AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, buttonColor)).padding(start = 5.dp).combinedClickable(
                 onClick = {
                     Logd(TAG, "playerUi icon was clicked")
                     if (!isBSExpanded) {
-                        val media = curItem
-                        if (media != null) {
-                            val mediaType = media.getMediaType()
-                            if (mediaType == MediaType.AUDIO || videoPlayMode == VideoMode.AUDIO_ONLY.code || videoMode == VideoMode.AUDIO_ONLY || (media.feed?.videoModePolicy == VideoMode.AUDIO_ONLY)) {
+                        if (curItem != null) {
+                            val mediaType = curItem.getMediaType()
+                            if (mediaType == MediaType.AUDIO || videoPlayMode == VideoMode.AUDIO_ONLY.code || videoMode == VideoMode.AUDIO_ONLY || (curItem.feed?.videoModePolicy == VideoMode.AUDIO_ONLY)) {
                                 Logd(TAG, "popping as audio episode")
                                 ensureService()
                                 isBSExpanded = true
@@ -495,18 +484,17 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
                 onClick = {
                     if (curItem != null) {
-                        val media = curItem
                         showPlayButton = !showPlayButton
                         if (showPlayButton && recordingStartTime != null) {
                             saveClipInOriginalFormat(recordingStartTime!!, exoPlayer!!.currentPosition)
                             recordingStartTime = null
                         }
-                        if (media.getMediaType() == MediaType.VIDEO && !isPlaying && (media.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
+                        if (curItem.getMediaType() == MediaType.VIDEO && !isPlaying && (curItem.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                             playPause()
                             context.startActivity(getPlayerActivityIntent(context, curItem.getMediaType()))
                         } else {
                             Logd(TAG, "Play button clicked: status: $status is ready: ${playbackService?.isServiceReady()}")
-                            PlaybackStarter(context, media).shouldStreamThisTime(null).start()
+                            PlaybackStarter(context, curItem).shouldStreamThisTime(null).start()
                         }
                     }
                 },
@@ -562,7 +550,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             val inActColor = MaterialTheme.colorScheme.secondaryFixedDim
             val distColor = remember { distinctColorOf(actColor, inActColor) }
             Slider(colors = SliderDefaults.colors(activeTrackColor = actColor,  inactiveTrackColor = inActColor), modifier = Modifier.height(12.dp).padding(top = 2.dp),
-                value = sliderValue, valueRange = 0f..( if (curItem?.duration?:0 > 0) curItem?.duration?:0 else 30000).toFloat(),
+                value = sliderValue, valueRange = 0f..( if ((curItem?.duration?:0) > 0) curItem?.duration?:0 else 30000).toFloat(),
                 onValueChange = { sliderValue = it }, onValueChangeFinished = { mPlayer?.seekTo(sliderValue.toInt()) })
             if (vm.bufferValue > 0f) LinearProgressIndicator(progress = { vm.bufferValue }, color = MaterialTheme.colorScheme.primaryFixed.copy(alpha = 0.6f), trackColor = MaterialTheme.colorScheme.secondaryFixedDim, modifier = Modifier.height(8.dp).fillMaxWidth().align(Alignment.BottomStart))
             Text(durationStringFull(curItem?.duration?:0), color = distColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
@@ -668,22 +656,25 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(curItem!!)) { showChooseRatingDialog = false }
         var showEditComment by remember { mutableStateOf(false) }
-        var showTagsSettingDialog by remember { mutableStateOf(false) }
         if (showEditComment && curItem != null) {
-            var commentText by remember { mutableStateOf(TextFieldValue(curItem?.compileCommentText() ?: "")) }
+            var commentText by remember { mutableStateOf(TextFieldValue(curItem.compileCommentText())) }
             CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},
-                onSave = { upsertBlk(curItem!!) { it.addComment(commentText.text, false) } })
+                onSave = { upsertBlk(curItem) { it.addComment(commentText.text, false) } })
         }
+        var showTagsSettingDialog by remember { mutableStateOf(false) }
         if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, curItem!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
-            upsertBlk(curItem!!) { it.tags.addAll(tags) }
+            upsertBlk(curItem) { it.tags.addAll(tags) }
         }
+        var showTodoDialog by remember { mutableStateOf(false) }
+        var onTodo by remember { mutableStateOf<Todo?>(null) }
+        if (showTodoDialog) TodoDialog(curItem!!, onTodo) { showTodoDialog = false}
 
         Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             gearbox.PlayerDetailedGearPanel(curItem, resetPlayer) { resetPlayer = it }
             SelectionContainer { Text((curItem?.feed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
                 Spacer(modifier = Modifier.weight(0.2f))
-                val ratingIconRes by remember(curItem?.rating) { mutableStateOf( Rating.fromCode(curItem?.rating ?: Rating.UNRATED.code).res) }
+                val ratingIconRes by remember(curItem?.rating) { mutableIntStateOf( Rating.fromCode(curItem?.rating ?: Rating.UNRATED.code).res) }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { showChooseRatingDialog = true }))
                 Spacer(modifier = Modifier.weight(0.4f))
                 val episodeDate by remember(curItem) { mutableStateOf(if (curItem == null) "" else formatDateTimeFlex(Date(curItem.pubDate)).trim()) }
@@ -691,6 +682,13 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                 Spacer(modifier = Modifier.weight(0.6f))
             }
             SelectionContainer { Text(curItem?.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
+            if (curItem != null) Todos(curItem!!, episodeFlow, {
+                onTodo = null
+                showTodoDialog = true
+            }, { todo->
+                onTodo = todo
+                showTodoDialog = true
+            })
             Text("Tags: ${curItem?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
             Text(stringResource(R.string.my_opinion_label) + if (curItem?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
             Text(curItem?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
@@ -717,23 +715,22 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             //                }
             //                return false
             //            }
-            AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
-                ShownotesWebView(context).apply {
-                    setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
-                    setPageFinishedListener {
-                        postDelayed({ }, 50)
-                    }
-                }
-            }, update = { webView -> webView.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank") })
+            EpisodeWebView(webviewData)
             if (!curItem?.related.isNullOrEmpty()) {
                 var showTodayStats by remember { mutableStateOf(false) }
                 if (showTodayStats) RelatedEpisodesDialog(curItem) { showTodayStats = false }
                 Text(stringResource(R.string.related), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
             }
             if (!curItem?.chapters.isNullOrEmpty()) ChaptersColumn(curItem)
-            if (imgLocLarge != null) {
-                val img = remember(imgLocLarge) { ImageRequest.Builder(context).data(imgLocLarge).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
+            if (curItem != null) {
+                val imgLarge = remember(curItem.id, displayedChapterIndex) {
+                    if (displayedChapterIndex == -1 || curItem.chapters.isEmpty() || curItem.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) curItem.imageUrl ?: curItem.feed?.imageUrl
+                    else EmbeddedChapterImage.getModelFor(curItem, displayedChapterIndex)?.toString()
+                }
+                if (imgLarge != null) {
+                    val img = remember(imgLarge) { ImageRequest.Builder(context).data(imgLarge).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                    AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
+                }
             }
         }
     }

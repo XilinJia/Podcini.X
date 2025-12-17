@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.playback.service
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
@@ -9,7 +8,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.monitorState
 import ac.mdiq.podcini.playback.base.InTheatre.restoreMediaFromPreferences
-import ac.mdiq.podcini.playback.base.InTheatre.setCurEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.buildMediaItem
@@ -68,7 +67,6 @@ import android.os.Vibrator
 import android.view.KeyEvent
 import android.view.KeyEvent.KEYCODE_MEDIA_STOP
 import android.view.ViewConfiguration
-import android.webkit.URLUtil
 import androidx.annotation.OptIn
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
@@ -656,7 +654,7 @@ class PlaybackService : MediaLibraryService() {
         if (event.action == FlowEvent.EpisodeMediaEvent.Action.REMOVED) {
             for (e in event.episodes) {
                 if (e.id == curEpisode?.id) {
-                    setCurEpisode(e)
+                    setAsCurEpisode(e)
                     mPlayer?.endPlayback(hasEnded = false, wasSkipped = true)
                     break
                 }

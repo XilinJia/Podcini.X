@@ -7,7 +7,7 @@ import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
-import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
+import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
 import ac.mdiq.podcini.storage.database.addToActQueue
@@ -111,6 +111,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -162,7 +163,7 @@ enum class LayoutMode {
 }
 
 enum class StatusRowMode {
-    Normal, Comment, Tags
+    Normal, Comment, Tags, Todos
 }
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
@@ -186,7 +187,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
-    val localTime = System.currentTimeMillis()
+    val localTime = remember { System.currentTimeMillis() }
 
     val currentEntry = navController.navController.currentBackStackEntryAsState().value
 
@@ -237,7 +238,13 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
     fun OpenDialogs() {
         gearbox.ConfirmAddEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
         if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
-        if (showAddCommentDialog) AddCommentDialog(selected) { showAddCommentDialog = false }
+        if (showAddCommentDialog) {
+            var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
+            CommentEditingDialog(textState = editCommentText, autoSave = false, onTextChange = { editCommentText = it }, onDismissRequest = { showAddCommentDialog = false },
+                onSave = {
+                    runOnIOScope { for (e in selected) upsert(e) { it.addComment(editCommentText.text) } }
+                })
+        }
         if (showEditTagsDialog) TagSettingDialog(TagType.Episode, setOf(), multiples = true, onDismiss = { showEditTagsDialog = false }) { tags ->
             runOnIOScope { for (e in selected) upsert(e) { it.tags.addAll(tags) }  }
         }
@@ -512,6 +519,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                                     if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                     val comment = remember(episode) { stripDateTimeLines(episode.comment).replace("\n", "  ") }
+                                    Spacer(Modifier.width(10.dp))
                                     Text(comment, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 3, overflow = TextOverflow.Ellipsis)
                                 }
                             }
@@ -522,7 +530,19 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                                     if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                     val tags = remember(episode) { episode.tags.joinToString(",") }
+                                    Spacer(Modifier.width(10.dp))
                                     Text(tags, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                }
+                            }
+                            @Composable
+                            fun Todos() {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
+                                    Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
+                                    if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
+                                    val todos = remember(episode) { episode.todos.filter { !it.completed }.map { it.title + if (it.dueTime>0) ("D:" + formatDateTimeFlex(Date(it.dueTime))) else "" }.joinToString(" | ") }
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(todos, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 }
                             }
                             @Composable
@@ -547,6 +567,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     when (statusRowMode) {
                                         StatusRowMode.Comment -> Comment()
                                         StatusRowMode.Tags -> Tags()
+                                        StatusRowMode.Todos -> Todos()
                                         else -> StatusRow()
                                     }
                                 }
@@ -579,6 +600,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     when (statusRowMode) {
                                         StatusRowMode.Comment -> Comment()
                                         StatusRowMode.Tags -> Tags()
+                                        StatusRowMode.Todos -> Todos()
                                         else -> StatusRow()
                                     }
                                 }
@@ -630,7 +652,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             if (showActionButtons) {
                                 if (actionButton_ == null) {
                                     when {
-                                        episode.id == curMediaId -> {
+                                        episode.id == curEpisode?.id -> {
                                             if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
                                             else actionButton.update(episode)
                                         }
@@ -720,7 +742,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                 draggedIndex = null
                                 yOffset = 0f
                             })
-                        if (showActionButtons && (episode.isInProgress || curMediaId == episode.id)) {
+                        if (showActionButtons && (episode.isInProgress || curEpisode?.id == episode.id)) {
                             fun calcProg(): Float {
                                 val pos = episode.position
                                 val dur = episode.duration

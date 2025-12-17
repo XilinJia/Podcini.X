@@ -129,7 +129,7 @@ import kotlin.math.round
 
 @Composable
 fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (rating in Rating.entries.reversed()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp).clickable {
@@ -154,7 +154,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
     var textState by remember { mutableStateOf(TextFieldValue("")) }
     val context = LocalContext.current
 
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             var saveImportant by remember { mutableStateOf(true) }
             Text(message)
@@ -210,7 +210,7 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
     val context = LocalContext.current
     val navController = LocalNavController.current
     val showSubscribeDialog = remember { mutableStateOf(false) }
-    if (showSubscribeDialog.value) CommonDialogSurface(onDismissRequest = { showSubscribeDialog.value = false }) {
+    if (showSubscribeDialog.value) CommonPopupCard(onDismissRequest = { showSubscribeDialog.value = false }) {
         val textColor = MaterialTheme.colorScheme.onSurface
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.Center) {
             Text("Subscribe: \"${feed.title}\" ?", color = textColor, modifier = Modifier.padding(bottom = 10.dp))
@@ -262,7 +262,7 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
 
 @Composable
 fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Unit) {
-    CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
         val textColor = MaterialTheme.colorScheme.onSurface
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
@@ -606,7 +606,7 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
 @Composable
 fun VideoModeDialog(initMode: VideoMode?, onDismissRequest: () -> Unit, callback: (VideoMode) -> Unit) {
     var selectedOption by remember { mutableStateOf(initMode?.tag ?: VideoMode.NONE.tag) }
-    CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+    CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Column {
                 VideoMode.entries.forEach { mode ->

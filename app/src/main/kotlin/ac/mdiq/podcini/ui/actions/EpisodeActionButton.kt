@@ -36,8 +36,8 @@ import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.utils.mergeAudios
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-import ac.mdiq.podcini.ui.compose.CommonDialogSurface
 import ac.mdiq.podcini.ui.compose.CommonMessageAttrib
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.utils.EventFlow
@@ -488,7 +488,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
     @UnstableApi
     @Composable
     fun AltActionsDialog(context: Context, onDismiss: () -> Unit) {
-        CommonDialogSurface(onDismissRequest = onDismiss) {
+        CommonPopupCard(onDismissRequest = onDismiss) {
             Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Logd(TAG, "button label: $type")
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {

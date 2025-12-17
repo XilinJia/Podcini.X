@@ -167,6 +167,8 @@ class Episode : RealmObject {
     var commentTime: Long = 0L
         private set
 
+    var todos: RealmList<Todo> = realmListOf()
+
     @Ignore
     val isNew: Boolean
         get() = playState == EpisodeState.NEW.code
@@ -336,8 +338,6 @@ class Episode : RealmObject {
             else -> {
                 when {
                     imageUrl != null -> imageUrl
-                    //            TODO: this can be very expensive for list
-                    //            media != null && media?.hasEmbeddedPicture() == true -> EpisodeMedia.FILENAME_PREFIX_EMBEDDED_COVER + media!!.fileUrl
                     feed != null -> feed!!.imageUrl
                     hasEmbeddedPicture() -> FILENAME_PREFIX_EMBEDDED_COVER + fileUrl
                     else -> null

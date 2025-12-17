@@ -12,7 +12,7 @@ import ac.mdiq.podcini.preferences.screens.UIPreferencesScreen
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
-import ac.mdiq.podcini.ui.compose.CommonDialogSurface
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
@@ -259,7 +259,7 @@ class PreferenceActivity : ComponentActivity() {
                 val emailIntent = Intent(Intent.ACTION_SEND).apply {
                     putExtra(Intent.EXTRA_EMAIL, arrayOf("xilin.vw@gmail.com"))
                     putExtra(Intent.EXTRA_SUBJECT, "Regarding Podcini")
-                    setType("message/rfc822")
+                    type = "message/rfc822"
                 }
                 if (emailIntent.resolveActivity(packageManager) != null) startActivity(emailIntent)
                 else Logt(TAG, getString(R.string.need_email_client))
@@ -291,7 +291,7 @@ class PreferenceActivity : ComponentActivity() {
         ComfirmDialog(titleRes = 0, message = licenseText, showLicense) {}
         var showDialog by remember { mutableStateOf(false) }
         var curLicenseIndex by remember { mutableIntStateOf(-1) }
-        if (showDialog) CommonDialogSurface(onDismissRequest = { showDialog = false }) {
+        if (showDialog) CommonPopupCard(onDismissRequest = { showDialog = false }) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(licenses[curLicenseIndex].title, color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
                 Row {
@@ -329,7 +329,7 @@ class PreferenceActivity : ComponentActivity() {
     @Composable
     fun NotificationPreferencesScreen() {
         val intent = Intent()
-        intent.setAction(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        intent.action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
         intent.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
         startActivity(intent)
     }

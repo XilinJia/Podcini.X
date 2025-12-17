@@ -18,14 +18,12 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
-import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.util.UnstableApi
@@ -51,14 +49,11 @@ object InTheatre {
     internal var vCtrlFuture: ListenableFuture<MediaController>? = null
     var vController: MediaController? = null
 
-    var curIndexInQueue = -1
-
     var actQueue by mutableStateOf(PlayQueue())
 
-    var curEpisode: Episode? = null     // manged
-        private set
+    var curEpisode by mutableStateOf<Episode?>(null)     // manged
 
-    var curMediaId by mutableLongStateOf(-1L)
+//    var curMediaId by mutableLongStateOf(-1L)
 
     private var curStateMonitor: Job? = null
     var curState: CurrentState      // managed
@@ -130,7 +125,7 @@ object InTheatre {
     var onCurInitUICB: (suspend (e: Episode)->Unit)? = null
     var onCurChangedUICB: (suspend (e: Episode, fields: Array<String>)->Unit)? = null
 
-    fun setCurEpisode(episode: Episode?) {
+    fun setAsCurEpisode(episode: Episode?) {
         Logd(TAG, "setCurEpisode episode: ${episode?.title}")
 //        showStackTrace()
         if (episode != null && episode.id == curEpisode?.id) return
@@ -152,11 +147,11 @@ object InTheatre {
                             }
                         ))
                 }
-                curMediaId = episode.id
+//                curMediaId = episode.id
             }
             else -> {
                 curEpisode = null
-                curMediaId = -1L
+//                curMediaId = -1L
             }
         }
     }
@@ -203,7 +198,7 @@ object InTheatre {
         if (curState.curMediaType != NO_MEDIA_PLAYING) {
             val type = curState.curMediaType.toInt()
             if (type == PLAYABLE_TYPE_FEEDMEDIA) {
-                if (curState.curMediaId != 0L) setCurEpisode(getEpisode(curState.curMediaId))
+                if (curState.curMediaId != 0L) setAsCurEpisode(getEpisode(curState.curMediaId))
             } else Loge(TAG, "Could not restore EpisodeMedia object from preferences")
         }
     }

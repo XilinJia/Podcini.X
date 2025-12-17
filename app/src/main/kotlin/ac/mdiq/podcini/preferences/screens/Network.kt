@@ -29,6 +29,7 @@ import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.storage.utils.deleteDirectoryRecursively
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.Spinner
@@ -59,7 +60,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -68,7 +68,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -94,7 +93,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
@@ -563,12 +561,10 @@ fun NetworkScreen(activity: PreferenceActivity) {
 
     var showProgress by remember { mutableStateOf(false) }
     if (showProgress) {
-        Dialog(onDismissRequest = { showProgress = false }) {
-            Surface(modifier = Modifier.size(100.dp), shape = RoundedCornerShape(8.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.TopCenter))
-                    Text("Loading...", color = textColor, modifier = Modifier.align(Alignment.BottomCenter))
-                }
+        CommonPopupCard(onDismissRequest = { showProgress = false }) {
+            Box(contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.TopCenter))
+                Text("Loading...", color = textColor, modifier = Modifier.align(Alignment.BottomCenter))
             }
         }
     }

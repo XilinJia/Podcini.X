@@ -164,6 +164,11 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             propertySet.contains(States.untagged.name) -> statements.add(" tags.@count == 0 ")
         }
 
+        when {
+            propertySet.contains(States.has_todos.name) -> statements.add(" todos.@count > 0 AND todos.completed == false")
+            propertySet.contains(States.no_todos.name) -> statements.add(" todos.@count == 0 ")
+        }
+
         if (statements.isEmpty()) return "id > 0"
         val query = StringBuilder(" (" + statements[0])
         if (statements.size > 1)  for (r in statements.subList(1, statements.size)) {
@@ -237,6 +242,9 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
 
         tagged,
         untagged,
+
+        has_todos,
+        no_todos,
 
         has_clips,
         no_clips,

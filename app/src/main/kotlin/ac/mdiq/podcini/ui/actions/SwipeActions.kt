@@ -20,7 +20,7 @@ import ac.mdiq.podcini.ui.compose.AlarmEpisodeDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
-import ac.mdiq.podcini.ui.compose.CommonDialogSurface
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
 import ac.mdiq.podcini.ui.compose.FutureStateDialog
@@ -60,6 +60,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -248,14 +249,13 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         @Composable
         override fun ActionOptions() {
             useAction?.ActionOptions()
-            if (showDialog && onEpisode != null) CommonDialogSurface(onDismissRequest = { showDialog = false }) {
+            if (showDialog && onEpisode != null) CommonPopupCard(onDismissRequest = { showDialog = false }) {
                 val context = LocalContext.current
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     for (action in actionsList) {
                         if (action is NoAction || action is Combo) continue
                         if (!action.enabled()) continue
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier
-                            .padding(4.dp)
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)
                             .clickable {
                                 useAction = action
                                 action.performAction(onEpisode!!)
@@ -569,7 +569,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     companion object {
         @Composable
         fun SwipeActionsSettingDialog(sa: SwipeActions, onDismissRequest: () -> Unit, callback: (RightLeftActions)->Unit) {
-            val context = LocalContext.current
+            val context by rememberUpdatedState(LocalContext.current)
             val textColor = MaterialTheme.colorScheme.onSurface
 
             var actions by remember { mutableStateOf(sa.actions) }
@@ -580,7 +580,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             var direction by remember { mutableIntStateOf(0) }
             var showPickerDialog by remember { mutableStateOf(false) }
             if (showPickerDialog) {
-                CommonDialogSurface(onDismissRequest = { showPickerDialog = false }) {
+                CommonPopupCard(onDismissRequest = { showPickerDialog = false }) {
                     LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(16.dp)) {
                         items(keys.size) { index ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)
@@ -600,7 +600,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 }
             }
 
-            if (!showPickerDialog) CommonDialogSurface(onDismissRequest = { onDismissRequest() }) {
+            if (!showPickerDialog) CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
                 Logd("SwipeActions", "SwipeActions tag: ${sa.tag}")
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
                     val forFragment = remember(sa.tag) {

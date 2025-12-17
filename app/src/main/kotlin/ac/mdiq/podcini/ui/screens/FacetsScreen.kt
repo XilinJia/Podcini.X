@@ -34,7 +34,6 @@ import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
-import ac.mdiq.podcini.ui.compose.SpinnerExternalSet
 import ac.mdiq.podcini.ui.compose.StatusRowMode
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
@@ -42,11 +41,13 @@ import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -54,16 +55,21 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -91,7 +97,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
@@ -123,7 +132,7 @@ import java.text.NumberFormat
 import java.util.Date
 
 enum class QuickAccess {
-    New, Planned, Repeats, Liked, Commented, Tagged, Recorded, Queued, Downloaded, History, All, Custom
+    New, Planned, Repeats, Liked, Todos, Commented, Tagged, Recorded, Queued, Downloaded, History, All, Custom
 }
 
 var facetsMode by mutableStateOf(QuickAccess.New)
@@ -222,6 +231,10 @@ fun FacetsScreen() {
             QuickAccess.Tagged -> {
                 listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.tagged.name).add(vm.filter), vm.sortOrder)
+            }
+            QuickAccess.Todos -> {
+                listIdentity += ".${vm.sortOrder.name}"
+                getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.has_todos.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Recorded -> {
                 listIdentity += ".${vm.sortOrder.name}"
@@ -477,6 +490,30 @@ fun FacetsScreen() {
         }
     }
 
+    var showChooseMode by remember { mutableStateOf(false) }
+    @Composable
+    fun ChooseMode() {
+        Popup(onDismissRequest = { showChooseMode = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
+            Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                    for (index in spinnerTexts.indices) {
+                        FilterChip(onClick = {
+                            curIndex = index
+                            facetsMode = QuickAccess.valueOf(spinnerTexts[curIndex])
+                            vm.tag = TAG + QuickAccess.entries[curIndex]
+                            upsertBlk(vm.facetsPrefs) { it.prefFacetsCurIndex = index}
+                            actionButtonToPass = if (facetsMode == QuickAccess.Downloaded) { it -> EpisodeActionButton(it, ButtonTypes.DELETE) } else null
+                            buildFlow()
+                            showChooseMode = false
+                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                    }
+                }
+            }
+        }
+    }
+    if (showChooseMode) ChooseMode()
+
+
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
@@ -484,16 +521,7 @@ fun FacetsScreen() {
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
         Box {
-            TopAppBar(title = {
-                SpinnerExternalSet(items = spinnerTexts, selectedIndex = curIndex) { index: Int ->
-                    Logd(TAG, "Item selected: $index")
-                    curIndex = index
-                    facetsMode = QuickAccess.valueOf(spinnerTexts[curIndex])
-                    vm.tag = TAG + QuickAccess.entries[curIndex]
-                    upsertBlk(vm.facetsPrefs) { it.prefFacetsCurIndex = index}
-                    actionButtonToPass = if (facetsMode == QuickAccess.Downloaded) { it -> EpisodeActionButton(it, ButtonTypes.DELETE) } else null
-                    buildFlow()
-                }
+            TopAppBar(title = { Text(facetsMode.name, maxLines=1, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clickable(onClick = { showChooseMode = true }))
             }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {
                 Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                     val feedsIconRes by remember(showFeeds) { derivedStateOf { if (showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
@@ -583,6 +611,7 @@ fun FacetsScreen() {
                 when (facetsMode) {
                     QuickAccess.Commented -> StatusRowMode.Comment
                     QuickAccess.Tagged -> StatusRowMode.Tags
+                    QuickAccess.Todos -> StatusRowMode.Todos
                     else -> StatusRowMode.Normal
                 })
             }

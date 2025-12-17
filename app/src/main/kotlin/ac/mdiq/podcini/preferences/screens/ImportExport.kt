@@ -25,6 +25,7 @@ import ac.mdiq.podcini.preferences.importPA
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
+import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
@@ -418,12 +419,10 @@ fun ImportExportPreferencesScreen(activity: PreferenceActivity) {
 
     val textColor = MaterialTheme.colorScheme.onSurface
     if (showProgress) {
-        Dialog(onDismissRequest = { showProgress = false }) {
-            Surface(modifier = Modifier.size(100.dp), shape = RoundedCornerShape(8.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.TopCenter))
-                    Text("Loading...", color = textColor, modifier = Modifier.align(Alignment.BottomCenter))
-                }
+        CommonPopupCard(onDismissRequest = { showProgress = false }) {
+            Box(contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(progress = {0.6f}, strokeWidth = 10.dp, color = textColor, modifier = Modifier.size(50.dp).align(Alignment.TopCenter))
+                Text("Loading...", color = textColor, modifier = Modifier.align(Alignment.BottomCenter))
             }
         }
     }

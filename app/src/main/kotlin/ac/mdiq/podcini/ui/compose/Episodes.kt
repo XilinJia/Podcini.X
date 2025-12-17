@@ -29,21 +29,22 @@ import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.shelveToFeed
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.database.upsertBlkEmb
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.duetime
-import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.EpisodesFilterGroup
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.storage.utils.getDurationStringLocalized
 import ac.mdiq.podcini.storage.utils.durationStringFull
+import ac.mdiq.podcini.storage.utils.getDurationStringLocalized
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton.Companion.playVideoIfNeeded
@@ -51,12 +52,14 @@ import ac.mdiq.podcini.ui.screens.SearchBy
 import ac.mdiq.podcini.ui.screens.SearchByGrid
 import ac.mdiq.podcini.ui.screens.searchEpisodesQuery
 import ac.mdiq.podcini.ui.screens.setSearchByAll
+import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.localDateTimeString
 import ac.mdiq.podcini.utils.shareFeedItemFile
 import ac.mdiq.podcini.utils.shareFeedItemLinkWithDownloadLink
@@ -66,6 +69,7 @@ import android.content.Context
 import android.net.Uri
 import android.view.Gravity
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -132,24 +136,31 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -163,17 +174,15 @@ fun ShareDialog(item: Episode, act: Activity, onDismissRequest: () -> Unit) {
     val PREF_SHARE_EPISODE_TYPE = "prefShareEpisodeType"
 
     val prefs = remember { act.getSharedPreferences("ShareDialog", Context.MODE_PRIVATE) }
-    // TODO: ensure hasMedia
-//    val hasMedia = remember { item.media != null }
     val hasMedia = remember { true }
     val downloaded = remember { hasMedia && item.downloaded }
     val hasDownloadUrl = remember { hasMedia && item.downloadUrl != null }
 
-    // TODO: what's this
-    var type = remember { prefs.getInt(PREF_SHARE_EPISODE_TYPE, 1) }
-    if ((type == 2 && !hasDownloadUrl) || (type == 3 && !downloaded)) type = 1
+    var position by remember { mutableIntStateOf(run {
+        val type =prefs.getInt(PREF_SHARE_EPISODE_TYPE, 1)
+        if ((type == 2 && !hasDownloadUrl) || (type == 3 && !downloaded)) 1 else type
+    }) }
 
-    var position by remember { mutableIntStateOf(type) }
     var isChecked by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
 
@@ -224,11 +233,11 @@ fun ShareDialog(item: Episode, act: Activity, onDismissRequest: () -> Unit) {
 @androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
-    val lazyListState = rememberLazyListState()
-    val chapters = remember { media.chapters }
-    val textColor = MaterialTheme.colorScheme.onSurface
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            val lazyListState = rememberLazyListState()
+            val chapters = remember { media.chapters }
+            val textColor = MaterialTheme.colorScheme.onSurface
             Text(stringResource(R.string.chapters_label))
             var currentChapterIndex by remember { mutableIntStateOf(-1) }
             LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp),
@@ -259,6 +268,130 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
                                 currentChapterIndex = index
                             })
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Unit) {
+    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            val textColor = MaterialTheme.colorScheme.onSurface
+            var title by remember { mutableStateOf(TextFieldValue(todo?.title ?: "")) }
+            BasicTextField(value = title, onValueChange = { title = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(40.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+            var addNote by remember { mutableStateOf(false) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = addNote, onCheckedChange = { addNote = it })
+                Text(text = stringResource(R.string.add_notes), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
+            }
+            var note by remember { mutableStateOf(TextFieldValue(todo?.note ?: "")) }
+            if (addNote) BasicTextField(value = note, onValueChange = { note = it }, textStyle = TextStyle(fontSize = 12.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
+            val sysTime = remember { System.currentTimeMillis() }
+            var dueTime by remember { mutableLongStateOf(0) }
+            var addDueTime by remember { mutableStateOf((todo?.dueTime ?: 0) > 0) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = addDueTime, onCheckedChange = {
+                    addDueTime = it
+                    if (todo != null) {
+                        dueTime = if (addDueTime) todo.dueTime
+                        else 0
+                    }
+                })
+                Text(text = stringResource(R.string.set_due_time), style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 10.dp))
+            }
+            val zdt by remember(addDueTime) { mutableStateOf(Instant.ofEpochMilli(
+                if (todo != null) {
+                    if (todo.dueTime > 0) todo.dueTime
+                    else if (addDueTime) sysTime
+                    else 0
+                } else sysTime
+            ).atZone(ZoneId.systemDefault())) }
+            var year by remember(zdt) { mutableIntStateOf(zdt.year) }
+            var month by remember(zdt) { mutableIntStateOf(zdt.monthValue) }
+            var date by remember(zdt) { mutableIntStateOf(zdt.dayOfMonth) }
+            var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
+            var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
+            if (addDueTime) {
+                Text(stringResource(R.string.year) + " " + stringResource(R.string.month) + " " + stringResource(R.string.date))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    NumberEditor(year, "", nz = true, instant = true, modifier = Modifier.weight(0.5f)) { year = it }
+                    NumberEditor(month, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { month = it }
+                    NumberEditor(date, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { date = it }
+                }
+                Text(stringResource(R.string.hour) + " " + stringResource(R.string.minute))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    NumberEditor(hour, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { hour = it }
+                    NumberEditor(minute, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { minute = it }
+                }
+            }
+            Button(onClick = {
+                runOnIOScope {
+                    try {
+                        if (addDueTime) dueTime = LocalDateTime.of(year, month, date, hour, minute, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        if (todo == null) {
+                            val todo_ = todo ?: Todo()
+                            todo_.id = sysTime
+                            todo_.title = title.text
+                            todo_.note = note.text
+                            todo_.dueTime = dueTime
+                            upsert(episode) { it.todos.add(todo_) }
+                        } else upsertBlkEmb(todo) { todo_ ->
+                            todo_.title = title.text
+                            todo_.note = note.text
+                            todo_.dueTime = dueTime
+                        }
+                        if (dueTime > 0) playEpisodeAtTime(dueTime, episode)
+                    } catch (e: Throwable) { Loge(TAG, "editing Todo error: ${e.message}")}
+                }
+                onDismissRequest()
+            }) { Text(stringResource(R.string.confirm_label)) }
+        }
+    }
+}
+
+@Composable
+fun Todos(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode>>, createCB: ()->Unit, editCB: (Todo)->Unit) {
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val todosFlow: Flow<List<Todo>> = episodeFlow.map { ec -> ec.obj?.todos?.toList() ?: emptyList() }
+    val todos by todosFlow.collectAsStateWithLifecycle(initialValue = listOf())
+
+    var show by remember { mutableStateOf(false) }
+    var showDone by remember { mutableStateOf(false) }
+    Row(modifier = Modifier.padding(start = 15.dp, end = 10.dp, top = 10.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Todos:", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.clickable {
+            createCB()
+        })
+        if (todos.isNotEmpty()) {
+            Spacer(Modifier.width(50.dp))
+            Checkbox(checked = show, onCheckedChange = { show = it })
+            Text(text = stringResource(R.string.show), style = MaterialTheme.typography.bodyLarge.merge())
+            if (show) {
+                Spacer(Modifier.width(50.dp))
+                Checkbox(checked = showDone, onCheckedChange = { showDone = it })
+                Text(text = stringResource(R.string.show_done), style = MaterialTheme.typography.bodyLarge.merge())
+            }
+        }
+    }
+    if (show && todos.isNotEmpty()) Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
+        val localTime = remember { System.currentTimeMillis() }
+        for (todo in todos) {
+            var done by remember(todo) { mutableStateOf(todo.completed) }
+            if (!done || showDone) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = done, onCheckedChange = {
+                        done = it
+                        upsertBlkEmb(todo) { todo -> todo.completed = done }
+                    })
+                    Text(text = todo.title, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.clickable(onClick = { editCB(todo) }))
+                    Spacer(Modifier.weight(1f))
+                    Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "delete", modifier = Modifier.padding(end = 15.dp).clickable(onClick = { upsertBlk(episode) { it.todos.remove(todo) } }))
+                }
+                if (todo.dueTime > 0) {
+                    val dueText by remember(todo.dueTime) { mutableStateOf("D:" + formatDateTimeFlex(Date(todo.dueTime))) }
+                    val bgColor = if (localTime > todo.dueTime) Color.Cyan else MaterialTheme.colorScheme.surface
+                    Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 20.dp).background(bgColor))
                 }
             }
         }
@@ -368,6 +501,16 @@ fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
 }
 
 @Composable
+fun EpisodeWebView(webviewData: String?) {
+    AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
+        ShownotesWebView(context).apply {
+            setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
+            setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
+        }
+    }, update = { it.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData, "text/html", "utf-8", "about:blank") })
+}
+
+@Composable
 fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
     // TODO: somehow, episode is not updated after unrelate
 //    var episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return
@@ -398,7 +541,7 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
 
 @Composable
 fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (rating in Rating.entries.reversed()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)
@@ -415,18 +558,9 @@ fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 }
 
 @Composable
-fun AddCommentDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
-    CommentEditingDialog(textState = editCommentText, autoSave = false, onTextChange = { editCommentText = it }, onDismissRequest = { onDismissRequest() },
-        onSave = {
-            runOnIOScope { for (e in selected) upsert(e) { it.addComment(editCommentText.text) } }
-        })
-}
-
-@Composable
 fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futureCB: (EpisodeState)->Unit, ignoreCB: ()->Unit) {
     val context = LocalContext.current
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (state in EpisodeState.entries.reversed()) {
                 if (state.userSet) {
@@ -479,14 +613,16 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
 
 @Composable
 fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             var removeChecked by remember { mutableStateOf(false) }
             var toQueue by remember { mutableStateOf(actQueue) }
-            for (q in queues) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    RadioButton(selected = toQueue == q, onClick = { toQueue = q })
-                    Text(q.name)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                for (q in queues) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = toQueue == q, onClick = { toQueue = q })
+                        Text(q.name)
+                    }
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -524,7 +660,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 @Composable
 fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
     val synthetics = realm.query(Feed::class).query("id >= 100 && id <= 1000").find()
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
             var removeChecked by remember { mutableStateOf(false) }
             var toFeed by remember { mutableStateOf<Feed?>(null) }
@@ -553,12 +689,12 @@ fun ShelveDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 
 @Composable
 fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: () -> Unit) {
-    val message = stringResource(R.string.erase_episodes_confirmation_msg)
-    val textColor = MaterialTheme.colorScheme.onSurface
-    var textState by remember { mutableStateOf(TextFieldValue("")) }
-    val context = LocalContext.current
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
+        val message = stringResource(R.string.erase_episodes_confirmation_msg)
+        val textColor = MaterialTheme.colorScheme.onSurface
+        var textState by remember { mutableStateOf(TextFieldValue("")) }
+        val context = LocalContext.current
 
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
         if (feed == null) Text(stringResource(R.string.not_erase_message), modifier = Modifier.padding(10.dp))
         else Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(message + ": ${selected.size}")
@@ -640,7 +776,7 @@ fun AlarmEpisodeDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                     val currentTime = Calendar.getInstance()
                     if (targetTime.before(currentTime)) targetTime.add(Calendar.DAY_OF_MONTH, 1)
                     Logd(TAG, "start time: $targetTime")
-                    playEpisodeAtTime(context, targetTime.timeInMillis, selected[0])
+                    playEpisodeAtTime( targetTime.timeInMillis, selected[0])
                 }
                 onDismissRequest()
             }) { Text(text = "OK") }
@@ -651,12 +787,11 @@ fun AlarmEpisodeDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 
 @Composable
 fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    val message = stringResource(R.string.ignore_episodes_confirmation_msg)
-    val textColor = MaterialTheme.colorScheme.onSurface
-    var textState by remember { mutableStateOf(TextFieldValue("")) }
-
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            val message = stringResource(R.string.ignore_episodes_confirmation_msg)
+            val textColor = MaterialTheme.colorScheme.onSurface
+            var textState by remember { mutableStateOf(TextFieldValue("")) }
             Text(message + ": ${selected.size}")
             Text(stringResource(R.string.reason_to_delete_msg))
             BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
@@ -681,7 +816,7 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
 @Composable
 fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissRequest: () -> Unit) {
     val message = stringResource(R.string.repeat_episodes_msg)
-    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(message + ": ${selected.size}")
             var intervals = remember { if (selected.size == 1) selected[0].feed?.repeatIntervals?.toMutableList() else null }

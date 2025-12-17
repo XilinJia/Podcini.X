@@ -8,7 +8,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.playback.base.InTheatre.curMediaId
+import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.preferences.AppPreferences
@@ -244,8 +244,8 @@ class MainActivity : BaseActivity() {
 
         if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
 
-        LaunchedEffect(key1 = isBSExpanded, key2 = curMediaId) {
-            if (curMediaId > 0) {
+        LaunchedEffect(key1 = isBSExpanded, key2 = curEpisode?.id) {
+            if ((curEpisode?.id ?: -1L) > 0) {
                 if (isBSExpanded) sheetState.bottomSheetState.expand()
                 else sheetState.bottomSheetState.partialExpand()
             } else sheetState.bottomSheetState.hide()
