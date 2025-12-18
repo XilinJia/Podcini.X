@@ -195,7 +195,7 @@
   <string name="enqueue_location_front">放到清單最前</string>
   <string name="enqueue_location_after_current">當前這集以後</string>
 
-  <string name="visit_user_forum">使用者論壇</string>
+
   <string name="bug_report_title">回報錯誤</string>
   <string name="open_bug_tracker">開啟錯誤追蹤</string>
   <string name="copy_to_clipboard">複製到剪貼簿</string>

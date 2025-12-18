@@ -152,12 +152,13 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     @UnstableApi
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     protected open fun setDataSource(metadata: MediaMetadata, media: Episode) {
-        Logd(TAG, "setDataSource1 called ${media.title}")
-        Logd(TAG, "setDataSource1 url [${media.downloadUrl}]")
+        Logd(TAG, "setDataSource called ${media.title}")
+        Logd(TAG, "setDataSource url [${media.downloadUrl}]")
         val url = media.downloadUrl
         if (url.isNullOrBlank()) {
             Loge(TAG, "setDataSource: media downloadUrl is null or blank ${media.title}")
-            return
+            upsertBlk(media) { it.setPlayState(EpisodeState.ERROR) }
+            throw IllegalArgumentException("blank url")
         }
         val feed = media.feed
         val user = feed?.username
@@ -166,11 +167,11 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         try {
             mediaSource = gearbox.formMediaSource(metadata, media, context)
             if (mediaSource != null) {
-                Logd(TAG, "setDataSource1 setting for Podcast source")
+                Logd(TAG, "setDataSource setting for Podcast source")
                 mediaItem = mediaSource?.mediaItem
                 setSourceCredentials(user, password)
             } else {
-                Logd(TAG, "setDataSource1 setting for Podcast source")
+                Logd(TAG, "setDataSource setting for Podcast source")
                 setDataSource(media, metadata, url, user, password)
             }
         } catch (e: Throwable) {

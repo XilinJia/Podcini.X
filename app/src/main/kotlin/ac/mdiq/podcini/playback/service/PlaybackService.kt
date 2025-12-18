@@ -672,7 +672,7 @@ class PlaybackService : MediaLibraryService() {
                     break
                 }
             }
-        } else if (event.action == FlowEvent.QueueEvent.Action.REMOVED) {
+        } else if (event.action == FlowEvent.QueueEvent.Action.CLEARED) {
             mediaSession?.notifyChildrenChanged("ActQueue", 0, null)
             mPlayer?.endPlayback(hasEnded = false, wasSkipped = true, shouldContinue = isPlaying)
         }

@@ -331,7 +331,7 @@
   <string name="enqueue_location_front">Início</string>
   <string name="enqueue_location_after_current">Depois do episódio atual</string>
 
-  <string name="visit_user_forum">Fórum de usuários</string>
+
   <string name="bug_report_title">Reportar um bug</string>
   <string name="open_bug_tracker">Abrir registro de bugs</string>
   <string name="copy_to_clipboard">Copiar para clipboard</string>

@@ -358,7 +358,7 @@
   <string name="enqueue_location_random">Ao chou</string>
 
   <string name="documentation_support">Documentación &amp; axuda</string>
-  <string name="visit_user_forum">Foro de usuarias</string>
+
   <string name="bug_report_title">Informar de fallo</string>
   <string name="open_bug_tracker">Abrir seguimento de fallos</string>
   <string name="copy_to_clipboard">Copiar ó portapapeis</string>

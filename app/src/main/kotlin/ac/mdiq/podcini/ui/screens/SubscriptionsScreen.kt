@@ -673,7 +673,6 @@ fun SubscriptionsScreen() {
             if (showAutoDownloadSwitchDialog) SimpleSwitchDialog(stringResource(R.string.auto_download_settings_label), stringResource(R.string.auto_download_label), onDismissRequest = { showAutoDownloadSwitchDialog = false }) { enabled ->
                 saveFeed { it: Feed -> it.autoDownload = enabled }
             }
-//            if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
         }
 
         OpenDialogs()

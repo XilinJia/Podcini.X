@@ -429,7 +429,7 @@
     <string name="enqueue_location_after_current">Μετά το τρέχον επεισόδιο</string>
     <string name="enqueue_location_random">Τυχαία</string>
     <string name="documentation_support">Τεκμηρίωση &amp; υποστήριξη</string>
-    <string name="visit_user_forum">Φόρουμ χρηστών</string>
+
     <string name="bug_report_title">Αναφορά σφάλματος</string>
     <string name="email_developer">Αποστολή email στον προγραμματιστή</string>
     <string name="need_email_client">Χρειάζεστε ένα πρόγραμμα-πελάτη ηλεκτρονικού ταχυδρομείου εγκατεστημένο στο τηλέφωνο.</string>

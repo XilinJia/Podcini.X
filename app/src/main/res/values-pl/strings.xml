@@ -435,7 +435,7 @@
     <string name="enqueue_location_after_current">Za bieżącym odcinkiem</string>
     <string name="enqueue_location_random">Losowo</string>
     <string name="documentation_support">Dokumentacja i wsparcie</string>
-    <string name="visit_user_forum">Forum użytkowników</string>
+
     <string name="bug_report_title">Zgłoś błąd</string>
     <string name="email_developer">Wyślij e-mail do dewelopera</string>
     <string name="need_email_client">Potrzebujesz klienta poczty elektronicznej zainstalowanego na telefonie.</string>

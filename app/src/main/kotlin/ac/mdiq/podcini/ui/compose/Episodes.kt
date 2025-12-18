@@ -619,10 +619,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
             var toQueue by remember { mutableStateOf(actQueue) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                 for (q in queues) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(selected = toQueue == q, onClick = { toQueue = q })
-                        Text(q.name)
-                    }
+                    FilterChip(label = { Text(q.name) }, onClick = { toQueue = q }, selected = toQueue == q, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {

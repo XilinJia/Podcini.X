@@ -433,7 +433,7 @@
     <string name="enqueue_location_after_current">za hrající epizodu</string>
     <string name="enqueue_location_random">Náhodné</string>
     <string name="documentation_support">Dokumentace &amp; Podpora</string>
-    <string name="visit_user_forum">Uživatelské fórum</string>
+
     <string name="bug_report_title">Nahlásit chybu</string>
     <string name="email_developer">E-mail vývojáři</string>
     <string name="need_email_client">Na telefonu je nainstalován e-mailový klient.</string>

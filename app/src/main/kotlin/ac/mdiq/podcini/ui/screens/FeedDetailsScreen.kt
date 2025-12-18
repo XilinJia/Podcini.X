@@ -1575,9 +1575,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                 if (showHeader) FeedDetailsHeader()
                 if (feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
-                    var scrollToOnStart by remember(episodes, curEpisode) { mutableIntStateOf(run {
-                        if (curEpisode?.feedId == feedId) episodes.indexOfFirst { it.id == curEpisode?.id } else -1
-                    }) }
+                    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
+                    var scrollToOnStart by remember(episodes, curEpisode) {
+                        mutableIntStateOf(if (cameBack) -1 else if (curEpisode?.feedId == feedId) episodes.indexOfFirst { it.id == curEpisode?.id } else -1) }
                     infoBarText.value = "$listInfoText $feedOperationText"
                     InforBar(infoBarText, swipeActions)
                     EpisodeLazyColumn(context, episodes, feed = feed, layoutMode = layoutModeIndex, swipeActions = swipeActions,

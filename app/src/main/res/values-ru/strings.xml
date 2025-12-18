@@ -433,7 +433,7 @@
     <string name="enqueue_location_after_current">за текущим выпуском</string>
     <string name="enqueue_location_random">Случайно</string>
     <string name="documentation_support">Документация и поддержка</string>
-    <string name="visit_user_forum">Форум пользователей</string>
+
     <string name="bug_report_title">Сообщить об ошибке</string>
     <string name="email_developer">Написать разработчику</string>
     <string name="need_email_client">На телефоне установлен почтовый клиент.</string>

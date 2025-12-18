@@ -17,11 +17,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -31,8 +28,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -258,24 +253,6 @@ fun ScrollRowGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, c
                     val index = remember { firstIndex + cid }
                     val mod = if (cid < columns-1) Modifier.padding(end = 10.dp) else Modifier
                     Box(modifier = mod) { if (index < itemCount) content(index) }
-                }
-            }
-        }
-    }
-}
-
-
-@Composable
-fun AlignedGrid(columnsData: List<List<String>>, content: @Composable (Int) -> Unit) {
-    LazyRow(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 8.dp)) {
-        itemsIndexed(columnsData) { _, columnItems ->
-            Column(modifier = Modifier.fillMaxHeight().padding(horizontal = 4.dp)) {
-                columnItems.forEach { itemText ->
-                    Box(modifier = Modifier.width(IntrinsicSize.Max)) {
-                        OutlinedButton(onClick = {}) {
-                            Text(itemText)
-                        }
-                    }
                 }
             }
         }

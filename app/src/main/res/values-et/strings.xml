@@ -253,7 +253,7 @@
   <string name="enqueue_location_front">Lõppu</string>
   <string name="enqueue_location_after_current">Pärast praegust saadet</string>
 
-  <string name="visit_user_forum">Kasutajate foorum</string>
+
   <string name="bug_report_title">Raporteeri veast</string>
   <string name="open_bug_tracker">Ava vigade loetelu</string>
   <string name="copy_to_clipboard">Kopeeri lõikelauale</string>

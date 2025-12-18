@@ -336,7 +336,7 @@
   <string name="enqueue_location_random">Tilfeldig</string>
 
   <string name="documentation_support">Dokumentasjon &amp; Støtte</string>
-  <string name="visit_user_forum">Bruker-forum</string>
+
   <string name="bug_report_title">Rapporter feil</string>
   <string name="open_bug_tracker">Åpne bug-tracker</string>
   <string name="copy_to_clipboard">Kopier til utklippstavle</string>

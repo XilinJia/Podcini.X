@@ -45,7 +45,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.ShownotesCleaner
-import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.openInBrowser
 import android.content.ContextWrapper
@@ -207,7 +206,6 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     var offerStreaming by remember { mutableStateOf(false) }
 
     var showShareDialog by remember { mutableStateOf(false) }
-    var showOnDemandConfigDialog by remember { mutableStateOf(false) }
     var showChooseRatingDialog by remember { mutableStateOf(false) }
     var showIgnoreDialog by remember { mutableStateOf(false) }
     var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
@@ -219,40 +217,12 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
 
     @Composable
     fun OpenDialogs() {
-        // TODO: this is not fired ??
-        @Composable
-        fun OnDemandConfigDialog(onDismiss: () -> Unit) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { },
-                text = { Text(stringResource(if (offerStreaming) R.string.on_demand_config_stream_text else R.string.on_demand_config_download_text)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        if (offerStreaming) AppPreferences.prefStreamOverDownload = true
-                        if (episode?.feed != null) episode!!.feed = upsertBlk(episode!!.feed!!) { it.prefStreamOverDownload = offerStreaming }
-                        // Update all visible lists to reflect new streaming action button
-                        //                        load()
-                        //                        if (episode != null && webviewData.isBlank()) {
-                        //                            Logd(TAG, "description: ${episode?.description}")
-                        //                            val webDataPair = gearbox.buildWebviewData(episode!!, shownotesCleaner)
-                        //                            webviewData = webDataPair?.second ?: shownotesCleaner.processShownotes(episode!!.description ?: "", episode!!.duration)
-                        //                        }
-                        Logt(TAG, context.getString(R.string.on_demand_config_setting_changed))
-                        onDismiss()
-                    }) { Text("OK") }
-                },
-                dismissButton = { TextButton(onClick = {
-                    UsageStatistics.doNotAskAgain(UsageStatistics.ACTION_STREAM)
-                    onDismiss()
-                }) { Text(stringResource(R.string.cancel_label)) } }
-            )
-        }
-
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(episode!!)) { showChooseRatingDialog = false }
         if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(episode!!), onDismissRequest = { showIgnoreDialog = false })
         if (showPlayStateDialog) PlayStateDialog(listOf(episode!!), onDismissRequest = { showPlayStateDialog = false }, { futureState = it },{ showIgnoreDialog = true })
         if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(episode!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
         if (showShareDialog && episode != null && actMain != null) ShareDialog(episode!!, actMain) { showShareDialog = false }
 //        if (showChaptersDialog && episode != null) ChaptersDialog(media = episode!!, onDismissRequest = {showChaptersDialog = false})
-        if (showOnDemandConfigDialog) OnDemandConfigDialog { showOnDemandConfigDialog = false }
         if (showEditComment && episode != null) {
             var commentText by remember { mutableStateOf(TextFieldValue(episode?.compileCommentText() ?: "")) }
             CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},

@@ -431,7 +431,7 @@
     <string name="enqueue_location_after_current">Después del episodio actual</string>
     <string name="enqueue_location_random">Aleatorio</string>
     <string name="documentation_support">Documentación &amp; Asistencia</string>
-    <string name="visit_user_forum">Foro de usuario</string>
+
     <string name="bug_report_title">Reportar bug</string>
     <string name="email_developer">Email al desarrollador</string>
     <string name="need_email_client">Necesitas un cliente de correo electrónico instalado en el teléfono.</string>

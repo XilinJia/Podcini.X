@@ -339,7 +339,7 @@
   <string name="enqueue_location_random">Aleatori</string>
 
   <string name="documentation_support">Documentació i suport</string>
-  <string name="visit_user_forum">Fòrum d\'usuaris</string>
+
   <string name="bug_report_title">Informa d\'un bug</string>
   <string name="open_bug_tracker">Obri rastrejador de bugs</string>
   <string name="copy_to_clipboard">Còpia al porta-retalls </string>

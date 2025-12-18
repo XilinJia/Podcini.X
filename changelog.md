@@ -1,3 +1,27 @@
+# 9.9.1
+
+* fixed an issue of initializing curState from DB, which can 
+	* cause various properties not restored, and 
+	* set Default queue's name to empty - please rename it back if this happened to you
+* removing curEpisode from queue when not playing will dismiss the playerUI
+* in Queues screen, the name on the topbar
+	* reflects actQueue and queue size
+	* when long-pressed in actQueue, the list scrolls to curEpisode
+* re-adjusted auto-scroll routines:
+	* in FeedDetails screen
+		* on first start 
+			* if curEpisode belong to the feed, it scrolls to the curEpisode
+			* on other feeds, it starts to the first episode based on sorting
+		* if returned from EpisodeInfo, it restores the previous position
+	* in Queues screen
+		* on first start 
+			* if curEpisode belong to the queue, it scrolls to the curEpisode
+			* on other queues, it starts to the previously saved position of the queue
+		* if returned from EpisodeInfo, it restores the previous position
+		* not quite desired: removing an episode causes the list to scroll to curEpisode
+* amended "Add to queue" popup, removed the radio buttons
+* various dependencies update
+
 # 9.9.0
 
 * added Todo capabilities in EpisodeInfo and PlayerDetails screens

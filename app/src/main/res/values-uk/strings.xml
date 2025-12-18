@@ -433,7 +433,7 @@
     <string name="enqueue_location_after_current">Після поточного епізоду</string>
     <string name="enqueue_location_random">Випадково</string>
     <string name="documentation_support">Документація та підтримка</string>
-    <string name="visit_user_forum">Форум користувачів</string>
+
     <string name="bug_report_title">Повідомити про помилку</string>
     <string name="email_developer">Написати розробнику</string>
     <string name="need_email_client">На телефоні потрібен поштовий клієнт.</string>

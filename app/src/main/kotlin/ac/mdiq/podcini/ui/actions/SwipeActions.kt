@@ -90,7 +90,7 @@ abstract class SwipeAction {
     @Composable
     open fun ActionOptions() {}
     open fun performAction(e: Episode) {
-        Logd("SwipeAction", "performAction: ${e.title}")
+        Logd("SwipeAction", "performAction: $title ${e.title}")
         onEpisode = e
     }
     companion object {

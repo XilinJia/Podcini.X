@@ -431,7 +431,7 @@
     <string name="enqueue_location_after_current">După episodul curent</string>
     <string name="enqueue_location_random">Aleatoriu</string>
     <string name="documentation_support">Documentație &amp; suport</string>
-    <string name="visit_user_forum">Forumul utilizatorilor</string>
+
     <string name="bug_report_title">Raportează o problemă</string>
     <string name="email_developer">E-mail la dezvoltator</string>
     <string name="need_email_client">Ai nevoie de un client de e-mail instalat pe telefon.</string>

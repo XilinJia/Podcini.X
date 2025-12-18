@@ -429,7 +429,7 @@
     <string name="enqueue_location_after_current">Efter nuvarande episod</string>
     <string name="enqueue_location_random">Slumpa</string>
     <string name="documentation_support">Dokumentation &amp; support</string>
-    <string name="visit_user_forum">Användarforum</string>
+
     <string name="bug_report_title">Rapportera bugg</string>
     <string name="email_developer">E-post till utvecklare</string>
     <string name="need_email_client">Du behöver en e-postklient installerad på telefonen.</string>

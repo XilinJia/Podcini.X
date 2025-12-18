@@ -56,14 +56,14 @@ object InTheatre {
 //    var curMediaId by mutableLongStateOf(-1L)
 
     private var curStateMonitor: Job? = null
-    var curState: CurrentState      // managed
+    var curState: CurrentState
 
     var playerStat by mutableIntStateOf(PLAYER_STATUS_OTHER)
 
     var bitrate by mutableIntStateOf(0)
 
     init {
-        curState = CurrentState()
+        curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}
         CoroutineScope(Dispatchers.IO).launch {
             Logd(TAG, "starting queues")
             if (queues.isEmpty()) {
@@ -80,12 +80,6 @@ object InTheatre {
             }
 
             Logd(TAG, "starting curState")
-            val curState_ = realm.query(CurrentState::class).query("id == 0").first().find()
-            if (curState_ != null) curState = curState_
-            else {
-                Logd(TAG, "creating new curState")
-                upsert(curState) {}
-            }
             restoreMediaFromPreferences()
             if (curEpisode != null) {
                 for (q in queues) {
@@ -135,6 +129,14 @@ object InTheatre {
                 curEpisode = episode
                 Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")
                 runOnIOScope {
+                    if (!actQueue.episodeIds.contains(curEpisode!!.id)) {
+                        for (q in queues) {
+                            if (q.episodeIds.contains(curEpisode!!.id)) {
+                                actQueue = q
+                                break
+                            }
+                        }
+                    }
                     subscribeEpisode(curEpisode!!,
                         MonitorEntity(TAG,
                             onInit = { e -> onCurInitUICB?.invoke(e) },

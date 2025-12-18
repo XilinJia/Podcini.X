@@ -429,7 +429,7 @@
     <string name="enqueue_location_after_current">A jelenlegi epizód után</string>
     <string name="enqueue_location_random">Random</string>
     <string name="documentation_support">Documentation &amp; support</string>
-    <string name="visit_user_forum">Felhasználói fórum</string>
+
     <string name="bug_report_title">Hibajelentés</string>
     <string name="email_developer">Email to developer</string>
     <string name="need_email_client">You need an email client installed on the phone.</string>

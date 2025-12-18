@@ -427,7 +427,7 @@
     <string name="enqueue_location_after_current">在当前剧集之后</string>
     <string name="enqueue_location_random">随机播放</string>
     <string name="documentation_support">文档 &amp; 支持</string>
-    <string name="visit_user_forum">用户论坛</string>
+
     <string name="bug_report_title">报告 bug</string>
     <string name="email_developer">向开发者发送电子邮件</string>
     <string name="need_email_client">您需要安装在手机上的电子邮件客户端。</string>

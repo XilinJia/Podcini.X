@@ -429,7 +429,7 @@
     <string name="enqueue_location_after_current">現在のエピソードの後ろ</string>
     <string name="enqueue_location_random">Random</string>
     <string name="documentation_support">ドキュメント &amp; サポート</string>
-    <string name="visit_user_forum">ユーザーフォーラム</string>
+
     <string name="bug_report_title">バグを報告</string>
     <string name="email_developer">開発者にメール</string>
     <string name="need_email_client">電話に電子メールクライアントがインストールされている必要があります。</string>

@@ -172,6 +172,7 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
 }
 
 suspend fun smartRemoveFromAllQueues(item_: Episode) {
+    Logd(TAG, "smartRemoveFromAllQueues: ${item_.title}")
     var item = item_
     val almostEnded = item.hasAlmostEnded()
     if (almostEnded && item.playState < EpisodeState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayState(EpisodeState.PLAYED, item, resetMediaPosition = true, removeFromQueue = false)
@@ -182,7 +183,8 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
     }
     for (q in queues) if (q.id != actQueue.id && q.episodeIds.contains(item.id)) removeFromQueue(q, listOf(item))
     //        ensure actQueue is last updated
-    if (curEpisode != null && item.id == curEpisode!!.id) curIndexInActQueue = actQueue.episodes.indexWithId(curEpisode!!.id)
+    Logd(TAG, "actQueue: [${actQueue.name}]")
+    if (curEpisode != null) curIndexInActQueue = actQueue.episodes.indexWithId(curEpisode!!.id)
     if (actQueue.size() > 0 && actQueue.episodeIds.contains(item.id)) removeFromQueue(actQueue, listOf(item))
     else upsertBlk(actQueue) { it.update() }
     if (actQueue.size() == 0 && !actQueue.isVirtual()) {

@@ -427,7 +427,7 @@
     <string name="enqueue_location_after_current">현재 에피소드 다음</string>
     <string name="enqueue_location_random">임의</string>
     <string name="documentation_support">문서 및 지원</string>
-    <string name="visit_user_forum">사용자 포럼</string>
+
     <string name="bug_report_title">문제점 보고</string>
     <string name="email_developer">Email to developer</string>
     <string name="need_email_client">You need an email client installed on the phone.</string>

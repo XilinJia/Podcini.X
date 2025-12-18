@@ -271,7 +271,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     override fun setDataSource(metadata: androidx.media3.common.MediaMetadata, media: Episode) {
-        Logd(TAG, "setDataSource1 called")
+        Logd(TAG, "setDataSource called")
         if (!gearbox.formCastMediaSource(media)) {
             media.effectUrl = media.downloadUrl ?: ""
             media.effectMimeType = media.mimeType ?: ""

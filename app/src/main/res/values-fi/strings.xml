@@ -429,7 +429,7 @@
     <string name="enqueue_location_after_current">Nykyisen jakson jälkeen</string>
     <string name="enqueue_location_random">Satunnainen</string>
     <string name="documentation_support">Dokumentaatio ja tuki</string>
-    <string name="visit_user_forum">Käyttäjäfoorumi</string>
+
     <string name="bug_report_title">Ilmoita virheestä</string>
     <string name="email_developer">Lähetä sähköpostia kehittäjälle</string>
     <string name="need_email_client">Tarvitset sähköpostiohjelman, joka on asennettu puhelimeen.</string>

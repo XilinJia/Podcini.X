@@ -438,7 +438,7 @@
     <string name="enqueue_location_after_current">بعد الحلقة الحالية</string>
     <string name="enqueue_location_random">عشوائيا</string>
     <string name="documentation_support">المساعدة والدعم</string>
-    <string name="visit_user_forum">منتدى المستخدم</string>
+
     <string name="bug_report_title">بلغ عن خطأ بالتطبيق</string>
     <string name="email_developer">البريد الإلكتروني إلى المطور</string>
     <string name="need_email_client">تحتاج إلى بريد إلكتروني عميل مثبت على الهاتف.</string>

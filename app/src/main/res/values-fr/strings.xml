@@ -432,7 +432,7 @@
     <string name="enqueue_location_after_current">après l\'épisode courant</string>
     <string name="enqueue_location_random">au hasard</string>
     <string name="documentation_support">Support de la documentation &amp;</string>
-    <string name="visit_user_forum">Forum des utilisateurs</string>
+
     <string name="bug_report_title">Signaler un bug</string>
     <string name="email_developer">Envoyer un e-mail au développeur</string>
     <string name="need_email_client">Vous avez besoin d\'un client de messagerie installé sur le téléphone.</string>

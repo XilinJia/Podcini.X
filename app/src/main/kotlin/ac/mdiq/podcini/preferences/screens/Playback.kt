@@ -61,7 +61,7 @@ enum class PrefHardwareForwardButton(val res: Int, val res1: Int) {
 }
 
 @Composable
-fun PlaybackPreferencesScreen(activity: PreferenceActivity) {
+fun PlaybackScreen(activity: PreferenceActivity) {
     val textColor = MaterialTheme.colorScheme.onSurface
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
         Text(stringResource(R.string.interruptions), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)

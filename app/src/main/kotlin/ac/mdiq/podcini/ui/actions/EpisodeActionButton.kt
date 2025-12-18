@@ -45,7 +45,6 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.UsageStatistics
 import ac.mdiq.podcini.utils.openInBrowser
 import android.content.Context
 import android.media.MediaMetadataRetriever
@@ -164,7 +163,6 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     playVideoIfNeeded(context, item)
                 }
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
-                UsageStatistics.logAction(UsageStatistics.ACTION_STREAM)
                 if (!NetworkUtils.isStreamingAllowed) {
                     commonConfirm = CommonConfirmAttrib(
                         title = context.getString(R.string.stream_label),
@@ -183,7 +181,6 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
             }
             ButtonTypes.STREAMONCE -> {
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
-                UsageStatistics.logAction(UsageStatistics.ACTION_STREAM)
                 PlaybackStarter(context, item).shouldStreamThisTime(true).start()
                 playVideoIfNeeded(context, item)
                 actQueue = PlayQueue()
@@ -210,7 +207,6 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     return isDownloading || media.downloaded
                 }
                 if (shouldNotDownload(item)) return
-                UsageStatistics.logAction(UsageStatistics.ACTION_DOWNLOAD)
                 if (mobileAllowEpisodeDownload || !isNetworkRestricted) {
                     DownloadServiceInterface.impl?.downloadNow(context, item, false)
                     Logd(TAG, "downloading ${item.title}")

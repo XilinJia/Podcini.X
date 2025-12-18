@@ -429,7 +429,7 @@
     <string name="enqueue_location_after_current">پس از این قسمت</string>
     <string name="enqueue_location_random">کاتوره‌ای</string>
     <string name="documentation_support">مستندات و پشتیبانی</string>
-    <string name="visit_user_forum">تالار گفتمان کاربر</string>
+
     <string name="bug_report_title">گزارش مشکل</string>
     <string name="email_developer">Email to developer</string>
     <string name="need_email_client">You need an email client installed on the phone.</string>

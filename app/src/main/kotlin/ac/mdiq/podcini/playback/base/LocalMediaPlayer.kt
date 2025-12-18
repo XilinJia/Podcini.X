@@ -445,7 +445,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     override fun setVolume(volumeLeft: Float, volumeRight: Float, adaptionFactor: Float) {
         var volumeLeft = volumeLeft
         var volumeRight = volumeRight
-        Logd(TAG, "setVolume: $volumeLeft $volumeRight $adaptionFactor")
+//        Logd(TAG, "setVolume: $volumeLeft $volumeRight $adaptionFactor")
         if (adaptionFactor != 1f) {
             volumeLeft *= adaptionFactor
             volumeRight *= adaptionFactor
@@ -564,6 +564,15 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (position >= 0) upsertBlk(curEpisode!!) { it.setPosition(position) }
         Logd(TAG, "endPlayback hasEnded=$hasEnded wasSkipped=$wasSkipped shouldContinue=$shouldContinue")
 
+        fun stopPlayer() {
+            Logd(TAG, "endPlayback stopPlayer is called")
+            onPlaybackEnded(true)
+            releaseWifiLockIfNecessary()
+            setAsCurEpisode(null)
+            exoPlayer?.stop()
+            if (isUnknown) setPlayerStatus(PlayerStatus.STOPPED, null)
+            else Logd(TAG, "endPlayback Ignored call to stop: Current player state is: $status")
+        }
         val currentMedia = curEpisode
         when {
             shouldContinue -> {
@@ -571,15 +580,10 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 // Start playback immediately if continuous playback is enabled
                 val nextMedia = getNextInQueue(currentMedia)
                 if (nextMedia == null) {
-                    Logd(TAG, "nextMedia is null. call callback.onPlaybackEnded true")
-                    onPlaybackEnded(true)
-                    releaseWifiLockIfNecessary()
-                    setAsCurEpisode(null)
-                    exoPlayer?.stop()
-                    if (isUnknown) setPlayerStatus(PlayerStatus.STOPPED, null)
-                    else Logd(TAG, "Ignored call to stop: Current player state is: $status")
+                    Logd(TAG, "endPlayback nextMedia is null. call callback.onPlaybackEnded true")
+                    stopPlayer()
                 } else {
-                    Logd(TAG, "has nextMedia. call callback.onPlaybackEnded false")
+                    Logd(TAG, "endPlayback has nextMedia. call callback.onPlaybackEnded false")
                     if (wasSkipped) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                     onPlaybackEnded(true)
                     val streaming = !nextMedia.localFileAvailable()
@@ -594,8 +598,13 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, nextMedia != null)
             }
             isPlaying -> {
+                Logd(TAG, "endPlayback isPlaying")
                 releaseWifiLockIfNecessary()
                 onPlaybackPause(currentMedia, currentMedia?.position?: 0)
+            }
+            else -> {
+                Logd(TAG, "endPlayback else")
+                stopPlayer()
             }
         }
     }

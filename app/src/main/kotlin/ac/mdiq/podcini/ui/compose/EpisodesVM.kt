@@ -33,7 +33,6 @@ import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDial
 import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
-import ac.mdiq.podcini.ui.screens.COME_BACK
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.utils.Logd
@@ -119,7 +118,6 @@ import androidx.compose.ui.zIndex
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -189,7 +187,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val localTime = remember { System.currentTimeMillis() }
 
-    val currentEntry = navController.navController.currentBackStackEntryAsState().value
+//    val currentEntry = navController.navController.currentBackStackEntryAsState().value
 
     fun multiSelectCB(index: Int, aboveOrBelow: Int): List<Episode> {
         return when (aboveOrBelow) {
@@ -441,18 +439,10 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
             }
         }
 
-        val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
-        LaunchedEffect(episodes.size) {
-            Logd(TAG, "LaunchedEffect(scrollToOnStart) ${episodes.size} $scrollToOnStart $cameBack ${lazyListState.firstVisibleItemIndex} $lifecycleState")
+        LaunchedEffect(episodes.size, scrollToOnStart) {
+            Logd(TAG, "LaunchedEffect(scrollToOnStart) ${episodes.size} $scrollToOnStart ${lazyListState.firstVisibleItemIndex} $lifecycleState")
             if (episodes.size > 5 && lifecycleState >= Lifecycle.State.RESUMED) {
                 when {
-                    cameBack -> {
-                        scope.launch {
-                            lazyListState.scrollToItem(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset)
-                            Logd(TAG, "Screen on, triggered scroll for recomposition")
-                            currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
-                        }
-                    }
                     scrollToOnStart >= 0 -> {
                         scope.launch {
                             lazyListState.scrollToItem(scrollToOnStart)
@@ -463,7 +453,6 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                         scope.launch {
                             lazyListState.scrollToItem(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset)
                             Logd(TAG, "Screen on, triggered scroll for recomposition")
-                            currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
                         }
                     }
                 }

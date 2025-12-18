@@ -429,7 +429,7 @@
     <string name="enqueue_location_after_current">Efter aktuelt afsnit</string>
     <string name="enqueue_location_random">Tilfældig</string>
     <string name="documentation_support">Dokumentation &amp; support</string>
-    <string name="visit_user_forum">Brugerforum</string>
+
     <string name="bug_report_title">Rapportér fejl i appen</string>
     <string name="email_developer">E-mail til udvikler</string>
     <string name="need_email_client">Du skal have en e-mail-klient installeret på telefonen.</string>

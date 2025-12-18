@@ -432,7 +432,7 @@
     <string name="enqueue_location_after_current">Hinter der aktuell gespielten Episode</string>
     <string name="enqueue_location_random">Zufällig</string>
     <string name="documentation_support">Dokumentation + Support</string>
-    <string name="visit_user_forum">Benutzerforum</string>
+
     <string name="bug_report_title">Fehler melden</string>
     <string name="email_developer">E-Mail an Entwickler</string>
     <string name="need_email_client">Sie benötigen einen E-Mail-Client auf dem Telefon.</string>
