@@ -20,6 +20,8 @@
 		* if returned from EpisodeInfo, it restores the previous position
 		* not quite desired: removing an episode causes the list to scroll to curEpisode
 * amended "Add to queue" popup, removed the radio buttons
+* in Settings, replaces "User forum" with "What's new"
+* removed useless UsageStatistics routines inherited from AntennaPod
 * various dependencies update
 
 # 9.9.0
