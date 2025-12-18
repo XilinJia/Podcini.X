@@ -503,7 +503,7 @@
     <string name="remove_queue">إزالة قائمة الانتظار</string>
     <string name="remove_queue_sum">إزالة قائمة الإنتظار, الحلقات في قائمة الإنتظار سيتم تعيينها إلى عدم تشغيل, والتغذية المرتبطة بها سوف ترتبط بقائمة الإنتظار الافتراضية.</string>
     <string name="documentation_support">الوثائق &amp; الدعم</string>
-    <string name="visit_user_forum">منتدى المستخدم</string>
+    <string name="whats_new">What\'s new\?</string>
     <string name="bug_report_title">الإبلاغ عن خلل</string>
     <string name="email_developer">البريد الإلكتروني إلى المطور</string>
     <string name="need_email_client">تحتاج إلى بريد إلكتروني عميل مثبت على الهاتف.</string>
