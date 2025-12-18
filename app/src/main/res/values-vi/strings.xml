@@ -493,7 +493,7 @@
     <string name="remove_queue">Remove queue</string>
     <string name="remove_queue_sum">Removes the queue, episodes in the queue will be set to Unplayed, and associated feeds will associate with the Default queue.</string>
     <string name="documentation_support">Documentation &amp; support</string>
-    <string name="visit_user_forum">User forum</string>
+    <string name="whats_new">What\'s new\?</string>
     <string name="bug_report_title">Report bug</string>
     <string name="email_developer">Email to developer</string>
     <string name="need_email_client">You need an email client installed on the phone.</string>
