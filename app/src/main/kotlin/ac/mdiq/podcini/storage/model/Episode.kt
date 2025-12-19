@@ -788,9 +788,8 @@ class Episode : RealmObject {
         if (!forceRefresh) return
         var chaptersFromDatabase: List<Chapter>? = null
         var chaptersFromPodcastIndex: List<Chapter>? = null
-        val item = this
-        if (item.chapters.isNotEmpty()) chaptersFromDatabase = item.chapters
-        if (!item.podcastIndexChapterUrl.isNullOrEmpty()) chaptersFromPodcastIndex = loadChaptersFromUrl(item.podcastIndexChapterUrl!!, forceRefresh)
+        if (chapters.isNotEmpty()) chaptersFromDatabase = chapters
+        if (!podcastIndexChapterUrl.isNullOrEmpty()) chaptersFromPodcastIndex = loadChaptersFromUrl(podcastIndexChapterUrl!!, forceRefresh)
 
         val chaptersFromMediaFile = loadChaptersFromMediaFile(context)
         val chaptersMergePhase1 = merge(chaptersFromDatabase, chaptersFromMediaFile)

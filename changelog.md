@@ -1,3 +1,7 @@
+# 9.10.1
+
+* fixed possible crash when opening PlayerDetails
+
 # 9.10.0
 
 * in tags editing (feed or episode), fixed tags not being removed
