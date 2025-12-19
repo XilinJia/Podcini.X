@@ -769,6 +769,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">動画あり</string>
     <string name="tagged">タグを付けました</string>
+    <string name="timers">Timers</string>
     <string name="has_comments">コメントしました</string>
     <string name="has_clips">クリップあり</string>
     <string name="has_marks">マークあり</string>
