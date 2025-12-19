@@ -33,17 +33,18 @@ If you intend to sync through a server, NextCloud server has been tested, but ca
 1. Is fully based on Jetpack Compose, using `media3` with `AudioOffloadMode` enabled (nicer to device battery).
 2. Features multiple, natural and circular play queues associable with any podcast.
 3. Presents synthetic podcasts and allows episodes to be separately shelved.
-4. Allows setting personal notes/comments, 5-level rating, and 12-level play state on every episode.
+4. Allows setting tags, todos, notes/comments, 5-level rating, and 12-level play state on every episode.
 5. Boasts sophisticated sorting, filtering and searching on episodes and podcasts.
-6. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed (podcast).
-7. Supports spaced repetition of repeat episodes: auto-download or auto-enqueue them at preset intervals specified in the feed
-8. Caches streamed audio for seamless local rewind and replay.
-9. Features audio clips recording and position marking on any episodes for better review.
-10. Allows linking/relating multiple episodes for better grouping.
-11. Is capable to preserve important episodes when a podcast is unsubscribed
-12. Spotlights `instant sync` across devices without a server.
-13. Offers Readability and Text-to-Speech for RSS contents.
-14. Supports auto-backups, customized media folder and importing DB from other apps
+6. Supports auto playing any episode based on timer
+7. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed (podcast).
+8. Supports spaced repetition of repeat episodes: auto-download or auto-enqueue them at preset intervals specified in the feed
+9. Caches streamed audio for seamless local rewind and replay.
+10. Features audio clips recording and position marking on any episodes for better review.
+11. Allows linking/relating multiple episodes for better grouping.
+12. Is capable to preserve important episodes when a podcast is unsubscribed
+13. Spotlights `instant sync` across devices without a server.
+14. Offers Readability and Text-to-Speech for RSS contents.
+15. Supports auto-backups, customized media folder and importing DB from other apps
 
 ## Usage and notable features description 
 <details> <summary>Click to expand</summary>
