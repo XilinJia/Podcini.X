@@ -1,9 +1,0 @@
-# 8.23.1
-
-* fixed interval not correctly added to repeatTime
-* state Later is handled similarly as state Again
-* in episodes lists, when an episode is set to Again or Later, the due date is shown
-* after playing, episode of Again or Later is set to Played
-* in FeedDetails screen
-	* starting in Info mode is sped up
-	* fixed filter button color not correctly initialized in List mode

@@ -3,6 +3,9 @@ package ac.mdiq.podcini.storage.database
 import ac.mdiq.podcini.storage.model.AppAttribs
 import ac.mdiq.podcini.storage.model.SleepPrefs
 import ac.mdiq.podcini.utils.Logd
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import io.github.xilinjia.krdb.notifications.DeletedObject
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.PendingObject
@@ -14,7 +17,7 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "AppPrefs"
 
-var appAttribs: AppAttribs = realm.query(AppAttribs::class).query("id == 0").first().find() ?: AppAttribs()
+var appAttribs: AppAttribs by mutableStateOf(realm.query(AppAttribs::class).query("id == 0").first().find() ?: AppAttribs() )
     private set
 
 val appAttribsJob = CoroutineScope(Dispatchers.Default).launch {

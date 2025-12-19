@@ -1,7 +1,0 @@
-# 8.14.7
-
-* amended buffering sizes to help with higher speed playback with streaming
-* UI update of buffered position is in sync with that of played position, removed the unnecessary separate coroutine
-* likely fixed concurrent modification crash when trimming toast messages
-* some restructuring in PlaybackService
-* updated media3 to 1.6.1

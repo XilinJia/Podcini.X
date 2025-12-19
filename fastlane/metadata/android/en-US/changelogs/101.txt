@@ -1,4 +1,0 @@
-# 8.0.1
-
-* some code restructuring.
-* fixed prefs edit issue with StringSet

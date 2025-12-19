@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedIdsOfAllEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodes
@@ -132,7 +133,7 @@ import java.text.NumberFormat
 import java.util.Date
 
 enum class QuickAccess {
-    New, Planned, Repeats, Liked, Todos, Commented, Tagged, Recorded, Queued, Downloaded, History, All, Custom
+    New, Planned, Repeats, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, All, Custom
 }
 
 var facetsMode by mutableStateOf(QuickAccess.New)
@@ -231,6 +232,17 @@ fun FacetsScreen() {
             QuickAccess.Tagged -> {
                 listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.tagged.name).add(vm.filter), vm.sortOrder)
+            }
+            QuickAccess.Timers -> {
+                listIdentity += ".${vm.sortOrder.name}"
+                val time = System.currentTimeMillis()
+                val ids = appAttribs.timetable.filter { it.triggerTime > time }.map { it.episodeId }
+                val sortPair = sortPairOf(vm.sortOrder)
+                runOnIOScope { upsert(appAttribs) {
+                    val oldTimers = it.timetable.filter { t-> t.triggerTime < time }
+                    it.timetable.removeAll(oldTimers)
+                } }
+                realm.query(Episode::class).query("id IN $0", ids).sort(sortPair).asFlow()
             }
             QuickAccess.Todos -> {
                 listIdentity += ".${vm.sortOrder.name}"

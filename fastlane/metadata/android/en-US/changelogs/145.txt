@@ -1,6 +1,0 @@
-# 8.12.2
-
-* amended statistics in Subscriptions tab of Statistics screen
-* straightened the Monthly tab of Statistics screen
-* fixed improper handling getting file size in fetchSize
-* when removing a feed, episodes marked Ignored are not preserved

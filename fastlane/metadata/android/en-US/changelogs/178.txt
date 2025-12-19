@@ -1,7 +1,0 @@
-# 8.17.8
-
-* in header of FeedDetailed screen, added Score of the feed, ranging from -100 to 100
-	* average of rating codes of all episodes with play state above Progress divided by 2 and multiplied by 100
-	* note: Super=2, Good=1, OK=0, Bad=-1, Trash=-2; Unrated assumed as OK
-* various updates of dependencies, including media3
-* gradle updated to 9.0

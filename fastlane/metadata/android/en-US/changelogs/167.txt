@@ -1,6 +1,0 @@
-# 8.16.2
-
-* amended color of timeLeft on PlayerUI and "Related" in EpisodeInfo
-* amended effect blocks in EpisodeVM to better handle monitoring of curEpisode
-* some code refactoring
-* updated some dependencies

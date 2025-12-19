@@ -33,11 +33,7 @@ class AppAttribs: RealmObject {
 
     var feedIdsToRefresh: RealmSet<Long> = realmSetOf()
 
-    var usageCountMap: RealmDictionary<Int?> = realmDictionaryOf()
-
-    var usageAverageMap: RealmDictionary<Float?> = realmDictionaryOf()
-
-    var usageHideMap: RealmDictionary<Boolean?> = realmDictionaryOf()
+    var timetable: RealmList<Timer> = realmListOf()
 
     var statisticsFrom: Long = 0L
 

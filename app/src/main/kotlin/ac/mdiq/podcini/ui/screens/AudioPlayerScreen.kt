@@ -38,10 +38,8 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
@@ -51,21 +49,12 @@ import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
-import ac.mdiq.podcini.ui.compose.ChaptersColumn
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
-import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.EpisodeClips
-import ac.mdiq.podcini.ui.compose.EpisodeMarks
-import ac.mdiq.podcini.ui.compose.EpisodeWebView
+import ac.mdiq.podcini.ui.compose.EpisodeDetails
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
-import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
-import ac.mdiq.podcini.ui.compose.TagSettingDialog
-import ac.mdiq.podcini.ui.compose.TagType
-import ac.mdiq.podcini.ui.compose.TodoDialog
-import ac.mdiq.podcini.ui.compose.Todos
 import ac.mdiq.podcini.ui.compose.distinctColorOf
 import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.utils.EventFlow
@@ -75,7 +64,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import android.content.ComponentName
@@ -139,7 +127,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -150,7 +137,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import coil.compose.AsyncImage
@@ -165,7 +151,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.text.NumberFormat
@@ -234,8 +219,6 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     val buttonColor = Color(0xDDFFD700)
 
     val actMain: MainActivity? = remember { generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull() }
-    
-    var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
 
     var episodeFlow by remember { mutableStateOf<Flow<SingleQueryChange<Episode>>>(emptyFlow()) }
 
@@ -249,10 +232,9 @@ fun AudioPlayerScreen(navController: AppNavigator) {
 
     var showSpeedDialog by remember { mutableStateOf(false) }
 
-    val shownotesCleaner: ShownotesCleaner = remember { ShownotesCleaner(context) }
-
-    var webviewData by remember { mutableStateOf<String?>(null) }
     var showHomeText by remember { mutableStateOf(false) }
+    var chapertsLoaded by remember { mutableStateOf(false) }
+
     // TODO: somehow, these 2 are not used?
     //     var homeText: String? = remember { null }
     var readerhtml: String? by remember { mutableStateOf(null) }
@@ -274,7 +256,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         Logd(TAG, "LaunchedEffect curMediaId: ${curItem?.title}")
         if (curEpisode != null) episodeFlow = realm.query<Episode>("id == $0", curEpisode!!.id).first().asFlow()
         showHomeText = false //            homeText = null
-        webviewData = null
+        chapertsLoaded = false
         volumeAdaption = VolumeAdaptionSetting.OFF
         displayedChapterIndex = -1
         vm.txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
@@ -295,19 +277,13 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     LaunchedEffect(isBSExpanded, curItem?.id) {
         Logd(TAG, "LaunchedEffect(isBSExpanded, curItem?.id) isBSExpanded: $isBSExpanded")
         if (isBSExpanded) {
-            Logd(TAG, "LaunchedEffect loading details ${curItem?.id} ${shownotesCleaner==null}")
-            if (playerLocal == null) playerLocal = ExoPlayer.Builder(context).build()
-            if (curItem != null) {
-                webviewData = webDataCache[curItem.id]
+            Logd(TAG, "LaunchedEffect loading details ${curItem?.id}")
+            if (curItem != null && !chapertsLoaded) {
                 scope.launch(Dispatchers.IO) {
-                    if (webviewData == null) {
-                        curItem?.let {
-                            it.loadChapters(context, false)
-                            webviewData = gearbox.buildWebviewData(context, it)
-                            if (webviewData != null) webDataCache.put(it.id, webviewData!!)
-                            Logd(TAG, "LaunchedEffect cleanedNotes: ${webviewData?.length}")
-                            vm.sleepTimerActive = isSleepTimerActive()
-                        }
+                    curItem.let {
+                        it.loadChapters(context, true)
+                        vm.sleepTimerActive = isSleepTimerActive()
+                        chapertsLoaded = true
                     }
                 }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
             }
@@ -346,8 +322,6 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             vm.cancelFlowEvents()
-            playerLocal?.release()
-            playerLocal = null
             if (aCtrlFuture != null) MediaController.releaseFuture(aCtrlFuture!!)
             aCtrlFuture =  null
             lifecycleOwner.lifecycle.removeObserver(observer)
@@ -655,20 +629,6 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     fun DetailUI(modifier: Modifier) {
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(curItem!!)) { showChooseRatingDialog = false }
-        var showEditComment by remember { mutableStateOf(false) }
-        if (showEditComment && curItem != null) {
-            var commentText by remember { mutableStateOf(TextFieldValue(curItem.compileCommentText())) }
-            CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},
-                onSave = { upsertBlk(curItem) { it.addComment(commentText.text, false) } })
-        }
-        var showTagsSettingDialog by remember { mutableStateOf(false) }
-        if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, curItem!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
-            upsertBlk(curItem) { it.tags.addAll(tags) }
-        }
-        var showTodoDialog by remember { mutableStateOf(false) }
-        var onTodo by remember { mutableStateOf<Todo?>(null) }
-        if (showTodoDialog) TodoDialog(curItem!!, onTodo) { showTodoDialog = false}
-
         Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             gearbox.PlayerDetailedGearPanel(curItem, resetPlayer) { resetPlayer = it }
             SelectionContainer { Text((curItem?.feed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
@@ -682,46 +642,10 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                 Spacer(modifier = Modifier.weight(0.6f))
             }
             SelectionContainer { Text(curItem?.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
-            if (curItem != null) Todos(curItem!!, episodeFlow, {
-                onTodo = null
-                showTodoDialog = true
-            }, { todo->
-                onTodo = todo
-                showTodoDialog = true
-            })
-            Text("Tags: ${curItem?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
-            Text(stringResource(R.string.my_opinion_label) + if (curItem?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
-            Text(curItem?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-            EpisodeMarks(curItem)
-            EpisodeClips(curItem, playerLocal)
 
-            //            fun restoreFromPreference(): Boolean {
-            //                if ((context as MainActivity).bottomSheet.state != BottomSheetBehavior.STATE_EXPANDED) return false
-            //                Logd(TAG, "Restoring from preferences")
-            //                val context: Activity? = context
-            //                if (context != null) {
-            //                    val id = prefs!!.getString(PREF_PLAYABLE_ID, "")
-            //                    val scrollY = prefs!!.getInt(PREF_SCROLL_Y, -1)
-            //                    if (scrollY != -1) {
-            //                        if (id == curMedia?.id?.toString()) {
-            //                            Logd(TAG, "Restored scroll Position: $scrollY")
-            ////                            binding.itemDescriptionFragment.scrollTo(binding.itemDescriptionFragment.scrollX, scrollY)
-            //                            return true
-            //                        }
-            //                        Logd(TAG, "reset scroll Position: 0")
-            ////                        binding.itemDescriptionFragment.scrollTo(0, 0)
-            //                        return true
-            //                    }
-            //                }
-            //                return false
-            //            }
-            EpisodeWebView(webviewData)
-            if (!curItem?.related.isNullOrEmpty()) {
-                var showTodayStats by remember { mutableStateOf(false) }
-                if (showTodayStats) RelatedEpisodesDialog(curItem) { showTodayStats = false }
-                Text(stringResource(R.string.related), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
-            }
-            if (!curItem?.chapters.isNullOrEmpty()) ChaptersColumn(curItem)
+            if (curItem != null) EpisodeDetails(curItem!!, episodeFlow, isBSExpanded)
+
+//            if (!curItem?.chapters.isNullOrEmpty()) ChaptersColumn(curItem)
             if (curItem != null) {
                 val imgLarge = remember(curItem.id, displayedChapterIndex) {
                     if (displayedChapterIndex == -1 || curItem.chapters.isEmpty() || curItem.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) curItem.imageUrl ?: curItem.feed?.imageUrl

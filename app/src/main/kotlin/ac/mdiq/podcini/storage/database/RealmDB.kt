@@ -14,6 +14,7 @@ import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SleepPrefs
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
+import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.Logd
@@ -64,12 +65,13 @@ val config: RealmConfiguration by lazy {
         SubscriptionLog::class,
         Chapter::class,
         Todo::class,
+        Timer::class,
         PAFeed::class,
         AppAttribs::class,
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(80)
+    )).name("Podcini.realm").schemaVersion(81)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema

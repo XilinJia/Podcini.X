@@ -916,6 +916,7 @@
     <string name="rss">RSS</string>
     <string name="has_video">Has video</string>
     <string name="tagged">Tagged</string>
+    <string name="timers">Timers</string>
     <string name="has_comments">Has commented</string>
     <string name="has_clips">Has clips</string>
     <string name="has_marks">Has marks</string>

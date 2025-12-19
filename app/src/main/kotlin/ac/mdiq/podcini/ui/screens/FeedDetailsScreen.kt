@@ -23,7 +23,6 @@ import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
@@ -405,7 +404,12 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         swipeActions.ActionOptionsDialog()
 
         if (showTagsSettingDialog) TagSettingDialog(TagType.Feed, feed!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
-            upsertBlk(feed!!) { it.tags.addAll(tags) }
+            runOnIOScope {
+                upsert(feed!!) {
+                    it.tags.clear()
+                    it.tags.addAll(tags)
+                }
+            }
         }
     }
 
@@ -509,7 +513,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                             AutoDeleteAction.NEVER.tag -> AutoDeleteAction.NEVER
                                             else -> AutoDeleteAction.GLOBAL
                                         }
-                                        upsertBlk(feed!!) { it.autoDeleteAction = action_ }
+                                        runOnIOScope { upsert(feed!!) { it.autoDeleteAction = action_ } }
                                         onDismissRequest()
                                     }
                                 }
@@ -533,7 +537,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     Logd(TAG, "row clicked: $item $selectedOption")
                                     if (item != selectedOption) {
                                         onOptionSelected(item)
-                                        upsertBlk(feed!!) { it.volumeAdaptionSetting = item }
+                                        runOnIOScope { upsert(feed!!) { it.volumeAdaptionSetting = item } }
                                         onDismissRequest()
                                     }
                                 }
@@ -557,7 +561,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     selected = option.tag
                                     if (isChecked) Logd(TAG, "$option is checked")
                                     val type = Feed.AudioType.fromTag(selected)
-                                    upsertBlk(feed!!) { it.audioType = type.code }
+                                    runOnIOScope { upsert(feed!!) { it.audioType = type.code } }
                                     onDismissRequest()
                                 }
                             )
@@ -580,7 +584,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     selected = option.tag
                                     if (isChecked) Logd(TAG, "$option is checked")
                                     val type = Feed.AVQuality.fromTag(selected)
-                                    upsertBlk(feed!!) { it.audioQuality = type.code }
+                                    runOnIOScope { upsert(feed!!) { it.audioQuality = type.code } }
                                     onDismissRequest()
                                 })
                             Text(option.tag)
@@ -602,7 +606,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     selected = option.tag
                                     if (isChecked) Logd(TAG, "$option is checked")
                                     val type = Feed.AVQuality.fromTag(selected)
-                                    upsertBlk(feed!!) { it.videoQuality = type.code }
+                                    runOnIOScope { upsert(feed!!) { it.videoQuality = type.code } }
                                     onDismissRequest()
                                 })
                             Text(option.tag)
@@ -648,9 +652,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     var ending by remember { mutableIntStateOf((feed?.endingSkip ?: 0)) }
                     NumberEditor(ending, label = stringResource(R.string.skip_last_hint), nz = false, instant = true, modifier = Modifier) { ending = it }
                     Button(onClick = {
-                        upsertBlk(feed!!) {
-                            it.introSkip = intro
-                            it.endingSkip = ending
+                        runOnIOScope {
+                            upsert(feed!!) {
+                                it.introSkip = intro
+                                it.endingSkip = ending
+                            }
                         }
                         onDismiss()
                     }) { Text(stringResource(R.string.confirm_label)) }
@@ -669,7 +675,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         NumberEditor(intervals[i], label = "in " + units[i], nz = false, instant = true, modifier = Modifier) { intervals[i] = it }
                     }
                     Button(onClick = {
-                        upsertBlk(feed!!) { it.repeatIntervals = intervals.toRealmList() }
+                        runOnIOScope { upsert(feed!!) { it.repeatIntervals = intervals.toRealmList() } }
                         onDismiss()
                     }) { Text(stringResource(R.string.confirm_label)) }
                 }
@@ -699,11 +705,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 TitleSummarySwitch(R.string.use_wide_layout, R.string.use_wide_layout_summary, R.drawable.rounded_responsive_layout_24, feed?.useWideLayout == true) {
-                    upsertBlk(feed!!) { f -> f.useWideLayout = it }
+                    runOnIOScope { upsert(feed!!) { f -> f.useWideLayout = it } }
                 }
                 TitleSummarySwitch(R.string.use_episode_image, R.string.use_episode_image_summary, R.drawable.outline_broken_image_24, feed?.useEpisodeImage == true) {
-                    upsertBlk(feed!!) { f ->
-                        f.useEpisodeImage = it }
+                    runOnIOScope { upsert(feed!!) { f -> f.useEpisodeImage = it } }
                 }
                 Column {
                     var showDialog by remember { mutableStateOf(false) }
@@ -727,7 +732,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         Row(Modifier.fillMaxWidth()) {
                             var showDialog by remember { mutableStateOf(false) }
                             if (showDialog) VideoModeDialog(initMode = feed?.videoModePolicy, onDismissRequest = { showDialog = false }) { mode ->
-                                upsertBlk(feed!!) { it.videoModePolicy = mode }
+                                runOnIOScope { upsert(feed!!) { it.videoModePolicy = mode } }
                             }
                             Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), "", tint = textColor)
                             Spacer(modifier = Modifier.width(20.dp))
@@ -786,10 +791,12 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 Checkbox(checked = none == selected,
                                     onCheckedChange = { isChecked ->
                                         selected = none
-                                        upsertBlk(feed!!) {
-                                            it.queueId = -2L
-                                            it.autoDownload = false
-                                            it.autoEnqueue = false
+                                        runOnIOScope {
+                                            upsert(feed!!) {
+                                                it.queueId = -2L
+                                                it.autoDownload = false
+                                                it.autoEnqueue = false
+                                            }
                                         }
                                         curPrefQueue = selected
                                         onDismissRequest()
@@ -805,7 +812,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                     for (i in queues.indices) {
                                         FilterChip(onClick = {
                                             val q = queues[i]
-                                            upsertBlk(feed!!) { it.queue = q }
+                                            runOnIOScope { upsert(feed!!) { it.queue = q } }
                                             curPrefQueue = q.name
                                             onDismissRequest()
                                         }, label = { Text(queues[i].name) }, selected = false, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
@@ -847,13 +854,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     Row(Modifier.fillMaxWidth()) {
                         val showDialog = remember { mutableStateOf(false) }
                         if (showDialog.value) PlaybackSpeedDialog(listOf(feed!!), initSpeed = feed!!.playSpeed, maxSpeed = 3f,
-                            onDismiss = { showDialog.value = false }) { newSpeed ->
-                            upsertBlk(feed!!) { it.playSpeed = newSpeed }
-                        }
+                            onDismiss = { showDialog.value = false }) { newSpeed -> runOnIOScope { upsert(feed!!) { it.playSpeed = newSpeed } } }
                         Icon(ImageVector.vectorResource(id = R.drawable.ic_playback_speed), "", tint = textColor)
                         Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.playback_speed), style = CustomTextStyles.titleCustom, color = textColor,
-                            modifier = Modifier.clickable(onClick = { showDialog.value = true }))
+                        Text(text = stringResource(R.string.playback_speed), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                     }
                     Text(text = stringResource(R.string.pref_feed_playback_speed_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
@@ -891,9 +895,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             prefStreamOverDownload = true
                             autoDownloadChecked = false
                         }
-                        upsertBlk(feed!!) { f ->
-                            f.prefStreamOverDownload = preferStreaming
-                            if (preferStreaming) f.autoDownload = false
+                        runOnIOScope {
+                            upsert(feed!!) { f ->
+                                f.prefStreamOverDownload = preferStreaming
+                                if (preferStreaming) f.autoDownload = false
+                            }
                         }
                     }
                 }
@@ -941,7 +947,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             Text(text = stringResource(R.string.limit_episodes_to), style = CustomTextStyles.titleCustom, color = textColor)
                             Spacer(modifier = Modifier.weight(1f))
                             NumberEditor(feed!!.limitEpisodesCount, label = "0 = unlimited", nz = false, modifier = Modifier.width(150.dp)) {
-                                upsertBlk(feed!!) { f -> f.limitEpisodesCount = it }
+                                runOnIOScope { upsert(feed!!) { f -> f.limitEpisodesCount = it } }
                             }
                         }
                         Text(text = stringResource(R.string.limit_episodes_to_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
@@ -950,13 +956,13 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     //                    refresh
                     TitleSummarySwitch(R.string.keep_updated, R.string.keep_updated_summary, R.drawable.ic_refresh, autoUpdate) {
                         autoUpdate = it
-                        upsertBlk(feed!!) { f -> f.keepUpdated = autoUpdate }
+                        runOnIOScope { upsert(feed!!) { f -> f.keepUpdated = autoUpdate } }
                     }
                 }
                 if (curPrefQueue != "None") {
                     //                    auto add new to queue
                     TitleSummarySwitch(R.string.audo_add_new_queue, R.string.audo_add_new_queue_summary, androidx.media3.session.R.drawable.media3_icon_queue_add, feed?.autoAddNewToQueue != false) {
-                        upsertBlk(feed!!) { f -> f.autoAddNewToQueue = it }
+                        runOnIOScope { upsert(feed!!) { f -> f.autoAddNewToQueue = it } }
                     }
                 }
                 var autoEnqueueChecked by remember { mutableStateOf(feed?.autoEnqueue == true) }
@@ -970,9 +976,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             onCheckedChange = {
                                 autoEnqueueChecked = it
                                 if (autoEnqueueChecked) autoDownloadChecked = false
-                                upsertBlk(feed!!) { f ->
-                                    f.autoEnqueue = autoEnqueueChecked
-                                    f.autoDownload = autoDownloadChecked
+                                runOnIOScope {
+                                    upsert(feed!!) { f ->
+                                        f.autoEnqueue = autoEnqueueChecked
+                                        f.autoDownload = autoDownloadChecked
+                                    }
                                 }
                             })
                     }
@@ -986,9 +994,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 onCheckedChange = {
                                     autoDownloadChecked = it
                                     if (autoDownloadChecked) autoEnqueueChecked = false
-                                    upsertBlk(feed!!) { f ->
-                                        f.autoDownload = autoDownloadChecked
-                                        f.autoEnqueue = autoEnqueueChecked
+                                    runOnIOScope {
+                                        upsert(feed!!) { f ->
+                                            f.autoDownload = autoDownloadChecked
+                                            f.autoEnqueue = autoEnqueueChecked
+                                        }
                                     }
                                 })
                         }
@@ -1021,9 +1031,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 }
                                 Button(onClick = {
                                     if (newCache > 0) {
-                                        upsertBlk(feed!!) {
-                                            it.autoDLMaxEpisodes = newCache
-                                            if (autoDownloadChecked) it.countingPlayed = countingPlayed
+                                        runOnIOScope {
+                                            upsert(feed!!) {
+                                                it.autoDLMaxEpisodes = newCache
+                                                if (autoDownloadChecked) it.countingPlayed = countingPlayed
+                                            }
                                         }
                                         onDismiss()
                                     }
@@ -1051,7 +1063,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             Switch(checked = checked, modifier = Modifier.height(24.dp),
                                 onCheckedChange = {
                                     checked = it
-                                    upsertBlk(feed!!) { f -> f.autoDLSoon = checked }
+                                    runOnIOScope { upsert(feed!!) { f -> f.autoDLSoon = checked } }
                                 }
                             )
                         }
@@ -1085,11 +1097,13 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             confirmButton = {
                                 TextButton(onClick = {
                                     Logd(TAG, "autoDLPolicy: ${selectedPolicy.name} ${selectedPolicy.replace}")
-                                    upsertBlk(feed!!) {
-                                        it.autoDLPolicy = selectedPolicy
-                                        if (selectedPolicy == AutoDownloadPolicy.FILTER_SORT) {
-                                            it.episodeFilterADL = feed!!.episodeFilter
-                                            it.episodesSortOrderADL = feed!!.episodeSortOrder
+                                    runOnIOScope {
+                                        upsert(feed!!) {
+                                            it.autoDLPolicy = selectedPolicy
+                                            if (selectedPolicy == AutoDownloadPolicy.FILTER_SORT) {
+                                                it.episodeFilterADL = feed!!.episodeFilter
+                                                it.episodesSortOrderADL = feed!!.episodeSortOrder
+                                            }
                                         }
                                     }
                                     onDismissRequest()
@@ -1228,7 +1242,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         Column(modifier = Modifier.padding(start = 20.dp)) {
                             Row(Modifier.fillMaxWidth()) {
                                 val showDialog = remember { mutableStateOf(false) }
-                                if (showDialog.value) AutoDownloadFilterDialog(feed?.autoDownloadFilter!!, ADLIncExc.INCLUDE, onDismiss = { showDialog.value = false }) { filter -> upsertBlk(feed!!) { it.autoDownloadFilter = filter } }
+                                if (showDialog.value) AutoDownloadFilterDialog(feed?.autoDownloadFilter!!, ADLIncExc.INCLUDE, onDismiss = { showDialog.value = false }) { filter -> runOnIOScope { upsert(feed!!) { it.autoDownloadFilter = filter } } }
                                 Text(text = stringResource(R.string.episode_inclusive_filters_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                             }
                             Text(text = stringResource(R.string.episode_filters_description), style = MaterialTheme.typography.bodyMedium, color = textColor)
@@ -1237,7 +1251,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         Column(modifier = Modifier.padding(start = 20.dp)) {
                             Row(Modifier.fillMaxWidth()) {
                                 val showDialog = remember { mutableStateOf(false) }
-                                if (showDialog.value) AutoDownloadFilterDialog(feed?.autoDownloadFilter!!, ADLIncExc.EXCLUDE, onDismiss = { showDialog.value = false }) { filter -> upsertBlk(feed!!) { it.autoDownloadFilter = filter } }
+                                if (showDialog.value) AutoDownloadFilterDialog(feed?.autoDownloadFilter!!, ADLIncExc.EXCLUDE, onDismiss = { showDialog.value = false }) { filter -> runOnIOScope { upsert(feed!!) { it.autoDownloadFilter = filter } } }
                                 Text(text = stringResource(R.string.episode_exclusive_filters_label), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showDialog.value = true }))
                             }
                             Text(text = stringResource(R.string.episode_filters_description), style = MaterialTheme.typography.bodyMedium, color = textColor)

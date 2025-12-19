@@ -1,5 +1,0 @@
-# 8.11.2
-
-* added auto-enqueue filter in Subscriptions
-* added title text filter in episodes lists
-* fixed Soon not properly handled in auto-enqueue/auto-download algorithms

@@ -36,6 +36,7 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.duetime
 import ac.mdiq.podcini.storage.model.SubscriptionLog
+import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.EpisodesFilterGroup
@@ -60,6 +61,7 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
+import ac.mdiq.podcini.utils.fullDateTimeString
 import ac.mdiq.podcini.utils.localDateTimeString
 import ac.mdiq.podcini.utils.shareFeedItemFile
 import ac.mdiq.podcini.utils.shareFeedItemLinkWithDownloadLink
@@ -68,6 +70,7 @@ import android.app.Activity
 import android.content.Context
 import android.net.Uri
 import android.view.Gravity
+import androidx.collection.LruCache
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -121,8 +124,10 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -163,7 +168,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Calendar
 import java.util.Date
 
 private const val TAG = "ComposeEpisodes"
@@ -342,7 +346,7 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Uni
                             todo_.note = note.text
                             todo_.dueTime = dueTime
                         }
-                        if (dueTime > 0) playEpisodeAtTime(dueTime, episode)
+                        if (dueTime > 0) playEpisodeAtTime(dueTime, episode.id)
                     } catch (e: Throwable) { Loge(TAG, "editing Todo error: ${e.message}")}
                 }
                 onDismissRequest()
@@ -500,6 +504,79 @@ fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
     }
 }
 
+
+val webDataCache = LruCache<Long, String>(10)
+
+@Composable
+fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode>>, fetchWebdata: Boolean = true) {
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val scope = rememberCoroutineScope()
+    val context by rememberUpdatedState(LocalContext.current)
+    var webviewData by remember { mutableStateOf<String?>("") }
+    var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
+
+    var showEditComment by remember { mutableStateOf(false) }
+    var showTagsSettingDialog by remember { mutableStateOf(false) }
+    var showTodoDialog by remember { mutableStateOf(false) }
+    var onTodo by remember { mutableStateOf<Todo?>(null) }
+
+    if (showEditComment) {
+        var commentText by remember { mutableStateOf(TextFieldValue(episode.compileCommentText())) }
+        CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},
+            onSave = { runOnIOScope { upsert(episode) { it.addComment(commentText.text, false) } } })
+    }
+    if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, episode.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
+        runOnIOScope { upsert(episode) {
+            it.tags.clear()
+            it.tags.addAll(tags)
+        } }
+    }
+    if (showTodoDialog) TodoDialog(episode, onTodo) { showTodoDialog = false}
+
+    LaunchedEffect(episode) {
+        Logd(TAG, "LaunchedEffect(episode, episodeId)")
+        if (fetchWebdata) {
+            webviewData = webDataCache[episode.id]
+            if (webviewData.isNullOrBlank()) {
+                Logd(TAG, "description: ${episode.description}")
+                scope.launch(Dispatchers.IO) {
+                    episode.let {
+                        webviewData = gearbox.buildWebviewData(context, it)
+                        if (webviewData != null) webDataCache.put(it.id, webviewData!!)
+                    }
+                }
+            }
+        }
+        if (episode.clips.isNotEmpty()) {
+            if (playerLocal == null) playerLocal = ExoPlayer.Builder(context).build()
+        } else {
+            playerLocal?.release()
+            playerLocal = null
+        }
+    }
+
+    Todos(episode, episodeFlow, {
+        onTodo = null
+        showTodoDialog = true
+    }, { todo->
+        onTodo = todo
+        showTodoDialog = true
+    })
+    Text("Tags: ${episode.tagsAsString}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
+    Text(stringResource(R.string.my_opinion_label) + if (episode.comment.isBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
+    Text(episode.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+    EpisodeMarks(episode)
+    EpisodeClips(episode, playerLocal)
+    //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
+    if (episode.chapters.isNotEmpty()) ChaptersColumn(episode)
+    EpisodeWebView(webviewData)
+    if (episode.related.isNotEmpty()) {
+        var showTodayStats by remember { mutableStateOf(false) }
+        if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
+        Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
+    }
+}
+
 @Composable
 fun EpisodeWebView(webviewData: String?) {
     AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
@@ -619,7 +696,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
             var toQueue by remember { mutableStateOf(actQueue) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                 for (q in queues) {
-                    FilterChip(label = { Text(q.name) }, onClick = { toQueue = q }, selected = toQueue == q, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), )
+                    FilterChip(label = { Text(q.name) }, onClick = { toQueue = q }, selected = toQueue == q, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary) )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -733,53 +810,93 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
 }
 
 @Composable
-fun AlarmEpisodeDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
-    val context = LocalContext.current
-    val textColor = MaterialTheme.colorScheme.onSurface
-    var showIcon by remember { mutableStateOf(false) }
-    var startTime by remember { mutableStateOf("") }
-    val hm = remember { (if (startTime.contains(":")) startTime.split(":") else listOf("", "")).toMutableList() }
-    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
-        title = { Text(stringResource(R.string.alarm_start_time), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold) },
-        text = {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    var hour by remember { mutableIntStateOf(hm[0].toIntOrNull() ?: 0) }
-                    var minute by remember { mutableIntStateOf(hm[1].toIntOrNull() ?: 0) }
-                    NumberEditor(hour, stringResource(R.string.time_hours), nz = true, instant = true, modifier = Modifier.weight(0.4f)) {
-                        hour = it
-                        hm[0] = it.toString()
-                        showIcon = true
-                    }
-                    NumberEditor(minute, stringResource(R.string.time_minutes), nz = true, instant = true,  modifier = Modifier.weight(0.4f)) {
-                        minute = it
-                        hm[1] = it.toString()
-                        showIcon = true
-                    }
+fun EpisodeTimetableDialog(episode: Episode, onDismissRequest: () -> Unit, cb: (Timer)->Unit) {
+    CommonDialogSurface(onDismissRequest = onDismissRequest) {
+        val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id }.toMutableStateList() }
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            for (timer in timers) {
+                Row {
+                    Text(fullDateTimeString(timer.triggerTime), modifier = Modifier.clickable(onClick = { cb(timer) }))
+                    Spacer(Modifier.width(100.dp))
+                    Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete", modifier = Modifier.clickable(onClick = {
+                        timer.cancel()
+                        upsertBlk(appAttribs) { it.timetable.remove(timer) }
+                    }))
                 }
-                Text(stringResource(R.string.alarm_start_time_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
             }
-        },
-        confirmButton = {
-            if (showIcon) TextButton(onClick = {
-                if (hm[0].isNotBlank() || hm[1].isNotBlank()) {
-                    val hour = if (hm[0].isBlank()) 0 else (hm[0].toIntOrNull() ?: 0)
-                    val minute = if (hm[1].isBlank()) 0 else (hm[1].toIntOrNull() ?: 0)
-                    val targetTime = Calendar.getInstance().apply {
-                        set(Calendar.HOUR_OF_DAY, hour)
-                        set(Calendar.MINUTE, minute)
-                        set(Calendar.SECOND, 0)
+        }
+    }
+}
+
+@Composable
+fun EditTimerDialog(timer: Timer, onDismissRequest: () -> Unit) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
+        val zdt by remember { mutableStateOf(Instant.ofEpochMilli(timer.triggerTime).atZone(ZoneId.systemDefault())) }
+        var year by remember(zdt) { mutableIntStateOf(zdt.year) }
+        var month by remember(zdt) { mutableIntStateOf(zdt.monthValue) }
+        var date by remember(zdt) { mutableIntStateOf(zdt.dayOfMonth) }
+        var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
+        var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(R.string.year) + " " + stringResource(R.string.month) + " " + stringResource(R.string.date))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NumberEditor(year, "", nz = true, instant = true, modifier = Modifier.weight(0.5f)) { year = it }
+                NumberEditor(month, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { month = it }
+                NumberEditor(date, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { date = it }
+            }
+            Text(stringResource(R.string.hour) + " " + stringResource(R.string.minute))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NumberEditor(hour, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { hour = it }
+                NumberEditor(minute, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { minute = it }
+            }
+            Button(onClick = {
+                runOnIOScope {
+                    try {
+                        val triggerTime = LocalDateTime.of(year, month, date, hour, minute, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        val timer_ = upsertBlkEmb(timer) { it.triggerTime = triggerTime }
+                        timer_.reset()
+                    } catch (e: Throwable) {
+                        Loge(TAG, "editing timer error: ${e.message}")
                     }
-                    val currentTime = Calendar.getInstance()
-                    if (targetTime.before(currentTime)) targetTime.add(Calendar.DAY_OF_MONTH, 1)
-                    Logd(TAG, "start time: $targetTime")
-                    playEpisodeAtTime( targetTime.timeInMillis, selected[0])
                 }
                 onDismissRequest()
-            }) { Text(text = "OK") }
-        },
-        dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
-    )
+            }) { Text(stringResource(R.string.confirm_label)) }
+        }
+    }
+}
+
+@Composable
+fun AddTimerDialog(episode: Episode, onDismissRequest: () -> Unit) {
+    CommonPopupCard(onDismissRequest = onDismissRequest) {
+        val zdt by remember { mutableStateOf(Instant.ofEpochMilli(System.currentTimeMillis()).atZone(ZoneId.systemDefault())) }
+        var year by remember(zdt) { mutableIntStateOf(zdt.year) }
+        var month by remember(zdt) { mutableIntStateOf(zdt.monthValue) }
+        var date by remember(zdt) { mutableIntStateOf(zdt.dayOfMonth) }
+        var hour by remember(zdt) { mutableIntStateOf(zdt.hour) }
+        var minute by remember(zdt) { mutableIntStateOf(zdt.minute) }
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(R.string.year) + " " + stringResource(R.string.month) + " " + stringResource(R.string.date))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NumberEditor(year, "", nz = true, instant = true, modifier = Modifier.weight(0.5f)) { year = it }
+                NumberEditor(month, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { month = it }
+                NumberEditor(date, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { date = it }
+            }
+            Text(stringResource(R.string.hour) + " " + stringResource(R.string.minute))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                NumberEditor(hour, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { hour = it }
+                NumberEditor(minute, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { minute = it }
+            }
+            Button(onClick = {
+                runOnIOScope {
+                    try {
+                        val triggerTime = LocalDateTime.of(year, month, date, hour, minute, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        playEpisodeAtTime(triggerTime, episode.id)
+                    } catch (e: Throwable) { Loge(TAG, "editing timer error: ${e.message}") }
+                }
+                onDismissRequest()
+            }) { Text(stringResource(R.string.confirm_label)) }
+        }
+    }
 }
 
 @Composable
@@ -846,8 +963,7 @@ fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissReq
 }
 
 @Composable
-fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<EpisodesFilterGroup> = mutableSetOf(), showAndOr: Boolean = true,
-                         onDismissRequest: () -> Unit, onFilterChanged: (EpisodeFilter) -> Unit) {
+fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<EpisodesFilterGroup> = mutableSetOf(), showAndOr: Boolean = true, onDismissRequest: () -> Unit, onFilterChanged: (EpisodeFilter) -> Unit) {
     //    val filterValuesSet = remember {  filter.propertySet ?: mutableSetOf() }
     Dialog(properties = DialogProperties(usePlatformDefaultWidth = false), onDismissRequest = { onDismissRequest() }) {
         val dialogWindowProvider = LocalView.current.parent as? DialogWindowProvider

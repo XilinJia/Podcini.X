@@ -1,3 +1,17 @@
+# 9.10.0
+
+* in tags editing (feed or episode), fixed tags not being removed
+* added basic functionalities to manage timers
+	* adding a timer now supports a full calendar
+	* in EpisodeInfo, added icon to add/show/edit/remove timers
+		* click on it, if no timers, opens add timer dialog, otherwise, opens timer list dialog
+		* long-click on it, opens add timer dialog
+	* on timer list dialog, timer can be edited/removed
+	* in Facets, added sub-screen for episodes with timers set
+		* when the sub-screen is opened, old timers are cleared
+* further merging common code blocks of EpisodeInfo and PlayerDetails
+* some code refactoring
+
 # 9.9.1
 
 * fixed an issue of initializing curState from DB, which can 

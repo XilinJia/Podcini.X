@@ -1,21 +1,20 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
-import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.storage.database.addToAssOrActQueue
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Todo
+import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
@@ -25,22 +24,15 @@ import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
-import ac.mdiq.podcini.ui.compose.ChaptersColumn
+import ac.mdiq.podcini.ui.compose.AddTimerDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
-import ac.mdiq.podcini.ui.compose.CommentEditingDialog
-import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.EpisodeClips
-import ac.mdiq.podcini.ui.compose.EpisodeMarks
-import ac.mdiq.podcini.ui.compose.EpisodeWebView
+import ac.mdiq.podcini.ui.compose.EditTimerDialog
+import ac.mdiq.podcini.ui.compose.EpisodeDetails
+import ac.mdiq.podcini.ui.compose.EpisodeTimetableDialog
 import ac.mdiq.podcini.ui.compose.FutureStateDialog
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
-import ac.mdiq.podcini.ui.compose.RelatedEpisodesDialog
 import ac.mdiq.podcini.ui.compose.ShareDialog
-import ac.mdiq.podcini.ui.compose.TagSettingDialog
-import ac.mdiq.podcini.ui.compose.TagType
-import ac.mdiq.podcini.ui.compose.TodoDialog
-import ac.mdiq.podcini.ui.compose.Todos
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
@@ -57,7 +49,6 @@ import androidx.collection.LruCache
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
@@ -77,7 +68,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -88,7 +78,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -101,16 +90,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -121,7 +111,6 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -140,7 +129,6 @@ private const val MAX_CHUNK_LENGTH = 2000
 
 private val notesCache = LruCache<Long, String>(10)
 
-val webDataCache = LruCache<Long, String>(10)
 
 @androidx.annotation.OptIn(UnstableApi::class)
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
@@ -156,11 +144,8 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
 
     val actMain: MainActivity? = remember {  generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull() }
 
-    var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
-
     var episode by remember { mutableStateOf<Episode?>(null) }
 
-    var webviewData by remember { mutableStateOf<String?>("") }
     var showHomeScreen by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
@@ -177,8 +162,6 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             episode = null
-            playerLocal?.release()
-            playerLocal = null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -186,34 +169,15 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     val episodeChange by episodeFlow.collectAsStateWithLifecycle(initialValue = null)
     episode = episodeChange?.obj
 
-    LaunchedEffect(episode, episodeId) {
-        Logd(TAG, "LaunchedEffect(episode, episodeId)")
-        if (episode != null) {
-            webviewData = webDataCache[episode!!.id]
-            if (webviewData.isNullOrBlank()) {
-                Logd(TAG, "description: ${episode?.description}")
-                scope.launch(Dispatchers.IO) {
-                    episode?.let {
-                        webviewData = gearbox.buildWebviewData(context, it)
-                        if (webviewData != null) webDataCache.put(it.id, webviewData!!)
-                    }
-                }
-            }
-        }
-        if (playerLocal == null && !episode?.clips.isNullOrEmpty()) playerLocal = ExoPlayer.Builder(context).build()
-    }
-
-    var offerStreaming by remember { mutableStateOf(false) }
-
     var showShareDialog by remember { mutableStateOf(false) }
     var showChooseRatingDialog by remember { mutableStateOf(false) }
     var showIgnoreDialog by remember { mutableStateOf(false) }
     var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
     var showPlayStateDialog by remember { mutableStateOf(false) }
-    var showEditComment by remember { mutableStateOf(false) }
-    var showTagsSettingDialog by remember { mutableStateOf(false) }
-    var showTodoDialog by remember { mutableStateOf(false) }
-    var onTodo by remember { mutableStateOf<Todo?>(null) }
+    var showAddTimerDialog by remember { mutableStateOf(false) }
+    var showTimetableDialog by remember { mutableStateOf(false) }
+    var onTimer by remember { mutableStateOf(Timer()) }
+    var showEditTimerDialog by remember { mutableStateOf(false) }
 
     @Composable
     fun OpenDialogs() {
@@ -222,16 +186,15 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
         if (showPlayStateDialog) PlayStateDialog(listOf(episode!!), onDismissRequest = { showPlayStateDialog = false }, { futureState = it },{ showIgnoreDialog = true })
         if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(episode!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
         if (showShareDialog && episode != null && actMain != null) ShareDialog(episode!!, actMain) { showShareDialog = false }
-//        if (showChaptersDialog && episode != null) ChaptersDialog(media = episode!!, onDismissRequest = {showChaptersDialog = false})
-        if (showEditComment && episode != null) {
-            var commentText by remember { mutableStateOf(TextFieldValue(episode?.compileCommentText() ?: "")) }
-            CommentEditingDialog(textState = commentText, onTextChange = { commentText = it }, onDismissRequest = { showEditComment = false},
-                onSave = { upsertBlk(episode!!) { it.addComment(commentText.text, false) } })
+
+        if (showEditTimerDialog) EditTimerDialog(onTimer) { showEditTimerDialog = false }
+
+        if (showAddTimerDialog) AddTimerDialog(episode!!) { showAddTimerDialog = false }
+
+        if (showTimetableDialog) EpisodeTimetableDialog(episode!!, { showTimetableDialog = false }) {
+            onTimer = it
+            showEditTimerDialog = true
         }
-        if (showTagsSettingDialog) TagSettingDialog(TagType.Episode, episode!!.tags, onDismiss = { showTagsSettingDialog = false }) { tags ->
-            upsertBlk(episode!!) { it.tags.addAll(tags) }
-        }
-        if (showTodoDialog) TodoDialog(episode!!, onTodo) { showTodoDialog = false}
     }
 
     @Composable
@@ -272,7 +235,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                                 if (!readerhtml.isNullOrEmpty()) {
                                     val shownotesCleaner = ShownotesCleaner(context)
                                     cleanedNotes = shownotesCleaner.processShownotes(readerhtml!!, 0)
-                                    upsertBlk(episode!!) { it.setTranscriptIfLonger(readerhtml) }
+                                    runOnIOScope { upsert(episode!!) { it.setTranscriptIfLonger(readerhtml) } }
                                     notesCache.put(episode!!.id, cleanedNotes!!)
                                 }
                             }
@@ -338,28 +301,27 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
             val context = LocalContext.current
             val buttonColor = Color(0xDDFFD700)
             Box {
-                TopAppBar(title = { Text("") }, navigationIcon = {
-                    IconButton(onClick = { showHomeScreen = false }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") }
-                }, actions = {
-                    if (readMode && tts != null) {
-                        val iconRes = if (ttsPlaying) R.drawable.ic_pause else R.drawable.ic_play_24dp
-                        IconButton(onClick = {
-                            if (tts!!.isSpeaking) tts?.stop()
-                            if (!ttsPlaying) {
-                                ttsPlaying = true
-                                if (!readerText.isNullOrEmpty()) {
-                                    ttsSpeed = episode?.feed?.playSpeed ?: 1.0f
-                                    tts?.setSpeechRate(ttsSpeed)
-                                    while (startIndex < readerText!!.length) {
-                                        val endIndex = minOf(startIndex + MAX_CHUNK_LENGTH, readerText!!.length)
-                                        val chunk = readerText!!.substring(startIndex, endIndex)
-                                        tts?.speak(chunk, TextToSpeech.QUEUE_ADD, null, null)
-                                        startIndex += MAX_CHUNK_LENGTH
+                TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { showHomeScreen = false }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
+                    actions = {
+                        if (readMode && tts != null) {
+                            val iconRes = if (ttsPlaying) R.drawable.ic_pause else R.drawable.ic_play_24dp
+                            IconButton(onClick = {
+                                if (tts!!.isSpeaking) tts?.stop()
+                                if (!ttsPlaying) {
+                                    ttsPlaying = true
+                                    if (!readerText.isNullOrEmpty()) {
+                                        ttsSpeed = episode?.feed?.playSpeed ?: 1.0f
+                                        tts?.setSpeechRate(ttsSpeed)
+                                        while (startIndex < readerText!!.length) {
+                                            val endIndex = minOf(startIndex + MAX_CHUNK_LENGTH, readerText!!.length)
+                                            val chunk = readerText!!.substring(startIndex, endIndex)
+                                            tts?.speak(chunk, TextToSpeech.QUEUE_ADD, null, null)
+                                            startIndex += MAX_CHUNK_LENGTH
+                                        }
                                     }
-                                }
-                            } else ttsPlaying = false
-                        }) { Icon(imageVector = ImageVector.vectorResource(iconRes), contentDescription = "home") }
-                    }
+                                } else ttsPlaying = false
+                            }) { Icon(imageVector = ImageVector.vectorResource(iconRes), contentDescription = "home") }
+                        }
                     val showJSIconRes = if (readMode) R.drawable.outline_eyeglasses_24 else R.drawable.javascript_icon_245402
                     IconButton(onClick = { jsEnabled = !jsEnabled }) { Icon(imageVector = ImageVector.vectorResource(showJSIconRes), contentDescription = "JS") }
                     val homeIconRes = if (readMode) R.drawable.baseline_home_24 else R.drawable.outline_home_24
@@ -505,6 +467,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     else {
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
             val buttonColor = MaterialTheme.colorScheme.tertiary
+            val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
             var showAltActionsDialog by remember { mutableStateOf(false) }
             var actionButton by remember { mutableStateOf<EpisodeActionButton?>(null) }
             if (showAltActionsDialog) actionButton?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
@@ -543,9 +506,14 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                                     }
                                     else -> ""
                                 } ) }
-
                             Text("$pubTimeText · $txtvDuration · $txtvSize", color = textColor, style = MaterialTheme.typography.bodyMedium)
                         }
+                        val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episodeId }.toMutableStateList() }
+                        Logd(TAG, "timers: ${timers.size} ${appAttribs.timetable.size}")
+                        Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_timer_24), tint = if (timers.isEmpty()) buttonColor else buttonAltColor, contentDescription = "timer", modifier = Modifier.width(28.dp).height(32.dp).align(Alignment.TopEnd).combinedClickable(onClick = {
+                            if (timers.isEmpty()) showAddTimerDialog = true
+                            else showTimetableDialog = true
+                        }, onLongClick = { showAddTimerDialog = true  }))
                         if (actionButton != null && episode != null) {
                             val dlStats = downloadStates[episode!!.downloadUrl]
                             if (dlStats != null) {
@@ -558,26 +526,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                     }
                 }
                 Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-                    if (episode != null) Todos(episode!!, episodeFlow, {
-                        onTodo = null
-                        showTodoDialog = true
-                    }, { todo->
-                        onTodo = todo
-                        showTodoDialog = true
-                    })
-                    Text("Tags: ${episode?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
-                    Text(stringResource(R.string.my_opinion_label) + if (episode?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
-                    Text(episode?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
-                    EpisodeMarks(episode)
-                    EpisodeClips(episode, playerLocal)
-//                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
-                    if (!episode?.chapters.isNullOrEmpty()) ChaptersColumn(episode!!)
-                    EpisodeWebView(webviewData)
-                    if (!episode?.related.isNullOrEmpty()) {
-                        var showTodayStats by remember { mutableStateOf(false) }
-                        if (showTodayStats) RelatedEpisodesDialog(episode!!) { showTodayStats = false }
-                        Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
-                    }
+                    if (episode != null) EpisodeDetails(episode!!, episodeFlow)
                     AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
                     Text(episode?.link ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable(onClick = {
                         if (!episode?.link.isNullOrBlank()) openInBrowser(context, episode!!.link!!)

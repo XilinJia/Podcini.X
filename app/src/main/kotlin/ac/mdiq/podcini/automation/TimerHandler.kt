@@ -2,8 +2,10 @@ package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.receiver.AlarmReceiver
-import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.utils.Loge
 import android.app.AlarmManager
 import android.app.PendingIntent
@@ -20,39 +22,45 @@ import java.time.ZoneId
 private const val TAG = "AlarmHandler"
 const val ALARM_TYPE = "AlarmType"
 
-fun idFromTriggerTime(millis: Long): Int {
+private fun idFromTriggerTime(millis: Long): Int {
     return Instant.ofEpochMilli(millis).atZone(ZoneId.of("UTC")).let {
-        val y = it.year % 10
-        "%d%02d%02d%02d%02d".format(y, it.monthValue, it.dayOfMonth, it.hour, it.minute).toInt()
+        "%d%02d%02d%02d%02d".format(it.year % 10, it.monthValue, it.dayOfMonth, it.hour, it.minute).toInt()
     }
 }
 
-fun playEpisodeAtTime(triggerTime: Long, episode: Episode) {
+fun playEpisodeAtTime(triggerTime: Long, episodeId: Long) {
     val context = getAppContext()
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (!alarmManager.canScheduleExactAlarms()) {
-            requestExactAlarmPermission(context)
+            requestExactAlarmPermission()
             return
         }
     }
 
     val intent = Intent(context, AlarmReceiver::class.java).apply {
-        putExtra(ALARM_TYPE, AlarmTypes.PLAY_EPISODE.name + ":" + episode.id.toString())
+        putExtra(ALARM_TYPE, AlarmTypes.PLAY_EPISODE.name + ":" + episodeId.toString())
     }
-    // ... (rest of PendingIntent creation and scheduling) ...
 
-    val id = idFromTriggerTime(triggerTime)
-    val pendingIntent = PendingIntent.getBroadcast(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    val timer = Timer()
+    timer.id = System.currentTimeMillis()
+    timer.episodeId = episodeId
+    timer.triggerTime = triggerTime
+    timer.alarmId = idFromTriggerTime(triggerTime)
+
+    runOnIOScope { upsert(appAttribs) { it.timetable.add(timer)} }
+
+    val pendingIntent = PendingIntent.getBroadcast(context, timer.alarmId, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
 
     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
 }
 
-fun setOneTimeAlarm(context: Context, triggerTime: Long, message: AlarmTypes) {
+fun setOneTimeAlarm(triggerTime: Long, message: AlarmTypes) {
+    val context = getAppContext()
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (!alarmManager.canScheduleExactAlarms()) {
-            requestExactAlarmPermission(context)
+            requestExactAlarmPermission()
             return
         }
     }
@@ -60,7 +68,6 @@ fun setOneTimeAlarm(context: Context, triggerTime: Long, message: AlarmTypes) {
     val intent = Intent(context, AlarmReceiver::class.java).apply {
         putExtra(ALARM_TYPE, message.name)
     }
-    // ... (rest of PendingIntent creation and scheduling) ...
 
     val id = idFromTriggerTime(triggerTime)
     val pendingIntent = PendingIntent.getBroadcast(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -68,11 +75,12 @@ fun setOneTimeAlarm(context: Context, triggerTime: Long, message: AlarmTypes) {
     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
 }
 
-fun setCountdownMinutes(context: Context, countdown: Int, message: AlarmTypes) {
+fun setCountdownMinutes(countdown: Int, message: AlarmTypes) {
+    val context = getAppContext()
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         if (!alarmManager.canScheduleExactAlarms()) {
-            requestExactAlarmPermission(context)
+            requestExactAlarmPermission()
             return
         }
     }
@@ -80,7 +88,6 @@ fun setCountdownMinutes(context: Context, countdown: Int, message: AlarmTypes) {
     val intent = Intent(context, AlarmReceiver::class.java).apply {
         putExtra(ALARM_TYPE, message.name)
     }
-    // ... (rest of PendingIntent creation and scheduling) ...
 
     val triggerAt = SystemClock.elapsedRealtime() + countdown * 60 * 1000
     val id = idFromTriggerTime(triggerAt)
@@ -88,33 +95,15 @@ fun setCountdownMinutes(context: Context, countdown: Int, message: AlarmTypes) {
     alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAt, pendingIntent)
 }
 
-// Function to open the permission settings screen
-private fun requestExactAlarmPermission(context: Context) {
+fun requestExactAlarmPermission() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val context = getAppContext()
         val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
             data = Uri.fromParts("package", context.packageName, null)
         }
 
-        if (context is ComponentActivity) {
-            context.startActivity(intent)
-        } else {
-            // Handle cases where context is not an Activity (e.g., in a background service)
-            Loge(TAG, "Cannot request permission without an Activity context.")
-        }
-    }
-}
-
-fun cancelAlarm(context: Context) {
-    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    val intent = Intent(context, AlarmReceiver::class.java)
-
-    // code mUST match the request code used for scheduling, Use NO_CREATE to check existence
-    val pendingIntent = PendingIntent.getBroadcast(context, 42, intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
-
-    if (pendingIntent != null) {
-        alarmManager.cancel(pendingIntent)
-        pendingIntent.cancel() // Good practice to also cancel the PendingIntent
-        Logd(TAG, "Alarm cancelled.")
+        if (context is ComponentActivity) context.startActivity(intent)
+        else Loge(TAG, "Cannot request permission without an Activity context.")
     }
 }
 

@@ -1,7 +1,0 @@
-# 8.2.1
-
-* changing sort category will not change the sorting direction, for both subscriptions and episodes
-* likely fixed again the out-of-bound errors in episodes lists
-* ensured background color of Queues match the theme
-* enabled some toast messages
-* webviewData is cached in episode, saving some redundant constructions

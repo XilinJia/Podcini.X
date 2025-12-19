@@ -12,11 +12,10 @@ import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
-import ac.mdiq.podcini.ui.compose.AlarmEpisodeDialog
+import ac.mdiq.podcini.ui.compose.AddTimerDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -294,7 +293,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 val almostEnded = item_.hasAlmostEnded()
                 if (almostEnded) {
                     if (item_.playState < EpisodeState.PLAYED.code) item_ = setPlayState(EpisodeState.PLAYED, item_, resetMediaPosition = true, removeFromQueue = false)
-                    item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
+                    item_ = upsert(item_) { it.playbackCompletionDate = Date() }
                 }
                 deleteEpisodesWarnLocalRepeat(context, listOf(item_))
                 withContext(Dispatchers.Main) {
@@ -368,7 +367,12 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override fun ActionOptions() {
             if (showTagDialog) {
                 TagSettingDialog(TagType.Episode, onEpisode!!.tags, onDismiss = { showTagDialog = false }) { tags ->
-                    upsertBlk(onEpisode!!) { it.tags.addAll(tags) }
+                    runOnIOScope {
+                        upsert(onEpisode!!) {
+                            it.tags.clear()
+                            it.tags.addAll(tags)
+                        }
+                    }
                 }
             }
         }
@@ -549,7 +553,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
     class Alarm : SwipeAction() {
         override val id: String
             get() = "ALARM"
-        private var showAlarmDialog by mutableStateOf(false)
+        private var showTimerDialog by mutableStateOf(false)
         override val title: String
             get() = getAppContext().getString(R.string.alarm_episodes_label)
 
@@ -558,11 +562,11 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
         override fun performAction(e: Episode) {
             super.performAction(e)
-            showAlarmDialog = true
+            showTimerDialog = true
         }
         @Composable
         override fun ActionOptions() {
-            if (showAlarmDialog && onEpisode != null) AlarmEpisodeDialog(listOf(onEpisode!!)) { showAlarmDialog = false }
+            if (showTimerDialog && onEpisode != null) AddTimerDialog(onEpisode!!) { showTimerDialog = false }
         }
     }
 
@@ -646,7 +650,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                     }
                     Button(onClick = {
                         actions = sa.RightLeftActions("${rightAction.value.id},${leftAction.value.id}")
-                        upsertBlk(appAttribs) { it.swipeActionsMap[sa.tag] = "${rightAction.value.id},${leftAction.value.id}" }
+                        runOnIOScope { upsert(appAttribs) { it.swipeActionsMap[sa.tag] = "${rightAction.value.id},${leftAction.value.id}" } }
                         callback(actions)
                         onDismissRequest()
                     }) { Text(stringResource(R.string.confirm_label)) }

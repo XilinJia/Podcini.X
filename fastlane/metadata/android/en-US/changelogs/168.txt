@@ -1,4 +1,0 @@
-# 8.16.3
-
-* further enhancements in EpisodeVM for better monitoring of curEpisode
-* amended ActionButtons on better getting action results

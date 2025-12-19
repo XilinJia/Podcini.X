@@ -1,9 +1,0 @@
-# 8.17.4
-
-* fixed possible null pointer exceptions in EpisodeInfo screen
-* fixed situation when window being null in VideoPlayerActivity
-* fixed paddings of VideoPlayerActivity for Android 15
-* likely fixed current episode not properly set to Ignored if a duplicate item was previously set to Forever, Skipped, Played, Passed, Ignored
-* ensured to update list in Queues and FeedDetails screens when screen is back on
-* added menu item "Clear all cache" in AudioPlayer screen to remove played episodes from cache
-* krdb updated to 3.2.7

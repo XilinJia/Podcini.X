@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.utils.Logd
 import java.io.Serializable
 
@@ -164,6 +165,12 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             propertySet.contains(States.untagged.name) -> statements.add(" tags.@count == 0 ")
         }
 
+//        val eIdsWithTimers = appAttribs.timetable.map { it.episodeId }
+//        when {
+//            propertySet.contains(States.has_timers.name) -> statements.add(" id IN ${eIdsWithTimers.joinToString(prefix = "(", postfix = ")")} ")
+//            propertySet.contains(States.no_timers.name) -> statements.add(" NOT (id IN $eIdsWithTimers) ")
+//        }
+
         when {
             propertySet.contains(States.has_todos.name) -> statements.add(" todos.@count > 0 AND todos.completed == false")
             propertySet.contains(States.no_todos.name) -> statements.add(" todos.@count == 0 ")
@@ -243,6 +250,9 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         tagged,
         untagged,
 
+//        has_timers,
+//        no_timers,
+
         has_todos,
         no_todos,
 
@@ -313,6 +323,8 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
         OPINION(R.string.has_comments, FilterProperties(R.string.yes, States.has_comments.name), FilterProperties(R.string.no, States.no_comments.name), exclusive = true),
 
         TAGGED(R.string.tagged, FilterProperties(R.string.yes, States.tagged.name), FilterProperties(R.string.no, States.untagged.name), exclusive = true),
+
+//        TIMERS(R.string.tagged, FilterProperties(R.string.yes, States.has_timers.name), FilterProperties(R.string.no, States.no_timers.name), exclusive = true),
 
         CLIPPED(R.string.has_clips, FilterProperties(R.string.yes, States.has_clips.name), FilterProperties(R.string.no, States.no_clips.name),exclusive = true),
 

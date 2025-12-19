@@ -1,6 +1,0 @@
-# 8.14.5
-
-* changed navigation behavior from drawer: only Subscriptions, Queues and Facets fully clears backstack, others partially
-* on feeds with auto-update disabled, auto-download/auto-enqueue with policies other than "Only new" still work
-* updated with authentic Turkish, thanks to @mikropsoft
-* updated some Compose dependencies
