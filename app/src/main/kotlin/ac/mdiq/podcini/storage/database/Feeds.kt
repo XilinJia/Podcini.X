@@ -66,15 +66,15 @@ fun compileLanguages() {
     val langsSet = mutableSetOf<String>()
     val feeds = getFeedList()
     for (feed in feeds) {
-        val langs = feed.languages
+        val langs = feed.langSet
         if (langs.isNotEmpty()) langsSet.addAll(langs)
     }
-    Logd(TAG, "langsSet: ${langsSet.size} appAttribs.languages: ${appAttribs.languages.size}")
-    val newLanguages = langsSet - appAttribs.languages
+    Logd(TAG, "langsSet: ${langsSet.size} appAttribs.langSet: ${appAttribs.langSet.size}")
+    val newLanguages = langsSet - appAttribs.langSet
     if (newLanguages.isNotEmpty()) {
         upsertBlk(appAttribs) {
-            it.languages.clear()
-            it.languages.addAll(langsSet)
+            it.langSet.clear()
+            it.langSet.addAll(langsSet)
         }
     }
 }
@@ -83,11 +83,11 @@ fun compileTags() {
     val tagsSet = mutableSetOf<String>()
     val feeds = getFeedList()
     for (feed in feeds) tagsSet.addAll(feed.tags.filter { it != TAG_ROOT })
-    val newTags = tagsSet - appAttribs.feedTags
+    val newTags = tagsSet - appAttribs.feedTagSet
     if (newTags.isNotEmpty()) {
         upsertBlk(appAttribs) {
-            it.feedTags.clear()
-            it.feedTags.addAll(tagsSet)
+            it.feedTagSet.clear()
+            it.feedTagSet.addAll(tagsSet)
         }
     }
 }
@@ -392,16 +392,18 @@ private suspend fun trimEpisodes(feed_: Feed) {
         val n = feed_.ordinariesCount()
         if (n > feed_.limitEpisodesCount + 5) {
             val f = searchFeedByIdentifyingValueOrID(feed_, true) ?: return
+            val dc = n - f.limitEpisodesCount
             val episodes = realm.query(Episode::class).query("feedId == ${feed_.id} SORT (pubDate ASC)").find()
-            var dc = n - f.limitEpisodesCount
-            var i = 0
-            while (dc > 0) {
-                val e = episodes[i]
-                if (!e.isWorthy) {
-                    f.eraseEpisode(e)
-                    dc--
+            realm.write {
+                var n = 1
+                for (e_ in episodes) {
+                    val e = findLatest(e_)
+                    if (e != null && !e.isWorthy) {
+                        f.episodes.remove(e)
+                        delete(e)
+                        if (n++ >= dc) break
+                    }
                 }
-                i++
             }
         }
     }
@@ -677,18 +679,45 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L) {
                     c
                 }
                 val ers = v.sortedByDescending { it.rating }
-                if (ers[0].rating > Rating.UNRATED.code) runOnIOScope {
+                if (ers[0].rating > Rating.UNRATED.code) {
                     episode = if (ers[0].id != ecs[0].id && comment.isNotEmpty()) upsertBlk(ers[0]) { it.addComment(comment) } else ers[0]
-                    for (i in 1..<ers.size) feed.eraseEpisode(ers[i])
+                    runOnIOScope {
+                        realm.write {
+                            for (i in 1..<ers.size) {
+                                findLatest(ers[i])?.let {
+                                    feed.episodes.remove(it)
+                                    delete(it)
+                                }
+                            }
+                        }
+                    }
                 } else {
                     val eps = v.sortedByDescending { it.lastPlayedTime }
                     if (eps[0].lastPlayedTime > 0L) {
                         episode = if (eps[0].id != ecs[0].id && comment.isNotEmpty()) upsertBlk(eps[0]) { it.addComment(comment) } else eps[0]
-                        runOnIOScope { for (i in 1..<eps.size) feed.eraseEpisode(eps[i]) }
+                        runOnIOScope {
+                            realm.write {
+                                for (i in 1..<eps.size) {
+                                    findLatest(eps[i])?.let {
+                                        feed.episodes.remove(it)
+                                        delete(it)
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         val eps = v.sortedByDescending { it.pubDate }
                         episode = if (eps[0].id != ecs[0].id && comment.isNotEmpty()) upsertBlk(eps[0]) { it.addComment(comment) } else eps[0]
-                        runOnIOScope { for (i in 1..<eps.size) feed.eraseEpisode(eps[i]) }
+                        runOnIOScope {
+                            realm.write {
+                                for (i in 1..<eps.size) {
+                                    findLatest(eps[i])?.let {
+                                        feed.episodes.remove(it)
+                                        delete(it)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 map[k] = mutableListOf(episode)

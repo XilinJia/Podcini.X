@@ -419,11 +419,25 @@ fun QueuesScreen(id: Long = -1L) {
                 if (queuesMode == QueuesScreenMode.Queue) Text(if (curIndex >= 0 && curIndex < spinnerTexts.size) spinnerTexts[curIndex].ifBlank { "No name" } else "No name" ,
                 maxLines=1, color = MaterialTheme.colorScheme.tertiary,
                 modifier = Modifier.combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
-                    if (episodes.size > 5 && curQueue.id == actQueue.id) {
-                        val index = episodes.indexOfFirst { it.id == curEpisode?.id }
-                        if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
-                        else Logt(TAG, "can not find curEpisode to scroll to")
-                    } else Logt(TAG, "only scroll in actQueue when size is larger than 5")
+                    if (curQueue.id == actQueue.id) {
+                        if (episodes.size > 5) {
+                            val index = episodes.indexOfFirst { it.id == curEpisode?.id }
+                            if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
+                            else Logt(TAG, "can not find curEpisode to scroll to")
+                        } else Logt(TAG, "only scroll in actQueue when size is larger than 5")
+                    } else {
+                        upsertBlk(curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
+                        val index = queues.indexOfFirst { it.id == actQueue.id }
+                        if (index >= 0) {
+                            curIndex = index
+                            runOnIOScope {
+                                upsert(queues[index]) { it.update() }
+                                upsert(appAttribs) { it.curQueueId = queues[index].id }
+                            }
+                            curQueueFlow = realm.query<PlayQueue>("id == $0", queues[index].id).first().asFlow()
+                            currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
+                        } else Logt(TAG, "actQueue is not available")
+                    }
                 })) else Text(title) },
                 navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
                 actions = {

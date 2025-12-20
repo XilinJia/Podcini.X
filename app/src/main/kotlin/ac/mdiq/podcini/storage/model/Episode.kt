@@ -9,6 +9,7 @@ import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -144,11 +145,9 @@ class Episode : RealmObject {
 
     var marks: RealmSet<Long> = realmSetOf()
 
-    /**
-     * The list of chapters of this item. This might be null even if there are chapters of this item
-     * in the database. The 'hasChapters' attribute should be used to check if this item has any chapters.
-     */
     var chapters: RealmList<Chapter> = realmListOf()
+
+    var chaptersLoaded: Boolean = false
 
     var rating: Int = Rating.UNRATED.code
 
@@ -772,9 +771,12 @@ class Episode : RealmObject {
     }
 
     fun setChapters(chapters_: List<Chapter>) {
-        chapters.clear()
         for (c in chapters_) c.episode = this
-        chapters.addAll(chapters_)
+        upsertBlk(this) {
+            it.chapters.clear()
+            it.chapters.addAll(chapters_)
+            it.chaptersLoaded = true
+        }
     }
 
     fun getCurrentChapterIndex(position: Int): Int {
@@ -784,8 +786,7 @@ class Episode : RealmObject {
     }
 
     fun loadChapters(context: Context, forceRefresh: Boolean) {
-        // TODO: what's this?
-        if (!forceRefresh) return
+        if (chaptersLoaded && !forceRefresh) return
         var chaptersFromDatabase: List<Chapter>? = null
         var chaptersFromPodcastIndex: List<Chapter>? = null
         if (chapters.isNotEmpty()) chaptersFromDatabase = chapters

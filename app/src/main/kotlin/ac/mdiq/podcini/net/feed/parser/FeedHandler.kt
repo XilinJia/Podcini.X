@@ -72,7 +72,7 @@ class FeedHandler {
                                 feed.type = Feed.FeedType.ATOM1.name
                                 Logd(TAG, "getType Recognized type Atom")
                                 val strLang = xpp.getAttributeValue("http://www.w3.org/XML/1998/namespace", "lang")
-                                if (strLang != null) feed.languages.add(strLang)
+                                if (strLang != null) feed.langSet.add(strLang)
                                 return Type.ATOM
                             }
                             RSS_ROOT -> {
@@ -911,7 +911,7 @@ class FeedHandler {
                                 ITEM if state.currentItem != null -> state.currentItem!!.setDescriptionIfLonger(content) // fromHtml here breaks \n when not html
                             }
                         }
-                        LANGUAGE == localName -> state.feed.languages.add(content.lowercase())
+                        LANGUAGE == localName -> state.feed.langSet.add(content.lowercase())
                     }
                 }
             }

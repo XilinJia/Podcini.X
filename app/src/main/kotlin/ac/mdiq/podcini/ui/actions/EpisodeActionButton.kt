@@ -258,8 +258,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         while (!ttsReady) delay(200)
                         if (tts?.isSpeaking == true) tts?.stop()
                         speaking = true
-                        if (!item.feed?.languages.isNullOrEmpty()) {
-                            val lang = item.feed!!.languages.first()
+                        if (!item.feed?.langSet.isNullOrEmpty()) {
+                            val lang = item.feed!!.langSet.first()
                             val result = tts?.setLanguage(Locale(lang))
                             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + lang)
                         }
@@ -325,8 +325,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                             withContext(Dispatchers.Main) { processing = 15 }
                             while (TTSEngine.ttsWorking) { delay(100) }
                             TTSEngine.ttsWorking = true
-                            if (!item.feed?.languages.isNullOrEmpty()) {
-                                val lang = item.feed!!.languages.first()
+                            if (!item.feed?.langSet.isNullOrEmpty()) {
+                                val lang = item.feed!!.langSet.first()
                                 val result = tts?.setLanguage(Locale(lang))
                                 if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + " $lang $result")
                             }
@@ -487,6 +487,43 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
         CommonPopupCard(onDismissRequest = onDismiss) {
             Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Logd(TAG, "button label: $type")
+                if (type != ButtonTypes.TTS) {
+                    IconButton(onClick = {
+                        type = ButtonTypes.TTS
+                        onClick(context)
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech), contentDescription = "TTS") }
+                }
+                if (type != ButtonTypes.JUSTTTS) {
+                    IconButton(onClick = {
+                        type = ButtonTypes.JUSTTTS
+                        onClick(context)
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech_svgrepo_com), contentDescription = "JUSTTTS") }
+                }
+                if (type != ButtonTypes.WEBSITE) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.WEBSITE)
+                        btn.onClick(context)
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "Web") }
+                }
+                if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.DOWNLOAD)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_download), contentDescription = "Download") }
+                }
+                if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.DELETE)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "Delete") }
+                }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     IconButton(onClick = {
                         val btn = EpisodeActionButton(item, ButtonTypes.PLAY)
@@ -518,43 +555,6 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         type = btn.type
                         onDismiss()
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.play_stream_svgrepo_com), contentDescription = "StreamOnce") }
-                }
-                if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
-                    IconButton(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.DOWNLOAD)
-                        btn.onClick(context)
-                        type = btn.type
-                        onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_download), contentDescription = "Download") }
-                }
-                if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
-                    IconButton(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.DELETE)
-                        btn.onClick(context)
-                        type = btn.type
-                        onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "Delete") }
-                }
-                if (type != ButtonTypes.WEBSITE) {
-                    IconButton(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.WEBSITE)
-                        btn.onClick(context)
-                        onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "Web") }
-                }
-                if (type != ButtonTypes.TTS) {
-                    IconButton(onClick = {
-                        type = ButtonTypes.TTS
-                        onClick(context)
-                        onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech), contentDescription = "TTS") }
-                }
-                if (type != ButtonTypes.JUSTTTS) {
-                    IconButton(onClick = {
-                        type = ButtonTypes.JUSTTTS
-                        onClick(context)
-                        onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech_svgrepo_com), contentDescription = "JUSTTTS") }
                 }
             }
         }

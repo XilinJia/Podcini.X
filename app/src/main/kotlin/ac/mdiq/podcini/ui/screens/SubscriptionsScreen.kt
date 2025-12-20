@@ -408,11 +408,11 @@ fun SubscriptionsScreen() {
     fun languagesQS() : String {
         var qrs  = ""
         when {
-            subPrefs.langsSel.isEmpty() -> qrs = " (languages.@count > 0) "
-            subPrefs.langsSel.size == appAttribs.languages.size -> qrs = ""
+            subPrefs.langsSel.isEmpty() -> qrs = " (langSet.@count > 0) "
+            subPrefs.langsSel.size == appAttribs.langSet.size -> qrs = ""
             else -> {
                 for (l in subPrefs.langsSel) {
-                    qrs += if (qrs.isEmpty()) " ( ANY languages == '$l' " else " OR ANY languages == '$l' "
+                    qrs += if (qrs.isEmpty()) " ( ANY langSet == '$l' " else " OR ANY langSet == '$l' "
                 }
                 if (qrs.isNotEmpty()) qrs += " ) "
             }
@@ -424,7 +424,7 @@ fun SubscriptionsScreen() {
         var qrs  = ""
         when {
             subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
-            subPrefs.tagsSel.size == appAttribs.feedTags.size -> qrs = ""
+            subPrefs.tagsSel.size == appAttribs.feedTagSet.size -> qrs = ""
             else -> {
                 for (t in subPrefs.tagsSel) {
                     qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
@@ -472,7 +472,7 @@ fun SubscriptionsScreen() {
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
-        val isFiltered by remember(subPrefs.feedsFilter, subPrefs.tagsSel.size, subPrefs.langsSel.size, subPrefs.queueSelIds.size) { mutableStateOf(subPrefs.feedsFilter.isNotEmpty() || subPrefs.tagsSel.size != appAttribs.feedTags.size || subPrefs.langsSel.size != appAttribs.languages.size || subPrefs.queueSelIds.size != queueIds.size) }
+        val isFiltered by remember(subPrefs.feedsFilter, subPrefs.tagsSel.size, subPrefs.langsSel.size, subPrefs.queueSelIds.size) { mutableStateOf(subPrefs.feedsFilter.isNotEmpty() || subPrefs.tagsSel.size != appAttribs.feedTagSet.size || subPrefs.langsSel.size != appAttribs.langSet.size || subPrefs.queueSelIds.size != queueIds.size) }
         Box {
             TopAppBar(title = {
                 Row {
@@ -1361,8 +1361,8 @@ fun SubscriptionsScreen() {
         fun FilterDialog(filter: FeedFilter? = null, onDismissRequest: () -> Unit) {
             val filterValues = remember { filter?.properties ?: mutableSetOf() }
             var reset by remember { mutableIntStateOf(0) }
-            var langFull by remember(subPrefs.langsSel.size) { mutableStateOf(subPrefs.langsSel.size == appAttribs.languages.size) }
-            var tagsFull by remember(subPrefs.tagsSel.size) { mutableStateOf(subPrefs.tagsSel.size == appAttribs.feedTags.size) }
+            var langFull by remember(subPrefs.langsSel.size) { mutableStateOf(subPrefs.langsSel.size == appAttribs.langSet.size) }
+            var tagsFull by remember(subPrefs.tagsSel.size) { mutableStateOf(subPrefs.tagsSel.size == appAttribs.feedTagSet.size) }
             var queuesFull by remember(subPrefs.queueSelIds.size) { mutableStateOf(subPrefs.queueSelIds.size == queueNames.size) }
             fun onFilterChanged(newFilterValues: Set<String>) {
                 runOnIOScope {
@@ -1380,8 +1380,8 @@ fun SubscriptionsScreen() {
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
                     Column(Modifier.fillMaxSize()) {
                         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                            if (appAttribs.languages.size > 1) {
-                                val langs = remember { appAttribs.languages.toList().sorted() }
+                            if (appAttribs.langSet.size > 1) {
+                                val langs = remember { appAttribs.langSet.toList().sorted() }
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     val selectedList = remember { MutableList(langs.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {
@@ -1471,8 +1471,8 @@ fun SubscriptionsScreen() {
                                     ) { Text(text = queueNames[index], maxLines = 1, color = textColor) }
                                 }
                             }
-                            if (appAttribs.feedTags.isNotEmpty()) {
-                                val tagList = remember { appAttribs.feedTags.toList().sorted() }
+                            if (appAttribs.feedTagSet.isNotEmpty()) {
+                                val tagList = remember { appAttribs.feedTagSet.toList().sorted() }
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {
@@ -1617,9 +1617,9 @@ fun SubscriptionsScreen() {
                                 Button(onClick = {
                                     runOnIOScope {
                                         upsert(subPrefs) {
-                                            it.tagsSel = appAttribs.feedTags.toRealmSet()
+                                            it.tagsSel = appAttribs.feedTagSet.toRealmSet()
                                             it.queueSelIds = queueIds.toRealmSet()
-                                            it.langsSel = appAttribs.languages.toRealmSet()
+                                            it.langsSel = appAttribs.langSet.toRealmSet()
                                             it.feedsFiltered += 1
                                         }
                                     }

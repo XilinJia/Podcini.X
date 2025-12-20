@@ -280,7 +280,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             Logd(TAG, "LaunchedEffect loading details ${curItem?.id}")
             if (curItem != null && !chapertsLoaded) {
                 scope.launch(Dispatchers.IO) {
-                    upsert(curItem) { it.loadChapters(context, true) }
+                    gearbox.loadChapters(context, curItem)
                     vm.sleepTimerActive = isSleepTimerActive()
                     chapertsLoaded = true
                 }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
@@ -628,7 +628,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(curItem!!)) { showChooseRatingDialog = false }
         Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-            gearbox.PlayerDetailedGearPanel(curItem, resetPlayer) { resetPlayer = it }
+            if (curItem != null) gearbox.PlayerDetailedGearPanel(curItem!!, resetPlayer) { resetPlayer = it }
             SelectionContainer { Text((curItem?.feed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
                 Spacer(modifier = Modifier.weight(0.2f))
@@ -662,7 +662,6 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     Box(modifier = Modifier.fillMaxWidth().then(if (!isBSExpanded) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())) {
         PlayerUI(Modifier.align(if (!isBSExpanded) Alignment.TopCenter else Alignment.BottomCenter).zIndex(1f))
         if (isBSExpanded) {
-//            if (cleanedNotes == null) updateDetails()
             Column(Modifier.padding(bottom = 120.dp)) {
                 Toolbar()
                 DetailUI(modifier = Modifier.fillMaxSize())

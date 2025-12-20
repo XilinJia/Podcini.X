@@ -21,11 +21,13 @@ class AppAttribs: RealmObject {
 
     var queuesMode: String = ""
 
-    var languages: RealmList<String> = realmListOf()
+    var langSet: RealmSet<String> = realmSetOf()
 
-    var feedTags: RealmList<String> = realmListOf()
+    var langsPreferred: RealmSet<String> = realmSetOf()
 
-    var episodeTags: RealmList<String> = realmListOf()
+    var feedTagSet: RealmSet<String> = realmSetOf()
+
+    var episodeTagSet: RealmSet<String> = realmSetOf()
 
     var swipeActionsMap: RealmDictionary<String?> = realmDictionaryOf()
 

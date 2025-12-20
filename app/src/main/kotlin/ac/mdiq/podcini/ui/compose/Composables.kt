@@ -526,7 +526,7 @@ fun TagSettingDialog(tagType: TagType, existingTags: Set<String>, multiples: Boo
         Column(modifier = Modifier.verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(stringResource(R.string.tags_label), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
             var text by remember { mutableStateOf("") }
-            val allTags = remember { if (tagType == TagType.Feed) appAttribs.feedTags else appAttribs.episodeTags }
+            val allTags = remember { if (tagType == TagType.Feed) appAttribs.feedTagSet else appAttribs.episodeTagSet }
             var suggestedTags by remember { mutableStateOf(listOf<String>()) }
             var showSuggestions by remember { mutableStateOf(false) }
             val tags = remember { existingTags.toMutableStateList() }
@@ -582,16 +582,16 @@ fun TagSettingDialog(tagType: TagType, existingTags: Set<String>, multiples: Boo
                     Logd("TagsSettingDialog", "tags: [${tags.joinToString()}] commonTags: [${existingTags.joinToString()}]")
                     cb(tags)
                     if (tagType == TagType.Feed) {
-                        val tagsSet = appAttribs.feedTags.toMutableSet() + tags
+                        val tagsSet = appAttribs.feedTagSet.toMutableSet() + tags
                         upsertBlk(appAttribs) {
-                            it.feedTags.clear()
-                            it.feedTags.addAll(tagsSet)
+                            it.feedTagSet.clear()
+                            it.feedTagSet.addAll(tagsSet)
                         }
                     } else {
-                        val tagsSet = appAttribs.episodeTags.toMutableSet() + tags
+                        val tagsSet = appAttribs.episodeTagSet.toMutableSet() + tags
                         upsertBlk(appAttribs) {
-                            it.episodeTags.clear()
-                            it.episodeTags.addAll(tagsSet)
+                            it.episodeTagSet.clear()
+                            it.episodeTagSet.addAll(tagsSet)
                         }
                     }
                     onDismiss()

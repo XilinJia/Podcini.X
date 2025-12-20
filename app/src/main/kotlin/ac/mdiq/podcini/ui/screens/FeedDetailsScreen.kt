@@ -108,6 +108,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -725,6 +726,29 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         Text(audioType, style = MaterialTheme.typography.bodyMedium, color = textColor)
                     }
                     Text(text = stringResource(R.string.pref_feed_audio_type_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+                if ((feed?.langSet?.size?:0) > 1) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+                        Text(stringResource(R.string.preferred_languages), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+                        var showIcon by remember { mutableStateOf(false) }
+                        var newName by remember { mutableStateOf(feed!!.preferredLnaguages.ifEmpty { feed!!.langSet }.joinToString(", ")) }
+                        TextField(value = newName,
+                            onValueChange = {
+                                newName = it
+                                showIcon =  true
+                            },
+                            trailingIcon = {
+                                if (showIcon) Icon(imageVector = Icons.Filled.Settings, contentDescription = "Settings icon", modifier = Modifier.size(30.dp).padding(start = 10.dp).clickable(
+                                    onClick = {
+                                        runOnIOScope { upsert(feed!!) { att->
+                                            att.preferredLnaguages.clear()
+                                            att.preferredLnaguages.addAll(newName.split(',').map { it.trim() }.filter { it.isNotEmpty() })
+                                        } }
+                                        showIcon =  false
+                                    }))
+                            })
+                        Text("", color = textColor, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
                 if ((feed?.id ?: 0) >= MAX_NATURAL_SYNTHETIC_ID && feed?.hasVideoMedia == true) {
                     //                    video mode
@@ -1447,14 +1471,12 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 Column {
                     Text(feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
                     Text(feed?.author ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
-                    if (!feed?.languages.isNullOrEmpty()) Row(modifier = Modifier.padding(top = 4.dp)) {
-                        Text("Languages: ")
-                        for (l in feed!!.languages) Text(l, modifier = Modifier.padding(end = 2.dp))
-                    }
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }
             }
+            if (!feed?.langSet.isNullOrEmpty()) Text("Languages: ${feed!!.langSet.joinToString(", ")}")
+
             Text("Tags: ${feed?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
             Text(stringResource(R.string.my_opinion_label) + if (feed?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
                 modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable {
@@ -1462,6 +1484,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     showEditComment = true
                 })
             if (!feed?.comment.isNullOrBlank()) SelectionContainer { Text(feed?.comment ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp)) }
+
 
             Text(stringResource(R.string.statistics_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
             Row {

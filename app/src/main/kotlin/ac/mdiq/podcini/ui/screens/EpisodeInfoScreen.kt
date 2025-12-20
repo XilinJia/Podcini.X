@@ -246,8 +246,8 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                             if (tts == null) {
                                 tts = TextToSpeech(context) { status: Int ->
                                     if (status == TextToSpeech.SUCCESS) {
-                                        if (!episode?.feed?.languages.isNullOrEmpty()) {
-                                            val lang = episode!!.feed!!.languages.first()
+                                        if (!episode?.feed?.langSet.isNullOrEmpty()) {
+                                            val lang = episode!!.feed!!.langSet.first()
                                             val result = tts?.setLanguage(Locale(lang))
                                             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED)
                                                 Loge(TAG, context.getString(R.string.language_not_supported_by_tts) + lang)

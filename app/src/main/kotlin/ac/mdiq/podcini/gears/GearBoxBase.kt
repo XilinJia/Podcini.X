@@ -38,6 +38,10 @@ open class GearBoxBase {
 
     open fun cleanGearData() {}
 
+    open fun loadChapters(context: Context, episode: Episode) {
+        episode.loadChapters(context, false)
+    }
+
     fun buildWebviewData(context: Context, episode: Episode): String? {
         val shownotesCleaner = ShownotesCleaner(context)
         val webDataPair = buildWebviewPair(episode, shownotesCleaner)
@@ -51,7 +55,7 @@ open class GearBoxBase {
     }
 
     @Composable
-    open fun PlayerDetailedGearPanel(curItem: Episode?, reset: Boolean, cb: (Boolean)->Unit) {}
+    open fun PlayerDetailedGearPanel(curItem: Episode, reset: Boolean, cb: (Boolean)->Unit) {}
 
     @Composable
     open fun GearSearchText() {}

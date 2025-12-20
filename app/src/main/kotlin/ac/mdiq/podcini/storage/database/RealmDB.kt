@@ -34,6 +34,7 @@ import io.github.xilinjia.krdb.dynamic.getValueList
 import io.github.xilinjia.krdb.dynamic.getValueSet
 import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.ext.toRealmList
+import io.github.xilinjia.krdb.ext.toRealmSet
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
@@ -71,7 +72,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(81)
+    )).name("Podcini.realm").schemaVersion(84)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -334,34 +335,34 @@ val config: RealmConfiguration by lazy {
                     languages.addAll(langsSet.toRealmList())
                 }
             }
-//            if (oldRealm.schemaVersion() < 73) {  // will do this in later version
-//                Logd(TAG, "migrating DB from below 73")
-//                val attrOld = oldRealm.query("AppAttribs").find()
-//                val attrNew = newRealm.query("AppAttribs").find()
-//                if (attrOld.isNotEmpty() && attrNew.isNotEmpty()) {
-//                    Logd(TAG, "migrating AppAttribs languages")
-//                    val langsOld = attrOld[0].getValueList<String>("languages").toRealmSet()
-//                    val langsNew = attrNew[0].getValueSet<String>("languageSet")
-//                    langsNew.addAll(langsOld)
-//                    Logd(TAG, "migrating AppAttribs feedTags")
-//                    val fTagsOld = attrOld[0].getValueList<String>("feedTags").toRealmSet()
-//                    val fTagsNew = attrNew[0].getValueSet<String>("feedTagSet")
-//                    fTagsNew.addAll(fTagsOld)
-//                    Logd(TAG, "migrating AppAttribs episodeTags")
-//                    val eTagsOld = attrOld[0].getValueList<String>("episodeTags").toRealmSet()
-//                    val eTagsNew = attrNew[0].getValueSet<String>("episodeTagSet")
-//                    eTagsNew.addAll(eTagsOld)
-//                }
-//                val feedsOld = oldRealm.query("Feed", "languages.@count > 0").find()
-//                for (f in feedsOld) {
-//                    val id = f.getValue<Long>("id")
-//                    val fNew = newRealm.query("Feed", "id == $id").first().find() ?: continue
-//                    Logd(TAG, "migrating feed languages $id")
-//                    val langsOld = f.getValueList<String>("languages").toRealmSet()
-//                    val langsNew = fNew.getValueSet<String>("languageSet")
-//                    langsNew.addAll(langsOld)
-//                }
-//            }
+            if (oldRealm.schemaVersion() < 83) {
+                Logd(TAG, "migrating DB from below 83")
+                val attrOld = oldRealm.query("AppAttribs").find()
+                val attrNew = newRealm.query("AppAttribs").find()
+                if (attrOld.isNotEmpty() && attrNew.isNotEmpty()) {
+                    Logd(TAG, "migrating AppAttribs languages")
+                    val langsOld = attrOld[0].getValueList<String>("languages").toRealmSet()
+                    val langsNew = attrNew[0].getValueSet<String>("langSet")
+                    langsNew.addAll(langsOld)
+                    Logd(TAG, "migrating AppAttribs feedTags")
+                    val fTagsOld = attrOld[0].getValueList<String>("feedTags").toRealmSet()
+                    val fTagsNew = attrNew[0].getValueSet<String>("feedTagSet")
+                    fTagsNew.addAll(fTagsOld)
+                    Logd(TAG, "migrating AppAttribs episodeTags")
+                    val eTagsOld = attrOld[0].getValueList<String>("episodeTags").toRealmSet()
+                    val eTagsNew = attrNew[0].getValueSet<String>("episodeTagSet")
+                    eTagsNew.addAll(eTagsOld)
+                }
+                val feedsOld = oldRealm.query("Feed", "languages.@count > 0").find()
+                for (f in feedsOld) {
+                    val id = f.getValue<Long>("id")
+                    val fNew = newRealm.query("Feed", "id == $id").first().find() ?: continue
+                    Logd(TAG, "migrating feed languages $id")
+                    val langsOld = f.getValueList<String>("languages").toRealmSet()
+                    val langsNew = fNew.getValueSet<String>("langSet")
+                    langsNew.addAll(langsOld)
+                }
+            }
         }).build()
 }
 

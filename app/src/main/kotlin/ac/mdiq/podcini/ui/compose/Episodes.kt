@@ -355,156 +355,6 @@ fun TodoDialog(episode: Episode, todo: Todo? = null, onDismissRequest: () -> Uni
     }
 }
 
-@Composable
-fun Todos(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode>>, createCB: ()->Unit, editCB: (Todo)->Unit) {
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val todosFlow: Flow<List<Todo>> = episodeFlow.map { ec -> ec.obj?.todos?.toList() ?: emptyList() }
-    val todos by todosFlow.collectAsStateWithLifecycle(initialValue = listOf())
-
-    var show by remember { mutableStateOf(false) }
-    var showDone by remember { mutableStateOf(false) }
-    Row(modifier = Modifier.padding(start = 15.dp, end = 10.dp, top = 10.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text("Todos:", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.clickable {
-            createCB()
-        })
-        if (todos.isNotEmpty()) {
-            Spacer(Modifier.width(50.dp))
-            Checkbox(checked = show, onCheckedChange = { show = it })
-            Text(text = stringResource(R.string.show), style = MaterialTheme.typography.bodyLarge.merge())
-            if (show) {
-                Spacer(Modifier.width(50.dp))
-                Checkbox(checked = showDone, onCheckedChange = { showDone = it })
-                Text(text = stringResource(R.string.show_done), style = MaterialTheme.typography.bodyLarge.merge())
-            }
-        }
-    }
-    if (show && todos.isNotEmpty()) Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
-        val localTime = remember { System.currentTimeMillis() }
-        for (todo in todos) {
-            var done by remember(todo) { mutableStateOf(todo.completed) }
-            if (!done || showDone) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = done, onCheckedChange = {
-                        done = it
-                        upsertBlkEmb(todo) { todo -> todo.completed = done }
-                    })
-                    Text(text = todo.title, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.clickable(onClick = { editCB(todo) }))
-                    Spacer(Modifier.weight(1f))
-                    Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "delete", modifier = Modifier.padding(end = 15.dp).clickable(onClick = { upsertBlk(episode) { it.todos.remove(todo) } }))
-                }
-                if (todo.dueTime > 0) {
-                    val dueText by remember(todo.dueTime) { mutableStateOf("D:" + formatDateTimeFlex(Date(todo.dueTime))) }
-                    val bgColor = if (localTime > todo.dueTime) Color.Cyan else MaterialTheme.colorScheme.surface
-                    Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 20.dp).background(bgColor))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ChaptersColumn(media: Episode) {
-    val chapters = remember { media.chapters }
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val buttonColor = MaterialTheme.colorScheme.tertiary
-    val context = LocalContext.current
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(stringResource(R.string.chapters_label))
-        var curChapterIndex by remember { mutableIntStateOf(-1) }
-        for (index in chapters.indices) {
-            val ch = remember(index) { chapters[index] }
-//            Text(ch.link?: "")
-            Row(modifier = Modifier.clickable(onClick = {
-                if (curEpisode == media) {
-                    if (!isPlaying) playPause()
-                } else {
-                    PlaybackStarter(context, media).shouldStreamThisTime(media.fileUrl == null).start()
-                    playVideoIfNeeded(context, media)
-                }
-                mPlayer?.seekTo(ch.start.toInt())
-                curChapterIndex = index
-            })) {
-                Text(durationStringFull(ch.start.toInt()), color = buttonColor, modifier = Modifier.padding(end = 5.dp))
-                Text(ch.title ?: "No title", color = textColor, fontWeight = if (index == curChapterIndex) FontWeight.Bold else FontWeight.Normal)
-            }
-        }
-    }
-}
-
-@androidx.annotation.OptIn(UnstableApi::class)
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun EpisodeMarks(episode: Episode?) {
-    if (!episode?.marks.isNullOrEmpty()) {
-        val context by rememberUpdatedState(LocalContext.current)
-        var markToRemove by remember { mutableLongStateOf(0L) }
-        if (markToRemove != 0L) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { markToRemove = 0L },
-                text = { Text(stringResource(R.string.ask_remove_mark, markToRemove)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        upsertBlk(episode) { it.marks.remove(markToRemove) }
-                        markToRemove = 0L
-                    }) { Text(stringResource(R.string.confirm_label)) }
-                },
-                dismissButton = { TextButton(onClick = { markToRemove = 0L }) { Text(stringResource(R.string.cancel_label)) } }
-            )
-        }
-        Text(stringResource(R.string.marks), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp))
-        FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
-            episode.marks.forEach { mark ->
-                FilterChip(onClick = {
-                    if (curEpisode != null && exoPlayer != null && episode.id == curEpisode?.id) {
-                        if (!isPlaying) playPause()
-                        mPlayer?.seekTo(mark.toInt())
-                    }
-                    else Logt(TAG, context.getString(R.string.play_mark_msg))
-                }, label = { Text(getDurationStringShort(mark, false)) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete",
-                    modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { markToRemove = mark })) })
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun EpisodeClips(episode: Episode?, player: ExoPlayer?) {
-    if (!episode?.clips.isNullOrEmpty()) {
-        var cliptToRemove by remember { mutableStateOf("") }
-        if (cliptToRemove.isNotBlank()) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { cliptToRemove = "" },
-                text = { Text(stringResource(R.string.ask_remove_clip, cliptToRemove.substringBefore("."))) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        runOnIOScope {
-                            val file = episode.getClipFile(cliptToRemove)
-                            file.delete()
-                            upsert(episode) { it.clips.remove(cliptToRemove) }
-                            withContext(Dispatchers.Main) { cliptToRemove = "" }
-                        }
-                    }) { Text(stringResource(R.string.confirm_label)) }
-                },
-                dismissButton = { TextButton(onClick = { cliptToRemove = "" }) { Text(stringResource(R.string.cancel_label)) } }
-            )
-        }
-        Text(stringResource(R.string.clips), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp))
-        FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
-            episode.clips.forEach { clip ->
-                FilterChip(onClick = {
-                    val file = episode.getClipFile(clip)
-                    if (player != null && file.exists()) {
-                        player.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
-                        player.prepare()
-                        player.play()
-                    } else Loge(TAG, "clip file doesn't exist: ${file.path}")
-                }, label = { Text(clip.substringBefore(".")) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete",
-                    modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { cliptToRemove = clip })) })
-            }
-        }
-    }
-}
-
-
 val webDataCache = LruCache<Long, String>(10)
 
 @Composable
@@ -555,36 +405,160 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
         }
     }
 
-    Todos(episode, episodeFlow, {
-        onTodo = null
-        showTodoDialog = true
-    }, { todo->
-        onTodo = todo
-        showTodoDialog = true
-    })
+    val todosFlow: Flow<List<Todo>> = episodeFlow.map { ec -> ec.obj?.todos?.toList() ?: emptyList() }
+    val todos by todosFlow.collectAsStateWithLifecycle(initialValue = listOf())
+
+    var show by remember { mutableStateOf(false) }
+    var showDone by remember { mutableStateOf(false) }
+    Row(modifier = Modifier.padding(start = 15.dp, end = 10.dp, top = 10.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Todos:", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.clickable {
+            onTodo = null
+            showTodoDialog = true
+        })
+        if (todos.isNotEmpty()) {
+            Spacer(Modifier.width(50.dp))
+            Checkbox(checked = show, onCheckedChange = { show = it })
+            Text(text = stringResource(R.string.show), style = MaterialTheme.typography.bodyLarge.merge())
+            if (show) {
+                Spacer(Modifier.width(50.dp))
+                Checkbox(checked = showDone, onCheckedChange = { showDone = it })
+                Text(text = stringResource(R.string.show_done), style = MaterialTheme.typography.bodyLarge.merge())
+            }
+        }
+    }
+    if (show && todos.isNotEmpty()) Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
+        val localTime = remember { System.currentTimeMillis() }
+        for (todo in todos) {
+            var done by remember(todo) { mutableStateOf(todo.completed) }
+            if (!done || showDone) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = done, onCheckedChange = {
+                        done = it
+                        upsertBlkEmb(todo) { todo -> todo.completed = done }
+                    })
+                    Text(text = todo.title, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.clickable(onClick = {
+                        onTodo = todo
+                        showTodoDialog = true
+                    }))
+                    Spacer(Modifier.weight(1f))
+                    Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "delete", modifier = Modifier.padding(end = 15.dp).clickable(onClick = { upsertBlk(episode) { it.todos.remove(todo) } }))
+                }
+                if (todo.dueTime > 0) {
+                    val dueText by remember(todo.dueTime) { mutableStateOf("D:" + formatDateTimeFlex(Date(todo.dueTime))) }
+                    val bgColor = if (localTime > todo.dueTime) Color.Cyan else MaterialTheme.colorScheme.surface
+                    Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 20.dp).background(bgColor))
+                }
+            }
+        }
+    }
+
     Text("Tags: ${episode.tagsAsString}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
     Text(stringResource(R.string.my_opinion_label) + if (episode.comment.isBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
     Text(episode.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
-    EpisodeMarks(episode)
-    EpisodeClips(episode, playerLocal)
-    //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
-    if (episode.chapters.isNotEmpty()) ChaptersColumn(episode)
-    EpisodeWebView(webviewData)
-    if (episode.related.isNotEmpty()) {
-        var showTodayStats by remember { mutableStateOf(false) }
-        if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
-        Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
-    }
-}
 
-@Composable
-fun EpisodeWebView(webviewData: String?) {
+    if (!episode.marks.isNullOrEmpty()) {
+        val context by rememberUpdatedState(LocalContext.current)
+        var markToRemove by remember { mutableLongStateOf(0L) }
+        if (markToRemove != 0L) {
+            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { markToRemove = 0L },
+                text = { Text(stringResource(R.string.ask_remove_mark, markToRemove)) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        upsertBlk(episode) { it.marks.remove(markToRemove) }
+                        markToRemove = 0L
+                    }) { Text(stringResource(R.string.confirm_label)) }
+                },
+                dismissButton = { TextButton(onClick = { markToRemove = 0L }) { Text(stringResource(R.string.cancel_label)) } }
+            )
+        }
+        Text(stringResource(R.string.marks), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp))
+        FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
+            episode.marks.forEach { mark ->
+                FilterChip(onClick = {
+                    if (curEpisode != null && exoPlayer != null && episode.id == curEpisode?.id) {
+                        if (!isPlaying) playPause()
+                        mPlayer?.seekTo(mark.toInt())
+                    }
+                    else Logt(TAG, context.getString(R.string.play_mark_msg))
+                }, label = { Text(getDurationStringShort(mark, false)) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete",
+                    modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { markToRemove = mark })) })
+            }
+        }
+    }
+
+    if (!episode?.clips.isNullOrEmpty()) {
+        var cliptToRemove by remember { mutableStateOf("") }
+        if (cliptToRemove.isNotBlank()) {
+            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { cliptToRemove = "" },
+                text = { Text(stringResource(R.string.ask_remove_clip, cliptToRemove.substringBefore("."))) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        runOnIOScope {
+                            val file = episode.getClipFile(cliptToRemove)
+                            file.delete()
+                            upsert(episode) { it.clips.remove(cliptToRemove) }
+                            withContext(Dispatchers.Main) { cliptToRemove = "" }
+                        }
+                    }) { Text(stringResource(R.string.confirm_label)) }
+                },
+                dismissButton = { TextButton(onClick = { cliptToRemove = "" }) { Text(stringResource(R.string.cancel_label)) } }
+            )
+        }
+        Text(stringResource(R.string.clips), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp))
+        FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
+            episode.clips.forEach { clip ->
+                FilterChip(onClick = {
+                    val file = episode.getClipFile(clip)
+                    if (playerLocal != null && file.exists()) {
+                        playerLocal!!.setMediaItem(MediaItem.fromUri(Uri.fromFile(file)))
+                        playerLocal!!.prepare()
+                        playerLocal!!.play()
+                    } else Loge(TAG, "clip file doesn't exist: ${file.path}")
+                }, label = { Text(clip.substringBefore(".")) }, selected = false, trailingIcon = { Icon(imageVector = Icons.Filled.Delete, contentDescription = "delete",
+                    modifier = Modifier.size(FilterChipDefaults.IconSize).clickable(onClick = { cliptToRemove = clip })) })
+            }
+        }
+    }
+
+    //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
+    if (episode.chapters.isNotEmpty()) {
+        val chapters = remember { episode.chapters }
+        val textColor = MaterialTheme.colorScheme.onSurface
+        val buttonColor = MaterialTheme.colorScheme.tertiary
+        val context = LocalContext.current
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(stringResource(R.string.chapters_label))
+            var curChapterIndex by remember { mutableIntStateOf(-1) }
+            for (index in chapters.indices) {
+                val ch = remember(index) { chapters[index] }
+                //            Text(ch.link?: "")
+                Row(modifier = Modifier.clickable(onClick = {
+                    if (curEpisode == episode) {
+                        if (!isPlaying) playPause()
+                    } else {
+                        PlaybackStarter(context, episode).shouldStreamThisTime(episode.fileUrl == null).start()
+                        playVideoIfNeeded(context, episode)
+                    }
+                    mPlayer?.seekTo(ch.start.toInt())
+                    curChapterIndex = index
+                })) {
+                    Text(durationStringFull(ch.start.toInt()), color = buttonColor, modifier = Modifier.padding(end = 5.dp))
+                    Text(ch.title ?: "No title", color = textColor, fontWeight = if (index == curChapterIndex) FontWeight.Bold else FontWeight.Normal)
+                }
+            }
+        }
+    }
     AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
         ShownotesWebView(context).apply {
             setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
             setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
         }
-    }, update = { it.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData, "text/html", "utf-8", "about:blank") })
+    }, update = { it.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank") })
+    if (episode.related.isNotEmpty()) {
+        var showTodayStats by remember { mutableStateOf(false) }
+        if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
+        Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
+    }
 }
 
 @Composable
@@ -1026,12 +1000,12 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                         if (showSearchBy) SearchByGrid(setOf(SearchBy.AUTHOR))
                     }
                 }
-                if (appAttribs.episodeTags.isNotEmpty()) {
-                    val tagList = remember { appAttribs.episodeTags.toList().sorted() }
+                if (appAttribs.episodeTagSet.isNotEmpty()) {
+                    val tagList = remember { appAttribs.episodeTagSet.toList().sorted() }
                     Column(modifier = Modifier.fillMaxWidth()) {
                         val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
                         val tagsSel = remember { mutableStateListOf<String>() }
-                        var tagsFull by remember { mutableStateOf(tagsSel.size == appAttribs.episodeTags.size) }
+                        var tagsFull by remember { mutableStateOf(tagsSel.size == appAttribs.episodeTagSet.size) }
                         var expandRow by remember { mutableStateOf(false) }
                         Row(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
                             Text(stringResource(R.string.tags_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (tagsFull) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })

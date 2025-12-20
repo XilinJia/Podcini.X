@@ -186,7 +186,7 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                         "homepage" -> feed.link = cursor.getStringOrNull(i)
                         "language" -> {
                             val l = cursor.getStringOrNull(i)
-                            if (!l.isNullOrEmpty()) feed.languages.add(l)
+                            if (!l.isNullOrEmpty()) feed.langSet.add(l)
                         }
                         "author" -> feed.author = cursor.getStringOrNull(i)
                         "description" -> feed.description = cursor.getStringOrNull(i)

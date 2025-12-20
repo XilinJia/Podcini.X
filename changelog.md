@@ -1,3 +1,13 @@
+# 9.10.2
+
+* in Queues screen, when not in actQueue, long-press on the name on the topbar will switch to actQueue
+* for resizing episodes in a feed, trimEpisode routine is made more efficient
+* amended chapter loading routines
+* some list properties in DB are changed to set
+* in Settings->Playback, added setting of preferred languages if languages in the app is more than one
+* in Feed Settings, added setting of preferred languages if languages in the feed is more than one
+* adjusted order of action buttons in popup menu
+
 # 9.10.1
 
 * fixed possible crash when opening PlayerDetails

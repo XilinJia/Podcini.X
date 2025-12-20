@@ -602,7 +602,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     val info by remember(vm.feed) {
                         derivedStateOf {
                             if (vm.feed == null) return@derivedStateOf ""
-                            val languageString = vm.feed!!.languages.joinToString(" ")
+                            val languageString = vm.feed!!.langSet.joinToString(" ")
                             "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
                         }
                     }

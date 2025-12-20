@@ -52,7 +52,7 @@ class Feed : RealmObject {
 
     var description: String? = null
 
-    var languages: RealmList<String> = realmListOf()
+    var langSet: RealmSet<String> = realmSetOf()
 
     var author: String? = null
 
@@ -490,14 +490,6 @@ class Feed : RealmObject {
 
     fun ordinariesCount(): Int {
         return realm.query(Episode::class).query("feedId == $id AND !($isWorthyQuerryStr)").count().find().toInt()
-    }
-
-    suspend fun eraseEpisode(e: Episode) {
-        episodes.remove(e)
-        realm.write {
-            //                        findLatest(e)?.let { delete(it) }
-            query(Episode::class).query("id == $0", e.id).first().find()?.let { delete(it) }
-        }
     }
 
     fun getFeedfileName(): String {

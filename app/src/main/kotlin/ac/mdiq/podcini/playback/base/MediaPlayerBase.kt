@@ -484,12 +484,13 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
      */
     @Synchronized
     private fun startChapterLoader(media: Episode) {
+        // TODO: what to do?
         fun onChapterLoaded(media: Episode?) {
             //            sendNotificationBroadcast(NOTIFICATION_TYPE_RELOAD, 0)
         }
         runOnIOScope {
             try {
-                media.loadChapters(context, false)
+                gearbox.loadChapters(context, media)
                 withContext(Dispatchers.Main) { onChapterLoaded(media) }
             } catch (e: Throwable) { Logs(TAG, e, "Error loading chapters:") }
         }
