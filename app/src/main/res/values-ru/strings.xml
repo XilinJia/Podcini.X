@@ -4,6 +4,7 @@
     <string name="languages">Языки</string>
     <string name="feed_update_receiver_name">Обновить подписки</string>
     <string name="feeds">Каналы</string>
+    <string name="preferred_languages">Preferred languages</string>
     <string name="statistics_label">Статистика</string>
     <string name="add_feed_label">Добавить подкаст</string>
     <string name="online_episodes_label">Выпуски онлайн</string>
