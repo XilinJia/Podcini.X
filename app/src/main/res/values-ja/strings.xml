@@ -4,6 +4,7 @@
     <string name="languages">言語</string>
     <string name="feed_update_receiver_name">サブスクリプションを更新</string>
     <string name="feeds">フィード</string>
+    <string name="preferred_languages">Preferred languages</string>
     <string name="statistics_label">統計情報</string>
     <string name="add_feed_label">ポッドキャストを追加</string>
     <string name="online_episodes_label">オンラインエピソード</string>
