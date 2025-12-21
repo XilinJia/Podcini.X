@@ -157,7 +157,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
             }
             ButtonTypes.PLAYREPEAT -> {
                 if (fileNotExist()) return
-                PlaybackStarter(context, item).setRepeat(true).start()
+                PlaybackStarter(context, item).setToRepeat(true).start()
                 playVideoIfNeeded(context, item)
                 actQueue = PlayQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
@@ -186,7 +186,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
             }
             ButtonTypes.STREAMREPEAT -> {
                 fun stream() {
-                    PlaybackStarter(context, item).shouldStreamThisTime(true).setRepeat(true).start()
+                    PlaybackStarter(context, item).shouldStreamThisTime(true).setToRepeat(true).start()
                     playVideoIfNeeded(context, item)
                 }
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")

@@ -32,6 +32,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
     private val TAG = "PlaybackStarter"
 
     private var shouldStreamThisTime = false
+    private var repeat = false
 
     fun shouldStreamThisTime(shouldStreamThisTime: Boolean?): PlaybackStarter {
         if (shouldStreamThisTime == null) {
@@ -41,8 +42,8 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
         return this
     }
 
-    fun setRepeat(repeat: Boolean): PlaybackStarter {
-        shouldRepeat = repeat
+    fun setToRepeat(repeat_: Boolean): PlaybackStarter {
+        repeat = repeat_
         return this
     }
 
@@ -56,6 +57,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
             setAsCurEpisode(media_)
             clearCurTempSpeed()
         }
+        shouldRepeat = repeat
         Logd(TAG, "start: status: $status")
         aCtrlFuture?.let { future ->
             if (future.isDone && aController?.isConnected == true) {
