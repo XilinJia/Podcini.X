@@ -434,7 +434,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     }
 
     override fun setRepeat(repeat: Boolean) {
-        exoPlayer?.repeatMode = if (repeat) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_ALL
+        exoPlayer?.repeatMode = if (repeat) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_OFF
     }
 
     override fun getPlaybackSpeed(): Float {
