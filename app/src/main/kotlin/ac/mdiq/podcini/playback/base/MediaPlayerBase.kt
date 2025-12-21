@@ -314,7 +314,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     abstract fun setPlaybackParams(speed: Float)
 
-    abstract fun setSkipSilence(skipSilence: Boolean)
+    open fun setSkipSilence(skipSilence: Boolean) {}
 
     open fun setRepeat(repeat: Boolean) {}
 
