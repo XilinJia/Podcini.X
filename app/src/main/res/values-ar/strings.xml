@@ -187,9 +187,11 @@
     <string name="TTS_label">التحدث</string>
     <string name="play_label">تشغيل</string>
     <string name="play_once">Play once</string>
+    <string name="play_repeat">Play repeat</string>
     <string name="pause_label">إيقاف</string>
     <string name="stream_label">البث</string>
     <string name="stream_once">Stream once</string>
+    <string name="stream_repeat">Stream repeat</string>
     <string name="erase_episodes_label">مسح الحلقات</string>
     <string name="alarm_episodes_label">تشغيل الحلقات في الوقت المناسب</string>
     <string name="reserve_episodes_label">حجز الحلقات</string>
@@ -531,6 +533,7 @@
     <string name="pref_print_logs_sum">تبديل إذا تم تسجيل رسائل التصحيح. هذا يمكن أن يؤدي إلى تدهور الأداء. قم بتشغيل هذا فقط عند الإعداد للإبلاغ عن المشاكل.</string>
     <string name="pref_dont_ask_restricted">لا تطلب مرة أخرى خلفية مقيدة</string>
     <string name="pref_dont_ask_restricted_sum">طلب الحصول على إذن خلفية مقيد يتم في حالة عدم منح الإذن. هذا يعطل الطلبات. الرجاء التأكد من منح الإذن، وإلا ، الاستمرار في التشغيل والتحديثات في الخلفية لا تعمل بشكل صحيح.</string>
+    <string name="repeat_current_media">Repeat current media</string>
     <string name="remember_last_page">تذكر الصفحة الأخيرة</string>
     <string name="pref_delete_removes_from_queue_title">حذف إزالة من قائمة الانتظار</string>
     <string name="pref_delete_removes_from_queue_sum">إزالة الحلقة تلقائياً من قائمة الانتظار عند حذفها</string>
