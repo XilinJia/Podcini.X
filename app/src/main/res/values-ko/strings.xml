@@ -182,9 +182,11 @@
     <string name="TTS_label">Speak</string>
     <string name="play_label">Play</string>
     <string name="play_once">Play once</string>
+    <string name="play_repeat">Play repeat</string>
     <string name="pause_label">Pause</string>
     <string name="stream_label">Stream</string>
     <string name="stream_once">Stream once</string>
+    <string name="stream_repeat">Stream repeat</string>
     <string name="erase_episodes_label">Erase episodes</string>
     <string name="alarm_episodes_label">Play episodes at time</string>
     <string name="reserve_episodes_label">Reserve episodes</string>
@@ -521,6 +523,7 @@
     <string name="pref_print_logs_sum">Toggles if debug messages are logged.  This can degrade performance. Turn this on only when preparing to report issues.</string>
     <string name="pref_dont_ask_restricted">Don\'t ask again for restricted background</string>
     <string name="pref_dont_ask_restricted_sum">Request for restricted background permission is prompted in case the permission is not granted. This disables the prompts. Please ensure the permission is granted, otherwise, continued playback and feeds updates in background don\'t function properly.</string>
+    <string name="repeat_current_media">Repeat current media</string>
     <string name="remember_last_page">Remember last page</string>
     <string name="pref_delete_removes_from_queue_title">Delete removes from queue</string>
     <string name="pref_delete_removes_from_queue_sum">Automatically remove an episode from the queue when it is deleted</string>
