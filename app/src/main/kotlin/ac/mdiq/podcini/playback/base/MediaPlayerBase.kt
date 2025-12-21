@@ -312,18 +312,12 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         else Loge(TAG, "seekDelta getPosition() returned INVALID_TIME in seekDelta")
     }
 
-    /**
-     * Sets the playback parameters.
-     * - Speed
-     * - SkipSilence (ExoPlayer only)
-     * This method is executed on an internal executor service.
-     */
-    abstract fun setPlaybackParams(speed: Float, skipSilence: Boolean)
+    abstract fun setPlaybackParams(speed: Float)
 
-    /**
-     * Sets the playback volume.
-     * This method is executed on an internal executor service.
-     */
+    abstract fun setSkipSilence(skipSilence: Boolean)
+
+    open fun setRepeat(repeat: Boolean) {}
+
     abstract fun setVolume(volumeLeft: Float, volumeRight: Float, adaptionFactor: Float = 1.0f)
 
     /**
@@ -712,6 +706,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
         @SuppressLint("StaticFieldLeak")
         internal var mPlayer: MediaPlayerBase? = null
+        var shouldRepeat by mutableStateOf(false)
 
         @Volatile
         var currentMediaType: MediaType? = MediaType.UNKNOWN
@@ -844,22 +839,6 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             if (playbackSpeed == Feed.SPEED_USE_GLOBAL) playbackSpeed = prefPlaybackSpeed
             return playbackSpeed
         }
-
-//        fun showStreamingNotAllowedDialog(context: Context, originalIntent: Intent) {
-//            val intentAllowThisTime = Intent(originalIntent).setAction(EXTRA_ALLOW_STREAM_THIS_TIME).putExtra(EXTRA_ALLOW_STREAM_THIS_TIME, true)
-//            val pendingIntentAllowThisTime = PendingIntent.getForegroundService(context, R.id.pending_intent_allow_stream_this_time, intentAllowThisTime, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
-//
-//            val intentAlwaysAllow = Intent(intentAllowThisTime).setAction(EXTRA_ALLOW_STREAM_ALWAYS).putExtra(EXTRA_ALLOW_STREAM_ALWAYS, true)
-//            val pendingIntentAlwaysAllow = PendingIntent.getForegroundService(context, R.id.pending_intent_allow_stream_always, intentAlwaysAllow, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
-//
-//            commonConfirm = CommonConfirmAttrib(title = context.getString(R.string.confirm_mobile_streaming_notification_title),
-//                message = context.getString(R.string.confirm_mobile_streaming_notification_message),
-//                confirmRes = R.string.confirm_mobile_streaming_button_always,
-//                cancelRes = R.string.cancel_label,
-//                neutralRes = R.string.confirm_mobile_streaming_button_once,
-//                onConfirm = { try { pendingIntentAlwaysAllow.send() } catch (e: PendingIntent.CanceledException) { Loge(TAG, "Can't start service intent: ${e.message}") } },
-//                onNeutral = { try { pendingIntentAllowThisTime.send() } catch (e: PendingIntent.CanceledException) { Loge(TAG, "Can't start service intent: ${e.message}") } })
-//        }
 
         fun playPause() {
             Logd(TAG, "playPause status: $status")

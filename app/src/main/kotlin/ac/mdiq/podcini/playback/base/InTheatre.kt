@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.MonitorEntity
 import ac.mdiq.podcini.storage.database.getEpisode
@@ -127,6 +128,7 @@ object InTheatre {
         when {
             episode != null -> {
                 curEpisode = episode
+                shouldRepeat = false
                 Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")
                 runOnIOScope {
                     if (!actQueue.episodeIds.contains(curEpisode!!.id)) {

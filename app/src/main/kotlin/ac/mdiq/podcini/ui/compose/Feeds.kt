@@ -10,6 +10,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.prefPlaybackSpeed
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
@@ -482,11 +483,11 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                     if (settingCode[1] && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
                                     if (settingCode[0]) {
                                         saveCurTempSpeed(chipSpeed)
-                                        mPlayer?.setPlaybackParams(chipSpeed, isSkipSilence)
+                                        mPlayer?.setPlaybackParams(chipSpeed)
                                     }
                                 } else {
                                     saveCurTempSpeed(chipSpeed)
-                                    mPlayer?.setPlaybackParams(chipSpeed, isSkipSilence)
+                                    mPlayer?.setPlaybackParams(chipSpeed)
                                 }
                             }
                             else {
@@ -505,12 +506,19 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                 var showMore by remember { mutableStateOf(false) }
                 TextButton(onClick = { showMore = !showMore }) { Text("More>>", style = MaterialTheme.typography.headlineSmall) }
                 if (showMore) {
+                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = shouldRepeat, onCheckedChange = { isChecked ->
+                            shouldRepeat = isChecked
+                            mPlayer?.setRepeat(isChecked)
+                        })
+                        Text(stringResource(R.string.repeat_current_media))
+                    }
                     var isSkipSilence_ by remember { mutableStateOf(isSkipSilence) }
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = isSkipSilence_, onCheckedChange = { isChecked ->
                             isSkipSilence_ = isChecked
                             isSkipSilence = isSkipSilence_
-                            mPlayer?.setPlaybackParams(mPlayer!!.getPlaybackSpeed(), isChecked)
+                            mPlayer?.setSkipSilence(isChecked)
                         })
                         Text(stringResource(R.string.pref_skip_silence_title))
                     }

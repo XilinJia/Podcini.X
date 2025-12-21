@@ -37,6 +37,7 @@ import androidx.media3.common.C
 import androidx.media3.common.Format
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
+import androidx.media3.common.Player
 import androidx.media3.common.Player.COMMAND_GET_CURRENT_MEDIA_ITEM
 import androidx.media3.common.Player.DiscontinuityReason
 import androidx.media3.common.Player.Listener
@@ -178,32 +179,23 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     }
 
     override fun createStaticPlayer(context: Context) {
-        val loadControl = DefaultLoadControl.Builder()
-        loadControl.setBufferDurationsMs(20000, 60000, 2000, 5000)
-
-        val audioOffloadPreferences = AudioOffloadPreferences.Builder()
-            .setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED) // Add additional options as needed
-            .setIsGaplessSupportRequired(true)
-            .setIsSpeedChangeSupportRequired(true)
-            .build()
         Logd(TAG, "createStaticPlayer creating exoPlayer_")
-
         simpleCache = getCache(context)
 
         // Initialize ExoPlayer
         trackSelector = DefaultTrackSelector(context)
         val defaultRenderersFactory = DefaultRenderersFactory(context)
         exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
-            .setLoadControl(loadControl.build())
+            .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(30_000, 120_000, 3_000, 10_000).build())
             .setTrackSelector(trackSelector!!)
             .setSeekBackIncrementMs(rewindSecs * 1000L)
             .setSeekForwardIncrementMs(fastForwardSecs * 1000L)
             .build()
 
-        exoPlayer?.setSeekParameters(SeekParameters.EXACT)
+        exoPlayer!!.setSeekParameters(SeekParameters.CLOSEST_SYNC)
         exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters
             .buildUpon()
-            .setAudioOffloadPreferences(audioOffloadPreferences)
+            .setAudioOffloadPreferences(AudioOffloadPreferences.Builder().setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED).build())
             .build()
 
         Logd(TAG, "createStaticPlayer exoplayerListener == null: ${exoplayerListener == null}")
@@ -280,7 +272,9 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
         this.startWhenPrepared.set(startWhenPrepared)
         val metadata = buildMetadata(curEpisode!!)
-        setPlaybackParams(getCurrentPlaybackSpeed(curEpisode), isSkipSilence)
+        setPlaybackParams(getCurrentPlaybackSpeed(curEpisode))
+        setRepeat(shouldRepeat)
+        setSkipSilence(isSkipSilence)
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 when {
@@ -332,7 +326,9 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (isPaused || isPrepared) {
             Logd(TAG, "Resuming/Starting playback")
             acquireWifiLockIfNecessary()
-            setPlaybackParams(getCurrentPlaybackSpeed(curEpisode), isSkipSilence)
+            setPlaybackParams(getCurrentPlaybackSpeed(curEpisode))
+            setRepeat(shouldRepeat)
+            setSkipSilence(isSkipSilence)
             setVolume(1.0f, 1.0f)
             if (curEpisode != null && isPrepared && curEpisode!!.position > 0)
                 seekTo(calculatePositionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime))
@@ -418,9 +414,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     override fun getPosition(): Int {
         var retVal = Episode.INVALID_TIME
 //        showStackTrace()
-//        if (exoPlayer != null && status.isAtLeast(PlayerStatus.PREPARED)) retVal = exoPlayer!!.currentPosition.toInt()
         if (exoPlayer?.isPlaying == true && !status.isAtLeast(PlayerStatus.PREPARED)) Logt(TAG, "exoPlayer playbackState ${exoPlayer?.playbackState} player status $status")
-//        if (exoPlayer?.playbackState in listOf(STATE_BUFFERING, STATE_READY, STATE_ENDED)) retVal = exoPlayer!!.currentPosition.toInt()
         if (exoPlayer?.isCommandAvailable(COMMAND_GET_CURRENT_MEDIA_ITEM) == true) retVal = exoPlayer!!.currentPosition.toInt()
 //        Logd(TAG, "getPosition player position: $retVal")
         if (retVal <= 0 && curEpisode != null) retVal = curEpisode!!.position
@@ -428,12 +422,19 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         return retVal
     }
 
-    override fun setPlaybackParams(speed: Float, skipSilence: Boolean) {
+    override fun setPlaybackParams(speed: Float) {
         EventFlow.postEvent(FlowEvent.SpeedChangedEvent(speed))
-        Logd(TAG, "setPlaybackParams speed=$speed pitch=${playbackParameters.pitch} skipSilence=$skipSilence")
+        Logd(TAG, "setPlaybackParams speed=$speed pitch=${playbackParameters.pitch}")
         playbackParameters = PlaybackParameters(speed, playbackParameters.pitch)
-        exoPlayer?.skipSilenceEnabled = skipSilence
         exoPlayer?.playbackParameters = playbackParameters
+    }
+
+    override fun setSkipSilence(skipSilence: Boolean) {
+        exoPlayer?.skipSilenceEnabled = skipSilence
+    }
+
+    override fun setRepeat(repeat: Boolean) {
+        exoPlayer?.repeatMode = if (repeat) Player.REPEAT_MODE_ONE else Player.REPEAT_MODE_ALL
     }
 
     override fun getPlaybackSpeed(): Float {

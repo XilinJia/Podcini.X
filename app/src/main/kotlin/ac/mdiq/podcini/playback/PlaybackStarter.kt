@@ -12,6 +12,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStopped
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isStreamingCapable
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
 import ac.mdiq.podcini.playback.service.PlaybackService
@@ -37,6 +38,11 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
             this.shouldStreamThisTime = media.feed == null || media.feedId == null || !media.downloaded
                     || media.feed?.type == Feed.FeedType.YOUTUBE.name || (prefStreamOverDownload && media.feed?.prefStreamOverDownload == true)
         } else this.shouldStreamThisTime = shouldStreamThisTime
+        return this
+    }
+
+    fun setRepeat(repeat: Boolean): PlaybackStarter {
+        shouldRepeat = repeat
         return this
     }
 

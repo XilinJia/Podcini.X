@@ -78,7 +78,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -456,7 +455,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
     Text(stringResource(R.string.my_opinion_label) + if (episode.comment.isBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showEditComment = true })
     Text(episode.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
 
-    if (!episode.marks.isNullOrEmpty()) {
+    if (episode.marks.isNotEmpty()) {
         val context by rememberUpdatedState(LocalContext.current)
         var markToRemove by remember { mutableLongStateOf(0L) }
         if (markToRemove != 0L) {
@@ -486,7 +485,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
         }
     }
 
-    if (!episode?.clips.isNullOrEmpty()) {
+    if (episode.clips.isNotEmpty()) {
         var cliptToRemove by remember { mutableStateOf("") }
         if (cliptToRemove.isNotBlank()) {
             AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { cliptToRemove = "" },
@@ -860,11 +859,16 @@ fun AddTimerDialog(episode: Episode, onDismissRequest: () -> Unit) {
                 NumberEditor(hour, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { hour = it }
                 NumberEditor(minute, "", nz = true, instant = true, modifier = Modifier.weight(0.4f)) { minute = it }
             }
+            var isRepeat by remember { mutableStateOf(false) }
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = isRepeat, onCheckedChange = { isChecked -> isRepeat = isChecked })
+                Text(stringResource(R.string.repeat_current_media))
+            }
             Button(onClick = {
                 runOnIOScope {
                     try {
                         val triggerTime = LocalDateTime.of(year, month, date, hour, minute, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
-                        playEpisodeAtTime(triggerTime, episode.id)
+                        playEpisodeAtTime(triggerTime, episode.id, isRepeat)
                     } catch (e: Throwable) { Loge(TAG, "editing timer error: ${e.message}") }
                 }
                 onDismissRequest()

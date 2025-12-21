@@ -110,6 +110,16 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
 
     @UnstableApi
     fun onClick(context: Context) {
+        fun fileNotExist(): Boolean {
+            if (!item.fileExists()) {
+                Loge(TAG, context.getString(R.string.error_file_not_found) + ": ${item.title}")
+                val episode_ = upsertBlk(item) { it.setfileUrlOrNull(null) }
+                EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode_))
+                update(episode_)
+                return true
+            }
+            return false
+        }
         Logd(TAG, "onClick type: $type")
         when (type) {
             ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInBrowser(context, item.link!!)
@@ -133,26 +143,21 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 }
             }
             ButtonTypes.PLAY -> {
-                if (!item.fileExists()) {
-                    Loge(TAG, context.getString(R.string.error_file_not_found) + ": ${item.title}")
-                    val episode_ = upsertBlk(item) { it.setfileUrlOrNull(null) }
-                    EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode_))
-                    update(episode_)
-                    return
-                }
+                if (fileNotExist()) return
                 PlaybackStarter(context, item).start()
                 playVideoIfNeeded(context, item)
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.PLAYONCE -> {
-                if (!item.fileExists()) {
-                    Loge(TAG, context.getString(R.string.error_file_not_found) + ": ${item.title}")
-                    val episode_ = upsertBlk(item) { it.setfileUrlOrNull(null) }
-                    EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode_))
-                    update(episode_)
-                    return
-                }
+                if (fileNotExist()) return
                 PlaybackStarter(context, item).start()
+                playVideoIfNeeded(context, item)
+                actQueue = PlayQueue()
+                //                type = ButtonTypes.PAUSE  leave it to playerStat
+            }
+            ButtonTypes.PLAYREPEAT -> {
+                if (fileNotExist()) return
+                PlaybackStarter(context, item).setRepeat(true).start()
                 playVideoIfNeeded(context, item)
                 actQueue = PlayQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
@@ -178,6 +183,28 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     return
                 } else stream()
 //                type = ButtonTypes.PAUSE  leave it to playerStat
+            }
+            ButtonTypes.STREAMREPEAT -> {
+                fun stream() {
+                    PlaybackStarter(context, item).shouldStreamThisTime(true).setRepeat(true).start()
+                    playVideoIfNeeded(context, item)
+                }
+                //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
+                if (!NetworkUtils.isStreamingAllowed) {
+                    commonConfirm = CommonConfirmAttrib(
+                        title = context.getString(R.string.stream_label),
+                        message = context.getString(R.string.confirm_mobile_streaming_notification_message),
+                        confirmRes = R.string.confirm_mobile_streaming_button_always,
+                        cancelRes = R.string.cancel_label,
+                        neutralRes = R.string.confirm_mobile_streaming_button_once,
+                        onConfirm = {
+                            NetworkUtils.mobileAllowStreaming = true
+                            stream()
+                        },
+                        onNeutral = { stream() })
+                    return
+                } else stream()
+                //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAMONCE -> {
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
@@ -524,6 +551,14 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         onDismiss()
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "Delete") }
                 }
+                if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.PLAYREPEAT)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_autoplay_24), contentDescription = "PlayRepeat") }
+                }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     IconButton(onClick = {
                         val btn = EpisodeActionButton(item, ButtonTypes.PLAY)
@@ -539,6 +574,14 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         type = btn.type
                         onDismiss()
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_play_pause_24), contentDescription = "PlayOnce") }
+                }
+                if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
+                    IconButton(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.STREAMREPEAT)
+                        btn.onClick(context)
+                        type = btn.type
+                        onDismiss()
+                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_repeat_24), contentDescription = "StreamRepeat") }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
                     IconButton(onClick = {
@@ -577,7 +620,11 @@ enum class ButtonTypes(val label: Int, val drawable: Int) {
     PLAY(R.string.play_label, R.drawable.ic_play_24dp),
     STREAM(R.string.stream_label, R.drawable.ic_stream),
     PLAYONCE(R.string.play_once, R.drawable.outline_play_pause_24),
-    STREAMONCE(R.string.stream_once, R.drawable.ic_stream),
+    STREAMONCE(R.string.stream_once, R.drawable.play_stream_svgrepo_com),
+
+    PLAYREPEAT(R.string.play_repeat, R.drawable.outline_autoplay_24),
+    STREAMREPEAT(R.string.stream_repeat, R.drawable.outline_repeat_24),
+
     DELETE(R.string.delete_label, R.drawable.ic_delete),
     NULL(R.string.null_label, R.drawable.ic_questionmark),
 //    NULLZAP(R.string.null_zap_label, R.drawable.ic_close_white),

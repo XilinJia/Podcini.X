@@ -1,3 +1,15 @@
+# 9.11.0
+
+* made the total duration color on PlayerUI more readable
+* in LocalMediaPlayer
+	* loosened request for audio offload, on most devices, at least 1x speed would benefit the battery saving
+	* enhanced player buffer sizes to help playing at higher speed
+	* use faster but slightly imprecise SeekParameter 
+* added capability of repeating a media (indefinitely)
+	* during playing/streaming, on PlayerUI->Speed->More, repeat can be checked for the current media
+	* in action button popup menu, "play/stream repeat" does it
+	* when scheduling a media, "Repeat media" can be checked
+
 # 9.10.2
 
 * in Queues screen, when not in actQueue, long-press on the name on the topbar will switch to actQueue

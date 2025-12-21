@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.ColorUtils
 import kotlin.math.abs
 
 private const val TAG = "AppTheme"
@@ -79,22 +80,46 @@ fun isLightTheme(context: Context): Boolean {
     return readThemeValue(context) == ThemePreference.LIGHT
 }
 
-fun distinctColorOf(color1: Color, color2: Color): Color {
-    val hsv1 = FloatArray(3)
-    val hsv2 = FloatArray(3)
-    android.graphics.Color.colorToHSV(color1.toArgb(), hsv1)
-    android.graphics.Color.colorToHSV(color2.toArgb(), hsv2)
-    val hue1 = hsv1[0]
-    val hue2 = hsv2[0]
-    var midpointHue: Float
-    if (abs(hue1 - hue2) < 180) midpointHue = (hue1 + hue2) / 2
-    else {
-        midpointHue = (hue1 + hue2 + 360) / 2
-        if (midpointHue >= 360) midpointHue -= 180
+fun distinctColorOf(colorA: Color, colorB: Color): Color {
+    val hslA = FloatArray(3)
+    val hslB = FloatArray(3)
+    val argbA = colorA.toArgb()
+    val argbB = colorB.toArgb()
+
+    ColorUtils.colorToHSL(argbA, hslA)
+    ColorUtils.colorToHSL(argbB, hslB)
+
+    val avgHue = (hslA[0] + hslB[0]) / 2f
+    val avgSaturation = (hslA[1] + hslB[1]) / 2f
+//    val avgLightness = (hslA[2] + hslB[2]) / 2f
+
+    val targetHue = (avgHue + 180f) % 360f
+    val targetSaturation = (1.0f - avgSaturation).coerceIn(0.3f, 0.9f)
+
+    val lumA = ColorUtils.calculateLuminance(argbA)
+    val lumB = ColorUtils.calculateLuminance(argbB)
+    val avgLuminance = (lumA + lumB) / 2.0
+
+    var currentLightness = if (avgLuminance < 0.5) 0.9f else 0.1f
+
+    val targetColorHSL = floatArrayOf(targetHue, targetSaturation, currentLightness)
+    var resultColor = ColorUtils.HSLToColor(targetColorHSL)
+
+    val minContrast = 4.5f
+    var attempts = 0
+
+    while (attempts < 10) {
+        val contrastA = ColorUtils.calculateContrast(resultColor, argbA)
+        val contrastB = ColorUtils.calculateContrast(resultColor, argbB)
+        if (contrastA >= minContrast && contrastB >= minContrast) break
+
+        currentLightness = if (avgLuminance < 0.5) (currentLightness + 0.05f).coerceAtMost(1.0f) else (currentLightness - 0.05f).coerceAtLeast(0.0f)
+
+        targetColorHSL[2] = currentLightness
+        resultColor = ColorUtils.HSLToColor(targetColorHSL)
+        attempts++
     }
-    var distinctHue = midpointHue + 180
-    if (distinctHue >= 360) distinctHue -= 360
-    return Color(android.graphics.Color.HSVToColor(floatArrayOf(distinctHue, 1.0f, 1.0f)))
+    return Color(resultColor)
 }
 
 fun complementaryColorOf(color: Color): Color {

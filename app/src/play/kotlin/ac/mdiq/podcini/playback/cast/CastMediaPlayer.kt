@@ -241,7 +241,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
         val metadata = buildMetadata(curEpisode!!)
         try {
-            setPlaybackParams(getCurrentPlaybackSpeed(curEpisode), isSkipSilence)
+            setPlaybackParams(getCurrentPlaybackSpeed(curEpisode))
             when {
                 streaming -> {
                     val streamurl = curEpisode!!.downloadUrl
@@ -328,7 +328,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         return retVal
     }
 
-    override fun setPlaybackParams(speed: Float, skipSilence: Boolean) {
+    override fun setPlaybackParams(speed: Float) {
         val playbackRate = max(MediaLoadOptions.PLAYBACK_RATE_MIN, min(MediaLoadOptions.PLAYBACK_RATE_MAX, speed.toDouble()))
         remoteMediaClient?.setPlaybackRate(playbackRate)
     }

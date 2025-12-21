@@ -28,7 +28,7 @@ private fun idFromTriggerTime(millis: Long): Int {
     }
 }
 
-fun playEpisodeAtTime(triggerTime: Long, episodeId: Long) {
+fun playEpisodeAtTime(triggerTime: Long, episodeId: Long, repeat: Boolean = false) {
     val context = getAppContext()
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -39,7 +39,7 @@ fun playEpisodeAtTime(triggerTime: Long, episodeId: Long) {
     }
 
     val intent = Intent(context, AlarmReceiver::class.java).apply {
-        putExtra(ALARM_TYPE, AlarmTypes.PLAY_EPISODE.name + ":" + episodeId.toString())
+        putExtra(ALARM_TYPE, AlarmTypes.PLAY_EPISODE.name + ":" + episodeId.toString() + ":" + repeat)
     }
 
     val timer = Timer()

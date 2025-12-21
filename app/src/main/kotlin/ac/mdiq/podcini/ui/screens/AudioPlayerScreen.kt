@@ -448,8 +448,8 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                     val player = mPlayer!!
                     if (!isFallbackSpeed) {
                         normalSpeed = player.getPlaybackSpeed()
-                        player.setPlaybackParams(speed, isSkipSilence)
-                    } else player.setPlaybackParams(normalSpeed, isSkipSilence)
+                        player.setPlaybackParams(speed)
+                    } else player.setPlaybackParams(normalSpeed)
                     isFallbackSpeed = !isFallbackSpeed
                 }
             }
@@ -493,8 +493,8 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                 if (mPlayer == null || isFallbackSpeed) return
                 if (!isSpeedForward) {
                     normalSpeed = mPlayer!!.getPlaybackSpeed()
-                    mPlayer!!.setPlaybackParams(speed, isSkipSilence)
-                } else mPlayer?.setPlaybackParams(normalSpeed, isSkipSilence)
+                    mPlayer!!.setPlaybackParams(speed)
+                } else mPlayer?.setPlaybackParams(normalSpeed)
                 isSpeedForward = !isSpeedForward
             }
             Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(

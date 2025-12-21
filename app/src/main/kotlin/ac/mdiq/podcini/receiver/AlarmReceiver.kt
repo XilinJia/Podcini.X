@@ -13,13 +13,17 @@ class AlarmReceiver : BroadcastReceiver() {
     val TAG = "AlarmReceiver"
 
     override fun onReceive(context: Context?, intent: Intent?) {
+        if (context == null) return
         val message = intent?.getStringExtra(ALARM_TYPE) ?: "Alarm Fired!"
 
         Logd(TAG, message)
         if (message.startsWith(AlarmTypes.PLAY_EPISODE.name)) {
-            val id = message.substringAfter(":").toLong()
+            val msgs = message.split(':')
+            if (msgs.size < 2) return
+            val id = msgs[1].toLong()
             val episode = getEpisode(id, false) ?: return
-            PlaybackStarter(context!!, episode).shouldStreamThisTime(null).start()
+            val repeat = if (msgs.size == 3) msgs[2].toBoolean() else false
+            PlaybackStarter(context, episode).shouldStreamThisTime(null).setRepeat(repeat).start()
         }
     }
 }
