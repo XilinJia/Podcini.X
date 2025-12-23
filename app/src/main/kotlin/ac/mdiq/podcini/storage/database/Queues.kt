@@ -97,10 +97,12 @@ suspend fun addToActQueue(episodes: List<Episode>) {
     val qes = queueEntriesOf(queue)
     var insertPosition = calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), curEpisode)
 
+    val time = System.currentTimeMillis()
+    var i = 0L
     for (episode in episodes) {
-        if (realm.query(QueueEntry::class).query("queueId == $0 AND episodeId == $1", queue.id, episode.id).count().find() > 0) continue
+        if (queue.contains(episode)) continue
         val qe = QueueEntry()
-        qe.id = System.currentTimeMillis()
+        qe.id = time + i++
         upsert(qe) {
             it.queueId = queue.id
             it.episodeId = episode.id
@@ -128,8 +130,7 @@ suspend fun addToAssOrActQueue(episode: Episode, queue_: PlayQueue? = null) {
         return
     }
     queue = realm.query(PlayQueue::class).query("id == ${queue.id}").first().find() ?: return
-
-    if (realm.query(QueueEntry::class).query("queueId == $0 AND episodeId == $1", queue.id, episode.id).count().find() > 0) return
+    if (queue.contains(episode)) return
 
     val qes = queueEntriesOf(queue)
     val currentlyPlaying = if (queue.id == actQueue.id) curEpisode else null
@@ -150,7 +151,7 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
     Logd(TAG, "queueToVirtual ${virQueue.identity} $listIdentity ${episodes.size}")
     virQueue = realm.query(PlayQueue::class).query("id == $VIRTUAL_QUEUE_ID").first().find() ?: return
     if (virQueue.identity != listIdentity) {
-        if (realm.query(QueueEntry::class).query("queueId == $0 AND episodeId == $1", virQueue.id, episode.id).count().find() > 0) {
+        if (virQueue.contains(episode)) {
             Logd(TAG, "VirQueue has the episode, ignore")
             actQueue = virQueue
             return
@@ -168,19 +169,21 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
                 q.playInSequence = playInSequence
                 q.sortOrder = sortOrder
             }
-            var i = 1L
+            val time = System.currentTimeMillis()
+            var i = 0L
+            var ip = 1L
             for (eid in eIdsToQueue) {
                 realm.write {
                     val qe = QueueEntry()
                     qe.let {
-                        it.id = System.currentTimeMillis()
+                        it.id = time + i++
                         it.queueId = virQueue.id
                         it.episodeId = eid
-                        it.position = i
+                        it.position = ip
                     }
                     copyToRealm(qe)
                 }
-                i += QUEUE_POSITION_DELTA
+                ip += QUEUE_POSITION_DELTA
             }
             actQueue = virQueue
             Logt(TAG, "first ${virQueue.size()} episodes are added to the Virtual queue")
@@ -199,13 +202,13 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
         item = setPlayState(stat, item, resetMediaPosition = false, removeFromQueue = false)
     }
     for (q in queues) {
-        if (q.id != actQueue.id && realm.query(QueueEntry::class).query("queueId == $0 AND episodeId == $1", q.id, item.id).count().find() > 0) removeFromQueue(q, listOf(item))
+        if (q.id != actQueue.id && q.contains(item)) removeFromQueue(q, listOf(item))
     }
     //        ensure actQueue is last updated
     Logd(TAG, "actQueue: [${actQueue.name}]")
     val qes = queueEntriesOf(actQueue)
     if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
-    if (actQueue.size() > 0 && realm.query(QueueEntry::class).query("queueId == $0 AND episodeId == $1", actQueue.id, item.id).count().find() > 0) removeFromQueue(actQueue, listOf(item))
+    if (actQueue.size() > 0 && actQueue.contains(item)) removeFromQueue(actQueue, listOf(item))
     else upsertBlk(actQueue) { it.update() }
     if (actQueue.size() == 0 && !actQueue.isVirtual()) {
         autoenqueueForQueue(actQueue)
@@ -227,14 +230,14 @@ fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? 
     Logd(TAG, "removeFromAllQueuesSync called ")
     for (e in episodes) {
         for (q in queues) {
-            if (q.id != actQueue.id && realm.query(QueueEntry::class).query("queueId == $0 AND episodeId == $1", q.id, e.id).count().find() > 0) removeFromQueue(q, listOf(e), playState)
+            if (q.id != actQueue.id && q.contains(e)) removeFromQueue(q, listOf(e), playState)
         }
     }
     //        ensure actQueue is last updated
     val qes = queueEntriesOf(actQueue)
     for (e in episodes) {
         if (curEpisode != null && e.id == curEpisode!!.id) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
-        if (actQueue.size() > 0 && realm.query(QueueEntry::class).query("queueId == $0 AND episodeId == $1", actQueue.id, e.id).count().find() > 0) removeFromQueue(actQueue, listOf(e), playState)
+        if (actQueue.size() > 0 && actQueue.contains(e)) removeFromQueue(actQueue, listOf(e), playState)
     }
     upsertBlk(actQueue) { it.update() }
     if (actQueue.size() == 0 && !actQueue.isVirtual()) {
