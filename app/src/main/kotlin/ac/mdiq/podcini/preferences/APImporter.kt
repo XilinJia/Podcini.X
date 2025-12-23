@@ -78,7 +78,7 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
 //                Logd(TAG, "episode title: ${episode.title}")
                 episodes.add(episode)
             }
-            feed.episodes = episodes.toRealmList()
+//            feed.episodes = episodes.toRealmList()
         }
     }
 
@@ -126,7 +126,7 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
                     item.feedId = null
                     item.feed = feed
                 }
-                updateFeedFull(activity, feed, removeUnlistedItems = false, overwriteStates = true)
+                updateFeedFull(feed, removeUnlistedItems = false, overwriteStates = true)
             }
         }
     }

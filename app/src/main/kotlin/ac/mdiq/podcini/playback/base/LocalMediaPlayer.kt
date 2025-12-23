@@ -104,7 +104,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
     init {
         if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0") }
         if (exoPlayer == null) {
-            exoplayerListener = object : Listener {
+            exoplayerListener = object: Listener {
                 override fun onPlaybackStateChanged(playbackState: @State Int) {
                     Logd(TAG, "onPlaybackStateChanged $playbackState")
                     when (playbackState) {
@@ -161,6 +161,15 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     }
                 }
             }
+
+            exoplayerOffloadListener = object: ExoPlayer.AudioOffloadListener {
+                override fun onOffloadedPlayback(offloadSchedulingEnabled: Boolean) {
+                    Logt(TAG, "Offload scheduling enabled: $offloadSchedulingEnabled")
+                }
+                override fun onSleepingForOffloadChanged(isSleepingForOffload: Boolean) {
+                    Logt(TAG, "CPU is sleeping for offload: $isSleepingForOffload")
+                }
+            }
             createStaticPlayer(context)
         }
         playbackParameters = exoPlayer!!.playbackParameters
@@ -202,6 +211,10 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (exoplayerListener != null) {
             exoPlayer?.removeListener(exoplayerListener!!)
             exoPlayer?.addListener(exoplayerListener!!)
+        }
+        if (exoplayerOffloadListener != null) {
+            exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
+            exoPlayer?.addAudioOffloadListener(exoplayerOffloadListener!!)
         }
     }
 
@@ -263,7 +276,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (item.playState < EpisodeState.PROGRESS.code) item = runBlocking { setPlayState(EpisodeState.PROGRESS, item, false) }
 //        val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
         setAsCurEpisode(item)
-        Logd(TAG, "prepareMedia eList: ${actQueue.episodes.size}")
+//        Logd(TAG, "prepareMedia eList: ${actQueue.episodes.size}")
 
         this.isStreaming = streaming
         mediaType = curEpisode!!.getMediaType()
@@ -587,14 +600,14 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     Logd(TAG, "endPlayback has nextMedia. call callback.onPlaybackEnded false")
                     if (wasSkipped) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                     onPlaybackEnded(true)
-                    val streaming = !nextMedia.localFileAvailable()
-                    if (streaming) {
+                    val needStreaming = (nextMedia.feed?.isLocalFeed != true && !nextMedia.localFileAvailable())
+                    if (needStreaming) {
                         if (!isStreamingCapable(nextMedia)) {
                             if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, false)
                             return
                         } else acquireWifiLockIfNecessary()
                     } else releaseWifiLockIfNecessary()
-                    prepareMedia(playable = nextMedia, streaming = streaming, startWhenPrepared = isPlaying, prepareImmediately = isPlaying)
+                    prepareMedia(playable = nextMedia, streaming = needStreaming, startWhenPrepared = isPlaying, prepareImmediately = isPlaying)
                 }
                 if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, nextMedia != null)
             }
@@ -621,6 +634,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         var exoPlayer: ExoPlayer? = null
 
         private var exoplayerListener: Listener? = null
+        private var exoplayerOffloadListener: ExoPlayer.AudioOffloadListener? = null
         private var bufferingUpdateListener: ((Int) -> Unit)? = null
         private var loudnessEnhancer: LoudnessEnhancer? = null
 
@@ -647,6 +661,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         fun cleanup() {
             if (exoplayerListener != null) exoPlayer?.removeListener(exoplayerListener!!)
             exoplayerListener = null
+            if (exoplayerOffloadListener != null) exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
+            exoplayerOffloadListener = null
             bufferingUpdateListener = null
             loudnessEnhancer = null
             httpDataSourceFactory = null

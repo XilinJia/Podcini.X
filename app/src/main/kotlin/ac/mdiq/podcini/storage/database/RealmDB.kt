@@ -10,12 +10,14 @@ import ac.mdiq.podcini.storage.model.FacetsPrefs
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SleepPrefs
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
 import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
+import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -57,10 +59,12 @@ private val ioScope = CoroutineScope(Dispatchers.IO)
 
 val config: RealmConfiguration by lazy {
     RealmConfiguration.Builder(schema = setOf(
+        Volume::class,
         Feed::class,
         Episode::class,
         CurrentState::class,
         PlayQueue::class,
+        QueueEntry::class,
         DownloadResult::class,
         ShareLog::class,
         SubscriptionLog::class,
@@ -72,7 +76,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(84)
+    )).name("Podcini.realm").schemaVersion(89)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -361,6 +365,41 @@ val config: RealmConfiguration by lazy {
                     val langsOld = f.getValueList<String>("languages").toRealmSet()
                     val langsNew = fNew.getValueSet<String>("langSet")
                     langsNew.addAll(langsOld)
+                }
+            }
+            if (oldRealm.schemaVersion() < 85) {
+                Logd(TAG, "migrating DB from below 85")
+                val feedsOld = oldRealm.query("Feed").find()
+                for (f in feedsOld) {
+                    val id = f.getValue<Long>("id")
+                    val fNew = newRealm.query("Feed", "id == $id").first().find() ?: continue
+                    fNew.set("volumeId", -1L)
+                }
+            }
+            if (oldRealm.schemaVersion() < 88) {
+                Logd(TAG, "migrating DB from below 88")
+                val queues = oldRealm.query("PlayQueue").find()
+                val time = System.currentTimeMillis()
+                var i = 0L
+                for (q in queues) {
+                    val qid = q.getValue<Long>("id")
+                    val eids = q.getValueList<Long>("episodeIds")
+                    Logd(TAG, "migrating queue: $qid with ${eids.size} episodes")
+                    var ip = 1L
+                    for (eid in eids) {
+                        newRealm.copyToRealm(
+                            DynamicMutableRealmObject.create(
+                                type = "QueueEntry",
+                                mapOf(
+                                    "id" to time+i++,
+                                    "queueId" to qid,
+                                    "episodeId" to eid,
+                                    "position" to ip
+                                )
+                            )
+                        )
+                        ip += 10000L
+                    }
                 }
             }
         }).build()

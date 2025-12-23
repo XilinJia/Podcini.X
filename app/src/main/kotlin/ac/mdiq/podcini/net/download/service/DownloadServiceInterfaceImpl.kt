@@ -14,8 +14,9 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.addDownloadStatus
 import ac.mdiq.podcini.storage.database.addToAssOrActQueue
-import ac.mdiq.podcini.storage.database.deleteAndRemoveFromQueues
+import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
@@ -97,7 +98,9 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
     override fun cancel(context: Context, media: Episode) {
         Logd(TAG, "starting cancel")
         // This needs to be done here, not in the worker. Reason: The worker might or might not be running.
-        deleteAndRemoveFromQueues(context, media) // Remove partially downloaded file
+        // Remove partially downloaded file
+        val episode_ = deleteMedia(media)
+        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(episode_))
         val tag = WORK_TAG_EPISODE_URL + media.downloadUrl
         val future: Future<List<WorkInfo>> = WorkManager.getInstance(context).getWorkInfosByTag(tag)
 
@@ -297,7 +300,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                         Logd(TAG, "run() set size: ${it.size}")
                     }
                     it.checkEmbeddedPicture(false) // enforce check
-                    if (it.chapters.isEmpty()) it.setChapters(it.loadChaptersFromMediaFile(context))
+                    if (it.chapters.isEmpty()) it.setChapters(it.loadChaptersFromMediaFile())
                     if (!it.podcastIndexChapterUrl.isNullOrBlank()) loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
                     if (!it.fileUrl.isNullOrBlank()) {
                         var durationStr: String? = null

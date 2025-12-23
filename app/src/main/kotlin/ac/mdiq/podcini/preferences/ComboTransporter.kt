@@ -2,11 +2,13 @@ package ac.mdiq.podcini.preferences
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
+import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.utils.customMediaUriString
 import ac.mdiq.podcini.storage.utils.generateFileName
 import ac.mdiq.podcini.storage.utils.getMimeType
@@ -146,7 +148,8 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             feed = nameFeedMap[relativePath] ?: return
             Logd(TAG, "copyRecursiveFD found feed: ${feed?.title}")
             nameEpisodeMap.clear()
-            feed!!.episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
+            val episodes = getEpisodes(EpisodeFilter("feedId == ${feed!!.id}"), null)
+            episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
             nameEpisodeMap.keys.forEach { Logd(TAG, "key: $it") }
             val dirFiles = srcFile.listFiles()
             Logd(TAG, "srcFile: ${srcFile.name} dirFiles: ${dirFiles?.size}")
@@ -195,7 +198,8 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             feed = nameFeedMap[relativePath] ?: return
             Logd(TAG, "copyRecursiveDD found feed: ${feed?.title}")
             nameEpisodeMap.clear()
-            feed!!.episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
+            val episodes = getEpisodes(EpisodeFilter("feedId == ${feed!!.id}"), null)
+            episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
             nameEpisodeMap.keys.forEach { Logd(TAG, "key: $it") }
             val destDir = destRootDir.findFile(relativePath) ?: destRootDir.createDirectory(relativePath) ?: return
             val files = srcFile.listFiles()
@@ -239,7 +243,8 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             feed = nameFeedMap[relativePath] ?: return
             Logd(TAG, "copyRecursiveDF found feed: ${feed?.title}")
             nameEpisodeMap.clear()
-            feed!!.episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
+            val episodes = getEpisodes(EpisodeFilter("feedId == ${feed!!.id}"), null)
+            episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
             val destFile = File(destRootDir, relativePath)
             if (!destFile.exists()) destFile.mkdirs()
 //            srcFile.listFiles().forEach { file -> copyRecursive(context, file, srcFile, destFile, move) }
@@ -292,7 +297,8 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             feed = nameFeedMap[relativePath] ?: return
             Logd(TAG, "copyRecursiveFD found feed: ${feed?.title}")
             nameEpisodeMap.clear()
-            feed!!.episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
+            val episodes = getEpisodes(EpisodeFilter("feedId == ${feed!!.id}"), null)
+            episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
             nameEpisodeMap.keys.forEach { Logd(TAG, "key: $it") }
             val destFile = File(destRootDir, relativePath)
             if (!destFile.exists()) destFile.mkdirs()

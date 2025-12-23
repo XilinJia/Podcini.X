@@ -214,7 +214,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.DELETE -> {
-                runOnIOScope { deleteEpisodesWarnLocalRepeat(context, listOf(item)) }
+                runOnIOScope { deleteEpisodesWarnLocalRepeat(listOf(item)) }
                 update(item)
             }
             ButtonTypes.PAUSE -> {
@@ -466,6 +466,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
     }
 
     fun update(item_: Episode) {
+//        Logd(TAG, "update type: $type ${item.title}")
         item = item_
         fun undownloadedType(): ButtonTypes {
             fun isDownloadingMedia(): Boolean {
@@ -480,7 +481,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
         }
         when (type) {
             ButtonTypes.WEBSITE -> {}
-            ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL -> {
+            ButtonTypes.PLAYLOCAL -> if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
+            ButtonTypes.PLAY -> {
                 if (!item.downloaded) type = undownloadedType()
                 else if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
             }

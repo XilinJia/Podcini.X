@@ -115,6 +115,7 @@
     <string name="clear_cache">Clear from cache</string>
     <string name="clear_all_cache">Clear all caches</string>
     <string name="new_synth_label">New synthetic feed</string>
+    <string name="new_volume_label">New volume</string>
     <string name="toggle_grid_list">Toggle grid list</string>
     <string name="preparing">Preparing</string>
     <string name="refreshing_label">Refreshing</string>
@@ -493,6 +494,8 @@
     <string name="feed_refresh_start_sum">Set start hour (0-23) and minute (0-59) for the periodic refresh interval (exact time may be tempered by Android). Leaving the fields empty means the interval starts now.</string>
     <string name="feed_next_refresh_time">Next refresh time around:</string>
     <string name="before">before</string>
+    <string name="remove_volume">Remove volume</string>
+    <string name="remove_volume_msg">This is just to unsubscribe the volume and the contained feeds. Local content will stay intact.</string>
 
     <string name="refresh_associates">Refresh associates</string>
 
@@ -568,6 +571,8 @@
     <string name="pref_feed_skip_ending_toast">Skipped last %d seconds</string>
     <string name="pref_feed_skip_intro_toast">Skipped first %d seconds</string>
 
+    <string name="pref_parent_volume">Parent volume</string>
+    <string name="pref_parent_volume_sum">The volume to which the feed belongs</string>
 
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>

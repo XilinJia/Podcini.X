@@ -35,16 +35,55 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-private val TAG: String = "LocalFeedUpdater"
+private const val TAG: String = "LocalFeedUpdater"
 
-fun updateLocalFeed(feed: Feed, context: Context, updaterProgressListener: UpdaterProgressListener?) {
+fun updateLocalFeed(feed: Feed, context: Context, progressCB: ((Int, Int)->Unit)? = null) {
     if (feed.downloadUrl.isNullOrEmpty()) return
     try {
         val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
         val documentFolder = DocumentFile.fromTreeUri(context, uriString.toUri()) ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
         if (!documentFolder.exists() || !documentFolder.canRead()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
 
-        tryUpdateFeed(feed, context, documentFolder.uri, updaterProgressListener)
+        val folderUri = documentFolder.uri
+        val allFiles = listFastFiles(context, folderUri)
+        val mediaFiles: MutableList<FastDocumentFile> = mutableListOf()
+        val mediaFileNames: MutableSet<String> = HashSet()
+        for (file in allFiles) {
+            val mimeType = getMimeType(file.type, file.uri.toString()) ?: continue
+            val mediaType = MediaType.fromMimeType(mimeType)
+            if (mediaType == MediaType.AUDIO || mediaType == MediaType.VIDEO) {
+                mediaFiles.add(file)
+                mediaFileNames.add(file.name)
+                Logd(TAG, "tryUpdateFeed add to mediaFileNames ${file.name}")
+            }
+        }
+
+        // add new files to feed and update item data
+        val newItems = feed.episodes
+        for (i in mediaFiles.indices) {
+            Logd(TAG, "tryUpdateFeed mediaFiles ${mediaFiles[i].name}")
+            val oldItem = feedContainsFile(feed, mediaFiles[i].name)
+            val newItem = createEpisode(feed, mediaFiles[i], context)
+            Logd(TAG, "tryUpdateFeed oldItem: ${oldItem?.title} oldItem: ${oldItem?.downloadUrl}")
+            Logd(TAG, "tryUpdateFeed newItem: ${newItem.title} newItem: ${newItem.downloadUrl}")
+            oldItem?.updateFromOther(newItem) ?: newItems.add(newItem)
+            progressCB?.invoke(i, mediaFiles.size)
+        }
+        // remove feed items without corresponding file
+        val it = newItems.iterator()
+        while (it.hasNext()) {
+            val feedItem = it.next()
+            if (!mediaFileNames.contains(feedItem.link)) {
+                Logd(TAG, "tryUpdateFeed removing file ${feedItem.link} ${feedItem.title} ")
+                it.remove()
+            }
+        }
+        if (folderUri != null) feed.imageUrl = getImageUrl(allFiles, folderUri)
+        feed.autoDownload = false
+        feed.description = context.getString(R.string.local_feed_description)
+        feed.author = context.getString(R.string.local_folder)
+        updateFeedFull(feed, removeUnlistedItems = true)
+
         if (mustReportDownloadSuccessful(feed)) reportSuccess(feed)
     } catch (e: Exception) {
         Logs(TAG, e, "updateFeed failed")
@@ -52,74 +91,21 @@ fun updateLocalFeed(feed: Feed, context: Context, updaterProgressListener: Updat
     }
 }
 
-@Throws(IOException::class)
-private fun tryUpdateFeed(feed: Feed, context: Context, folderUri: Uri?, updaterProgressListener: UpdaterProgressListener?) {
-    //make sure it is the latest 'version' of this feed from the db (all items etc)
-    //        feed = updateFeedFull(context, feed, false)?: feed
-
-    // list files in feed folder
-    val allFiles = FastDocumentFile.list(context, folderUri)
-    val mediaFiles: MutableList<FastDocumentFile> = mutableListOf()
-    val mediaFileNames: MutableSet<String> = HashSet()
-    for (file in allFiles) {
-        val mimeType = getMimeType(file.type, file.uri.toString()) ?: continue
-        val mediaType = MediaType.fromMimeType(mimeType)
-        if (mediaType == MediaType.AUDIO || mediaType == MediaType.VIDEO) {
-            mediaFiles.add(file)
-            mediaFileNames.add(file.name)
-            Logd(TAG, "tryUpdateFeed add to mediaFileNames ${file.name}")
-        }
-    }
-
-    // add new files to feed and update item data
-    val newItems = feed.episodes
-    for (i in mediaFiles.indices) {
-        Logd(TAG, "tryUpdateFeed mediaFiles ${mediaFiles[i].name}")
-        val oldItem = feedContainsFile(feed, mediaFiles[i].name)
-        val newItem = createEpisode(feed, mediaFiles[i], context)
-        Logd(TAG, "tryUpdateFeed oldItem: ${oldItem?.title} oldItem: ${oldItem?.downloadUrl}")
-        Logd(TAG, "tryUpdateFeed newItem: ${newItem.title} newItem: ${newItem.downloadUrl}")
-        oldItem?.updateFromOther(newItem) ?: newItems.add(newItem)
-        updaterProgressListener?.onLocalFileScanned(i, mediaFiles.size)
-    }
-    // remove feed items without corresponding file
-    val it = newItems.iterator()
-    while (it.hasNext()) {
-        val feedItem = it.next()
-        if (!mediaFileNames.contains(feedItem.link)) {
-            Logd(TAG, "tryUpdateFeed removing file ${feedItem.link} ${feedItem.title} ")
-            it.remove()
-        }
-    }
-    if (folderUri != null) feed.imageUrl = getImageUrl(allFiles, folderUri)
-    feed.autoDownload = false
-    feed.description = context.getString(R.string.local_feed_description)
-    feed.author = context.getString(R.string.local_folder)
-    updateFeedFull(context, feed, removeUnlistedItems = true)
-}
-
-/**
- * Returns the image URL for the local feed.
- */
 private fun getImageUrl(files: List<FastDocumentFile>, folderUri: Uri): String {
     val PREFERRED_FEED_IMAGE_FILENAMES: Array<String> = arrayOf("folder.jpg", "Folder.jpg", "folder.png", "Folder.png")
-    // look for special file names
     for (iconLocation in PREFERRED_FEED_IMAGE_FILENAMES) {
         for (file in files) if (iconLocation == file.name) return file.uri.toString()
     }
-    // use the first image in the folder if existing
     for (file in files) {
         val mime = file.type
         if (mime.startsWith("image/jpeg") || mime.startsWith("image/png")) return file.uri.toString()
     }
-    // use default icon as fallback
     return Feed.PREFIX_GENERATIVE_COVER + folderUri
 }
 
 private fun feedContainsFile(feed: Feed, filename: String): Episode? {
-    val items = feed.episodes
-    for (i in items) if (i.link == filename) return i
-    return null
+    val index = feed.episodes.indexOfFirst { it.link == filename }
+    return if (index < 0) null else feed.episodes[index]
 }
 
 private fun createEpisode(feed: Feed, file: FastDocumentFile, context: Context): Episode {
@@ -128,7 +114,8 @@ private fun createEpisode(feed: Feed, file: FastDocumentFile, context: Context):
     val size = file.length
     Logd(TAG, "createEpisode file.uri: ${file.uri}")
     item.fillMedia(0, 0, size, file.type, file.uri.toString(), file.uri.toString(), false, null, 0, 0)
-    for (existingItem in feed.episodes) {
+    val episodes = feed.episodes
+    for (existingItem in episodes) {
         if (existingItem.downloadUrl == file.uri.toString() && file.length == existingItem.size) {
             // We found an old file that we already scanned. Re-use metadata.
             item.updateFromOther(existingItem)
@@ -222,37 +209,29 @@ private fun mustReportDownloadSuccessful(feed: Feed): Boolean {
     return !lastDownloadResult.isSuccessful
 }
 
-fun interface UpdaterProgressListener {
-    fun onLocalFileScanned(scanned: Int, totalFiles: Int)
-}
-
 /**
  * Android's DocumentFile is slow because every single method call queries the ContentResolver.
  * This queries the ContentResolver a single time with all the information.
  */
-class FastDocumentFile(val name: String, val type: String, val uri: Uri, val length: Long, val lastModified: Long) {
-    companion object {
+data class FastDocumentFile(val name: String, val type: String, val uri: Uri, val length: Long, val lastModified: Long)
 
-        fun list(context: Context, folderUri: Uri?): List<FastDocumentFile> {
-            val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(folderUri, DocumentsContract.getDocumentId(folderUri))
-            val cursor = context.contentResolver.query(childrenUri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
-                DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                DocumentsContract.Document.COLUMN_SIZE,
-                DocumentsContract.Document.COLUMN_LAST_MODIFIED,
-                DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)
-            val list = mutableListOf<FastDocumentFile>()
-            while (cursor!!.moveToNext()) {
-                val id = cursor.getString(0)
-                val uri = DocumentsContract.buildDocumentUriUsingTree(folderUri, id)
-                val name = cursor.getString(1)
-                val size = cursor.getLong(2)
-                val lastModified = cursor.getLong(3)
-                val mimeType = cursor.getString(4)
-                list.add(FastDocumentFile(name, mimeType, uri, size, lastModified))
-            }
-            cursor.close()
-            return list
-        }
+fun listFastFiles(context: Context, folderUri: Uri?): List<FastDocumentFile> {
+    val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(folderUri, DocumentsContract.getDocumentId(folderUri))
+    val cursor = context.contentResolver.query(childrenUri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+        DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+        DocumentsContract.Document.COLUMN_SIZE,
+        DocumentsContract.Document.COLUMN_LAST_MODIFIED,
+        DocumentsContract.Document.COLUMN_MIME_TYPE), null, null, null)
+    val list = mutableListOf<FastDocumentFile>()
+    while (cursor!!.moveToNext()) {
+        val id = cursor.getString(0)
+        val uri = DocumentsContract.buildDocumentUriUsingTree(folderUri, id)
+        val name = cursor.getString(1)
+        val size = cursor.getLong(2)
+        val lastModified = cursor.getLong(3)
+        val mimeType = cursor.getString(4)
+        list.add(FastDocumentFile(name, mimeType, uri, size, lastModified))
     }
+    cursor.close()
+    return list
 }
-

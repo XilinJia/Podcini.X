@@ -15,6 +15,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOW
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
@@ -29,9 +30,8 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import ac.mdiq.podcini.utils.fullDateTimeString
+import ac.mdiq.podcini.utils.localDateTimeString
 import ac.mdiq.podcini.utils.sendLocalBroadcast
-import android.content.Context
 import androidx.annotation.OptIn
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
@@ -46,6 +46,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ExecutionException
 import kotlin.math.min
 
 private const val TAG: String = "Episodes"
@@ -103,7 +104,7 @@ fun getEpisodeByGuidOrUrl(guid: String?, episodeUrl: String, copy: Boolean = tru
     return realm.copyFromRealm(episode)
 }
 
-fun getEpisode(id: Long, copy: Boolean = true): Episode? {
+fun getEpisode(id: Long, copy: Boolean = false): Episode? {
     Logd(TAG, "getEpisodeMedia called $id")
     val episode = realm.query(Episode::class).query("id == $0", id).first().find()
     if (!copy || episode == null) return episode
@@ -120,13 +121,17 @@ fun getHistoryAsFlow(feedId: Long = 0L, start: Long = 0L, end: Long = Date().tim
     return episodes
 }
 
-suspend fun deleteEpisodesWarnLocalRepeat(context: Context, items: Iterable<Episode>) {
+suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
+    val context = getAppContext()
     val localItems: MutableList<Episode> = mutableListOf()
     val repeatItems: MutableList<Episode> = mutableListOf()
     for (item in items) {
         if (item.feed?.isLocalFeed == true) localItems.add(item)
         if (item.playState == EpisodeState.AGAIN.code || item.playState == EpisodeState.FOREVER.code) repeatItems.add(item)
-        else deleteAndRemoveFromQueues(context, item)
+        else {
+            val episode_ = deleteMedia(item)
+            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(episode_))
+        }
     }
 
     val userDone = CompletableDeferred<Unit>()
@@ -139,7 +144,10 @@ suspend fun deleteEpisodesWarnLocalRepeat(context: Context, items: Iterable<Epis
                 confirmRes = R.string.delete_label,
                 cancelRes = R.string.cancel_label,
                 onConfirm = {
-                    for (item in localItems) deleteAndRemoveFromQueues(context, item)
+                    try {
+                        deleteMedias(localItems)
+                        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(localItems)
+                    }  catch (e: ExecutionException) { Logs(TAG, e) }
                     userDone.complete(Unit)
                 },
                 onNeutral = { userDone.complete(Unit)},
@@ -156,19 +164,36 @@ suspend fun deleteEpisodesWarnLocalRepeat(context: Context, items: Iterable<Epis
                 message = context.getString(R.string.delete_repeat_warning_msg),
                 confirmRes = R.string.delete_label,
                 cancelRes = R.string.cancel_label,
-                onConfirm = { for (item in repeatItems) deleteAndRemoveFromQueues(context, item) })
+                onConfirm = {
+                    try {
+                        deleteMedias(repeatItems)
+                        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(repeatItems)
+                    }  catch (e: ExecutionException) { Logs(TAG, e) }
+                })
         }
     }
 }
 
-fun deleteAndRemoveFromQueues(context: Context, episode: Episode) {
-    Logd(TAG, "deleteMediaOfEpisode called ${episode.title}")
-    val episode_ = deleteMedia(context, episode)
-    if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(episode_))
+suspend fun eraseEpisodes(episodes: List<Episode>, msg: String) {
+    try {
+        for (e in episodes) {
+            val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
+            upsert(sLog) {
+                it.rating = e.rating
+                it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
+                it.comment += localDateTimeString() + "\nReason to remove:\n" + msg
+                it.cancelDate = Date().time
+            }
+            if (e.feed?.isLocalFeed != true) deleteMedia(e)
+        }
+        realm.write { for (e in episodes) findLatest(e)?.let { delete(it) } }
+        EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
+    } catch (e: Throwable) { Logs("eraseEpisodes", e) }
 }
 
 @OptIn(UnstableApi::class)
-fun deleteMedia(context: Context, episode: Episode): Episode {
+fun deleteMedia(episode: Episode): Episode {
+    val context = getAppContext()
     Logd(TAG, String.format(Locale.US, "deleteMedia [id=%d, title=%s, downloaded=%s", episode.id, episode.getEpisodeTitle(), episode.downloaded))
     var localDelete = false
     val url = episode.fileUrl
@@ -245,7 +270,8 @@ fun deleteMedia(context: Context, episode: Episode): Episode {
  * Deleting media also removes the download log entries.
  */
 @OptIn(UnstableApi::class)
-fun deleteMedias(context: Context, episodes: List<Episode>)  {
+fun deleteMedias(episodes: List<Episode>)  {
+    val context = getAppContext()
     val removedFromQueue: MutableList<Episode> = mutableListOf()
     val queueItems = actQueue.episodes.toMutableList()
     for (episode in episodes) {
@@ -257,7 +283,7 @@ fun deleteMedias(context: Context, episodes: List<Episode>)  {
         }
         if (episode.feed != null && !episode.feed!!.isLocalFeed) {
             DownloadServiceInterface.impl?.cancel(context, episode)
-            if (episode.downloaded) deleteMedia(context, episode)
+            if (episode.downloaded) deleteMedia(episode)
         }
     }
     if (removedFromQueue.isNotEmpty()) removeFromAllQueues(removedFromQueue)

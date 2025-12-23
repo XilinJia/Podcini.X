@@ -39,6 +39,7 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.sendLocalBroadcast
+import ac.mdiq.podcini.utils.showStackTrace
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
@@ -165,7 +166,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         val password = feed?.password
         bitrate = 0
         try {
-            mediaSource = gearbox.formMediaSource(metadata, media, context)
+            mediaSource = gearbox.formMediaSource(metadata, media)
             if (mediaSource != null) {
                 Logd(TAG, "setDataSource setting for Podcast source")
                 mediaItem = mediaSource?.mediaItem
@@ -404,7 +405,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))
                 val isItemdeletable = (!getPref(AppPrefs.prefFavoriteKeepsEpisode, true) || (!item.isSUPER && item.playState != EpisodeState.AGAIN.code && item.playState != EpisodeState.FOREVER.code))
                 if (shouldAutoDelete && isItemdeletable) {
-                    if (item.localFileAvailable()) item = deleteMedia(context, item)
+                    if (item.localFileAvailable()) item = deleteMedia(item)
                     if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(item))
                 } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueues(listOf(item))
             }
@@ -484,7 +485,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
         runOnIOScope {
             try {
-                gearbox.loadChapters(context, media)
+                gearbox.loadChapters(media)
                 withContext(Dispatchers.Main) { onChapterLoaded(media) }
             } catch (e: Throwable) { Logs(TAG, e, "Error loading chapters:") }
         }
@@ -864,6 +865,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
 
         fun isStreamingCapable(media: Episode): Boolean {
+            showStackTrace()
             if (!URLUtil.isNetworkUrl(media.downloadUrl)) {
                 Loge(TAG, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
                 return false

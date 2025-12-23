@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.storage.model
 
+import ac.mdiq.podcini.storage.database.queueEntriesOf
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
@@ -34,28 +35,23 @@ class PlayQueue : RealmObject {
     var autoDownloadEpisodes: Boolean = false       // TODO: need to rethink
 
     @Ignore
-    var sortOrder: EpisodeSortOrder = EpisodeSortOrder.TIME_IN_QUEUE_ASC
+    var sortOrder: EpisodeSortOrder = EpisodeSortOrder.DATE_DESC
         get() = fromCode(sortOrderCode)
         set(value) {
             field = value
             sortOrderCode = value.code
         }
-    var sortOrderCode: Int = EpisodeSortOrder.TIME_IN_QUEUE_ASC.code     // in EpisodeSortOrder
+    var sortOrderCode: Int = EpisodeSortOrder.DATE_DESC.code     // in EpisodeSortOrder
 
     var isLocked: Boolean = true
 
     @Ignore
-    val isSorted: Boolean
-        get() = sortOrder != EpisodeSortOrder.TIME_IN_QUEUE_ASC
-
-    var episodeIds: RealmList<Long> = realmListOf()
-
-    @Ignore
     val episodes: MutableList<Episode> = mutableListOf()
         get() {
-            if (field.isEmpty() && episodeIds.isNotEmpty())
-                field.addAll(realm.query(Episode::class).query("id IN $0", episodeIds).sort(sortPairOf(sortOrder)).find())
-            //            size = episodeIds.size
+            if (field.isEmpty()) {
+                val eids = queueEntriesOf(this).map { it.episodeId }
+                field.addAll(realm.query(Episode::class).query("id IN $0", eids).sort(sortPairOf(sortOrder)).find())
+            }
             return field
         }
 
@@ -65,13 +61,13 @@ class PlayQueue : RealmObject {
 
     var binLimit: Int = 0
 
-    fun contains(episode: Episode): Boolean = episodeIds.contains(episode.id)
+    fun contains(episode: Episode): Boolean = realm.query(QueueEntry::class).query("queueId == $id AND episodeId == ${episode.id}").count().find() > 0
 
     fun update() {
         updated = Date().time
     }
 
-    fun size() : Int = episodeIds.size
+    fun size() : Int = realm.query(QueueEntry::class).query("queueId == $id").count().find().toInt()
 
     fun isVirtual(): Boolean = id == VIRTUAL_QUEUE_ID
 

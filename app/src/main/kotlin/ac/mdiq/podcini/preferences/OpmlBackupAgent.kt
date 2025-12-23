@@ -178,7 +178,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
                 for (opmlElem in opmlElements) {
                     val feed = Feed(opmlElem.xmlUrl, null, opmlElem.text)
                     feed.episodes.clear()
-                    updateFeedFull(context, feed, false)
+                    updateFeedFull(feed, false)
                 }
                 Logt(TAG, "${opmlElements.size} feeds were restored")
                 runOnce(context)

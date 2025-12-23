@@ -130,7 +130,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
                 if (!containsUrl(localSubscriptions, downloadUrl) && !queuedRemovedFeeds.contains(downloadUrl)) {
                     val feed = Feed(downloadUrl, null, "Unknown podcast")
                     feed.episodes.clear()
-                    updateFeedFull(applicationContext, feed, removeUnlistedItems = false)
+                    updateFeedFull(feed, removeUnlistedItems = false)
                     val f = getFeed(feed.id)
                     if (f != null) gearbox.feedUpdater(listOf(f)).startRefresh(applicationContext)
                 }
@@ -138,7 +138,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
 
             // remove subscription if not just subscribed (again)
             for (downloadUrl in subscriptionChanges.removed) {
-                if (!queuedAddedFeeds.contains(downloadUrl)) removeFeedWithDownloadUrl(applicationContext, downloadUrl)
+                if (!queuedAddedFeeds.contains(downloadUrl)) removeFeedWithDownloadUrl(downloadUrl)
             }
 
             if (lastSync == 0L) {
@@ -163,7 +163,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         SynchronizationSettings.setLastSubscriptionSynchronizationAttemptTimestamp(newTimeStamp)
     }
 
-    private fun removeFeedWithDownloadUrl(context: Context, downloadUrl: String) {
+    private fun removeFeedWithDownloadUrl(downloadUrl: String) {
         Logd(TAG, "removeFeedWithDownloadUrl called")
         var feedID: Long? = null
         val feeds = getFeedList()
@@ -174,7 +174,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         if (feedID != null) {
             try {
                 runBlocking {
-                    deleteFeed(context, feedID)
+                    deleteFeed(feedID)
                     EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feedID))
                 }
             } catch (e: InterruptedException) { Logs(TAG, e)

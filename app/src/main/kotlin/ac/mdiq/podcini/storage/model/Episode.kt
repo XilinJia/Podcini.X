@@ -97,6 +97,7 @@ class Episode : RealmObject {
             return field
         }
 
+    @Index
     var feedId: Long? = null
 
     // parent in these refers to the original parent of the content (shared)
@@ -120,10 +121,6 @@ class Episode : RealmObject {
             this.playStateSetTime = value?.time ?: 0L
         }
     var playStateSetTime: Long = 0L
-
-    var timeInQueue: Long = 0L
-
-    var timeOutQueue: Long = 0
 
     var paymentLink: String? = null
 
@@ -772,11 +769,9 @@ class Episode : RealmObject {
 
     fun setChapters(chapters_: List<Chapter>) {
         for (c in chapters_) c.episode = this
-        upsertBlk(this) {
-            it.chapters.clear()
-            it.chapters.addAll(chapters_)
-            it.chaptersLoaded = true
-        }
+        chapters.clear()
+        chapters.addAll(chapters_)
+        chaptersLoaded = true
     }
 
     fun getCurrentChapterIndex(position: Int): Int {
@@ -785,24 +780,26 @@ class Episode : RealmObject {
         return chapters.size - 1
     }
 
-    fun loadChapters(context: Context, forceRefresh: Boolean) {
+    fun loadChapters(forceRefresh: Boolean) {
         if (chaptersLoaded && !forceRefresh) return
         var chaptersFromDatabase: List<Chapter>? = null
         var chaptersFromPodcastIndex: List<Chapter>? = null
         if (chapters.isNotEmpty()) chaptersFromDatabase = chapters
         if (!podcastIndexChapterUrl.isNullOrEmpty()) chaptersFromPodcastIndex = loadChaptersFromUrl(podcastIndexChapterUrl!!, forceRefresh)
 
-        val chaptersFromMediaFile = loadChaptersFromMediaFile(context)
+        val chaptersFromMediaFile = loadChaptersFromMediaFile()
         val chaptersMergePhase1 = merge(chaptersFromDatabase, chaptersFromMediaFile)
         val chapters = merge(chaptersMergePhase1, chaptersFromPodcastIndex)
         Logd(TAG, "loadChapters chapters size: ${chapters?.size?:0} ${getEpisodeTitle()}")
-        if (chapters == null) setChapters(listOf())    // Do not try loading again. There are no chapters.
-        else setChapters(chapters)
+        upsertBlk(this) {
+            if (chapters == null) it.setChapters(listOf())    // Do not try loading again. There are no chapters.
+            else it.setChapters(chapters)
+        }
     }
 
-    fun loadChaptersFromMediaFile(context: Context): List<Chapter> {
+    fun loadChaptersFromMediaFile(): List<Chapter> {
         try {
-            openStream(context).use { inVal ->
+            openStream().use { inVal ->
                 val chapters = readId3ChaptersFrom(inVal)
                 if (chapters.isNotEmpty()) return chapters
             }
@@ -810,7 +807,7 @@ class Episode : RealmObject {
         } catch (e: ID3ReaderException) { Logs(TAG, e, "Unable to load ID3 chapters: ") }
 
         try {
-            openStream(context).use { inVal ->
+            openStream().use { inVal ->
                 val chapters = readOggChaptersFromInputStream(inVal)
                 if (chapters.isNotEmpty()) return chapters
             }
@@ -820,7 +817,8 @@ class Episode : RealmObject {
     }
 
     @Throws(IOException::class)
-    private fun openStream(context: Context): CountingInputStream {
+    private fun openStream(): CountingInputStream {
+        val context = getAppContext()
         if (localFileAvailable()) {
             if (fileUrl.isNullOrBlank()) throw IOException("No local url")
             val fileuri = fileUrl!!.toUri()

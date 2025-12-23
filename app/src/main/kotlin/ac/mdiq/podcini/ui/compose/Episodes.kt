@@ -20,6 +20,7 @@ import ac.mdiq.podcini.storage.database.addToAssOrActQueue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.deleteMedia
+import ac.mdiq.podcini.storage.database.eraseEpisodes
 import ac.mdiq.podcini.storage.database.queues
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
@@ -35,7 +36,6 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.duetime
-import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -62,7 +62,6 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.fullDateTimeString
-import ac.mdiq.podcini.utils.localDateTimeString
 import ac.mdiq.podcini.utils.shareFeedItemFile
 import ac.mdiq.podcini.utils.shareFeedItemLinkWithDownloadLink
 import ac.mdiq.podcini.utils.shareLink
@@ -148,8 +147,6 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
 import androidx.core.content.edit
-import androidx.core.net.toUri
-import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
@@ -161,7 +158,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -390,7 +386,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
                 Logd(TAG, "description: ${episode.description}")
                 scope.launch(Dispatchers.IO) {
                     episode.let {
-                        webviewData = gearbox.buildWebviewData(context, it)
+                        webviewData = gearbox.buildWebviewData(it)
                         if (webviewData != null) webDataCache.put(it.id, webviewData!!)
                     }
                 }
@@ -633,7 +629,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                             if (hasAlmostEnded) item_ = upsertBlk(item_) { it.playbackCompletionDate = Date() }
                                             val shouldAutoDelete = if (item_.feed == null) false else allowForAutoDelete(item_.feed!!) //                                            item = item_
                                             if (hasAlmostEnded && shouldAutoDelete) {
-                                                item_ = deleteMedia(context, item_)
+                                                item_ = deleteMedia(item_)
                                                 if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(item_))
                                             } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueues(listOf(item_))
                                             if (item_.feed?.isLocalFeed != true && (isProviderConnected || wifiSyncEnabledKey)) { // not all items have media, Gpodder only cares about those that do
@@ -740,7 +736,6 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
         val message = stringResource(R.string.erase_episodes_confirmation_msg)
         val textColor = MaterialTheme.colorScheme.onSurface
         var textState by remember { mutableStateOf(TextFieldValue("")) }
-        val context = LocalContext.current
 
         if (feed == null) Text(stringResource(R.string.not_erase_message), modifier = Modifier.padding(10.dp))
         else Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -748,34 +743,7 @@ fun EraseEpisodesDialog(selected: List<Episode>, feed: Feed?, onDismissRequest: 
             Text(stringResource(R.string.reason_to_delete_msg))
             BasicTextField(value = textState, onValueChange = { textState = it }, textStyle = TextStyle(fontSize = 16.sp, color = textColor), modifier = Modifier.fillMaxWidth().height(100.dp).padding(start = 10.dp, end = 10.dp, bottom = 10.dp).border(1.dp, MaterialTheme.colorScheme.primary, MaterialTheme.shapes.small))
             Button(onClick = {
-                CoroutineScope(Dispatchers.IO).launch {
-                    try {
-                        for (e in selected) {
-                            val sLog = SubscriptionLog(e.id, e.title?:"", e.downloadUrl?:"", e.link?:"", SubscriptionLog.Type.Media.name)
-                            upsert(sLog) {
-                                it.rating = e.rating
-                                it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
-                                it.comment += localDateTimeString() + "\nReason to remove:\n" + textState.text
-                                it.cancelDate = Date().time
-                            }
-                        }
-                        realm.write {
-                            for (e in selected) {
-                                val url = e.fileUrl
-                                when {
-                                    url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, url.toUri())?.delete()
-                                    url != null -> {
-                                        val path = url.toUri().path
-                                        if (path != null) File(path).delete()
-                                    }
-                                }
-                                findLatest(feed)?.episodes?.remove(e)
-                                findLatest(e)?.let { delete(it) }
-                            }
-                        }
-                        EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-                    } catch (e: Throwable) { Logs("EraseEpisodesDialog", e) }
-                }
+                CoroutineScope(Dispatchers.IO).launch { eraseEpisodes(selected, textState.text) }
                 onDismissRequest()
             }) { Text(stringResource(R.string.confirm_label)) }
         }

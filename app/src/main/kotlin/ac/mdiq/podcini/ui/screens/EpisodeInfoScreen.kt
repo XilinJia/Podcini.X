@@ -9,6 +9,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.storage.database.addToAssOrActQueue
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.getEpisode
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -144,14 +145,18 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
 
     val actMain: MainActivity? = remember {  generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull() }
 
-    var episode by remember { mutableStateOf<Episode?>(null) }
+    var episode by remember { mutableStateOf(getEpisode(episodeId, copy=false)) }
 
     var showHomeScreen by remember { mutableStateOf(false) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {}
+                Lifecycle.Event.ON_CREATE -> {
+                    Logd(TAG, "ON_CREATE episode downloaded: ${episode?.downloaded}")
+                    Logd(TAG, "ON_CREATE episode downloadurl: ${episode?.downloadUrl}")
+                    Logd(TAG, "ON_CREATE episode fileurl: ${episode?.fileUrl}")
+                }
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -167,7 +172,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     }
 
     val episodeChange by episodeFlow.collectAsStateWithLifecycle(initialValue = null)
-    episode = episodeChange?.obj
+    if (episodeChange?.obj != null) episode = episodeChange?.obj
 
     var showShareDialog by remember { mutableStateOf(false) }
     var showChooseRatingDialog by remember { mutableStateOf(false) }

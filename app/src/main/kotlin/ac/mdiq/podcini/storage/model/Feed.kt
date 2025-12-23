@@ -22,7 +22,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.media3.common.C
-import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.ext.realmSetOf
 import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.types.RealmList
@@ -36,6 +35,9 @@ import java.util.Date
 class Feed : RealmObject {
     @PrimaryKey
     var id: Long = 0L  // increments from Date().time * 100 at time of creation
+
+    @Index
+    var volumeId: Long = -1L
 
     @Index
     var identifier: String? = null
@@ -60,7 +62,8 @@ class Feed : RealmObject {
 
     var useEpisodeImage: Boolean = false
 
-    var episodes: RealmList<Episode> = realmListOf()
+    @Ignore
+    var episodes: MutableList<Episode> = mutableListOf()    // used only for new feed
 
     var limitEpisodesCount: Int = 0
 

@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
+import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.queueToVirtual
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -395,8 +396,10 @@ fun SearchScreen() {
                         }
                         Text(feed.author ?: "No author", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                         Row(Modifier.padding(top = 5.dp)) {
-                            val measureString = remember {
-                                NumberFormat.getInstance().format(feed.episodes.size.toLong()) + " : " + durationInHours(feed.totleDuration / 1000)
+                            val measureString = remember { run {
+                                val numEpisodes = getEpisodesCount(null, feed.id)
+                                NumberFormat.getInstance().format(numEpisodes.toLong()) + " : " + durationInHours(feed.totleDuration / 1000)
+                            }
                             }
                             Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
                             Spacer(modifier = Modifier.weight(1f))

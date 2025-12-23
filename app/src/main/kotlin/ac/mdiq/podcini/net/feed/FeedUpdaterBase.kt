@@ -80,8 +80,12 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             Loge(TAG, "startRefresh but not ready")
             return
         }
+        val allLocalFeeds = run {
+            for (f in feeds) if (!f.isLocalFeed) return@run false
+            true
+        }
         when {
-//            feed != null && feed.isLocalFeed -> scope.launch { doWork() }   // TODO
+            allLocalFeeds -> scope.launch { doWork() }
             !networkAvailable() -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             isFeedRefreshAllowed -> scope.launch { doWork() }
             else -> {
@@ -128,7 +132,34 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
 
     suspend fun doWork(): Boolean {
         withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.refreshing_label) }
-        refreshFeeds()
+        if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            Loge(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
+        } else {
+            val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()
+            val feedIdsToRefresh = feedsToUpdate.map { it.id }.toMutableList()
+            var i = 0
+            while (i < feedsToUpdate.size) {
+                notificationManager.notify(R.id.notification_updating_feeds, createNotification(titles))
+                val feed = unmanaged(feedsToUpdate[i++])
+                try {
+                    Logd(TAG, "updating local feed? ${feed.isLocalFeed} ${feed.title}")
+                    when {
+                        feed.isLocalFeed -> updateLocalFeed(feed, context, null)
+                        else -> refreshFeed(feed)
+                    }
+                } catch (e: Exception) {
+                    Loge(TAG, "refreshFeeds: update failed ${feed.title} ${e.message}")
+                    persistFeedLastUpdateFailed(feed, true)
+                    val status = DownloadResult(feed.id, feed.title ?: "", DownloadError.ERROR_IO_ERROR, false, e.message ?: "")
+                    addDownloadStatus(status)
+                }
+                titles.removeAt(0)
+                feedIdsToRefresh.removeAt(0)
+                upsertBlk(appAttribs) { it.feedIdsToRefresh = feedIdsToRefresh.toRealmSet() }
+            } // TODO: not sure these need to be here
+            compileLanguages()
+            compileTags()
+        }
         notificationManager.cancel(R.id.notification_updating_feeds)
         withContext(Dispatchers.Main) { feedOperationText = context.getString(R.string.post_refreshing) }
         postWork()
@@ -144,39 +175,6 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         feedsToOnlyEnqueue.clear()
         feedsToOnlyDownload.clear()
         withContext(Dispatchers.Main) { feedOperationText = "" }
-    }
-
-    //    @RequiresPermission(Manifest.permission.POST_NOTIFICATIONS)
-    private suspend fun refreshFeeds() {
-        if (Build.VERSION.SDK_INT >= 33 && ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            Loge(TAG, "refreshFeeds: require POST_NOTIFICATIONS permission")
-            return
-        }
-        val titles = feedsToUpdate.map { it.title ?: "No title" }.toMutableList()
-        val feedIdsToRefresh = feedsToUpdate.map { it.id }.toMutableList()
-        var i = 0
-        while (i < feedsToUpdate.size) {
-            notificationManager.notify(R.id.notification_updating_feeds, createNotification(titles))
-            val feed = unmanaged(feedsToUpdate[i++])
-            try {
-                Logd(TAG, "updating local feed? ${feed.isLocalFeed} ${feed.title}")
-                when {
-                    feed.isLocalFeed -> updateLocalFeed(feed, context, null)
-                    else -> refreshFeed(feed)
-                }
-            } catch (e: Exception) {
-                Loge(TAG, "refreshFeeds: update failed ${feed.title} ${e.message}")
-                persistFeedLastUpdateFailed(feed, true)
-                val status = DownloadResult(feed.id, feed.title?:"", DownloadError.ERROR_IO_ERROR, false, e.message?:"")
-                addDownloadStatus(status)
-            }
-            titles.removeAt(0)
-            feedIdsToRefresh.removeAt(0)
-            upsertBlk(appAttribs) { it.feedIdsToRefresh = feedIdsToRefresh.toRealmSet()}
-        }
-        // TODO: not sure these need to be here
-        compileLanguages()
-        compileTags()
     }
 
     @Throws(Exception::class)
@@ -321,7 +319,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         suspend fun run(): Boolean {
             feedHandlerResult = task.run()
             if (!task.isSuccessful) return false
-            updateFeedFull(context, feedHandlerResult!!.feed, removeUnlistedItems = false)
+            updateFeedFull(feedHandlerResult!!.feed, removeUnlistedItems = false)
             return true
         }
 

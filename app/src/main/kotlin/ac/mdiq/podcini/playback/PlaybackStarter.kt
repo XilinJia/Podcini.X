@@ -36,7 +36,7 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
 
     fun shouldStreamThisTime(shouldStreamThisTime: Boolean?): PlaybackStarter {
         if (shouldStreamThisTime == null) {
-            this.shouldStreamThisTime = media.feed == null || media.feedId == null || !media.downloaded
+            this.shouldStreamThisTime = media.feed == null || media.feedId == null || (!media.downloaded && media.feed?.isLocalFeed != true)
                     || media.feed?.type == Feed.FeedType.YOUTUBE.name || (prefStreamOverDownload && media.feed?.prefStreamOverDownload == true)
         } else this.shouldStreamThisTime = shouldStreamThisTime
         return this

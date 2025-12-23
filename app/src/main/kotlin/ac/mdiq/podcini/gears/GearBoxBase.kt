@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.gears
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUpdaterBase
 import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
@@ -10,9 +11,8 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
-import ac.mdiq.podcini.utils.ShownotesCleaner
 import ac.mdiq.podcini.utils.Loge
-import android.content.Context
+import ac.mdiq.podcini.utils.ShownotesCleaner
 import androidx.compose.runtime.Composable
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.source.MediaSource
@@ -38,11 +38,12 @@ open class GearBoxBase {
 
     open fun cleanGearData() {}
 
-    open fun loadChapters(context: Context, episode: Episode) {
-        episode.loadChapters(context, false)
+    open fun loadChapters(episode: Episode) {
+        episode.loadChapters(false)
     }
 
-    fun buildWebviewData(context: Context, episode: Episode): String? {
+    fun buildWebviewData(episode: Episode): String? {
+        val context = getAppContext()
         val shownotesCleaner = ShownotesCleaner(context)
         val webDataPair = buildWebviewPair(episode, shownotesCleaner)
         return webDataPair?.second ?: buildCleanedNotes(episode, shownotesCleaner).second
@@ -68,7 +69,7 @@ open class GearBoxBase {
 
     open fun feedFilter(properties: HashSet<String>, statements: MutableList<String>) {}
 
-    open fun formMediaSource(metadata: MediaMetadata, media: Episode, context: Context): MediaSource? = null
+    open fun formMediaSource(metadata: MediaMetadata, media: Episode): MediaSource? = null
 
     open fun formCastMediaSource(media: Episode): Boolean = false
 
@@ -78,8 +79,8 @@ open class GearBoxBase {
 
     open fun feedUpdater(feeds: List<Feed>, fullUpdate: Boolean = false, doItAnyway: Boolean = false) : FeedUpdaterBase = FeedUpdaterBase(feeds, fullUpdate, doItAnyway)
 
-    open fun formFeedBuilder(url: String, feedSource: String, context: Context, showError: (String?, String) -> Unit): FeedBuilderBase {
-        return FeedBuilderBase(context, showError)
+    open fun formFeedBuilder(url: String, feedSource: String, showError: (String?, String) -> Unit): FeedBuilderBase {
+        return FeedBuilderBase(getAppContext(), showError)
     }
 
     open suspend fun buildFeed(url: String, username: String, password: String, fbb: FeedBuilderBase, handleFeed: (Feed, Map<String, String>)->Unit, showDialog: ()->Unit) {
@@ -92,12 +93,11 @@ open class GearBoxBase {
 
     open fun isSameFeed(feed: Feed, url: String?, title: String?): Boolean = feed.downloadUrl == url
 
-    open fun subscribeFeed(feed: PodcastSearchResult, context: Context) {
+    open fun subscribeFeed(feed: PodcastSearchResult) {
         if (feed.feedUrl == null) return
-        val url = feed.feedUrl
         CoroutineScope(Dispatchers.IO).launch {
-            val fbb = FeedBuilderBase(context) { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
-            fbb.buildPodcast(url, "", "") { feed, _ -> fbb.subscribe(feed) }
+            val fbb = FeedBuilderBase(getAppContext()) { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
+            fbb.buildPodcast(feed.feedUrl, "", "") { feed, _ -> fbb.subscribe(feed) }
         }
     }
 }

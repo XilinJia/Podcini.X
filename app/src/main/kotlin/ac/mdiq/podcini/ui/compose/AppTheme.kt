@@ -123,11 +123,15 @@ fun distinctColorOf(colorA: Color, colorB: Color): Color {
 }
 
 fun complementaryColorOf(color: Color): Color {
-    val argbInt = color.toArgb()
     val hsv = FloatArray(3)
-    android.graphics.Color.colorToHSV(argbInt, hsv)
-    var newHue = hsv[0] + 180f
-    if (newHue >= 360f) newHue -= 360f
-    hsv[0] = newHue
+    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+    hsv[0] = (hsv[0] + 180f) % 360f
+    hsv[1] = if (hsv[1] < 0.5f) 0.7f else hsv[1]
+    hsv[2] = if (hsv[2] > 0.5f) 0.2f else 0.9f
     return Color(android.graphics.Color.HSVToColor(hsv))
+}
+
+fun contrastColorOf(color: Color): Color {
+    val luminance = (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue)
+    return if (luminance > 0.5) Color.Black else Color.White
 }

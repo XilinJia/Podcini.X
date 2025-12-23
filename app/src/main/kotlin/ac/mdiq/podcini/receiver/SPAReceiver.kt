@@ -35,7 +35,7 @@ class SPAReceiver : BroadcastReceiver() {
         for (url in feedUrls) {
             val feed = Feed(url, null, "Unknown podcast")
             feed.episodes.clear()
-            updateFeedFull(context, feed, removeUnlistedItems = false)
+            updateFeedFull(feed, removeUnlistedItems = false)
         }
         Logt(TAG, context.getString(R.string.sp_apps_importing_feeds_msg))
         runOnce(context)

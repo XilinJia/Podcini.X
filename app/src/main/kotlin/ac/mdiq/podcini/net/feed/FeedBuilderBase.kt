@@ -149,7 +149,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
     }
 
     fun subscribe(feed: Feed) {
-        while (feed.isBuilding) runBlocking { delay(200) }
+        runBlocking { while (feed.isBuilding)  delay(200) }
         feed.id = 0L
         if (feed.limitEpisodesCount > 0) {
             val sz = feed.episodes.size
@@ -163,7 +163,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             item.origFeeddownloadUrl = null
             item.origFeedTitle = null
         }
-        updateFeedFull(context, feed, removeUnlistedItems = false)
+        updateFeedFull(feed, removeUnlistedItems = false)
     }
 
     /**

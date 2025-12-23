@@ -227,8 +227,8 @@ class PreferenceActivity : ComponentActivity() {
             IconTitleActionRow(R.drawable.ic_notifications, R.string.notification_pref_fragment) { navController.navigate(Screens.NotificationScreen.name) }
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
             Text(stringResource(R.string.project_pref), color = textColor, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 15.dp))
-            IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInBrowser(this@PreferenceActivity, githubAddress) }
             IconTitleActionRow(R.drawable.ic_questionmark, R.string.whats_new) { openInBrowser(this@PreferenceActivity, "${githubAddress}/blob/main/changelog.md") }
+            IconTitleActionRow(R.drawable.ic_questionmark, R.string.documentation_support) { openInBrowser(this@PreferenceActivity, githubAddress) }
             IconTitleActionRow(R.drawable.ic_contribute, R.string.pref_contribute) { openInBrowser(this@PreferenceActivity, githubAddress) }
             IconTitleActionRow(R.drawable.ic_bug, R.string.bug_report_title) { startActivity(Intent(this@PreferenceActivity, BugReportActivity::class.java)) }
             IconTitleActionRow(R.drawable.ic_info, R.string.about_pref) { navController.navigate(Screens.AboutScreen.name) }

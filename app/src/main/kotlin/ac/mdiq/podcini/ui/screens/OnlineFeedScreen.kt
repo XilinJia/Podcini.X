@@ -393,7 +393,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 Lifecycle.Event.ON_CREATE -> {
                     Logd(TAG, "feedUrl: ${vm.feedUrl}")
 //                    monitorFeedList(scope)
-                    vm.feedBuilder = gearbox.formFeedBuilder(vm.feedUrl, vm.feedSource, context) { message, details ->
+                    vm.feedBuilder = gearbox.formFeedBuilder(vm.feedUrl, vm.feedSource) { message, details ->
                         vm.errorMessage = message ?: "No message"
                         vm.errorDetails = details
                         vm.showErrorDialog = true

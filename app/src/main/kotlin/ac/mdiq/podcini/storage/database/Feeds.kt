@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.storage.database
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
@@ -13,6 +14,7 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.model.Feed.Companion.newId
+import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
@@ -21,22 +23,17 @@ import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
 import android.app.backup.BackupManager
-import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.core.net.toUri
-import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.notifications.InitialResults
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.UpdatedResults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -48,6 +45,39 @@ import java.util.concurrent.ExecutionException
 import kotlin.math.abs
 
 private const val TAG: String = "Feeds"
+
+var volumes = listOf<Volume>()
+private var volumeMonitorJob: Job? = null
+fun cancelMonitorVolumes() {
+    volumeMonitorJob?.cancel()
+    volumeMonitorJob = null
+}
+
+fun monitorVolumes(scope: CoroutineScope) {
+    if (volumeMonitorJob != null) return
+
+    val feedQuery = realm.query(Volume::class)
+    volumeMonitorJob = scope.launch(Dispatchers.IO) {
+        feedQuery.asFlow().collect { changes: ResultsChange<Volume> ->
+            volumes = changes.list
+            //            Logd(TAG, "monitorVolumes volumes size: ${volumes.size}")
+            when (changes) {
+                is UpdatedResults -> {
+                    when {
+                        changes.insertions.isNotEmpty() -> {}
+                        changes.changes.isNotEmpty() -> {}
+                        changes.deletions.isNotEmpty() -> {}
+                        else -> {}
+                    }
+                }
+                else -> {
+                    // types other than UpdatedResults are not changes -- ignore them
+                }
+            }
+        }
+    }
+}
+
 var feedOperationText by mutableStateOf("")
 
 var feedCount by mutableIntStateOf(-1)
@@ -57,10 +87,6 @@ fun getFeedList(queryString: String = ""): List<Feed> {
     return if (queryString.isEmpty()) realm.query(Feed::class).find()
     else realm.query(Feed::class, queryString).find()
 }
-
-//fun updateFeedCount() {
-//    feedCount = realm.query(Feed::class).count().find().toInt()
-//}
 
 fun compileLanguages() {
     val langsSet = mutableSetOf<String>()
@@ -92,35 +118,26 @@ fun compileTags() {
     }
 }
 
-private val feedIds = MutableStateFlow<List<Long>>(emptyList())
-
-private var monitorJob: Job? = null
+var feeds = listOf<Feed>()
+private var feedMonitorJob: Job? = null
 fun cancelMonitorFeeds() {
-    monitorJob?.cancel()
-    monitorJob = null
+    feedMonitorJob?.cancel()
+    feedMonitorJob = null
 }
 
-fun monitorFeedList(scope: CoroutineScope) {
-    if (monitorJob != null) return
-
-    feedIds.value = realm.query(Feed::class).find().map { it.id }
+fun monitorFeeds(scope: CoroutineScope) {
+    if (feedMonitorJob != null) return
 
     val feedQuery = realm.query(Feed::class)
-    monitorJob = scope.launch(Dispatchers.IO) {
+    feedMonitorJob = scope.launch(Dispatchers.IO) {
         feedQuery.asFlow().collect { changes: ResultsChange<Feed> ->
-            val feeds = changes.list
+            feeds = changes.list
             feedCount = feeds.size
 //            Logd(TAG, "monitorFeedList feeds size: ${feeds.size}")
             when (changes) {
                 is UpdatedResults -> {
                     when {
                         changes.insertions.isNotEmpty() -> {
-                            val ids = feedIds.value.toMutableList()
-                            for (i in changes.insertions) {
-                                Logd(TAG, "monitorFeedList inserted feed: ${feeds[i].title}")
-                                ids.add(feeds[i].id)
-                            }
-                            feedIds.value = ids.toList()
                             compileLanguages()
                             // TODO: not sure why the state flow does not collect
                             EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
@@ -131,13 +148,6 @@ fun monitorFeedList(scope: CoroutineScope) {
 //                            }
                         }
                         changes.deletions.isNotEmpty() -> {
-                            val ids = feedIds.value.toMutableList()
-                            for (i in changes.deletions) {
-//                                Logd(TAG, "monitorFeedList deleted feed: ${feeds[i].title}")  // this can't be printed
-                                EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, ids[i]))
-                                ids.removeAt(i)
-                            }
-                            feedIds.value = ids.toList()
                             Logd(TAG, "monitorFeedList feed deleted: ${changes.deletions.size}")
                             compileTags()
                         }
@@ -158,7 +168,6 @@ fun monitorFeedList(scope: CoroutineScope) {
 fun getFeedListDownloadUrls(): List<String> {
     Logd(TAG, "getFeedListDownloadUrls called")
     val result: MutableList<String> = mutableListOf()
-    val feeds = getFeedList()
     for (f in feeds) {
         val url = f.downloadUrl
         if (url != null && !url.startsWith(Feed.PREFIX_LOCAL_FOLDER)) result.add(url)
@@ -176,7 +185,7 @@ fun getFeed(feedId: Long, copy: Boolean = false): Feed? {
 private fun searchFeedByIdentifyingValueOrID(feed: Feed, copy: Boolean = false): Feed? {
     Logd(TAG, "searchFeedByIdentifyingValueOrID called")
     if (feed.id != 0L) return getFeed(feed.id, copy)
-    val feeds = getFeedList()
+//    val feeds = getFeedList()
     val feedId = feed.identifyingValue
     for (f in feeds) if (f.identifyingValue == feedId) return if (copy) realm.copyFromRealm(f) else f
     return null
@@ -204,7 +213,7 @@ fun getFeedByTitleAndAuthor(title: String, author: String): Feed? {
  * @return The updated Feed from the database if it already existed, or the new Feed from the parameters otherwise.
  */
 @Synchronized
-fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false) {
+fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwriteStates: Boolean = false) {
     Logd(TAG, "updateFeedFull called")
     //        showStackTrace()
 
@@ -217,7 +226,7 @@ fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean
         newFeed.lastUpdateTime = System.currentTimeMillis()
         newFeed.lastFullUpdateTime = System.currentTimeMillis()
         try {
-            addNewFeeds(context, newFeed)
+            addNewFeeds(newFeed)
             // Update with default values that are set in database
             searchFeedByIdentifyingValueOrID(newFeed)
             // TODO: This doesn't appear needed as unlistedItems is still empty
@@ -247,6 +256,7 @@ fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean
     val savedFeedAssistant = FeedAssistant(savedFeed)
     // Look for new or updated Items
     val oldestDate = savedFeed.oldestItem?.pubDate ?: 0L
+    val context = getAppContext()
     for (idx in newFeed.episodes.indices) {
         val episode = newFeed.episodes[idx]
         if (savedFeed.limitEpisodesCount > 0 && episode.pubDate < oldestDate) continue
@@ -279,7 +289,8 @@ fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean
             if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) runBlocking { episode.fetchMediaSize(false) }
 
             if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
-            savedFeed.episodes.add(episode)
+            upsertBlk(episode) {}
+//            savedFeed.episodes.add(episode)
             savedFeedAssistant.addidvToMap(episode)
 
             val pubDate = Date(episode.pubDate)
@@ -299,8 +310,9 @@ fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean
     // identify episodes to be removed
     if (removeUnlistedItems) {
         Logd(TAG, "updateFeed building newFeedAssistant")
-        val newFeedAssistant = FeedAssistant(newFeed, savedFeed.id)
-        val it = savedFeed.episodes.toMutableList().iterator()
+        val newFeedAssistant = FeedAssistant(newFeed, savedFeed.id, isNew = true)
+
+        val it = getEpisodes(null, null, feedId=savedFeed.id, copy = false).toMutableList().iterator()
         while (it.hasNext()) {
             val feedItem = it.next()
             if (newFeedAssistant.getEpisodeByIdentifyingValue(feedItem) == null) {
@@ -318,11 +330,12 @@ fun updateFeedFull(context: Context, newFeed: Feed, removeUnlistedItems: Boolean
     savedFeed.type = newFeed.type
     savedFeed.lastUpdateFailed = false
     savedFeed.totleDuration = 0
-    for (e in savedFeed.episodes) savedFeed.totleDuration += e.duration
+    val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
+    for (e in episodes) savedFeed.totleDuration += e.duration
 
     try {
         upsertBlk(savedFeed) {}
-        if (removeUnlistedItems && unlistedItems.isNotEmpty()) deleteMedias(context, unlistedItems)
+        if (removeUnlistedItems && unlistedItems.isNotEmpty()) deleteMedias(unlistedItems)
     } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
     } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
 
@@ -362,7 +375,8 @@ suspend fun updateFeedSimple(newFeed: Feed) {
         episode.feedId = savedFeed.id
         if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
         if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
-        savedFeed.episodes.add(episode)
+        upsertBlk(episode) {}
+//        savedFeed.episodes.add(episode)
 
         if (priorMostRecentDate < pubDate) {
             Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
@@ -380,7 +394,8 @@ suspend fun updateFeedSimple(newFeed: Feed) {
     savedFeed.type = newFeed.type
     savedFeed.lastUpdateFailed = false
     savedFeed.totleDuration = 0
-    for (e in savedFeed.episodes) savedFeed.totleDuration += e.duration
+    val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
+    for (e in episodes) savedFeed.totleDuration += e.duration
 
     try { upsert(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedSimple failed") } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedSimple failed") }
 
@@ -399,7 +414,7 @@ private suspend fun trimEpisodes(feed_: Feed) {
                 for (e_ in episodes) {
                     val e = findLatest(e_)
                     if (e != null && !e.isWorthy) {
-                        f.episodes.remove(e)
+//                        f.episodes.remove(e)
                         delete(e)
                         if (n++ >= dc) break
                     }
@@ -423,15 +438,12 @@ fun updateFeedDownloadURL(original: String, updated: String) {
     if (feed != null) upsertBlk(feed) { it.downloadUrl = updated }
 }
 
-private fun addNewFeeds(context: Context, vararg feeds: Feed) {
+private fun addNewFeeds(vararg feeds_: Feed) {
     Logd(TAG, "addNewFeeds called")
     realm.writeBlocking {
         var idLong = newId()
-        for (feed in feeds) {
+        for (feed in feeds_) {
             feed.id = idLong
-            //                if (feed.preferences == null)
-            //                    feed.preferences = FeedPreferences(feed.id, false, AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, "", "")
-            //                else feed.preferences!!.feedID = feed.id
             feed.totleDuration = 0
             Logd(TAG, "feed.episodes count: ${feed.episodes.size}")
             for (episode in feed.episodes) {
@@ -439,52 +451,47 @@ private fun addNewFeeds(context: Context, vararg feeds: Feed) {
                 Logd(TAG, "addNewFeeds ${episode.id} ${episode.downloadUrl}")
                 episode.feedId = feed.id
                 feed.totleDuration += episode.duration
+                copyToRealm(episode)
             }
             copyToRealm(feed)
         }
     }
-    for (feed in feeds) {
+    val context = getAppContext()
+    for (feed in feeds_) {
         if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedAddedIfSyncActive(context, feed.downloadUrl!!)
     }
     val backupManager = BackupManager(context)
     backupManager.dataChanged()
 }
 
-/**
- * Deletes a Feed and all downloaded files of its components like images and downloaded episodes.
- * @param context A context that is used for opening a database connection.
- * @param feedId  ID of the Feed that should be deleted.
- */
-suspend fun deleteFeed(context: Context, feedId: Long, postEvent: Boolean = true) {
+fun deleteVolumeTree(volume: Volume) {
+    Logd(TAG, "deleteVolumeTree volume: ${volume.name}")
+    val feeds_ = realm.query(Feed::class).query("volumeId == ${volume.id}").find()
+    for (f in feeds_) runOnIOScope { deleteFeed(f.id) }
+
+    val iterator = realm.query(Volume::class).query("parentId == ${volume.id}").find().iterator()
+    while (iterator.hasNext()) deleteVolumeTree(iterator.next())
+
+    realm.writeBlocking {
+        val v = findLatest(volume)
+        if (v != null) delete(v)
+    }
+}
+
+suspend fun deleteFeed(feedId: Long) {
     Logd(TAG, "deleteFeed called")
+    val episodes = getEpisodes(null, null, feedId=feedId, copy = false)
+    val eids = episodes.map { it.id }
+    removeFromAllQueuesQuiet(eids, false)
+    eraseEpisodes(episodes, "")
+
     val feed = getFeed(feedId)
     if (feed != null) {
-        val eids = feed.episodes.map { it.id }
-        //                remove from queues
-        removeFromAllQueuesQuiet(eids, false)
-        //                remove media files
         realm.write {
-            val feed_ = query(Feed::class).query("id == $0", feedId).first().find()
-            if (feed_ != null) {
-                val episodes = feed_.episodes
-                if (episodes.isNotEmpty()) {
-                    episodes.forEach { episode ->
-                        val url = episode.fileUrl
-                        when {
-                            // Local feed or custom media folder
-                            url != null && url.startsWith("content://") -> DocumentFile.fromSingleUri(context, url.toUri())?.delete()
-                            url != null -> {
-                                val path = url.toUri().path
-                                if (path != null) File(path).delete()
-                            }
-                        }
-                    }
-                    delete(episodes)
-                }
-                val feedToDelete = findLatest(feed_)
-                if (feedToDelete != null) delete(feedToDelete)
-            }
+            val feedToDelete = findLatest(feed)
+            if (feedToDelete != null) delete(feedToDelete)
         }
+        val context = getAppContext()
         if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedRemovedIfSyncActive(context, feed.downloadUrl!!)
         val backupManager = BackupManager(context)
         backupManager.dataChanged()
@@ -508,8 +515,9 @@ fun allowForAutoDelete(feed: Feed): Boolean {
 
 suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: Boolean = false) {
     val eList: MutableList<Episode> = mutableListOf()
+    val toFeedEpisodes = getEpisodes(null, null, feedId=toFeed.id, copy = false)
     for (e in episodes) {
-        if (searchEpisodeByIdentifyingValue(toFeed.episodes, e) != null) continue
+        if (searchEpisodeByIdentifyingValue(toFeedEpisodes, e) != null) continue
         var e_ = e
         if (!removeChecked || (e.feedId != null && e.feedId!! >= MAX_SYNTHETIC_ID)) {
             e_ = realm.copyFromRealm(e)
@@ -520,8 +528,9 @@ suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: B
                 e_.origFeedlink = e.feed?.link
             }
         } else {
-            val feed = realm.query(Feed::class).query("id == $0", e_.feedId).first().find()
-            if (feed != null) upsert(feed) { it.episodes.remove(e_) }
+            // TODO
+//            val feed = realm.query(Feed::class).query("id == $0", e_.feedId).first().find()
+//            if (feed != null) upsert(feed) { it.episodes.remove(e_) }
         }
         upsert(e_) {
             it.feed = toFeed
@@ -529,7 +538,7 @@ suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: B
             eList.add(it)
         }
     }
-    upsert(toFeed) { it.episodes.addAll(eList) }
+//    upsert(toFeed) { it.episodes.addAll(eList) }
 }
 
 fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
@@ -569,7 +578,8 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
     }
     val feed = getMiscSyndicate()
     Logd(TAG, "addToMiscSyndicate: feed: ${feed.title}")
-    if (searchEpisodeByIdentifyingValue(feed.episodes, episode) != null) return
+    val episodes = getEpisodes(null, null, feedId=feed.id, copy = false)
+    if (searchEpisodeByIdentifyingValue(episodes, episode) != null) return
     Logd(TAG, "addToMiscSyndicate adding new episode: ${episode.title}")
     //        if (episode.feedId != null && episode.feedId!! >= MAX_SYNTHETIC_ID) {
     //            episode.origFeedTitle = episode.feed?.title
@@ -580,7 +590,7 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
     episode.id = newId()
     episode.feedId = feed.id
     upsertBlk(episode) {}
-    feed.episodes.add(episode)
+//    feed.episodes.add(episode)
     upsertBlk(feed) {}
     EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
 }
@@ -607,30 +617,32 @@ class EpisodePubdateComparator : Comparator<Episode> {
 }
 
 // savedFeedId == 0L means saved feed
-class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L) {
+class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private val isNew: Boolean = false) {
     val map = mutableMapOf<String, MutableList<Episode>>()
     val tag: String = if (savedFeedId == 0L) "Saved feed" else "New feed"
 
     init {
-        if (savedFeedId == 0L) {
-            val ids = feed.episodes.map { it.id }
-            val elLoose = realm.query(Episode::class).query("feedId == ${feed.id} AND (NOT (id IN $0))", ids).find()
-            if (elLoose.isNotEmpty()) {
-                Logt(TAG, "Found ${elLoose.size} loose episodes")
-                elLoose.forEach { feed.episodes.add(realm.copyFromRealm(it)) }
-                //                    feed.episodes.addAll(elLoose)
-            }
-        }
-        val iterator = feed.episodes.iterator()
+//        if (savedFeedId == 0L) {
+//            val ids = feed.episodes.map { it.id }
+//            val elLoose = realm.query(Episode::class).query("feedId == ${feed.id} AND (NOT (id IN $0))", ids).find()
+//            if (elLoose.isNotEmpty()) {
+//                Logt(TAG, "Found ${elLoose.size} loose episodes")
+//                elLoose.forEach {
+//                    feed.episodes.add(realm.copyFromRealm(it))
+//                }
+//                //                    feed.episodes.addAll(elLoose)
+//            }
+//        }
+        val iterator = if (isNew) feed.episodes.iterator() else getEpisodes(null, null, feedId=feed.id, copy = false).iterator()
         while (iterator.hasNext()) {
             val e = iterator.next()
             if (!e.identifier.isNullOrEmpty()) {
                 if (map.containsKey(e.identifier!!)) {
                     Logd(TAG, "FeedAssistant init $tag identifier duplicate: ${e.identifier} ${e.title}")
-                    if (savedFeedId > 0L) {
-                        //                             addDownloadStatus(e, map[e.identifier!!]!!)
-                        iterator.remove()
-                    }
+//                    if (savedFeedId > 0L) {
+//                        //                             addDownloadStatus(e, map[e.identifier!!]!!)
+//                        iterator.remove()
+//                    }
                     map[e.identifier!!]!!.add(e)
                 } else map[e.identifier!!] = mutableListOf(e)
             }
@@ -638,10 +650,10 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L) {
             if (idv != e.identifier && !idv.isNullOrEmpty()) {
                 if (map.containsKey(idv)) {
                     Logd(TAG, "FeedAssistant init $tag identifyingValue duplicate: $idv ${e.title}")
-                    if (savedFeedId > 0L) {
-                        //                             addDownloadStatus(e, map[idv]!!)
-                        iterator.remove()
-                    }
+//                    if (savedFeedId > 0L) {
+//                        //                             addDownloadStatus(e, map[idv]!!)
+//                        iterator.remove()
+//                    }
                     map[idv]!!.add(e)
                 } else map[idv] = mutableListOf(e)
             }
@@ -649,10 +661,10 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L) {
             if (url != idv && !url.isNullOrEmpty()) {
                 if (map.containsKey(url)) {
                     Logd(TAG, "FeedAssistant init $tag url duplicate: $url ${e.title}")
-                    if (savedFeedId > 0L) {
-                        //                             addDownloadStatus(e, map[url]!!)
-                        iterator.remove()
-                    }
+//                    if (savedFeedId > 0L) {
+//                        //                             addDownloadStatus(e, map[url]!!)
+//                        iterator.remove()
+//                    }
                     map[url]!!.add(e)
                 } else map[url] = mutableListOf(e)
             }
@@ -660,10 +672,10 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L) {
             if (title != idv && title.isNotEmpty()) {
                 if (map.containsKey(title)) {
                     Logd(TAG, "FeedAssistant init $tag title duplicate: $title ${e.title}")
-                    if (savedFeedId > 0L) {
-                        //                             addDownloadStatus(e, map[url]!!)
-                        iterator.remove()
-                    }
+//                    if (savedFeedId > 0L) {
+//                        //                             addDownloadStatus(e, map[url]!!)
+//                        iterator.remove()
+//                    }
                 } else map[title] = mutableListOf(e)
             }
         }
@@ -681,43 +693,16 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L) {
                 val ers = v.sortedByDescending { it.rating }
                 if (ers[0].rating > Rating.UNRATED.code) {
                     episode = if (ers[0].id != ecs[0].id && comment.isNotEmpty()) upsertBlk(ers[0]) { it.addComment(comment) } else ers[0]
-                    runOnIOScope {
-                        realm.write {
-                            for (i in 1..<ers.size) {
-                                findLatest(ers[i])?.let {
-                                    feed.episodes.remove(it)
-                                    delete(it)
-                                }
-                            }
-                        }
-                    }
+                    runOnIOScope { realm.write { for (i in 1..<ers.size) findLatest(ers[i])?.let { delete(it) } } }
                 } else {
                     val eps = v.sortedByDescending { it.lastPlayedTime }
                     if (eps[0].lastPlayedTime > 0L) {
                         episode = if (eps[0].id != ecs[0].id && comment.isNotEmpty()) upsertBlk(eps[0]) { it.addComment(comment) } else eps[0]
-                        runOnIOScope {
-                            realm.write {
-                                for (i in 1..<eps.size) {
-                                    findLatest(eps[i])?.let {
-                                        feed.episodes.remove(it)
-                                        delete(it)
-                                    }
-                                }
-                            }
-                        }
+                        runOnIOScope { realm.write { for (i in 1..<eps.size) findLatest(eps[i])?.let { delete(it) } } }
                     } else {
                         val eps = v.sortedByDescending { it.pubDate }
                         episode = if (eps[0].id != ecs[0].id && comment.isNotEmpty()) upsertBlk(eps[0]) { it.addComment(comment) } else eps[0]
-                        runOnIOScope {
-                            realm.write {
-                                for (i in 1..<eps.size) {
-                                    findLatest(eps[i])?.let {
-                                        feed.episodes.remove(it)
-                                        delete(it)
-                                    }
-                                }
-                            }
-                        }
+                        runOnIOScope { realm.write { for (i in 1..<eps.size) findLatest(eps[i])?.let { delete(it) } } }
                     }
                 }
                 map[k] = mutableListOf(episode)

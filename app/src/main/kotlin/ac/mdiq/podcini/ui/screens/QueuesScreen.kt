@@ -9,13 +9,14 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.mediaBrowser
+import ac.mdiq.podcini.storage.database.QUEUE_POSITION_DELTA
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
+import ac.mdiq.podcini.storage.database.getEpisodesCount
+import ac.mdiq.podcini.storage.database.queueEntriesOf
 import ac.mdiq.podcini.storage.database.queuesFlow
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.storage.database.resetIds
-import ac.mdiq.podcini.storage.database.resetInQueueTime
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.stateToPreserve
@@ -25,11 +26,11 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.ui.actions.ButtonTypes
@@ -145,11 +146,14 @@ import com.google.common.util.concurrent.MoreExecutors
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
-import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.NumberFormat
@@ -240,9 +244,19 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
 
-    var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
-    val episodesChange by episodesFlow.collectAsStateWithLifecycle(initialValue = null)
-    val episodes = episodesChange?.list ?: emptyList()
+//    var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
+//    val episodesChange by episodesFlow.collectAsStateWithLifecycle(initialValue = null)
+//    val episodes = episodesChange?.list ?: emptyList()
+
+    var queueEntriesFlow by remember { mutableStateOf<Flow<ResultsChange<QueueEntry>>>(emptyFlow()) }
+
+    var orderedEpisodeIdsFlow by remember { mutableStateOf<Flow<List<Long>>>(flowOf(emptyList())) }
+    var episodesFlow by remember { mutableStateOf<Flow<List<Episode>>>(flowOf(emptyList())) }
+    var episodesInQueueFlow by remember { mutableStateOf<Flow<List<Episode>>>(flowOf(emptyList())) }
+
+    val episodes by episodesInQueueFlow.collectAsStateWithLifecycle(emptyList())
+    val qeResults by queueEntriesFlow.collectAsStateWithLifecycle(initialValue = null)
+    val queueEntries = qeResults?.list ?: emptyList()
 
     val queuesResults by queuesFlow.collectAsStateWithLifecycle(initialValue = null)
     val queues = queuesResults?.list ?: emptyList()
@@ -275,16 +289,27 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     fun initBinFlow() {
-        episodesFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).sort(Pair("timeOutQueue", Sort.DESCENDING)).asFlow()
+//        episodesFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).sort(Pair("timeOutQueue", Sort.DESCENDING)).asFlow()
     }
     fun initQueueFlow() {
-        episodesFlow = realm.query(Episode::class).query("id IN $0", curQueue.episodeIds).sort(sortPairOf(curQueue.sortOrder)).asFlow()
+//        episodesFlow = realm.query(Episode::class).query("id IN $0", curQueue.episodeIds).sort(sortPairOf(curQueue.sortOrder)).asFlow()
+        queueEntriesFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow()
+        orderedEpisodeIdsFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow()
+            .map { results -> results.list.map { it.episodeId } }
+
+        episodesFlow = orderedEpisodeIdsFlow.flatMapLatest { ids ->
+            if (ids.isEmpty()) flowOf(emptyList()) else realm.query<Episode>("id IN $0", ids).asFlow().map { it.list }
+        }
+        episodesInQueueFlow = combine(orderedEpisodeIdsFlow, episodesFlow) { ids, episodes ->
+            val episodeMap = episodes.associateBy { it.id }
+            ids.mapNotNull { episodeMap[it] }
+        }
     }
     LaunchedEffect(curQueue.id, curQueue.idsBinList.size) {
         Logd(TAG, "LaunchedEffect(curQueue.id, curQueue.idsBinList.size)")
         if (queuesMode == QueuesScreenMode.Bin) initBinFlow()
     }
-    LaunchedEffect(curQueue.id, curQueue.episodeIds.size, curQueue.sortOrderCode) {
+    LaunchedEffect(curQueue.id, curQueue.sortOrderCode) {
         Logd(TAG, "LaunchedEffect(curQueue.id, curQueue.episodeIds.size, curQueue.sortOrder)")
         if (queuesMode == QueuesScreenMode.Queue) initQueueFlow()
     }
@@ -324,21 +349,17 @@ fun QueuesScreen(id: Long = -1L) {
         fun clearQueue() : Job {
             Logd(TAG, "clearQueue called")
             return runOnIOScope {
+                val qes = queueEntriesOf(curQueue)
+                val episodeIds = qes.map { it.episodeId }
                  upsert(curQueue) {
-                    it.idsBinList.addAll(it.episodeIds)
+                    it.idsBinList.addAll(episodeIds)
                     trimBin(it)
-                    it.episodeIds.clear()
                     it.update()
                 }
-                val t = System.currentTimeMillis()
-                var c = 0L
-                for (e in curQueue.episodes) {
-                    var e_ = e
+                for (e in episodes) {
                     if (e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState))
-                        e_ = setPlayState(EpisodeState.SKIPPED, e, false)
-                    upsert(e_) { it.timeOutQueue = t+c++}
+                        setPlayState(EpisodeState.SKIPPED, e, false)
                 }
-                curQueue.episodes.clear()
                 if (curQueue.id == actQueue.id) {
                     actQueue = curQueue
                     EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
@@ -346,6 +367,12 @@ fun QueuesScreen(id: Long = -1L) {
                 if (!curQueue.isVirtual()) {
                     autoenqueueForQueue(curQueue)
                     if (curQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), curQueue)
+                }
+                realm.writeBlocking {
+                    for (qe in qes) {
+                        val qe_ = findLatest(qe)
+                        if (qe_ != null) delete(qe_)
+                    }
                 }
             }
         }
@@ -371,13 +398,22 @@ fun QueuesScreen(id: Long = -1L) {
 
         swipeActions.ActionOptionsDialog()
         if (showSortDialog) EpisodeSortDialog(initOrder = curQueue.sortOrder, onDismissRequest = { showSortDialog = false },
-            includeConditionals = listOf(EpisodeSortOrder.TIME_IN_QUEUE_ASC, EpisodeSortOrder.TIME_IN_QUEUE_DESC)) { order ->
-            upsertBlk(curQueue) { it.sortOrder = order ?: EpisodeSortOrder.TIME_IN_QUEUE_ASC }
+            includeConditionals = listOf(EpisodeSortOrder.DATE_DESC, EpisodeSortOrder.DATE_ASC)) { order ->
+            upsertBlk(curQueue) { it.sortOrder = order ?: EpisodeSortOrder.DATE_DESC }
             runOnIOScope {
-                val episodes_ = curQueue.episodes.toMutableList()
+                val episodes_ = episodes.toMutableList()
                 getPermutor(curQueue.sortOrder).reorder(episodes_)
-                resetIds(curQueue, episodes_)
-                curQueue.episodes.clear()
+                realm.write {
+                    for (i in episodes_.indices) {
+                        val e = episodes_[i]
+                        val qe = queueEntries.find { it.episodeId == e.id }
+                        if (qe == null) {
+                            Loge(TAG, "Can't find queueEntry for episode: ${e.title}")
+                            continue
+                        }
+                        findLatest(qe)?.position = (i+1) * QUEUE_POSITION_DELTA
+                    }
+                }
                 if (curQueue.id == actQueue.id) actQueue = curQueue
             }
         }
@@ -493,7 +529,7 @@ fun QueuesScreen(id: Long = -1L) {
                                 showClearQueueDialog.value = true
                                 expanded = false
                             })
-                            if (!curQueue.isSorted) {
+//                            if (!curQueue.isSorted) {
                                 fun toggleQL() {
                                     upsertBlk(curQueue) { it.isLocked = !it.isLocked}
                                     //                                dragDropEnabled = !(curQueue.isSorted || curQueue.isLocked)
@@ -506,7 +542,7 @@ fun QueuesScreen(id: Long = -1L) {
                                         Checkbox(checked = curQueue.isLocked, onCheckedChange = { toggleQL() })
                                     }
                                 }, onClick = { toggleQL() })
-                            }
+//                            }
                         }
                     }
                 })
@@ -597,16 +633,10 @@ fun QueuesScreen(id: Long = -1L) {
                             runOnIOScope {
                                 Logd(TAG, "remove_queue ")
                                 realm.write {
-                                    Logd(TAG, "remove_queue episodes: ${curQueue.episodes.size}")
-                                    curQueue.episodes.forEach {
-                                        val e = findLatest(it)
-                                        e?.setPlayState(EpisodeState.UNPLAYED)
-                                    }
+                                    Logd(TAG, "remove_queue episodes: ${episodes.size}")
+                                    episodes.forEach { findLatest(it)?.setPlayState(EpisodeState.UNPLAYED) }
                                     Logd(TAG, "remove_queue feedsAssociated: ${feedsAssociated.size}")
-                                    feedsAssociated.forEach {
-                                        val f = findLatest(it)
-                                        f?.queueId = 0
-                                    }
+                                    feedsAssociated.forEach { findLatest(it)?.queueId = 0 }
                                     val q = findLatest(curQueue)
                                     if (q != null) delete(q)
                                 }
@@ -645,7 +675,8 @@ fun QueuesScreen(id: Long = -1L) {
                             navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
                         }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
-                    Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,
+                    val numEpisodes by remember { mutableStateOf(getEpisodesCount(null, feed.id)) }
+                    Text(NumberFormat.getInstance().format(numEpisodes.toLong()), color = Color.Green,
                         modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
                             end.linkTo(parent.end)
                             top.linkTo(coverImage.top)
@@ -662,17 +693,12 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     fun moveItemInQueue(from: Int, to: Int) {
-        val episodes = curQueue.episodes.toMutableList()
-        if (episodes.isNotEmpty()) {
-            if ((from in 0 ..< episodes.size) && (to in 0..<episodes.size)) {
-                val episode = episodes.removeAt(from)
-                try { episodes.add(to, episode) } catch (e: Throwable) { Loge(TAG, "moveInQueue: ${e.message}")}
-            }
-            resetInQueueTime(episodes)
-            curQueue.episodes.clear()
-            resetIds(curQueue, episodes)
-            if (actQueue.id == curQueue.id) actQueue = curQueue
-        } else Loge(TAG, "moveQueueItemHelper: Could not load queue")
+        val size = queueEntries.size
+        when {
+            to == 0 -> upsertBlk(queueEntries[from]) { it.position = queueEntries[1].position / 2 }
+            to >= size - 1 -> upsertBlk(queueEntries[from]) { it.position = (2 * queueEntries[size - 1].position + QUEUE_POSITION_DELTA) / 2 }
+            else -> upsertBlk(queueEntries[from]) { it.position = (queueEntries[to - 1].position + queueEntries[to].position) / 2 }
+        }
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
@@ -722,7 +748,7 @@ fun QueuesScreen(id: Long = -1L) {
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                         infoBarText.value = "$listInfoText $feedOperationText"
                         InforBar(infoBarText, swipeActions)
-                        val dragDropEnabled by remember(curQueue.id, curQueue.isLocked, curQueue.isSorted) { mutableStateOf(!(curQueue.isSorted || curQueue.isLocked)) }
+                        val dragDropEnabled by remember(curQueue.id, curQueue.isLocked) { mutableStateOf(!curQueue.isLocked) }
                         EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions,
                             lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                             refreshCB = {

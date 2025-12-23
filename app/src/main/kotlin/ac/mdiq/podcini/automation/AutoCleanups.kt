@@ -5,10 +5,11 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
-import ac.mdiq.podcini.storage.database.deleteAndRemoveFromQueues
+import ac.mdiq.podcini.storage.database.deleteMedias
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.inQueueEpisodeIdSet
+import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
@@ -59,9 +60,10 @@ class ExceptFavoriteCleanupAlgorithm : EpisodeCleanupAlgorithm() {
             else return@sortedWith lhs.id.compareTo(rhs.id)  // No date - compare by id which should be always incremented
         }
         val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
-        for (item in delete) {
-            try { deleteAndRemoveFromQueues(context, item) } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
-        }
+        try {
+            deleteMedias(delete)
+            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(delete)
+        }  catch (e: ExecutionException) { Logs(TAG, e) }
         val counter = delete.size
         Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
         return counter
@@ -101,9 +103,10 @@ class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
             l.compareTo(r)
         }
         val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
-        for (item in delete) {
-            try { deleteAndRemoveFromQueues(context, item) } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
-        }
+        try {
+            deleteMedias(delete)
+            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(delete)
+        }  catch (e: ExecutionException) { Logs(TAG, e) }
         val counter = delete.size
         Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
         return counter
@@ -161,9 +164,10 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
             l.compareTo(r)
         }
         val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
-        for (item in delete) {
-            try { deleteAndRemoveFromQueues(context, item) } catch (e: InterruptedException) { Logs(TAG, e) } catch (e: ExecutionException) { Logs(TAG, e) }
-        }
+        try {
+            deleteMedias(delete)
+            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(delete)
+        }  catch (e: ExecutionException) { Logs(TAG, e) }
         val counter = delete.size
         Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
         return counter

@@ -8,9 +8,6 @@ import java.util.Locale
 import kotlin.collections.iterator
 
 enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolean = false) {
-    TIME_IN_QUEUE_ASC(21, R.string.time_in_queue, true),
-    TIME_IN_QUEUE_DESC(22, R.string.time_in_queue, true),
-
     DATE_ASC(1, R.string.publish_date),
     DATE_DESC(2, R.string.publish_date),
 
@@ -31,9 +28,6 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
     DOWNLOAD_DATE_DESC(16, R.string.download_date),
     COMMENT_DATE_ASC(19, R.string.last_comment_date),
     COMMENT_DATE_DESC(20, R.string.last_comment_date),
-
-    TIME_OUT_QUEUE_ASC(23, R.string.time_out_queue, true),
-    TIME_OUT_QUEUE_DESC(24, R.string.time_out_queue, true),
 
     VIEWS_SPEED_ASC(31, R.string.view_speed, true),
     VIEWS_SPEED_DESC(32, R.string.view_speed, true),
@@ -114,12 +108,6 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                 COMMENT_DATE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> commentDate(f1).compareTo(commentDate(f2)) }
                 COMMENT_DATE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> commentDate(f2).compareTo(commentDate(f1)) }
 
-                TIME_IN_QUEUE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> timeInQueue(f1).compareTo(timeInQueue(f2)) }
-                TIME_IN_QUEUE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> timeInQueue(f2).compareTo(timeInQueue(f1)) }
-
-                TIME_OUT_QUEUE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> timeOutQueue(f1).compareTo(timeOutQueue(f2)) }
-                TIME_OUT_QUEUE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> timeOutQueue(f2).compareTo(timeOutQueue(f1)) }
-
                 FEED_TITLE_ASC -> comparator = Comparator { f1: Episode?, f2: Episode? -> feedTitle(f1).compareTo(feedTitle(f2)) }
                 FEED_TITLE_DESC -> comparator = Comparator { f1: Episode?, f2: Episode? -> feedTitle(f2).compareTo(feedTitle(f1)) }
                 RANDOM, RANDOM1 -> permutor = object : Permutor<Episode> {
@@ -171,11 +159,6 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                 LIKES_DESC -> "likeCount DESC"
                 COMMENT_DATE_ASC -> "commentTime ASC"
                 COMMENT_DATE_DESC -> "commentTime DESC"
-                TIME_IN_QUEUE_ASC -> "timeInQueue ASC"
-                TIME_IN_QUEUE_DESC -> "timeInQueue DESC"
-                TIME_OUT_QUEUE_ASC -> "timeOutQueue ASC"
-                TIME_OUT_QUEUE_DESC -> "timeOutQueue DESC"
-
                 FEED_TITLE_ASC -> "feed.title ASC"
                 FEED_TITLE_DESC -> "feed.title DESC"
                 SIZE_ASC -> "size ASC"
@@ -224,11 +207,6 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
                 LIKES_DESC -> Pair("likeCount", Sort.DESCENDING)
                 COMMENT_DATE_ASC -> Pair("commentTime", Sort.ASCENDING)
                 COMMENT_DATE_DESC -> Pair("commentTime", Sort.DESCENDING)
-                TIME_IN_QUEUE_ASC -> Pair("timeInQueue", Sort.ASCENDING)
-                TIME_IN_QUEUE_DESC -> Pair("timeInQueue", Sort.DESCENDING)
-                TIME_OUT_QUEUE_ASC -> Pair("timeOutQueue", Sort.ASCENDING)
-                TIME_OUT_QUEUE_DESC -> Pair("timeOutQueue", Sort.DESCENDING)
-
                 FEED_TITLE_ASC -> Pair("feed.title", Sort.ASCENDING)
                 FEED_TITLE_DESC -> Pair("feed.title", Sort.DESCENDING)
                 SIZE_ASC -> Pair("size", Sort.ASCENDING)
@@ -261,9 +239,6 @@ enum class EpisodeSortOrder(val code: Int, val res: Int, val conditional: Boolea
         private fun playDate(item: Episode?): Long = item?.lastPlayedTime ?: 0
 
         private fun commentDate(item: Episode?): Long = item?.commentTime ?: 0
-
-        private fun timeInQueue(item: Episode?): Long = item?.timeInQueue ?: 0
-        private fun timeOutQueue(item: Episode?): Long = item?.timeOutQueue ?: 0
 
         private fun downloadDate(item: Episode?): Long = item?.downloadTime ?: 0
 

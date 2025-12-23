@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -54,8 +55,6 @@ object InTheatre {
 
     var curEpisode by mutableStateOf<Episode?>(null)     // manged
 
-//    var curMediaId by mutableLongStateOf(-1L)
-
     private var curStateMonitor: Job? = null
     var curState: CurrentState
 
@@ -83,11 +82,10 @@ object InTheatre {
             Logd(TAG, "starting curState")
             restoreMediaFromPreferences()
             if (curEpisode != null) {
-                for (q in queues) {
-                    if (q.episodeIds.contains(curEpisode!!.id)) {
-                        actQueue = q
-                        break
-                    }
+                val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
+                if (qes.isNotEmpty()) {
+                    val q = realm.query(PlayQueue::class).query("id == ${qes[0].queueId}").first().find()
+                    if (q != null) actQueue = q
                 }
             }
         }
@@ -131,13 +129,10 @@ object InTheatre {
                 shouldRepeat = false
                 Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")
                 runOnIOScope {
-                    if (!actQueue.episodeIds.contains(curEpisode!!.id)) {
-                        for (q in queues) {
-                            if (q.episodeIds.contains(curEpisode!!.id)) {
-                                actQueue = q
-                                break
-                            }
-                        }
+                    val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
+                    if (qes.isNotEmpty()) {
+                        val q = realm.query(PlayQueue::class).query("id == ${qes[0].queueId}").first().find()
+                        if (q != null) actQueue = q
                     }
                     subscribeEpisode(curEpisode!!,
                         MonitorEntity(TAG,

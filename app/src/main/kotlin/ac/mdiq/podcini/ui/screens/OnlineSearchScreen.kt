@@ -15,11 +15,13 @@ import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.storage.database.feedCount
-import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
+import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
@@ -224,26 +226,48 @@ fun OnlineSearchScreen() {
     }
     val addLocalFolderLauncher = rememberLauncherForActivityResult(AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        val scope = CoroutineScope(Dispatchers.Main)
-        scope.launch {
+        runOnIOScope {
             try {
-                val feed = withContext(Dispatchers.IO) {
-                    context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                    val documentFile = DocumentFile.fromTreeUri(context, uri)
-                    requireNotNull(documentFile) { "Unable to retrieve document tree" }
-                    val title = documentFile.name ?: context.getString(R.string.local_folder)
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                val documentFile = DocumentFile.fromTreeUri(context, uri)
+                requireNotNull(documentFile) { "Unable to retrieve document tree" }
 
-                    val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
-                    Logd(TAG, "addLocalFolderLauncher dirFeed episodes: ${dirFeed.episodes.size}")
-                    //                    dirFeed.episodes.clear()
-                    dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
-                    updateFeedFull(context, dirFeed, removeUnlistedItems = false)
-                    val fd: Feed? = getFeed(dirFeed.id)
-                    if (fd != null) gearbox.feedUpdater(listOf(fd)).startRefresh(context)
-                    Logd(TAG, "addLocalFolderLauncher fromDatabase episodes: ${fd?.episodes?.size}")
-                    fd
+                val feeds = mutableListOf<Feed>()
+                val volumes = mutableListOf<Volume>()
+                fun traverseDirectory(directory: DocumentFile?, parentId: Long = -1) {
+                    if (directory == null || !directory.isDirectory) return
+
+                    val content = directory.listFiles()
+                    val filesInThisDir = content.filter { it.isFile }
+
+                    if (filesInThisDir.isNotEmpty()) {
+                        Logd(TAG,"Found files in folder: ${directory.uri}")
+                        val uri = directory.uri
+                        val title = directory.name ?: context.getString(R.string.local_folder)
+                        val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
+                        dirFeed.volumeId = parentId
+                        dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
+                        updateFeedFull(dirFeed, removeUnlistedItems = false)
+                        feeds.add(dirFeed)
+                    }
+
+                    val subDirsInThisDir = content.filter { it.isDirectory }
+                    if (subDirsInThisDir.isNotEmpty()) {
+                        val v = Volume()
+                        v.id = System.currentTimeMillis()
+                        v.name = directory.name ?: "no name"
+                        v.uriString = directory.uri.toString()
+                        v.parentId = parentId
+                        volumes.add(v)
+                        Logd(TAG, "Created volume: ${v.name} $parentId")
+
+                        for (subDir in subDirsInThisDir) traverseDirectory(subDir, v.id)
+                    }
                 }
-                withContext(Dispatchers.Main) { if (feed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}") }
+
+                traverseDirectory(documentFile)
+                realm.write { for (v in volumes) copyToRealm(v) }
+                if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds).startRefresh(context)
             } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
         }
     }
@@ -253,15 +277,26 @@ fun OnlineSearchScreen() {
     var showAdvanced by remember { mutableStateOf(false) }
     if (showAdvanced) CommonPopupCard({ showAdvanced = false }) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(stringResource(R.string.search_combined_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = { setOnlineSearchTerms(CombinedSearcher::class.java) }))
+            Text(stringResource(R.string.search_combined_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
+                setOnlineSearchTerms(CombinedSearcher::class.java)
+                showAdvanced = false
+            }))
             gearbox.GearSearchText()
-            Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = { setOnlineSearchTerms(ItunesPodcastSearcher::class.java) }))
-            Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = { setOnlineSearchTerms(PodcastIndexPodcastSearcher::class.java) }))
+            Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
+                setOnlineSearchTerms(ItunesPodcastSearcher::class.java)
+                showAdvanced = false
+            }))
+            Text(stringResource(R.string.search_podcastindex_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
+                setOnlineSearchTerms(PodcastIndexPodcastSearcher::class.java)
+                showAdvanced = false
+            }))
             Text(stringResource(R.string.add_local_folder), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
+                showAdvanced = false
             }))
             Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 try { chooseOpmlImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
+                showAdvanced = false
             }))
         }
     }

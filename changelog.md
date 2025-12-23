@@ -1,3 +1,28 @@
+# 10.0.0
+
+* reworked the ways of handling relations of feed and episodes, and of queue and episodes
+	* may cause issues due to possible incomplete migrations!
+* in Queues screen, systematic sorting is performed only when requested, allowing manual sorting as long as queue is unlocked
+* introduced type Volume that can contain sub-volumes or feeds, all volumes have a nullable parent volume
+* all feeds have a parent volume (by default null)
+* in Subscriptions, show top volumes (if any) at the top of the list, and feeds whose parent volume is null
+	* from menu, a volume can be created
+	* when a volume is clicked, sub-volumes and/or feeds belonging to the volume are shown
+	* long-press a volume shows prompt to delete the volume
+		* deleting a volume will delete all sub-volumes and feeds under it (local files stay intact)
+	* in feeds multi-select menu, selected feeds can to set to a parent volume
+* in Feed Settings, added setting of parent volume
+* allows adding local directory tree, from "drawer->Add podcast->Advanced->Add local folder"
+	* directory is traversed indefinitely
+	* if a directory has only sub-directories, it's added as a volume
+	* otherwise, it's added as a local feed
+* fixed various issues of playing local media
+* fixed updating local feeds requiring network
+* fixed download failure due to DB write transactions
+* in LocalMediaPlayer, added audio offload listener with toasts on whether audio is offloaded
+* enhanced colors on multi-select popup menus
+* some code refactoring
+
 # 9.11.0
 
 * made the total duration color on PlayerUI more readable

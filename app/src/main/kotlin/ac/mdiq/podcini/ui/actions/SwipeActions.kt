@@ -295,7 +295,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                     if (item_.playState < EpisodeState.PLAYED.code) item_ = setPlayState(EpisodeState.PLAYED, item_, resetMediaPosition = true, removeFromQueue = false)
                     item_ = upsert(item_) { it.playbackCompletionDate = Date() }
                 }
-                deleteEpisodesWarnLocalRepeat(context, listOf(item_))
+                deleteEpisodesWarnLocalRepeat(listOf(item_))
                 withContext(Dispatchers.Main) {
 //                    vm.actionButton.update(vm.episode)
                 }

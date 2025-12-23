@@ -23,6 +23,7 @@ import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.volumes
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
@@ -176,7 +177,6 @@ import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -229,20 +229,21 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     var feedFlow by remember { mutableStateOf<Flow<SingleQueryChange<Feed>>>(emptyFlow()) }
 
-    fun addLocalFolderResult(uri: Uri?) {
-        if (uri == null) return
-        CoroutineScope(Dispatchers.IO).launch {
+    val addLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runOnIOScope {
             try {
                 context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 val documentFile = DocumentFile.fromTreeUri(context, uri)
                 requireNotNull(documentFile) { "Unable to retrieve document tree" }
                 feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
-                if (feed != null) updateFeedFull(context, feed!!, removeUnlistedItems = true)
+                if (feed != null) updateFeedFull(feed!!, removeUnlistedItems = true)
                 Logt(TAG, context.getString(R.string.OK))
             } catch (e: Throwable) { Loge(TAG, e.localizedMessage?:"No message") }
         }
     }
-    val addLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? -> addLocalFolderResult(uri) }
+
+    var feedEpisodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
 
     val currentEntry = navController.navController.currentBackStackEntryAsState().value
 
@@ -254,6 +255,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 Lifecycle.Event.ON_CREATE -> {
                     val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
                     Logd(TAG, "prefLastScreen: ${appAttribs.prefLastScreen} cameBack: $cameBack")
+                    feedEpisodesFlow = getEpisodesAsFlow(null, null, feedId)
                     feedFlow = realm.query<Feed>("id == $0", feedId).first().asFlow()
 //                    val testNum = 1
 //                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
@@ -309,6 +311,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     var showTagsSettingDialog by remember { mutableStateOf(false) }
 
     val infoBarText = remember { mutableStateOf("") }
+
+    val feChange by feedEpisodesFlow.collectAsStateWithLifecycle(initialValue = null)
+    val feedEpisodes = feChange?.list ?: listOf()
 
     val episodesChange by episodesFlow.collectAsStateWithLifecycle(initialValue = null)
     val episodes = episodesChange?.list ?: listOf()
@@ -705,6 +710,58 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         val textColor = MaterialTheme.colorScheme.onSurface
         Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
             Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                //                    associated volume
+                Column {
+                    val none = "None"
+                    var curVolumeName by remember { mutableStateOf(if (feed?.volumeId == null || feed?.volumeId == -1L) none else volumes.find { it.id == feed?.volumeId }?.name ?: none ) }
+                    @Composable
+                    fun SetVolume(selectedOption: String, onDismissRequest: () -> Unit) {
+                        CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                val custom = "Custom"
+                                var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(checked = none == selected,
+                                        onCheckedChange = { isChecked ->
+                                            selected = none
+                                            runOnIOScope { upsert(feed!!) { it.volumeId = -1L } }
+                                            curVolumeName = selected
+                                            onDismissRequest()
+                                        })
+                                    Text(none)
+                                    Spacer(Modifier.width(50.dp))
+                                    Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                                    Text(custom)
+                                }
+                                if (selected == custom) {
+                                    Logd(TAG, "volumes: ${volumes.size}")
+                                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        for (i in volumes.indices) {
+                                            FilterChip(onClick = {
+                                                val v = volumes[i]
+                                                runOnIOScope { upsert(feed!!) { it.volumeId = v.id } }
+                                                curVolumeName = v.name
+                                                onDismissRequest()
+                                            }, label = { Text(volumes[i].name) }, selected = false, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    var showDialog by remember { mutableStateOf(false) }
+//                    var selectedOption by remember { mutableStateOf(feed?.queueText ?: "None") }
+                    if (showDialog) SetVolume(selectedOption = curVolumeName, onDismissRequest = { showDialog = false })
+                    Row(Modifier.fillMaxWidth()) {
+                        Icon(ImageVector.vectorResource(id = R.drawable.rounded_books_movies_and_music_24), "", tint = textColor, modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.width(20.dp))
+                        Text(text = stringResource(R.string.pref_parent_volume), style = CustomTextStyles.titleCustom, color = textColor,
+                            modifier = Modifier.clickable(onClick = { showDialog = true })
+                        )
+                    }
+                    Text(text = curVolumeName + " : " + stringResource(R.string.pref_parent_volume_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+                }
+
                 TitleSummarySwitch(R.string.use_wide_layout, R.string.use_wide_layout_summary, R.drawable.rounded_responsive_layout_24, feed?.useWideLayout == true) {
                     runOnIOScope { upsert(feed!!) { f -> f.useWideLayout = it } }
                 }
@@ -1340,8 +1397,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         Spacer(modifier = Modifier.weight(0.1f))
                         if (score > -1000) Text((score).toString() + " (" + scoreCount + ")", textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         Spacer(modifier = Modifier.weight(0.2f))
-                        if (feedScreenMode == FeedScreenMode.List) Text(episodes.size.toString() + " / " + feed?.episodes?.size?.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                        else Text((feed?.episodes?.size ?: 0).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        if (feedScreenMode == FeedScreenMode.List) Text(episodes.size.toString() + " / " + feedEpisodes.size.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        else Text((feedEpisodes.size).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
@@ -1411,10 +1468,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 showEditUrlSettingsDialog = true
                                 expanded = false
                             })
-                            if (!feed?.episodes.isNullOrEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
+                            if (feedEpisodes.isNotEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {
                                 feedOperationText = context.getString(R.string.fetch_size)
                                 scope.launch {
-                                    for (e in feed!!.episodes) e.fetchMediaSize(force = true)
+                                    for (e in feedEpisodes) e.fetchMediaSize(force = true)
                                     withContext(Dispatchers.Main) { feedOperationText = "" }
                                 }
                                 expanded = false
@@ -1583,10 +1640,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         withContext(Dispatchers.Main) {
             layoutModeIndex = if (feed!!.useWideLayout) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
             Logd(TAG, "loadItems subscribe called ${feed?.title}")
-            if (!feed?.episodes.isNullOrEmpty()) {
+            if (feedEpisodes.isNotEmpty()) {
                 var sumR = 0.0
                 scoreCount = 0
-                for (e in feed!!.episodes) {
+                for (e in feedEpisodes) {
                     if (e.playState >= EpisodeState.PROGRESS.code) {
                         scoreCount++
                         if (e.rating != Rating.UNRATED.code) sumR += e.rating
@@ -1624,7 +1681,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                             else Logt(TAG, "feed is null, can not refresh")
                         },
                         actionButtonCB = { e, type ->
-                            Logd(TAG, "actionButtonCB type: $type")
+                            Logd(TAG, "actionButtonCB type: $type ${e.feed?.id} ${feed?.id}")
                             if (e.feed?.id == feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
                                 runOnIOScope {
                                     upsert(feed!!) { it.lastPlayed = Date().time }

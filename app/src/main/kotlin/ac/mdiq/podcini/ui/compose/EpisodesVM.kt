@@ -259,6 +259,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
     @Composable
     fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
         var isExpanded by remember { mutableStateOf(false) }
+        var fgColor = complementaryColorOf(MaterialTheme.colorScheme.tertiaryContainer)
         fun onSelected() {
             isExpanded = false
             selectMode = false
@@ -268,25 +269,25 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 showPlayStateDialog = true
                 onSelected()
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), "Set played state")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), contentDescription = "Set played state")
                 Text(stringResource(id = R.string.set_play_state_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 showChooseRatingDialog = true
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), "Set rating")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), contentDescription = "Set rating")
                 Text(stringResource(id = R.string.set_rating_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 showEditTagsDialog = true
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_label_24), "Edit tags")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_label_24), contentDescription = "Edit tags")
                 Text(stringResource(id = R.string.edit_tags)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 showAddCommentDialog = true
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_comment_24), "Add comment")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_comment_24), contentDescription = "Add comment")
                 Text(stringResource(id = R.string.add_opinion_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
@@ -305,31 +306,31 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                         onNeutral = { download(true) })
                 }
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), "Download")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), contentDescription = "Download")
                 Text(stringResource(id = R.string.download_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 runOnIOScope { selected.forEach { addToAssOrActQueue(it) } }
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to associated or active queue")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to associated or active queue")
                 Text(stringResource(id = R.string.add_to_associated_queue)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 runOnIOScope { addToActQueue(selected) }
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to active queue")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to active queue")
                 Text(stringResource(id = R.string.add_to_queue_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 showPutToQueueDialog = true
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "Add to queue...")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to queue...")
                 Text(stringResource(id = R.string.put_in_queue_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 runOnIOScope { for (e in selected) smartRemoveFromAllQueues(e) }
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), "Remove from active queue")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), contentDescription = "Remove from active queue")
                 Text(stringResource(id = R.string.remove_from_all_queues)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
@@ -345,7 +346,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                     }
                 }
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "Set related")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Set related")
                 Text(stringResource(id = R.string.set_related)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
@@ -357,16 +358,16 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                         if (almostEnded && e.playState < EpisodeState.PLAYED.code) e = setPlayState(state = EpisodeState.PLAYED, episode = e, resetMediaPosition = true, removeFromQueue = false)
                         if (almostEnded) upsert(e) { it.playbackCompletionDate = Date() }
                     }
-                    deleteEpisodesWarnLocalRepeat(activity, selected)
+                    deleteEpisodesWarnLocalRepeat(selected)
                 }
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "Delete media")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Delete media")
                 Text(stringResource(id = R.string.delete_episode_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 showShelveDialog = true
             }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_shelves_24), "Shelve")
+                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_shelves_24), contentDescription = "Shelve")
                 Text(stringResource(id = R.string.shelve_label)) } },
         )
         if (selected.isNotEmpty() && selected[0].isRemote.value)
@@ -385,7 +386,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                         withContext(Dispatchers.Main) { showConfirmYoutubeDialog.value = ytUrls.isNotEmpty() }
                     }
                 }, verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.AddCircle, "Reserve episodes")
+                    Icon(Icons.Filled.AddCircle, contentDescription = "Reserve episodes")
                     Text(stringResource(id = R.string.reserve_episodes_label))
                 }
             }
@@ -395,15 +396,15 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                     onSelected()
                     showEraseDialog = true
                 }, verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_delete_forever_24), "Erase episodes")
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_delete_forever_24), contentDescription = "Erase episodes")
                     Text(stringResource(id = R.string.erase_episodes_label))
                 }
             }
         }
 
         Column(modifier = modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.Bottom) {
-            if (isExpanded) options.forEachIndexed { _, button -> FloatingActionButton(containerColor = MaterialTheme.colorScheme.onTertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiary, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp),onClick = {}) { button() } }
-            FloatingActionButton(containerColor = MaterialTheme.colorScheme.onTertiaryContainer, contentColor = MaterialTheme.colorScheme.onTertiary, onClick = { isExpanded = !isExpanded }) { Icon(Icons.Filled.Edit, "Edit") }
+            if (isExpanded) options.forEachIndexed { _, button -> FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = fgColor, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp),onClick = {}) { button() } }
+            FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = fgColor, onClick = { isExpanded = !isExpanded }) { Icon(Icons.Filled.Edit, "Edit") }
         }
     }
 
@@ -751,7 +752,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
             }
         }
         if (selectMode) {
-            Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.onTertiaryContainer),
+            Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.tertiaryContainer),
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(end = 10.dp)
                     .clickable(onClick = {

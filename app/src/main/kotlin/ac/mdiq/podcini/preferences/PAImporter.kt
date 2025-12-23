@@ -106,7 +106,7 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
 //                Logd(TAG, "episode title: ${episode.title}")
                 episodes.add(episode)
             }
-            feed.episodes = episodes.toRealmList()
+//            feed.episodes = episodes.toRealmList()
         }
     }
 
@@ -214,7 +214,7 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                     item.feedId = null
                     item.feed = feed
                 }
-                updateFeedFull(activity, feed, removeUnlistedItems = false, overwriteStates = true)
+                updateFeedFull(feed, removeUnlistedItems = false, overwriteStates = true)
             }
         }
     }

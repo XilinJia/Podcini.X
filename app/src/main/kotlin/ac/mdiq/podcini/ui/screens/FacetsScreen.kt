@@ -8,6 +8,7 @@ import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedIdsOfAllEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
+import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
@@ -599,7 +600,8 @@ fun FacetsScreen() {
                             navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
                         }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
-                    Text(NumberFormat.getInstance().format(feed.episodes.size.toLong()), color = Color.Green,
+                    val numEpisodes by remember { mutableStateOf(getEpisodesCount(null, feed.id)) }
+                    Text(NumberFormat.getInstance().format(numEpisodes.toLong()), color = Color.Green,
                         modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
                             end.linkTo(parent.end)
                             top.linkTo(coverImage.top)

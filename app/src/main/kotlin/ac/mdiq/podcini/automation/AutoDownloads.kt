@@ -13,6 +13,7 @@ import ac.mdiq.podcini.storage.database.deleteMedias
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.queueEntriesOf
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -20,6 +21,8 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.QueueEntry
+import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
@@ -82,7 +85,8 @@ class AutoDownloadAlgorithm {
                 val queues = realm.query(PlayQueue::class).find().filter { !it.isVirtual() }
                 for (q in queues) {
                     if (q.autoDownloadEpisodes) {
-                        val queueItems = realm.query(Episode::class).query("id IN $0 AND downloaded == false", q.episodeIds).find()
+                        val eids = queueEntriesOf(q).map { it.episodeId }
+                        val queueItems = realm.query(Episode::class).query("id IN $0 AND downloaded == false", eids).find()
                         Logd(TAG, "run add from queue: ${q.name} ${queueItems.size}")
                         if (queueItems.isNotEmpty()) queueItems.forEach { if (!prefStreamOverDownload || it.feed?.prefStreamOverDownload != true) candidates.add(it) }
                     }
@@ -92,7 +96,7 @@ class AutoDownloadAlgorithm {
             Logd(TAG, "run candidates ${candidates.size} for download")
             if (candidates.isNotEmpty()) {
                 val autoDownloadableCount = candidates.size
-                if (toReplace.isNotEmpty()) deleteMedias(context, toReplace.toList())
+                if (toReplace.isNotEmpty()) deleteMedias(toReplace.toList())
                 val downloadedCount = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))
                 val deletedCount = toReplace.size + cleanupAlgorithm().makeRoomForEpisodes(context, autoDownloadableCount - toReplace.size)
                 val appEpisodeCache = getPref(AppPrefs.prefEpisodeCacheSize, "0").toInt()
@@ -157,7 +161,7 @@ class AutoEnqueueAlgorithm {
 private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<Episode>, toReplace: MutableSet<Episode>, dl: Boolean = true, onlyExisting: Boolean = false) {
     val NM = 3
     val feeds = feeds_ ?: getFeedList()
-    val eIdsAllQueues = realm.query(PlayQueue::class).find().filter { it.name != "Virtual" }.flatMap { it.episodeIds }.toSet()
+    val eIdsAllQueues = realm.query(QueueEntry::class).query("queueId != $VIRTUAL_QUEUE_ID").find().map { it.episodeId }.toSet()
     feeds.forEach { f ->
         Logd(TAG, "assembleFeedsCandidates: autoDL: ${f.autoDownload} autoEQ: ${f.autoEnqueue} isLocal: ${f.isLocalFeed} ${f.title}")
         if (((dl && f.autoDownload) || (!dl && f.autoEnqueue)) && !f.isLocalFeed) {
@@ -167,7 +171,13 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                     EpisodeFilter.States.UNPLAYED.name, EpisodeFilter.States.QUEUE.name,
                     EpisodeFilter.States.PROGRESS.name, EpisodeFilter.States.SKIPPED.name)
             } else EpisodeFilter(EpisodeFilter.States.QUEUE.name)
-            val downloadedCount = if (dl) getEpisodesCount(dlFilter, f.id) else f.queue?.episodes?.filter { it.feedId == f.id }?.size ?: 0
+            val downloadedCount = if (dl) getEpisodesCount(dlFilter, f.id) else {
+                if (f.queue == null) 0
+                else {
+                    val eids = queueEntriesOf(f.queue!!).map { it.episodeId }
+                    realm.query(Episode::class).query("feedId == ${f.id} && id ID $0",eids).count().find().toInt()
+                }
+            }
             var allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount
             Logd(TAG, "assembleFeedsCandidates ${f.autoDLMaxEpisodes} downloadedCount: $downloadedCount allowedDLCount: $allowedDLCount")
             Logd(TAG, "assembleFeedsCandidates autoDLPolicy: ${f.autoDLPolicy.name}")

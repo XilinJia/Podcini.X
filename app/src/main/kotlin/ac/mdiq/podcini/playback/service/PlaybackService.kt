@@ -624,7 +624,7 @@ class PlaybackService : MediaLibraryService() {
             return
         }
         val media = curEpisode!!
-        val needStreaming = !media.localFileAvailable()
+        val needStreaming = media.feed?.isLocalFeed != true && !media.localFileAvailable()
         if (needStreaming && !isStreamingCapable(media)) return
         mPlayer?.prepareMedia(playable = media, streaming = needStreaming, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
     }

@@ -280,7 +280,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             Logd(TAG, "LaunchedEffect loading details ${curItem?.id}")
             if (curItem != null && !chapertsLoaded) {
                 scope.launch(Dispatchers.IO) {
-                    gearbox.loadChapters(context, curItem)
+                    gearbox.loadChapters(curItem)
                     vm.sleepTimerActive = isSleepTimerActive()
                     chapertsLoaded = true
                 }.invokeOnCompletion { throwable -> if (throwable != null) Logs(TAG, throwable) }
