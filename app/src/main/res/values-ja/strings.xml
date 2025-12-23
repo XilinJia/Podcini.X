@@ -85,6 +85,7 @@
     <string name="clear_cache">キャッシュからクリア</string>
     <string name="clear_all_cache">すべてのキャッシュをクリア</string>
     <string name="new_synth_label">新しい合成フィード</string>
+    <string name="new_volume_label">New volume</string>
     <string name="toggle_grid_list">グリッドリストの切り替え</string>
     <string name="preparing">準備中</string>
     <string name="refreshing_label">更新中</string>
@@ -406,6 +407,8 @@
     <string name="feed_refresh_start_sum">定期的な更新間隔に開始時間(0-23)と分(0-59)を設定します(正確な時間はAndroidで調節される可能性があります)。 フィールドを空のままにすると、間隔が今始まります。</string>
     <string name="feed_next_refresh_time">次回の更新時刻:</string>
     <string name="before">前</string>
+    <string name="remove_volume">Remove volume</string>
+    <string name="remove_volume_msg">This is just to unsubscribe the volume and the contained feeds. Local content will stay intact.</string>
     <string name="refresh_associates">Refresh associates</string>
     <string name="alarm_start_time">アラームの開始時刻</string>
     <string name="alarm_start_time_sum">エピソードを再生するには、開始時間(0-23)と分(0-59)を設定します。フィールドを空白のままにすると、アラームは設定されません。</string>
@@ -469,6 +472,8 @@
     <string name="pref_feed_associated_queue_sum">フィード内のpiosdesがデフォルトで追加されるキュー</string>
     <string name="pref_feed_skip_ending_toast">最後の %d 秒をスキップしました</string>
     <string name="pref_feed_skip_intro_toast">最初の %d 秒をスキップしました</string>
+    <string name="pref_parent_volume">Parent volume</string>
+    <string name="pref_parent_volume_sum">The volume to which the feed belongs</string>
     <string name="pref_fallback_speed">フォールバック速度</string>
     <string name="pref_speed_forward">早送り速度</string>
     <string name="pref_speed_forward_sum">スキップボタンをクリックしたときのスピードを変更する</string>
