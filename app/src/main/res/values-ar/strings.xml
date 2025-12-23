@@ -85,6 +85,7 @@
     <string name="clear_cache">مسح من ذاكرة التخزين المؤقت</string>
     <string name="clear_all_cache">مسح جميع المخبآت</string>
     <string name="new_synth_label">تغذية اصطناعية جديدة</string>
+    <string name="new_volume_label">New volume</string>
     <string name="toggle_grid_list">تبديل قائمة الشبكة</string>
     <string name="preparing">تحضير</string>
     <string name="refreshing_label">التحديث</string>
@@ -416,6 +417,8 @@
     <string name="feed_refresh_start_sum">تعيين ساعة البدء (0-23) والدقيقة (0-59) لفترة التحديث الدورية (يمكن تخفيف الوقت بالضبط بواسطة أندرويد). ترك الحقول فارغة يعني أن الفاصل الزمني يبدأ الآن.</string>
     <string name="feed_next_refresh_time">وقت التحديث التالي حول:</string>
     <string name="before">قبل</string>
+    <string name="remove_volume">Remove volume</string>
+    <string name="remove_volume_msg">This is just to unsubscribe the volume and the contained feeds. Local content will stay intact.</string>
     <string name="refresh_associates">Refresh associates</string>
     <string name="alarm_start_time">وقت بدء المنبه</string>
     <string name="alarm_start_time_sum">تعيين ساعة البدء (0-23) والدقيقة (0-59) للحلقة التي سيتم تشغيلها. ترك الحقول فارغة يعني أن التنبيه غير معين.</string>
@@ -479,6 +482,8 @@
     <string name="pref_feed_associated_queue_sum">قائمة الإنتظار التي ستضاف إليها الخلاصة بشكل افتراضي</string>
     <string name="pref_feed_skip_ending_toast">تخطي آخر %d ثانية</string>
     <string name="pref_feed_skip_intro_toast">تخطي أول %d ثانية</string>
+    <string name="pref_parent_volume">Parent volume</string>
+    <string name="pref_parent_volume_sum">The volume to which the feed belongs</string>
     <string name="pref_fallback_speed">سرعة الرجوع</string>
     <string name="pref_speed_forward">سرعة التقدم السريعة</string>
     <string name="pref_speed_forward_sum">تخصيص السرعة للامام عند النقر على زر تخطي</string>
