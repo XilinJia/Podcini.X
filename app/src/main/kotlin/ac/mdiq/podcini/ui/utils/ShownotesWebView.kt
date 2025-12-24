@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.ui.utils
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -52,31 +51,32 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
     private fun setup() {
         setBackgroundColor(Color.TRANSPARENT)
         // Use cached resources, even if they have expired
-        if (!NetworkUtils.networkAvailable()) getSettings().cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+//        if (!NetworkUtils.networkAvailable()) getSettings().cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
 
-        getSettings().mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-        getSettings().useWideViewPort = false
-        getSettings().loadWithOverviewMode = true
+        settings.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        settings.useWideViewPort = false
+        settings.loadWithOverviewMode = true
         setOnLongClickListener(this)
 
-        setWebViewClient(object : WebViewClient() {
+        webViewClient = object : WebViewClient() {
             @Deprecated("Deprecated in Java")
             override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-                if ((ShownotesCleaner.isTimecodeLink(url) || ShownotesCleaner.isHTTPTimecodeLink(url)) && timecodeSelectedListener != null)
-                    timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(url))
+                if ((ShownotesCleaner.isTimecodeLink(url) || ShownotesCleaner.isHTTPTimecodeLink(url)) && timecodeSelectedListener != null) timecodeSelectedListener!!(ShownotesCleaner.getTimecodeLinkTime(url))
                 else openInBrowser(context, url)
                 return true
             }
+
             override fun onPageFinished(view: WebView, url: String) {
                 super.onPageFinished(view, url)
                 Logd(TAG, "Page finished")
                 pageFinishedListener?.invoke()
             }
-        })
+        }
     }
 
      override fun onLongClick(v: View): Boolean {
-        val r: HitTestResult = getHitTestResult()
+        val r: HitTestResult = hitTestResult
         when (r.type) {
             HitTestResult.SRC_ANCHOR_TYPE -> {
                 Logd(TAG, "Link of webview was long-pressed. Extra: " + r.extra)

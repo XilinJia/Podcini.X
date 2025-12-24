@@ -164,10 +164,10 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
             exoplayerOffloadListener = object: ExoPlayer.AudioOffloadListener {
                 override fun onOffloadedPlayback(offloadSchedulingEnabled: Boolean) {
-                    Logt(TAG, "Offload scheduling enabled: $offloadSchedulingEnabled")
+                    Logt(TAG, "AudioOffloadListener Offload scheduling enabled: $offloadSchedulingEnabled")
                 }
                 override fun onSleepingForOffloadChanged(isSleepingForOffload: Boolean) {
-                    Logt(TAG, "CPU is sleeping for offload: $isSleepingForOffload")
+                    Logt(TAG, "AudioOffloadListener CPU is sleeping for offload: $isSleepingForOffload")
                 }
             }
             createStaticPlayer(context)
@@ -195,7 +195,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         trackSelector = DefaultTrackSelector(context)
         val defaultRenderersFactory = DefaultRenderersFactory(context)
         exoPlayer = ExoPlayer.Builder(context, defaultRenderersFactory)
-            .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(30_000, 120_000, 3_000, 10_000).build())
+            .setLoadControl(DefaultLoadControl.Builder().setBufferDurationsMs(90_000, 300_000, 2_000, 10_000).build())
             .setTrackSelector(trackSelector!!)
             .setSeekBackIncrementMs(rewindSecs * 1000L)
             .setSeekForwardIncrementMs(fastForwardSecs * 1000L)

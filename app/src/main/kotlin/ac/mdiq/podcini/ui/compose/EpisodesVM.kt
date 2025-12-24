@@ -1,11 +1,11 @@
 package ac.mdiq.podcini.ui.compose
 
+import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils
-import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
@@ -294,11 +294,11 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 fun download(now: Boolean) {
                     for (e in selected) if (e.feed != null && !e.feed!!.isLocalFeed) DownloadServiceInterface.impl?.downloadNow(activity, e, now)
                 }
-                if (mobileAllowEpisodeDownload || !isNetworkRestricted) download(true)
+                if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) download(true)
                 else {
                     commonConfirm = CommonConfirmAttrib(
                         title = context.getString(R.string.confirm_mobile_download_dialog_title),
-                        message = context.getString(if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
+                        message = context.getString(if (getApp().networkMonitor.isNetworkRestricted && getApp().networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
                         confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                         cancelRes = R.string.cancel_label,
                         neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,

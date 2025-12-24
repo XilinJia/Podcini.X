@@ -1,7 +1,7 @@
 package ac.mdiq.podcini.automation
 
+import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
-import ac.mdiq.podcini.net.utils.NetworkUtils.networkAllowAutoDownload
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
@@ -75,9 +75,9 @@ class AutoDownloadAlgorithm {
      */
     fun run(context: Context, feeds: List<Feed>?, checkQueues: Boolean = true, onlyExisting: Boolean = false) {
         val powerShouldAutoDl = (deviceCharging(context) || getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false))
-        Logd(TAG, "run prepare $networkAllowAutoDownload $powerShouldAutoDl")
+        Logd(TAG, "run prepare ${getApp().networkMonitor.networkAllowAutoDownload} $powerShouldAutoDl")
         // we should only auto download if both network AND power are happy
-        if (networkAllowAutoDownload && powerShouldAutoDl) {
+        if (getApp().networkMonitor.networkAllowAutoDownload && powerShouldAutoDl) {
             Logd(TAG, "run Performing auto-dl of undownloaded episodes")
             val toReplace: MutableSet<Episode> = mutableSetOf()
             val candidates: MutableSet<Episode> = mutableSetOf()
@@ -120,7 +120,7 @@ class AutoDownloadAlgorithm {
                 } else Logt(TAG, "Auto download not performed: candidates: ${candidates.size} allowedCount: $allowedCount")
                 candidates.clear()
             }
-        } else Logt(TAG, "Auto download not performed: network: $networkAllowAutoDownload power: $powerShouldAutoDl")
+        } else Logt(TAG, "Auto download not performed: network: ${getApp().networkMonitor.networkAllowAutoDownload} power: $powerShouldAutoDl")
     }
 
     private fun deviceCharging(context: Context): Boolean {
@@ -175,7 +175,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                 if (f.queue == null) 0
                 else {
                     val eids = queueEntriesOf(f.queue!!).map { it.episodeId }
-                    realm.query(Episode::class).query("feedId == ${f.id} && id ID $0",eids).count().find().toInt()
+                    realm.query(Episode::class).query("feedId == ${f.id} AND id IN $0",eids).count().find().toInt()
                 }
             }
             var allowedDLCount = if (f.autoDLMaxEpisodes == AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED) Int.MAX_VALUE else f.autoDLMaxEpisodes - downloadedCount

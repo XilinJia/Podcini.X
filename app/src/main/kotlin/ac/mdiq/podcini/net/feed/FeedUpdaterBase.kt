@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.net.feed
 
+import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.automation.autodownload
@@ -12,10 +13,7 @@ import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
 import ac.mdiq.podcini.net.feed.parser.FeedHandler
 import ac.mdiq.podcini.net.feed.parser.FeedHandler.FeedHandlerResult
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
-import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
-import ac.mdiq.podcini.net.utils.NetworkUtils.isVpnOverWifi
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
-import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.storage.database.addDownloadStatus
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.compileLanguages
@@ -86,12 +84,12 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         }
         when {
             allLocalFeeds -> scope.launch { doWork() }
-            !networkAvailable() -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
+            !getApp().networkMonitor.isConnected -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             isFeedRefreshAllowed -> scope.launch { doWork() }
             else -> {
                 commonConfirm = CommonConfirmAttrib(
                     title = context.getString(R.string.feed_refresh_title),
-                    message = context.getString(if (isNetworkRestricted && isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
+                    message = context.getString(if (getApp().networkMonitor.isNetworkRestricted && getApp().networkMonitor.isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
                     cancelRes = R.string.no,
                     neutralRes = R.string.confirm_mobile_streaming_button_always,

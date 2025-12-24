@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.net.utils
 
+import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
@@ -9,9 +10,14 @@ import ac.mdiq.podcini.utils.Logs
 import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.withContext
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
@@ -41,21 +47,6 @@ object NetworkUtils {
     private val mobileAllowAutoDownload: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.auto_download.name)
 
-    val networkAllowAutoDownload: Boolean
-        get() {
-            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val network = cm.activeNetwork ?: return false
-            val networkCapabilities = cm.getNetworkCapabilities(network) ?: return false
-            return when {
-                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
-                    if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) true
-                    else mobileAllowAutoDownload
-                }
-                networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-                else -> mobileAllowAutoDownload || networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
-            }
-        }
-
     var mobileAllowFeedRefresh: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.feed_refresh.name)
         set(allow) {
@@ -66,31 +57,13 @@ object NetworkUtils {
         get() = isAllowMobileFor(MobileUpdateOptions.episode_download.name)
 
     val isImageDownloadAllowed: Boolean
-        get() = isAllowMobileFor(MobileUpdateOptions.images.name) || !isNetworkRestricted
+        get() = isAllowMobileFor(MobileUpdateOptions.images.name) || !getApp().networkMonitor.isNetworkRestricted
 
     val isStreamingAllowed: Boolean
-        get() = mobileAllowStreaming || !isNetworkRestricted
+        get() = mobileAllowStreaming || !getApp().networkMonitor.isNetworkRestricted
 
     val isFeedRefreshAllowed: Boolean
-        get() = mobileAllowFeedRefresh || !isNetworkRestricted
-
-    val isNetworkRestricted: Boolean
-        get() {
-            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val network = cm.activeNetwork ?: return false // Nothing connected
-            if (cm.isActiveNetworkMetered) return true
-            val capabilities = cm.getNetworkCapabilities(network) ?: return true // Better be safe than sorry
-            return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
-        }
-
-    val isVpnOverWifi: Boolean
-        get() {
-            val connManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            val capabilities = connManager.getNetworkCapabilities(connManager.activeNetwork)
-            return (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)
-                    && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
-        }
-
+        get() = mobileAllowFeedRefresh || !getApp().networkMonitor.isNetworkRestricted
     
     fun init(context: Context) {
         NetworkUtils.context = context
@@ -111,14 +84,6 @@ object NetworkUtils {
         if (allow) allowed.add(type)
         else allowed.remove(type)
         putPref(AppPrefs.prefMobileUpdateTypes, allowed)
-    }
-
-    fun networkAvailable(): Boolean {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val network = cm.activeNetwork ?: return false
-        val networkCapabilities = cm.getNetworkCapabilities(network) ?: return false
-        return networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
-                networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     fun wasDownloadBlocked(throwable: Throwable?): Boolean {
@@ -255,5 +220,60 @@ object NetworkUtils {
         val result: MutableList<String> = mutableListOf()
         for (string in input) if (string.isNotEmpty()) result.add(string.lowercase())
         return result
+    }
+
+    class NetworkMonitor(context: Context) {
+        private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        @Volatile var isConnected: Boolean = true
+            private set
+
+        @Volatile var isNetworkRestricted: Boolean = false
+            private set
+
+        @Volatile var networkAllowAutoDownload: Boolean = false
+            private set
+
+        @Volatile var isVpnOverWifi: Boolean = false
+            private set
+
+        fun updateDownloadPolicy(caps: NetworkCapabilities?) {
+            val nc = caps ?: connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+            networkAllowAutoDownload = when {
+                nc == null -> false
+                nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> {
+                    if (nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) true
+                    else mobileAllowAutoDownload
+                }
+                nc.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+                else -> mobileAllowAutoDownload || nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_RESTRICTED)
+            }
+        }
+
+        val networkFlow: Flow<Boolean> = callbackFlow {
+            val callback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    isConnected = true
+                    trySend(true)
+                }
+                override fun onLost(network: Network) {
+                    isConnected = false
+                    isNetworkRestricted = false
+                    trySend(false)
+                }
+                override fun onCapabilitiesChanged(n: Network, nc: NetworkCapabilities) {
+                    val connected = nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) && nc.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                    val isMetered = connectivityManager.isActiveNetworkMetered
+                    val isCellular = nc.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)
+                    isNetworkRestricted = isMetered || isCellular
+                    updateDownloadPolicy(nc)
+                    isVpnOverWifi = (nc.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) && nc.hasTransport(NetworkCapabilities.TRANSPORT_VPN))
+                    trySend(connected)
+                }
+            }
+            connectivityManager.registerDefaultNetworkCallback(callback)
+            trySend(false)
+            awaitClose { connectivityManager.unregisterNetworkCallback(callback) }
+        }.distinctUntilChanged()
     }
 }

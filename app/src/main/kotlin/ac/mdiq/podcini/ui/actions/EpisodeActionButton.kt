@@ -1,9 +1,9 @@
 package ac.mdiq.podcini.ui.actions
 
+import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils
-import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
@@ -234,7 +234,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     return isDownloading || media.downloaded
                 }
                 if (shouldNotDownload(item)) return
-                if (mobileAllowEpisodeDownload || !isNetworkRestricted) {
+                if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) {
                     DownloadServiceInterface.impl?.downloadNow(context, item, false)
                     Logd(TAG, "downloading ${item.title}")
                     typeToCancel = ButtonTypes.DOWNLOAD
@@ -243,7 +243,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 }
                 commonConfirm = CommonConfirmAttrib(
                     title = context.getString(R.string.confirm_mobile_download_dialog_title),
-                    message = context.getString(if (isNetworkRestricted && NetworkUtils.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
+                    message = context.getString(if (getApp().networkMonitor.isNetworkRestricted && getApp().networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                     cancelRes = R.string.cancel_label,
                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,

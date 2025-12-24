@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.ClientConfigurator
@@ -11,10 +12,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.KEY_IS_PERIODIC
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.rescheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdaterBase.Companion.createNotification
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
-import ac.mdiq.podcini.net.utils.NetworkUtils.isNetworkRestricted
-import ac.mdiq.podcini.net.utils.NetworkUtils.isVpnOverWifi
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
-import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.appAttribs
@@ -69,7 +67,7 @@ class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameter
         val isPeriodic = inputData.getBoolean(KEY_IS_PERIODIC, false)
         if (isPeriodic) upsertBlk(appAttribs) { it.prefLastFullUpdateTime = System.currentTimeMillis() }
         when {
-            !networkAvailable() -> {
+            !getApp().networkMonitor.isConnected -> {
                 EventFlow.postEvent(FlowEvent.MessageEvent(applicationContext.getString(R.string.download_error_no_connection)))
                 return if (isPeriodic) Result.retry() else Result.success()
             }
@@ -92,7 +90,7 @@ class FeedUpdateWorkerBase(context: Context, private val params: WorkerParameter
                 if (isPeriodic) rescheduleUpdateTaskOnce(applicationContext)
                 return Result.success()
             }
-            if (!networkAvailable()) {
+            if (!getApp().networkMonitor.isConnected) {
                 Loge(TAG, "Refresh not performed: network unavailable, will retry")
                 return Result.retry()
             }
@@ -213,14 +211,14 @@ object FeedUpdateManager {
 
     fun checkAndscheduleUpdateTaskOnce(context: Context, replace: Boolean, force: Boolean = false) {
         when {
-            !networkAvailable() -> {
+            !getApp().networkMonitor.isConnected -> {
                 Logt(TAG, "checkAndscheduleUpdateTaskOnce network not available")
                 EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             }
             !isFeedRefreshAllowed -> {
                 commonConfirm = CommonConfirmAttrib(
                     title = context.getString(R.string.feed_refresh_title),
-                    message = context.getString(if (isNetworkRestricted && isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
+                    message = context.getString(if (getApp().networkMonitor.isNetworkRestricted && getApp().networkMonitor.isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
                     cancelRes = R.string.no,
                     neutralRes = R.string.confirm_mobile_streaming_button_always,
@@ -257,12 +255,12 @@ object FeedUpdateManager {
         Logd(TAG, "Run auto update immediately in background.")
         when {
 //            feeds.isNotEmpty() && feed.isLocalFeed -> runOnce(context, feeds, fullUpdate = fullUpdate)    // TODO
-            !networkAvailable() -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
+            !getApp().networkMonitor.isConnected -> EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.download_error_no_connection)))
             isFeedRefreshAllowed -> runOnce(context, feeds, fullUpdate = fullUpdate)
             else -> {
                 commonConfirm = CommonConfirmAttrib(
                     title = context.getString(R.string.feed_refresh_title),
-                    message = context.getString(if (isNetworkRestricted && isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
+                    message = context.getString(if (getApp().networkMonitor.isNetworkRestricted && getApp().networkMonitor.isVpnOverWifi) R.string.confirm_mobile_feed_refresh_dialog_message_vpn else R.string.confirm_mobile_feed_refresh_dialog_message),
                     confirmRes = R.string.confirm_mobile_streaming_button_once,
                     cancelRes = R.string.no,
                     neutralRes = R.string.confirm_mobile_streaming_button_always,

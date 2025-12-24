@@ -483,7 +483,7 @@ suspend fun deleteFeed(feedId: Long) {
     val episodes = getEpisodes(null, null, feedId=feedId, copy = false)
     val eids = episodes.map { it.id }
     removeFromAllQueuesQuiet(eids, false)
-    eraseEpisodes(episodes, "")
+    eraseEpisodes(episodes, "", false)
 
     val feed = getFeed(feedId)
     if (feed != null) {

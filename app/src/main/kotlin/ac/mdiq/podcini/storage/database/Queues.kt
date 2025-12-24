@@ -311,7 +311,12 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
         val qes = realm.query(QueueEntry::class).query("queueId == $0 AND episodeId IN $1", q.id, episodeIds).find()
         val idsInQueuesToRemove = qes.map { it.episodeId }
         if (idsInQueuesToRemove.isNotEmpty()) {
-            realm.write { delete(qes) }
+            realm.write {
+                for (qe in qes) {
+                    val qe_ = findLatest(qe)
+                    if (qe_ != null) delete (qe_)
+                }
+            }
             val eList = realm.query(Episode::class).query("id IN $0", idsInQueuesToRemove).find()
             for (e in eList) {
                 if (updateState && e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState))

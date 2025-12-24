@@ -140,6 +140,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -164,6 +166,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
+import java.util.Locale
 
 private const val TAG = "ComposeEpisodes"
 
@@ -386,7 +389,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
                 Logd(TAG, "description: ${episode.description}")
                 scope.launch(Dispatchers.IO) {
                     episode.let {
-                        webviewData = gearbox.buildWebviewData(it)
+                        webviewData = gearbox.buildWebviewData(context, it)
                         if (webviewData != null) webDataCache.put(it.id, webviewData!!)
                     }
                 }
@@ -543,12 +546,31 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
             }
         }
     }
+    fun generateWebViewStyle(context: Context, colorPrimary: Color, colorAccent: Color, marginDp: Dp, density: Density): String {
+        val marginPx = with(density) { marginDp.toPx() }.toInt()
+        val styleTemplate = try { context.assets.open("shownotes-style.css").use { stream -> stream.bufferedReader().use { it.readText() } }
+        } catch (e: Exception) { "" }
+        fun Color.toCssRgba(): String {
+            val r = (red * 255).toInt()
+            val g = (green * 255).toInt()
+            val b = (blue * 255).toInt()
+            return "rgba($r, $g, $b, $alpha)"
+        }
+        return String.format(
+            Locale.US,
+            styleTemplate,
+            colorPrimary.toCssRgba(),
+            colorAccent.toCssRgba(),
+            marginPx, marginPx, marginPx, marginPx
+        )
+    }
     AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
         ShownotesWebView(context).apply {
             setTimecodeSelectedListener { time: Int -> mPlayer?.seekTo(time) }
             setPageFinishedListener { postDelayed({ }, 50) }    // Restoring the scroll position might not always work
         }
     }, update = { it.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank") })
+
     if (episode.related.isNotEmpty()) {
         var showTodayStats by remember { mutableStateOf(false) }
         if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }

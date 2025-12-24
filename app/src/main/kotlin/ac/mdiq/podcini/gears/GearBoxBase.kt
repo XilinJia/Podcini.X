@@ -13,6 +13,7 @@ import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.ShownotesCleaner
+import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.source.MediaSource
@@ -42,8 +43,7 @@ open class GearBoxBase {
         episode.loadChapters(false)
     }
 
-    fun buildWebviewData(episode: Episode): String? {
-        val context = getAppContext()
+    fun buildWebviewData(context: Context, episode: Episode): String? {
         val shownotesCleaner = ShownotesCleaner(context)
         val webDataPair = buildWebviewPair(episode, shownotesCleaner)
         return webDataPair?.second ?: buildCleanedNotes(episode, shownotesCleaner).second
@@ -51,8 +51,7 @@ open class GearBoxBase {
     open fun buildWebviewPair(episode_: Episode, shownotesCleaner: ShownotesCleaner): Pair<Episode, String>? = null
 
     open fun buildCleanedNotes(curItem: Episode, shownotesCleaner: ShownotesCleaner?): Pair<Episode, String?> {
-        val cleanedNotes: String? = shownotesCleaner?.processShownotes(curItem.description ?: "", curItem.duration)
-        return Pair(curItem, cleanedNotes)
+        return Pair(curItem, shownotesCleaner?.processShownotes(curItem.description ?: "", curItem.duration))
     }
 
     @Composable
@@ -84,8 +83,7 @@ open class GearBoxBase {
     }
 
     open suspend fun buildFeed(url: String, username: String, password: String, fbb: FeedBuilderBase, handleFeed: (Feed, Map<String, String>)->Unit, showDialog: ()->Unit) {
-        val urlFinal = getFinalRedirectedUrl(url)
-        fbb.buildPodcast(urlFinal, username, password) { feed_, map -> handleFeed(feed_, map) }
+        fbb.buildPodcast(getFinalRedirectedUrl(url), username, password) { feed_, map -> handleFeed(feed_, map) }
     }
 
     @Composable

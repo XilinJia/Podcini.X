@@ -7,6 +7,9 @@ import android.content.Context
 import android.graphics.Color
 import android.util.TypedValue
 import androidx.annotation.ColorInt
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
 import org.apache.commons.io.IOUtils
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document

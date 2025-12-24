@@ -4,6 +4,7 @@ import ac.mdiq.podcini.config.ApplicationCallbacks
 import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.config.ClientConfigurator
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.receiver.SPAReceiver
@@ -20,10 +21,13 @@ import android.os.StrictMode
 import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 class PodciniApp : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val networkMonitor: NetworkUtils.NetworkMonitor by lazy { NetworkUtils.NetworkMonitor(applicationContext) }
 
     override fun onCreate() {
         super.onCreate()
@@ -34,6 +38,7 @@ class PodciniApp : Application() {
             val builder: StrictMode.VmPolicy.Builder = StrictMode.VmPolicy.Builder().detectAll().penaltyLog().penaltyDropBox()
             StrictMode.setVmPolicy(builder.build())
         }
+        CoroutineScope(Dispatchers.IO).launch { networkMonitor.networkFlow.collect {} }
 
         podciniApp = this
         ClientConfigurator.initialize(this@PodciniApp)
@@ -80,7 +85,6 @@ class PodciniApp : Application() {
 
         fun getAppContext(): Context = podciniApp.applicationContext
 
-        
         fun forceRestart() {
             val intent = Intent(getApp(), SplashActivity::class.java)
             val cn: ComponentName? = intent.component

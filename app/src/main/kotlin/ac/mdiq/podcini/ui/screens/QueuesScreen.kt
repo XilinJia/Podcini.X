@@ -398,7 +398,7 @@ fun QueuesScreen(id: Long = -1L) {
 
         swipeActions.ActionOptionsDialog()
         if (showSortDialog) EpisodeSortDialog(initOrder = curQueue.sortOrder, onDismissRequest = { showSortDialog = false },
-            includeConditionals = listOf(EpisodeSortOrder.DATE_DESC, EpisodeSortOrder.DATE_ASC)) { order ->
+            includeConditionals = listOf(EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1, EpisodeSortOrder.SMART_SHUFFLE_ASC, EpisodeSortOrder.SMART_SHUFFLE_DESC )) { order ->
             upsertBlk(curQueue) { it.sortOrder = order ?: EpisodeSortOrder.DATE_DESC }
             runOnIOScope {
                 val episodes_ = episodes.toMutableList()

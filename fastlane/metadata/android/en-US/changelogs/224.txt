@@ -1,0 +1,6 @@
+* fixed crash when moving episode from one queue to another
+* fixed crash when doing a full refresh of a feed
+* fixed webview text dark color in dark mode
+* sped up opening webvew
+* sped up all network checks
+* further tuned playback buffer and datasource cache

@@ -1,8 +1,18 @@
+# 10.0.1
+
+* fixed crash when moving episode from one queue to another
+* fixed crash when doing a full refresh of a feed
+* fixed webview text dark color in dark mode
+* sped up opening webvew 
+* sped up all network checks
+* further tuned/enhanced playback buffer and datasource cache
+
 # 10.0.0
 
 * reworked the ways of handling relations of feed and episodes, and of queue and episodes
 	* may cause issues due to possible incomplete migrations!
 * in Queues screen, systematic sorting is performed only when requested, allowing manual sorting as long as queue is unlocked
+	* removed TimeInQueue, restored Random, Smart
 * introduced type Volume that can contain sub-volumes or feeds, all volumes have a nullable parent volume
 * all feeds have a parent volume (by default null)
 * in Subscriptions, show top volumes (if any) at the top of the list, and feeds whose parent volume is null

@@ -776,43 +776,43 @@ fun SubscriptionsScreen() {
                     showVolumeDialog = true
                     onSelected()
                 }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.rounded_books_movies_and_music_24), "")
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.rounded_books_movies_and_music_24), "set parent volume")
                     Text(stringResource(id = R.string.pref_parent_volume)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     showKeepUpdateDialog = true
                     onSelected()
                 }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_refresh), "")
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_refresh), "keep update")
                     Text(stringResource(id = R.string.keep_updated)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     onSelected()
                     showAutoDownloadSwitchDialog = true
                 }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), "")
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), "auto download")
                     Text(stringResource(id = R.string.auto_download_label)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     showAutoDeleteHandlerDialog = true
                     onSelected()
                 }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete_auto), "")
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete_auto), "auto delete")
                     Text(stringResource(id = R.string.auto_delete_episode)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     onSelected()
                     showSpeedDialog = true
                 }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playback_speed), "")
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playback_speed), "speed")
                     Text(stringResource(id = R.string.playback_speed)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     onSelected()
                     showTagsSettingDialog = true
                 }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_tag), "")
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_tag), "edit tags")
                     Text(stringResource(id = R.string.edit_tags)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     showAssociateDialog = true
                     onSelected()
                 }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "")
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), "associated queue")
                     Text(stringResource(id = R.string.pref_feed_associated_queue)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     onSelected()
@@ -824,7 +824,7 @@ fun SubscriptionsScreen() {
                     showRemoveFeedDialog = true
                     onSelected()
                 }) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "")
+                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "remove feed")
                     Text(stringResource(id = R.string.remove_feed_label)) } },
                 { Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
                     onSelected()
@@ -981,6 +981,9 @@ fun SubscriptionsScreen() {
                     if (feeds.isNotEmpty() && filterAndSort) scope.launch { listState.scrollToItem(0) }
                     filterAndSort = false
                 }
+//                var showFeedsSettings by remember { mutableStateOf(false) }
+//                if (showFeedsSettings) FeedSettingsScreen(listOf()) { showFeedsSettings = false }
+
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (volumes.isNotEmpty()) itemsIndexed(volumes, key = { _, v -> v.id}) { index, volume ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.combinedClickable(
@@ -997,6 +1000,7 @@ fun SubscriptionsScreen() {
                                         commonConfirm = null
                                     },
                                 )
+//                                showFeedsSettings = true
                             }
                             )) {
                             var showContent by remember { mutableStateOf(true) }

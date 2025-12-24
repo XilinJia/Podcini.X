@@ -1,11 +1,11 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.PodciniApp.Companion.getApp
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
-import ac.mdiq.podcini.net.utils.NetworkUtils.networkAvailable
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -39,7 +39,6 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.sendLocalBroadcast
-import ac.mdiq.podcini.utils.showStackTrace
 import android.annotation.SuppressLint
 import android.content.ComponentName
 import android.content.Context
@@ -145,7 +144,18 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         val uri = mediaUrl.toUri()
         mediaItem = MediaItem.Builder().setUri(uri).setCustomCacheKey(media.id.toString()).setMediaMetadata(metadata).build()
         val httpDataSourceFactory = DefaultHttpDataSource.Factory()
-        val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(15_000)
+            .setReadTimeoutMs(15_000)
+//        val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
+
+        val cacheFactory = CacheDataSource.Factory()
+            .setCache(getCache(context))
+            .setUpstreamDataSourceFactory(httpDataSourceFactory)
+            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val segmentFactory = SegmentSavingDataSourceFactory(cacheFactory)
+        val dataSourceFactory = DefaultDataSource.Factory(context, segmentFactory)
+
         mediaSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(mediaItem!!)
         setSourceCredentials(user, password)
     }
@@ -670,6 +680,18 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
     }
 
+//    class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSource.Factory) : DataSource.Factory {
+//        override fun createDataSource(): DataSource {
+//            return SegmentSavingDataSource(upstreamFactory.createDataSource())
+//        }
+//    }
+
+    class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSource.Factory) : DataSource.Factory {
+        override fun createDataSource(): DataSource {
+            return SegmentSavingDataSource(upstreamFactory.createDataSource())
+        }
+    }
+
     @UnstableApi
     class CustomDataSourceFactory(private val context: Context, private val upstreamFactory: DataSource.Factory) : DataSource.Factory {
         override fun createDataSource(): DataSource {
@@ -865,12 +887,12 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
 
         fun isStreamingCapable(media: Episode): Boolean {
-            showStackTrace()
+//            showStackTrace()
             if (!URLUtil.isNetworkUrl(media.downloadUrl)) {
                 Loge(TAG, "streaming media without a remote downloadUrl: ${media.downloadUrl}. Abort")
                 return false
             }
-            if (!networkAvailable()) {
+            if (!getApp().networkMonitor.isConnected) {
                 Loge(TAG, "streaming media but network is not available, abort")
                 return false
             }

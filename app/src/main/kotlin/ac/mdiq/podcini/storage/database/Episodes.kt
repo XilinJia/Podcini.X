@@ -174,18 +174,24 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     }
 }
 
-suspend fun eraseEpisodes(episodes: List<Episode>, msg: String) {
+suspend fun eraseEpisodes(episodes: List<Episode>, msg: String, saveLog: Boolean = true) {
     try {
-        for (e in episodes) {
-            val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
-            upsert(sLog) {
-                it.rating = e.rating
-                it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
-                it.comment += localDateTimeString() + "\nReason to remove:\n" + msg
-                it.cancelDate = Date().time
+        val time = System.currentTimeMillis()
+        if (saveLog) realm.write {
+            var i = 0
+            for (e in episodes) {
+                val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
+                sLog.id = time + i++
+                sLog.let {
+                    it.rating = e.rating
+                    it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
+                    it.comment += localDateTimeString() + "\nReason to remove:\n" + msg
+                    it.cancelDate = Date().time
+                }
+                copyToRealm(sLog)
             }
-            if (e.feed?.isLocalFeed != true) deleteMedia(e)
         }
+        for (e in episodes) if (e.feed?.isLocalFeed != true) deleteMedia(e)
         realm.write { for (e in episodes) findLatest(e)?.let { delete(it) } }
         EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
     } catch (e: Throwable) { Logs("eraseEpisodes", e) }
