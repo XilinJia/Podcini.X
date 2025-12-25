@@ -104,7 +104,7 @@
     <string name="replace">Korvaa</string>
     <string name="feed_auto_dleq_newer">Uusimmat soittamattomat</string>
     <string name="feed_auto_dleq_older">Vanhin soittamaton</string>
-    <string name="put_in_queue_label">Lisää jonoon…</string>
+    <string name="add_to_queue">Lisää jonoon…</string>
     <string name="remove_from_other_queues">Poista muista jonoista</string>
     <string name="create_synthetic_first_note">Sinun täytyy luoda ensin synteettisiä syötteitä</string>
     <string name="remove_from_current_feed">Poista nykyisestä syötteestä</string>
@@ -161,7 +161,7 @@
     <string name="set_play_state_label">Aseta toistetun tilan</string>
     <string name="combo_action">Combo toiminto</string>
     <string name="shelve_label">Hyvitä synteettiseksi</string>
-    <string name="add_to_queue_label">Lisää jonoon</string>
+    <string name="add_to_active_queue">Lisää jonoon</string>
 
     <string name="media_type">Median tyyppi</string>
     <string name="unknown">Tuntematon</string>

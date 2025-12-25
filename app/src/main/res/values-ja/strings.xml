@@ -106,7 +106,7 @@
     <string name="replace">置換</string>
     <string name="feed_auto_dleq_newer">最近再生されなかった曲</string>
     <string name="feed_auto_dleq_older">再生されていない古い順</string>
-    <string name="put_in_queue_label">Add to queue…</string>
+    <string name="add_to_queue">Add to queue…</string>
     <string name="remove_from_other_queues">他のキューから削除</string>
     <string name="create_synthetic_first_note">最初に合成フィードを作成する必要があります</string>
     <string name="remove_from_current_feed">現在のフィードから削除</string>
@@ -162,7 +162,7 @@
     <string name="set_play_state_label">プレイ中の状態を設定</string>
     <string name="combo_action">コンボアクション</string>
     <string name="shelve_label">シェルフを合成する</string>
-    <string name="add_to_queue_label">アクティブなキューに追加</string>
+    <string name="add_to_active_queue">アクティブなキューに追加</string>
 
     <string name="media_type">メディアタイプ</string>
     <string name="unknown">不明</string>

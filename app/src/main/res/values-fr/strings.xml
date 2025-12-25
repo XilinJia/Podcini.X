@@ -107,7 +107,7 @@
     <string name="replace">Remplacer</string>
     <string name="feed_auto_dleq_newer">Les plus récents non joués</string>
     <string name="feed_auto_dleq_older">Les plus anciens non joués</string>
-    <string name="put_in_queue_label">Add to queue…</string>
+    <string name="add_to_queue">Add to queue…</string>
     <string name="remove_from_other_queues">Retirer des autres files d\'attente</string>
     <string name="create_synthetic_first_note">Vous devez d\'abord créer des flux synthétiques</string>
     <string name="remove_from_current_feed">Retirer du flux actuel</string>
@@ -164,7 +164,7 @@
     <string name="set_play_state_label">Définir l\'état de lecture</string>
     <string name="combo_action">Action Combo</string>
     <string name="shelve_label">Établir en synthétique</string>
-    <string name="add_to_queue_label">Ajouter à la liste de lecture</string>
+    <string name="add_to_active_queue">Ajouter à la liste de lecture</string>
 
     <string name="media_type">Type de média</string>
     <string name="unknown">Inconnu</string>

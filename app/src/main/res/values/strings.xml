@@ -180,7 +180,7 @@
 
     <string name="feed_auto_dleq_filter_sort">Current filter and sort</string>
 
-    <string name="put_in_queue_label">Add to queue…</string>
+    <string name="add_to_queue">Add to queue…</string>
     <string name="remove_from_other_queues">Remove from other queues</string>
 
     <string name="create_synthetic_first_note">You need to create some synthetic feeds first</string>
@@ -198,6 +198,7 @@
     <string name="max_episodes_cache">Max episodes allowed</string>
     <string name="new_namee">New name</string>
     <string name="feed_settings_label">Podcast settings</string>
+    <string name="full_settings">Full settings</string>
     <string name="rename_feed_label">Rename podcast</string>
     <string name="remove_feed_label">Remove podcast</string>
     <string name="share_label">Share</string>
@@ -269,7 +270,7 @@
 
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Shelve to synthetic</string>
-    <string name="add_to_queue_label">Add to active queue</string>
+    <string name="add_to_active_queue">Add to active queue</string>
     <string name="add_to_associated_queue">Add to associated queue</string>
 
     <string name="remove_from_all_queues">Remove from all queues</string>
@@ -494,6 +495,8 @@
     <string name="feed_refresh_start_sum">Set start hour (0-23) and minute (0-59) for the periodic refresh interval (exact time may be tempered by Android). Leaving the fields empty means the interval starts now.</string>
     <string name="feed_next_refresh_time">Next refresh time around:</string>
     <string name="before">before</string>
+
+    <string name="edit_volume">Edit volume</string>
     <string name="remove_volume">Remove volume</string>
     <string name="remove_volume_msg">This is just to unsubscribe the volume and the contained feeds. Local content will stay intact.</string>
 

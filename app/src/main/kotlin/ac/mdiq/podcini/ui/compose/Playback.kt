@@ -45,6 +45,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -53,6 +54,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
@@ -196,20 +198,22 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
             Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 var speed by remember { mutableFloatStateOf(curPBSpeed) }
                 val speeds = remember { readPlaybackSpeedArray(getPrefOrNull<String>(AppPrefs.prefPlaybackSpeedArray, null)).toMutableStateList() }
+                var showEdit by remember { mutableStateOf(false) }
                 Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.playback_speed), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                     Spacer(Modifier.width(50.dp))
-                    FilterChip(onClick = {
+                    if (showEdit) FilterChip(onClick = {
                         if (speed !in speeds) {
                             speeds.add(speed)
                             speeds.sort()
                             setPlaybackSpeedArray(speeds)
                         } }, label = { Text(String.format(Locale.getDefault(), "%.2f", speed)) }, selected = false,
                         trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon", modifier = Modifier.size(FilterChipDefaults.IconSize)) })
+                    else IconButton(onClick = { showEdit = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit preset") }
                 }
-                var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
-                val stepSize = 0.05f
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (showEdit) Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
+                    val stepSize = 0.05f
                     Text("-", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable(onClick = {
                             val speed_ = round(speed / stepSize) * stepSize - stepSize

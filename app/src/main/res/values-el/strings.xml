@@ -104,7 +104,7 @@
     <string name="replace">Αντικατάσταση</string>
     <string name="feed_auto_dleq_newer">Νεότερα μη παιγμένα</string>
     <string name="feed_auto_dleq_older">Παλαιότερα δεν παιχτηκαν</string>
-    <string name="put_in_queue_label">Add to queue…</string>
+    <string name="add_to_queue">Add to queue…</string>
     <string name="remove_from_other_queues">Αφαίρεση από άλλες ουρές</string>
     <string name="create_synthetic_first_note">Θα πρέπει πρώτα να δημιουργήσετε κάποιες συνθετικές ροές</string>
     <string name="remove_from_current_feed">Αφαίρεση από την τρέχουσα τροφοδοσία</string>
@@ -161,7 +161,7 @@
     <string name="set_play_state_label">Ορισμός κατάστασης αναπαραγωγής</string>
     <string name="combo_action">Combo δράση</string>
     <string name="shelve_label">Ράφι σε συνθετικό</string>
-    <string name="add_to_queue_label">Προσθήκη στην ενεργή ουρά</string>
+    <string name="add_to_active_queue">Προσθήκη στην ενεργή ουρά</string>
 
     <string name="media_type">Τύπος πολυμέσων</string>
     <string name="unknown">Άγνωστο</string>

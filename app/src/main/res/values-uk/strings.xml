@@ -104,7 +104,7 @@
     <string name="replace">Заміняти</string>
     <string name="feed_auto_dleq_newer">Невідтворювані</string>
     <string name="feed_auto_dleq_older">Найстаріші</string>
-    <string name="put_in_queue_label">Add to queue…</string>
+    <string name="add_to_queue">Add to queue…</string>
     <string name="remove_from_other_queues">Видалити з інших черг</string>
     <string name="create_synthetic_first_note">Спочатку потрібно створити синтетичні канали</string>
     <string name="remove_from_current_feed">Вилучити з поточного каналу</string>
@@ -163,7 +163,7 @@
     <string name="set_play_state_label">Встановити статус гри</string>
     <string name="combo_action">Комбо дії</string>
     <string name="shelve_label">Укриття для синтетики</string>
-    <string name="add_to_queue_label">Додати до черги</string>
+    <string name="add_to_active_queue">Додати до черги</string>
 
     <string name="media_type">Медіатип</string>
     <string name="unknown">Не вказано</string>

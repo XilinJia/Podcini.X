@@ -104,7 +104,7 @@
     <string name="replace">Vervangen</string>
     <string name="feed_auto_dleq_newer">Nieuwste niet afgespeeld</string>
     <string name="feed_auto_dleq_older">Oudste niet afgespeeld</string>
-    <string name="put_in_queue_label">Toevoegen aan wachtrij…</string>
+    <string name="add_to_queue">Toevoegen aan wachtrij…</string>
     <string name="remove_from_other_queues">Verwijderen uit andere wachtrijen</string>
     <string name="create_synthetic_first_note">U moet eerst wat synthetische feeds maken</string>
     <string name="remove_from_current_feed">Verwijderen uit de huidige feed</string>
@@ -161,7 +161,7 @@
     <string name="set_play_state_label">Gespeelde status instellen</string>
     <string name="combo_action">Combo actie</string>
     <string name="shelve_label">Schelp om samen te voegen</string>
-    <string name="add_to_queue_label">Toevoegen aan wachtrij</string>
+    <string name="add_to_active_queue">Toevoegen aan wachtrij</string>
 
     <string name="media_type">Media type</string>
     <string name="unknown">onbekend</string>

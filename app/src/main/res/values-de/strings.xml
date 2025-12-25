@@ -107,7 +107,7 @@
     <string name="replace">Ersetzen</string>
     <string name="feed_auto_dleq_newer">Neueste nicht gespielt</string>
     <string name="feed_auto_dleq_older">Älteste Wiedergabe</string>
-    <string name="put_in_queue_label">Zur Warteschlange… hinzufügen</string>
+    <string name="add_to_queue">Zur Warteschlange… hinzufügen</string>
     <string name="remove_from_other_queues">Aus anderen Warteschlangen entfernen</string>
     <string name="create_synthetic_first_note">Du musst zuerst einige synthetische Feeds erstellen</string>
     <string name="remove_from_current_feed">Aus dem aktuellen Feed entfernen</string>
@@ -164,7 +164,7 @@
     <string name="set_play_state_label">Gespielter Status festlegen</string>
     <string name="combo_action">Combo-Aktion</string>
     <string name="shelve_label">Regal synthetisch</string>
-    <string name="add_to_queue_label">Zur Warteschlange hinzufügen</string>
+    <string name="add_to_active_queue">Zur Warteschlange hinzufügen</string>
 
     <string name="media_type">Medientyp</string>
     <string name="unknown">Unbekannt</string>

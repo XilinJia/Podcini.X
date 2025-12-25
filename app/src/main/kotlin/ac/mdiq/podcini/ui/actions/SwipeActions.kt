@@ -174,7 +174,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         override val id: String
             get() = "ADD_TO_QUEUE"
         override val title: String
-            get() = getAppContext().getString(R.string.add_to_queue_label)
+            get() = getAppContext().getString(R.string.add_to_active_queue)
 
         override val iconRes:  Int = R.drawable.ic_playlist_play
         override val colorRes:  Int = android.R.attr.colorAccent
@@ -215,7 +215,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             get() = "PUT_TO_QUEUE"
         private var showPutToQueueDialog by mutableStateOf(false)
         override val title: String
-            get() = getAppContext().getString(R.string.put_in_queue_label)
+            get() = getAppContext().getString(R.string.add_to_queue)
 
         override val iconRes:  Int = R.drawable.ic_playlist_play
         override val colorRes:  Int = R.attr.icon_gray

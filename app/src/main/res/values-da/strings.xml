@@ -104,7 +104,7 @@
     <string name="replace">Erstat</string>
     <string name="feed_auto_dleq_newer">Nyeste uspillede</string>
     <string name="feed_auto_dleq_older">Ældste uspillede</string>
-    <string name="put_in_queue_label">Føj til kø…</string>
+    <string name="add_to_queue">Føj til kø…</string>
     <string name="remove_from_other_queues">Fjern fra andre køer</string>
     <string name="create_synthetic_first_note">Du skal først oprette nogle syntetiske feeds</string>
     <string name="remove_from_current_feed">Fjern fra nuværende feed</string>
@@ -161,7 +161,7 @@
     <string name="set_play_state_label">Angiv afspilningsstatus</string>
     <string name="combo_action">Kombo handling</string>
     <string name="shelve_label">Hylde til syntetisk</string>
-    <string name="add_to_queue_label">Føj til kø</string>
+    <string name="add_to_active_queue">Føj til kø</string>
 
     <string name="media_type">Medie type</string>
     <string name="unknown">Ukendt</string>

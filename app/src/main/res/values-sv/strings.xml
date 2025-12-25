@@ -104,7 +104,7 @@
     <string name="replace">Ersätt</string>
     <string name="feed_auto_dleq_newer">Nyaste ospelade</string>
     <string name="feed_auto_dleq_older">Äldsta ospelade</string>
-    <string name="put_in_queue_label">Lägg till i kö…</string>
+    <string name="add_to_queue">Lägg till i kö…</string>
     <string name="remove_from_other_queues">Ta bort från andra köer</string>
     <string name="create_synthetic_first_note">Du måste skapa några syntetiska flöden först</string>
     <string name="remove_from_current_feed">Ta bort från nuvarande flöde</string>
@@ -161,7 +161,7 @@
     <string name="set_play_state_label">Ställ in spelad status</string>
     <string name="combo_action">Kombo åtgärd</string>
     <string name="shelve_label">Hylla till syntetiskt</string>
-    <string name="add_to_queue_label">Lägg till i kön</string>
+    <string name="add_to_active_queue">Lägg till i kön</string>
 
     <string name="media_type">Typ av media</string>
     <string name="unknown">Okänd</string>

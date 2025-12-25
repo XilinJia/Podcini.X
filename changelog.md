@@ -1,3 +1,16 @@
+# 10.1.0
+
+* Feed Settings now operate on single and multiple feeds
+* in Subscriptions
+	* create a new volume from the menu will create a new volume under the current volume
+	* on multi-select menu 
+		* added "Full settings" to set for selected feeds
+		* cleared some less useful settings, use the "Full settings"
+		* added "Add to queue (max 200)" episodes in selected feeds
+	* long-press on a volume pops up the same feed multi-select menu to operate on feeds contained plus others for the volume
+	* a volume's name and parent can be changed
+* in speed setting dialog from PlayUI, added "edit" button to toggle the slider
+
 # 10.0.1
 
 * fixed crash when moving episode from one queue to another

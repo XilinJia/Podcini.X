@@ -155,7 +155,7 @@
 
     <string name="feed_auto_dleq_filter_sort">Mevcut filtre ve sıralama</string>
 
-    <string name="put_in_queue_label">Kuyruğa ekle…</string>
+    <string name="add_to_queue">Kuyruğa ekle…</string>
     <string name="remove_from_other_queues">Diğer kuyruklardan kaldır</string>
 
     <string name="create_synthetic_first_note">Önce bazı sentetik beslemeler oluşturmanız gerekiyor</string>
@@ -228,7 +228,7 @@
 
     <string name="combo_action">Kombinasyon eylemi</string>
     <string name="shelve_label">Sentetik olarak rafa kaldır</string>
-    <string name="add_to_queue_label">Aktif kuyruğa ekle</string>
+    <string name="add_to_active_queue">Aktif kuyruğa ekle</string>
     <string name="add_to_associated_queue">İlgili kuyruğa ekle</string>
 
 

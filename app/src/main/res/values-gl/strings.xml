@@ -139,7 +139,7 @@
   <string name="delete_episode_label">Eliminar episodio</string>
 
 
-    <string name="add_to_queue_label">Engadir á cola</string>
+    <string name="add_to_active_queue">Engadir á cola</string>
 
 
 

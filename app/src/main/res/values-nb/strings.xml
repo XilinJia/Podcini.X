@@ -128,7 +128,7 @@
   <string name="delete_episode_label">Slett episode</string>
 
 
-    <string name="add_to_queue_label">Legg til i kø</string>
+    <string name="add_to_active_queue">Legg til i kø</string>
 
 
 

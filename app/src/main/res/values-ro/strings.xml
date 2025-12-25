@@ -104,7 +104,7 @@
     <string name="replace">Înlocuiește</string>
     <string name="feed_auto_dleq_newer">Cele mai noi nejucate</string>
     <string name="feed_auto_dleq_older">Cel mai vechi nejucat</string>
-    <string name="put_in_queue_label">Adaugă în coada de aşteptare…</string>
+    <string name="add_to_queue">Adaugă în coada de aşteptare…</string>
     <string name="remove_from_other_queues">Elimină din alte cozi</string>
     <string name="create_synthetic_first_note">Trebuie mai întâi să creați niște fluxuri sintetice</string>
     <string name="remove_from_current_feed">Elimină din fluxul curent</string>
@@ -162,7 +162,7 @@
     <string name="set_play_state_label">Setează starea jucată</string>
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Se termină pentru sintetică</string>
-    <string name="add_to_queue_label">Adaugă la coadă</string>
+    <string name="add_to_active_queue">Adaugă la coadă</string>
 
     <string name="media_type">Tip media</string>
     <string name="unknown">Necunoscut</string>

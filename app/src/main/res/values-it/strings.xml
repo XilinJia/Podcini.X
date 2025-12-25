@@ -107,7 +107,7 @@
     <string name="replace">Sostituisci</string>
     <string name="feed_auto_dleq_newer">Ultime non riprodotte</string>
     <string name="feed_auto_dleq_older">Più vecchio non riprodotto</string>
-    <string name="put_in_queue_label">Aggiungi alla coda…</string>
+    <string name="add_to_queue">Aggiungi alla coda…</string>
     <string name="remove_from_other_queues">Rimuovi da altre code</string>
     <string name="create_synthetic_first_note">Devi prima creare alcuni feed sintetici</string>
     <string name="remove_from_current_feed">Rimuovi dal feed corrente</string>
@@ -164,7 +164,7 @@
     <string name="set_play_state_label">Imposta stato riprodotto</string>
     <string name="combo_action">Azione combinata</string>
     <string name="shelve_label">Ripiano a sintetico</string>
-    <string name="add_to_queue_label">Aggiungi alla coda</string>
+    <string name="add_to_active_queue">Aggiungi alla coda</string>
 
     <string name="media_type">Tipo di supporto</string>
     <string name="unknown">Sconosciuto</string>

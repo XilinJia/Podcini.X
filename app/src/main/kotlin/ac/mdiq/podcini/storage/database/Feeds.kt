@@ -46,38 +46,6 @@ import kotlin.math.abs
 
 private const val TAG: String = "Feeds"
 
-var volumes = listOf<Volume>()
-private var volumeMonitorJob: Job? = null
-fun cancelMonitorVolumes() {
-    volumeMonitorJob?.cancel()
-    volumeMonitorJob = null
-}
-
-fun monitorVolumes(scope: CoroutineScope) {
-    if (volumeMonitorJob != null) return
-
-    val feedQuery = realm.query(Volume::class)
-    volumeMonitorJob = scope.launch(Dispatchers.IO) {
-        feedQuery.asFlow().collect { changes: ResultsChange<Volume> ->
-            volumes = changes.list
-            //            Logd(TAG, "monitorVolumes volumes size: ${volumes.size}")
-            when (changes) {
-                is UpdatedResults -> {
-                    when {
-                        changes.insertions.isNotEmpty() -> {}
-                        changes.changes.isNotEmpty() -> {}
-                        changes.deletions.isNotEmpty() -> {}
-                        else -> {}
-                    }
-                }
-                else -> {
-                    // types other than UpdatedResults are not changes -- ignore them
-                }
-            }
-        }
-    }
-}
-
 var feedOperationText by mutableStateOf("")
 
 var feedCount by mutableIntStateOf(-1)
@@ -462,20 +430,6 @@ private fun addNewFeeds(vararg feeds_: Feed) {
     }
     val backupManager = BackupManager(context)
     backupManager.dataChanged()
-}
-
-fun deleteVolumeTree(volume: Volume) {
-    Logd(TAG, "deleteVolumeTree volume: ${volume.name}")
-    val feeds_ = realm.query(Feed::class).query("volumeId == ${volume.id}").find()
-    for (f in feeds_) runOnIOScope { deleteFeed(f.id) }
-
-    val iterator = realm.query(Volume::class).query("parentId == ${volume.id}").find().iterator()
-    while (iterator.hasNext()) deleteVolumeTree(iterator.next())
-
-    realm.writeBlocking {
-        val v = findLatest(volume)
-        if (v != null) delete(v)
-    }
 }
 
 suspend fun deleteFeed(feedId: Long) {

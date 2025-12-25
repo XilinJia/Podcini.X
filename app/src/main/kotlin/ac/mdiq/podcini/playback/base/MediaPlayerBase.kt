@@ -680,47 +680,9 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
     }
 
-//    class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSource.Factory) : DataSource.Factory {
-//        override fun createDataSource(): DataSource {
-//            return SegmentSavingDataSource(upstreamFactory.createDataSource())
-//        }
-//    }
-
     class SegmentSavingDataSourceFactory(private val upstreamFactory: CacheDataSource.Factory) : DataSource.Factory {
         override fun createDataSource(): DataSource {
             return SegmentSavingDataSource(upstreamFactory.createDataSource())
-        }
-    }
-
-    @UnstableApi
-    class CustomDataSourceFactory(private val context: Context, private val upstreamFactory: DataSource.Factory) : DataSource.Factory {
-        override fun createDataSource(): DataSource {
-            return object : DataSource {
-                private var dataSource: DataSource? = null
-                private var segmentSaver: SegmentSavingDataSource? = null
-
-                override fun open(dataSpec: DataSpec): Long {
-                    Logd("CustomDataSourceFactory", "dataSpec.uri.scheme: ${dataSpec.uri.scheme}")
-                    dataSource = if (dataSpec.uri.scheme == "file" || dataSpec.uri.scheme == "content") {
-                        curDataSource = null
-                        DefaultDataSource.Factory(context).createDataSource()
-                    } else {
-                        val cacheDs = CacheDataSource(getCache(context), upstreamFactory.createDataSource(), CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
-                        curDataSource = SegmentSavingDataSource(cacheDs).also { segmentSaver = it }
-                        curDataSource
-                    }
-                    return dataSource!!.open(dataSpec)
-                }
-                override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-                    return dataSource?.read(buffer, offset, length) ?: -1
-                }
-                override fun close() = dataSource?.close() ?: Unit
-                override fun addTransferListener(transferListener: TransferListener) {
-                    dataSource?.addTransferListener(transferListener)
-                }
-                override fun getUri(): Uri? = dataSource?.uri
-                override fun getResponseHeaders(): Map<String, List<String>> = dataSource?.responseHeaders ?: emptyMap()
-            }
         }
     }
 

@@ -104,7 +104,7 @@
     <string name="replace">Replace</string>
     <string name="feed_auto_dleq_newer">Newest unplayed</string>
     <string name="feed_auto_dleq_older">Oldest unplayed</string>
-    <string name="put_in_queue_label">Add to queue…</string>
+    <string name="add_to_queue">Add to queue…</string>
     <string name="remove_from_other_queues">Remove from other queues</string>
     <string name="create_synthetic_first_note">You need to create some synthetic feeds first</string>
     <string name="remove_from_current_feed">Remove from current feed</string>
@@ -160,7 +160,7 @@
     <string name="set_play_state_label">Set played state</string>
     <string name="combo_action">Combo action</string>
     <string name="shelve_label">Shelve to synthetic</string>
-    <string name="add_to_queue_label">Add to active queue</string>
+    <string name="add_to_active_queue">Add to active queue</string>
 
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>

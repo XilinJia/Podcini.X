@@ -5,7 +5,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
-import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
@@ -319,13 +318,13 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 runOnIOScope { addToActQueue(selected) }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to active queue")
-                Text(stringResource(id = R.string.add_to_queue_label)) } },
+                Text(stringResource(id = R.string.add_to_active_queue)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 showPutToQueueDialog = true
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to queue...")
-                Text(stringResource(id = R.string.put_in_queue_label)) } },
+                Text(stringResource(id = R.string.add_to_queue)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 runOnIOScope { for (e in selected) smartRemoveFromAllQueues(e) }

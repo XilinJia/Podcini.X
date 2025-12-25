@@ -133,7 +133,7 @@
   <string name="delete_episode_label">Excluir o episódio</string>
 
 
-    <string name="add_to_queue_label">Adicionar à fila</string>
+    <string name="add_to_active_queue">Adicionar à fila</string>
 
 
 

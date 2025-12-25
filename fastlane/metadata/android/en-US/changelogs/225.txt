@@ -1,0 +1,7 @@
+* Feed Settings now operate on single and multiple feeds
+* in Subscriptions
+	* create a new volume from the menu will create a new volume under the current volume
+	* on multi-select menu, added "Full settings" to set for selected feeds, and more
+	* long-press on a volume pops up the same feed multi-select menu to operate on feeds contained plus others for the volume
+	* a volume's name and parent can be changed
+* in speed setting dialog from PlayUI, added "edit" button to toggle the slider

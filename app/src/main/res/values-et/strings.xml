@@ -110,7 +110,7 @@
   <string name="delete_episode_label">Kustuta saade</string>
 
 
-    <string name="add_to_queue_label">Lisa järjekorda</string>
+    <string name="add_to_active_queue">Lisa järjekorda</string>
 
 
 

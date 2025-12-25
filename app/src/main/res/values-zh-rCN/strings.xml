@@ -104,7 +104,7 @@
     <string name="replace">替换</string>
     <string name="feed_auto_dleq_newer">最新未播放</string>
     <string name="feed_auto_dleq_older">最早未播放</string>
-    <string name="put_in_queue_label">添加到队列…</string>
+    <string name="add_to_queue">添加到队列…</string>
     <string name="remove_from_other_queues">从其他队列移除</string>
     <string name="create_synthetic_first_note">您需要先创建一些合成源</string>
     <string name="remove_from_current_feed">从当前源中删除</string>
@@ -160,7 +160,7 @@
     <string name="set_play_state_label">设置播放状态</string>
     <string name="combo_action">组合操作</string>
     <string name="shelve_label">架设为合成的</string>
-    <string name="add_to_queue_label">添加到活动队列</string>
+    <string name="add_to_active_queue">添加到活动队列</string>
 
     <string name="media_type">媒体类型</string>
     <string name="unknown">未知的</string>

@@ -106,7 +106,7 @@
     <string name="replace">Substituir</string>
     <string name="feed_auto_dleq_newer">Recentes não reproduzidos</string>
     <string name="feed_auto_dleq_older">Antigos não tocados</string>
-    <string name="put_in_queue_label">Adicionar à fila…</string>
+    <string name="add_to_queue">Adicionar à fila…</string>
     <string name="remove_from_other_queues">Remover de outras filas</string>
     <string name="create_synthetic_first_note">Primeiro, você precisa criar alguns feeds sintéticos</string>
     <string name="remove_from_current_feed">Remover da fonte atual</string>
@@ -163,7 +163,7 @@
     <string name="set_play_state_label">Definir estado de jogo</string>
     <string name="combo_action">Ação combinada</string>
     <string name="shelve_label">Prateleira à sintética</string>
-    <string name="add_to_queue_label">Adicionar à fila</string>
+    <string name="add_to_active_queue">Adicionar à fila</string>
 
     <string name="media_type">Tipo de mídia</string>
     <string name="unknown">Desconhecido</string>

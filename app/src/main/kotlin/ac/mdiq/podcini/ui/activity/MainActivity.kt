@@ -18,11 +18,11 @@ import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
-import ac.mdiq.podcini.storage.database.cancelMonitorVolumes
 import ac.mdiq.podcini.storage.database.cancelQueuesJob
 import ac.mdiq.podcini.storage.database.monitorFeeds
-import ac.mdiq.podcini.storage.database.monitorVolumes
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.model.cancelMonitorVolumes
+import ac.mdiq.podcini.storage.model.monitorVolumes
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
@@ -410,7 +410,7 @@ class MainActivity : BaseActivity() {
         super.onStart()
         procFlowEvents()
         RatingDialog.init(this)
-        monitorFeeds(lifecycleScope)   // TODO: test
+        monitorFeeds(lifecycleScope)
         monitorVolumes(lifecycleScope)
     }
 

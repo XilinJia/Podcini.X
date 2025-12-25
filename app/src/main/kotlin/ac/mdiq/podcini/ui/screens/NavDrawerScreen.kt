@@ -262,6 +262,7 @@ class NavItem(val iconRes: Int, val nameRes: Int) {
 enum class Screens {
     Subscriptions,
     FeedDetails,
+    FeedsSettings,
     Facets,
     EpisodeInfo,
     Queues,
@@ -320,6 +321,7 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
             val modeName = entry.arguments?.getString("modeName") ?: FeedScreenMode.List.name
             FeedDetailsScreen(feedId, modeName)
         }
+        composable(Screens.FeedsSettings.name) { FeedsSettingsScreen() }
         composable(route = "${Screens.EpisodeInfo.name}?episodeId={episodeId}", arguments = listOf(
             navArgument("episodeId") {
                 type = NavType.LongType
