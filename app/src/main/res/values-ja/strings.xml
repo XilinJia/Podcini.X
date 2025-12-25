@@ -138,7 +138,7 @@
     <string name="feed_auto_dleq_older">再生されていない古い順</string>
     <string name="feed_auto_dleq_discretion">Discretional</string>
     <string name="feed_auto_dleq_filter_sort">現在のフィルタと並べ替え</string>
-    <string name="put_in_queue_label">Add to queue…</string>
+    <string name="add_to_queue">Add to queue…</string>
     <string name="remove_from_other_queues">他のキューから削除</string>
     <string name="create_synthetic_first_note">最初に合成フィードを作成する必要があります</string>
     <string name="remove_from_current_feed">現在のフィードから削除</string>
@@ -151,6 +151,7 @@
     <string name="max_episodes_cache">最大エピソードを許可</string>
     <string name="new_namee">新しい名前</string>
     <string name="feed_settings_label">ポッドキャスト設定</string>
+    <string name="full_settings">Full settings</string>
     <string name="rename_feed_label">ポッドキャストの名前を変更</string>
     <string name="remove_feed_label">ポッドキャストを削除</string>
     <string name="share_label">共有</string>
@@ -207,7 +208,7 @@
     <string name="set_play_state_label">プレイ中の状態を設定</string>
     <string name="combo_action">コンボアクション</string>
     <string name="shelve_label">シェルフを合成する</string>
-    <string name="add_to_queue_label">アクティブなキューに追加</string>
+    <string name="add_to_active_queue">Add to active queue</string>
     <string name="add_to_associated_queue">関連するキューに追加</string>
     <string name="remove_from_all_queues">すべてのキューから削除</string>
     <string name="media_type">メディアタイプ</string>
@@ -407,6 +408,7 @@
     <string name="feed_refresh_start_sum">定期的な更新間隔に開始時間(0-23)と分(0-59)を設定します(正確な時間はAndroidで調節される可能性があります)。 フィールドを空のままにすると、間隔が今始まります。</string>
     <string name="feed_next_refresh_time">次回の更新時刻:</string>
     <string name="before">前</string>
+    <string name="edit_volume">Edit volume</string>
     <string name="remove_volume">Remove volume</string>
     <string name="remove_volume_msg">This is just to unsubscribe the volume and the contained feeds. Local content will stay intact.</string>
     <string name="refresh_associates">Refresh associates</string>
