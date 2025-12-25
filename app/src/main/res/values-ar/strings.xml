@@ -138,7 +138,7 @@
     <string name="feed_auto_dleq_older">الأقدم لم يتم تشغيله</string>
     <string name="feed_auto_dleq_discretion">تقدير</string>
     <string name="feed_auto_dleq_filter_sort">الفلتر و الفرز الحاليين</string>
-    <string name="put_in_queue_label">إضافة إلى قائمة الانتظار…</string>
+    <string name="add_to_queue">Add to queue…</string>
     <string name="remove_from_other_queues">إزالة من قوائم الانتظار الأخرى</string>
     <string name="create_synthetic_first_note">تحتاج إلى إنشاء بعض التغذية الاصطناعية أولاً</string>
     <string name="remove_from_current_feed">إزالة من التغذية الحالية</string>
@@ -151,6 +151,7 @@
     <string name="max_episodes_cache">الحد الأقصى للحلقات المسموح بها</string>
     <string name="new_namee">اسم جديد</string>
     <string name="feed_settings_label">إعدادات Podcast</string>
+    <string name="full_settings">Full settings</string>
     <string name="rename_feed_label">إعادة تسمية podcast</string>
     <string name="remove_feed_label">إزالة podcast</string>
     <string name="share_label">مشاركة</string>
@@ -212,7 +213,7 @@
     <string name="set_play_state_label">تعيين حالة التشغيل</string>
     <string name="combo_action">إجراءات التركيب</string>
     <string name="shelve_label">رفوف اصطناعي</string>
-    <string name="add_to_queue_label">إضافة إلى قائمة الانتظار النشطة</string>
+    <string name="add_to_active_queue">Add to active queue</string>
     <string name="add_to_associated_queue">إضافة إلى قائمة الانتظار المرتبطة</string>
     <string name="remove_from_all_queues">إزالة من جميع قوائم الانتظار</string>
     <string name="media_type">نوع الوسائط</string>
@@ -417,6 +418,7 @@
     <string name="feed_refresh_start_sum">تعيين ساعة البدء (0-23) والدقيقة (0-59) لفترة التحديث الدورية (يمكن تخفيف الوقت بالضبط بواسطة أندرويد). ترك الحقول فارغة يعني أن الفاصل الزمني يبدأ الآن.</string>
     <string name="feed_next_refresh_time">وقت التحديث التالي حول:</string>
     <string name="before">قبل</string>
+    <string name="edit_volume">Edit volume</string>
     <string name="remove_volume">Remove volume</string>
     <string name="remove_volume_msg">This is just to unsubscribe the volume and the contained feeds. Local content will stay intact.</string>
     <string name="refresh_associates">Refresh associates</string>
