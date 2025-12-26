@@ -32,19 +32,20 @@ If you intend to sync through a server, NextCloud server has been tested, but ca
 
 1. Is fully based on Jetpack Compose, using `media3` with `AudioOffloadMode` enabled (nicer to device battery).
 2. Features multiple, natural and circular play queues associable with any podcast.
-3. Presents synthetic podcasts and allows episodes to be separately shelved.
-4. Allows setting tags, todos, notes/comments, 5-level rating, and 12-level play state on every episode.
-5. Boasts sophisticated sorting, filtering and searching on episodes and podcasts.
-6. Supports auto playing any episode based on timer
-7. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed (podcast).
-8. Supports spaced repetition of repeat episodes: auto-download or auto-enqueue them at preset intervals specified in the feed
-9. Caches streamed audio for seamless local rewind and replay.
-10. Features audio clips recording and position marking on any episodes for better review.
-11. Allows linking/relating multiple episodes for better grouping.
-12. Is capable to preserve important episodes when a podcast is unsubscribed
-13. Spotlights `instant sync` across devices without a server.
-14. Offers Readability and Text-to-Speech for RSS contents.
-15. Supports auto-backups, customized media folder and importing DB from other apps
+3. Features volume hierarchies each of which can contain sub-volumes and feeds.
+4. Presents synthetic podcasts and allows episodes to be separately shelved.
+5. Allows setting tags, todos, notes/comments, 5-level rating, and 12-level play state on every episode.
+6. Boasts sophisticated sorting, filtering and searching on episodes and podcasts.
+7. Supports auto playing any episode based on timer
+8. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed (podcast).
+9. Supports spaced repetition of repeat episodes: auto-download or auto-enqueue them at preset intervals specified in the feed
+10. Caches streamed audio for seamless local rewind and replay.
+11. Features audio clips recording and position marking on any episodes for better review.
+12. Allows linking/relating multiple episodes for better grouping.
+13. Is capable to preserve important episodes when a podcast is unsubscribed
+14. Spotlights `instant sync` across devices without a server.
+15. Offers Readability and Text-to-Speech for RSS contents.
+16. Supports auto-backups, customized media folder and importing DB from other apps
 
 ## Usage and notable features description 
 <details> <summary>Click to expand</summary>

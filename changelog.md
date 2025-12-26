@@ -1,3 +1,8 @@
+# 10.2.1
+
+* corrected handling a dynamic offload settings
+* fixed skip silence setting in Feeds settings
+
 # 10.2.0
 
 * skip silence now can be set to current, feed and global (same as for speed)
