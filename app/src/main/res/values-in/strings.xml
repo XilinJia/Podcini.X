@@ -23,7 +23,6 @@
     <string name="notification_pref_fragment">Notifications</string>
     <string name="current_episode">Current</string>
     <string name="current_podcast">Podcast</string>
-    <string name="global">Global</string>
     <string name="no_more_screens_back">No more screens back</string>
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" not found</string>
@@ -313,6 +312,9 @@
     <string name="bin_limit">Bin limit</string>
     <string name="undo">Undo</string>
     <string name="sort">Sort</string>
+    <string name="sort_sum">Set sortting for episodes.</string>
+    <string name="filter">Filter</string>
+    <string name="filter_sum">Set filter for episodes.</string>
     <string name="rename">Rename</string>
     <string name="add_queue">Add queue</string>
     <string name="publish_date">Publish date</string>
@@ -767,7 +769,7 @@
     <string name="exclude">Exclude</string>
     <string name="off">Off</string>
     <string name="play_speed">Play speed</string>
-    <string name="global_speed">Global</string>
+    <string name="global">Global</string>
     <string name="custom_speed">Custom</string>
     <string name="has_skips">Skips set</string>
     <string name="commented">Commented</string>
