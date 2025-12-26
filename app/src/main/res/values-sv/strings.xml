@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">Aviseringar</string>
     <string name="current_episode">Nuvarande</string>
     <string name="current_podcast">Podcast</string>
-    <string name="global">Globalt</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" hittades inte</string>
     <!-- SwipeActions -->
@@ -644,7 +644,7 @@
     <string name="has_chapters">Har kapitel</string>
     <string name="filename">Filnamn</string>
     <string name="play_speed">Spela upp hastighet</string>
-    <string name="global_speed">Globalt</string>
+
     <string name="custom_speed">Anpassad</string>
     <string name="has_skips">Skippar inställda</string>
     <string name="commented">Kommenterad</string>

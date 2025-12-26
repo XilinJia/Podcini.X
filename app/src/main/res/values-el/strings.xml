@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">Ειδοποιήσεις</string>
     <string name="current_episode">Τρέχων</string>
     <string name="current_podcast">Podcast</string>
-    <string name="global">Καθολικό</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" δεν βρέθηκε</string>
     <!-- SwipeActions -->
@@ -644,7 +644,7 @@
     <string name="has_chapters">Έχει κεφάλαια</string>
     <string name="filename">Όνομα αρχείου</string>
     <string name="play_speed">Ταχύτητα παιχνιδιού</string>
-    <string name="global_speed">Καθολικό</string>
+
     <string name="custom_speed">Προσαρμοσμένο</string>
     <string name="has_skips">Σειρά παραλείψεων</string>
     <string name="commented">Σχολιάστηκε</string>

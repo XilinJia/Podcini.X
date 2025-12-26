@@ -187,13 +187,22 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         }
     }
 
-    var offloadEnabled = true
+    var speedEnablesOffload = true
+    var silenceEnablesOffload = !isSkipSilence
+    var offloadEnabled = speedEnablesOffload && silenceEnablesOffload
     var needChangeOffload = false
 
     fun switchOffload() {
         if (!needChangeOffload || exoPlayer == null) return
 
-        Logt(TAG, "set audio offload $offloadEnabled")
+        Logd(TAG, "switchOffload offloadSpeedEnabled: $speedEnablesOffload offloadSilenceEnabled: $silenceEnablesOffload")
+        val enabled = speedEnablesOffload && silenceEnablesOffload
+        if (enabled == offloadEnabled) {
+            needChangeOffload = false
+            return
+        }
+        offloadEnabled = enabled
+        Logt(TAG, "switchOffload set audio offload $offloadEnabled")
 
         val wasPlaying = exoPlayer!!.isPlaying
         val position = exoPlayer!!.currentPosition
@@ -222,7 +231,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         loadControl.setBufferDurationsMs(90_000, 300_000, 2_000, 10_000)
 
         val audioOffloadPreferences = AudioOffloadPreferences.Builder()
-            .setAudioOffloadMode(AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED) // Add additional options as needed
+            .setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED) // Add additional options as needed
 //            .setIsGaplessSupportRequired(true)
 //            .setIsSpeedChangeSupportRequired(true)
             .build()
@@ -369,13 +378,13 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (mediaSource == null && mediaItem == null) return
 
         if (needChangeOffload) {
-            Logt(TAG, "set audio offload $offloadEnabled")
-            exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters
-                .buildUpon()
-                .setAudioOffloadPreferences(AudioOffloadPreferences.Builder()
-                    .setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED)
-                    .build())
-                .build()
+            val enabled = speedEnablesOffload && speedEnablesOffload
+
+            if (enabled != offloadEnabled) {
+                offloadEnabled = enabled
+                Logt(TAG, "setSource set audio offload $offloadEnabled")
+                exoPlayer!!.trackSelectionParameters = exoPlayer!!.trackSelectionParameters.buildUpon().setAudioOffloadPreferences(AudioOffloadPreferences.Builder().setAudioOffloadMode(if (offloadEnabled) AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_ENABLED else AudioOffloadPreferences.AUDIO_OFFLOAD_MODE_DISABLED).build()).build()
+            }
             needChangeOffload = false
         }
 
@@ -419,6 +428,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (isInitialized) {
             Logd(TAG, "prepare Preparing media player: status: $status")
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
+            setPlaybackParams(getCurrentPlaybackSpeed(curEpisode))
+            setSkipSilence()
             setSource()
 
 //            onPrepared(startWhenPrepared.get())
@@ -491,24 +502,27 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         EventFlow.postEvent(FlowEvent.SpeedChangedEvent(speed))
         Logd(TAG, "setPlaybackParams speed=$speed pitch=${playbackParameters.pitch}")
         val wantsOffload = speed == 1f
-        if (wantsOffload != offloadEnabled) {
-            offloadEnabled = wantsOffload
+        if (wantsOffload != speedEnablesOffload) {
+            speedEnablesOffload = wantsOffload
             needChangeOffload = true
             if (isPlaying) switchOffload()
         }
         playbackParameters = PlaybackParameters(speed, playbackParameters.pitch)
         exoPlayer?.playbackParameters = playbackParameters
+        Logd(TAG, "setPlaybackParams offloadEnabled $speedEnablesOffload")
     }
 
     override fun setSkipSilence() {
         val skipSilence = tempSkipSilence ?: curEpisode?.feed?.skipSilence ?: isSkipSilence
+        Logd(TAG, "setSkipSilence skipSilence: $skipSilence")
         val wantsOffload = !skipSilence
-        if (wantsOffload != offloadEnabled) {
-            offloadEnabled = skipSilence
+        if (wantsOffload != silenceEnablesOffload) {
+            silenceEnablesOffload = wantsOffload
             needChangeOffload = true
             if (isPlaying) switchOffload()
         }
         exoPlayer?.skipSilenceEnabled = skipSilence
+        Logd(TAG, "setSkipSilence offloadEnabled $silenceEnablesOffload")
     }
 
     override fun setRepeat(repeat: Boolean) {

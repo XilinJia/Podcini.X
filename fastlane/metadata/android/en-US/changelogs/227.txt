@@ -1,0 +1,2 @@
+* corrected handling a dynamic offload settings
+* fixed skip silence setting in Feeds settings

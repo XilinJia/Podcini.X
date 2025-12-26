@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">通知</string>
     <string name="current_episode">当前的</string>
     <string name="current_podcast">播客</string>
-    <string name="global">全局范围</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">找不到“%1$s”</string>
     <!-- SwipeActions -->
@@ -639,7 +639,7 @@
     <string name="has_chapters">有章节</string>
     <string name="filename">文件名称</string>
     <string name="play_speed">播放速度</string>
-    <string name="global_speed">全局范围</string>
+
     <string name="custom_speed">自定义</string>
     <string name="has_skips">跳过设置</string>
     <string name="commented">已评论</string>

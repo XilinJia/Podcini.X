@@ -18,7 +18,7 @@
     <string name="notification_pref_fragment">إشعارات</string>
     <string name="current_episode">الحالي</string>
     <string name="current_podcast">Podcast</string>
-    <string name="global">عام</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">لم يتم العثور على %1$s</string>
     <!-- SwipeActions -->
@@ -665,7 +665,7 @@
     <string name="has_chapters">لديه فصول</string>
     <string name="filename">اسم الملف</string>
     <string name="play_speed">سرعة التشغيل</string>
-    <string name="global_speed">عام</string>
+
     <string name="custom_speed">مخصص</string>
     <string name="has_skips">تم ضبط التخطي</string>
     <string name="commented">تعليق</string>

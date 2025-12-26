@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">Meldingen</string>
     <string name="current_episode">Stroom</string>
     <string name="current_podcast">Potcast</string>
-    <string name="global">Wereldwijd</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">\'%1$s\' is niet aangetroffen</string>
     <!-- SwipeActions -->
@@ -644,7 +644,7 @@
     <string name="has_chapters">Heeft hoofdstukken</string>
     <string name="filename">Bestandsnaam is vereist</string>
     <string name="play_speed">Speel snelheid</string>
-    <string name="global_speed">Wereldwijd</string>
+
     <string name="custom_speed">Aangepaste</string>
     <string name="has_skips">Overslaan ingesteld</string>
     <string name="commented">Commentaar</string>

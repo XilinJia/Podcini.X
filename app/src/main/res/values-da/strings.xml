@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">Notifikationer </string>
     <string name="current_episode">Aktuel</string>
     <string name="current_podcast">Podcast</string>
-    <string name="global">Globalt</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" ikke fundet</string>
     <!-- SwipeActions -->
@@ -644,7 +644,7 @@
     <string name="has_chapters">Har kapitler</string>
     <string name="filename">Fil navn</string>
     <string name="play_speed">Afspil hastighed</string>
-    <string name="global_speed">Globalt</string>
+
     <string name="custom_speed">Tilpasset</string>
     <string name="has_skips">Springer sæt</string>
     <string name="commented">Kommenteret</string>

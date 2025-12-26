@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">Уведомления</string>
     <string name="current_episode">Текущее</string>
     <string name="current_podcast">Подкаст</string>
-    <string name="global">Глобально</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">«%1$s» не найдено</string>
     <!-- SwipeActions -->
@@ -654,7 +654,7 @@
     <string name="has_chapters">Имеет главы</string>
     <string name="filename">Имя файла</string>
     <string name="play_speed">Скорость воспроизведения</string>
-    <string name="global_speed">Глобально</string>
+
     <string name="custom_speed">Свой</string>
     <string name="has_skips">Пропуск установлен</string>
     <string name="commented">Прокомментировал</string>

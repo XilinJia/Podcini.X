@@ -654,12 +654,21 @@ fun FeedsSettingsScreen() {
                             else f.skipSilence = f.skipSilence ?: false
                         } } } }
                     })
-                    Spacer(modifier = Modifier.width(10.dp))
-                    var checked by remember { mutableStateOf(feed.skipSilence ?: false) }
-                    Switch(checked = checked, modifier = Modifier.height(24.dp), onCheckedChange = {
-                        checked = it
-                        runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { f -> f.skipSilence = checked } } } }
-                    })
+                    Text(text = stringResource(R.string.global), style = CustomTextStyles.titleCustom, color = textColor)
+                    if (!glChecked) {
+                        Spacer(modifier = Modifier.width(20.dp))
+                        var checked by remember { mutableStateOf(feed.skipSilence ?: false) }
+                        Switch(checked = checked, modifier = Modifier.height(24.dp), onCheckedChange = {
+                            checked = it
+                            runOnIOScope {
+                                realm.write {
+                                    for (f in feedsToSet) {
+                                        findLatest(f)?.let { f -> f.skipSilence = checked }
+                                    }
+                                }
+                            }
+                        })
+                    }
                 }
                 Text(text = stringResource(R.string.pref_feed_playback_speed_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }

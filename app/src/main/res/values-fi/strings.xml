@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">Ilmoitukset</string>
     <string name="current_episode">Nykyinen</string>
     <string name="current_podcast">Podcast</string>
-    <string name="global">Globaali</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">Toimintoa \"%1$s\" ei löytynyt</string>
     <!-- SwipeActions -->
@@ -644,7 +644,7 @@
     <string name="has_chapters">On lukuja</string>
     <string name="filename">Tiedoston nimi</string>
     <string name="play_speed">Toista nopeus</string>
-    <string name="global_speed">Globaali</string>
+
     <string name="custom_speed">Mukautettu</string>
     <string name="has_skips">Ohituskerrat asetettu</string>
     <string name="commented">Kommentoitu</string>

@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">Oznámenia</string>
     <string name="current_episode">Current</string>
     <string name="current_podcast">Podcast</string>
-    <string name="global">Global</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">„%1$s“ nebol nájdený</string>
     <!-- SwipeActions -->
@@ -654,7 +654,7 @@
     <string name="has_chapters">Has chapters</string>
     <string name="filename">File name</string>
     <string name="play_speed">Play speed</string>
-    <string name="global_speed">Global</string>
+
     <string name="custom_speed">Custom</string>
     <string name="has_skips">Skips set</string>
     <string name="commented">Commented</string>

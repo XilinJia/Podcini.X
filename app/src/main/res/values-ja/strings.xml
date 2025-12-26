@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">通知</string>
     <string name="current_episode">現在</string>
     <string name="current_podcast">ポッドキャスト</string>
-    <string name="global">グローバル</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">%1$sが見つかりません</string>
     <!-- SwipeActions -->
@@ -641,7 +641,7 @@
     <string name="has_chapters">チャプターあり</string>
     <string name="filename">ファイル名</string>
     <string name="play_speed">再生速度</string>
-    <string name="global_speed">グローバル</string>
+
     <string name="custom_speed">カスタム</string>
     <string name="has_skips">スキップセット</string>
     <string name="commented">コメント</string>

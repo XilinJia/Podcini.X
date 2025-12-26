@@ -19,7 +19,7 @@
     <string name="notification_pref_fragment">Upozornění</string>
     <string name="current_episode">Aktuální</string>
     <string name="current_podcast">Vysílání</string>
-    <string name="global">Globální</string>
+
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" nenalezen</string>
     <!-- SwipeActions -->
@@ -654,7 +654,7 @@
     <string name="has_chapters">Má kapitoly</string>
     <string name="filename">Název souboru</string>
     <string name="play_speed">Rychlost přehrávání</string>
-    <string name="global_speed">Globální</string>
+
     <string name="custom_speed">Vlastní</string>
     <string name="has_skips">Sada přeskoků</string>
     <string name="commented">Okomentováno</string>

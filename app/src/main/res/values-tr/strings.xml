@@ -30,7 +30,7 @@
     <string name="notification_pref_fragment">Bildirimler</string>
     <string name="current_episode">Mevcut</string>
     <string name="current_podcast">Podcast</string>
-    <string name="global">Küresel</string>
+
 
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" bulunamadı</string>
@@ -788,7 +788,7 @@
     <string name="off">Kapalı</string>
 
     <string name="play_speed">Oynatma hızı</string>
-    <string name="global_speed">Küresel</string>
+
     <string name="custom_speed">Özel</string>
     <string name="has_skips">Atlamalar ayarlanmış</string>
     <string name="commented">Yorum yapılmış</string>
