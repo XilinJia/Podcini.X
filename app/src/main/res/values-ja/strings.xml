@@ -23,7 +23,6 @@
     <string name="notification_pref_fragment">通知</string>
     <string name="current_episode">現在</string>
     <string name="current_podcast">ポッドキャスト</string>
-    <string name="global">グローバル</string>
     <string name="no_more_screens_back">No more screens back</string>
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" が見つかりません</string>
@@ -313,6 +312,9 @@
     <string name="bin_limit">Bin limit</string>
     <string name="undo">元に戻す</string>
     <string name="sort">並べ替え</string>
+    <string name="sort_sum">Set sortting for episodes.</string>
+    <string name="filter">Filter</string>
+    <string name="filter_sum">Set filter for episodes.</string>
     <string name="rename">名前の変更</string>
     <string name="add_queue">キューを追加</string>
     <string name="publish_date">公開日</string>
@@ -767,7 +769,7 @@
     <string name="exclude">除外</string>
     <string name="off">オフ</string>
     <string name="play_speed">再生速度</string>
-    <string name="global_speed">グローバル</string>
+    <string name="global">グローバル</string>
     <string name="custom_speed">カスタム</string>
     <string name="has_skips">スキップセット</string>
     <string name="commented">コメント</string>
