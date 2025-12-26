@@ -31,6 +31,7 @@ import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.ui.actions.ButtonTypes
@@ -146,6 +147,7 @@ import com.google.common.util.concurrent.MoreExecutors
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
+import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -289,10 +291,9 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     fun initBinFlow() {
-//        episodesFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).sort(Pair("timeOutQueue", Sort.DESCENDING)).asFlow()
+        episodesInQueueFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).sort(sortPairOf(EpisodeSortOrder.PLAYED_DATE_DESC)).asFlow().map { it.list }
     }
     fun initQueueFlow() {
-//        episodesFlow = realm.query(Episode::class).query("id IN $0", curQueue.episodeIds).sort(sortPairOf(curQueue.sortOrder)).asFlow()
         queueEntriesFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow()
         orderedEpisodeIdsFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow()
             .map { results -> results.list.map { it.episodeId } }

@@ -2,6 +2,7 @@
 
 * corrected handling a dynamic offload settings
 * fixed skip silence setting in Feeds settings
+* restored bins in Queues screen
 
 # 10.2.0
 
