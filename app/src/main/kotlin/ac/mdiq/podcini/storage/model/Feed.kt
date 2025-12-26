@@ -6,6 +6,7 @@ import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
@@ -215,6 +216,8 @@ class Feed : RealmObject {
     var videoMode: Int = VideoMode.NONE.code
 
     var playSpeed: Float = SPEED_USE_GLOBAL
+
+    var skipSilence: Boolean? = null
 
     var introSkip: Int = 0
     var endingSkip: Int = 0
@@ -565,7 +568,6 @@ class Feed : RealmObject {
         const val MAX_NATURAL_SYNTHETIC_ID: Long = 100L
         const val MAX_SYNTHETIC_ID: Long = 1000L
 
-        const val SPEED_USE_GLOBAL: Float = -1f
         const val TAG_ROOT: String = "#root"
         const val TAG_SEPARATOR: String = "\u001e"
 

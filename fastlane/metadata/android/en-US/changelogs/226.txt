@@ -1,0 +1,7 @@
+* skip silence now can be set to current, feed and global (same as for speed)
+* audio offload is reset when necessary on every new media, speed change, and skip silence change
+	* if speed is 1x, and silence is not skipped, request offload (if hardware supports)
+	* otherwise, not offload, use CPU
+	* the change can cause a hiccup during play
+* in FeedsSettings, added settings for skip silence, sorting and filter
+* added volumes on grid view of Subscriptions screen

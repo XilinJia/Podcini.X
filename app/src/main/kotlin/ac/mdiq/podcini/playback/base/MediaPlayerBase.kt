@@ -7,9 +7,9 @@ import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
-import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.curState
+import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.PositionSaver.Companion.positionSaver
 import ac.mdiq.podcini.playback.base.SleepManager.Companion.sleepManager
@@ -29,8 +29,8 @@ import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.sleepPrefs
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -325,7 +325,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     abstract fun setPlaybackParams(speed: Float)
 
-    open fun setSkipSilence(skipSilence: Boolean) {}
+    open fun setSkipSilence() {}
 
     open fun setRepeat(repeat: Boolean) {}
 
@@ -373,7 +373,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     internal fun onPlaybackEnded(stopPlaying: Boolean) {
         Logd(TAG, "onPlaybackEnded stopPlaying: $stopPlaying")
-        clearCurTempSpeed()
+        curTempSpeed = SPEED_USE_GLOBAL
         if (stopPlaying) positionSaver?.cancelPositionSaver()
     }
 
@@ -812,16 +812,15 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
          * Returns the currently configured playback speed for the specified media.
          */
         fun getCurrentPlaybackSpeed(media: Episode?): Float {
-            var playbackSpeed = Feed.SPEED_USE_GLOBAL
+            var playbackSpeed = SPEED_USE_GLOBAL
             if (media != null) {
-                playbackSpeed = curState.curTempSpeed
-                // TODO: something strange here?
-                if (playbackSpeed == Feed.SPEED_USE_GLOBAL) {
+                playbackSpeed = curTempSpeed
+                if (playbackSpeed == SPEED_USE_GLOBAL) {
                     val feed = media.feed
                     if (feed != null) playbackSpeed = feed.playSpeed
                 }
             }
-            if (playbackSpeed == Feed.SPEED_USE_GLOBAL) playbackSpeed = prefPlaybackSpeed
+            if (playbackSpeed == SPEED_USE_GLOBAL) playbackSpeed = prefPlaybackSpeed
             return playbackSpeed
         }
 

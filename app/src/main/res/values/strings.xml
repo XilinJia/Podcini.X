@@ -391,6 +391,10 @@
     <string name="undo">Undo</string>
 
     <string name="sort">Sort</string>
+    <string name="sort_sum">Set sortting for episodes.</string>
+    <string name="filter">Filter</string>
+    <string name="filter_sum">Set filter for episodes.</string>
+
     <string name="rename">Rename</string>
     <string name="add_queue">Add queue</string>
     <string name="publish_date">Publish date</string>

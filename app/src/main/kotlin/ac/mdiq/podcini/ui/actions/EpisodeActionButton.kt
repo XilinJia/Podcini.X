@@ -8,7 +8,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.playback.base.InTheatre.clearCurTempSpeed
+import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
@@ -28,6 +28,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
@@ -454,7 +455,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     mPlayer?.play()
                     sleepManager?.restartSleepTimer()
                 } else {
-                    clearCurTempSpeed()
+                    curTempSpeed = SPEED_USE_GLOBAL
                     PlaybackStarter(context, item).start()
                     if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code) item = runBlocking { setPlayState(EpisodeState.PROGRESS, item, false) }
                 }

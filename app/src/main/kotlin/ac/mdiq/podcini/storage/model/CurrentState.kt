@@ -17,12 +17,15 @@ class CurrentState : RealmObject {
 
     var curPlayerStatus: Int = PLAYER_STATUS_OTHER
 
-    var curTempSpeed: Float = Feed.SPEED_USE_GLOBAL
+//    var curTempSpeed: Float = SPEED_USE_GLOBAL
 
     constructor() {}
 
     companion object {
         val TAG: String = CurrentState::class.simpleName ?: "Anonymous"
+
+        const val SPEED_USE_GLOBAL: Float = -1f
+
         /**
          * Value of PREF_CURRENTLY_PLAYING_MEDIA if no media is playing.
          */

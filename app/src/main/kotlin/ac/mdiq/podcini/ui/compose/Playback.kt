@@ -2,7 +2,8 @@ package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.saveCurTempSpeed
+import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
+import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.curPBSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isFallbackSpeed
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isSpeedForward
@@ -19,6 +20,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -95,7 +97,7 @@ private fun SpeedSetter(initSpeed: Float, maxSpeed: Float, speedCB: (Float) -> U
     //    }
     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         var speed by remember { mutableFloatStateOf(initSpeed) }
-        var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
+        var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
         val stepSize = 0.05f
         Text("-", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
             modifier = Modifier.clickable(onClick = {
@@ -135,15 +137,15 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
             Column {
                 Text(stringResource(R.string.playback_speed), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
                 var speed by remember { mutableFloatStateOf(initSpeed) }
-                //                var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
-                var useGlobal by remember { mutableStateOf(!isGlobal && speed == Feed.SPEED_USE_GLOBAL) }
+                //                var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
+                var useGlobal by remember { mutableStateOf(!isGlobal && speed == SPEED_USE_GLOBAL) }
                 if (!isGlobal) Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = useGlobal, onCheckedChange = { isChecked ->
                         useGlobal = isChecked
                         speed = when {
-                            useGlobal -> Feed.SPEED_USE_GLOBAL
+                            useGlobal -> SPEED_USE_GLOBAL
                             feeds.size == 1 -> {
-                                if (feeds[0].playSpeed == Feed.SPEED_USE_GLOBAL) prefPlaybackSpeed
+                                if (feeds[0].playSpeed == SPEED_USE_GLOBAL) prefPlaybackSpeed
                                 else feeds[0].playSpeed
                             }
                             else -> 1f
@@ -157,7 +159,7 @@ fun PlaybackSpeedDialog(feeds: List<Feed>, initSpeed: Float, maxSpeed: Float, is
                     Button(onClick = { onDismiss() }) { Text(stringResource(R.string.cancel_label)) }
                     Spacer(Modifier.weight(1f))
                     Button(onClick = {
-                        val newSpeed = if (useGlobal) Feed.SPEED_USE_GLOBAL else speed
+                        val newSpeed = if (useGlobal) SPEED_USE_GLOBAL else speed
                         speedCB(newSpeed)
                         onDismiss()
                     }) { Text(stringResource(R.string.confirm_label)) }
@@ -211,8 +213,8 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                         trailingIcon = { Icon(imageVector = Icons.Filled.Add, contentDescription = "Add icon", modifier = Modifier.size(FilterChipDefaults.IconSize)) })
                     else IconButton(onClick = { showEdit = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit preset") }
                 }
-                if (showEdit) Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == Feed.SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
+                if (showEdit) Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                    var sliderPosition by remember { mutableFloatStateOf(speed2Slider(if (speed == SPEED_USE_GLOBAL) 1f else speed, maxSpeed)) }
                     val stepSize = 0.05f
                     Text("-", fontSize = MaterialTheme.typography.headlineLarge.fontSize, fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable(onClick = {
@@ -240,7 +242,7 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                 var forCurrent by remember { mutableStateOf(indexDefault == 0) }
                 var forPodcast by remember { mutableStateOf(indexDefault == 1) }
                 var forGlobal by remember { mutableStateOf(indexDefault == 2) }
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                     Spacer(Modifier.weight(1f))
                     Checkbox(checked = forCurrent, onCheckedChange = { isChecked -> forCurrent = isChecked })
                     Text(stringResource(R.string.current_episode))
@@ -268,11 +270,11 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                                     if (settingCode[2]) putPref(AppPrefs.prefPlaybackSpeed, chipSpeed.toString())
                                     if (settingCode[1] && curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.playSpeed = chipSpeed }
                                     if (settingCode[0]) {
-                                        saveCurTempSpeed(chipSpeed)
+                                        curTempSpeed = chipSpeed
                                         mPlayer?.setPlaybackParams(chipSpeed)
                                     }
                                 } else {
-                                    saveCurTempSpeed(chipSpeed)
+                                    curTempSpeed = chipSpeed
                                     mPlayer?.setPlaybackParams(chipSpeed)
                                 }
                             }
@@ -292,21 +294,39 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                 var showMore by remember { mutableStateOf(false) }
                 TextButton(onClick = { showMore = !showMore }) { Text("More>>", style = MaterialTheme.typography.headlineSmall) }
                 if (showMore) {
+                    Text(stringResource(R.string.pref_skip_silence_title), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(Modifier.weight(1f))
+                        var tmpChecked by remember { mutableStateOf(tempSkipSilence) }
+                        Checkbox(checked = tmpChecked?: false, onCheckedChange = { isChecked ->
+                            tmpChecked = isChecked
+                            tempSkipSilence = isChecked
+                            mPlayer?.setSkipSilence()
+                        })
+                        Text(stringResource(R.string.current_episode))
+                        var feedChecked by remember { mutableStateOf(curEpisode!!.feed?.skipSilence?: false) }
+                        Spacer(Modifier.weight(1f))
+                        Checkbox(checked = feedChecked, onCheckedChange = { isChecked ->
+                            feedChecked = isChecked
+                            if (curEpisode?.feed != null) upsertBlk(curEpisode!!.feed!!) { it.skipSilence = isChecked }
+                        })
+                        Text(stringResource(R.string.current_podcast))
+                        Spacer(Modifier.weight(1f))
+                        var glChecked by remember { mutableStateOf(isSkipSilence) }
+                        Checkbox(checked = glChecked, onCheckedChange = { isChecked ->
+                            glChecked = isChecked
+                            isSkipSilence = isChecked
+                        })
+                        Text(stringResource(R.string.global))
+                        Spacer(Modifier.weight(1f))
+                    }
+                    HorizontalDivider(thickness = 5.dp, modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = shouldRepeat, onCheckedChange = { isChecked ->
                             shouldRepeat = isChecked
                             mPlayer?.setRepeat(isChecked)
                         })
                         Text(stringResource(R.string.repeat_current_media))
-                    }
-                    var isSkipSilence_ by remember { mutableStateOf(isSkipSilence) }
-                    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = isSkipSilence_, onCheckedChange = { isChecked ->
-                            isSkipSilence_ = isChecked
-                            isSkipSilence = isSkipSilence_
-                            mPlayer?.setSkipSilence(isChecked)
-                        })
-                        Text(stringResource(R.string.pref_skip_silence_title))
                     }
                     HorizontalDivider(thickness = 5.dp, modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

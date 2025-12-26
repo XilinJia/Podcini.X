@@ -865,7 +865,6 @@ fun SubscriptionsScreen() {
 
         @Composable
         fun FeedsSpeedDial(selected: SnapshotStateList<Feed>, modifier: Modifier = Modifier) {
-//            val TAG = "FeedsSpeedDial ${selected.size}"
             var fgColor = complementaryColorOf(MaterialTheme.colorScheme.tertiaryContainer)
             Column(modifier = modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.Bottom) {
                 if (isFeedsOptionsExpanded) feedsOptionsMap.values.forEachIndexed { _, button ->
@@ -890,6 +889,19 @@ fun SubscriptionsScreen() {
         }) {
             if (vm.subPrefs.prefFeedGridLayout) {
                 LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
+                    if (volumes.isNotEmpty()) items(volumes.size, key = { i -> volumes[i].id}) { index ->
+                        val volume = volumes[index]
+                        Column(Modifier.background(MaterialTheme.colorScheme.surface)
+                            .combinedClickable(onClick = { vm.curVolume = volume},
+                                onLongClick = {
+                                    feedsSelected.clear()
+                                    feedsSelected.addAll(volume.allFeeds)
+                                    volumeToOperate = volume
+                            })) {
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null, modifier = Modifier.fillMaxWidth())
+                            Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
                     items(feeds.size, key = {index -> feeds[index].id}) { index ->
                         val feed by remember { mutableStateOf(feeds[index]) }
                         var isSelected by remember(selectMode, selectedSize, feed.id) { mutableStateOf(selectMode && feed in feedsSelected) }
@@ -1001,8 +1013,7 @@ fun SubscriptionsScreen() {
                                 volumeToOperate = volume
                             }
                             )) {
-                            Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null,
-                                modifier = Modifier.width(50.dp).height(50.dp).clickable(onClick = {}))
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(50.dp).height(50.dp))
                             Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f).fillMaxHeight().wrapContentHeight(Alignment.CenterVertically))
                         }
                     }

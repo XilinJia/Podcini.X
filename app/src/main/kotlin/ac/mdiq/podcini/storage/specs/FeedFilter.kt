@@ -2,6 +2,7 @@ package ac.mdiq.podcini.storage.specs
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
+import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.Logd
 import java.io.Serializable
@@ -23,8 +24,8 @@ class FeedFilter(vararg properties_: String) : Serializable {
         }
 
         when {
-            properties.contains(States.global_playSpeed.name) -> statements.add(" playSpeed == ${Feed.SPEED_USE_GLOBAL} ")
-            properties.contains(States.custom_playSpeed.name) -> statements.add(" playSpeed != ${Feed.SPEED_USE_GLOBAL} ")
+            properties.contains(States.global_playSpeed.name) -> statements.add(" playSpeed == ${SPEED_USE_GLOBAL} ")
+            properties.contains(States.custom_playSpeed.name) -> statements.add(" playSpeed != ${SPEED_USE_GLOBAL} ")
         }
         when {
             properties.contains(States.has_skips.name) -> statements.add(" (introSkip != 0 OR endingSkip != 0) ")

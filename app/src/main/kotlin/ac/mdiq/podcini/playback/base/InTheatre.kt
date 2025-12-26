@@ -15,6 +15,7 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.NO_MEDIA_PLAYING
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_OTHER
+import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
@@ -54,6 +55,10 @@ object InTheatre {
     var actQueue by mutableStateOf(PlayQueue())
 
     var curEpisode by mutableStateOf<Episode?>(null)     // manged
+
+    var curTempSpeed: Float = SPEED_USE_GLOBAL
+
+    var tempSkipSilence: Boolean? = null
 
     private var curStateMonitor: Job? = null
     var curState: CurrentState
@@ -127,6 +132,7 @@ object InTheatre {
             episode != null -> {
                 curEpisode = episode
                 shouldRepeat = false
+                curTempSpeed = SPEED_USE_GLOBAL
                 Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")
                 runOnIOScope {
                     val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
@@ -146,21 +152,9 @@ object InTheatre {
                             }
                         ))
                 }
-//                curMediaId = episode.id
             }
-            else -> {
-                curEpisode = null
-//                curMediaId = -1L
-            }
+            else -> curEpisode = null
         }
-    }
-
-    fun saveCurTempSpeed(speed: Float) {
-        upsertBlk(curState) { it.curTempSpeed = speed }
-    }
-
-    fun clearCurTempSpeed() {
-        upsertBlk(curState) { it.curTempSpeed = Feed.SPEED_USE_GLOBAL }
     }
 
     fun savePlayerStatus(playerStatus: PlayerStatus?) {

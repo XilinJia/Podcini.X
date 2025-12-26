@@ -17,10 +17,13 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.volumes
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
+import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
@@ -96,8 +99,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.xilinjia.krdb.ext.toRealmList
-import kotlin.collections.ifEmpty
-import kotlin.collections.joinToString
 
 private const val TAG = "FeedSettingsScreen"
 
@@ -637,6 +638,31 @@ fun FeedsSettingsScreen() {
                 }
                 Text(text = stringResource(R.string.pref_feed_playback_speed_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
+            //              skip silence
+            Column {
+                Row(Modifier.fillMaxWidth()) {
+                    Icon(ImageVector.vectorResource(id = R.drawable.ic_volume_adaption), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.pref_skip_silence_title), style = CustomTextStyles.titleCustom, color = textColor)
+                }
+                Row(Modifier.fillMaxWidth()) {
+                    var glChecked by remember { mutableStateOf(feed.skipSilence == null) }
+                    Checkbox(checked = glChecked, modifier = Modifier.height(24.dp), onCheckedChange = {
+                        glChecked = it
+                        runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { f ->
+                            if (glChecked) f.skipSilence = null
+                            else f.skipSilence = f.skipSilence ?: false
+                        } } } }
+                    })
+                    Spacer(modifier = Modifier.width(10.dp))
+                    var checked by remember { mutableStateOf(feed.skipSilence ?: false) }
+                    Switch(checked = checked, modifier = Modifier.height(24.dp), onCheckedChange = {
+                        checked = it
+                        runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { f -> f.skipSilence = checked } } } }
+                    })
+                }
+                Text(text = stringResource(R.string.pref_feed_playback_speed_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
             //                    volume adaption
             Column {
                 Row(Modifier.fillMaxWidth()) {
@@ -741,8 +767,36 @@ fun FeedsSettingsScreen() {
                     runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.autoAddNewToQueue = it } } }
                 }
             }
+            var showSortDialog by remember { mutableStateOf(false) }
+            if (showSortDialog) {
+                EpisodeSortDialog(initOrder = feed.episodeSortOrder, onDismissRequest = { showSortDialog = false }) { order ->
+                    runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { f -> f.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC } } } }
+                }
+            }
+            Column {
+                Row(Modifier.fillMaxWidth()) {
+                    Icon(ImageVector.vectorResource(id = R.drawable.arrows_sort), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.sort), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showSortDialog = true }))
+                }
+                Text(text = stringResource(R.string.sort_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+            var showFilterDialog by remember {  mutableStateOf(false) }
+            if (showFilterDialog) {
+                EpisodesFilterDialog(filter_ = feed.episodeFilter, onDismissRequest = { showFilterDialog = false }) { filter ->
+                    runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { f -> f.episodeFilter = filter } } } }
+                }
+            }
+            Column {
+                Row(Modifier.fillMaxWidth()) {
+                    Icon(ImageVector.vectorResource(id = R.drawable.ic_filter), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.filter), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showFilterDialog = true }))
+                }
+                Text(text = stringResource(R.string.filter_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
             var autoEnqueueChecked by remember { mutableStateOf(feed.autoEnqueue) }
-            Row(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth().padding(top=5.dp)) {
                 Text(text = stringResource(R.string.auto_colon), style = CustomTextStyles.titleCustom, color = textColor)
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = stringResource(R.string.enqueue), style = CustomTextStyles.titleCustom, color = textColor)
