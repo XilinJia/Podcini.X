@@ -23,7 +23,6 @@
     <string name="notification_pref_fragment">الإشعارات</string>
     <string name="current_episode">الحالي</string>
     <string name="current_podcast">Podcast</string>
-    <string name="global">عام</string>
     <string name="no_more_screens_back">No more screens back</string>
     <!-- Google Assistant -->
     <string name="app_action_not_found">\"%1$s\" غير موجود</string>
@@ -323,6 +322,9 @@
     <string name="bin_limit">Bin limit</string>
     <string name="undo">التراجع</string>
     <string name="sort">فرز</string>
+    <string name="sort_sum">Set sortting for episodes.</string>
+    <string name="filter">Filter</string>
+    <string name="filter_sum">Set filter for episodes.</string>
     <string name="rename">إعادة تسمية</string>
     <string name="add_queue">إضافة قائمة الانتظار</string>
     <string name="publish_date">تاريخ النشر</string>
@@ -792,7 +794,7 @@
     <string name="exclude">استبعاد</string>
     <string name="off">متوقف</string>
     <string name="play_speed">سرعة التشغيل</string>
-    <string name="global_speed">عام</string>
+    <string name="global">عام</string>
     <string name="custom_speed">مخصص</string>
     <string name="has_skips">تم ضبط التخطي</string>
     <string name="commented">تعليق</string>
