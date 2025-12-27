@@ -1,3 +1,18 @@
+# 10.2.2
+
+* fixed sort order direction in Queues screen
+* actQueue is live monitored from DB
+* likely fixed cases where Default queue's name can be emptied
+* in FeedEpisodes screen, when in select mode, header is hidden
+* on episodes lists, if use feed cover, feed rating is shown on the cover
+* in Queue, introduced autoSort (default to false), settable in settings
+	* when set to true
+		* queue is set to locked, insert position is not applicable
+		* every addToQueue will perform a sort based on the preset sort order
+	* when the queue is unlocked, autoSort is automatically set to false
+* enhanced addToQueue routines
+* some code refactoring
+
 # 10.2.1
 
 * corrected handling a dynamic offload settings

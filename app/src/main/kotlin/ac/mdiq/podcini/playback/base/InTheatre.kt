@@ -5,7 +5,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
 import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.storage.database.MonitorEntity
 import ac.mdiq.podcini.storage.database.getEpisode
-import ac.mdiq.podcini.storage.database.queues
+import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.subscribeEpisode
@@ -18,7 +18,6 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_OTHER
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.Companion.PLAYABLE_TYPE_FEEDMEDIA
-import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -71,12 +70,11 @@ object InTheatre {
         curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}
         CoroutineScope(Dispatchers.IO).launch {
             Logd(TAG, "starting queues")
-            if (queues.isEmpty()) {
+            if (queuesLive.isEmpty()) {
                 for (i in 0..4) {
                     val q = PlayQueue()
-                    if (i == 0) {
-                        q.name = "Default"
-                    } else {
+                    if (i == 0) q.name = "Default"
+                    else {
                         q.id = i.toLong()
                         q.name = "Queue $i"
                     }
@@ -137,7 +135,7 @@ object InTheatre {
                 runOnIOScope {
                     val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
                     if (qes.isNotEmpty()) {
-                        val q = realm.query(PlayQueue::class).query("id == ${qes[0].queueId}").first().find()
+                        val q = queuesLive.find { it.id == qes[0].queueId }
                         if (q != null) actQueue = q
                     }
                     subscribeEpisode(curEpisode!!,

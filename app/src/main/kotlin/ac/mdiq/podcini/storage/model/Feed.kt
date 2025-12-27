@@ -5,6 +5,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -281,7 +282,7 @@ class Feed : RealmObject {
     @Ignore
     var queue: PlayQueue? = null
         get() = when {
-            queueId >= 0 -> realm.query(PlayQueue::class).query("id == $queueId").first().find()
+            queueId >= 0 -> queuesLive.find { it.id == queueId }
             queueId == -1L -> actQueue
             queueId == -2L -> null
             else -> null

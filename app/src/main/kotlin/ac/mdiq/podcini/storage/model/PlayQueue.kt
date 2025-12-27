@@ -14,6 +14,7 @@ import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import java.util.Date
 
 const val VIRTUAL_QUEUE_ID = 100000L
+const val TMP_QUEUE_ID = -1L
 
 class PlayQueue : RealmObject {
     @PrimaryKey
@@ -42,6 +43,8 @@ class PlayQueue : RealmObject {
             sortOrderCode = value.code
         }
     var sortOrderCode: Int = EpisodeSortOrder.DATE_DESC.code     // in EpisodeSortOrder
+
+    var autoSort: Boolean = false
 
     var isLocked: Boolean = true
 
@@ -73,3 +76,5 @@ class PlayQueue : RealmObject {
 
     constructor() {}
 }
+
+fun tmpQueue(): PlayQueue = PlayQueue().apply { id = TMP_QUEUE_ID }

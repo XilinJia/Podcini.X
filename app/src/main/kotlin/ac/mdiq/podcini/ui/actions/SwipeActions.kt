@@ -3,8 +3,8 @@ package ac.mdiq.podcini.ui.actions
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
-import ac.mdiq.podcini.storage.database.addToActQueue
-import ac.mdiq.podcini.storage.database.addToAssOrActQueue
+import ac.mdiq.podcini.storage.database.addToAssQueue
+import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.realm
@@ -186,7 +186,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
         override fun performAction(e: Episode) {
             super.performAction(e)
-            runOnIOScope { addToActQueue(listOf(e)) }
+            runOnIOScope { addToQueue(listOf(e), actQueue) }
         }
     }
 
@@ -206,7 +206,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
 
         override fun performAction(e: Episode) {
             super.performAction(e)
-            if (e.feed?.queue != null) runOnIOScope { addToAssOrActQueue(e) }
+            if (e.feed?.queue != null) runOnIOScope { addToAssQueue(listOf(e)) }
         }
     }
 

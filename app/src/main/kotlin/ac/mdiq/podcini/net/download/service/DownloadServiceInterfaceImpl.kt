@@ -13,7 +13,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.addDownloadStatus
-import ac.mdiq.podcini.storage.database.addToAssOrActQueue
+import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
@@ -84,7 +84,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         }
         if (item.isDownloaded()) {
             if (getPref(AppPrefs.prefEnqueueDownloaded, false)) {
-                if (item.feed?.queue != null) runBlocking { addToAssOrActQueue(item, item.feed?.queue) }
+                if (item.feed?.queue != null) runBlocking { addToAssQueue(listOf(item)) }
             }
             return
         }
@@ -351,7 +351,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 .addTag(WORK_TAG)
                 .addTag(WORK_TAG_EPISODE_URL + item.downloadUrl)
             if (getPref(AppPrefs.prefEnqueueDownloaded, false)) {
-                if (item.feed?.queue != null) runBlocking { addToAssOrActQueue(item, item.feed?.queue) }
+                if (item.feed?.queue != null) runBlocking { addToAssQueue(listOf(item)) }
                 workRequest.addTag(WORK_DATA_WAS_QUEUED)
             }
             workRequest.setInputData(Data.Builder().putLong(WORK_DATA_MEDIA_ID, item.id).build())

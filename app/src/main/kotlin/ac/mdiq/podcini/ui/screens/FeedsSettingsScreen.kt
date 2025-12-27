@@ -5,7 +5,7 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
-import ac.mdiq.podcini.storage.database.queues
+import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.Feed
@@ -575,15 +575,15 @@ fun FeedsSettingsScreen() {
                             Text(custom)
                         }
                         if (selected == custom) {
-                            Logd(TAG, "queues: ${queues.size}")
+                            Logd(TAG, "queues: ${queuesLive.size}")
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                for (i in queues.indices) {
+                                for (i in queuesLive.indices) {
                                     FilterChip(onClick = {
-                                        val q = queues[i]
+                                        val q = queuesLive[i]
                                         runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.queue = q } } }
                                         curPrefQueue = q.name
                                         onDismissRequest()
-                                    }, label = { Text(queues[i].name) }, selected = false, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                                    }, label = { Text(queuesLive[i].name) }, selected = false, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
                                 }
                             }
                         }

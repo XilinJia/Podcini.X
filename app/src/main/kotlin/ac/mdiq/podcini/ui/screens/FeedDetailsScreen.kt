@@ -707,6 +707,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         if (feed != null) runOnceOrAsk(context, feeds = listOf(feed!!))
                         else Logt(TAG, "feed is null, can not refresh")
                     },
+                    selectModeCB = { showHeader = !it },
                     actionButtonCB = { e, type ->
                         Logd(TAG, "actionButtonCB type: $type ${e.feed?.id} ${feed?.id}")
                         if (e.feed?.id == feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {

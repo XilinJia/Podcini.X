@@ -3,7 +3,6 @@ package ac.mdiq.podcini.storage.database
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.automation.autodownloadForQueue
 import ac.mdiq.podcini.automation.autoenqueueForQueue
-import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -15,6 +14,7 @@ import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent.QueueEvent
@@ -38,13 +38,15 @@ private const val TAG: String = "Queues"
 const val QUEUE_POSITION_DELTA = 10000L
 
 val queuesFlow = realm.query(PlayQueue::class).sort("name").asFlow()
-var queues = realm.query(PlayQueue::class).sort("name").find()
+var queuesLive = realm.query(PlayQueue::class).sort("name").find()
     private set
 
 val queuesJob = CoroutineScope(Dispatchers.Default).launch {
     queuesFlow.collect { changes: ResultsChange<PlayQueue> ->
-        queues = changes.list
-        Logd(TAG, "queues updated")
+        queuesLive = changes.list
+        val q = queuesLive.find { it.id == actQueue.id }
+        if (q != null) actQueue = q
+        Logd(TAG, "queuesLive updated")
         when (changes) {
             is UpdatedResults -> {
                 when {
@@ -78,43 +80,20 @@ fun inQueueEpisodeIdSet(): Set<Long> {
     return realm.query(QueueEntry::class).find().map { it.episodeId }.toSet()
 }
 
-/**
- * Appends Episode objects to the end of the queue. The 'read'-attribute of all episodes will be set to true.
- * If a Episode is already in the queue, the Episode will not change its position in the queue.
- * @param episodes               the Episode objects that should be added to the queue.
- */
-suspend fun addToActQueue(episodes: List<Episode>) {
-    Logd(TAG, "addToActQueue( ... ) called")
-    if (episodes.isEmpty()) return
-    val queue = actQueue
-    if (queue.isVirtual()) {
-        Loge(TAG, "Active queue is virtual, ignored")
-        return
-    }
-
-    var queueModified = false
-    val setInQueue = mutableListOf<Episode>()
-    val qes = queueEntriesOf(queue)
-    var insertPosition = calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), curEpisode)
-
-    val time = System.currentTimeMillis()
-    var i = 0L
-    for (episode in episodes) {
-        if (queue.contains(episode)) continue
-        val qe = QueueEntry()
-        qe.id = time + i++
-        upsert(qe) {
-            it.queueId = queue.id
-            it.episodeId = episode.id
-            it.position = insertPosition
+suspend fun sortQueue(queue: PlayQueue) {
+    val queueEntries = queueEntriesOf(queue)
+    val episodes = realm.query(Episode::class).query("id IN $0", queueEntries.map { it.episodeId }).find().toMutableList()
+    getPermutor(queue.sortOrder).reorder(episodes)
+    realm.write {
+        for (i in episodes.indices) {
+            val e = episodes[i]
+            val qe = queueEntries.find { it.episodeId == e.id }
+            if (qe == null) {
+                Loge(TAG, "Can't find queueEntry for episode: ${e.title}")
+                continue
+            }
+            findLatest(qe)?.position = (i+1) * QUEUE_POSITION_DELTA
         }
-        queueModified = true
-        if (episode.playState < EpisodeState.QUEUE.code) setInQueue.add(episode)
-        insertPosition += QUEUE_POSITION_DELTA
-    }
-    if (queueModified) {
-        if (queue.id == actQueue.id) actQueue = queue
-        for (episode in setInQueue) setPlayState(EpisodeState.QUEUE, episode, false)
     }
 }
 
@@ -122,34 +101,51 @@ fun queueEntriesOf(queue: PlayQueue): List<QueueEntry> {
     return realm.query(QueueEntry::class).query("queueId == ${queue.id}").sort("position").find()
 }
 
-suspend fun addToAssOrActQueue(episode: Episode, queue_: PlayQueue? = null) {
+suspend fun addToAssQueue(episodes: List<Episode>) {
     Logd(TAG, "addToQueueSync( ... ) called")
-    var queue = queue_ ?: episode.feed?.queue ?: actQueue
+    val mapByFeed = episodes.groupBy { it.feedId }
+    for (en in mapByFeed.entries) {
+        val fid = en.key ?: continue
+        val f = getFeed(fid) ?: continue
+        val q = f.queue ?: continue
+        val episodes = en.value
+        addToQueue(episodes, q)
+    }
+}
+
+suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
+    Logd(TAG, "addToQueueSync( ... ) called")
     if (queue.isVirtual()) {
         Loge(TAG, "Current queue is virtual, ignored")
         return
     }
-    queue = realm.query(PlayQueue::class).query("id == ${queue.id}").first().find() ?: return
-    if (queue.contains(episode)) return
-
-    val qes = queueEntriesOf(queue)
-    val currentlyPlaying = if (queue.id == actQueue.id) curEpisode else null
-    val insertPosition = calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), currentlyPlaying)
-    Logd(TAG, "addToQueueSync insertPosition: $insertPosition")
-    val qe = QueueEntry()
-    qe.id = System.currentTimeMillis()
-    upsert(qe) {
-        it.queueId = queue.id
-        it.episodeId = episode.id
-        it.position = insertPosition
+    val time = System.currentTimeMillis()
+    var i = 0L
+    var qes = queueEntriesOf(queue)
+    realm.write {
+        for (e in episodes) {
+            if (qes.indexOfFirst { it.episodeId == e.id } >= 0) continue
+            val insertPosition = if (queue.autoSort) 0 else {
+                qes = queueEntriesOf(queue)
+                calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), (if (queue.id == actQueue.id) curEpisode else null))
+            }
+            Logd(TAG, "addToQueueSync insertPosition: $insertPosition")
+            val qe = QueueEntry().apply {
+                id = time + i++
+                queueId = queue.id
+                episodeId = e.id
+                position = insertPosition
+            }
+            copyToRealm(qe)
+        }
     }
-    if (episode.playState < EpisodeState.QUEUE.code) setPlayState(EpisodeState.QUEUE, episode, false)
-//    if (queue.id == actQueue.id) actQueue = queueNew
+    for (e in episodes) if (e.playState < EpisodeState.QUEUE.code) setPlayState(EpisodeState.QUEUE, e, false)
+    if (queue.autoSort) sortQueue(queue)
 }
 
 suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdentity: String, sortOrder: EpisodeSortOrder, playInSequence: Boolean = true) {
     Logd(TAG, "queueToVirtual ${virQueue.identity} $listIdentity ${episodes.size}")
-    virQueue = realm.query(PlayQueue::class).query("id == $VIRTUAL_QUEUE_ID").first().find() ?: return
+    virQueue = queuesLive.find { it.id == VIRTUAL_QUEUE_ID } ?: return
     if (virQueue.identity != listIdentity) {
         if (virQueue.contains(episode)) {
             Logd(TAG, "VirQueue has the episode, ignore")
@@ -171,19 +167,18 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
             }
             val time = System.currentTimeMillis()
             var i = 0L
-            var ip = 1L
-            for (eid in eIdsToQueue) {
-                realm.write {
-                    val qe = QueueEntry()
-                    qe.let {
-                        it.id = time + i++
-                        it.queueId = virQueue.id
-                        it.episodeId = eid
-                        it.position = ip
+            var ip = QUEUE_POSITION_DELTA
+            realm.write {
+                for (eid in eIdsToQueue) {
+                    val qe = QueueEntry().apply {
+                        id = time + i++
+                        queueId = virQueue.id
+                        episodeId = eid
+                        position = ip
                     }
                     copyToRealm(qe)
+                    ip += QUEUE_POSITION_DELTA
                 }
-                ip += QUEUE_POSITION_DELTA
             }
             actQueue = virQueue
             Logt(TAG, "first ${virQueue.size()} episodes are added to the Virtual queue")
@@ -201,7 +196,7 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED
         item = setPlayState(stat, item, resetMediaPosition = false, removeFromQueue = false)
     }
-    for (q in queues) {
+    for (q in queuesLive) {
         if (q.id != actQueue.id && q.contains(item)) removeFromQueue(q, listOf(item))
     }
     //        ensure actQueue is last updated
@@ -229,7 +224,7 @@ fun trimBin(queue: PlayQueue) {
 fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? = null) {
     Logd(TAG, "removeFromAllQueuesSync called ")
     for (e in episodes) {
-        for (q in queues) {
+        for (q in queuesLive) {
             if (q.id != actQueue.id && q.contains(e)) removeFromQueue(q, listOf(e), playState)
         }
     }
@@ -332,11 +327,11 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
                 autoenqueueForQueue(qNew)
                 if(qNew.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), qNew)
             }
-            if (isActQueue) actQueue = qNew
+//            if (isActQueue) actQueue = qNew
         }
     }
 
-    for (q in queues) {
+    for (q in queuesLive) {
         if (q.id == actQueue.id) continue
         doit(q)
     }
@@ -379,39 +374,6 @@ fun getNextInQueue(currentMedia: Episode?): Episode? {
     nextItem = checkAndMarkDuplicates(nextItem)
     episodeChangedWhenScreenOff = true
     return nextItem
-}
-
-private fun calcPosition(queueItems: MutableList<Episode>, loc: EnqueueLocation, currentPlaying: Episode?): Int {
-    if (queueItems.isEmpty()) return 0
-
-    fun getPositionOfFirstNonDownloadingItem(startPosition: Int): Int {
-        fun isItemAtPositionDownloading(position: Int): Boolean {
-            val curItem = try { queueItems[position] } catch (e: IndexOutOfBoundsException) { null }
-            if (curItem?.downloadUrl == null) return false
-            return DownloadServiceInterface.impl?.isDownloadingEpisode(curItem.downloadUrl!!) == true
-        }
-        val qSize = queueItems.size
-        for (i in startPosition until qSize) if (!isItemAtPositionDownloading(i)) return i
-        return qSize
-    }
-    fun getCurrentlyPlayingPosition(): Int {
-        if (currentPlaying == null) return -1
-        val curPlayingItemId = currentPlaying.id
-        for (i in queueItems.indices) if (curPlayingItemId == queueItems[i].id) return i
-        return -1
-    }
-
-    return when (loc) {
-        EnqueueLocation.BACK -> queueItems.size
-        // Return not necessarily 0, so that when a list of items are downloaded and enqueued
-        // in succession of calls (e.g., users manually tapping download one by one),
-        // the items enqueued are kept the same order.
-        // Simply returning 0 will reverse the order.
-        EnqueueLocation.FRONT -> getPositionOfFirstNonDownloadingItem(0)
-        EnqueueLocation.AFTER_CURRENTLY_PLAYING -> getPositionOfFirstNonDownloadingItem(getCurrentlyPlayingPosition() + 1)
-        EnqueueLocation.RANDOM -> Random.nextInt(queueItems.size + 1)
-        //                else -> throw AssertionError("calcPosition() : unrecognized enqueueLocation option: $enqueueLocation")
-    }
 }
 
 private fun calcPosition(queueEntries: List<QueueEntry>, loc: EnqueueLocation, currentPlaying: Episode?): Long {

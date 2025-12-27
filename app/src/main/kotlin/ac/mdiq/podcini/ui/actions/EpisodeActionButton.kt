@@ -32,6 +32,7 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
+import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.utils.mergeAudios
@@ -153,14 +154,14 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 if (fileNotExist()) return
                 PlaybackStarter(context, item).start()
                 playVideoIfNeeded(context, item)
-                actQueue = PlayQueue()
+                actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.PLAYREPEAT -> {
                 if (fileNotExist()) return
                 PlaybackStarter(context, item).setToRepeat(true).start()
                 playVideoIfNeeded(context, item)
-                actQueue = PlayQueue()
+                actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM -> {
@@ -211,7 +212,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
                 PlaybackStarter(context, item).shouldStreamThisTime(true).start()
                 playVideoIfNeeded(context, item)
-                actQueue = PlayQueue()
+                actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.DELETE -> {

@@ -12,7 +12,7 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getEpisodesCount
-import ac.mdiq.podcini.storage.database.queues
+import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -180,8 +180,8 @@ class SubscriptionsVM : ViewModel() {
     val shouldHandleBack: Boolean get() = curVolume != null
 
     init {
-        queueIds.addAll(queues.map { it.id })
-        queueNames.addAll(queues.map { it.name })
+        queueIds.addAll(queuesLive.map { it.id })
+        queueNames.addAll(queuesLive.map { it.name })
     }
 
     override fun onCleared() {
@@ -778,13 +778,13 @@ fun SubscriptionsScreen() {
                             Text(custom)
                         }
                         if (selected == custom) {
-                            Logd(TAG, "queues: ${queues.size}")
+                            Logd(TAG, "queues: ${queuesLive.size}")
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                for (index in queues.indices) {
+                                for (index in queuesLive.indices) {
                                     FilterChip(onClick = {
-                                        saveFeed { it: Feed -> it.queueId = queues[index].id }
+                                        saveFeed { it: Feed -> it.queueId = queuesLive[index].id }
                                         onDismissRequest()
-                                    }, label = { Text(queues[index].name) }, selected = false )
+                                    }, label = { Text(queuesLive[index].name) }, selected = false )
                                 }
                             }
                         }

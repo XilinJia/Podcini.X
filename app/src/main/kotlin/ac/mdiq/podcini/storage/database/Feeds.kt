@@ -265,10 +265,8 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
             if (priorMostRecentDate == null || priorMostRecentDate.before(pubDate) || priorMostRecentDate == pubDate) {
                 Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
                 episode.setPlayState(EpisodeState.NEW)
-                if (savedFeed.autoAddNewToQueue) {
-                    val q = savedFeed.queue
-                    if (q != null) runOnIOScope {  addToAssOrActQueue(episode, q) }
-                }
+                if (savedFeed.autoAddNewToQueue && savedFeed.queue != null)
+                    runOnIOScope {  addToAssQueue(listOf(episode)) }
             }
         }
     }
@@ -349,10 +347,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
         if (priorMostRecentDate < pubDate) {
             Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
             episode.setPlayState(EpisodeState.NEW)
-            if (savedFeed.autoAddNewToQueue) {
-                val q = savedFeed.queue
-                if (q != null) runOnIOScope { addToAssOrActQueue(episode, q) }
-            }
+            if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
         }
     }
 

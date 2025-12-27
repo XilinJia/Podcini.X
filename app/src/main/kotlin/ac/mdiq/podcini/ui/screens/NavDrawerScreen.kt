@@ -7,7 +7,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.getEpisodesCount
-import ac.mdiq.podcini.storage.database.queues
+import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -152,7 +152,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
     LaunchedEffect(drawerState.currentValue) {
         Logd(TAG, "LaunchedEffect(drawerState.currentValue): ${drawerState.isOpen}")
         if (drawerState.isOpen) scope.launch(Dispatchers.IO) {
-            navMap[Screens.Queues.name]?.count = queues.sumOf { it.size()}
+            navMap[Screens.Queues.name]?.count = queuesLive.sumOf { it.size()}
             navMap[Screens.Subscriptions.name]?.count = feedCount
             navMap[Screens.Facets.name]?.count = getEpisodesCount(unfiltered())
             navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +

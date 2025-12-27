@@ -16,12 +16,13 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.playPause
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.storage.database.addToAssOrActQueue
+import ac.mdiq.podcini.storage.database.addToAssQueue
+import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.deleteMedia
 import ac.mdiq.podcini.storage.database.eraseEpisodes
-import ac.mdiq.podcini.storage.database.queues
+import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.removeFromAllQueuesQuiet
@@ -661,10 +662,9 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                                 }
                                             }
                                         }
-                                        EpisodeState.QUEUE -> if (item_.feed?.queue != null) addToAssOrActQueue(e, e.feed?.queue)
+                                        EpisodeState.QUEUE -> if (item_.feed?.queue != null) addToAssQueue(listOf(e))
                                         else -> {}
                                     }
-                                    //                                        vm.updateVMFromDB()
                                 }
                             }
                         }
@@ -686,7 +686,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
             var removeChecked by remember { mutableStateOf(false) }
             var toQueue by remember { mutableStateOf(actQueue) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
-                for (q in queues) {
+                for (q in queuesLive) {
                     FilterChip(label = { Text(q.name) }, onClick = { toQueue = q }, selected = toQueue == q, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary) )
                 }
             }
@@ -703,7 +703,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                             val toRemoveCur = mutableListOf<Episode>()
                             selected.forEach { e -> if (actQueue.contains(e)) toRemoveCur.add(e) }
                             selected.forEach { e ->
-                                for (q in queues) {
+                                for (q in queuesLive) {
                                     if (q.contains(e)) {
                                         toRemove.add(e.id)
                                         break
@@ -713,7 +713,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
                             if (toRemove.isNotEmpty()) removeFromAllQueuesQuiet(toRemove.toList(), false)
                             if (toRemoveCur.isNotEmpty()) EventFlow.postEvent(FlowEvent.QueueEvent.removed(toRemoveCur))
                         }
-                        selected.forEach { e -> addToAssOrActQueue(e, toQueue) }
+                        addToQueue(selected, toQueue)
                     }
                     onDismissRequest()
                 }) { Text(stringResource(R.string.confirm_label)) }

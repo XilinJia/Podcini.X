@@ -1,0 +1,7 @@
+* fixed sort order direction in Queues screen
+* actQueue is live monitored from DB
+* likely fixed cases where Default queue's name can be emptied
+* in FeedEpisodes screen, when in select mode, header is hidden
+* on episodes lists, if use feed cover, feed rating is shown on the cover
+* in Queue, introduced autoSort (default to false), settable in settings
+* enhanced addToQueue routines

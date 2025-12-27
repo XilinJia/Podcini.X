@@ -24,6 +24,7 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PlayQueue
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
+import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
@@ -537,7 +538,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             if (vm.showEpisodes) {
                 InforBar(vm.infoBarText, vm.swipeActions)
                 EpisodeLazyColumn(context as MainActivity, vm.episodes.toList(), swipeActions = vm.swipeActions,
-                    actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) actQueue = PlayQueue() })
+                    actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
             } else {
                 Column(Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))) {
 //                    TODO: alternate_urls_spinner

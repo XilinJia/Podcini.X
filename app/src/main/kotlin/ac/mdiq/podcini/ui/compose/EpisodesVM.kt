@@ -6,11 +6,12 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowEpisodeDownload
+import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
 import ac.mdiq.podcini.storage.database.addRemoteToMiscSyndicate
-import ac.mdiq.podcini.storage.database.addToActQueue
-import ac.mdiq.podcini.storage.database.addToAssOrActQueue
+import ac.mdiq.podcini.storage.database.addToAssQueue
+import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -171,7 +172,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                       statusRowMode: StatusRowMode = StatusRowMode.Normal,
                       isDraggable: Boolean = false, dragCB: ((Int, Int)->Unit)? = null,
                       swipeActions: SwipeActions? = null,
-                      refreshCB: (()->Unit)? = null,
+                      refreshCB: (()->Unit)? = null, selectModeCB: ((Boolean)->Unit)? = null,
                       showActionButtons: Boolean = true,
                       actionButton_: ((Episode)->EpisodeActionButton)? = null, actionButtonCB: ((Episode, ButtonTypes)->Unit)? = null) {
 
@@ -262,6 +263,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
         fun onSelected() {
             isExpanded = false
             selectMode = false
+            selectModeCB?.invoke(selectMode)
         }
         val options = mutableListOf<@Composable () -> Unit>(
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
@@ -309,13 +311,13 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                 Text(stringResource(id = R.string.download_label)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
-                runOnIOScope { selected.forEach { addToAssOrActQueue(it) } }
+                runOnIOScope { selected.forEach { addToAssQueue(listOf(it)) } }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to associated or active queue")
                 Text(stringResource(id = R.string.add_to_associated_queue)) } },
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
-                runOnIOScope { addToActQueue(selected) }
+                runOnIOScope { addToQueue(selected, actQueue) }
             }, verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to active queue")
                 Text(stringResource(id = R.string.add_to_active_queue)) } },
@@ -489,6 +491,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             },
                             onLongClick = {
                                 selectMode = !selectMode
+                                selectModeCB?.invoke(selectMode)
                                 isSelected = selectMode
                                 selected.clear()
                                 if (selectMode) {
@@ -626,15 +629,21 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                 state = rememberDraggableState { delta -> onDrag(delta) }, onDragStarted = { onDragStart() }, onDragStopped = { onDragEnd() } ))
                         }
                         if (showCoverImage && (feed == null || !useFeedImage)) {
-                            val img = remember(episode.id) { ImageRequest.Builder(context).data(episode.imageLocation(forceFeedImage)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                            AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(imageWidth).height(imageHeight).clickable(onClick = {
+                            Box(modifier = Modifier.width(imageWidth).height(imageHeight).clickable(onClick = {
                                 Logd(TAG, "icon clicked!")
                                 when {
                                     selectMode -> toggleSelected(episode)
                                     feed == null && episode.feed?.isSynthetic() != true -> navController.navigate("${Screens.FeedDetails.name}?feedId=${episode.feed!!.id}&modeName=${FeedScreenMode.Info.name}")
                                     else -> navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${episode.id}")
                                 }
-                            }))
+                            })) {
+                                val img = remember(episode.id) { ImageRequest.Builder(context).data(episode.imageLocation(forceFeedImage)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                                AsyncImage(model = img, contentDescription = "imgvCover")
+                                if (useFeedImage && episode.feed != null && episode.feed!!.rating != Rating.UNRATED.code) {
+                                    Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.feed!!.rating).res), tint = buttonColor, contentDescription = "rating",
+                                        modifier = Modifier.width(imageWidth/8).height(imageHeight/8).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer) )
+                                }
+                            }
                         }
                         Box(Modifier.weight(1f).wrapContentHeight()) {
                             TitleColumn(index, modifier = Modifier.fillMaxWidth())

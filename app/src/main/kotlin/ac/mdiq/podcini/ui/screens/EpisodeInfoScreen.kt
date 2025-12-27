@@ -7,7 +7,7 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
-import ac.mdiq.podcini.storage.database.addToAssOrActQueue
+import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.getEpisode
 import ac.mdiq.podcini.storage.database.realm
@@ -432,7 +432,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                     IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(episode?.playState ?: EpisodeState.UNSPECIFIED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     if (episode != null) {
                         val inQueue by remember(episode) { mutableStateOf(if (episode == null) false else (episode!!.feed?.queue ?: actQueue).contains(episode!!)) }
-                        if (!inQueue) IconButton(onClick = { runOnIOScope { addToAssOrActQueue(episode!!) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_playlist_add_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                        if (!inQueue) IconButton(onClick = { runOnIOScope { addToAssQueue(listOf(episode!!)) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_playlist_add_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                         else IconButton(onClick = { runOnIOScope { removeFromQueue(episode!!.feed?.queue ?: actQueue, listOf(episode!!), EpisodeState.UNPLAYED) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_remove), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                     }
                     IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode?.rating ?: Rating.UNRATED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }

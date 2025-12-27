@@ -8,10 +8,11 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
-import ac.mdiq.podcini.storage.database.addToAssOrActQueue
+import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.deleteMedias
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
+import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.queueEntriesOf
 import ac.mdiq.podcini.storage.database.realm
@@ -143,14 +144,14 @@ class AutoEnqueueAlgorithm {
         if (candidates.isNotEmpty()) {
             if (toReplace.isNotEmpty()) removeFromAllQueues(toReplace, EpisodeState.UNPLAYED)
             Logd(TAG, "Enqueueing ${candidates.size} items")
-            for (e in candidates) {
-                Logd(TAG, "adding to queue ${e.title} ${e.playState} ${e.downloadUrl}")
-                val q = e.feed?.queue
-                if (q != null) {
-                    val e_ = upsertBlk(e) { it.disableAutoDownload() }
-                    addToAssOrActQueue(e_, q)
-                }
-                else Loge(TAG, "auto-enqueue not performed: feed associated queue is null: ${e.title}")
+            val mapByFeed = candidates.groupBy { it.feedId }
+            for (en in mapByFeed.entries) {
+                val fid = en.key ?: continue
+                val f = getFeed(fid) ?: continue
+                val q = f.queue ?: continue
+                val episodes = en.value
+                realm.write { for (e in episodes) findLatest(e)?.disableAutoDownload() }
+                addToAssQueue(episodes)
             }
             Logt(TAG, "Auto enqueued episodes: ${candidates.size}")
             candidates.clear()
@@ -279,7 +280,10 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
             runOnIOScope {
                 val eInQ = realm.query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.QUEUE.code}").find()
                 val q = f.queue
-                if (q != null) eInQ.forEach { e -> if (e.id !in eIdsAllQueues) addToAssOrActQueue(e, q) }
+                if (q != null) {
+                    val toAdd = eInQ.filter { it.id !in eIdsAllQueues }
+                    if (toAdd.isNotEmpty()) addToAssQueue(toAdd)
+                }
                 realm.write {
                     if (f.autoDownloadFilter?.markExcludedPlayed == true) {
                         val qStr = f.autoDownloadFilter!!.queryExcludeString()
