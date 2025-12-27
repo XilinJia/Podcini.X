@@ -447,6 +447,8 @@
     <string name="pref_disable_wifilock_sum">WifiLock ルーチンは非推奨であり、モダンな Android では機能しません。無効にしてみてください。</string>
     <string name="pref_autodl_queue_empty_title">キューが空になったときに起動</string>
     <string name="pref_autodl_queue_empty_sum">キューが空になると、ポリシー以外の関連フィードの自動ダウンロードが開始されます。</string>
+    <string name="pref_auto_sort_queue">Auto sort queue on add</string>
+    <string name="pref_auto_sort_queue_sum">Every time when episodes are added to the queue, the queue will be sorted based on preset sort order. When the queue is unlocked, this is turned off.</string>
     <string name="pref_auto_download_include_queues_title">キューアイテムを含める</string>
     <string name="pref_auto_download_include_queues_sum">選択したキューにダウンロードされていないエピソードは、自動ダウンロードプロセス(更新時間)中にダウンロード用に含まれます。デフォルトの設定には、すべてのキューが含まれています。</string>
     <string name="pref_auto_download_include_soon_title">\"Soon\" を含める</string>
