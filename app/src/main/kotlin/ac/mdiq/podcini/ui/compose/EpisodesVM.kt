@@ -638,11 +638,11 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                 }
                             })) {
                                 val img = remember(episode.id) { ImageRequest.Builder(context).data(episode.imageLocation(forceFeedImage)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                                AsyncImage(model = img, contentDescription = "imgvCover")
-                                if (useFeedImage && episode.feed != null && episode.feed!!.rating != Rating.UNRATED.code) {
+                                AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
+                                if (episode.feed != null && episode.feed!!.useFeedImage() && episode.feed!!.rating != Rating.UNRATED.code)
                                     Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.feed!!.rating).res), tint = buttonColor, contentDescription = "rating",
-                                        modifier = Modifier.width(imageWidth/8).height(imageHeight/8).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer) )
-                                }
+                                        modifier = Modifier.width(imageWidth/4).height(imageHeight/4).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer) )
+
                             }
                         }
                         Box(Modifier.weight(1f).wrapContentHeight()) {
