@@ -451,6 +451,8 @@
     <string name="pref_disable_wifilock_sum">WifiLock routines are deprecated and not functional on modern Android. Try disable it.</string>
     <string name="pref_autodl_queue_empty_title">Launch when queue gets empty</string>
     <string name="pref_autodl_queue_empty_sum">When a queue becomes empty, automatic download starts for associated feeds where the policy is other than \"Only new items\"</string>
+    <string name="pref_auto_sort_queue">Auto sort queue on add</string>
+    <string name="pref_auto_sort_queue_sum">Every time when episodes are added to the queue, the queue will be sorted based on preset sort order. When the queue is unlocked, this is turned off.</string>
     <string name="pref_auto_download_include_queues_title">Include queue items</string>
     <string name="pref_auto_download_include_queues_sum">Episodes not downloaded in the selected queues will be included for download during auto-download process (at refresh time). Default setting includes all queues.</string>
     <string name="pref_auto_download_include_soon_title">Include \"Soon\"</string>
