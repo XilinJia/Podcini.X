@@ -457,6 +457,8 @@
     <string name="pref_disable_wifilock_sum">روبوتات WifiLock مهملة وغير عاملة على أندرويد الحديثة. حاول تعطيلها.</string>
     <string name="pref_autodl_queue_empty_title">تشغيل عندما يصبح قائمة الانتظار فارغاً</string>
     <string name="pref_autodl_queue_empty_sum">عندما يصبح قائمة الانتظار فارغاً، يبدأ التحميل التلقائي للتغذية المرتبطة حيث تكون السياسة غير \"العناصر الجديدة فقط\"</string>
+    <string name="pref_auto_sort_queue">Auto sort queue on add</string>
+    <string name="pref_auto_sort_queue_sum">Every time when episodes are added to the queue, the queue will be sorted based on preset sort order. When the queue is unlocked, this is turned off.</string>
     <string name="pref_auto_download_include_queues_title">تضمين عناصر قائمة الانتظار</string>
     <string name="pref_auto_download_include_queues_sum">الحلقات التي لم يتم تحميلها في قوائم الانتظار المحددة سيتم تضمينها للتحميل أثناء عملية التحميل التلقائي (في وقت التحديث). الإعداد الافتراضي يشمل جميع قوائم الانتظار.</string>
     <string name="pref_auto_download_include_soon_title">تضمين \"قريباً\"</string>
