@@ -96,7 +96,7 @@ fun getEpisodesCount(filter: EpisodeFilter?, feedId: Long = -1): Int {
  * Does NOT load additional attributes like feed or queue state.
  */
 fun episodeByGuidOrUrl(guid: String?, episodeUrl: String, copy: Boolean = true): Episode? {
-    Logd(TAG, "getEpisodeByGuidOrUrl called $guid $episodeUrl")
+    Logd(TAG, "episodeByGuidOrUrl called $guid $episodeUrl")
     val episode = if (guid != null) realm.query(Episode::class).query("identifier == $0", guid).first().find()
     else realm.query(Episode::class).query("downloadUrl == $0", episodeUrl).first().find()
     if (!copy || episode == null) return episode

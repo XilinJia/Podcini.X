@@ -6,7 +6,8 @@ import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.storage.database.getEpisodeByGuidOrUrl
+import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
+import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -102,7 +103,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         val streamUrl = info.metadata!!.getString(KEY_STREAM_URL)
 //        return if (streamUrl == null) makeRemoteMedia(info) else callback.findMedia(streamUrl)
 //        return if (streamUrl == null) null else callback.findMedia(streamUrl)
-        return if (streamUrl == null) null else getEpisodeByGuidOrUrl(null, streamUrl)
+        return if (streamUrl == null) null else episodeByGuidOrUrl(null, streamUrl)
     }
 
     private fun toMediaInfo(playable: Episode?): MediaInfo? {
