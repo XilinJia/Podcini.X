@@ -1,3 +1,13 @@
+# 10.2.3
+
+* fixed hang on startup on a new install (or upgrade?), introduced likely in 10.0.1
+* reworked/enhanced setPlayState routine
+* further sped up opening of cached webvew
+* made items on FeedsSettings reflect changes for single feed setting
+* ensured languages filter show up even with only 1 language
+* ensured some coroutine jobs are singltons
+* various code refactoring and enhancements
+
 # 10.2.2
 
 * fixed sort order direction in Queues screen

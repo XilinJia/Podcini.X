@@ -24,6 +24,7 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences.isInTimeRange
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.lastTimerValue
 import ac.mdiq.podcini.storage.database.allowForAutoDelete
 import ac.mdiq.podcini.storage.database.deleteMedia
+import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.sleepPrefs
@@ -815,10 +816,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             var playbackSpeed = SPEED_USE_GLOBAL
             if (media != null) {
                 playbackSpeed = curTempSpeed
-                if (playbackSpeed == SPEED_USE_GLOBAL) {
-                    val feed = media.feed
-                    if (feed != null) playbackSpeed = feed.playSpeed
-                }
+                if (playbackSpeed == SPEED_USE_GLOBAL && media.feedId != null && feedsMap.containsKey(media.feedId!!)) playbackSpeed = feedsMap[media.feedId!!]!!.playSpeed
             }
             if (playbackSpeed == SPEED_USE_GLOBAL) playbackSpeed = prefPlaybackSpeed
             return playbackSpeed

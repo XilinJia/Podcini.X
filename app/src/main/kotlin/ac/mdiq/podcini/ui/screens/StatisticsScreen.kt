@@ -3,7 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.appAttribs
-import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -700,7 +700,7 @@ private fun getStatistics(episodes: List<Episode>, feedId: Long = 0L, forDL: Boo
     val groupdMedias = episodes.groupBy { it.feedId ?: 0L }
     result.oldestDate = Long.MAX_VALUE
     for ((fid, episodes) in groupdMedias) {
-        val feed = getFeed(fid, false) ?: continue
+        val feed = feedsMap[fid] ?: continue
         Logd(TAG, "getStatistics feed: ${feed.title}")
         val fStat = FeedStatistics()
         fStat.feed = feed

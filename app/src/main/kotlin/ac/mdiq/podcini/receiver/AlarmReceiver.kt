@@ -3,7 +3,7 @@ package ac.mdiq.podcini.receiver
 import ac.mdiq.podcini.automation.ALARM_TYPE
 import ac.mdiq.podcini.automation.AlarmTypes
 import ac.mdiq.podcini.playback.PlaybackStarter
-import ac.mdiq.podcini.storage.database.getEpisode
+import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.utils.Logd
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -21,7 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
             val msgs = message.split(':')
             if (msgs.size < 2) return
             val id = msgs[1].toLong()
-            val episode = getEpisode(id, false) ?: return
+            val episode = episodeById(id) ?: return
             val repeat = if (msgs.size == 3) msgs[2].toBoolean() else false
             PlaybackStarter(context, episode).shouldStreamThisTime(null).setToRepeat(repeat).start()
         }

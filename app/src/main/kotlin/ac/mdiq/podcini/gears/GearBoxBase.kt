@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.getFinalRedirectedUrl
+import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
@@ -93,9 +94,9 @@ open class GearBoxBase {
 
     open fun subscribeFeed(feed: PodcastSearchResult) {
         if (feed.feedUrl == null) return
-        CoroutineScope(Dispatchers.IO).launch {
+        runOnIOScope {
             val fbb = FeedBuilderBase(getAppContext()) { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
-            fbb.buildPodcast(feed.feedUrl, "", "") { feed, _ -> fbb.subscribe(feed) }
+            fbb.buildPodcast(feed.feedUrl, "", "") { feed, _ -> runOnIOScope { fbb.subscribe(feed) } }
         }
     }
 }

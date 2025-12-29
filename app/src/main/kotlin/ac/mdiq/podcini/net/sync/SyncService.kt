@@ -20,9 +20,9 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.setAllowMobileFor
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
 import ac.mdiq.podcini.storage.database.deleteFeed
-import ac.mdiq.podcini.storage.database.getEpisodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
-import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.getFeedListDownloadUrls
 import ac.mdiq.podcini.storage.database.removeFromQueue
@@ -131,7 +131,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
                     val feed = Feed(downloadUrl, null, "Unknown podcast")
                     feed.episodes.clear()
                     updateFeedFull(feed, removeUnlistedItems = false)
-                    val f = getFeed(feed.id)
+                    val f = feedsMap[feed.id]
                     if (f != null) gearbox.feedUpdater(listOf(f)).startRefresh(applicationContext)
                 }
             }
@@ -249,7 +249,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
 
     open fun processEpisodeAction(action: EpisodeAction): Pair<Long, Episode>? {
         val guid = if (isValidGuid(action.guid)) action.guid else null
-        val feedItem = getEpisodeByGuidOrUrl(guid, action.episode)
+        val feedItem = episodeByGuidOrUrl(guid, action.episode)
         if (feedItem == null) {
             Logd(TAG, "Unknown feed item: $action")
             return null

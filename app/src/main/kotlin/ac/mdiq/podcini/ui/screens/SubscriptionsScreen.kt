@@ -12,6 +12,7 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getEpisodesCount
+import ac.mdiq.podcini.storage.database.queuesFlow
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -146,6 +147,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
@@ -155,9 +157,11 @@ import io.github.xilinjia.krdb.ext.toRealmSet
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.query.Sort
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -168,6 +172,7 @@ private const val TAG = "SubscriptionsScreen"
 
 class SubscriptionsVM : ViewModel() {
     var subPrefs by mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?: SubscriptionsPrefs())
+
     var prefsFlow by mutableStateOf<Flow<SingleQueryChange<SubscriptionsPrefs>>>(emptyFlow())
 
     var feedsFlow by mutableStateOf<Flow<ResultsChange<Feed>>>(emptyFlow())
@@ -180,8 +185,18 @@ class SubscriptionsVM : ViewModel() {
     val shouldHandleBack: Boolean get() = curVolume != null
 
     init {
-        queueIds.addAll(queuesLive.map { it.id })
-        queueNames.addAll(queuesLive.map { it.name })
+        viewModelScope.launch(Dispatchers.IO) {
+            queuesFlow.collect { changes ->
+                val ids = changes.list.map { it.id }
+                val names = changes.list.map { it.name }
+                withContext(Dispatchers.Main) {
+                    queueIds.clear()
+                    queueIds.addAll(ids)
+                    queueNames.clear()
+                    queueNames.addAll(names)
+                }
+            }
+        }
     }
 
     override fun onCleared() {
@@ -1509,8 +1524,9 @@ fun SubscriptionsScreen() {
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
                     Column(Modifier.fillMaxSize()) {
                         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                            if (appAttribs.langSet.size > 1) {
-                                val langs = remember { appAttribs.langSet.toList().sorted() }
+                            Logd(TAG, "appAttribs.langSet: ${appAttribs.langSet.size}")
+                            if (appAttribs.langSet.isNotEmpty()) {
+                                val langs = remember(appAttribs.langSet) { appAttribs.langSet.toList().sorted().toMutableStateList() }
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     val selectedList = remember { MutableList(langs.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {
@@ -1601,7 +1617,7 @@ fun SubscriptionsScreen() {
                                 }
                             }
                             if (appAttribs.feedTagSet.isNotEmpty()) {
-                                val tagList = remember { appAttribs.feedTagSet.toList().sorted() }
+                                val tagList = remember(appAttribs.feedTagSet) { appAttribs.feedTagSet.toList().sorted().toMutableStateList() }
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     val selectedList = remember { MutableList(tagList.size) { mutableStateOf(false) } }
                                     LaunchedEffect(reset) {

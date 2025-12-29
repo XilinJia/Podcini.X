@@ -11,6 +11,8 @@ import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
 import ac.mdiq.podcini.storage.database.getRealmInstance
+import ac.mdiq.podcini.storage.database.initAppPrefs
+import ac.mdiq.podcini.storage.database.initQueues
 import ac.mdiq.podcini.utils.Logd
 import android.content.Context
 import java.io.File
@@ -27,6 +29,7 @@ object ClientConfigurator {
         AppPreferences.init(context)
         getRealmInstance()
 
+        initQueues()
         SslProviderInstaller.install(context)
         NetworkUtils.init(context)
         DownloadServiceInterface.impl = DownloadServiceInterfaceImpl()

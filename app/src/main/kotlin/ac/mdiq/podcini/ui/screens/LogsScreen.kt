@@ -3,7 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.database.DownloadResultComparator
-import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getFeedByTitleAndAuthor
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -363,7 +363,7 @@ fun LogsScreen() {
                     if (media != null) url = media.downloadUrl?:""
                 }
                 Feed.FEEDFILETYPE_FEED -> {
-                    val feed = getFeed(status.feedfileId, false)
+                    val feed = feedsMap[status.feedfileId]
                     if (feed != null) url = feed.downloadUrl?:""
                 }
             }
@@ -446,7 +446,7 @@ fun LogsScreen() {
                                 when (status.feedfileType) {
                                     Feed.FEEDFILETYPE_FEED -> {
                                         showAction = false
-                                        val feed: Feed? = getFeed(status.feedfileId)
+                                        val feed: Feed? = feedsMap[status.feedfileId]
                                         if (feed == null) {
                                             Loge(TAG, "Could not find feed for feed id: " + status.feedfileId)
                                             return@clickable

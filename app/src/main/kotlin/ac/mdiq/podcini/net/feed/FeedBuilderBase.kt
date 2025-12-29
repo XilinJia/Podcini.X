@@ -148,7 +148,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
         }
     }
 
-    fun subscribe(feed: Feed) {
+    suspend fun subscribe(feed: Feed) {
         runBlocking { while (feed.isBuilding)  delay(200) }
         feed.id = 0L
         if (feed.limitEpisodesCount > 0) {

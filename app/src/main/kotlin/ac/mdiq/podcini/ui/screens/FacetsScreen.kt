@@ -6,10 +6,10 @@ import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedIdsOfAllEpisodes
+import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
 import ac.mdiq.podcini.storage.database.getEpisodesCount
-import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
 import ac.mdiq.podcini.storage.database.inQueueEpisodeIdSet
@@ -483,7 +483,7 @@ fun FacetsScreen() {
             }
             val ids = feedIdsOfAllEpisodes()
             for (id in ids) {
-                val f = getFeed(id)
+                val f = feedsMap[id]
                 if (f == null) {
                     realm.write {
                         val el = query(Episode::class, "feedId == $id").find()
@@ -600,7 +600,7 @@ fun FacetsScreen() {
                             navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
                         }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                     )
-                    val numEpisodes by remember { mutableStateOf(getEpisodesCount(null, feed.id)) }
+                    val numEpisodes by remember { mutableIntStateOf(getEpisodesCount(null, feed.id)) }
                     Text(NumberFormat.getInstance().format(numEpisodes.toLong()), color = Color.Green,
                         modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
                             end.linkTo(parent.end)

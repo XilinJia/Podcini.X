@@ -9,7 +9,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.appAttribs
-import ac.mdiq.podcini.storage.database.getEpisode
+import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -145,7 +145,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
 
     val actMain: MainActivity? = remember {  generateSequence(context) { if (it is ContextWrapper) it.baseContext else null }.filterIsInstance<MainActivity>().firstOrNull() }
 
-    var episode by remember { mutableStateOf(getEpisode(episodeId, copy=false)) }
+    var episode by remember { mutableStateOf(episodeById(episodeId)) }
 
     var showHomeScreen by remember { mutableStateOf(false) }
 

@@ -20,7 +20,7 @@ import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
-import ac.mdiq.podcini.storage.database.stateToPreserve
+import ac.mdiq.podcini.storage.database.shouldPreserve
 import ac.mdiq.podcini.storage.database.trimBin
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -351,14 +351,9 @@ fun QueuesScreen(id: Long = -1L) {
                     trimBin(it)
                     it.update()
                 }
-                for (e in episodes) {
-                    if (e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState))
-                        setPlayState(EpisodeState.SKIPPED, e, false)
-                }
-                if (curQueue.id == actQueue.id) {
-//                    actQueue = curQueue
-                    EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
-                }
+                val toSetStat = episodes.filter { it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState) }
+                if (toSetStat.isNotEmpty()) setPlayState(EpisodeState.SKIPPED, toSetStat, false)
+                if (curQueue.id == actQueue.id) EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
                 if (!curQueue.isVirtual()) {
                     autoenqueueForQueue(curQueue)
                     if (curQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), curQueue)

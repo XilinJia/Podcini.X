@@ -28,6 +28,10 @@ import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.UpdatedResults
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import java.util.Date
 import kotlin.math.min
@@ -40,38 +44,58 @@ const val QUEUE_POSITION_DELTA = 10000L
 val queuesFlow = realm.query(PlayQueue::class).sort("name").asFlow()
 var queuesLive = realm.query(PlayQueue::class).sort("name").find()
     private set
+var virQueue by mutableStateOf(PlayQueue())
 
-val queuesJob = CoroutineScope(Dispatchers.Default).launch {
-    queuesFlow.collect { changes: ResultsChange<PlayQueue> ->
-        queuesLive = changes.list
-        val q = queuesLive.find { it.id == actQueue.id }
-        if (q != null) actQueue = q
-        Logd(TAG, "queuesLive updated")
-        when (changes) {
-            is UpdatedResults -> {
-                when {
-                    changes.insertions.isNotEmpty() -> {}
-                    changes.changes.isNotEmpty() -> {}
-                    changes.deletions.isNotEmpty() -> {}
-                    else -> {}
+var queuesJob: Job? = null
+
+fun initQueues() {
+    Logd(TAG, "initQueues called ")
+    if (queuesJob == null) queuesJob = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        Logd(TAG, "starting queues queuesLive: ${queuesLive.size}")
+        if (queuesLive.isEmpty()) {
+            realm.write {
+                for (i in 0..4) {
+                    Logd(TAG, "creating queue id: $i")
+                    val q = PlayQueue()
+                    if (i == 0) q.name = "Default"
+                    else {
+                        q.id = i.toLong()
+                        q.name = "Queue $i"
+                    }
+                    copyToRealm(q)
                 }
             }
-            else -> {}
+        }
+        queuesFlow.collect { changes: ResultsChange<PlayQueue> ->
+            queuesLive = changes.list
+            val q = queuesLive.find { it.id == actQueue.id }
+            if (q != null) actQueue = q
+            Logd(TAG, "queuesLive updated")
+            when (changes) {
+                is UpdatedResults -> {
+                    when {
+                        changes.insertions.isNotEmpty() -> {}
+                        changes.changes.isNotEmpty() -> {}
+                        changes.deletions.isNotEmpty() -> {}
+                        else -> {}
+                    }
+                }
+                else -> {}
+            }
+        }
+        virQueue = realm.query(PlayQueue::class).query("id == $VIRTUAL_QUEUE_ID").first().find() ?: run {
+            val vq = PlayQueue()
+            vq.id = VIRTUAL_QUEUE_ID
+            vq.name = "Virtual"
+            upsertBlk(vq) {}
         }
     }
 }
 
 fun cancelQueuesJob() {
-    queuesJob.cancel()
+    queuesJob?.cancel()
 }
 
-var virQueue by mutableStateOf(realm.query(PlayQueue::class).query("id == $VIRTUAL_QUEUE_ID").first().find() ?:
-run {
-    val vq = PlayQueue()
-    vq.id = VIRTUAL_QUEUE_ID
-    vq.name = "Virtual"
-    upsertBlk(vq) {}
-})
 
 var curIndexInActQueue = -1
 
@@ -106,7 +130,7 @@ suspend fun addToAssQueue(episodes: List<Episode>) {
     val mapByFeed = episodes.groupBy { it.feedId }
     for (en in mapByFeed.entries) {
         val fid = en.key ?: continue
-        val f = getFeed(fid) ?: continue
+        val f = feedsMap[fid] ?: continue
         val q = f.queue ?: continue
         val episodes = en.value
         addToQueue(episodes, q)
@@ -139,7 +163,8 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
             copyToRealm(qe)
         }
     }
-    for (e in episodes) if (e.playState < EpisodeState.QUEUE.code) setPlayState(EpisodeState.QUEUE, e, false)
+    val toSetStat = episodes.filter { it.playState < EpisodeState.QUEUE.code }
+    if (toSetStat.isNotEmpty()) setPlayState(EpisodeState.QUEUE, toSetStat, false)
     if (queue.autoSort) sortQueue(queue)
 }
 
@@ -190,11 +215,14 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
     Logd(TAG, "smartRemoveFromAllQueues: ${item_.title}")
     var item = item_
     val almostEnded = item.hasAlmostEnded()
-    if (almostEnded && item.playState < EpisodeState.PLAYED.code && !stateToPreserve(item.playState)) item = setPlayState(EpisodeState.PLAYED, item, resetMediaPosition = true, removeFromQueue = false)
-    if (almostEnded) item = upsert(item) { it.playbackCompletionDate = Date() }
-    if (item.playState < EpisodeState.SKIPPED.code && !stateToPreserve(item.playState)) {
+    if (almostEnded) {
+        item = upsert(item) { it.playbackCompletionDate = Date() }
+        if (item.playState < EpisodeState.PLAYED.code && !shouldPreserve(item.playState))
+            item = upsert(item) { it.setPlayState(EpisodeState.PLAYED, true) }
+    }
+    if (item.playState < EpisodeState.SKIPPED.code && !shouldPreserve(item.playState)) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED
-        item = setPlayState(stat, item, resetMediaPosition = false, removeFromQueue = false)
+        setPlayState(stat, listOf(item), resetMediaPosition = false)
     }
     for (q in queuesLive) {
         if (q.id != actQueue.id && q.contains(item)) removeFromQueue(q, listOf(item))
@@ -267,9 +295,7 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
         val i = qItems.indexWithId(e.id)
         if (i >= 0) {
             indicesToRemove.add(i)
-            upsertBlk(e) {
-                if (playState != null && it.playState == EpisodeState.QUEUE.code) it.setPlayState(playState)
-            }
+            upsertBlk(e) { if (playState != null && it.playState == EpisodeState.QUEUE.code) it.setPlayState(playState) }
             if (queue.id == actQueue.id) removeFromActQueue.add(e)
         }
     }
@@ -312,10 +338,9 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
                     if (qe_ != null) delete (qe_)
                 }
             }
-            val eList = realm.query(Episode::class).query("id IN $0", idsInQueuesToRemove).find()
-            for (e in eList) {
-                if (updateState && e.playState < EpisodeState.SKIPPED.code && !stateToPreserve(e.playState))
-                    setPlayState(EpisodeState.SKIPPED, e, false)
+            if (updateState) {
+                val eList = realm.query(Episode::class).query("id IN $0 AND playState < ${EpisodeState.SKIPPED.code}", idsInQueuesToRemove).find().filter { !shouldPreserve(it.playState) }
+                if (eList.isNotEmpty()) setPlayState(EpisodeState.SKIPPED, eList, false)
             }
             val qNew = upsert(q) {
                 it.idsBinList.removeAll(idsInQueuesToRemove)
@@ -327,7 +352,6 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
                 autoenqueueForQueue(qNew)
                 if(qNew.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), qNew)
             }
-//            if (isActQueue) actQueue = qNew
         }
     }
 
@@ -369,7 +393,7 @@ fun getNextInQueue(currentMedia: Episode?): Episode? {
             }
         }
     } else qes[0]
-    var nextItem = getEpisode(nextQE.episodeId) ?: return null
+    var nextItem = episodeById(nextQE.episodeId) ?: return null
     Logd(TAG, "getNextInQueue nextItem ${nextItem.title}")
     nextItem = checkAndMarkDuplicates(nextItem)
     episodeChangedWhenScreenOff = true

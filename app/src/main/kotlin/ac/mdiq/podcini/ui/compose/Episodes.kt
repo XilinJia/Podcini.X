@@ -640,7 +640,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                             else -> runOnIOScope {
                                 for (e in selected) {
                                     val hasAlmostEnded = e.hasAlmostEnded()
-                                    var item_ = setPlayState(state, e, hasAlmostEnded, false)
+                                    var item_ = upsert(e) { it.setPlayState(state, hasAlmostEnded) }
                                     when (state) {
                                         EpisodeState.UNPLAYED -> {
                                             if (isProviderConnected && item_.feed?.isLocalFeed != true) {
@@ -880,12 +880,14 @@ fun IgnoreEpisodesDialog(selected: List<Episode>, onDismissRequest: () -> Unit) 
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        for (e in selected) {
-                            val hasAlmostEnded = e.hasAlmostEnded()
-                            val item_ = setPlayState(EpisodeState.IGNORED, e, hasAlmostEnded, false)
-                            Logd("IgnoreEpisodesDialog", "item_: ${item_.title} ${item_.playState}")
-                            upsert(item_) { it.addComment("Reason to ignore:\n${textState.text}") }
-                            //                                vm.updateVMFromDB()
+                        realm.write {
+                            for (e in selected) {
+                                val hasAlmostEnded = e.hasAlmostEnded()
+                                findLatest(e)?.let {
+                                    it.setPlayState(EpisodeState.IGNORED, hasAlmostEnded)
+                                    it.addComment("Reason to ignore:\n${textState.text}")
+                                }
+                            }
                         }
                     } catch (e: Throwable) { Logs("IgnoreEpisodesDialog", e) }
                 }
@@ -915,12 +917,14 @@ fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissReq
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
                         val dueTime = duetime(intervals[sel], sel)
-                        for (e in selected) {
-                            val hasAlmostEnded = e.hasAlmostEnded()
-                            val item_ = setPlayState(state, e, hasAlmostEnded, false)
-                            Logd("AgainEpisodesDialog", "item_: ${item_.title} ${item_.playState} ${Date(dueTime)}")
-                            upsert(item_) { it.repeatTime = dueTime }
-                            //                                vm.updateVMFromDB()
+                        realm.write {
+                            for (e in selected) {
+                                val hasAlmostEnded = e.hasAlmostEnded()
+                                findLatest(e)?.let {
+                                    it.setPlayState(state, hasAlmostEnded)
+                                    it.repeatTime = dueTime
+                                }
+                            }
                         }
                     } catch (e: Throwable) { Logs("AgainEpisodesDialog", e) }
                 }

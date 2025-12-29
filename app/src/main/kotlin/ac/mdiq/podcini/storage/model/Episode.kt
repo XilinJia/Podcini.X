@@ -7,7 +7,7 @@ import ac.mdiq.podcini.net.feed.parser.media.id3.ID3ReaderException
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentChapterReader
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
-import ac.mdiq.podcini.storage.database.getFeed
+import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
@@ -28,7 +28,6 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.fullDateTimeString
 import android.content.ContentResolver
-import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -90,15 +89,19 @@ class Episode : RealmObject {
 
     var pubDate: Long = 0
 
-    @Ignore
-    var feed: Feed? = null
-        get() {
-            if (field == null && feedId != null) field = getFeed(feedId!!)
-            return field
-        }
+//    @Ignore
+//    var feed: Feed? = null
+//        get() {
+//            if (field == null && feedId != null) field = getFeed(feedId!!)
+//            return field
+//        }
 
     @Index
     var feedId: Long? = null
+
+    @Ignore
+    var feed: Feed? = null
+        get() = if (feedId != null) feedsMap[feedId!!] else null
 
     // parent in these refers to the original parent of the content (shared)
     var parentTitle: String? = null
@@ -345,6 +348,18 @@ class Episode : RealmObject {
     @JvmName("setPlayStateFunction")
     fun setPlayState(stat: EpisodeState) {
         playState = stat.code
+        playStateSetTime = System.currentTimeMillis()
+    }
+
+    @JvmName("setPlayStateFunction")
+    fun setPlayState(state: EpisodeState, resetPosition: Boolean) {
+        playState = if (state != EpisodeState.UNSPECIFIED) state.code
+        else {
+            if (playState == EpisodeState.PLAYED.code) EpisodeState.UNPLAYED.code
+            else EpisodeState.PLAYED.code
+        }
+        if (resetPosition || playState == EpisodeState.PLAYED.code || playState == EpisodeState.IGNORED.code) setPosition(0)
+        if (state in listOf(EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) isAutoDownloadEnabled = false
         playStateSetTime = System.currentTimeMillis()
     }
 

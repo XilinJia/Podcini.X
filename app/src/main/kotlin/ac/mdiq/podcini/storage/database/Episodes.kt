@@ -37,7 +37,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.util.UnstableApi
-import io.github.xilinjia.krdb.ext.isManaged
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -96,7 +95,7 @@ fun getEpisodesCount(filter: EpisodeFilter?, feedId: Long = -1): Int {
  * @return The FeedItem or null if the FeedItem could not be found.
  * Does NOT load additional attributes like feed or queue state.
  */
-fun getEpisodeByGuidOrUrl(guid: String?, episodeUrl: String, copy: Boolean = true): Episode? {
+fun episodeByGuidOrUrl(guid: String?, episodeUrl: String, copy: Boolean = true): Episode? {
     Logd(TAG, "getEpisodeByGuidOrUrl called $guid $episodeUrl")
     val episode = if (guid != null) realm.query(Episode::class).query("identifier == $0", guid).first().find()
     else realm.query(Episode::class).query("downloadUrl == $0", episodeUrl).first().find()
@@ -104,12 +103,7 @@ fun getEpisodeByGuidOrUrl(guid: String?, episodeUrl: String, copy: Boolean = tru
     return realm.copyFromRealm(episode)
 }
 
-fun getEpisode(id: Long, copy: Boolean = false): Episode? {
-    Logd(TAG, "getEpisodeMedia called $id")
-    val episode = realm.query(Episode::class).query("id == $0", id).first().find()
-    if (!copy || episode == null) return episode
-    return realm.copyFromRealm(episode)
-}
+fun episodeById(id: Long): Episode? = realm.query(Episode::class).query("id == $0", id).first().find()
 
 fun getHistoryAsFlow(feedId: Long = 0L, start: Long = 0L, end: Long = Date().time, filter: EpisodeFilter? = null, sortOrder: EpisodeSortOrder = EpisodeSortOrder.PLAYED_DATE_DESC): Flow<ResultsChange<Episode>> {
     Logd(TAG, "getHistory() called")
@@ -217,7 +211,7 @@ fun deleteMedia(episode: Episode): Episode {
                 }
                 episode = upsertBlk(episode) {
                     it.setfileUrlOrNull(null)
-                    if (it.playState < EpisodeState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
+                    if (it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
                 }
                 // TODO: need to change event
                 EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
@@ -241,7 +235,7 @@ fun deleteMedia(episode: Episode): Episode {
                 episode = upsertBlk(episode) {
                     it.setfileUrlOrNull(null)
                     it.hasEmbeddedPicture = false
-                    if (it.playState < EpisodeState.SKIPPED.code && !stateToPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
+                    if (it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
                 }
                 // TODO: need to change event
                 EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
@@ -339,45 +333,34 @@ fun checkAndMarkDuplicates(episode: Episode): Episode {
     return if (updated) realm.query(Episode::class, "id == ${episode.id}").first().find() ?: episode else episode
 }
 
-fun stateToPreserve(stat: Int): Boolean = stat in listOf(EpisodeState.SOON.code, EpisodeState.LATER.code, EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)
+fun shouldPreserve(stat: Int): Boolean = stat in listOf(EpisodeState.SOON.code, EpisodeState.LATER.code, EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)
 
-suspend fun setPlayState(state: EpisodeState, episode: Episode, resetMediaPosition: Boolean, removeFromQueue: Boolean = true) : Episode {
-    Logd(TAG, "setPlayState called played: $state resetMediaPosition: $resetMediaPosition ${episode.title}")
-    var episode_ = episode
-    if (!episode.isManaged()) episode_ = realm.query(Episode::class).query("id == $0", episode.id).first().find() ?: episode
-    val result = upsert(episode_) {
-        if (state != EpisodeState.UNSPECIFIED) it.setPlayState(state)
-        else {
-            if (it.playState == EpisodeState.PLAYED.code) it.setPlayState(EpisodeState.UNPLAYED)
-            else it.setPlayState(EpisodeState.PLAYED)
+suspend fun setPlayState(state: EpisodeState, episodes: List<Episode>, resetMediaPosition: Boolean) {
+    Logd(TAG, "setPlayState called played: $state resetMediaPosition: $resetMediaPosition")
+    realm.write {
+        for (e in episodes) {
+            val e_ = findLatest(e)
+            if (e_ != null) e_.setPlayState(state, resetMediaPosition)
+            else {
+                Logd(TAG, "setPlayState unmanaged episode: ${e.title}")
+                e.setPlayState(state, resetMediaPosition)
+                copyToRealm(e)
+            }
         }
-        if (resetMediaPosition || it.playState == EpisodeState.PLAYED.code || it.playState == EpisodeState.IGNORED.code) it.setPosition(0)
-        if (state in listOf(EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) it.isAutoDownloadEnabled = false
     }
-    Logd(TAG, "setPlayState played0: ${result.playState}")
-    if (removeFromQueue && state == EpisodeState.PLAYED && getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueues(listOf(result))
-    Logd(TAG, "setPlayState played1: ${result.playState}")
-    return result
 }
 
 fun buildListInfo(episodes: List<Episode>): String {
     Logd(TAG, "buildListInfo")
     var infoText = String.format(Locale.getDefault(), "%d", episodes.size)
     if (episodes.isNotEmpty()) {
-//        val useSpeed = getPref(AppPrefs.prefShowTimeLeft, 0) == TimeLeftMode.TimeLeftOnSpeed.ordinal
-        val useSpeed = true
         var timeLeft: Long = 0
         for (item in episodes) {
-            var playbackSpeed = 1f
-            if (useSpeed) {
-                playbackSpeed = getCurrentPlaybackSpeed(item)
-                if (playbackSpeed <= 0) playbackSpeed = 1f
-            }
+            val playbackSpeed = getCurrentPlaybackSpeed(item).takeIf { it > 0 } ?: 1f
             val itemTimeLeft: Long = (item.duration - item.position).toLong()
             timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
         }
-        infoText += if (useSpeed) " * "  else " • "
-        infoText += getDurationStringShort(timeLeft, true)
+        infoText += " * " + getDurationStringShort(timeLeft, true)
     }
     return infoText
 }

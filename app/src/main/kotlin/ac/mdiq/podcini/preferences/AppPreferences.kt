@@ -205,7 +205,6 @@ object AppPreferences {
         prefThemeBlack(false),
         prefTintedColors(false),
         prefEpisodeCover(false),
-        prefShowTimeLeft(0),
         prefShowSkip(true),
         prefShowDownloadReport(true),
         prefDefaultPage(DefaultPages.Subscriptions.name),

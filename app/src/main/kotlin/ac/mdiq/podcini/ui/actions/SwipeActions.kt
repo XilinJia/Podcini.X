@@ -292,13 +292,15 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             runOnIOScope {
                 val almostEnded = item_.hasAlmostEnded()
                 if (almostEnded) {
-                    if (item_.playState < EpisodeState.PLAYED.code) item_ = setPlayState(EpisodeState.PLAYED, item_, resetMediaPosition = true, removeFromQueue = false)
-                    item_ = upsert(item_) { it.playbackCompletionDate = Date() }
+                    item_ = upsert(item_) {
+                        if (it.playState < EpisodeState.PLAYED.code) it.setPlayState(EpisodeState.PLAYED, true)
+                        it.playbackCompletionDate = Date()
+                    }
                 }
                 deleteEpisodesWarnLocalRepeat(listOf(item_))
-                withContext(Dispatchers.Main) {
-//                    vm.actionButton.update(vm.episode)
-                }
+//                withContext(Dispatchers.Main) {
+////                    vm.actionButton.update(vm.episode)
+//                }
             }
         }
     }

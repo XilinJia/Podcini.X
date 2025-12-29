@@ -16,6 +16,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
@@ -312,8 +313,6 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 }
                 // stop playback of this episode
                 if (isPaused || isPlaying || isPrepared) exoPlayer?.stop()
-                // TODO: testing, this appears not right and not needed
-//            if (prevMedia != null && curEpisode?.id != prevMedia?.id) callback.onPostPlayback(prevMedia!!, ended = false, skipped = true, true)
                 if (curEpisode?.id != playable.id) onPostPlayback(curEpisode!!, ended = false, skipped = true, true)
                 setPlayerStatus(PlayerStatus.INDETERMINATE, null)
             }
@@ -321,10 +320,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
         var item = playable
-        if (item.playState < EpisodeState.PROGRESS.code) item = runBlocking { setPlayState(EpisodeState.PROGRESS, item, false) }
-//        val eList = if (item.feed?.queue != null) curQueue.episodes else item.feed?.getVirtualQueueItems() ?: listOf()
+        if (item.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(item) { it.setPlayState(EpisodeState.PROGRESS, false) } }
         setAsCurEpisode(item)
-//        Logd(TAG, "prepareMedia eList: ${actQueue.episodes.size}")
 
         this.isStreaming = streaming
         mediaType = curEpisode!!.getMediaType()

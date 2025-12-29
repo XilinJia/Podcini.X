@@ -12,7 +12,7 @@ import ac.mdiq.podcini.net.sync.model.ISyncService
 import ac.mdiq.podcini.net.sync.model.SubscriptionChanges
 import ac.mdiq.podcini.net.sync.model.SyncServiceException
 import ac.mdiq.podcini.net.sync.model.UploadChangesResponse
-import ac.mdiq.podcini.storage.database.getEpisodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.getEpisodes
 
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -316,7 +316,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
 
     override fun processEpisodeAction(action: EpisodeAction): Pair<Long, Episode>? {
         val guid = if (isValidGuid(action.guid)) action.guid else null
-        var feedItem = getEpisodeByGuidOrUrl(guid, action.episode, false)
+        var feedItem = episodeByGuidOrUrl(guid, action.episode, false)
         if (feedItem == null) {
             Logd(TAG, "Unknown feed item: $action")
             return null

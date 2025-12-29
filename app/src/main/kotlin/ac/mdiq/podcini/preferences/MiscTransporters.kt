@@ -4,7 +4,7 @@ import ac.mdiq.podcini.net.sync.SyncService.Companion.isValidGuid
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.model.EpisodeAction.Companion.readFromJsonObject
 import ac.mdiq.podcini.net.sync.model.SyncServiceException
-import ac.mdiq.podcini.storage.database.getEpisodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.getEpisodes
 
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -44,7 +44,7 @@ class EpisodeProgressReader {
     }
     private fun processEpisodeAction(action: EpisodeAction): Pair<Long, Episode>? {
         val guid = if (isValidGuid(action.guid)) action.guid else null
-        var feedItem = getEpisodeByGuidOrUrl(guid, action.episode, false) ?: return null
+        var feedItem = episodeByGuidOrUrl(guid, action.episode, false) ?: return null
         var idRemove = 0L
         feedItem = upsertBlk(feedItem) {
             it.startPosition = action.started * 1000

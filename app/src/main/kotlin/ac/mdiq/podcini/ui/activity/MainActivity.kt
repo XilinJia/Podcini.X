@@ -19,6 +19,8 @@ import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.cancelQueuesJob
+import ac.mdiq.podcini.storage.database.initAppPrefs
+import ac.mdiq.podcini.storage.database.initQueues
 import ac.mdiq.podcini.storage.database.monitorFeeds
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.cancelMonitorVolumes
@@ -408,6 +410,7 @@ class MainActivity : BaseActivity() {
 
     public override fun onStart() {
         super.onStart()
+        initAppPrefs()
         procFlowEvents()
         RatingDialog.init(this)
         monitorFeeds(lifecycleScope)

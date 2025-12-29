@@ -10,9 +10,9 @@ import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.deleteMedias
+import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
-import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.queueEntriesOf
 import ac.mdiq.podcini.storage.database.realm
@@ -147,7 +147,7 @@ class AutoEnqueueAlgorithm {
             val mapByFeed = candidates.groupBy { it.feedId }
             for (en in mapByFeed.entries) {
                 val fid = en.key ?: continue
-                val f = getFeed(fid) ?: continue
+                val f = feedsMap[fid] ?: continue
                 val q = f.queue ?: continue
                 val episodes = en.value
                 realm.write { for (e in episodes) findLatest(e)?.disableAutoDownload() }

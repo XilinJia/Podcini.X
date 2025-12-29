@@ -14,7 +14,6 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.model.Feed.Companion.newId
-import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
@@ -48,6 +47,9 @@ private const val TAG: String = "Feeds"
 
 var feedOperationText by mutableStateOf("")
 
+var feeds = listOf<Feed>()
+var feedsMap: Map<Long, Feed> = mapOf()
+
 var feedCount by mutableIntStateOf(-1)
 
 @Synchronized
@@ -62,6 +64,7 @@ fun compileLanguages() {
     for (feed in feeds) {
         val langs = feed.langSet
         if (langs.isNotEmpty()) langsSet.addAll(langs)
+        else langsSet.add("")
     }
     Logd(TAG, "langsSet: ${langsSet.size} appAttribs.langSet: ${appAttribs.langSet.size}")
     val newLanguages = langsSet - appAttribs.langSet
@@ -86,7 +89,6 @@ fun compileTags() {
     }
 }
 
-var feeds = listOf<Feed>()
 private var feedMonitorJob: Job? = null
 fun cancelMonitorFeeds() {
     feedMonitorJob?.cancel()
@@ -100,8 +102,9 @@ fun monitorFeeds(scope: CoroutineScope) {
     feedMonitorJob = scope.launch(Dispatchers.IO) {
         feedQuery.asFlow().collect { changes: ResultsChange<Feed> ->
             feeds = changes.list
+            feedsMap = feeds.associateBy { it.id }
             feedCount = feeds.size
-//            Logd(TAG, "monitorFeedList feeds size: ${feeds.size}")
+            Logd(TAG, "monitorFeedList feeds updated size: ${feeds.size}")
             when (changes) {
                 is UpdatedResults -> {
                     when {
@@ -119,15 +122,10 @@ fun monitorFeeds(scope: CoroutineScope) {
                             Logd(TAG, "monitorFeedList feed deleted: ${changes.deletions.size}")
                             compileTags()
                         }
-                        else -> {
-                            Logd(TAG, "monitorFeedList else $changes")
-                        }
+                        else -> Logd(TAG, "monitorFeedList else $changes")
                     }
                 }
-                else -> {
-                    // types other than UpdatedResults are not changes -- ignore them
-                    Logd(TAG, "monitorFeedList other $changes")
-                }
+                else -> Logd(TAG, "monitorFeedList other $changes")
             }
         }
     }
@@ -144,7 +142,8 @@ fun getFeedListDownloadUrls(): List<String> {
 }
 
 fun getFeed(feedId: Long, copy: Boolean = false): Feed? {
-    val f = realm.query(Feed::class, "id == $feedId").first().find()
+//    val f = realm.query(Feed::class, "id == $feedId").first().find()
+    val f = feedsMap[feedId]
     return if (f != null) {
         if (copy) realm.copyFromRealm(f) else f
     } else null
@@ -434,7 +433,7 @@ suspend fun deleteFeed(feedId: Long) {
     removeFromAllQueuesQuiet(eids, false)
     eraseEpisodes(episodes, "", false)
 
-    val feed = getFeed(feedId)
+    val feed = feedsMap[feedId]
     if (feed != null) {
         realm.write {
             val feedToDelete = findLatest(feed)
@@ -496,7 +495,7 @@ fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
     if (feedId_ <= 0) {
         var i = MAX_NATURAL_SYNTHETIC_ID
         while (true) {
-            if (getFeed(i++) != null) continue
+            if (feedsMap[i++] != null) continue
             feedId_ = --i
             break
         }

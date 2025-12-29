@@ -352,12 +352,16 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
             { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                 onSelected()
                 runOnIOScope {
-                    for (e_ in selected) {
-                        var e = e_
-                        if (!e.downloaded && e.feed?.isLocalFeed != true) continue
-                        val almostEnded = e.hasAlmostEnded()
-                        if (almostEnded && e.playState < EpisodeState.PLAYED.code) e = setPlayState(state = EpisodeState.PLAYED, episode = e, resetMediaPosition = true, removeFromQueue = false)
-                        if (almostEnded) upsert(e) { it.playbackCompletionDate = Date() }
+                    realm.write {
+                        for (e_ in selected) {
+                            val e = findLatest(e_)
+                            if (e == null || (!e.downloaded && e.feed?.isLocalFeed != true)) continue
+                            val almostEnded = e.hasAlmostEnded()
+                            if (almostEnded) {
+                                if (e.playState < EpisodeState.PLAYED.code) e.setPlayState(EpisodeState.PLAYED, true)
+                                e.playbackCompletionDate = Date()
+                            }
+                        }
                     }
                     deleteEpisodesWarnLocalRepeat(selected)
                 }
