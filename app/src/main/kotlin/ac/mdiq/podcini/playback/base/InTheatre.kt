@@ -114,7 +114,7 @@ object InTheatre {
 //        showStackTrace()
         if (episode != null && episode.id == curEpisode?.id) return
         if (curEpisode != null) unsubscribeEpisode(curEpisode!!, TAG)
-        val episode_ = episodeById(episode!!.id)
+        val episode_ = if (episode != null) episodeById(episode!!.id) else null
         when {
             episode_ != null -> {
                 curEpisode = episode_
