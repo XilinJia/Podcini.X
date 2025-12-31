@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.ui.screens
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
@@ -40,7 +41,6 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatAbbrev
 import android.app.Dialog
-import android.content.Context
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
@@ -105,7 +105,10 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -127,7 +130,7 @@ import java.util.Date
  * If the feed cannot be downloaded or parsed, an error dialog will be displayed
  * and the activity will finish as soon as the error dialog is closed.
  */
-class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
+class OnlineFeedVM: ViewModel() {
     var feedSource: String = ""
     internal var feedUrl: String = ""
     internal var isShared: Boolean = false
@@ -153,7 +156,6 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
         }
 
     internal var infoBarText = mutableStateOf("")
-    internal var swipeActions: SwipeActions = SwipeActions(context, TAG)
 
     internal var episodes = mutableListOf<Episode>()
 
@@ -184,7 +186,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
             }
         }
         relatedFeeds.clear()
-        lcScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             val fl = CombinedSearcher::class.java.getDeclaredConstructor().newInstance().search("${feed?.author} podcasts")
             withContext(Dispatchers.Main) { if (fl.isNotEmpty()) relatedFeeds.addAll(fl) }
         }
@@ -192,7 +194,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     internal fun lookupUrlAndBuild(url: String) {
-        lcScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             urlToLog = url
             try {
                 val urlString = PodcastSearcherRegistry.lookupUrl1(url)
@@ -247,7 +249,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
         eventSink = null
     }
     internal fun procFlowEvents() {
-        if (eventSink == null) eventSink = lcScope.launch {
+        if (eventSink == null) eventSink = viewModelScope.launch {
             EventFlow.events.collectLatest { event ->
                 Logd(TAG, "Received event: ${event.TAG}")
                 when (event) {
@@ -259,7 +261,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     }
 
     private fun onFeedListChanged(event: FlowEvent.FeedListEvent) {
-        lcScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val feeds_ = withContext(Dispatchers.IO) { getFeedList() }
                 withContext(Dispatchers.Main) {
@@ -285,7 +287,7 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
     private fun showFeedInformation(feed: Feed, alternateFeedUrls: Map<String, String>) {
         showProgress = false
         showFeedDisplay = true
-        if (isFeedFoundBySearch) Loge(TAG, context.getString(R.string.no_feed_url_podcast_found_by_search))
+        if (isFeedFoundBySearch) Loge(TAG, getAppContext().getString(R.string.no_feed_url_podcast_found_by_search))
 
 //        if (alternateFeedUrls.isEmpty()) binding.alternateUrlsSpinner.visibility = View.GONE
 //        else {
@@ -378,11 +380,17 @@ class OnlineFeedVM(val context: Context, val lcScope: CoroutineScope) {
 @Composable
 fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
+//    val scope = rememberCoroutineScope()
+    val drawerState = LocalDrawerController.current
     val context by rememberUpdatedState(LocalContext.current)
     val textColor = MaterialTheme.colorScheme.onSurface
     val navController = LocalNavController.current
-    val vm = remember { OnlineFeedVM(context, scope) }
+
+//    val vm = remember { OnlineFeedVM(scope) }
+    val vm: OnlineFeedVM = viewModel()
+
+    var swipeActions by remember { mutableStateOf(SwipeActions(context, TAG)) }
+
     vm.feedUrl = url
     vm.feedSource = source
     vm.isShared = shared
@@ -412,7 +420,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
 //                            }
                         vm.lookupUrlAndBuild(vm.feedUrl)
                     }
-                    lifecycleOwner.lifecycle.addObserver(vm.swipeActions)
+                    lifecycleOwner.lifecycle.addObserver(swipeActions)
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.isPaused = false
@@ -471,14 +479,14 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
-                } else openDrawer()
+                } else drawerState.close()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
+        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
             ConstraintLayout(modifier = Modifier.fillMaxWidth().height(100.dp).background(MaterialTheme.colorScheme.surface)) {
                 val (coverImage, taColumn, buttons) = createRefs()
                 AsyncImage(model = vm.feed?.imageUrl ?: "", contentDescription = "coverImage", error = painterResource(R.mipmap.ic_launcher),
@@ -535,8 +543,8 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 }
             }
             if (vm.showEpisodes) {
-                InforBar(vm.infoBarText, vm.swipeActions)
-                EpisodeLazyColumn(context as MainActivity, vm.episodes.toList(), swipeActions = vm.swipeActions,
+                InforBar(vm.infoBarText, swipeActions)
+                EpisodeLazyColumn(context as MainActivity, vm.episodes.toList(), swipeActions = swipeActions,
                     actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
             } else {
                 Column(Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))) {
@@ -560,7 +568,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         numEpisodes = vm.feed?.episodes?.size ?: 0
                     }
                 }
-                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
                     Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)

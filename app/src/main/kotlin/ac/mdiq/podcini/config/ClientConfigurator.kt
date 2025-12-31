@@ -10,6 +10,7 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.net.utils.NetworkUtils
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.proxyConfig
+import ac.mdiq.podcini.storage.database.cancelQueuesJob
 import ac.mdiq.podcini.storage.database.getRealmInstance
 import ac.mdiq.podcini.storage.database.initAppPrefs
 import ac.mdiq.podcini.storage.database.initQueues
@@ -39,5 +40,9 @@ object ClientConfigurator {
 //        SleepTimerPreferences.init(context)
         createChannels(context)
         initialized = true
+    }
+
+    fun destroy() {
+        cancelQueuesJob()
     }
 }

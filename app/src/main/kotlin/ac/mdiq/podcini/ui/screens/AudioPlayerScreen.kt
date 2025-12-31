@@ -32,7 +32,6 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideo
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.fallbackSpeed
-import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.storage.database.realm

@@ -12,6 +12,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.mediaBrowser
 import ac.mdiq.podcini.storage.database.QUEUE_POSITION_DELTA
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
+import ac.mdiq.podcini.storage.database.checkAndFillQueue
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.queueEntriesOf
@@ -21,7 +22,6 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.shouldPreserve
-import ac.mdiq.podcini.storage.database.trimBin
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -178,6 +178,7 @@ fun QueuesScreen(id: Long = -1L) {
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
+    val drawerState = LocalDrawerController.current
 
     var browserFuture: ListenableFuture<MediaBrowser>? by remember { mutableStateOf(null) }
     
@@ -348,16 +349,13 @@ fun QueuesScreen(id: Long = -1L) {
                 val episodeIds = qes.map { it.episodeId }
                  upsert(curQueue) {
                     it.idsBinList.addAll(episodeIds)
-                    trimBin(it)
+                    it.trimBin()
                     it.update()
                 }
                 val toSetStat = episodes.filter { it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState) }
                 if (toSetStat.isNotEmpty()) setPlayState(EpisodeState.SKIPPED, toSetStat, false)
                 if (curQueue.id == actQueue.id) EventFlow.postEvent(FlowEvent.QueueEvent.cleared())
-                if (!curQueue.isVirtual()) {
-                    autoenqueueForQueue(curQueue)
-                    if (curQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), curQueue)
-                }
+                checkAndFillQueue(curQueue)
                 realm.writeBlocking {
                     for (qe in qes) {
                         val qe_ = findLatest(qe)
@@ -464,7 +462,7 @@ fun QueuesScreen(id: Long = -1L) {
                         } else Logt(TAG, "actQueue is not available")
                     }
                 })) else Text(title) },
-                navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
+                navigationIcon = { IconButton(onClick = { drawerState.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
                 actions = {
                     val binIconRes by remember(queuesMode) { derivedStateOf { if (queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history } }
                     val feedsIconRes by remember(queuesMode) { derivedStateOf { if (queuesMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }

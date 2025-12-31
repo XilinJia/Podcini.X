@@ -1,3 +1,12 @@
+# 10.2.4
+
+* in EpisodeInfo screen, the header is scrollable together with details
+* in OnlineFeed screen, all contents are scrollable, and likely fixed the progress mark appearing when rotating screen
+* in FeedDetails list view, the header is hidden when in landscape mode
+* adjusted drawer opening routines, drawer stays closed when rotating to landscape mode
+* amended routines of queues
+* some code refactoring
+
 # 10.2.3
 
 * fixed hang on startup on a new install (or upgrade?), introduced likely in 10.0.1

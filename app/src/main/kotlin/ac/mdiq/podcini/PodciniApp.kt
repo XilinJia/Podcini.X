@@ -48,6 +48,10 @@ class PodciniApp : Application() {
         DynamicColors.applyToActivitiesIfAvailable(this)
     }
 
+    override fun onTerminate() {
+        super.onTerminate()
+        ClientConfigurator.destroy()
+    }
     /**
      * Sends an ACTION_SP_APPS_QUERY_FEEDS intent to all Podcini Single Purpose apps.
      * The receiving single purpose apps will then send their feeds back to Podcini via an

@@ -57,6 +57,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -114,6 +115,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -176,6 +178,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
+    val drawerState = LocalDrawerController.current
 
     var feedScreenMode by remember { mutableStateOf(FeedScreenMode.valueOf(modeName)) }
 
@@ -197,7 +200,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
                 if (feed != null) updateFeedFull(feed!!, removeUnlistedItems = true)
                 Logt(TAG, context.getString(R.string.OK))
-            } catch (e: Throwable) { Loge(TAG, e.localizedMessage?:"No message") }
+            } catch (e: Throwable) {
+                Loge(TAG, e.localizedMessage ?: "No message")
+            }
         }
     }
 
@@ -214,10 +219,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
                     Logd(TAG, "prefLastScreen: ${appAttribs.prefLastScreen} cameBack: $cameBack")
                     feedEpisodesFlow = getEpisodesAsFlow(null, null, feedId)
-                    feedFlow = realm.query<Feed>("id == $0", feedId).first().asFlow()
-//                    val testNum = 1
-//                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
-//                    Logd(TAG, "test eList: ${eList.size}")
+                    feedFlow = realm.query<Feed>("id == $0", feedId).first().asFlow() //                    val testNum = 1
+                    //                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
+                    //                    Logd(TAG, "test eList: ${eList.size}")
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
                 }
                 Lifecycle.Event.ON_START -> {}
@@ -234,6 +238,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+
+    val configuration = LocalConfiguration.current
 
     val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
     LaunchedEffect(cameBack) { if (cameBack) feedScreenMode = FeedScreenMode.List }
@@ -256,6 +262,13 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val isCallable = remember(feed) { if (!feed?.link.isNullOrEmpty()) isCallable(context, Intent(Intent.ACTION_VIEW, feed!!.link!!.toUri())) else false }
 
     var showHeader by remember { mutableStateOf(true) }
+    LaunchedEffect(configuration.orientation) {
+        when (configuration.orientation) {
+            Configuration.ORIENTATION_LANDSCAPE -> showHeader = false
+            Configuration.ORIENTATION_PORTRAIT -> showHeader = true
+            else -> {}
+        }
+    }
 
     val showConnectLocalFolderConfirm = remember { mutableStateOf(false) }
     var showEditConfirmDialog by remember { mutableStateOf(false) }
@@ -404,15 +417,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher),
                     modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
                         if (feed != null) feedScreenMode = if (feedScreenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info
-//                        if (feed != null) {
-//                            if (feedScreenMode == FeedScreenMode.Info) {
-//                                feedScreenMode = FeedScreenMode.List
-//                                runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = it.prefLastScreen.replace("modeName=Info", "modeName=List") } }
-//                            } else {
-//                                feedScreenMode = FeedScreenMode.Info
-//                                runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = it.prefLastScreen.replace("modeName=List", "modeName=Info") } }
-//                            }
-//                        }
                     }))
                 if (feed != null) Column(modifier = Modifier.padding(start = 10.dp, top = 4.dp)) {
                     Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -444,7 +448,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
-                } else openDrawer()
+                } else drawerState.open()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } },
                 actions = {
                     if (feedScreenMode == FeedScreenMode.List) {
@@ -552,7 +556,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         var showFeedStats by remember { mutableStateOf(false) }
         if (showFeedStats) FeedStatisticsDialog(feed?.title?: "No title", feed?.id?:0, 0, Long.MAX_VALUE) { showFeedStats = false }
 
-        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
+        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             SelectionContainer {
                 Column {
@@ -693,9 +697,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     OpenDialogs()
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-            if (showHeader) FeedDetailsHeader()
-            if (feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
+        if (feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
+            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                if (showHeader) FeedDetailsHeader()
                 val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
                 var scrollToOnStart by remember(episodes, curEpisode) {
                     mutableIntStateOf(if (cameBack) -1 else if (curEpisode?.feedId == feedId) episodes.indexOfFirst { it.id == curEpisode?.id } else -1) }
@@ -718,7 +722,12 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         }
                     },
                 )
-            } else DetailUI()
+            }
+        } else {
+            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
+                FeedDetailsHeader()
+                DetailUI()
+            }
         }
     }
 }

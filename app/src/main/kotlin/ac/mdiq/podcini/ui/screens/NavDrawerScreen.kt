@@ -17,7 +17,6 @@ import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.Companion.unfiltered
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.lcScope
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.utils.Logd
@@ -40,8 +39,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.DrawerState
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -122,11 +120,15 @@ var subscreenHandleBack = mutableStateOf(false)
 
 data class FeedBrief(val id: Long, val title: String?, val imageUrl: String?)
 
+val LocalDrawerController = staticCompositionLocalOf<DrawerController> { error("DrawerController not provided") }
+
 @Composable
 fun NavDrawerScreen(navigator: AppNavigator) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
+    val drawerState = LocalDrawerController.current
+
     val textColor = MaterialTheme.colorScheme.onSurface
     var curruntRoute: String
 
@@ -149,9 +151,9 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         }
     }
 
-    LaunchedEffect(drawerState.currentValue) {
-        Logd(TAG, "LaunchedEffect(drawerState.currentValue): ${drawerState.isOpen}")
-        if (drawerState.isOpen) scope.launch(Dispatchers.IO) {
+    LaunchedEffect(drawerState) {
+        Logd(TAG, "LaunchedEffect(drawerState.currentValue): ${drawerState.isOpen()}")
+        if (drawerState.isOpen()) scope.launch(Dispatchers.IO) {
             navMap[Screens.Queues.name]?.count = queuesLive.sumOf { it.size()}
             navMap[Screens.Subscriptions.name]?.count = feedCount
             navMap[Screens.Facets.name]?.count = getEpisodesCount(unfiltered())
@@ -184,7 +186,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         curruntRoute = currentDestination?.route ?: ""
         Logd(TAG, "BackHandler curruntRoute0: $curruntRoute defPage: $defPage")
         when {
-            drawerState.isOpen -> closeDrawer()
+            drawerState.isOpen() -> drawerState.close()
             isBSExpanded -> isBSExpanded = false
             navigator.previousBackStackEntry != null -> {
                 Logd(TAG, "nav to back")
@@ -199,7 +201,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                 curruntRoute = currentDestination?.route ?: ""
                 Logd(TAG, "BackHandler curruntRoute1: [$curruntRoute]")
             }
-            openDrawer -> openDrawer()
+            openDrawer -> drawerState.open()
             else -> Logt(TAG, context.getString(R.string.no_more_screens_back))
         }
     }
@@ -219,7 +221,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                             if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
                             else popUpTo(nav.key) { inclusive = true }
                         }
-                        closeDrawer()
+                        drawerState.close()
                     }) {
                         Icon(imageVector = ImageVector.vectorResource(nav.value.iconRes), tint = textColor, contentDescription = nav.key, modifier = Modifier.padding(start = 10.dp))
                         Text(stringResource(nav.value.nameRes), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
@@ -232,7 +234,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                     itemsIndexed(feedBriefs) { _, f ->
                         Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp).clickable {
                             navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
-                            closeDrawer()
+                            drawerState.close()
                             isBSExpanded = false
                         }) {
                             AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(40.dp).height(40.dp))
@@ -244,7 +246,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable {
                     context.startActivity(Intent(context, PreferenceActivity::class.java))
-                    closeDrawer()
+                    drawerState.close()
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
                     Text(stringResource(R.string.settings_label), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
@@ -363,14 +365,11 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
     }
 }
 
-var drawerState by mutableStateOf(DrawerState(initialValue = DrawerValue.Closed))
-
-fun openDrawer() {
-    lcScope?.launch { drawerState.open() }
-}
-
-fun closeDrawer() {
-    lcScope?.launch { drawerState.close() }
+interface DrawerController {
+    fun isOpen(): Boolean
+    fun open()
+    fun close()
+    fun toggle()
 }
 
 private var navStackJob: Job? = null
@@ -408,11 +407,7 @@ fun NavHostController.safeNavigate(route: String, builder: NavOptionsBuilder.() 
 }
 
 fun NavHostController.routeExists(route: String): Boolean {
-    return try {
-        this.graph.findNode(route) != null
-    } catch (e: Exception) {
-        false
-    }
+    return try { this.graph.findNode(route) != null } catch (e: Exception) { false }
 }
 
 class AppNavigator(
@@ -439,11 +434,7 @@ class AppNavigator(
         return navController.popBackStack()
     }
 
-    fun popBackStack(
-        route: String,
-        inclusive: Boolean,
-        saveState: Boolean = false
-    ): Boolean {
+    fun popBackStack(route: String, inclusive: Boolean, saveState: Boolean = false): Boolean {
         return navController.popBackStack(route, inclusive, saveState)
     }
 }

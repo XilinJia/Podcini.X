@@ -30,8 +30,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import java.util.Date
 import kotlin.math.min
@@ -211,6 +209,13 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
     } else actQueue = virQueue
 }
 
+fun checkAndFillQueue(queue: PlayQueue) {
+    if (queue.size() == 0 && !queue.isVirtual()) {
+        autoenqueueForQueue(queue)
+        if(queue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), queue)
+    }
+}
+
 suspend fun smartRemoveFromAllQueues(item_: Episode) {
     Logd(TAG, "smartRemoveFromAllQueues: ${item_.title}")
     var item = item_
@@ -233,40 +238,18 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
     if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
     if (actQueue.size() > 0 && actQueue.contains(item)) removeFromQueue(actQueue, listOf(item))
     else upsertBlk(actQueue) { it.update() }
-    if (actQueue.size() == 0 && !actQueue.isVirtual()) {
-        autoenqueueForQueue(actQueue)
-        if(actQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), actQueue)
-    }
-}
-
-fun trimBin(queue: PlayQueue) {
-    if (queue.binLimit <= 0) return
-    if (queue.idsBinList.size > queue.binLimit * 1.2) {
-        val newSize = (0.2 * queue.binLimit).toInt()
-        val subList = queue.idsBinList.subList(0, newSize)
-        queue.idsBinList.clear()
-        queue.idsBinList.addAll(subList)
-    }
+    checkAndFillQueue(actQueue)
 }
 
 fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? = null) {
     Logd(TAG, "removeFromAllQueuesSync called ")
-    for (e in episodes) {
-        for (q in queuesLive) {
-            if (q.id != actQueue.id && q.contains(e)) removeFromQueue(q, listOf(e), playState)
-        }
+    for (q in queuesLive) {
+        if (q.id != actQueue.id) removeFromQueue(q, episodes, playState)
     }
     //        ensure actQueue is last updated
     val qes = queueEntriesOf(actQueue)
-    for (e in episodes) {
-        if (curEpisode != null && e.id == curEpisode!!.id) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
-        if (actQueue.size() > 0 && actQueue.contains(e)) removeFromQueue(actQueue, listOf(e), playState)
-    }
-    upsertBlk(actQueue) { it.update() }
-    if (actQueue.size() == 0 && !actQueue.isVirtual()) {
-        autoenqueueForQueue(actQueue)
-        if(actQueue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), actQueue)
-    }
+    if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
+    if (actQueue.size() > 0) removeFromQueue(actQueue, episodes, playState)
 }
 
 /**
@@ -274,47 +257,36 @@ fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? 
  */
 internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, playState: EpisodeState? = null) {
     Logd(TAG, "removeFromQueue called ")
-    if (episodes.isEmpty()) return
     val queue = queue_ ?: actQueue
     if (queue.size() == 0) {
-        if (!queue.isVirtual()) {
-            autoenqueueForQueue(queue)
-            if (queue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), queue)
-        }
+        checkAndFillQueue(queue)
         return
     }
+    if (episodes.isEmpty()) return
     val removeFromActQueue = mutableListOf<Episode>()
-    val indicesToRemove: MutableList<Int> = mutableListOf()
-    val qItems = queue.episodes.toMutableList()
-    val eList = episodes.toList()
     realm.writeBlocking {
         val qes = query(QueueEntry::class).query("queueId == $0 AND episodeId IN $1", queue.id, episodes.map { it.id }).find()
-        delete(qes)
-    }
-    for (e in eList) {
-        val i = qItems.indexWithId(e.id)
-        if (i >= 0) {
-            indicesToRemove.add(i)
-            upsertBlk(e) { if (playState != null && it.playState == EpisodeState.QUEUE.code) it.setPlayState(playState) }
-            if (queue.id == actQueue.id) removeFromActQueue.add(e)
-        }
-    }
-    if (indicesToRemove.isNotEmpty()) {
-        val queueNew = upsertBlk(queue) {
-            for (i in indicesToRemove.indices.reversed()) {
-                val id = qItems[indicesToRemove[i]].id
-                it.idsBinList.remove(id)
-                it.idsBinList.add(id)
+        if (qes.isNotEmpty()) {
+            findLatest(queue)?.let {
+                for (qe in qes) {
+                    val id = qe.episodeId
+                    it.idsBinList.remove(id)
+                    it.idsBinList.add(id)
+                }
+                it.trimBin()
+                it.update()
             }
-            trimBin(it)
-            it.update()
+            for (e in episodes) {
+                if (qes.indexOfFirst { it.episodeId == e.id } >= 0) {
+                    if (playState != null) findLatest(e)?.let { if (it.playState == EpisodeState.QUEUE.code) it.setPlayState(playState) }
+                    if (queue.id == actQueue.id) removeFromActQueue.add(e)
+                }
+            }
+            delete(qes)
         }
-        EventFlow.postEvent(QueueEvent.removed(removeFromActQueue))
-        if (queueNew.size() == 0 && !queueNew.isVirtual()) {
-            autoenqueueForQueue(queueNew)
-            if(queueNew.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), queueNew)
-        }
-    } else Logd(TAG, "Queue was not modified by call to removeQueueItem")
+    }
+    if (removeFromActQueue.isNotEmpty()) EventFlow.postEvent(QueueEvent.removed(removeFromActQueue))
+    checkAndFillQueue(queue)
 }
 
 suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolean = true) {
@@ -323,10 +295,7 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
     suspend fun doit(q: PlayQueue, isActQueue: Boolean = false) {
         if (q.size() == 0) {
             if (isActQueue) upsert(q) { it.update() }
-            if (!q.isVirtual()) {
-                autoenqueueForQueue(q)
-                if (q.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), q)
-            }
+            checkAndFillQueue(q)
             return
         }
         val qes = realm.query(QueueEntry::class).query("queueId == $0 AND episodeId IN $1", q.id, episodeIds).find()
@@ -345,13 +314,10 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
             val qNew = upsert(q) {
                 it.idsBinList.removeAll(idsInQueuesToRemove)
                 it.idsBinList.addAll(idsInQueuesToRemove)
-                trimBin(it)
+                it.trimBin()
                 it.update()
             }
-            if (qNew.size() == 0 && !q.isVirtual()) {
-                autoenqueueForQueue(qNew)
-                if(qNew.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), qNew)
-            }
+            checkAndFillQueue(qNew)
         }
     }
 

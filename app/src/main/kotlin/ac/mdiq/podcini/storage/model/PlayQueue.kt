@@ -75,6 +75,17 @@ class PlayQueue : RealmObject {
     fun isVirtual(): Boolean = id == VIRTUAL_QUEUE_ID
 
     constructor() {}
+
+    fun trimBin() {
+        if (binLimit <= 0) return
+        if (idsBinList.size > binLimit * 1.2) {
+            val newSize = (0.2 * binLimit).toInt()
+            val subList = idsBinList.subList(0, newSize)
+            idsBinList.clear()
+            idsBinList.addAll(subList)
+        }
+    }
+
 }
 
 fun tmpQueue(): PlayQueue = PlayQueue().apply { id = TMP_QUEUE_ID }

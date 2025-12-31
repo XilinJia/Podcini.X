@@ -170,6 +170,7 @@ fun FacetsScreen() {
     val context by rememberUpdatedState(LocalContext.current)
     val vm = remember {  FacetsVM(context, scope) }
     val navController = LocalNavController.current
+    val drawerState = LocalDrawerController.current
 
     var facetsPrefsJob: Job? by remember { mutableStateOf(null) }
 
@@ -535,7 +536,7 @@ fun FacetsScreen() {
         val buttonColor = Color(0xDDFFD700)
         Box {
             TopAppBar(title = { Text(facetsMode.name, maxLines=1, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clickable(onClick = { showChooseMode = true }))
-            }, navigationIcon = { IconButton(onClick = { openDrawer() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {
+            }, navigationIcon = { IconButton(onClick = { drawerState.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {
                 Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                     val feedsIconRes by remember(showFeeds) { derivedStateOf { if (showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
                     IconButton(onClick = { showFeeds = !showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }

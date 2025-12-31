@@ -115,7 +115,7 @@ private fun setSelected(by: SearchBy, selected: Boolean) {
     if (selected) searchBIES.add(by) else searchBIES.remove(by)
 }
 
-fun contains(s: String): String {
+private fun contains(s: String): String {
     return if (s.startsWith('-')) {
         val s1 = s.substring(1).trim()
         "contains[c] '$s1'"
@@ -327,6 +327,8 @@ fun SearchScreen() {
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val navController = LocalNavController.current
+    val drawerState = LocalDrawerController.current
+
     val textColor = MaterialTheme.colorScheme.onSurface
     val vm = remember { SearchVM(context, scope) }
 
@@ -363,7 +365,7 @@ fun SearchScreen() {
                     vm.queryText = it
                     vm.search(vm.queryText)
                 }
-            }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else openDrawer()  }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
+            }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerState.open()  }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

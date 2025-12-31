@@ -138,6 +138,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
+    val drawerState = LocalDrawerController.current
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
 
@@ -426,7 +427,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
-                } else openDrawer()
+                } else drawerState.open()
             }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
                 actions = {
                     IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(episode?.playState ?: EpisodeState.UNSPECIFIED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
@@ -486,7 +487,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                     else -> ButtonTypes.NULL
                 }
             }
-            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+            Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
                     val txtvPodcast by remember(episode) { mutableStateOf( if (episode?.feed != null) (if (episode!!.feed!!.isSynthetic() && episode!!.origFeedTitle != null) episode!!.origFeedTitle!! else episode!!.feed!!.title ?: "") else "") }
                     SelectionContainer { Text(txtvPodcast, color = textColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.clickable { openPodcast() }) }
@@ -530,7 +531,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                         if (episode?.downloadUrl.isNullOrBlank()) Text("noMediaLabel", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.BottomStart))
                     }
                 }
-                Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     if (episode != null) EpisodeDetails(episode!!, episodeFlow)
                     AsyncImage(img, contentDescription = "imgvCover", contentScale = ContentScale.FillWidth, modifier = Modifier.fillMaxWidth().padding(start = 32.dp, end = 32.dp, top = 10.dp).clickable(onClick = {}))
                     Text(episode?.link ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(bottom = 15.dp).clickable(onClick = {

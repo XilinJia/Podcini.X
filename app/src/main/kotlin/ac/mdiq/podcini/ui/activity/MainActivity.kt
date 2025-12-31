@@ -18,9 +18,7 @@ import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
-import ac.mdiq.podcini.storage.database.cancelQueuesJob
 import ac.mdiq.podcini.storage.database.initAppPrefs
-import ac.mdiq.podcini.storage.database.initQueues
 import ac.mdiq.podcini.storage.database.monitorFeeds
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.cancelMonitorVolumes
@@ -35,11 +33,12 @@ import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.ui.dialog.RatingDialog
 import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
+import ac.mdiq.podcini.ui.screens.DrawerController
+import ac.mdiq.podcini.ui.screens.LocalDrawerController
 import ac.mdiq.podcini.ui.screens.NavDrawerScreen
 import ac.mdiq.podcini.ui.screens.Navigate
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.cancelMonitornavStack
-import ac.mdiq.podcini.ui.screens.drawerState
 import ac.mdiq.podcini.ui.screens.monitorNavStack
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.screens.setSearchTerms
@@ -105,9 +104,11 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -270,36 +271,51 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-        val drawerState_ = rememberDrawerState(DrawerValue.Closed)
-        drawerState = drawerState_
-        //        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
-        ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen(navigator) }) {
-            BottomSheetScaffold(sheetContent = { AudioPlayerScreen(navigator) },
-                scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp,
-                sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}
-            ) { paddingValues ->
-                Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize()
-                    .padding(top = paddingValues.calculateTopPadding(),
-                        start = paddingValues.calculateStartPadding(LocalLayoutDirection.current),
-                        end = paddingValues.calculateEndPadding(LocalLayoutDirection.current),
-                        bottom = dynamicBottomPadding
-                    )) {
-                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
-                    if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-                    if (commonMessage != null) LargePoster(commonMessage!!)
-                    CompositionLocalProvider(LocalNavController provides navigator) {
-                        Navigate(navController, initScreen?:"")
+        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+        val controller = remember {
+            object : DrawerController {
+                override fun isOpen() = drawerState.isOpen
+                override fun open() {
+                    lcScope?.launch { drawerState.open() }
+                }
+                override fun close() {
+                    lcScope?.launch { drawerState.close() }
+                }
+                override fun toggle() {
+                    lcScope?.launch {
+                        if (drawerState.isOpen) drawerState.close()
+                        else drawerState.open()
                     }
                 }
             }
-            LaunchedEffect(intendedScreen) {
-                Logd(TAG, "LaunchedEffect intendedScreen: $intendedScreen")
-                if (intendedScreen.isNotBlank()) {
-                    navigator.navigate(intendedScreen) {
-                        popUpTo(0) { inclusive = true }
-                        launchSingleTop = true
+        }
+        LaunchedEffect(LocalConfiguration.current.orientation) {
+            withFrameNanos { }
+            if (drawerState.isOpen) drawerState.snapTo(DrawerValue.Closed)
+        }
+
+        CompositionLocalProvider(LocalDrawerController provides controller) {
+            //        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
+            ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen(navigator) }) {
+                BottomSheetScaffold(sheetContent = { AudioPlayerScreen(navigator) }, scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
+                    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), start = paddingValues.calculateStartPadding(LocalLayoutDirection.current), end = paddingValues.calculateEndPadding(LocalLayoutDirection.current), bottom = dynamicBottomPadding)) {
+                        if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
+                        if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+                        if (commonMessage != null) LargePoster(commonMessage!!)
+                        CompositionLocalProvider(LocalNavController provides navigator) {
+                            Navigate(navController, initScreen ?: "")
+                        }
                     }
-                    intendedScreen = ""
+                }
+                LaunchedEffect(intendedScreen) {
+                    Logd(TAG, "LaunchedEffect intendedScreen: $intendedScreen")
+                    if (intendedScreen.isNotBlank()) {
+                        navigator.navigate(intendedScreen) {
+                            popUpTo(0) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                        intendedScreen = ""
+                    }
                 }
             }
         }
@@ -402,7 +418,7 @@ class MainActivity : BaseActivity() {
         WorkManager.getInstance(this).pruneWork()
         WorkManager.getInstance(applicationContext).pruneWork()
         closeTTS()
-        cancelQueuesJob()
+//        cancelQueuesJob()
         cancelAppPrefs()
         cancelMonitornavStack()
         super.onDestroy()
