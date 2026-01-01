@@ -330,7 +330,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
         this.startWhenPrepared.set(startWhenPrepared)
         val metadata = buildMetadata(curEpisode!!)
-        setPlaybackParams(getCurrentPlaybackSpeed(curEpisode))
+        setPlaybackParams(currentPlaybackSpeed(curEpisode))
         setRepeat(shouldRepeat)
         setSkipSilence()
         CoroutineScope(Dispatchers.IO).launch {
@@ -395,12 +395,12 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (isPaused || isPrepared) {
             Logd(TAG, "Resuming/Starting playback")
             acquireWifiLockIfNecessary()
-            setPlaybackParams(getCurrentPlaybackSpeed(curEpisode))
+            setPlaybackParams(currentPlaybackSpeed(curEpisode))
             setRepeat(shouldRepeat)
             setSkipSilence()
             setVolume(1.0f, 1.0f)
             if (curEpisode != null && isPrepared && curEpisode!!.position > 0)
-                seekTo(calculatePositionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime))
+                seekTo(positionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime))
 
             if (exoPlayer?.playbackState in listOf(STATE_IDLE, STATE_ENDED)) setSource()
 
@@ -425,7 +425,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (isInitialized) {
             Logd(TAG, "prepare Preparing media player: status: $status")
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
-            setPlaybackParams(getCurrentPlaybackSpeed(curEpisode))
+            setPlaybackParams(currentPlaybackSpeed(curEpisode))
             setSkipSilence()
             setSource()
 

@@ -11,7 +11,6 @@ import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.specs.FeedFunding
@@ -66,6 +65,9 @@ class Feed : RealmObject {
 
     @Ignore
     var episodes: MutableList<Episode> = mutableListOf()    // used only for new feed
+
+    var score: Int = -1000
+    var scoreCount: Int = 0
 
     var limitEpisodesCount: Int = 0
 
@@ -471,14 +473,14 @@ class Feed : RealmObject {
 
     fun isSynthetic(): Boolean = id <= MAX_SYNTHETIC_ID
 
-    fun getVirtualQueueItems():  List<Episode> {
-        var qString = "feedId == $id AND (playState < ${EpisodeState.SKIPPED.code} OR playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code})"
-//        TODO: perhaps need to set prefStreamOverDownload for youtube feeds
-        if (type != FeedType.YOUTUBE.name && !prefStreamOverDownload) qString += " AND downloaded == true"
-        val eList_ = realm.query(Episode::class, qString).query(episodeFilter.queryString()).find().toMutableList()
-        getPermutor(episodeSortOrder).reorder(eList_)
-        return eList_
-    }
+//    fun getVirtualQueueItems():  List<Episode> {
+//        var qString = "feedId == $id AND (playState < ${EpisodeState.SKIPPED.code} OR playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code})"
+////        TODO: perhaps need to set prefStreamOverDownload for youtube feeds
+//        if (type != FeedType.YOUTUBE.name && !prefStreamOverDownload) qString += " AND downloaded == true"
+//        val eList_ = realm.query(Episode::class, qString).query(episodeFilter.queryString()).find().toMutableList()
+//        getPermutor(episodeSortOrder).reorder(eList_)
+//        return eList_
+//    }
 
     @Ignore
     val isWorthyQuerryStr: String

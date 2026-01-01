@@ -36,9 +36,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -67,6 +67,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -121,13 +122,15 @@ var subscreenHandleBack = mutableStateOf(false)
 data class FeedBrief(val id: Long, val title: String?, val imageUrl: String?)
 
 val LocalDrawerController = staticCompositionLocalOf<DrawerController> { error("DrawerController not provided") }
+val LocalDrawerState = staticCompositionLocalOf<DrawerState> { error("DrawerState not provided") }
 
 @Composable
 fun NavDrawerScreen(navigator: AppNavigator) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
-    val drawerState = LocalDrawerController.current
+    val drawerCtrl = LocalDrawerController.current
+    val drawerState = LocalDrawerState.current
 
     val textColor = MaterialTheme.colorScheme.onSurface
     var curruntRoute: String
@@ -151,9 +154,9 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         }
     }
 
-    LaunchedEffect(drawerState) {
-        Logd(TAG, "LaunchedEffect(drawerState.currentValue): ${drawerState.isOpen()}")
-        if (drawerState.isOpen()) scope.launch(Dispatchers.IO) {
+    LaunchedEffect(drawerState.isOpen) {
+        Logd(TAG, "LaunchedEffect(drawerState.currentValue): ${drawerState.isOpen}")
+        if (drawerState.isOpen) scope.launch(Dispatchers.IO) {
             navMap[Screens.Queues.name]?.count = queuesLive.sumOf { it.size()}
             navMap[Screens.Subscriptions.name]?.count = feedCount
             navMap[Screens.Facets.name]?.count = getEpisodesCount(unfiltered())
@@ -186,7 +189,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         curruntRoute = currentDestination?.route ?: ""
         Logd(TAG, "BackHandler curruntRoute0: $curruntRoute defPage: $defPage")
         when {
-            drawerState.isOpen() -> drawerState.close()
+            drawerState.isOpen -> drawerCtrl.close()
             isBSExpanded -> isBSExpanded = false
             navigator.previousBackStackEntry != null -> {
                 Logd(TAG, "nav to back")
@@ -201,7 +204,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                 curruntRoute = currentDestination?.route ?: ""
                 Logd(TAG, "BackHandler curruntRoute1: [$curruntRoute]")
             }
-            openDrawer -> drawerState.open()
+            openDrawer -> drawerCtrl.open()
             else -> Logt(TAG, context.getString(R.string.no_more_screens_back))
         }
     }
@@ -209,19 +212,19 @@ fun NavDrawerScreen(navigator: AppNavigator) {
     val windowSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
     val windowWidthDp = with(density) { windowSize.width.toDp() }
-    val drawerWidth = windowWidthDp * 0.7f
+    val drawerWidth = min(350.dp,windowWidthDp * 0.7f)
 
     Box(Modifier.width(drawerWidth).fillMaxHeight()) {
         Scaffold { innerPadding ->
-            Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).background(MaterialTheme.colorScheme.surface), verticalArrangement = Arrangement.spacedBy(15.dp)) {
+            Column(modifier = Modifier.padding(innerPadding).padding(start = 10.dp, end = 5.dp, top = 10.dp, bottom = 10.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
                 for (nav in navMap.entries) {
-                    if (nav.value.show) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 15.dp).clickable {
                         Logd(TAG, "nav.key: ${nav.key}")
                         navigator.navigate(nav.key) {
                             if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
                             else popUpTo(nav.key) { inclusive = true }
                         }
-                        drawerState.close()
+                        drawerCtrl.close()
                     }) {
                         Icon(imageVector = ImageVector.vectorResource(nav.value.iconRes), tint = textColor, contentDescription = nav.key, modifier = Modifier.padding(start = 10.dp))
                         Text(stringResource(nav.value.nameRes), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
@@ -229,27 +232,24 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                         if (nav.value.count > 0) Text(nav.value.count.toString(), color = textColor, modifier = Modifier.padding(end = 10.dp))
                     }
                 }
-                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                LazyColumn(state = rememberLazyListState()) {
-                    itemsIndexed(feedBriefs) { _, f ->
-                        Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 5.dp).clickable {
-                            navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
-                            drawerState.close()
-                            isBSExpanded = false
-                        }) {
-                            AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(40.dp).height(40.dp))
-                            Text(f.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
-                        }
-                    }
-                }
-                Spacer(Modifier.weight(1f))
-                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
+                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable {
                     context.startActivity(Intent(context, PreferenceActivity::class.java))
-                    drawerState.close()
+                    drawerCtrl.close()
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
                     Text(stringResource(R.string.settings_label), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
+                }
+                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
+                for (f in feedBriefs) {
+                    Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable {
+                        navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
+                        drawerCtrl.close()
+                        isBSExpanded = false
+                    }) {
+                        AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(40.dp).height(40.dp))
+                        Text(f.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
+                    }
                 }
             }
         }
@@ -258,7 +258,6 @@ fun NavDrawerScreen(navigator: AppNavigator) {
 
 class NavItem(val iconRes: Int, val nameRes: Int) {
     var count by mutableIntStateOf(0)
-    var show by mutableStateOf(true)
 }
 
 enum class Screens {

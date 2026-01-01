@@ -1,3 +1,21 @@
+# 10.3.0
+
+* in the drawer
+	* restored prosperity
+	* set the width to be the min of 350dp and 70% of screen width
+	* items are rearranged, and are vertically scrollable
+	* drawer state stays on rotation
+* fixed virQueue not automatically create on new install (or upgrade from old versions)
+* max number of queues allowed is raised to 20
+* feed's score and scoreCount are persisted
+* in FeedDetails list view
+	* the header is hidden when scrolling past 2 positions
+	* Infobar adds the score (count) info and image of the feed
+	* click on the feed image opens the feed info view
+	* long-click on the feed image scroll to the currently playing, if applicable
+	* improved efficiency
+* some code refactoring
+
 # 10.2.4
 
 * in EpisodeInfo screen, the header is scrollable together with details

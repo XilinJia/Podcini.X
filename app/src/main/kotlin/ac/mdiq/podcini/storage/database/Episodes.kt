@@ -10,7 +10,7 @@ import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
-import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.getCurrentPlaybackSpeed
+import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentPlaybackSpeed
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -350,13 +350,14 @@ suspend fun setPlayState(state: EpisodeState, episodes: List<Episode>, resetMedi
     }
 }
 
-fun buildListInfo(episodes: List<Episode>): String {
+fun buildListInfo(episodes: List<Episode>, total: Int = 0): String {
     Logd(TAG, "buildListInfo")
     var infoText = String.format(Locale.getDefault(), "%d", episodes.size)
+    if (total > 0) infoText += "/" + String.format(Locale.getDefault(), "%d", total)
     if (episodes.isNotEmpty()) {
         var timeLeft: Long = 0
         for (item in episodes) {
-            val playbackSpeed = getCurrentPlaybackSpeed(item).takeIf { it > 0 } ?: 1f
+            val playbackSpeed = currentPlaybackSpeed(item).takeIf { it > 0 } ?: 1f
             val itemTimeLeft: Long = (item.duration - item.position).toLong()
             timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
         }

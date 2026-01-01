@@ -64,6 +64,13 @@ fun initQueues() {
                 }
             }
         }
+        virQueue = realm.query(PlayQueue::class).query("id == $VIRTUAL_QUEUE_ID").first().find() ?: run {
+            val vq = PlayQueue()
+            vq.id = VIRTUAL_QUEUE_ID
+            vq.name = "Virtual"
+            upsertBlk(vq) {}
+        }
+
         queuesFlow.collect { changes: ResultsChange<PlayQueue> ->
             queuesLive = changes.list
             val q = queuesLive.find { it.id == actQueue.id }
@@ -80,12 +87,6 @@ fun initQueues() {
                 }
                 else -> {}
             }
-        }
-        virQueue = realm.query(PlayQueue::class).query("id == $VIRTUAL_QUEUE_ID").first().find() ?: run {
-            val vq = PlayQueue()
-            vq.id = VIRTUAL_QUEUE_ID
-            vq.name = "Virtual"
-            upsertBlk(vq) {}
         }
     }
 }

@@ -241,7 +241,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
 
         val metadata = buildMetadata(curEpisode!!)
         try {
-            setPlaybackParams(getCurrentPlaybackSpeed(curEpisode))
+            setPlaybackParams(currentPlaybackSpeed(curEpisode))
             when {
                 streaming -> {
                     val streamurl = curEpisode!!.downloadUrl
@@ -279,7 +279,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
     }
 
     override fun play() {
-        val newPosition = calculatePositionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime)
+        val newPosition = positionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime)
         seekTo(newPosition)
         remoteMediaClient?.play()
     }
@@ -293,7 +293,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             Logd(TAG, "Preparing media player $mediaInfo")
             setPlayerStatus(PlayerStatus.PREPARING, curEpisode)
             var position = curEpisode!!.position
-            if (position > 0) position = calculatePositionWithRewind(position, curEpisode!!.lastPlayedTime)
+            if (position > 0) position = positionWithRewind(position, curEpisode!!.lastPlayedTime)
             remoteMediaClient?.load(MediaLoadRequestData.Builder()
                 .setMediaInfo(mediaInfo)
                 .setAutoplay(startWhenPrepared.get())

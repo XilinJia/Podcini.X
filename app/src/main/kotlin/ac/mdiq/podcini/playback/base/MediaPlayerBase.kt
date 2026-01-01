@@ -743,7 +743,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             get() = mPlayer?.getDuration() ?: curEpisode?.duration ?: Episode.INVALID_TIME
 
         val curPBSpeed: Float
-            get() = mPlayer?.getPlaybackSpeed() ?: getCurrentPlaybackSpeed(curEpisode)
+            get() = mPlayer?.getPlaybackSpeed() ?: currentPlaybackSpeed(curEpisode)
 
         private var isStartWhenPrepared: Boolean
             get() = mPlayer?.startWhenPrepared?.get() == true
@@ -795,7 +795,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
          * @param lastPlayedTime  timestamp when was media paused
          * @return  new rewinded position for playback in milliseconds
          */
-        fun calculatePositionWithRewind(currentPosition: Int, lastPlayedTime: Long): Int {
+        fun positionWithRewind(currentPosition: Int, lastPlayedTime: Long): Int {
             if (currentPosition > 0 && lastPlayedTime > 0) {
                 val elapsedTime = System.currentTimeMillis() - lastPlayedTime
                 var rewindTime: Long = 0
@@ -809,10 +809,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             } else return currentPosition
         }
 
-        /**
-         * Returns the currently configured playback speed for the specified media.
-         */
-        fun getCurrentPlaybackSpeed(media: Episode?): Float {
+        fun currentPlaybackSpeed(media: Episode?): Float {
             var playbackSpeed = SPEED_USE_GLOBAL
             if (media != null) {
                 playbackSpeed = curTempSpeed

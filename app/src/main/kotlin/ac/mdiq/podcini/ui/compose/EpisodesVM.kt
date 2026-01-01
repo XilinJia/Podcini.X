@@ -58,6 +58,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -137,7 +138,7 @@ private const val TAG = "EpisodesVM"
 var showSwipeActionsDialog by mutableStateOf(false)
 
 @Composable
-fun InforBar(text: State<String>, swipeActions: SwipeActions) {
+fun InforBar(swipeActions: SwipeActions, content: @Composable (RowScope.()->Unit)) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val leftAction = swipeActions.actions.left[0]
@@ -148,7 +149,8 @@ fun InforBar(text: State<String>, swipeActions: SwipeActions) {
             modifier = Modifier.width(24.dp).height(24.dp).clickable(onClick = {  showSwipeActionsDialog = true }))
         Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_left_alt_24), tint = textColor, contentDescription = "left_arrow", modifier = Modifier.width(24.dp).height(24.dp))
         Spacer(modifier = Modifier.weight(1f))
-        Text(text.value, color = textColor, style = MaterialTheme.typography.bodyMedium)
+//        Text(text.value, color = textColor, style = MaterialTheme.typography.bodyMedium)
+        content()
         Spacer(modifier = Modifier.weight(1f))
         Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_right_alt_24), tint = textColor, contentDescription = "right_arrow", modifier = Modifier.width(24.dp).height(24.dp))
         Icon(imageVector = ImageVector.vectorResource(rightAction.iconRes), tint = buttonColor, contentDescription = "right_action_icon",

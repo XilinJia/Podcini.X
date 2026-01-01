@@ -1,0 +1,5 @@
+* the drawer is amended
+* fixed virQueue not automatically create on new install (or upgrade from old versions)
+* max number of queues allowed is raised to 20
+* feed's score and scoreCount are persisted
+* in FeedDetails header and Infobar are amended

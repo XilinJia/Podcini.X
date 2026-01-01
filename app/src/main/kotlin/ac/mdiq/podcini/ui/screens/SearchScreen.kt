@@ -488,7 +488,7 @@ fun SearchScreen() {
             }
             when (selectedTabIndex.intValue) {
                 0 -> {
-                    InforBar(infoBarText, swipeActions)
+                    InforBar(swipeActions) { Text(infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
                     EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions,
                         actionButtonCB = { e, type ->
                             if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM))

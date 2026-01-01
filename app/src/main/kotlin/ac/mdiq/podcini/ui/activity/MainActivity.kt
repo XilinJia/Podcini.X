@@ -35,6 +35,7 @@ import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
 import ac.mdiq.podcini.ui.screens.DrawerController
 import ac.mdiq.podcini.ui.screens.LocalDrawerController
+import ac.mdiq.podcini.ui.screens.LocalDrawerState
 import ac.mdiq.podcini.ui.screens.NavDrawerScreen
 import ac.mdiq.podcini.ui.screens.Navigate
 import ac.mdiq.podcini.ui.screens.Screens
@@ -101,6 +102,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -119,7 +121,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.await
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -240,7 +241,7 @@ class MainActivity : BaseActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MainActivityUI() {
-        lcScope = rememberCoroutineScope()
+        val lcScope = rememberCoroutineScope()
         val navController = rememberNavController()
         val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
         LaunchedEffect(Unit) { monitorNavStack(navController) }
@@ -271,30 +272,38 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-        val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+        var savedDrawerValue by rememberSaveable {
+            mutableStateOf(DrawerValue.Closed)
+        }
+
+        val drawerState = rememberDrawerState(initialValue = savedDrawerValue)
+
+        val configuration = LocalConfiguration.current
+        LaunchedEffect(configuration.orientation) {
+            withFrameNanos { }
+            drawerState.snapTo(savedDrawerValue)
+        }
+
+        LaunchedEffect(drawerState.currentValue) { savedDrawerValue = drawerState.currentValue }
         val controller = remember {
             object : DrawerController {
                 override fun isOpen() = drawerState.isOpen
                 override fun open() {
-                    lcScope?.launch { drawerState.open() }
+                    lcScope.launch { drawerState.open() }
                 }
                 override fun close() {
-                    lcScope?.launch { drawerState.close() }
+                    lcScope.launch { drawerState.close() }
                 }
                 override fun toggle() {
-                    lcScope?.launch {
+                    lcScope.launch {
                         if (drawerState.isOpen) drawerState.close()
                         else drawerState.open()
                     }
                 }
             }
         }
-        LaunchedEffect(LocalConfiguration.current.orientation) {
-            withFrameNanos { }
-            if (drawerState.isOpen) drawerState.snapTo(DrawerValue.Closed)
-        }
 
-        CompositionLocalProvider(LocalDrawerController provides controller) {
+        CompositionLocalProvider(LocalDrawerController provides controller, LocalDrawerState provides drawerState) {
             //        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
             ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen(navigator) }) {
                 BottomSheetScaffold(sheetContent = { AudioPlayerScreen(navigator) }, scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
@@ -564,8 +573,6 @@ class MainActivity : BaseActivity() {
         val downloadStates = mutableStateMapOf<String, DownloadStatus>()
 
         val LocalNavController = staticCompositionLocalOf<AppNavigator> { error("NavController not provided") }
-
-        var lcScope: CoroutineScope? = null
 
         var isBSExpanded by mutableStateOf(false)
         

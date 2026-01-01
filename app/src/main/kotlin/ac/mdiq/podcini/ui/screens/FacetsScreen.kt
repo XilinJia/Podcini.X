@@ -633,7 +633,7 @@ fun FacetsScreen() {
             val info = remember(infoBarText, progressing, facetsMode) { mutableStateOf(
                 (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + infoBarText + (if (progressing) " - ${context.getString(R.string.progressing_label)}" else "")
             ) }
-            InforBar(info, swipeActions)
+            InforBar(swipeActions) { Text(info.value, style = MaterialTheme.typography.bodyMedium) }
             EpisodeLazyColumn(context, episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButton_ = actionButtonToPass,
                 actionButtonCB = { e, type ->
                     if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM))

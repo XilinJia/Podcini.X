@@ -499,6 +499,7 @@ class VideoplayerActivity : BaseActivity() {
         }
     }
 
+    // TODO what to do?
     //Hardware keyboard support
 //    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
 //        val currentFocus = currentFocus

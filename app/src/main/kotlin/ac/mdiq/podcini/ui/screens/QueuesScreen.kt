@@ -162,7 +162,7 @@ import java.text.NumberFormat
 
 private val TAG = Screens.Queues.name
 
-private const val QUEUES_LIMIT = 15
+private const val QUEUES_LIMIT = 20
 
 enum class QueuesScreenMode {
     Queue,
@@ -724,28 +724,18 @@ fun QueuesScreen(id: Long = -1L) {
                 Logd(TAG, "Scaffold scrollToOnStart: cameBack: $cameBack $scrollToOnStart $curQueuePosition")
 
                 var listInfoText by remember { mutableStateOf("") }
-                val infoBarText = remember { mutableStateOf("") }
-
                 LaunchedEffect(episodes.size) {
                     Logd(TAG, "LaunchedEffect(episodes.size) ${episodes.size}")
-                    scope.launch(Dispatchers.IO) {
-                        val info = buildListInfo(episodes)
-                        withContext(Dispatchers.Main) {
-                            listInfoText = info
-                            infoBarText.value = "$listInfoText $feedOperationText"
-                        }
-                    }
+                    scope.launch(Dispatchers.IO) { listInfoText = buildListInfo(episodes) }
                 }
                 if (queuesMode == QueuesScreenMode.Bin) {
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                        infoBarText.value = "$listInfoText $feedOperationText"
-                        InforBar(infoBarText, swipeActions)
+                        InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
                         EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions)
                     }
                 } else {
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                        infoBarText.value = "$listInfoText $feedOperationText"
-                        InforBar(infoBarText, swipeActions)
+                        InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
                         val dragDropEnabled by remember(curQueue.id, curQueue.isLocked) { mutableStateOf(!curQueue.isLocked) }
                         EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions,
                             lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,

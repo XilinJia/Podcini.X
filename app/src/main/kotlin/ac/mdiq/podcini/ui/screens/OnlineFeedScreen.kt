@@ -543,7 +543,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 }
             }
             if (vm.showEpisodes) {
-                InforBar(vm.infoBarText, swipeActions)
+                InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
                 EpisodeLazyColumn(context as MainActivity, vm.episodes.toList(), swipeActions = swipeActions,
                     actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
             } else {

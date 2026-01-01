@@ -57,7 +57,6 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -77,6 +76,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -115,7 +115,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -200,9 +199,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 feed?.downloadUrl = Feed.PREFIX_LOCAL_FOLDER + uri.toString()
                 if (feed != null) updateFeedFull(feed!!, removeUnlistedItems = true)
                 Logt(TAG, context.getString(R.string.OK))
-            } catch (e: Throwable) {
-                Loge(TAG, e.localizedMessage ?: "No message")
-            }
+            } catch (e: Throwable) { Loge(TAG, e.localizedMessage ?: "No message") }
         }
     }
 
@@ -219,7 +216,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
                     Logd(TAG, "prefLastScreen: ${appAttribs.prefLastScreen} cameBack: $cameBack")
                     feedEpisodesFlow = getEpisodesAsFlow(null, null, feedId)
-                    feedFlow = realm.query<Feed>("id == $0", feedId).first().asFlow() //                    val testNum = 1
+                    feedFlow = realm.query<Feed>("id == $0", feedId).first().asFlow()
+                    //                    val testNum = 1
                     //                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
                     //                    Logd(TAG, "test eList: ${eList.size}")
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
@@ -239,8 +237,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         }
     }
 
-    val configuration = LocalConfiguration.current
-
     val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
     LaunchedEffect(cameBack) { if (cameBack) feedScreenMode = FeedScreenMode.List }
 
@@ -248,27 +244,20 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     var listIdentity by remember { mutableStateOf("") }
 
-    var layoutModeIndex by remember { mutableIntStateOf(LayoutMode.Normal.ordinal) }
+    var layoutModeIndex by remember((feed?.useWideLayout)) { mutableIntStateOf(if (feed?.useWideLayout == true) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal) }
 
-    var isFiltered by remember { mutableStateOf(false) }
+    var isFiltered by remember(feed?.filterString) { mutableStateOf(!feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty()) }
 
     val feedChange by feedFlow.collectAsStateWithLifecycle(initialValue = null)
-    feed = feedChange?.obj
-    LaunchedEffect(feedChange, feedId) {
-        Logd(TAG, "LaunchedEffect(feedResult, feedId)")
-        isFiltered = !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty()
-    }
+    if (feedChange?.obj != null) feed = feedChange?.obj
+//    LaunchedEffect(feedChange, feedId) {
+//        Logd(TAG, "LaunchedEffect(feedResult, feedId)")
+//        isFiltered = !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty()
+//    }
 
     val isCallable = remember(feed) { if (!feed?.link.isNullOrEmpty()) isCallable(context, Intent(Intent.ACTION_VIEW, feed!!.link!!.toUri())) else false }
 
     var showHeader by remember { mutableStateOf(true) }
-    LaunchedEffect(configuration.orientation) {
-        when (configuration.orientation) {
-            Configuration.ORIENTATION_LANDSCAPE -> showHeader = false
-            Configuration.ORIENTATION_PORTRAIT -> showHeader = true
-            else -> {}
-        }
-    }
 
     val showConnectLocalFolderConfirm = remember { mutableStateOf(false) }
     var showEditConfirmDialog by remember { mutableStateOf(false) }
@@ -281,10 +270,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     var showSortDialog by remember { mutableStateOf(false) }
     var showTagsSettingDialog by remember { mutableStateOf(false) }
 
-    val infoBarText = remember { mutableStateOf("") }
-
     val feChange by feedEpisodesFlow.collectAsStateWithLifecycle(initialValue = null)
     val feedEpisodes = feChange?.list ?: listOf()
+    
+    var scoreComputed by remember { mutableStateOf(false) }
 
     val episodesChange by episodesFlow.collectAsStateWithLifecycle(initialValue = null)
     val episodes = episodesChange?.list ?: listOf()
@@ -292,17 +281,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     var listInfoText by remember { mutableStateOf("") }
     LaunchedEffect(episodes.size) {
         Logd(TAG, "LaunchedEffect(episodes.size)")
-        scope.launch(Dispatchers.IO) {
-            val info = buildListInfo(episodes)
-            withContext(Dispatchers.Main) {
-                listInfoText = info
-                infoBarText.value = "$listInfoText $feedOperationText"
-            }
-        }
+        scope.launch(Dispatchers.IO) { listInfoText = buildListInfo(episodes, feedEpisodes.size) }
     }
-
-    var score by remember { mutableIntStateOf(-1000) }
-    var scoreCount by remember { mutableIntStateOf(0) }
 
     @Composable
     fun OpenDialogs() {
@@ -425,7 +405,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         val ratingIconRes by remember { derivedStateOf { Rating.fromCode(feed!!.rating).res } }
                         IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(start = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer)) }
                         Spacer(modifier = Modifier.weight(0.1f))
-                        if (score > -1000) Text((score).toString() + " (" + scoreCount + ")", textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        if (feed!!.score > -1000) Text((feed!!.score).toString() + " (" + feed!!.scoreCount + ")", textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         Spacer(modifier = Modifier.weight(0.2f))
                         if (feedScreenMode == FeedScreenMode.List) Text(episodes.size.toString() + " / " + feedEpisodes.size.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
                         else Text((feedEpisodes.size).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
@@ -643,55 +623,56 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         enableFilter = true
     }
 
-    suspend fun assembleList() {
-        if (feed == null) return
-        Logd(TAG, "assembleList feed!!.episodeFilter: ${feed!!.episodeFilter.propertySet}")
-        listIdentity = "FeedDetails.${feed!!.id}"
-        episodesFlow = when {
-            feedScreenMode == FeedScreenMode.History -> {
-                listIdentity += ".History"
-                getHistoryAsFlow(feed!!.id)
-            }
-            enableFilter && feed!!.filterString.isNotBlank() -> {
-                listIdentity += ".${feed!!.filterString}.${feed!!.episodeSortOrder.name}"
-                try {
-                    getEpisodesAsFlow(feed!!.episodeFilter, feed!!.episodeSortOrder, feed!!.id)
-                } catch (e: Throwable) {
-                    Loge(TAG, "getEpisodesAsFlow error, retry: ${e.message}")
-                    feed = upsert(feed!!) {
-                        it.episodeFilter = EpisodeFilter("")
-                        it.episodeSortOrder = EpisodeSortOrder.DATE_DESC
-                    }
-                    getEpisodesAsFlow(feed!!.episodeFilter, feed!!.episodeSortOrder, feed!!.id)
+    LaunchedEffect(feed?.id, feed?.filterString, feed?.sortOrderCode, enableFilter, feedScreenMode) {
+        Logd(TAG, "LaunchedEffect(feed, enableFilter, feedScreenMode)")
+        if (feed != null && feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) scope.launch(Dispatchers.IO) {
+            Logd(TAG, "assembleList feed!!.episodeFilter: ${feed!!.episodeFilter.propertySet}")
+            listIdentity = "FeedDetails.${feed!!.id}"
+            episodesFlow = when {
+                feedScreenMode == FeedScreenMode.History -> {
+                    listIdentity += ".History"
+                    getHistoryAsFlow(feed!!.id)
                 }
-            }
-            else -> {
-                listIdentity += "..${feed!!.episodeSortOrder.name}"
-                getEpisodesAsFlow(EpisodeFilter(""), feed!!.episodeSortOrder, feed!!.id)
-            }
-        }
-        withContext(Dispatchers.Main) {
-            layoutModeIndex = if (feed!!.useWideLayout) LayoutMode.WideImage.ordinal else LayoutMode.Normal.ordinal
-            Logd(TAG, "loadItems subscribe called ${feed?.title}")
-            if (feedEpisodes.isNotEmpty()) {
-                var sumR = 0.0
-                scoreCount = 0
-                for (e in feedEpisodes) {
-                    if (e.playState >= EpisodeState.PROGRESS.code) {
-                        scoreCount++
-                        if (e.rating != Rating.UNRATED.code) sumR += e.rating
-                        if (e.playState >= EpisodeState.SKIPPED.code) sumR += - 0.5 + 1.0 * e.playedDuration / e.duration
-                        else if (e.playState in listOf(EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)) sumR += 0.5
+                enableFilter && feed!!.filterString.isNotBlank() -> {
+                    listIdentity += ".${feed!!.filterString}.${feed!!.episodeSortOrder.name}"
+                    try {
+                        getEpisodesAsFlow(feed!!.episodeFilter, feed!!.episodeSortOrder, feed!!.id)
+                    } catch (e: Throwable) {
+                        Loge(TAG, "getEpisodesAsFlow error, retry: ${e.message}")
+                        feed = upsert(feed!!) {
+                            it.episodeFilter = EpisodeFilter("")
+                            it.episodeSortOrder = EpisodeSortOrder.DATE_DESC
+                        }
+                        getEpisodesAsFlow(feed!!.episodeFilter, feed!!.episodeSortOrder, feed!!.id)
                     }
                 }
-                score = if (scoreCount > 0) (100 * sumR / scoreCount / Rating.SUPER.code).toInt() else -1000
+                else -> {
+                    listIdentity += "..${feed!!.episodeSortOrder.name}"
+                    getEpisodesAsFlow(EpisodeFilter(""), feed!!.episodeSortOrder, feed!!.id)
+                }
             }
         }
     }
 
-    LaunchedEffect(feed, enableFilter, feedScreenMode) {
-        Logd(TAG, "LaunchedEffect(feed, enableFilter, feedScreenMode)")
-        if (feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) scope.launch(Dispatchers.IO) { assembleList() }
+    LaunchedEffect(feed?.id, feedEpisodes.size) {
+        Logd(TAG, "LaunchedEffect(feedEpisodes) ${feedEpisodes.size}")
+        if (feedEpisodes.isNotEmpty() && !scoreComputed) {
+            var sumR = 0.0
+            var scoreCount = 0
+            for (e in feedEpisodes) {
+                if (e.playState >= EpisodeState.PROGRESS.code) {
+                    scoreCount++
+                    if (e.rating != Rating.UNRATED.code) sumR += e.rating
+                    if (e.playState >= EpisodeState.SKIPPED.code) sumR += - 0.5 + 1.0 * e.playedDuration / e.duration
+                    else if (e.playState in listOf(EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)) sumR += 0.5
+                }
+            }
+            if (feed != null) upsert(feed!!) {
+                it.scoreCount = scoreCount
+                it.score = if (scoreCount > 0) (100 * sumR / scoreCount / Rating.SUPER.code).toInt() else -1000
+            }
+            scoreComputed = true
+        }
     }
 
     OpenDialogs()
@@ -699,14 +680,39 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                if (showHeader) FeedDetailsHeader()
+                val lazyListState = rememberLazyListState()
+                val isHeaderVisible by remember { derivedStateOf { lazyListState.firstVisibleItemIndex < 2 } }
+                if (showHeader && isHeaderVisible) FeedDetailsHeader()
                 val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
                 var scrollToOnStart by remember(episodes, curEpisode) {
                     mutableIntStateOf(if (cameBack) -1 else if (curEpisode?.feedId == feedId) episodes.indexOfFirst { it.id == curEpisode?.id } else -1) }
-                infoBarText.value = "$listInfoText $feedOperationText"
-                InforBar(infoBarText, swipeActions)
+                InforBar(swipeActions) {
+                    if (feedOperationText.isNotBlank()) Text(feedOperationText, style = MaterialTheme.typography.bodyMedium)
+                    else {
+                        val scoreText = remember(feed?.score, feed?.scoreCount) { if (feed != null) (feed!!.score).toString() + " (" + feed!!.scoreCount + ") " else "" }
+                        if (scoreText.isNotBlank()) {
+                            Text(scoreText, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(modifier = Modifier.weight(0.1f))
+                        }
+                        AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(24.dp).height(24.dp)
+                            .combinedClickable(onClick = {
+                                if (feed != null) feedScreenMode = if (feedScreenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info
+                            }, onLongClick = {
+                                    if (curEpisode?.feedId == feedId) {
+                                        if (episodes.size > 5) {
+                                            val index = episodes.indexOfFirst { it.id == curEpisode?.id }
+                                            if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
+                                            else Logt(TAG, "can not find curEpisode to scroll to")
+                                        } else Logt(TAG, "only scroll when episodes number is larger than 5")
+                                    } else Logt(TAG, "currently playing does not belong to this feeds")
+                                })
+                            )
+                        Spacer(modifier = Modifier.weight(0.1f))
+                        Text(listInfoText, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
                 EpisodeLazyColumn(context, episodes, feed = feed, layoutMode = layoutModeIndex, swipeActions = swipeActions,
-                    scrollToOnStart = scrollToOnStart,
+                    lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                     refreshCB = {
                         if (feed != null) runOnceOrAsk(context, feeds = listOf(feed!!))
                         else Logt(TAG, "feed is null, can not refresh")
