@@ -2,7 +2,7 @@ package ac.mdiq.podcini.net.download.service
 
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.model.Episode
-
+import kotlinx.parcelize.Parcelize
 import ac.mdiq.podcini.storage.model.Episode.Companion.FEEDFILETYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.Logd
@@ -10,17 +10,18 @@ import android.os.Bundle
 import android.os.Parcel
 import android.os.Parcelable
 
+@Parcelize
 class DownloadRequest private constructor(
-         val destination: String?,
-         val source: String?,
+        val destination: String?,
+        val source: String?,
         val title: String?,
         val feedfileId: Long,
         val feedfileType: Int,
         var lastModified: String?,
         var username: String?,
-         var password: String?,
+        var password: String?,
         private val mediaEnqueued: Boolean,
-         val arguments: Bundle?,
+        val arguments: Bundle?,
         private val initiatedByUser: Boolean) : Parcelable {
 
     var progressPercent: Int = 0
@@ -56,24 +57,25 @@ class DownloadRequest private constructor(
 
     override fun describeContents(): Int = 0
 
-    override fun writeToParcel(dest: Parcel, flags: Int) {
-        dest.writeString(destination)
-        dest.writeString(source)
-        dest.writeString(title)
-        dest.writeString(feedfileId.toString())
-        dest.writeInt(feedfileType)
-        dest.writeString(lastModified)
-        // in case of null username/password, still write an empty string
-        // (rather than skipping it). Otherwise, unmarshalling  a collection
-        // of them from a Parcel (from an Intent extra to submit a request to DownloadService) will fail.
-        //
-        // see: https://stackoverflow.com/a/22926342
-        dest.writeString(username ?: "")
-        dest.writeString(password ?: "")
-        dest.writeByte(if ((mediaEnqueued)) 1.toByte() else 0)
-        dest.writeBundle(arguments)
-        dest.writeByte(if (initiatedByUser) 1.toByte() else 0)
-    }
+    // should be handled by @Parcelize
+//    override fun writeToParcel(dest: Parcel, flags: Int) {
+//        dest.writeString(destination)
+//        dest.writeString(source)
+//        dest.writeString(title)
+//        dest.writeString(feedfileId.toString())
+//        dest.writeInt(feedfileType)
+//        dest.writeString(lastModified)
+//        // in case of null username/password, still write an empty string
+//        // (rather than skipping it). Otherwise, unmarshalling  a collection
+//        // of them from a Parcel (from an Intent extra to submit a request to DownloadService) will fail.
+//        //
+//        // see: https://stackoverflow.com/a/22926342
+//        dest.writeString(username ?: "")
+//        dest.writeString(password ?: "")
+//        dest.writeByte(if ((mediaEnqueued)) 1.toByte() else 0)
+//        dest.writeBundle(arguments)
+//        dest.writeByte(if (initiatedByUser) 1.toByte() else 0)
+//    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -180,11 +182,12 @@ class DownloadRequest private constructor(
 
         private fun nullIfEmpty(str: String?): String? = if (str.isNullOrEmpty()) null else str
 
-        
-        val CREATOR: Parcelable.Creator<DownloadRequest> = object : Parcelable.Creator<DownloadRequest> {
-            override fun createFromParcel(inVal: Parcel): DownloadRequest = DownloadRequest(inVal)
-
-            override fun newArray(size: Int): Array<DownloadRequest?> = arrayOfNulls(size)
-        }
+        // should be handled by @Parcelize
+//        @JvmField
+//        val CREATOR: Parcelable.Creator<DownloadRequest> = object : Parcelable.Creator<DownloadRequest> {
+//            override fun createFromParcel(inVal: Parcel): DownloadRequest = DownloadRequest(inVal)
+//
+//            override fun newArray(size: Int): Array<DownloadRequest?> = arrayOfNulls(size)
+//        }
     }
 }

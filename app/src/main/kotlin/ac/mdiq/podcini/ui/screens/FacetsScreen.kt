@@ -9,7 +9,6 @@ import ac.mdiq.podcini.storage.database.feedIdsOfAllEpisodes
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
-import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
 import ac.mdiq.podcini.storage.database.inQueueEpisodeIdSet
@@ -24,12 +23,12 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
-import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.customMediaUriString
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+import ac.mdiq.podcini.ui.compose.AssociatedFeedsGrid
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
@@ -41,26 +40,18 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
 import android.content.Context
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -103,16 +94,12 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
 import io.github.xilinjia.krdb.notifications.DeletedObject
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.PendingObject
@@ -120,6 +107,9 @@ import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.query.RealmQuery
+import java.io.File
+import java.net.URLDecoder
+import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -128,10 +118,6 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
-import java.io.File
-import java.net.URLDecoder
-import java.text.NumberFormat
-import java.util.Date
 
 enum class QuickAccess {
     New, Planned, Repeats, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, All, Custom
@@ -578,49 +564,9 @@ fun FacetsScreen() {
         }
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
-    @Composable
-    fun FeedsGrid() {
-        val context = LocalContext.current
-        val lazyGridState = rememberLazyGridState()
-        LazyVerticalGrid(state = lazyGridState, columns = GridCells.Adaptive(80.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
-            items(feedsAssociated.size, key = {index -> feedsAssociated[index].id}) { index ->
-                val feed by remember { mutableStateOf(feedsAssociated[index]) }
-                ConstraintLayout {
-                    val (coverImage, episodeCount, rating, _) = createRefs()
-                    val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                    AsyncImage(model = img, contentDescription = "coverImage", modifier = Modifier.height(100.dp).aspectRatio(1f)
-                        .constrainAs(coverImage) {
-                            top.linkTo(parent.top)
-                            bottom.linkTo(parent.bottom)
-                            start.linkTo(parent.start)
-                        }.combinedClickable(onClick = {
-                            Logd(TAG, "clicked: ${feed.title}")
-                            navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
-                        }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
-                    )
-                    val numEpisodes by remember { mutableIntStateOf(getEpisodesCount(null, feed.id)) }
-                    Text(NumberFormat.getInstance().format(numEpisodes.toLong()), color = Color.Green,
-                        modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
-                            end.linkTo(parent.end)
-                            top.linkTo(coverImage.top)
-                        })
-                    if (feed.rating != Rating.UNRATED.code)
-                        Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
-                            modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).constrainAs(rating) {
-                                start.linkTo(parent.start)
-                                centerVerticallyTo(coverImage)
-                            })
-                }
-            }
-        }
-    }
-
     OpenDialogs()
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        if (showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
+        if (showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
         else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val statusMode by remember(facetsMode) { mutableStateOf(
                 when (facetsMode) {

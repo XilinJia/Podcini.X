@@ -14,7 +14,7 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.checkAndFillQueue
 import ac.mdiq.podcini.storage.database.feedOperationText
-import ac.mdiq.podcini.storage.database.getEpisodesCount
+import ac.mdiq.podcini.storage.database.persistOrdered
 import ac.mdiq.podcini.storage.database.queueEntriesOf
 import ac.mdiq.podcini.storage.database.queuesFlow
 import ac.mdiq.podcini.storage.database.queuesLive
@@ -32,13 +32,12 @@ import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
+import ac.mdiq.podcini.ui.compose.AssociatedFeedsGrid
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
@@ -53,12 +52,10 @@ import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import android.content.ComponentName
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -67,19 +64,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -131,7 +122,6 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
-import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -140,9 +130,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
 import androidx.navigation.compose.currentBackStackEntryAsState
-import coil.compose.AsyncImage
-import coil.request.CachePolicy
-import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import io.github.xilinjia.krdb.ext.query
@@ -158,7 +145,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.NumberFormat
 
 private val TAG = Screens.Queues.name
 
@@ -288,7 +274,12 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     fun initBinFlow() {
-        episodesSortedFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).sort(sortPairOf(EpisodeSortOrder.PLAYED_DATE_DESC)).asFlow().map { it.list }
+        episodesSortedFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).asFlow()
+            .map { it.list }
+            .map { episodes ->
+                val orderMap = curQueue.idsBinList.withIndex().associate { it.value to it.index }
+                episodes.sortedBy { episode -> orderMap[episode.id] ?: Int.MAX_VALUE }
+            }
     }
     fun initQueueFlow() {
         queueEntriesFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow()
@@ -339,6 +330,16 @@ fun QueuesScreen(id: Long = -1L) {
     val showClearQueueDialog = remember { mutableStateOf(false) }
     val showAddQueueDialog = remember { mutableStateOf(false) }
     var showChooseQueue by remember { mutableStateOf(false) }
+
+    fun setCurIndex(index: Int) {
+        curIndex = index
+        runOnIOScope {
+            upsert(queues[index]) { it.update() }
+            upsert(appAttribs) { it.curQueueId = queues[index].id }
+        }
+        curQueueFlow = realm.query<PlayQueue>("id == $0", queues[index].id).first().asFlow()
+        currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
+    }
 
     @Composable
     fun OpenDialogs() {
@@ -391,17 +392,7 @@ fun QueuesScreen(id: Long = -1L) {
             runOnIOScope {
                 val episodes_ = episodes.toMutableList()
                 getPermutor(order ?: EpisodeSortOrder.DATE_DESC).reorder(episodes_)
-                realm.write {
-                    for (i in episodes_.indices) {
-                        val e = episodes_[i]
-                        val qe = queueEntries.find { it.episodeId == e.id }
-                        if (qe == null) {
-                            Loge(TAG, "Can't find queueEntry for episode: ${e.title}")
-                            continue
-                        }
-                        findLatest(qe)?.position = (i+1) * QUEUE_POSITION_DELTA
-                    }
-                }
+                persistOrdered(episodes_, queueEntries)
             }
         }
 
@@ -413,13 +404,7 @@ fun QueuesScreen(id: Long = -1L) {
                         for (index in queues.indices) {
                             FilterChip(onClick = {
                                 upsertBlk(curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
-                                curIndex = index
-                                runOnIOScope {
-                                    upsert(queues[index]) { it.update() }
-                                    upsert(appAttribs) { it.curQueueId = queues[index].id }
-                                }
-                                curQueueFlow = realm.query<PlayQueue>("id == $0", queues[index].id).first().asFlow()
-                                currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
+                                setCurIndex(index)
                                 showChooseQueue = false
                             }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
                         }
@@ -451,15 +436,8 @@ fun QueuesScreen(id: Long = -1L) {
                     } else {
                         upsertBlk(curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
                         val index = queues.indexOfFirst { it.id == actQueue.id }
-                        if (index >= 0) {
-                            curIndex = index
-                            runOnIOScope {
-                                upsert(queues[index]) { it.update() }
-                                upsert(appAttribs) { it.curQueueId = queues[index].id }
-                            }
-                            curQueueFlow = realm.query<PlayQueue>("id == $0", queues[index].id).first().asFlow()
-                            currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
-                        } else Logt(TAG, "actQueue is not available")
+                        if (index >= 0) setCurIndex(index)
+                        else Logt(TAG, "actQueue is not available")
                     }
                 })) else Text(title) },
                 navigationIcon = { IconButton(onClick = { drawerState.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
@@ -651,45 +629,6 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
 
-    @OptIn(ExperimentalFoundationApi::class)
-    @Composable
-    fun FeedsGrid() {
-        Logd(TAG, "FeedsGrid")
-        LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
-            items(feedsAssociated.size, key = {index -> feedsAssociated[index].id}) { index ->
-                val feed by remember { mutableStateOf(feedsAssociated[index]) }
-                ConstraintLayout {
-                    val (coverImage, episodeCount, rating, _) = createRefs()
-                    val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                    AsyncImage(model = img, contentDescription = "coverImage", modifier = Modifier.height(100.dp).aspectRatio(1f)
-                        .constrainAs(coverImage) {
-                            top.linkTo(parent.top)
-                            bottom.linkTo(parent.bottom)
-                            start.linkTo(parent.start)
-                        }.combinedClickable(onClick = {
-                            Logd(TAG, "clicked: ${feed.title}")
-                            navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
-                        }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
-                    )
-                    val numEpisodes by remember { mutableIntStateOf(getEpisodesCount(null, feed.id)) }
-                    Text(NumberFormat.getInstance().format(numEpisodes.toLong()), color = Color.Green,
-                        modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
-                            end.linkTo(parent.end)
-                            top.linkTo(coverImage.top)
-                        })
-                    if (feed.rating != Rating.UNRATED.code)
-                        Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
-                            modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).constrainAs(rating) {
-                                start.linkTo(parent.start)
-                                centerVerticallyTo(coverImage)
-                            })
-                }
-            }
-        }
-    }
-
     fun moveItemInQueue(from: Int, to: Int) {
         val size = queueEntries.size
         when {
@@ -702,7 +641,7 @@ fun QueuesScreen(id: Long = -1L) {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
 //        Logd(TAG, "Scaffold screenMode: $queuesMode")
         when (queuesMode) {
-            QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { FeedsGrid() }
+            QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
             QueuesScreenMode.Settings -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { Settings() }
             else -> {
                 LaunchedEffect(lazyListState) {

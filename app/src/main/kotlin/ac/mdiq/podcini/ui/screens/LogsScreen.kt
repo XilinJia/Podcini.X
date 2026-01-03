@@ -179,6 +179,30 @@ fun LogsScreen() {
     }
 
     @Composable
+    fun ErrorMessagePopup(message: String, onDismissRequest: () -> Unit) {
+        CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+            Column(modifier = Modifier.padding(10.dp)) {
+                val textColor = MaterialTheme.colorScheme.onSurface
+                Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
+                Text(message, color = textColor)
+                Row(Modifier.padding(top = 10.dp)) {
+                    Spacer(Modifier.weight(0.5f))
+                    Text(stringResource(R.string.copy_to_clipboard), color = textColor,
+                        modifier = Modifier.clickable {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            val clip = ClipData.newPlainText(context.getString(R.string.download_error_details), message)
+                            clipboard.setPrimaryClip(clip)
+                            if (Build.VERSION.SDK_INT < 32) EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.copied_to_clipboard)))
+                        })
+                    Spacer(Modifier.weight(0.3f))
+                    Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
+                    Spacer(Modifier.weight(0.2f))
+                }
+            }
+        }
+    }
+
+    @Composable
     fun SharedDetailDialog(status: ShareLog, showDialog: Boolean, onDismissRequest: () -> Unit) {
         if (showDialog) {
             val message = when (status.status) {
@@ -187,26 +211,7 @@ fun LogsScreen() {
                 ShareLog.Status.EXISTING.ordinal -> stringResource(R.string.share_existing)
                 else -> ""
             }
-            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                Column(modifier = Modifier.padding(10.dp)) {
-                    val textColor = MaterialTheme.colorScheme.onSurface
-                    Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
-                    Text(message, color = textColor)
-                    Row(Modifier.padding(top = 10.dp)) {
-                        Spacer(Modifier.weight(0.5f))
-                        Text(stringResource(R.string.copy_to_clipboard), color = textColor,
-                            modifier = Modifier.clickable {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText(context.getString(R.string.download_error_details), message)
-                                clipboard.setPrimaryClip(clip)
-                                if (Build.VERSION.SDK_INT < 32) EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.copied_to_clipboard)))
-                            })
-                        Spacer(Modifier.weight(0.3f))
-                        Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
-                        Spacer(Modifier.weight(0.2f))
-                    }
-                }
-            }
+            ErrorMessagePopup(message, onDismissRequest)
         }
     }
 
@@ -372,28 +377,7 @@ fun LogsScreen() {
             var message = context.getString(R.string.download_successful)
             if (!status.isSuccessful) message = status.reasonDetailed
             val messageFull = context.getString(R.string.download_log_details_message, context.getString(from(status.reason)), message, url)
-
-            CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-                Column(modifier = Modifier.padding(10.dp)) {
-                    val textColor = MaterialTheme.colorScheme.onSurface
-                    Text(stringResource(R.string.download_error_details), color = textColor, modifier = Modifier.padding(bottom = 3.dp))
-                    Text(messageFull, color = textColor)
-                    Row(Modifier.padding(top = 10.dp)) {
-                        Spacer(Modifier.weight(0.5f))
-                        Text(stringResource(R.string.copy_to_clipboard), color = textColor,
-                            modifier = Modifier.clickable {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText(context.getString(R.string.download_error_details), messageFull)
-                                clipboard.setPrimaryClip(clip)
-                                if (Build.VERSION.SDK_INT < 32)
-                                    EventFlow.postEvent(FlowEvent.MessageEvent(context.getString(R.string.copied_to_clipboard)))
-                            })
-                        Spacer(Modifier.weight(0.3f))
-                        Text("OK", color = textColor, modifier = Modifier.clickable { onDismissRequest() })
-                        Spacer(Modifier.weight(0.2f))
-                    }
-                }
-            }
+            ErrorMessagePopup(messageFull, onDismissRequest)
         }
     }
 

@@ -8,7 +8,7 @@ buildscript {
     ext.kotlin_version = "2.2.20"
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-        classpath('com.android.tools.build:gradle:8.13.2')
+        classpath('com.android.tools.build:gradle:8.12.3')
         classpath "org.codehaus.groovy:groovy-xml:3.0.25"
         classpath "io.github.xilinjia.krdb:gradle-plugin:3.2.9"
     }

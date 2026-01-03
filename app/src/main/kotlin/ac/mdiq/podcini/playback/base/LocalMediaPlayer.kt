@@ -15,7 +15,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
 import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -62,12 +61,11 @@ import androidx.media3.exoplayer.trackselection.DefaultTrackSelector.SelectionOv
 import androidx.media3.exoplayer.trackselection.ExoTrackSelection
 import androidx.media3.ui.DefaultTrackNameProvider
 import androidx.media3.ui.TrackNameProvider
+import java.io.IOException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.io.IOException
 import kotlin.math.abs
 
 @UnstableApi
@@ -319,9 +317,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         }
 
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
-        var item = playable
-        if (item.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(item) { it.setPlayState(EpisodeState.PROGRESS, false) } }
-        setAsCurEpisode(item)
+        if (playable.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(playable) { it.setPlayState(EpisodeState.PROGRESS, false) } }
+        setAsCurEpisode(playable)
 
         this.isStreaming = streaming
         mediaType = curEpisode!!.getMediaType()
@@ -375,8 +372,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (mediaSource == null && mediaItem == null) return
 
         if (needChangeOffload) {
-            val enabled = speedEnablesOffload && speedEnablesOffload
-
+            val enabled = speedEnablesOffload && silenceEnablesOffload
             if (enabled != offloadEnabled) {
                 offloadEnabled = enabled
                 Logt(TAG, "setSource set audio offload $offloadEnabled")

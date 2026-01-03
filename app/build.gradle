@@ -5,6 +5,7 @@ plugins {
     id "org.jetbrains.kotlin.android"
     id "org.jetbrains.kotlin.plugin.compose" version "$kotlin_version"
     id 'io.github.xilinjia.krdb'
+    id 'kotlin-parcelize'
 }
 
 composeCompiler {
@@ -14,22 +15,22 @@ composeCompiler {
 }
 
 android {
-    compileSdkVersion 36
-    buildToolsVersion '36.1.0'
+    compileSdkVersion = 36
+    buildToolsVersion = '36.1.0'
 
     defaultConfig {
-        minSdk 26
+        minSdk = 26
         targetSdkVersion 36
 
         vectorDrawables.useSupportLibrary false
         vectorDrawables.generatedDensities = []
 
-        versionCode 231
-        versionName "10.3.0"
+        versionCode = 231
+        versionName = "10.3.1"
 
-        ndkVersion "29.0.14206865"
+        ndkVersion = "29.0.14206865"
 
-        applicationId "ac.mdiq.podcini.X"
+        applicationId = "ac.mdiq.podcini.X"
         def commit = ""
         buildConfigField "String", "COMMIT_HASH", ('"' + (commit.isEmpty() ? "Unknown commit" : commit) + '"')
 
@@ -63,24 +64,24 @@ android {
     }
 
     compileOptions {
-        coreLibraryDesugaringEnabled true
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     buildFeatures {
-        buildConfig true
-        compose true
+        buildConfig = true
+        compose = true
     }
 
     splits {
         abi {
-             enable true
-             reset()
-             include "arm64-v8a"
-             universalApk true
-         }
-     }
+            enable = true
+            reset()
+            include "arm64-v8a"
+            universalApk = true
+        }
+    }
 
     flavorDimensions += ["market"]
     productFlavors {
@@ -95,10 +96,10 @@ android {
     namespace "ac.mdiq.podcini"
     lint {
         lintConfig = file("lint.xml")
-        checkReleaseBuilds false
-        checkDependencies true
-        warningsAsErrors true
-        abortOnError true
+        checkReleaseBuilds = false
+        checkDependencies = true
+        warningsAsErrors = true
+        abortOnError = true
         checkGeneratedSources = true
         disable += ['TypographyDashes', 'TypographyQuotes', 'ObsoleteLintCustomCheck', 'BatteryLife',
                     'ExportedReceiver', 'VectorDrawableCompat', 'NestedWeights', 'Overdraw', 'TextFields',
@@ -148,7 +149,7 @@ android {
     }
     androidResources {
 //        additionalParameters "--no-version-vectors"
-        generateLocaleConfig true
+        generateLocaleConfig = true
     }
 
     dependenciesInfo {
@@ -199,7 +200,7 @@ dependencies {
     implementation "commons-io:commons-io:2.21.0"   // 20030203.000550 is not newer
     implementation "org.apache.commons:commons-lang3:3.20.0"
 
-    implementation "org.jsoup:jsoup:1.21.2"
+    implementation "org.jsoup:jsoup:1.22.1"
     implementation "com.squareup.okhttp3:okhttp:5.3.2"
     implementation "com.squareup.okio:okio:3.16.4"
     implementation "com.squareup.okhttp3:okhttp-urlconnection:5.3.2"

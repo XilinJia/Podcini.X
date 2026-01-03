@@ -2,7 +2,6 @@ package ac.mdiq.podcini.net.feed
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadError
-import ac.mdiq.podcini.net.feed.parser.media.id3.ID3ReaderException
 import ac.mdiq.podcini.net.feed.parser.media.id3.Id3MetadataReader
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentMetadataReader
 import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
@@ -26,7 +25,6 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import org.apache.commons.io.input.CountingInputStream
 import java.io.BufferedInputStream
 import java.io.IOException
 import java.text.ParseException
@@ -34,6 +32,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import org.apache.commons.io.input.CountingInputStream
 
 private const val TAG: String = "LocalFeedUpdater"
 
@@ -154,17 +153,7 @@ private fun loadMetadata(item: Episode, file: FastDocumentFile, context: Context
                 reader.readInputStream()
                 item.setDescriptionIfLonger(reader.comment)
             }
-        } catch (e: IOException) {
-            Logs(TAG, e, "Unable to parse ID3 of " + file.uri + ": ")
-            try {
-                context.contentResolver.openInputStream(file.uri)?.use { inputStream ->
-                    val reader = VorbisCommentMetadataReader(inputStream)
-                    reader.readInputStream()
-                    item.setDescriptionIfLonger(reader.description)
-                }
-            } catch (e2: IOException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ")
-            } catch (e2: VorbisCommentReaderException) { Logs(TAG, e2, "Unable to parse vorbis comments of " + file.uri + ": ") }
-        } catch (e: ID3ReaderException) {
+        } catch (e: Throwable) {
             Logs(TAG, e, "Unable to parse ID3 of " + file.uri + ": ")
             try {
                 context.contentResolver.openInputStream(file.uri)?.use { inputStream ->

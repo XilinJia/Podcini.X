@@ -22,7 +22,7 @@ class QuickSettingsTileService : TileService() {
     override fun onClick() {
         super.onClick()
         val intent = Intent(this, MediaButtonReceiver::class.java)
-        intent.setAction(MediaButtonReceiver.NOTIFY_BUTTON_RECEIVER)
+        intent.action = MediaButtonReceiver.NOTIFY_BUTTON_RECEIVER
         intent.putExtra(Intent.EXTRA_KEY_EVENT, KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE))
         sendBroadcast(intent)
     }

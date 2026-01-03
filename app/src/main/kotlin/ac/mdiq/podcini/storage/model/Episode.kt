@@ -359,7 +359,7 @@ class Episode : RealmObject {
             else EpisodeState.PLAYED.code
         }
         if (resetPosition || playState == EpisodeState.PLAYED.code || playState == EpisodeState.IGNORED.code) setPosition(0)
-        if (state in listOf(EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) isAutoDownloadEnabled = false
+        if (state in listOf(EpisodeState.QUEUE, EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) isAutoDownloadEnabled = false
         playStateSetTime = System.currentTimeMillis()
     }
 

@@ -15,7 +15,6 @@ import ac.mdiq.podcini.storage.database.addToQueue
 import ac.mdiq.podcini.storage.database.deleteEpisodesWarnLocalRepeat
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
@@ -88,7 +87,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -122,14 +120,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import java.net.MalformedURLException
+import java.net.URL
+import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.MalformedURLException
-import java.net.URL
-import java.util.Date
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -261,7 +259,8 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
     @Composable
     fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
         var isExpanded by remember { mutableStateOf(false) }
-        var fgColor = complementaryColorOf(MaterialTheme.colorScheme.tertiaryContainer)
+        val bgColor = MaterialTheme.colorScheme.tertiaryContainer
+        val fgColor = remember { complementaryColorOf(bgColor) }
         fun onSelected() {
             isExpanded = false
             selectMode = false
@@ -410,8 +409,8 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
         }
 
         Column(modifier = modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.Bottom) {
-            if (isExpanded) options.forEachIndexed { _, button -> FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = fgColor, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp),onClick = {}) { button() } }
-            FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = fgColor, onClick = { isExpanded = !isExpanded }) { Icon(Icons.Filled.Edit, "Edit") }
+            if (isExpanded) options.forEachIndexed { _, button -> FloatingActionButton(containerColor = bgColor, contentColor = fgColor, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp),onClick = {}) { button() } }
+            FloatingActionButton(containerColor = bgColor, contentColor = fgColor, onClick = { isExpanded = !isExpanded }) { Icon(Icons.Filled.Edit, "Edit") }
         }
     }
 
@@ -451,17 +450,13 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
             Logd(TAG, "LaunchedEffect(scrollToOnStart) ${episodes.size} $scrollToOnStart ${lazyListState.firstVisibleItemIndex} $lifecycleState")
             if (episodes.size > 5 && lifecycleState >= Lifecycle.State.RESUMED) {
                 when {
-                    scrollToOnStart >= 0 -> {
-                        scope.launch {
-                            lazyListState.scrollToItem(scrollToOnStart)
-                            Logd(TAG, "on start, triggered scroll for recomposition: $scrollToOnStart")
-                        }
-                    }
                     scrollToOnStart < 0 -> {
-                        scope.launch {
-                            lazyListState.scrollToItem(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset)
-                            Logd(TAG, "Screen on, triggered scroll for recomposition")
-                        }
+                        scope.launch { lazyListState.scrollToItem(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset) }
+                        Logd(TAG, "Screen on, triggered scroll for recomposition")
+                    }
+                    scrollToOnStart >= 0 -> {
+                        scope.launch { if (scrollToOnStart >= 0) lazyListState.scrollToItem(scrollToOnStart) }
+                        Logd(TAG, "on start, triggered scroll for recomposition: $scrollToOnStart")
                     }
                 }
             }
@@ -538,7 +533,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
                                     Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                                     if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
-                                    val todos = remember(episode) { episode.todos.filter { !it.completed }.map { it.title + if (it.dueTime>0) ("D:" + formatDateTimeFlex(Date(it.dueTime))) else "" }.joinToString(" | ") }
+                                    val todos = remember(episode) { episode.todos.filter { !it.completed }.joinToString(" | ") { it.title + if (it.dueTime > 0) ("D:" + formatDateTimeFlex(Date(it.dueTime))) else "" } }
                                     Spacer(Modifier.width(10.dp))
                                     Text(todos, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 }

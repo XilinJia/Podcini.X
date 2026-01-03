@@ -250,10 +250,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     val feedChange by feedFlow.collectAsStateWithLifecycle(initialValue = null)
     if (feedChange?.obj != null) feed = feedChange?.obj
-//    LaunchedEffect(feedChange, feedId) {
-//        Logd(TAG, "LaunchedEffect(feedResult, feedId)")
-//        isFiltered = !feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty()
-//    }
 
     val isCallable = remember(feed) { if (!feed?.link.isNullOrEmpty()) isCallable(context, Intent(Intent.ACTION_VIEW, feed!!.link!!.toUri())) else false }
 
@@ -370,6 +366,19 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         }
     }
 
+    val lazyListState = rememberLazyListState()
+    fun onImgLongClock() {
+        if (curEpisode?.feedId == feedId) {
+            if (feedScreenMode == FeedScreenMode.List) {
+                if (episodes.size > 5) {
+                    val index = episodes.indexOfFirst { it.id == curEpisode?.id }
+                    if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
+                    else Logt(TAG, "can not find curEpisode to scroll to")
+                } else Logt(TAG, "only scroll when episodes number is larger than 5")
+            } else feedScreenMode = FeedScreenMode.List
+        } else if (curEpisode?.feedId != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${curEpisode!!.feedId}")
+    }
+
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun FeedDetailsHeader() {
@@ -395,9 +404,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 width = Dimension.fillToConstraints
             }) {
                 AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher),
-                    modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
+                    modifier = Modifier.width(80.dp).height(80.dp).combinedClickable(onClick = {
                         if (feed != null) feedScreenMode = if (feedScreenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info
-                    }))
+                    }, onLongClick = { onImgLongClock() }))
                 if (feed != null) Column(modifier = Modifier.padding(start = 10.dp, top = 4.dp)) {
                     Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(feed?.author ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -680,9 +689,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (feedScreenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                val lazyListState = rememberLazyListState()
                 val isHeaderVisible by remember { derivedStateOf { lazyListState.firstVisibleItemIndex < 2 } }
-                if (showHeader && isHeaderVisible) FeedDetailsHeader()
+                Logd(TAG, "showHeader: $showHeader isHeaderVisible: $isHeaderVisible")
+                if (showHeader && (isHeaderVisible || episodes.size < 10)) FeedDetailsHeader()
                 val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
                 var scrollToOnStart by remember(episodes, curEpisode) {
                     mutableIntStateOf(if (cameBack) -1 else if (curEpisode?.feedId == feedId) episodes.indexOfFirst { it.id == curEpisode?.id } else -1) }
@@ -697,16 +706,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(24.dp).height(24.dp)
                             .combinedClickable(onClick = {
                                 if (feed != null) feedScreenMode = if (feedScreenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info
-                            }, onLongClick = {
-                                    if (curEpisode?.feedId == feedId) {
-                                        if (episodes.size > 5) {
-                                            val index = episodes.indexOfFirst { it.id == curEpisode?.id }
-                                            if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
-                                            else Logt(TAG, "can not find curEpisode to scroll to")
-                                        } else Logt(TAG, "only scroll when episodes number is larger than 5")
-                                    } else Logt(TAG, "currently playing does not belong to this feeds")
-                                })
-                            )
+                            }, onLongClick = { onImgLongClock() }))
                         Spacer(modifier = Modifier.weight(0.1f))
                         Text(listInfoText, style = MaterialTheme.typography.bodyMedium)
                     }

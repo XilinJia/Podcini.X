@@ -10,7 +10,6 @@ import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.deleteMedias
-import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeedList
@@ -111,11 +110,9 @@ class AutoDownloadAlgorithm {
                     var itemsToDownload = candidates.toMutableList()
                     if (allowedCount < candidates.size) itemsToDownload = itemsToDownload.subList(0, allowedCount)
                     Logt(TAG, "Auto download requesting episodes: ${itemsToDownload.size}")
-                    if (itemsToDownload.isNotEmpty()) {
-                        for (e in itemsToDownload) {
-                            Logd(TAG, "run download ${e.title} ${e.playState} ${e.downloadUrl}")
-                            DownloadServiceInterface.impl?.download(context, e)
-                        }
+                    for (e in itemsToDownload) {
+                        Logd(TAG, "run download ${e.title} ${e.playState} ${e.downloadUrl}")
+                        DownloadServiceInterface.impl?.download(context, e)
                     }
                     itemsToDownload.clear()
                 } else Logt(TAG, "Auto download not performed: candidates: ${candidates.size} allowedCount: $allowedCount")
@@ -144,15 +141,8 @@ class AutoEnqueueAlgorithm {
         if (candidates.isNotEmpty()) {
             if (toReplace.isNotEmpty()) removeFromAllQueues(toReplace, EpisodeState.UNPLAYED)
             Logd(TAG, "Enqueueing ${candidates.size} items")
-            val mapByFeed = candidates.groupBy { it.feedId }
-            for (en in mapByFeed.entries) {
-                val fid = en.key ?: continue
-                val f = feedsMap[fid] ?: continue
-                val q = f.queue ?: continue
-                val episodes = en.value
-                realm.write { for (e in episodes) findLatest(e)?.disableAutoDownload() }
-                addToAssQueue(episodes)
-            }
+            realm.write { for (e in candidates) findLatest(e)?.disableAutoDownload() }
+            addToAssQueue(candidates.toList())
             Logt(TAG, "Auto enqueued episodes: ${candidates.size}")
             candidates.clear()
         }
@@ -186,21 +176,23 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
             run {
                 val cTime = System.currentTimeMillis()
                 val queryStringAgain = "feedId == ${f.id} AND (playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.LATER.code}) AND repeatTime <= $cTime SORT(repeatTime ASC)"
-                val es = realm.query(Episode::class).query(queryStringAgain).find()
+                val es = realm.query(Episode::class).query(queryStringAgain).find().filter { it.id !in eIdsAllQueues }
                 Logd(TAG, "assembleFeedsCandidates queryStringAgain: [${es.size}] $queryStringAgain")
-                episodes.addAll(es)
-                allowedDLCount -= es.size
+                if (es.isNotEmpty()) {
+                    episodes.addAll(es)
+                    allowedDLCount -= es.size
+                }
             }
-            var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND downloaded == false"
             if (allowedDLCount > 0 && f.autoDLSoon) {
-                val queryStringSoon = queryString + " AND playState == ${EpisodeState.SOON.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
-                val es = realm.query(Episode::class).query(queryStringSoon).find()
+                val queryStringSoon = "feedId == ${f.id} AND playState == ${EpisodeState.SOON.code} SORT(pubDate DESC) LIMIT($allowedDLCount)"
+                val es = realm.query(Episode::class).query(queryStringSoon).find().filter { it.id !in eIdsAllQueues }
                 Logd(TAG, "assembleFeedsCandidates queryStringSoon: [${es.size}] $queryStringSoon")
                 if (es.isNotEmpty()) {
                     episodes.addAll(es)
                     allowedDLCount -= es.size
                 }
             }
+            var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND downloaded == false"
             if (allowedDLCount > 0 || f.autoDLPolicy.replace) {
                 f.autoDownloadFilter?.queryString()?.let { if (it.isNotBlank()) queryString += " AND $it " }
                 when (f.autoDLPolicy) {

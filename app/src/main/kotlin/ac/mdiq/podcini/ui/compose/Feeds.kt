@@ -7,6 +7,7 @@ import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed
+import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getPreserveSyndicate
 import ac.mdiq.podcini.storage.database.shelveToFeed
 import ac.mdiq.podcini.storage.database.updateFeedFull
@@ -32,14 +33,19 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.AlertDialog
@@ -51,6 +57,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +76,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.constraintlayout.compose.ConstraintLayout
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -78,6 +86,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
+import java.text.NumberFormat
 import java.util.Date
 
 @Composable
@@ -322,6 +331,47 @@ fun VideoModeDialog(initMode: VideoMode?, onDismissRequest: () -> Unit, callback
                         Text(text = text, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.padding(start = 16.dp))
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
+    val TAG = "AssociatedFeedsGrid"
+    val navController = LocalNavController.current
+    val context = LocalContext.current
+    LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
+        items(feedsAssociated.size, key = {index -> feedsAssociated[index].id}) { index ->
+            val feed by remember { mutableStateOf(feedsAssociated[index]) }
+            ConstraintLayout {
+                val (coverImage, episodeCount, rating, _) = createRefs()
+                val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                AsyncImage(model = img, contentDescription = "coverImage", modifier = Modifier.height(100.dp).aspectRatio(1f)
+                    .constrainAs(coverImage) {
+                        top.linkTo(parent.top)
+                        bottom.linkTo(parent.bottom)
+                        start.linkTo(parent.start)
+                    }.combinedClickable(onClick = {
+                        Logd(TAG, "clicked: ${feed.title}")
+                        navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
+                    }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
+                )
+                val numEpisodes by remember { mutableIntStateOf(getEpisodesCount(null, feed.id)) }
+                Text(NumberFormat.getInstance().format(numEpisodes.toLong()), color = Color.Green,
+                    modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
+                        end.linkTo(parent.end)
+                        top.linkTo(coverImage.top)
+                    })
+                if (feed.rating != Rating.UNRATED.code)
+                    Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating",
+                        modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).constrainAs(rating) {
+                            start.linkTo(parent.start)
+                            centerVerticallyTo(coverImage)
+                        })
             }
         }
     }

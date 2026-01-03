@@ -11,6 +11,9 @@
 -keep class java.beans.**
 -dontwarn java.beans.**
 
+-dontwarn com.google.re2j.Matcher
+-dontwarn com.google.re2j.Pattern
+
 -allowaccessmodification
 -dontskipnonpubliclibraryclassmembers
 

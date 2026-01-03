@@ -59,14 +59,7 @@ class ExceptFavoriteCleanupAlgorithm : EpisodeCleanupAlgorithm() {
             if (l != r) return@sortedWith l.compareTo(r)
             else return@sortedWith lhs.id.compareTo(rhs.id)  // No date - compare by id which should be always incremented
         }
-        val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
-        try {
-            deleteMedias(delete)
-            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(delete)
-        }  catch (e: ExecutionException) { Logs(TAG, e) }
-        val counter = delete.size
-        Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
-        return counter
+        return cleanup(candidates, numToRemove)
     }
     public override fun getDefaultCleanupParameter(): Int {
         val cacheSize = getPref(AppPrefs.prefEpisodeCacheSize, "0").toInt()
@@ -102,14 +95,7 @@ class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
             val r = rhs.pubDate
             l.compareTo(r)
         }
-        val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
-        try {
-            deleteMedias(delete)
-            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(delete)
-        }  catch (e: ExecutionException) { Logs(TAG, e) }
-        val counter = delete.size
-        Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
-        return counter
+        return cleanup(candidates, numToRemove)
     }
     public override fun getDefaultCleanupParameter(): Int {
         return getNumEpisodesToCleanup(0)
@@ -163,14 +149,7 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
             if (r == null) r = Date()
             l.compareTo(r)
         }
-        val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
-        try {
-            deleteMedias(delete)
-            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(delete)
-        }  catch (e: ExecutionException) { Logs(TAG, e) }
-        val counter = delete.size
-        Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
-        return counter
+        return cleanup(candidates, numToRemove)
     }
     fun calcMostRecentDateForDeletion(currentDate: Date): Date = minusHours(currentDate, numberOfHoursAfterPlayback)
     public override fun getDefaultCleanupParameter(): Int = getNumEpisodesToCleanup(0)
@@ -195,12 +174,17 @@ abstract class EpisodeCleanupAlgorithm {
      */
     protected abstract fun performCleanup(context: Context, numToRemove: Int): Int
 
-    //    only used in tests
-    fun performCleanup(context: Context): Int {
-        val numToRemove = getDefaultCleanupParameter()
-        if (numToRemove <= 0) return 0
-        return performCleanup(context, numToRemove)
+    protected fun cleanup(candidates: List<Episode>, numToRemove: Int): Int {
+        val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
+        try {
+            deleteMedias(delete)
+            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(delete)
+        }  catch (e: ExecutionException) { Logs(TAG, e) }
+        val counter = delete.size
+        Logt(TAG, String.format(Locale.US, "Auto-delete deleted %d episodes (%d requested)", counter, numToRemove))
+        return counter
     }
+
     /**
      * Returns a parameter for performCleanup. The implementation of this interface should decide how much
      * space to free to satisfy the episode cache conditions. If the conditions are already satisfied, this

@@ -882,13 +882,14 @@ fun SubscriptionsScreen() {
 
         @Composable
         fun FeedsSpeedDial(selected: SnapshotStateList<Feed>, modifier: Modifier = Modifier) {
-            var fgColor = complementaryColorOf(MaterialTheme.colorScheme.tertiaryContainer)
+            val bgColor = MaterialTheme.colorScheme.tertiaryContainer
+            val fgColor = remember { complementaryColorOf(bgColor) }
             Column(modifier = modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.Bottom) {
                 if (isFeedsOptionsExpanded) feedsOptionsMap.values.forEachIndexed { _, button ->
-                    FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = fgColor,
+                    FloatingActionButton(containerColor = bgColor, contentColor = fgColor,
                         modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp), onClick = {}) { button() }
                 }
-                FloatingActionButton(containerColor = MaterialTheme.colorScheme.tertiaryContainer, contentColor = fgColor,
+                FloatingActionButton(containerColor = bgColor, contentColor = fgColor,
                     onClick = { isFeedsOptionsExpanded = !isFeedsOptionsExpanded }) { Icon(Icons.Filled.Edit, "Edit") }
             }
         }

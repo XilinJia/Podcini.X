@@ -68,14 +68,13 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.core.text.HtmlCompat
 import androidx.media3.common.util.UnstableApi
+import java.io.File
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.Readability4J
-import java.io.File
-import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
@@ -119,6 +118,22 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 return true
             }
             return false
+        }
+        fun askToStream(stream: ()->Unit) {
+            if (!NetworkUtils.isStreamingAllowed) {
+                commonConfirm = CommonConfirmAttrib(
+                    title = context.getString(R.string.stream_label),
+                    message = context.getString(R.string.confirm_mobile_streaming_notification_message),
+                    confirmRes = R.string.confirm_mobile_streaming_button_always,
+                    cancelRes = R.string.cancel_label,
+                    neutralRes = R.string.confirm_mobile_streaming_button_once,
+                    onConfirm = {
+                        NetworkUtils.mobileAllowStreaming = true
+                        stream()
+                    },
+                    onNeutral = { stream() })
+                return
+            } else stream()
         }
         Logd(TAG, "onClick type: $type")
         when (type) {
@@ -168,20 +183,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     playVideoIfNeeded(context, item)
                 }
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
-                if (!NetworkUtils.isStreamingAllowed) {
-                    commonConfirm = CommonConfirmAttrib(
-                        title = context.getString(R.string.stream_label),
-                        message = context.getString(R.string.confirm_mobile_streaming_notification_message),
-                        confirmRes = R.string.confirm_mobile_streaming_button_always,
-                        cancelRes = R.string.cancel_label,
-                        neutralRes = R.string.confirm_mobile_streaming_button_once,
-                        onConfirm = {
-                            NetworkUtils.mobileAllowStreaming = true
-                            stream()
-                        },
-                        onNeutral = { stream() })
-                    return
-                } else stream()
+                askToStream { stream() }
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAMREPEAT -> {
@@ -190,20 +192,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     playVideoIfNeeded(context, item)
                 }
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
-                if (!NetworkUtils.isStreamingAllowed) {
-                    commonConfirm = CommonConfirmAttrib(
-                        title = context.getString(R.string.stream_label),
-                        message = context.getString(R.string.confirm_mobile_streaming_notification_message),
-                        confirmRes = R.string.confirm_mobile_streaming_button_always,
-                        cancelRes = R.string.cancel_label,
-                        neutralRes = R.string.confirm_mobile_streaming_button_once,
-                        onConfirm = {
-                            NetworkUtils.mobileAllowStreaming = true
-                            stream()
-                        },
-                        onNeutral = { stream() })
-                    return
-                } else stream()
+                askToStream { stream() }
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAMONCE -> {
@@ -257,18 +246,16 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 fun doTTS(textSourceIndex: Int) {
                     runOnIOScope {
                         var readerText: String? = null
-                        when (textSourceIndex) { //                        1 -> readerText = HtmlCompat.fromHtml(ShownotesCleaner(context).processShownotes(item.description ?: "", item.duration), HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
+                        when (textSourceIndex) {
                             1 -> readerText = HtmlCompat.fromHtml(item.description ?: "", HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                             2 -> {
                                 if (item.transcript == null) {
-                                    runBlocking {
-                                        val url = item.link!!
-                                        val htmlSource = NetworkUtils.fetchHtmlSource(url)
-                                        val article = Readability4J(item.link!!, htmlSource).parse()
-                                        readerText = article.textContent ?: ""
-                                        item = upsertBlk(item) { it.setTranscriptIfLonger(article.contentWithDocumentsCharsetOrUtf8) }
-                                        Logd(TAG, "readability4J: ${readerText.substring(max(0, readerText.length - 100), readerText.length)}")
-                                    }
+                                    val url = item.link!!
+                                    val htmlSource = NetworkUtils.fetchHtmlSource(url)
+                                    val article = Readability4J(item.link!!, htmlSource).parse()
+                                    readerText = article.textContent ?: ""
+                                    item = upsertBlk(item) { it.setTranscriptIfLonger(article.contentWithDocumentsCharsetOrUtf8) }
+                                    Logd(TAG, "readability4J: ${readerText.substring(max(0, readerText.length - 100), readerText.length)}")
                                 } else readerText = HtmlCompat.fromHtml(item.transcript!!, HtmlCompat.FROM_HTML_MODE_COMPACT).toString()
                             }
                         }
@@ -293,10 +280,10 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                         var startIndex = 0
                         tts?.setSpeechRate(item.feed?.playSpeed ?: 1.0f)
                         val chunkLength = TextToSpeech.getMaxSpeechInputLength() / 2
-                        while (startIndex < readerText!!.length) {
-                            val endIndex = minOf(startIndex + chunkLength, readerText?.length ?: 0)
+                        while (startIndex < readerText.length) {
+                            val endIndex = minOf(startIndex + chunkLength, readerText.length)
                             Logd(TAG, "startIndex: $startIndex endIndex: $endIndex")
-                            val chunk = readerText?.substring(startIndex, endIndex) ?: ""
+                            val chunk = readerText.substring(startIndex, endIndex)
                             Logd(TAG, "chunk: $chunk")
                             tts?.speak(chunk, TextToSpeech.QUEUE_ADD, null, null)
                             startIndex += chunkLength

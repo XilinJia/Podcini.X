@@ -221,15 +221,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
 
     var episodeFlow by remember { mutableStateOf<Flow<SingleQueryChange<Episode>>>(emptyFlow()) }
 
-    var playButInit by remember { mutableStateOf(false) }
-
-    var resetPlayer by remember { mutableStateOf(false) }
-
     var showPlayButton by remember { mutableStateOf(true) }
-
-    var playButRes by remember(showPlayButton) { mutableIntStateOf(if (showPlayButton) R.drawable.ic_play_48dp else R.drawable.ic_pause) }
-
-    var showSpeedDialog by remember { mutableStateOf(false) }
 
     var showHomeText by remember { mutableStateOf(false) }
     var chapertsLoaded by remember { mutableStateOf(false) }
@@ -237,8 +229,6 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     // TODO: somehow, these 2 are not used?
     //     var homeText: String? = remember { null }
     var readerhtml: String? by remember { mutableStateOf(null) }
-
-    var recordingStartTime by remember { mutableStateOf<Long?>(null) }
 
     var volumeAdaption: VolumeAdaptionSetting by remember { mutableStateOf(VolumeAdaptionSetting.OFF) }
 
@@ -263,16 +253,6 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         if (isPlayingVideoLocally && curItem?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY) isBSExpanded = false
     }
 
-    LaunchedEffect(curItem?.id) {
-        Logd(TAG, "LaunchedEffect(isBSExpanded, curItem?.id) isBSExpanded: $isBSExpanded")
-        if (curItem != null) {
-            if (!playButInit && playButRes == R.drawable.ic_play_48dp) {
-                showPlayButton = !isCurrentlyPlaying(curItem)
-                playButInit = true
-            }
-        }
-    }
-
     LaunchedEffect(isBSExpanded, curItem?.id) {
         Logd(TAG, "LaunchedEffect(isBSExpanded, curItem?.id) isBSExpanded: $isBSExpanded")
         if (isBSExpanded) {
@@ -288,10 +268,13 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     }
 
     LaunchedEffect(curItem?.position) {
-        if (isBSExpanded && curItem != null) {
-            chapterIndex = curItem.getCurrentChapterIndex(curItem.position)
-            displayedChapterIndex = if (curItem.position > curItem.duration || chapterIndex >= curItem.chapters.size - 1) curItem.chapters.size - 1 else chapterIndex
-            Logd(TAG, "LaunchedEffect(curItem?.position) chapterIndex $chapterIndex $displayedChapterIndex")
+        if (curItem != null) {
+            if (isBSExpanded) {
+                chapterIndex = curItem.getCurrentChapterIndex(curItem.position)
+                displayedChapterIndex = if (curItem.position > curItem.duration || chapterIndex >= curItem.chapters.size - 1) curItem.chapters.size - 1 else chapterIndex
+                Logd(TAG, "LaunchedEffect(curItem?.position) chapterIndex $chapterIndex $displayedChapterIndex")
+            }
+            if (showPlayButton) showPlayButton = !isCurrentlyPlaying(curItem)
         }
     }
 
@@ -309,6 +292,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                         aCtrlFuture = MediaController.Builder(context, sessionToken).buildAsync()
                         aCtrlFuture?.addListener({ aController = aCtrlFuture!!.get() }, MoreExecutors.directExecutor())
                     }
+                    if (curItem != null) showPlayButton = !isCurrentlyPlaying(curItem)
                 }
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -327,6 +311,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
 
     var showVolumeDialog by remember { mutableStateOf(false) }
     var showSleepTimeDialog by remember { mutableStateOf(false) }
+    var showSpeedDialog by remember { mutableStateOf(false) }
 
     if (showVolumeDialog) CommonPopupCard(onDismissRequest = { showVolumeDialog = false }) {
         fun adaptionFactor(): Float = when {
@@ -352,6 +337,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         }
     }
     if (showSleepTimeDialog) SleepTimerDialog { showSleepTimeDialog = false }
+    if (showSpeedDialog) PlaybackSpeedFullDialog(settingCode = booleanArrayOf(true, true, true), indexDefault = 0, maxSpeed = 3f, onDismiss = {showSpeedDialog = false})
 
     @OptIn(ExperimentalFoundationApi::class)
     @Composable
@@ -373,6 +359,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             }
         }
 
+        var recordingStartTime by remember { mutableStateOf<Long?>(null) }
         Row {
             fun ensureService() {
                 if (curItem == null) return
@@ -474,6 +461,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                         val speedFB = fallbackSpeed
                         if (speedFB > 0.1f) toggleFallbackSpeed(speedFB)
                     } })) {
+                val playButRes by remember(showPlayButton) { mutableIntStateOf(if (showPlayButton) R.drawable.ic_play_48dp else R.drawable.ic_pause) }
                 Icon(imageVector = ImageVector.vectorResource(playButRes), tint = buttonColor, contentDescription = "play", modifier = Modifier.size(buttonSize).align(Alignment.TopCenter))
                 if (fallbackSpeed > 0.1f) Text(fallbackSpeed.toString(), color = textColor, style = MaterialTheme.typography.bodySmall, modifier = Modifier.align(Alignment.BottomCenter))
             }
@@ -627,7 +615,8 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(curItem!!)) { showChooseRatingDialog = false }
         Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-            if (curItem != null) gearbox.PlayerDetailedGearPanel(curItem!!, resetPlayer) { resetPlayer = it }
+            var resetPlayer by remember { mutableStateOf(false) }
+            if (curItem != null) gearbox.PlayerDetailedGearPanel(curItem, resetPlayer) { resetPlayer = it }
             SelectionContainer { Text((curItem?.feed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
                 Spacer(modifier = Modifier.weight(0.2f))
@@ -640,9 +629,8 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             }
             SelectionContainer { Text(curItem?.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
 
-            if (curItem != null) EpisodeDetails(curItem!!, episodeFlow, isBSExpanded)
+            if (curItem != null) EpisodeDetails(curItem, episodeFlow, isBSExpanded)
 
-//            if (!curItem?.chapters.isNullOrEmpty()) ChaptersColumn(curItem)
             if (curItem != null) {
                 val imgLarge = remember(curItem.id, displayedChapterIndex) {
                     if (displayedChapterIndex == -1 || curItem.chapters.isEmpty() || curItem.chapters[displayedChapterIndex].imageUrl.isNullOrEmpty()) curItem.imageUrl ?: curItem.feed?.imageUrl
@@ -655,8 +643,6 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             }
         }
     }
-
-    if (showSpeedDialog) PlaybackSpeedFullDialog(settingCode = booleanArrayOf(true, true, true), indexDefault = 0, maxSpeed = 3f, onDismiss = {showSpeedDialog = false})
 
     Box(modifier = Modifier.fillMaxWidth().then(if (!isBSExpanded) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())) {
         PlayerUI(Modifier.align(if (!isBSExpanded) Alignment.TopCenter else Alignment.BottomCenter).zIndex(1f))

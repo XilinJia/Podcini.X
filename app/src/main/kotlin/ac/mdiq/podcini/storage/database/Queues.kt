@@ -103,10 +103,7 @@ fun inQueueEpisodeIdSet(): Set<Long> {
     return realm.query(QueueEntry::class).find().map { it.episodeId }.toSet()
 }
 
-suspend fun sortQueue(queue: PlayQueue) {
-    val queueEntries = queueEntriesOf(queue)
-    val episodes = realm.query(Episode::class).query("id IN $0", queueEntries.map { it.episodeId }).find().toMutableList()
-    getPermutor(queue.sortOrder).reorder(episodes)
+suspend fun persistOrdered(episodes: List<Episode>, queueEntries: List<QueueEntry>) {
     realm.write {
         for (i in episodes.indices) {
             val e = episodes[i]
@@ -118,6 +115,13 @@ suspend fun sortQueue(queue: PlayQueue) {
             findLatest(qe)?.position = (i+1) * QUEUE_POSITION_DELTA
         }
     }
+}
+
+suspend fun sortQueue(queue: PlayQueue) {
+    val queueEntries = queueEntriesOf(queue)
+    val episodes = realm.query(Episode::class).query("id IN $0", queueEntries.map { it.episodeId }).find().toMutableList()
+    getPermutor(queue.sortOrder).reorder(episodes)
+    persistOrdered(episodes, queueEntries)
 }
 
 fun queueEntriesOf(queue: PlayQueue): List<QueueEntry> {

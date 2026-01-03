@@ -203,7 +203,7 @@ class PlaybackService : MediaLibraryService() {
         }
     }
 
-    val rootItem = MediaItem.Builder()
+    val rootItem: MediaItem = MediaItem.Builder()
         .setMediaId("ActQueue")
         .setMediaMetadata(
             MediaMetadata.Builder()
@@ -273,8 +273,8 @@ class PlaybackService : MediaLibraryService() {
             }
             return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
         }
-        override fun onPlaybackResumption(mediaSession: MediaSession, controller: MediaSession.ControllerInfo): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-            Logd(TAG, "MyMediaSessionCallback onPlaybackResumption ")
+        override fun onPlaybackResumption(mediaSession: MediaSession, controller: MediaSession.ControllerInfo, isForPlayback: Boolean): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            Logd(TAG, "MyMediaSessionCallback onPlaybackResumption isForPlayback: $isForPlayback")
             val settable = SettableFuture.create<MediaSession.MediaItemsWithStartPosition>()
 //            scope.launch {
 //                // Your app is responsible for storing the playlist and the start position to use here
@@ -399,7 +399,6 @@ class PlaybackService : MediaLibraryService() {
 
     fun recreateMediaPlayer() {
         Logd(TAG, "recreateMediaPlayer")
-        val media = curEpisode
         var wasPlaying = false
         if (mPlayer != null) {
             wasPlaying = isPlaying

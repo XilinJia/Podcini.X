@@ -27,7 +27,6 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.removeFromAllQueuesQuiet
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.setPlayState
 import ac.mdiq.podcini.storage.database.shelveToFeed
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -155,12 +154,6 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -168,6 +161,12 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val TAG = "ComposeEpisodes"
 
@@ -275,6 +274,11 @@ fun ChaptersDialog(media: Episode, onDismissRequest: () -> Unit) {
             }
         }
     }
+}
+
+@Composable
+fun DateTimeEditor() {
+
 }
 
 @Composable
@@ -404,7 +408,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
         }
     }
 
-    val todosFlow: Flow<List<Todo>> = episodeFlow.map { ec -> ec.obj?.todos?.toList() ?: emptyList() }
+    val todosFlow = remember(episodeFlow) { episodeFlow.map { ec -> ec.obj?.todos?.toList() ?: emptyList() } }
     val todos by todosFlow.collectAsStateWithLifecycle(initialValue = listOf())
 
     var show by remember { mutableStateOf(false) }

@@ -88,7 +88,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -112,6 +111,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -119,17 +121,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import java.util.Date
 
-/**
- * Downloads a feed from a feed URL and parses it. Subclasses can display the
- * feed object that was parsed. This activity MUST be started with a given URL
- * or an Exception will be thrown.
- * If the feed cannot be downloaded or parsed, an error dialog will be displayed
- * and the activity will finish as soon as the error dialog is closed.
- */
 class OnlineFeedVM: ViewModel() {
     var feedSource: String = ""
     internal var feedUrl: String = ""

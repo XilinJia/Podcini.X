@@ -14,6 +14,7 @@ import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_NATURAL_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.MAX_SYNTHETIC_ID
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_ROOT
 import ac.mdiq.podcini.storage.model.Feed.Companion.newId
+import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
@@ -374,9 +375,10 @@ private suspend fun trimEpisodes(feed_: Feed) {
             realm.write {
                 var n = 1
                 for (e_ in episodes) {
+                    val qes = query(QueueEntry::class).query("episodeId == ${e_.id}").find()
+                    if (qes.isNotEmpty()) delete(qes)
                     val e = findLatest(e_)
                     if (e != null && !e.isWorthy) {
-//                        f.episodes.remove(e)
                         delete(e)
                         if (n++ >= dc) break
                     }

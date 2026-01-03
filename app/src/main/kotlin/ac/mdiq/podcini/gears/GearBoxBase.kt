@@ -18,9 +18,6 @@ import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.source.MediaSource
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.net.URL
 
 open class GearBoxBase {

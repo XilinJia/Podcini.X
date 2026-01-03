@@ -17,15 +17,14 @@ import io.github.xilinjia.krdb.ext.toRealmList
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
+import java.net.MalformedURLException
 import java.net.URL
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
-import java.net.MalformedURLException
 import kotlin.math.min
 
 open class FeedBuilderBase(val context: Context, val showError: (String?, String)->Unit) {
@@ -149,7 +148,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
     }
 
     suspend fun subscribe(feed: Feed) {
-        runBlocking { while (feed.isBuilding)  delay(200) }
+        while (feed.isBuilding) delay(200)
         feed.id = 0L
         if (feed.limitEpisodesCount > 0) {
             val sz = feed.episodes.size

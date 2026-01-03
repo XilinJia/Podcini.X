@@ -38,6 +38,31 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
         else downloadEpisode()
     }
 
+    private fun getResults(isGzip: Boolean, response: Response): Boolean {
+        if (cancelled) onCancelled()
+        else {
+            // check if size specified in the response header is the same as the size of the
+            // written file. This check cannot be made if compression was used
+            when {
+                !isGzip && downloadRequest.size != DownloadResult.SIZE_UNKNOWN.toLong() && downloadRequest.soFar != downloadRequest.size -> {
+                    onFail(DownloadError.ERROR_IO_WRONG_SIZE, "Download completed but size: ${downloadRequest.soFar} does not equal expected size ${downloadRequest.size}")
+                    return false
+                }
+                downloadRequest.size > 0 && downloadRequest.soFar == 0L -> {
+                    onFail(DownloadError.ERROR_IO_ERROR, "Download completed, but nothing was read")
+                    return false
+                }
+                else -> {
+                    val lastModified = response.header("Last-Modified")
+                    if (lastModified != null) downloadRequest.setLastModified(lastModified)
+                    else downloadRequest.setLastModified(response.header("ETag"))
+                    result.setSuccessful()
+                }
+            }
+        }
+        return true
+    }
+
     private fun downloadFeed() {
         Logd(TAG, "starting downloadFeed()")
         if (downloadRequest.source == null || downloadRequest.destination == null) return
@@ -144,27 +169,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                         }
                     } catch (e: IOException) { Logs(TAG, e) }
 
-                    if (cancelled) onCancelled()
-                    else {
-                        // check if size specified in the response header is the same as the size of the
-                        // written file. This check cannot be made if compression was used
-                        when {
-                            !isGzip && downloadRequest.size != DownloadResult.SIZE_UNKNOWN.toLong() && downloadRequest.soFar != downloadRequest.size -> {
-                                onFail(DownloadError.ERROR_IO_WRONG_SIZE, "Download completed but size: ${downloadRequest.soFar} does not equal expected size ${downloadRequest.size}")
-                                return
-                            }
-                            downloadRequest.size > 0 && downloadRequest.soFar == 0L -> {
-                                onFail(DownloadError.ERROR_IO_ERROR, "Download completed, but nothing was read")
-                                return
-                            }
-                            else -> {
-                                val lastModified = response.header("Last-Modified")
-                                if (lastModified != null) downloadRequest.setLastModified(lastModified)
-                                else downloadRequest.setLastModified(response.header("ETag"))
-                                result.setSuccessful()
-                            }
-                        }
-                    }
+                    if (!getResults(isGzip, response)) return
                 }
             }
         } catch (e: IllegalArgumentException) { onFail(DownloadError.ERROR_MALFORMED_URL, e.message)
@@ -300,27 +305,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                         }
                     } catch (e: IOException) { Logs(TAG, e) }
 
-                    if (cancelled) onCancelled()
-                    else {
-                        // check if size specified in the response header is the same as the size of the
-                        // written file. This check cannot be made if compression was used
-                        when {
-                            !isGzip && downloadRequest.size != DownloadResult.SIZE_UNKNOWN.toLong() && downloadRequest.soFar != downloadRequest.size -> {
-                                onFail(DownloadError.ERROR_IO_WRONG_SIZE, "Download completed but size: ${downloadRequest.soFar} does not equal expected size ${downloadRequest.size}")
-                                return
-                            }
-                            downloadRequest.size > 0 && downloadRequest.soFar == 0L -> {
-                                onFail(DownloadError.ERROR_IO_ERROR, "Download completed, but nothing was read")
-                                return
-                            }
-                            else -> {
-                                val lastModified = response.header("Last-Modified")
-                                if (lastModified != null) downloadRequest.setLastModified(lastModified)
-                                else downloadRequest.setLastModified(response.header("ETag"))
-                                result.setSuccessful()
-                            }
-                        }
-                    }
+                    if (!getResults(isGzip, response)) return
                 }
             }
         } catch (e: IllegalArgumentException) { onFail(DownloadError.ERROR_MALFORMED_URL, e.message)

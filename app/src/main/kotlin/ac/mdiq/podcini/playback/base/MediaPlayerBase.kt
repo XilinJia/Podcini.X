@@ -8,7 +8,6 @@ import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
-import ac.mdiq.podcini.playback.base.InTheatre.curState
 import ac.mdiq.podcini.playback.base.InTheatre.curTempSpeed
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.PositionSaver.Companion.positionSaver
@@ -75,8 +74,6 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Calendar
@@ -84,6 +81,8 @@ import java.util.Date
 import java.util.GregorianCalendar
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 @UnstableApi
@@ -91,8 +90,6 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     @Volatile
     private var oldStatus: PlayerStatus? = null
     internal var prevMedia: Episode? = null
-
-//    protected var curPosition = Episode.INVALID_TIME
 
     protected var mediaSource: MediaSource? = null
     protected var mediaItem: MediaItem? = null
