@@ -1,3 +1,18 @@
+# 10.3.1
+
+* in FeedDetails screen, feed image in header also react to long-click in the same way as the image on Infobar
+	* if currently playing is in the list, scroll to it
+	* if currently playing is not in the feed, open the feed that contains the currently playing
+* in auto-enqueue/download
+	* Again or Later episodes already in queue are filtered out
+	* Soon episodes are not bounded by autodownloadable or downloaded status
+* tuned AudioPlayer screen a bit
+* in Queues screen, ensured the order of the bin in the reverse order of episodes being removed
+* when trim episodes from a feed, ensure also remove from queues
+* modernized Parcelable handling in DownloadRequest class
+* syntax updates in build.gradle, Android gradle plugin dropped to 8.12.3
+* some code cleaning and refactoring
+
 # 10.3.0
 
 * in the drawer

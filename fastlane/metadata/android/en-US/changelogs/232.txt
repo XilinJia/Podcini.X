@@ -1,0 +1,6 @@
+* in FeedDetails screen, feed image in header also react to long-click in the same way as the image on Infobar
+* in auto-enqueue/download, amended handling of Again, Later and Soon cases
+* tuned AudioPlayer screen a bit
+* in Queues screen, ensured the order of the bin in the reverse order of episodes being removed
+* when trim episodes from a feed, ensure also remove from queues
+* modernized Parcelable handling in DownloadRequest class
