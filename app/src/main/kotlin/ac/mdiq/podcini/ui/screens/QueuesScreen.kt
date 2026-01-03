@@ -274,11 +274,10 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     fun initBinFlow() {
-        episodesSortedFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).asFlow()
-            .map { it.list }
+        episodesSortedFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).asFlow().map { it.list }
             .map { episodes ->
                 val orderMap = curQueue.idsBinList.withIndex().associate { it.value to it.index }
-                episodes.sortedBy { episode -> orderMap[episode.id] ?: Int.MAX_VALUE }
+                episodes.sortedBy { episode -> orderMap[episode.id] ?: Int.MAX_VALUE }.reversed()
             }
     }
     fun initQueueFlow() {
