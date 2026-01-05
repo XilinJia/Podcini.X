@@ -478,6 +478,7 @@
     <string name="pref_feed_associated_queue_sum">フィード内のpiosdesがデフォルトで追加されるキュー</string>
     <string name="pref_feed_skip_ending_toast">最後の %d 秒をスキップしました</string>
     <string name="pref_feed_skip_intro_toast">最初の %d 秒をスキップしました</string>
+    <string name="multiple_podcasts">Multiple podcasts</string>
     <string name="pref_parent_volume">Parent volume</string>
     <string name="pref_parent_volume_sum">The volume to which the feed belongs</string>
     <string name="pref_fallback_speed">フォールバック速度</string>
@@ -675,6 +676,8 @@
     <string name="subscribe_label">購読する</string>
     <!-- Content descriptions for image buttons -->
     <string name="status_downloading_label">エピソードがダウンロードされています</string>
+    <string name="preferred_action">Preferred action</string>
+    <string name="preferred_action_sum">Choose a preferred action button on episodes lists for this podcast. This is defaulted to Auto, but you can set otherwise in special situations.</string>
     <!-- Feed settings/information screen -->
     <string name="authentication_label">認証</string>
     <string name="authentication_descr">このポッドキャストとエピソードのユーザー名とパスワードを変更します。</string>
