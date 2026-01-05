@@ -478,6 +478,7 @@
     <string name="pref_feed_associated_queue_sum">Feed中的引号将默认添加到队列</string>
     <string name="pref_feed_skip_ending_toast">跳过最后一个 %d 秒</string>
     <string name="pref_feed_skip_intro_toast">跳过前 %d 秒</string>
+    <string name="multiple_podcasts">Multiple podcasts</string>
     <string name="pref_parent_volume">父卷</string>
     <string name="pref_parent_volume_sum">新闻源所属的卷</string>
     <string name="pref_fallback_speed">回退速度</string>
@@ -675,6 +676,8 @@
     <string name="subscribe_label">订阅</string>
     <!-- Content descriptions for image buttons -->
     <string name="status_downloading_label">剧集正在下载</string>
+    <string name="preferred_action">Preferred action</string>
+    <string name="preferred_action_sum">Choose a preferred action button on episodes lists for this podcast. This is defaulted to Auto, but you can set otherwise in special situations.</string>
     <!-- Feed settings/information screen -->
     <string name="authentication_label">认证</string>
     <string name="authentication_descr">更改这个播客及其剧集的用户名和密码。</string>
