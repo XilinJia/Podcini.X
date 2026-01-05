@@ -484,6 +484,7 @@
     <string name="pref_feed_associated_queue_sum">The queue to which epiosdes in the feed will added by default</string>
     <string name="pref_feed_skip_ending_toast">Skipped last %d seconds</string>
     <string name="pref_feed_skip_intro_toast">Skipped first %d seconds</string>
+    <string name="multiple_podcasts">Multiple podcasts</string>
     <string name="pref_parent_volume">Parent volume</string>
     <string name="pref_parent_volume_sum">The volume to which the feed belongs</string>
     <string name="pref_fallback_speed">Fallback speed</string>
@@ -690,6 +691,8 @@
     <string name="subscribe_label">Subscribe</string>
     <!-- Content descriptions for image buttons -->
     <string name="status_downloading_label">Episode is being downloaded</string>
+    <string name="preferred_action">Preferred action</string>
+    <string name="preferred_action_sum">Choose a preferred action button on episodes lists for this podcast. This is defaulted to Auto, but you can set otherwise in special situations.</string>
     <!-- Feed settings/information screen -->
     <string name="authentication_label">Authentication</string>
     <string name="authentication_descr">Change your username and password for this podcast and its episodes.</string>
