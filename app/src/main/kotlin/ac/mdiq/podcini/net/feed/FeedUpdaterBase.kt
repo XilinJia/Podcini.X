@@ -24,7 +24,6 @@ import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.persistFeedLastUpdateFailed
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.unmanaged
-import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.updateFeedSimple
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -209,6 +208,11 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         val log = getFeedDownloadLog(request.feedfileId)
         if (log.isNotEmpty() && !log[0].isSuccessful) addDownloadStatus(feedUpdateTask.downloadStatus)
         if (!request.source.isNullOrEmpty()) {
+            fun updateFeedDownloadURL(original: String, updated: String) {
+                Logd(TAG, "updateFeedDownloadURL(original: $original, updated: $updated)")
+                val feed = realm.query(Feed::class).query("downloadUrl == $0", original).first().find()
+                if (feed != null) upsertBlk(feed) { it.downloadUrl = updated }
+            }
             when {
                 !downloader.permanentRedirectUrl.isNullOrEmpty() -> updateFeedDownloadURL(request.source, downloader.permanentRedirectUrl!!)
                 feedUpdateTask.redirectUrl.isNotEmpty() && feedUpdateTask.redirectUrl != request.source ->

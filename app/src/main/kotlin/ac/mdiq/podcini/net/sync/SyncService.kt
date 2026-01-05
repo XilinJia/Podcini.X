@@ -21,10 +21,10 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
 import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
+import ac.mdiq.podcini.storage.database.feeds
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getFeedList
-import ac.mdiq.podcini.storage.database.getFeedListDownloadUrls
 import ac.mdiq.podcini.storage.database.removeFromQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedFull
@@ -59,6 +59,7 @@ import kotlinx.coroutines.runBlocking
 import org.apache.commons.lang3.StringUtils
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import kotlin.text.startsWith
 
 open class SyncService(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     val TAG = this::class.simpleName ?: "Anonymous"
@@ -113,6 +114,15 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         Logd(TAG, "syncSubscriptions called")
         val lastSync = SynchronizationSettings.lastSubscriptionSynchronizationTimestamp
         EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_subscriptions))
+        fun getFeedListDownloadUrls(): List<String> {
+            Logd(TAG, "getFeedListDownloadUrls called")
+            val result: MutableList<String> = mutableListOf()
+            for (f in feeds) {
+                val url = f.downloadUrl
+                if (url != null && !url.startsWith(Feed.PREFIX_LOCAL_FOLDER)) result.add(url)
+            }
+            return result
+        }
         val localSubscriptions: List<String> = getFeedListDownloadUrls()
         val subscriptionChanges = syncServiceImpl.getSubscriptionChanges(lastSync)
         var newTimeStamp = subscriptionChanges?.timestamp?:0L

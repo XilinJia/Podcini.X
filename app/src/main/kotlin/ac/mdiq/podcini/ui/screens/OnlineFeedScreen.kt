@@ -13,9 +13,7 @@ import ac.mdiq.podcini.net.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.storage.database.getFeed
-import ac.mdiq.podcini.storage.database.getFeedByTitleAndAuthor
 import ac.mdiq.podcini.storage.database.getFeedList
-import ac.mdiq.podcini.storage.database.isSubscribed
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -500,12 +498,12 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 }) {
                     Spacer(modifier = Modifier.weight(0.2f))
                     if (vm.showFeedDisplay && vm.enableSubscribe) Button(onClick = {
-                        if (vm.feedId != 0L || isSubscribed(vm.feed!!)) {
+                        if (vm.feedId != 0L || realm.query(Feed::class, "eigenTitle == $0 && author == $1", vm.feed!!.eigenTitle, vm.feed!!.author).first().find() != null) {
                             if (vm.isShared) {
                                 val log = realm.query(ShareLog::class).query("url == $0", vm.feedUrl).first().find()
                                 if (log != null) upsertBlk(log) { it.status = ShareLog.Status.EXISTING.ordinal }
                             }
-                            val feed = getFeedByTitleAndAuthor(vm.feed?.eigenTitle ?: "", vm.feed?.author ?: "")
+                            val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", vm.feed?.eigenTitle ?: "", vm.feed?.author ?: "").first().find()
                             if (feed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
                         } else {
                             vm.enableSubscribe = false

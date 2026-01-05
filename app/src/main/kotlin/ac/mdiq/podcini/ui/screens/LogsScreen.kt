@@ -4,7 +4,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.database.DownloadResultComparator
 import ac.mdiq.podcini.storage.database.feedsMap
-import ac.mdiq.podcini.storage.database.getFeedByTitleAndAuthor
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.DownloadResult
@@ -83,11 +82,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.xilinjia.krdb.query.Sort
+import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Date
 
 
 class LogsVM(val context: Context, val lcScope: CoroutineScope) {
@@ -247,7 +246,7 @@ fun LogsScreen() {
                                 else hasError = true
                             }
                             ShareLog.Type.Podcast.name, "podcast" -> {
-                                val feed = getFeedByTitleAndAuthor(log.title?:"", log.author?:"")
+                                val feed = realm.query(Feed::class, "eigenTitle == $0 && author == $1", log.title?:"", log.author?:"").first().find()
                                 if (feed != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
                                 else hasError = true
                             }

@@ -28,20 +28,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import io.github.xilinjia.krdb.notifications.InitialResults
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.UpdatedResults
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ExecutionException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlin.math.abs
 
 private const val TAG: String = "Feeds"
@@ -132,16 +130,6 @@ fun monitorFeeds(scope: CoroutineScope) {
     }
 }
 
-fun getFeedListDownloadUrls(): List<String> {
-    Logd(TAG, "getFeedListDownloadUrls called")
-    val result: MutableList<String> = mutableListOf()
-    for (f in feeds) {
-        val url = f.downloadUrl
-        if (url != null && !url.startsWith(Feed.PREFIX_LOCAL_FOLDER)) result.add(url)
-    }
-    return result
-}
-
 fun getFeed(feedId: Long, copy: Boolean = false): Feed? {
 //    val f = realm.query(Feed::class, "id == $feedId").first().find()
     val f = feedsMap[feedId]
@@ -153,19 +141,10 @@ fun getFeed(feedId: Long, copy: Boolean = false): Feed? {
 private fun searchFeedByIdentifyingValueOrID(feed: Feed, copy: Boolean = false): Feed? {
     Logd(TAG, "searchFeedByIdentifyingValueOrID called")
     if (feed.id != 0L) return getFeed(feed.id, copy)
-//    val feeds = getFeedList()
     val feedId = feed.identifyingValue
-    for (f in feeds) if (f.identifyingValue == feedId) return if (copy) realm.copyFromRealm(f) else f
+    val f = feeds.firstOrNull { it.identifyingValue == feedId }
+    if (f != null) return if (copy) realm.copyFromRealm(f) else f
     return null
-}
-
-fun isSubscribed(feed: Feed): Boolean {
-    val f = realm.query(Feed::class, "eigenTitle == $0 && author == $1", feed.eigenTitle, feed.author).first().find()
-    return f != null
-}
-
-fun getFeedByTitleAndAuthor(title: String, author: String): Feed? {
-    return realm.query(Feed::class, "eigenTitle == $0 && author == $1", title, author).first().find()
 }
 
 /**
@@ -205,7 +184,7 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     }
 
     Logd(TAG, "Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
-    newFeed.episodes.sortWith(EpisodePubdateComparator())
+    newFeed.episodes.sortedByDescending { it.pubDate }
     if (newFeed.pageNr == savedFeed.pageNr) {
         if (overwriteStates) savedFeed.updateFromOther(newFeed, true)
         else if (savedFeed.differentFrom(newFeed)) {
@@ -313,7 +292,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
     val savedFeed = searchFeedByIdentifyingValueOrID(newFeed, true) ?: return
 
     Logd(TAG, "Feed with title " + newFeed.title + " already exists. Syncing new with existing one.")
-    newFeed.episodes.sortWith(EpisodePubdateComparator())
+    newFeed.episodes.sortedByDescending { it.pubDate }
     if (newFeed.pageNr == savedFeed.pageNr) {
         if (savedFeed.differentFrom(newFeed)) {
             Logd(TAG, "Feed has updated attribute values. Updating old feed's attributes")
@@ -396,12 +375,6 @@ fun persistFeedLastUpdateFailed(feed: Feed, lastUpdateFailed: Boolean) : Job {
     }
 }
 
-fun updateFeedDownloadURL(original: String, updated: String) {
-    Logd(TAG, "updateFeedDownloadURL(original: $original, updated: $updated)")
-    val feed = realm.query(Feed::class).query("downloadUrl == $0", original).first().find()
-    if (feed != null) upsertBlk(feed) { it.downloadUrl = updated }
-}
-
 private fun addNewFeeds(vararg feeds_: Feed) {
     Logd(TAG, "addNewFeeds called")
     realm.writeBlocking {
@@ -448,16 +421,6 @@ suspend fun deleteFeed(feedId: Long) {
     }
 }
 
-suspend fun feedIdsOfAllEpisodes(): Set<Long> {
-    val changes = realm.query(Episode::class).asFlow().first { it is InitialResults }
-    val idSet = when (changes) {
-        is InitialResults -> changes.list.mapNotNull { it.feedId }.toSet()
-        else -> emptySet()
-    }
-    Logd(TAG, "compileEpisodesFeedIds idSet: ${idSet.size}")
-    return idSet
-}
-
 fun allowForAutoDelete(feed: Feed): Boolean {
     if (!getPref(AppPrefs.prefAutoDelete, false)) return false
     return !feed.isLocalFeed || getPref(AppPrefs.prefAutoDeleteLocal, false)
@@ -467,7 +430,7 @@ suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: B
     val eList: MutableList<Episode> = mutableListOf()
     val toFeedEpisodes = getEpisodes(null, null, feedId=toFeed.id, copy = false)
     for (e in episodes) {
-        if (searchEpisodeByIdentifyingValue(toFeedEpisodes, e) != null) continue
+        if (toFeedEpisodes.firstOrNull { it.identifyingValue == e.identifyingValue } != null) continue
         var e_ = e
         if (!removeChecked || (e.feedId != null && e.feedId!! >= MAX_SYNTHETIC_ID)) {
             e_ = realm.copyFromRealm(e)
@@ -529,7 +492,7 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
     val feed = getMiscSyndicate()
     Logd(TAG, "addToMiscSyndicate: feed: ${feed.title}")
     val episodes = getEpisodes(null, null, feedId=feed.id, copy = false)
-    if (searchEpisodeByIdentifyingValue(episodes, episode) != null) return
+    if (episodes.firstOrNull { it.identifyingValue == episode.identifyingValue } != null) return
     Logd(TAG, "addToMiscSyndicate adding new episode: ${episode.title}")
     //        if (episode.feedId != null && episode.feedId!! >= MAX_SYNTHETIC_ID) {
     //            episode.origFeedTitle = episode.feed?.title
@@ -555,15 +518,6 @@ fun getPreserveSyndicate(): Feed {
     upsertBlk(feed) {}
     EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
     return feed
-}
-
-/**
- * Compares the pubDate of two FeedItems for sorting in reverse order
- */
-class EpisodePubdateComparator : Comparator<Episode> {
-    override fun compare(lhs: Episode, rhs: Episode): Int {
-        return rhs.pubDate.compareTo(lhs.pubDate)
-    }
 }
 
 // savedFeedId == 0L means saved feed
@@ -671,6 +625,15 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
         }
     }
     private fun addDownloadStatus(episode: Episode, possibleDuplicate: Episode) {
+        fun duplicateEpisodeDetails(episode: Episode): String {
+            return ("""
+                Title: ${episode.title}
+                ID: ${episode.identifier}
+                """.trimIndent() + """
+                 
+                URL: ${episode.downloadUrl}
+                """.trimIndent())
+        }
         addDownloadStatus(DownloadResult(savedFeedId, episode.title ?: "", DownloadError.ERROR_PARSER_EXCEPTION_DUPLICATE, false,
             """
                 The podcast host appears to have added the same episode twice. Podcini still refreshed the feed and attempted to repair it.
@@ -703,35 +666,6 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
         return null
     }
     fun clear() = map.clear()
-}
-
-fun searchEpisodeByIdentifyingValue(episodes: List<Episode>?, searchItem: Episode): Episode? {
-    if (episodes.isNullOrEmpty()) return null
-    for (episode in episodes) if (episode.identifyingValue == searchItem.identifyingValue) return episode
-    return null
-}
-/**
- * Guess if one of the episodes could actually mean the searched episode, even if it uses another identifying value.
- * This is to work around podcasters breaking their GUIDs.
- */
-//        fun searchEpisodeGuessDuplicate(episodes: List<Episode>?, searchItem: Episode): Episode? {
-//            if (episodes.isNullOrEmpty()) return null
-//            for (episode in episodes) {
-//                if (EpisodeDuplicateGuesser.sameAndNotEmpty(episode.identifier, searchItem.identifier)) return episode
-//            }
-//            for (episode in episodes) {
-//                if (EpisodeDuplicateGuesser.seemDuplicates(episode, searchItem)) return episode
-//            }
-//            return null
-//        }
-fun duplicateEpisodeDetails(episode: Episode): String {
-    return ("""
-                Title: ${episode.title}
-                ID: ${episode.identifier}
-                """.trimIndent() + """
-                 
-                URL: ${episode.downloadUrl}
-                """.trimIndent())
 }
 
 /**

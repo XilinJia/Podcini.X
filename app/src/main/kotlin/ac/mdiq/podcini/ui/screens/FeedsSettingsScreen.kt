@@ -8,7 +8,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
+import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.AutoDownloadPolicy
@@ -113,7 +113,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
-import java.util.concurrent.ExecutionException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 
@@ -846,25 +845,19 @@ fun FeedsSettingsScreen() {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(text = "Podcast URL", style = CustomTextStyles.titleCustom)
                     Spacer(Modifier.weight(1f))
-                    var editedUrl by remember { mutableStateOf("") }
                     @Composable
-                    fun EditConfirmDialog(onDismiss: () -> Unit) {
+                    fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
+                        var url by remember { mutableStateOf(feedToSet.downloadUrl ?: "") }
                         AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
-                            text = { Text(stringResource(R.string.edit_url_confirmation_msg)) },
+                            text = { Column {
+                                Text(stringResource(R.string.edit_url_confirmation_msg))
+                                TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth())
+                            } },
                             confirmButton = {
                                 TextButton(onClick = {
                                     runOnIOScope {
-                                        try {
-                                            updateFeedDownloadURL(feedToSet.downloadUrl ?: "", editedUrl)
-                                            feedToSet.downloadUrl = editedUrl
-                                            //                            runOnce(context, feed)
-                                            if (feedToSet != null) gearbox.feedUpdater(listOf(feedToSet)).startRefresh(context)
-                                        } catch (e: ExecutionException) {
-                                            throw RuntimeException(e)
-                                        } catch (e: InterruptedException) {
-                                            throw RuntimeException(e)
-                                        }
-                                        feedToSet.downloadUrl = editedUrl
+                                        feedToSet = upsert(feedToSet!!) { it.downloadUrl = url }
+                                        gearbox.feedUpdater(listOf(feedToSet)).startRefresh(context)
                                     }
                                     onDismiss()
                                 }) { Text("OK") }
@@ -872,24 +865,6 @@ fun FeedsSettingsScreen() {
                             dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
                         )
                     }
-                    var showEditConfirmDialog by remember { mutableStateOf(false) }
-                    if (showEditConfirmDialog) EditConfirmDialog { showEditConfirmDialog = false }
-                    @Composable
-                    fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
-                        var url by remember { mutableStateOf(feedToSet.downloadUrl ?: "") }
-                        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
-                            text = { TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth()) },
-                            confirmButton = {
-                                TextButton(onClick = {
-                                    editedUrl = url
-                                    showEditConfirmDialog = true
-                                    onDismiss()
-                                }) { Text("OK") }
-                            },
-                            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
-                        )
-                    }
-
                     var showDialog by remember { mutableStateOf(false) }
                     if (showDialog) EditUrlSettingsDialog { showDialog = false }
                     IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit url") }
