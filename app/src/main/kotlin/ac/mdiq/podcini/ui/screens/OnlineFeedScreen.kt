@@ -373,7 +373,7 @@ class OnlineFeedVM: ViewModel() {
 fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
 //    val scope = rememberCoroutineScope()
-    val drawerState = LocalDrawerController.current
+    val drawerController = LocalDrawerController.current
     val context by rememberUpdatedState(LocalContext.current)
     val textColor = MaterialTheme.colorScheme.onSurface
     val navController = LocalNavController.current
@@ -471,7 +471,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
-                } else drawerState.close()
+                } else drawerController.close()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }

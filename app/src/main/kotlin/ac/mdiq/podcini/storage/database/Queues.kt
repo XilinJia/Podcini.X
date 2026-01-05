@@ -228,7 +228,7 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
     if (almostEnded) {
         item = upsert(item) { it.playbackCompletionDate = Date() }
         if (item.playState < EpisodeState.PLAYED.code && !shouldPreserve(item.playState))
-            item = upsert(item) { it.setPlayState(EpisodeState.PLAYED, true) }
+            item = upsert(item) { it.setPlayState(EpisodeState.PLAYED) }
     }
     if (item.playState < EpisodeState.SKIPPED.code && !shouldPreserve(item.playState)) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED

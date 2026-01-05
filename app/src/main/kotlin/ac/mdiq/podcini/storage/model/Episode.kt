@@ -346,13 +346,7 @@ class Episode : RealmObject {
     }
 
     @JvmName("setPlayStateFunction")
-    fun setPlayState(stat: EpisodeState) {
-        playState = stat.code
-        playStateSetTime = System.currentTimeMillis()
-    }
-
-    @JvmName("setPlayStateFunction")
-    fun setPlayState(state: EpisodeState, resetPosition: Boolean) {
+    fun setPlayState(state: EpisodeState, resetPosition: Boolean = false) {
         playState = if (state != EpisodeState.UNSPECIFIED) state.code
         else {
             if (playState == EpisodeState.PLAYED.code) EpisodeState.UNPLAYED.code

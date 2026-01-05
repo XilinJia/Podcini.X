@@ -136,7 +136,6 @@ import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
@@ -164,7 +163,7 @@ fun QueuesScreen(id: Long = -1L) {
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
-    val drawerState = LocalDrawerController.current
+    val drawerController = LocalDrawerController.current
 
     var browserFuture: ListenableFuture<MediaBrowser>? by remember { mutableStateOf(null) }
     
@@ -342,12 +341,12 @@ fun QueuesScreen(id: Long = -1L) {
 
     @Composable
     fun OpenDialogs() {
-        fun clearQueue() : Job {
-            Logd(TAG, "clearQueue called")
-            return runOnIOScope {
+        ComfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = showClearQueueDialog) {
+            runOnIOScope {
                 val qes = queueEntriesOf(curQueue)
                 val episodeIds = qes.map { it.episodeId }
-                 upsert(curQueue) {
+                upsert(curQueue) {
+                    it.idsBinList.removeAll(episodeIds)
                     it.idsBinList.addAll(episodeIds)
                     it.trimBin()
                     it.update()
@@ -364,8 +363,6 @@ fun QueuesScreen(id: Long = -1L) {
                 }
             }
         }
-
-        ComfirmDialog(titleRes = R.string.clear_queue_label, message = stringResource(R.string.clear_queue_confirmation_msg), showDialog = showClearQueueDialog) { clearQueue() }
 
         if (showAddQueueDialog.value) CommonPopupCard(onDismissRequest = { showAddQueueDialog.value = false }) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -385,6 +382,7 @@ fun QueuesScreen(id: Long = -1L) {
         }
 
         swipeActions.ActionOptionsDialog()
+
         if (showSortDialog) EpisodeSortDialog(initOrder = curQueue.sortOrder, onDismissRequest = { showSortDialog = false },
             includeConditionals = listOf(EpisodeSortOrder.RANDOM, EpisodeSortOrder.RANDOM1, EpisodeSortOrder.SMART_SHUFFLE_ASC, EpisodeSortOrder.SMART_SHUFFLE_DESC )) { order ->
             upsertBlk(curQueue) { it.sortOrder = order ?: EpisodeSortOrder.DATE_DESC }
@@ -395,23 +393,19 @@ fun QueuesScreen(id: Long = -1L) {
             }
         }
 
-        @Composable
-        fun ChooseQueue() {
-            Popup(onDismissRequest = { showChooseQueue = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
-                Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
-                        for (index in queues.indices) {
-                            FilterChip(onClick = {
-                                upsertBlk(curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
-                                setCurIndex(index)
-                                showChooseQueue = false
-                            }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
-                        }
+        if (showChooseQueue) Popup(onDismissRequest = { showChooseQueue = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
+            Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                    for (index in queues.indices) {
+                        FilterChip(onClick = {
+                            upsertBlk(curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
+                            setCurIndex(index)
+                            showChooseQueue = false
+                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
                     }
                 }
             }
         }
-        if (showChooseQueue) ChooseQueue()
     }
 
     OpenDialogs()
@@ -439,7 +433,7 @@ fun QueuesScreen(id: Long = -1L) {
                         else Logt(TAG, "actQueue is not available")
                     }
                 })) else Text(title) },
-                navigationIcon = { IconButton(onClick = { drawerState.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
+                navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
                 actions = {
                     val binIconRes by remember(queuesMode) { derivedStateOf { if (queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history } }
                     val feedsIconRes by remember(queuesMode) { derivedStateOf { if (queuesMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }

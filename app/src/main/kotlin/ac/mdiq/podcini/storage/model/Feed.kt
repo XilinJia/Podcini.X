@@ -81,6 +81,8 @@ class Feed : RealmObject {
     //Feed type, options are defined in [FeedType].
     var type: String? = null
 
+    var prefActionType: String? = null
+
     /**
      * The page number that this feed is on. Only feeds with page number "0" should be stored in the
      * database, feed objects with a higher page number only exist temporarily and should be merged

@@ -249,7 +249,7 @@ class PreferenceActivity : ComponentActivity() {
                         if (Build.VERSION.SDK_INT <= 32) Logt(TAG, getString(R.string.copied_to_clipboard))
                     })) {
                     Text(stringResource(R.string.podcini_version), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
-                    Text(String.format("%s (%s)", BuildConfig.VERSION_NAME, BuildConfig.COMMIT_HASH), color = textColor)
+                    Text(String.format("%s", BuildConfig.VERSION_NAME), color = textColor)
                 }
             }
             IconTitleSummaryActionRow(R.drawable.ic_questionmark, R.string.online_help, R.string.online_help_sum) { openInBrowser(this@PreferenceActivity, githubAddress) }

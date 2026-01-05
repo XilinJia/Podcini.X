@@ -138,7 +138,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
-    val drawerState = LocalDrawerController.current
+    val drawerController = LocalDrawerController.current
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
 
@@ -427,7 +427,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
-                } else drawerState.open()
+                } else drawerController.open()
             }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
                 actions = {
                     IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(episode?.playState ?: EpisodeState.UNSPECIFIED.code).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }

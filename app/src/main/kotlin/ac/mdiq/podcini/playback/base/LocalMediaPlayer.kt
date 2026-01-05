@@ -317,7 +317,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         }
 
         Logd(TAG, "prepareMedia preparing for playable:${playable.id} ${playable.getEpisodeTitle()}")
-        if (playable.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(playable) { it.setPlayState(EpisodeState.PROGRESS, false) } }
+        if (playable.playState < EpisodeState.PROGRESS.code) runOnIOScope { upsert(playable) { it.setPlayState(EpisodeState.PROGRESS) } }
         setAsCurEpisode(playable)
 
         this.isStreaming = streaming

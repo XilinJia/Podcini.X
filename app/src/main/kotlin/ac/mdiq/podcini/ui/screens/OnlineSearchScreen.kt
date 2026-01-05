@@ -159,7 +159,7 @@ fun OnlineSearchScreen() {
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
-    val drawerState = LocalDrawerController.current
+    val drawerController = LocalDrawerController.current
 
     val vm = remember { OnlineSearchVM(context, scope) }
 
@@ -209,7 +209,7 @@ fun OnlineSearchScreen() {
                     if (queryText.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(queryText, StandardCharsets.UTF_8.name())}")
                     else vm.search(queryText)
                 }
-            }, navigationIcon = { IconButton(onClick = { drawerState.open() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
+            }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

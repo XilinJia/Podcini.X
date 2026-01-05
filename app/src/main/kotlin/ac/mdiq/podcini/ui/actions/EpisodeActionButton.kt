@@ -101,7 +101,11 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
     var drawable by mutableIntStateOf(typeInit.drawable)
 
     init {
-        if (type == ButtonTypes.NULL) update(item)
+        if (type == ButtonTypes.NULL) {
+            if (item.feed?.prefActionType != null)
+                try { type = ButtonTypes.valueOf(item.feed!!.prefActionType!!) } catch (e: Throwable) { Loge(TAG, "error in getting feed prefActionType: ${item.feed?.prefActionType}") }
+            else update(item)
+        }
     }
 
     val ttsTmpFiles = mutableListOf<String>()
@@ -444,7 +448,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     curTempSpeed = SPEED_USE_GLOBAL
                     PlaybackStarter(context, item).start()
                     if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code)
-                        item = upsertBlk(item) { it.setPlayState(EpisodeState.PROGRESS, false) }
+                        item = upsertBlk(item) { it.setPlayState(EpisodeState.PROGRESS) }
                 }
                 if (item.getMediaType() == MediaType.VIDEO) context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
 //                type = ButtonTypes.PAUSE  leave it to playerStat
@@ -470,13 +474,14 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
         when (type) {
             ButtonTypes.WEBSITE -> {}
             ButtonTypes.PLAYLOCAL -> if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
-            ButtonTypes.PLAY -> {
+            ButtonTypes.PLAY, ButtonTypes.PLAYONCE, ButtonTypes.PLAYREPEAT -> {
                 if (!item.downloaded) type = undownloadedType()
                 else if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
             }
-            ButtonTypes.STREAM -> if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
+            ButtonTypes.STREAM, ButtonTypes.STREAMONCE, ButtonTypes.STREAMREPEAT -> if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
             ButtonTypes.PAUSE -> {
                 type = when {
+                    item.feed?.prefActionType != null -> ButtonTypes.valueOf(item.feed!!.prefActionType!!)
                     item.feed?.isLocalFeed == true -> ButtonTypes.PLAYLOCAL
                     item.downloaded -> ButtonTypes.PLAY
                     item.feed == null || item.feedId == null || item.feed?.type == Feed.FeedType.YOUTUBE.name || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
@@ -617,7 +622,6 @@ enum class ButtonTypes(val label: Int, val drawable: Int) {
 
     DELETE(R.string.delete_label, R.drawable.ic_delete),
     NULL(R.string.null_label, R.drawable.ic_questionmark),
-//    NULLZAP(R.string.null_zap_label, R.drawable.ic_close_white),
     PAUSE(R.string.pause_label, R.drawable.ic_pause),
     DOWNLOAD(R.string.download_label, R.drawable.ic_download),
     TTS(R.string.TTS_label, R.drawable.text_to_speech),

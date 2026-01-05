@@ -16,7 +16,6 @@ import ac.mdiq.podcini.storage.database.getHistoryAsFlow
 import ac.mdiq.podcini.storage.database.queueToVirtual
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.updateFeedDownloadURL
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
@@ -40,7 +39,6 @@ import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.LayoutMode
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
-import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.utils.Logd
@@ -64,7 +62,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -83,7 +80,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -95,7 +91,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -137,14 +132,13 @@ import coil.compose.AsyncImage
 import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
+import java.util.Date
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
-import java.util.Date
-import java.util.concurrent.ExecutionException
 
 enum class FeedScreenMode {
     List,
@@ -177,7 +171,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
-    val drawerState = LocalDrawerController.current
+    val drawerController = LocalDrawerController.current
 
     var feedScreenMode by remember { mutableStateOf(FeedScreenMode.valueOf(modeName)) }
 
@@ -256,13 +250,9 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     var showHeader by remember { mutableStateOf(true) }
 
     val showConnectLocalFolderConfirm = remember { mutableStateOf(false) }
-    var showEditConfirmDialog by remember { mutableStateOf(false) }
-    var editedUrl by remember { mutableStateOf("") }
-    var showEditUrlSettingsDialog by remember { mutableStateOf(false) }
     var showChooseRatingDialog by remember { mutableStateOf(false) }
     var showRemoveFeedDialog by remember { mutableStateOf(false) }
     var showFilterDialog by remember {  mutableStateOf(false) }
-    var showRenameDialog by remember {  mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
     var showTagsSettingDialog by remember { mutableStateOf(false) }
 
@@ -285,46 +275,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         ComfirmDialog(0, stringResource(R.string.reconnect_local_folder_warning), showConnectLocalFolderConfirm) {
             try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
         }
-        @Composable
-        fun EditConfirmDialog(onDismiss: () -> Unit) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
-                text = { Text(stringResource(R.string.edit_url_confirmation_msg)) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        runOnIOScope {
-                            try {
-                                updateFeedDownloadURL(feed?.downloadUrl ?: "", editedUrl)
-                                feed?.downloadUrl = editedUrl
-                                //                            runOnce(context, feed)
-                                if (feed != null) gearbox.feedUpdater(listOf(feed!!)).startRefresh(context)
-                            } catch (e: ExecutionException) { throw RuntimeException(e) } catch (e: InterruptedException) { throw RuntimeException(e) }
-                            feed?.downloadUrl = editedUrl
-                            //                        withContext(Dispatchers.Main) { vm.txtvUrl = feed?.downloadUrl }
-                        }
-                        onDismiss()
-                    }) { Text("OK") }
-                },
-                dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
-            )
-        }
-        if (showEditConfirmDialog) EditConfirmDialog { showEditConfirmDialog = false }
-
-        @Composable
-        fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
-            var url by remember { mutableStateOf(feed?.downloadUrl ?: "") }
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
-                text = { TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth()) },
-                confirmButton = {
-                    TextButton(onClick = {
-                        editedUrl = url
-                        showEditConfirmDialog = true
-                        onDismiss()
-                    }) { Text("OK") }
-                },
-                dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
-            )
-        }
-        if (showEditUrlSettingsDialog) EditUrlSettingsDialog { showEditUrlSettingsDialog = false }
 
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(feed!!)) { showChooseRatingDialog = false }
 
@@ -340,8 +290,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 runOnIOScope { upsert(feed!!) { it.episodeFilter = filter } }
             }
         }
-
-        if (showRenameDialog) RenameOrCreateSyntheticFeed(feed) { showRenameDialog = false }
 
         if (feed != null && showSortDialog) {
             showHeader = false
@@ -437,7 +385,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
-                } else drawerState.open()
+                } else drawerController.open()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } },
                 actions = {
                     if (feedScreenMode == FeedScreenMode.List) {
@@ -461,17 +409,17 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         navController.navigate("${Screens.Queues.name}?id=${feed?.queue?.id ?: -1L}")
                         isBSExpanded = false
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.playlist_play), contentDescription = "queue") }
-                    IconButton(onClick = { navController.navigate(Screens.Search.name)
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                    IconButton(onClick = {
-                        if (feed != null) {
-                            feedsToSet = listOf(feed!!)
-                            navController.navigate(Screens.FeedsSettings.name)
-                        }
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings_white), contentDescription = "butShowSettings") }
+                    IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     if (feed != null) {
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                         DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
+                                if (feed != null) {
+                                    feedsToSet = listOf(feed!!)
+                                    navController.navigate(Screens.FeedsSettings.name)
+                                }
+                                expanded = false
+                            })
                             if (!feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
                                 shareLink(context, feed?.downloadUrl ?: "")
                                 expanded = false
@@ -480,15 +428,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 openInBrowser(context, feed!!.link!!)
                                 expanded = false
                             })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.rename_feed_label)) }, onClick = {
-                                showRenameDialog = true
-                                expanded = false
-                            })
                             if (feed?.isLocalFeed == true) DropdownMenuItem(text = { Text(stringResource(R.string.reconnect_local_folder)) }, onClick = {
                                 showConnectLocalFolderConfirm.value = true
-                                expanded = false
-                            }) else DropdownMenuItem(text = { Text(stringResource(R.string.edit_url_menu)) }, onClick = {
-                                showEditUrlSettingsDialog = true
                                 expanded = false
                             })
                             if (feedEpisodes.isNotEmpty()) DropdownMenuItem(text = { Text(stringResource(R.string.fetch_size)) }, onClick = {

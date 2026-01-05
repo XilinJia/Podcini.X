@@ -1,0 +1,7 @@
+* in FeedDetails screen
+	* edit feed title and url are moved to feed settings
+	* feed settings button on topbar is moved to the menu
+* in FeedsSettings, added settings for a preferred action button for episodes lists
+* enabled various options in Feeds settings for setting multiple feeds
+* ensure episodes not auto-downloadable when play state is set to Ignored, Passed, etc
+* tuned colors of play states

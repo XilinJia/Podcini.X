@@ -1,3 +1,15 @@
+# 10.3.2
+
+* in FeedDetails screen
+	* edit feed title and url are moved to feed settings
+	* feed settings button on topbar is moved to the menu
+* in FeedsSettings, added settings for a preferred action button for episodes lists
+* enabled various options in Feeds settings for setting multiple feeds
+* ensure episodes not auto-downloadable when play state is set to Ignored, Passed, etc
+* tuned colors of play states
+* migrated groovy files to kts and removed commit value
+* some code refactoring
+
 # 10.3.1
 
 * in FeedDetails screen, feed image in header also react to long-click in the same way as the image on Infobar

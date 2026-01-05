@@ -290,7 +290,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                 val almostEnded = item_.hasAlmostEnded()
                 if (almostEnded) {
                     item_ = upsert(item_) {
-                        if (it.playState < EpisodeState.PLAYED.code) it.setPlayState(EpisodeState.PLAYED, true)
+                        if (it.playState < EpisodeState.PLAYED.code) it.setPlayState(EpisodeState.PLAYED)
                         it.playbackCompletionDate = Date()
                     }
                 }

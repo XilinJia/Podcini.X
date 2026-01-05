@@ -157,7 +157,7 @@ fun LogsScreen() {
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
-    val drawerState = LocalDrawerController.current
+    val drawerController = LocalDrawerController.current
 
     val vm = remember { LogsVM(context, scope) }
 
@@ -458,7 +458,7 @@ fun LogsScreen() {
     @Composable
      fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(vm.title) }, navigationIcon = { IconButton(onClick = { drawerState.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer") } }, actions = {
+            TopAppBar(title = { Text(vm.title) }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer") } }, actions = {
                 if (vm.title != "Session") IconButton(onClick = {
                     vm.clearAllLogs()
                     vm.title = "Session"

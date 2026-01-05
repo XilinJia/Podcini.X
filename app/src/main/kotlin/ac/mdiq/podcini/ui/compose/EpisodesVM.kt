@@ -359,7 +359,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                             if (e == null || (!e.downloaded && e.feed?.isLocalFeed != true)) continue
                             val almostEnded = e.hasAlmostEnded()
                             if (almostEnded) {
-                                if (e.playState < EpisodeState.PLAYED.code) e.setPlayState(EpisodeState.PLAYED, true)
+                                if (e.playState < EpisodeState.PLAYED.code) e.setPlayState(EpisodeState.PLAYED)
                                 e.playbackCompletionDate = Date()
                             }
                         }
