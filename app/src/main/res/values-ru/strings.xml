@@ -182,14 +182,14 @@
     <string name="mobile_feed_refresh_message">Refreshing podcasts over mobile data connection is disabled in the settings. Reschedule for later.</string>
     <!-- actions on feeditems -->
     <string name="download_label">Скачать</string>
-    <string name="just_TTS">Just TTS</string>
+    <string name="TTS_now">TTS now</string>
     <string name="TTS_label">Speak</string>
     <string name="play_label">Play</string>
-    <string name="play_once">Play once</string>
+    <string name="play_one">Play one</string>
     <string name="play_repeat">Play repeat</string>
     <string name="pause_label">Pause</string>
     <string name="stream_label">Stream</string>
-    <string name="stream_once">Stream once</string>
+    <string name="stream_one">Stream one</string>
     <string name="stream_repeat">Stream repeat</string>
     <string name="erase_episodes_label">Erase episodes</string>
     <string name="alarm_episodes_label">Play episodes at time</string>
