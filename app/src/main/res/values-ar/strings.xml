@@ -184,14 +184,14 @@
     <string name="mobile_feed_refresh_message">تحديث podcasts عبر اتصال بيانات الجوال معطل في الإعدادات. إعادة الجدولة لاحقاً.</string>
     <!-- actions on feeditems -->
     <string name="download_label">تنزيل</string>
-    <string name="just_TTS">Just TTS</string>
+    <string name="TTS_now">TTS now</string>
     <string name="TTS_label">التحدث</string>
     <string name="play_label">تشغيل</string>
-    <string name="play_once">Play once</string>
+    <string name="play_one">Play one</string>
     <string name="play_repeat">Play repeat</string>
     <string name="pause_label">إيقاف</string>
     <string name="stream_label">البث</string>
-    <string name="stream_once">Stream once</string>
+    <string name="stream_one">Stream one</string>
     <string name="stream_repeat">Stream repeat</string>
     <string name="erase_episodes_label">مسح الحلقات</string>
     <string name="alarm_episodes_label">تشغيل الحلقات في الوقت المناسب</string>
