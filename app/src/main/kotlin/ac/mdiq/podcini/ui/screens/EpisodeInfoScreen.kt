@@ -481,7 +481,7 @@ fun EpisodeInfoScreen(episodeId: Long = 0L) {
                 if (episode != null) actionButton = EpisodeActionButton(episode!!)
                 actionButton?.type = when {
                     InTheatre.isCurrentlyPlaying(episode) -> ButtonTypes.PAUSE
-                    episode?.feed != null && episode!!.feed!!.isLocalFeed -> ButtonTypes.PLAYLOCAL
+                    episode?.feed != null && episode!!.feed!!.isLocalFeed -> ButtonTypes.PLAY_LOCAL
                     episode?.downloaded == true -> ButtonTypes.PLAY
                     !episode?.downloadUrl.isNullOrBlank() -> ButtonTypes.STREAM
                     else -> ButtonTypes.NULL

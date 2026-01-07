@@ -7,7 +7,6 @@ import ac.mdiq.podcini.net.feed.searcher.ItunesPodcastSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastIndexPodcastSearcher
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearcher
-import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -32,6 +31,7 @@ import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Context
@@ -86,70 +86,37 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.viewmodel.compose.viewModel
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 private var searchText by mutableStateOf("")
 private var searchProvider by mutableStateOf<PodcastSearcher?>(null)
-fun setOnlineSearchTerms(searchProvider_: Class<out PodcastSearcher?>, query: String? = null) {
+fun setOnlineSearchTerms(searchProvider_: Class<out PodcastSearcher?> = CombinedSearcher::class.java, query: String? = null) {
+    Logd(TAG, "setOnlineSearchTerms: query: $query")
     searchText = query ?: ""
     searchProvider = searchProvider_.getDeclaredConstructor().newInstance()
 }
 
-class OnlineSearchVM(val context: Context, val lcScope: CoroutineScope) {
-
-    internal val feedLogs = feedLogsMap!!
-
-    internal var searchResults = mutableStateListOf<PodcastSearchResult>()
-    internal var errorText by mutableStateOf("")
-    internal var retryQerry by mutableStateOf("")
-    internal var showProgress by mutableStateOf(false)
-    internal var noResultText by mutableStateOf("")
-
+class OnlineSearchVM: ViewModel() {
+    internal val searchResults = mutableStateListOf<PodcastSearchResult>()
     internal val readElements = mutableStateListOf<OpmlElement>()
 
     init {
-        setOnlineSearchTerms(CombinedSearcher::class.java, searchText)
-    }
-
-    private var searchJob: Job? = null
-    @SuppressLint("StringFormatMatches")
-    internal fun search(query: String) {
-        if (query.isBlank()) return
-        if (searchJob != null) {
-            searchJob?.cancel()
-            searchResults.clear()
-        }
-        errorText = ""
-        retryQerry = ""
-        showProgress = true
-        searchJob = lcScope.launch(Dispatchers.IO) {
-            val feeds = getFeedList()
-            fun feedId(r: PodcastSearchResult): Long {
-                for (f in feeds) if (f.downloadUrl == r.feedUrl) return f.id
-                return 0L
-            }
-            try {
-                val result = searchProvider?.search(query) ?: listOf()
-                for (r in result) r.feedId = feedId(r)
-                searchResults.clear()
-                searchResults.addAll(result)
-                withContext(Dispatchers.Main) {
-                    showProgress = false
-                    noResultText = context.getString(R.string.no_results_for_query, query)
-                }
-            } catch (e: Exception) {
-                showProgress = false
-                errorText = e.toString()
-                retryQerry = query
-            }
-        }.apply { invokeOnCompletion { searchJob = null } }
+        if (searchProvider == null) searchProvider = CombinedSearcher::class.java.getDeclaredConstructor().newInstance()
+//        for (info in PodcastSearcherRegistry.searchProviders) {
+//            Logd(TAG, "searchProvider: $info")
+//            if (info.searcher.javaClass.name == searchProvider?.name) {
+//                searchProvider = info.searcher
+//                break
+//            }
+//        }
     }
 }
 
@@ -161,29 +128,61 @@ fun OnlineSearchScreen() {
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
-    val vm = remember { OnlineSearchVM(context, scope) }
+    val vm: OnlineSearchVM = viewModel()
 
-     var showOpmlImportSelectionDialog by remember { mutableStateOf(false) }
-     val showOPMLRestoreDialog = remember { mutableStateOf(false) }
-     val numberOPMLFeedsToRestore = remember { mutableIntStateOf(0) }
+    var showOpmlImportSelectionDialog by remember { mutableStateOf(false) }
+    val showOPMLRestoreDialog = remember { mutableStateOf(false) }
+    val numberOPMLFeedsToRestore = remember { mutableIntStateOf(0) }
+
+    var showProgress by remember { mutableStateOf(false) }
+    var errorText by remember { mutableStateOf("") }
+    var retryQerry by remember { mutableStateOf("") }
+
+    var searchJob by remember { mutableStateOf<Job?>(null) }
+    @SuppressLint("StringFormatMatches")
+    fun search(query: String) {
+        if (query.isBlank()) return
+        if (searchJob != null) {
+            searchJob?.cancel()
+            vm.searchResults.clear()
+        }
+        errorText = ""
+        retryQerry = ""
+        showProgress = true
+        searchJob = scope.launch(Dispatchers.IO) {
+            val feeds = getFeedList()
+            fun feedId(r: PodcastSearchResult): Long {
+                for (f in feeds) if (f.downloadUrl == r.feedUrl) return f.id
+                return 0L
+            }
+            try {
+                val result = searchProvider?.search(query) ?: listOf()
+                for (r in result) r.feedId = feedId(r)
+                vm.searchResults.clear()
+                vm.searchResults.addAll(result)
+                withContext(Dispatchers.Main) { showProgress = false }
+            } catch (e: Exception) {
+                showProgress = false
+                errorText = e.toString()
+                retryQerry = query
+            }
+        }.apply { invokeOnCompletion { searchJob = null } }
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
+            Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     if (getPref(AppPrefs.prefOPMLRestore, false) && feedCount == 0) {
                         numberOPMLFeedsToRestore.intValue = getPref(AppPrefs.prefOPMLFeedsToRestore, 0)
                         showOPMLRestoreDialog.value = true
                     }
-                    for (info in PodcastSearcherRegistry.searchProviders) {
-                        Logd(TAG, "searchProvider: $info")
-                        if (info.searcher.javaClass.name == searchProvider?.name) {
-                            searchProvider = info.searcher
-                            break
-                        }
+                    if (searchProvider != null) search(searchText)
+                    else {
+                        Loge(TAG,"Podcast searcher not found, use Combined")
+                        searchProvider = CombinedSearcher::class.java.getDeclaredConstructor().newInstance()
                     }
-                    if (searchProvider == null) Loge(TAG,"Podcast searcher not found")
-                    vm.search(searchText)
                 }
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
@@ -194,7 +193,6 @@ fun OnlineSearchScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            vm.searchResults.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -204,10 +202,12 @@ fun OnlineSearchScreen() {
     fun MyTopAppBar() {
         Box {
             TopAppBar(title = {
+                Logd(TAG, "Topbar searchText: $searchText")
                 SearchBarRow(R.string.search_podcast_hint, searchText) { queryText ->
                     if (queryText.isBlank()) return@SearchBarRow
+                    searchText = queryText
                     if (queryText.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(queryText, StandardCharsets.UTF_8.name())}")
-                    else vm.search(queryText)
+                    else search(queryText)
                 }
             }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
@@ -217,9 +217,9 @@ fun OnlineSearchScreen() {
     val textColor = MaterialTheme.colorScheme.onSurface
     val actionColor = MaterialTheme.colorScheme.tertiary
     ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, numberOPMLFeedsToRestore.intValue), showOPMLRestoreDialog) {
-        vm.showProgress = true
+        showProgress = true
         performRestore(context)
-        vm.showProgress = false
+        showProgress = false
     }
     val chooseOpmlImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -268,8 +268,9 @@ fun OnlineSearchScreen() {
                 }
 
                 traverseDirectory(documentFile)
-                realm.write { for (v in volumes) copyToRealm(v) }
+                if (volumes.isNotEmpty()) realm.write { for (v in volumes) copyToRealm(v) }
                 if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds).startRefresh(context)
+                Logt(TAG, "Imported ${feeds.size} local feeds in ${volumes.size} volumes")
             } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
         }
     }
@@ -283,7 +284,11 @@ fun OnlineSearchScreen() {
                 setOnlineSearchTerms(CombinedSearcher::class.java)
                 showAdvanced = false
             }))
-            gearbox.GearSearchText()
+            val gearProviderRes = remember { gearbox.gearProviderRes() }
+            if (gearProviderRes > 0) Text(stringResource(gearProviderRes), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
+                setOnlineSearchTerms(gearbox.gearSearchProvider())
+                showAdvanced = false
+            }))
             Text(stringResource(R.string.search_itunes_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 setOnlineSearchTerms(ItunesPodcastSearcher::class.java)
                 showAdvanced = false
@@ -292,10 +297,6 @@ fun OnlineSearchScreen() {
                 setOnlineSearchTerms(PodcastIndexPodcastSearcher::class.java)
                 showAdvanced = false
             }))
-//            Text(stringResource(R.string.add_local_folder), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
-//                try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
-//                showAdvanced = false
-//            }))
             Text(stringResource(R.string.opml_add_podcast_label), color = actionColor, modifier = Modifier.padding(start = 10.dp, top = 10.dp).clickable(onClick = {
                 try { chooseOpmlImportPathLauncher.launch("*/*") } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }
                 showAdvanced = false
@@ -316,7 +317,7 @@ fun OnlineSearchScreen() {
                 Text(stringResource(R.string.advanced), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = { showAdvanced = !showAdvanced }))
             }
 
-            if (vm.showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
+            if (showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
             if (vm.searchResults.isNotEmpty()) LazyColumn(state = rememberLazyListState(), verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).constrainAs(gridView) {
                     top.linkTo(controlRow.bottom)
@@ -326,16 +327,13 @@ fun OnlineSearchScreen() {
                 items(vm.searchResults.size) { index ->
                     val result = vm.searchResults[index]
                     val urlPrepared by remember { mutableStateOf(prepareUrl(result.feedUrl!!)) }
-                    val sLog = remember { mutableStateOf(vm.feedLogs[urlPrepared] ?: vm.feedLogs[result.title]) }
+                    val sLog = remember { mutableStateOf(feedLogsMap!![urlPrepared] ?: feedLogsMap!![result.title]) }
 //                    Logd(TAG, "result: ${result.feedUrl} ${feedLogs[urlPrepared]}")
                     OnlineFeedItem(result, sLog.value)
                 }
-            }
-            if (vm.searchResults.isEmpty()) Text(vm.noResultText, color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })
-            if (vm.errorText.isNotEmpty()) Text(vm.errorText, color = textColor, modifier = Modifier.constrainAs(txtvError) { centerTo(parent) })
-            if (vm.retryQerry.isNotEmpty()) Button(modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) }, onClick = { vm.search(vm.retryQerry) }) {
-                Text(stringResource(id = R.string.retry_label))
-            }
+            } else Text(stringResource(R.string.no_results_for_query, searchText), color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })
+            if (errorText.isNotEmpty()) Text(errorText, color = textColor, modifier = Modifier.constrainAs(txtvError) { centerTo(parent) })
+            if (retryQerry.isNotEmpty()) Button(modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) }, onClick = { search(retryQerry) }) { Text(stringResource(id = R.string.retry_label)) }
             Text(context.getString(R.string.search_powered_by, searchProvider!!.name), color = Color.Black, style = MaterialTheme.typography.labelSmall, modifier = Modifier.background(Color.LightGray)
                 .constrainAs(powered) {
                     bottom.linkTo(parent.bottom)

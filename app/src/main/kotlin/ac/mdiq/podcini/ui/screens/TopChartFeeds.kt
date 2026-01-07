@@ -6,6 +6,7 @@ import ac.mdiq.podcini.net.feed.searcher.ItunesTopListLoader
 import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.FilterChipBorder
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -260,7 +261,7 @@ fun TopChartFeeds() {
                             Logd(TAG, "SpinnerExternalSet $curIndex curGenre: $curGenre")
                             loadToplist(countryCode, curGenre)
                             showChooseGenre = false
-                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = FilterChipBorder(curIndex == index))
                     }
                 }
             }

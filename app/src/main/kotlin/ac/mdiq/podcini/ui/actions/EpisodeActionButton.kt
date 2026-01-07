@@ -52,18 +52,23 @@ import android.net.Uri
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import androidx.annotation.OptIn
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.core.text.HtmlCompat
@@ -87,7 +92,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
         set(value) {
 //            Logd(TAG, "set ButtonTypes to $value")
             _type.value = value
-            label = value.label
+            label = value.labelRes
             drawable = value.drawable
         }
 
@@ -97,12 +102,12 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
 
     var speaking by mutableStateOf(false)
 
-    var label by mutableIntStateOf(typeInit.label)
+    var label by mutableIntStateOf(typeInit.labelRes)
     var drawable by mutableIntStateOf(typeInit.drawable)
 
     init {
         if (type == ButtonTypes.NULL) {
-            if (item.feed?.prefActionType != null)
+            if (item.feed?.prefActionType != null && item.feed!!.prefActionType!! !in playActions.map { it.name })
                 try { type = ButtonTypes.valueOf(item.feed!!.prefActionType!!) } catch (e: Throwable) { Loge(TAG, "error in getting feed prefActionType: ${item.feed?.prefActionType}") }
             else update(item)
         }
@@ -167,14 +172,14 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 playVideoIfNeeded(context, item)
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
-            ButtonTypes.PLAYONCE -> {
+            ButtonTypes.PLAY_ONE -> {
                 if (fileNotExist()) return
                 PlaybackStarter(context, item).start()
                 playVideoIfNeeded(context, item)
                 actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
-            ButtonTypes.PLAYREPEAT -> {
+            ButtonTypes.PLAY_REPEAT -> {
                 if (fileNotExist()) return
                 PlaybackStarter(context, item).setToRepeat(true).start()
                 playVideoIfNeeded(context, item)
@@ -190,7 +195,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 askToStream { stream() }
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
-            ButtonTypes.STREAMREPEAT -> {
+            ButtonTypes.STREAM_REPEAT -> {
                 fun stream() {
                     PlaybackStarter(context, item).shouldStreamThisTime(true).setToRepeat(true).start()
                     playVideoIfNeeded(context, item)
@@ -199,7 +204,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 askToStream { stream() }
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
-            ButtonTypes.STREAMONCE -> {
+            ButtonTypes.STREAM_ONE -> {
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
                 PlaybackStarter(context, item).shouldStreamThisTime(true).start()
                 playVideoIfNeeded(context, item)
@@ -243,7 +248,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     onConfirm = { DownloadServiceInterface.impl?.downloadNow(context, item, false) },
                     onNeutral = { DownloadServiceInterface.impl?.downloadNow(context, item, true) })
             }
-            ButtonTypes.JUSTTTS -> {
+            ButtonTypes.TTS_NOW -> {
                 Logd("JUSTTTSButton", "onClick called")
                 type = ButtonTypes.PAUSE
                 ensureTTS()
@@ -440,7 +445,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     onConfirm = { doTTS(1) },
                     onNeutral = { doTTS(2) })
             }
-            ButtonTypes.PLAYLOCAL -> {
+            ButtonTypes.PLAY_LOCAL -> {
                 if (PlaybackService.playbackService?.isServiceReady() == true && InTheatre.isCurMedia(item)) {
                     mPlayer?.play()
                     sleepManager?.restartSleepTimer()
@@ -473,17 +478,20 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
         }
         when (type) {
             ButtonTypes.WEBSITE -> {}
-            ButtonTypes.PLAYLOCAL -> if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
-            ButtonTypes.PLAY, ButtonTypes.PLAYONCE, ButtonTypes.PLAYREPEAT -> {
+            ButtonTypes.PLAY_LOCAL -> if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
+            ButtonTypes.PLAY, ButtonTypes.PLAY_ONE, ButtonTypes.PLAY_REPEAT -> {
                 if (!item.downloaded) type = undownloadedType()
                 else if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
             }
-            ButtonTypes.STREAM, ButtonTypes.STREAMONCE, ButtonTypes.STREAMREPEAT -> if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
+            ButtonTypes.STREAM, ButtonTypes.STREAM_ONE, ButtonTypes.STREAM_REPEAT -> if (isCurrentlyPlaying(item)) type = ButtonTypes.PAUSE
             ButtonTypes.PAUSE -> {
                 type = when {
                     item.feed?.prefActionType != null -> ButtonTypes.valueOf(item.feed!!.prefActionType!!)
-                    item.feed?.isLocalFeed == true -> ButtonTypes.PLAYLOCAL
-                    item.downloaded -> ButtonTypes.PLAY
+                    item.feed?.isLocalFeed == true -> ButtonTypes.PLAY_LOCAL
+                    item.downloaded -> {
+                        if (item.feed?.prefActionType != null && item.feed!!.prefActionType!! in playActions.map { it.name }) ButtonTypes.valueOf(item.feed!!.prefActionType!!)
+                        else ButtonTypes.PLAY
+                    }
                     item.feed == null || item.feedId == null || item.feed?.type == Feed.FeedType.YOUTUBE.name || (prefStreamOverDownload && item.feed?.prefStreamOverDownload == true) -> ButtonTypes.STREAM
                     else -> ButtonTypes.DOWNLOAD
                 }
@@ -494,7 +502,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 //        Logd("ItemActionButton", "forItem: local feed: ${item.feed?.isLocalFeed} downloaded: ${item.downloaded} playing: ${isCurrentlyPlaying(item)}  ${item.title} ")
                 type = when {
                     isCurrentlyPlaying(item) -> ButtonTypes.PAUSE
-                    item.feed?.isLocalFeed == true -> ButtonTypes.PLAYLOCAL
+                    item.feed?.isLocalFeed == true -> ButtonTypes.PLAY_LOCAL
                     item.downloaded -> ButtonTypes.PLAY
                     else -> undownloadedType()
                 }
@@ -507,92 +515,125 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
     @Composable
     fun AltActionsDialog(context: Context, onDismiss: () -> Unit) {
         CommonPopupCard(onDismissRequest = onDismiss) {
-            Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Logd(TAG, "button label: $type")
                 if (type != ButtonTypes.TTS) {
-                    IconButton(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         type = ButtonTypes.TTS
                         onClick(context)
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech), contentDescription = "TTS") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.TTS.drawable), modifier = Modifier.size(24.dp), contentDescription = "TTS")
+                        Text(stringResource(ButtonTypes.TTS.labelRes))
+                    }
                 }
-                if (type != ButtonTypes.JUSTTTS) {
-                    IconButton(onClick = {
-                        type = ButtonTypes.JUSTTTS
+                if (type != ButtonTypes.TTS_NOW) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                        type = ButtonTypes.TTS_NOW
                         onClick(context)
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.text_to_speech_svgrepo_com), contentDescription = "JUSTTTS") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.TTS_NOW.drawable), modifier = Modifier.size(24.dp), contentDescription = "TTS now")
+                        Text(stringResource(ButtonTypes.TTS_NOW.labelRes))
+                    }
                 }
                 if (type != ButtonTypes.WEBSITE) {
-                    IconButton(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = EpisodeActionButton(item, ButtonTypes.WEBSITE)
                         btn.onClick(context)
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_web), contentDescription = "Web") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.WEBSITE.drawable), modifier = Modifier.size(24.dp), contentDescription = "Web")
+                        Text(stringResource(ButtonTypes.WEBSITE.labelRes))
+                    }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
-                    IconButton(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = EpisodeActionButton(item, ButtonTypes.DOWNLOAD)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_download), contentDescription = "Download") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.DOWNLOAD.drawable), modifier = Modifier.size(24.dp), contentDescription = "Download")
+                        Text(stringResource(ButtonTypes.DOWNLOAD.labelRes))
+                    }
                 }
                 if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
-                    IconButton(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = EpisodeActionButton(item, ButtonTypes.DELETE)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_delete), contentDescription = "Delete") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.DELETE.drawable), modifier = Modifier.size(24.dp), contentDescription = "Delete")
+                        Text(stringResource(ButtonTypes.DELETE.labelRes))
+                    }
                 }
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
-                    IconButton(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.PLAYREPEAT)
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.PLAY_REPEAT)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_autoplay_24), contentDescription = "PlayRepeat") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.PLAY_REPEAT.drawable), modifier = Modifier.size(24.dp), contentDescription = "Play repeat")
+                        Text(stringResource(ButtonTypes.PLAY_REPEAT.labelRes))
+                    }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
-                    IconButton(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = EpisodeActionButton(item, ButtonTypes.PLAY)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_play_24dp), contentDescription = "Play") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.PLAY.drawable), modifier = Modifier.size(24.dp), contentDescription = "Play")
+                        Text(stringResource(ButtonTypes.PLAY.labelRes))
+                    }
                 }
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
-                    IconButton(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.PLAYONCE)
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.PLAY_ONE)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_play_pause_24), contentDescription = "PlayOnce") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.PLAY_ONE.drawable), modifier = Modifier.size(24.dp), contentDescription = "Play one")
+                        Text(stringResource(ButtonTypes.PLAY_ONE.labelRes))
+                    }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
-                    IconButton(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.STREAMREPEAT)
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.STREAM_REPEAT)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_repeat_24), contentDescription = "StreamRepeat") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.STREAM_REPEAT.drawable), modifier = Modifier.size(24.dp), contentDescription = "Stream repeat")
+                        Text(stringResource(ButtonTypes.STREAM_REPEAT.labelRes))
+                    }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
-                    IconButton(onClick = {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
                         val btn = EpisodeActionButton(item, ButtonTypes.STREAM)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_stream), contentDescription = "Stream") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.STREAM.drawable), modifier = Modifier.size(24.dp), contentDescription = "Stream")
+                        Text(stringResource(ButtonTypes.STREAM.labelRes))
+                    }
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
-                    IconButton(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.STREAMONCE)
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
+                        val btn = EpisodeActionButton(item, ButtonTypes.STREAM_ONE)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.play_stream_svgrepo_com), contentDescription = "StreamOnce") }
+                    })) {
+                        Icon(imageVector = ImageVector.vectorResource(ButtonTypes.STREAM_ONE.drawable), modifier = Modifier.size(24.dp), contentDescription = "Stream one")
+                        Text(stringResource(ButtonTypes.STREAM_ONE.labelRes))
+                    }
                 }
             }
         }
@@ -609,22 +650,25 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
     }
 }
 
-enum class ButtonTypes(val label: Int, val drawable: Int) {
+val streamActions = listOf(ButtonTypes.STREAM, ButtonTypes.STREAM_REPEAT, ButtonTypes.STREAM_ONE)
+val playActions = listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_REPEAT, ButtonTypes.PLAY_ONE)
+
+enum class ButtonTypes(val labelRes: Int, val drawable: Int) {
     WEBSITE(R.string.visit_website_label, R.drawable.ic_web),
     CANCEL(R.string.cancel_download_label, R.drawable.ic_cancel),
     PLAY(R.string.play_label, R.drawable.ic_play_24dp),
     STREAM(R.string.stream_label, R.drawable.ic_stream),
-    PLAYONCE(R.string.play_once, R.drawable.outline_play_pause_24),
-    STREAMONCE(R.string.stream_once, R.drawable.play_stream_svgrepo_com),
+    PLAY_ONE(R.string.play_one, R.drawable.outline_play_pause_24),
+    STREAM_ONE(R.string.stream_one, R.drawable.play_stream_svgrepo_com),
 
-    PLAYREPEAT(R.string.play_repeat, R.drawable.outline_autoplay_24),
-    STREAMREPEAT(R.string.stream_repeat, R.drawable.outline_repeat_24),
+    PLAY_REPEAT(R.string.play_repeat, R.drawable.outline_autoplay_24),
+    STREAM_REPEAT(R.string.stream_repeat, R.drawable.outline_repeat_24),
 
     DELETE(R.string.delete_label, R.drawable.ic_delete),
     NULL(R.string.null_label, R.drawable.ic_questionmark),
     PAUSE(R.string.pause_label, R.drawable.ic_pause),
     DOWNLOAD(R.string.download_label, R.drawable.ic_download),
     TTS(R.string.TTS_label, R.drawable.text_to_speech),
-    JUSTTTS(R.string.just_TTS, R.drawable.text_to_speech_svgrepo_com),
-    PLAYLOCAL(R.string.play_label, R.drawable.ic_play_24dp)
+    TTS_NOW(R.string.TTS_now, R.drawable.text_to_speech_svgrepo_com),
+    PLAY_LOCAL(R.string.play_label, R.drawable.ic_play_24dp)
 }

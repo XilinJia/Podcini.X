@@ -299,7 +299,7 @@ fun StatisticsScreen() {
 
     if (vm.showTodayStats) {
         AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.showTodayStats = false },  confirmButton = {},
-            text = { EpisodeLazyColumn(LocalContext.current, vm.statsOfDay.episodes, showCoverImage = false, showActionButtons = false) },
+            text = { EpisodeLazyColumn(vm.statsOfDay.episodes, showCoverImage = false, showActionButtons = false) },
             dismissButton = { TextButton(onClick = { vm.showTodayStats = false }) { Text(stringResource(R.string.cancel_label)) } } )
     }
 
@@ -513,7 +513,7 @@ fun StatisticsScreen() {
         }
 
         if (episodes.isNotEmpty()) AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { episodes.clear() },  confirmButton = {},
-            text = { EpisodeLazyColumn(LocalContext.current, episodes, showCoverImage = false, showActionButtons = false) },
+            text = { EpisodeLazyColumn(episodes, showCoverImage = false, showActionButtons = false) },
             dismissButton = { TextButton(onClick = { episodes.clear() }) { Text(stringResource(R.string.cancel_label)) } } )
 
         if (vm.statisticsState >= 0 && vm.monthStats.isEmpty()) loadMongthStats()
@@ -860,7 +860,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
                     Text(stringResource(R.string.statistics_space_used), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                     Text(Formatter.formatShortFileSize(context, fStat?.item?.totalDownloadSize ?: 0), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(0.4f))
                 }
-                Box(modifier = Modifier.weight(1f)) { EpisodeLazyColumn(context, episodes, showCoverImage = false, showActionButtons = false) }
+                Box(modifier = Modifier.weight(1f)) { EpisodeLazyColumn(episodes, showCoverImage = false, showActionButtons = false) }
             }
         },
         confirmButton = { if (showOpenFeed) TextButton(onClick = {

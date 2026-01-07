@@ -1,0 +1,7 @@
+* amended actions buttons
+* amended handling of feed preferred action, if is one of Play, PlayOne, PlayRepeat, download is first ensured
+* fixed crash when opening episodes in onlineFeed screen
+* amended OnlineSearch screen
+* tuned scrolling mechanism of returning to episodes lists
+* set border colors for selectable buttons on most popups
+* multi-select UI is unified, and uses a popup in stead of floating items

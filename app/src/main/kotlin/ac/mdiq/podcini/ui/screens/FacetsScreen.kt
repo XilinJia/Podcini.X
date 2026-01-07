@@ -33,6 +33,7 @@ import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
+import ac.mdiq.podcini.ui.compose.FilterChipBorder
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.StatusRowMode
 import ac.mdiq.podcini.utils.Logd
@@ -101,7 +102,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.xilinjia.krdb.notifications.DeletedObject
 import io.github.xilinjia.krdb.notifications.InitialObject
-import io.github.xilinjia.krdb.notifications.InitialResults
 import io.github.xilinjia.krdb.notifications.PendingObject
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
@@ -115,7 +115,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.lang3.StringUtils
@@ -506,7 +505,7 @@ fun FacetsScreen() {
                             actionButtonToPass = if (facetsMode == QuickAccess.Downloaded) { it -> EpisodeActionButton(it, ButtonTypes.DELETE) } else null
                             buildFlow()
                             showChooseMode = false
-                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = FilterChipBorder(curIndex == index))
                     }
                 }
             }
@@ -581,9 +580,9 @@ fun FacetsScreen() {
                 (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + infoBarText + (if (progressing) " - ${context.getString(R.string.progressing_label)}" else "")
             ) }
             InforBar(swipeActions) { Text(info.value, style = MaterialTheme.typography.bodyMedium) }
-            EpisodeLazyColumn(context, episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButton_ = actionButtonToPass,
+            EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButton_ = actionButtonToPass,
                 actionButtonCB = { e, type ->
-                    if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM))
+                    if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
                         runOnIOScope { queueToVirtual(e, episodes, listIdentity, vm.sortOrder) }
                 })
         }

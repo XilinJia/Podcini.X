@@ -470,7 +470,7 @@ fun SearchScreen() {
                         navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(query, StandardCharsets.UTF_8.name())}")
                         return@OutlinedButton
                     }
-                    setOnlineSearchTerms(CombinedSearcher::class.java, query)
+                    setOnlineSearchTerms(query = query)
                     navController.navigate(Screens.OnlineSearch.name)
                 }) { Text(stringResource(R.string.search_online)) }
             }
@@ -489,9 +489,9 @@ fun SearchScreen() {
             when (selectedTabIndex.intValue) {
                 0 -> {
                     InforBar(swipeActions) { Text(infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
-                    EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions,
+                    EpisodeLazyColumn(episodes, swipeActions = swipeActions,
                         actionButtonCB = { e, type ->
-                            if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM))
+                            if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
                                 runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, EpisodeSortOrder.DATE_DESC) }
                         })
                 }

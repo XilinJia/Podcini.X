@@ -512,7 +512,7 @@ class MainActivity : BaseActivity() {
                 if (feedurl != null) setIntentScreen("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feedurl, StandardCharsets.UTF_8.name())}&shared=${isShared}")
             }
             intent.hasExtra(Extras.search_string.name) -> {
-                setOnlineSearchTerms(CombinedSearcher::class.java, intent.getStringExtra(Extras.search_string.name))
+                setOnlineSearchTerms(query = intent.getStringExtra(Extras.search_string.name))
                 setIntentScreen(Screens.OnlineSearch.name)
             }
             intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> isBSExpanded = true

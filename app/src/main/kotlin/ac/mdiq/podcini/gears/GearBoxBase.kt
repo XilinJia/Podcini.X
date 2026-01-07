@@ -55,8 +55,9 @@ open class GearBoxBase {
     @Composable
     open fun PlayerDetailedGearPanel(curItem: Episode, reset: Boolean, cb: (Boolean)->Unit) {}
 
-    @Composable
-    open fun GearSearchText() {}
+    open fun gearProviderRes(): Int = 0
+
+    open fun gearSearchProvider(): Class<out PodcastSearcher?> = CombinedSearcher::class.java
 
     open fun isFeedAutoDownloadable(urlString: String): Boolean = true
 

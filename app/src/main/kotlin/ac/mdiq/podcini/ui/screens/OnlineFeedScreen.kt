@@ -26,7 +26,6 @@ import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
@@ -390,7 +389,6 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     Logd(TAG, "feedUrl: ${vm.feedUrl}")
-//                    monitorFeedList(scope)
                     vm.feedBuilder = gearbox.formFeedBuilder(vm.feedUrl, vm.feedSource) { message, details ->
                         vm.errorMessage = message ?: "No message"
                         vm.errorDetails = details
@@ -431,7 +429,6 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
         onDispose {
             vm.feeds = null
             vm.episodes.clear()
-//            cancelMonitorFeeds()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -476,7 +473,11 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     }
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
+        if (vm.showEpisodes) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
+            InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
+            EpisodeLazyColumn(vm.episodes.toList(), swipeActions = swipeActions,
+                actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
+        } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
             ConstraintLayout(modifier = Modifier.fillMaxWidth().height(100.dp).background(MaterialTheme.colorScheme.surface)) {
                 val (coverImage, taColumn, buttons) = createRefs()
                 AsyncImage(model = vm.feed?.imageUrl ?: "", contentDescription = "coverImage", error = painterResource(R.mipmap.ic_launcher),
@@ -532,82 +533,75 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     Spacer(modifier = Modifier.weight(0.2f))
                 }
             }
-            if (vm.showEpisodes) {
-                InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
-                EpisodeLazyColumn(context as MainActivity, vm.episodes.toList(), swipeActions = swipeActions,
-                    actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
-            } else {
-                Column(Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))) {
+            Column(Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))) {
 //                    TODO: alternate_urls_spinner
-                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(stringResource(R.string.limit_episodes_to), modifier = Modifier.weight(0.5f))
-                        NumberEditor(vm.limitEpisodesCount, label = "0 = unlimited", nz = false, instant = true, modifier = Modifier.weight(0.5f)) {
-                            Logd(TAG, "limitEpisodesCount: $it")
-                            vm.limitEpisodesCount = it
-                        }
-                    }
-                    if (gearbox.isFeedAutoDownloadable(vm.feedUrl) && isAutodownloadEnabled) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
-                        Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))
+                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.limit_episodes_to), modifier = Modifier.weight(0.5f))
+                    NumberEditor(vm.limitEpisodesCount, label = "0 = unlimited", nz = false, instant = true, modifier = Modifier.weight(0.5f)) {
+                        Logd(TAG, "limitEpisodesCount: $it")
+                        vm.limitEpisodesCount = it
                     }
                 }
-                var numEpisodes by remember { mutableIntStateOf(vm.feed?.episodes?.size ?: 0) }
-                LaunchedEffect(Unit) {
-                    while (true) {
-                        delay(1000)
-                        numEpisodes = vm.feed?.episodes?.size ?: 0
+                if (gearbox.isFeedAutoDownloadable(vm.feedUrl) && isAutodownloadEnabled) Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(checked = vm.autoDownloadChecked, onCheckedChange = { vm.autoDownloadChecked = it })
+                    Text(text = stringResource(R.string.auto_download_label), style = MaterialTheme.typography.bodyMedium.merge(), color = textColor, modifier = Modifier.padding(start = 16.dp))
+                }
+            }
+            var numEpisodes by remember { mutableIntStateOf(vm.feed?.episodes?.size ?: 0) }
+            LaunchedEffect(Unit) {
+                while (true) {
+                    delay(1000)
+                    numEpisodes = vm.feed?.episodes?.size ?: 0
+                }
+            }
+            Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
+                Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
+                Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
+                val sLog = remember { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
+                if (sLog != null) {
+                    val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
+                    val context = LocalContext.current
+                    val cancelDate = remember { formatAbbrev(context, Date(sLog.cancelDate)) }
+                    val ratingRes = remember { fromCode(sLog.rating).res }
+                    if (commentTextState.text.isNotEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
+                            Text(stringResource(R.string.my_opinion_label), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom)
+                            Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null, modifier = Modifier.padding(start = 5.dp))
+                        }
+                        Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
+                        Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
                     }
                 }
-                Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
-                    Text("$numEpisodes episodes", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
-                    Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                    Text(HtmlToPlainText.getPlainText(vm.feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
-                    val sLog = remember { feedLogsMap!![vm.feed?.downloadUrl ?: ""] ?: feedLogsMap!![vm.feed?.title ?: ""] }
-                    if (sLog != null) {
-                        val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
-                        val context = LocalContext.current
-                        val cancelDate = remember { formatAbbrev(context, Date(sLog.cancelDate)) }
-                        val ratingRes = remember { fromCode(sLog.rating).res }
-                        if (commentTextState.text.isNotEmpty()) {
-                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
-                                Text(stringResource(R.string.my_opinion_label), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom)
-                                Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null, modifier = Modifier.padding(start = 5.dp))
-                            }
-                            Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                            Text(stringResource(R.string.cancelled_on_label) + ": " + cancelDate, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))
-                        }
-                    }
-                    if (!vm.feed?.episodes.isNullOrEmpty()) {
-                        Text(stringResource(R.string.recent_episode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                        Text(vm.feed?.episodes[0]?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                    }
+                if (!vm.feed?.episodes.isNullOrEmpty()) {
+                    Text(stringResource(R.string.recent_episode), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                    Text(vm.feed?.episodes[0]?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                }
 
-                    Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 10.dp).clickable(onClick = {
-                            setOnlineSearchTerms(CombinedSearcher::class.java, "${vm.feed?.author} podcasts")
-                            navController.navigate(Screens.OnlineSearch.name)
-
+                Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 10.dp).clickable(onClick = {
+                        setOnlineSearchTerms(query = "${vm.feed?.author} podcasts")
+                        navController.navigate(Screens.OnlineSearch.name)
+                    }))
+                LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    items(vm.relatedFeeds.size) { index ->
+                        val feed = remember(index) { vm.relatedFeeds[index] }
+                        val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
+                        AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable(onClick = {
+                            navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}&source=${feed.source}")
                         }))
-                    LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        items(vm.relatedFeeds.size) { index ->
-                            val feed = remember(index) { vm.relatedFeeds[index] }
-                            val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                            AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable(onClick = {
-                                navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}&source=${feed.source}")
-                            }))
-                        }
                     }
-                    val info by remember(vm.feed) {
-                        derivedStateOf {
-                            if (vm.feed == null) return@derivedStateOf ""
-                            val languageString = vm.feed!!.langSet.joinToString(" ")
-                            "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
-                        }
-                    }
-                    Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
-                    Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
-                    Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
                 }
+                val info by remember(vm.feed) {
+                    derivedStateOf {
+                        if (vm.feed == null) return@derivedStateOf ""
+                        val languageString = vm.feed!!.langSet.joinToString(" ")
+                        "$languageString ${vm.feed!!.type.orEmpty()} ${vm.feed!!.lastUpdate.orEmpty()}"
+                    }
+                }
+                Text(info, color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+                Text(vm.feed?.link ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
+                Text(vm.feed?.downloadUrl ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 5.dp, bottom = 4.dp))
             }
         }
         if (vm.showProgress) Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(innerPadding).fillMaxSize()) {

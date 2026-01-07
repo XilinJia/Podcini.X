@@ -590,7 +590,7 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
 
     AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(5.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
         text = {
-            EpisodeLazyColumn(LocalContext.current, episode.related.toList(), layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
+            EpisodeLazyColumn(episode.related.toList(), layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
                 actionButton_ = { EpisodeActionButton(it) },
                 actionButtonCB = {e1, _ ->
                     runOnIOScope {
@@ -691,7 +691,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
             var toQueue by remember { mutableStateOf(actQueue) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                 for (q in queuesLive) {
-                    FilterChip(label = { Text(q.name) }, onClick = { toQueue = q }, selected = toQueue == q, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary) )
+                    FilterChip(label = { Text(q.name) }, onClick = { toQueue = q }, selected = toQueue == q, border = FilterChipBorder(toQueue == q) )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {

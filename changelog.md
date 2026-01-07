@@ -1,3 +1,17 @@
+# 10.4.0
+
+* amended actions buttons
+	* rename some actions: once -> one, JustTTS -> TTS now
+	* made the long-press popup vertical with icons and labels
+* amended handling of feed preferred action, if is one of Play, PlayOne, PlayRepeat, download is first ensured
+* fixed crash when opening episodes in onlineFeed screen
+* amended OnlineSearch screen
+	* past searches are preserved on return
+	* after importing local feeds, a toast is shown
+* tuned scrolling mechanism of returning to episodes lists
+* set border colors for selectable buttons on most popups 
+* multi-select UI is unified, and uses a popup in stead of floating items
+
 # 10.3.2
 
 * in FeedDetails screen

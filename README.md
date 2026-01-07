@@ -20,7 +20,6 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 
 ### Note:
 
-#### Translation service is moved to Crowdin, see link down below.
 #### For Podcini to show up on car's HUD with Android Auto, please read AnroidAuto.md for instructions.
 #### If you need to cast to an external speaker or screen, you should install the "play" apk, not the "free" apk, that's about the difference between the two.
 

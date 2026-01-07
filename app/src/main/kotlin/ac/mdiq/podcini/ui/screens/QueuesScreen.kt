@@ -35,7 +35,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.AssociatedFeedsGrid
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
@@ -44,6 +43,7 @@ import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
+import ac.mdiq.podcini.ui.compose.FilterChipBorder
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
@@ -88,6 +88,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -401,7 +402,7 @@ fun QueuesScreen(id: Long = -1L) {
                             upsertBlk(curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
                             setCurIndex(index)
                             showChooseQueue = false
-                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = FilterChipBorder(curIndex == index))
                     }
                 }
             }
@@ -663,13 +664,13 @@ fun QueuesScreen(id: Long = -1L) {
                 if (queuesMode == QueuesScreenMode.Bin) {
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                         InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
-                        EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions)
+                        EpisodeLazyColumn(episodes, swipeActions = swipeActions)
                     }
                 } else {
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                         InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
                         val dragDropEnabled by remember(curQueue.id, curQueue.isLocked) { mutableStateOf(!curQueue.isLocked) }
-                        EpisodeLazyColumn(context as MainActivity, episodes, swipeActions = swipeActions,
+                        EpisodeLazyColumn(episodes, swipeActions = swipeActions,
                             lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                             refreshCB = {
                                 commonConfirm = CommonConfirmAttrib(
@@ -687,7 +688,7 @@ fun QueuesScreen(id: Long = -1L) {
                             },
                             isDraggable = dragDropEnabled, dragCB = { iFrom, iTo -> runOnIOScope { moveItemInQueue(iFrom, iTo) } },
                             actionButtonCB = { e, type ->
-                                if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM))
+                                if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
                                     if (actQueue.id != curQueue.id) {
                                         val q = queuesLive.find { it.id == curQueue.id }
                                         if (q != null) actQueue = q

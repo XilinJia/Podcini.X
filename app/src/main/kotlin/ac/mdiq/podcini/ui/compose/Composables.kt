@@ -100,12 +100,27 @@ fun CommonDialogSurface(onDismissRequest: () -> Unit, content: @Composable (() -
 }
 
 @Composable
-fun CommonPopupCard(onDismissRequest: () -> Unit, content: @Composable (() -> Unit)) {
-    Popup(onDismissRequest = { onDismissRequest() }, properties = PopupProperties(focusable = true)) {
+fun CommonPopupCard(onDismissRequest: () -> Unit, alignment: Alignment = Alignment.TopCenter, content: @Composable (() -> Unit)) {
+    Popup(onDismissRequest = { onDismissRequest() }, alignment = alignment, properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true, clippingEnabled = true)) {
         Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             content()
         }
     }
+}
+
+
+@Composable
+fun FilterChipBorder(selected: Boolean): BorderStroke {
+    val buttonColor = MaterialTheme.colorScheme.tertiary
+    val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
+    return FilterChipDefaults.filterChipBorder(
+        enabled = true,
+        selected = selected,
+        borderColor = buttonColor,
+        selectedBorderColor = buttonAltColor,
+        borderWidth = 1.dp,
+        selectedBorderWidth = 2.dp
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

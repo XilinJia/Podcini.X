@@ -515,7 +515,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             if (feed?.isSynthetic() == false) {
                 Text(stringResource(R.string.feeds_related_to_author), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 10.dp).clickable(onClick = {
-                        setOnlineSearchTerms(CombinedSearcher::class.java, "${feed?.author} podcasts")
+                        setOnlineSearchTerms(query = "${feed?.author} podcasts")
                         navController.navigate(Screens.OnlineSearch.name)
                     }))
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(Date(feed?.lastFullUpdateTime?:0L))}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
@@ -652,7 +652,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         Text(listInfoText, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
-                EpisodeLazyColumn(context, episodes, feed = feed, layoutMode = layoutModeIndex, swipeActions = swipeActions,
+                EpisodeLazyColumn(episodes, feed = feed, layoutMode = layoutModeIndex, swipeActions = swipeActions,
                     lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                     refreshCB = {
                         if (feed != null) runOnceOrAsk(context, feeds = listOf(feed!!))
@@ -661,7 +661,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     selectModeCB = { showHeader = !it },
                     actionButtonCB = { e, type ->
                         Logd(TAG, "actionButtonCB type: $type ${e.feed?.id} ${feed?.id}")
-                        if (e.feed?.id == feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAYLOCAL, ButtonTypes.STREAM)) {
+                        if (e.feed?.id == feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) {
                             runOnIOScope {
                                 upsert(feed!!) { it.lastPlayed = Date().time }
                                 queueToVirtual(e, episodes, listIdentity, feed!!.episodeSortOrder, true)

@@ -34,6 +34,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
+import ac.mdiq.podcini.ui.compose.FilterChipBorder
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
@@ -91,6 +92,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -608,7 +610,7 @@ fun SubscriptionsScreen() {
                 if (selected == custom) {
                     Logd(TAG, "volumes: ${volumes.size}")
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        for (index in volumes.indices) FilterChip(onClick = { parent = volumes[index] }, label = { Text(volumes[index].name) }, selected = parent == volumes[index])
+                        for (index in volumes.indices) FilterChip(onClick = { parent = volumes[index] }, label = { Text(volumes[index].name) }, selected = parent == volumes[index], border = FilterChipBorder(parent == volumes[index]))
                     }
                 }
                 Row {
@@ -880,20 +882,6 @@ fun SubscriptionsScreen() {
         }
         if (volumeToOperate != null) VolumeOptionsMenu { volumeToOperate = null}
 
-        @Composable
-        fun FeedsSpeedDial(selected: SnapshotStateList<Feed>, modifier: Modifier = Modifier) {
-            val bgColor = MaterialTheme.colorScheme.tertiaryContainer
-            val fgColor = remember { complementaryColorOf(bgColor) }
-            Column(modifier = modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.Bottom) {
-                if (isFeedsOptionsExpanded) feedsOptionsMap.values.forEachIndexed { _, button ->
-                    FloatingActionButton(containerColor = bgColor, contentColor = fgColor,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp), onClick = {}) { button() }
-                }
-                FloatingActionButton(containerColor = bgColor, contentColor = fgColor,
-                    onClick = { isFeedsOptionsExpanded = !isFeedsOptionsExpanded }) { Icon(Icons.Filled.Edit, "Edit") }
-            }
-        }
-
         PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
             refreshing = true
             commonConfirm = CommonConfirmAttrib(
@@ -1011,7 +999,8 @@ fun SubscriptionsScreen() {
                                 listState.scrollToItem(safeIndex, safeOffset)
                                 currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
                             }
-                        } else scope.launch { listState.scrollToItem(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
+                        }
+//                        else scope.launch { listState.scrollToItem(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
                         restored = true
                     }
                 }
@@ -1096,39 +1085,46 @@ fun SubscriptionsScreen() {
                 }
             }
             if (selectMode) {
-                Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.tertiaryContainer),
-                    horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null,
-                        modifier = Modifier.width(35.dp).height(35.dp).padding(end = 10.dp).clickable(onClick = {
-                            feedsSelected.clear()
-                            for (i in 0..longPressIndex) feedsSelected.add(feeds[i])
-                            selectedSize = feedsSelected.size
-                            Logd(TAG, "selectedIds: ${feedsSelected.size}")
-                        }))
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_downward_24), tint = buttonColor, contentDescription = null,
-                        modifier = Modifier.width(35.dp).height(35.dp).padding(end = 10.dp).clickable(onClick = {
-                            feedsSelected.clear()
-                            for (i in longPressIndex..<feeds.size) feedsSelected.add(feeds[i])
-                            selectedSize = feedsSelected.size
-                            Logd(TAG, "selectedIds: ${feedsSelected.size}")
-                        }))
+                Row(modifier = Modifier.align(Alignment.TopEnd).padding(end = 20.dp).background(MaterialTheme.colorScheme.tertiaryContainer),
+                    horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
+                        feedsSelected.clear()
+                        for (i in 0..longPressIndex) feedsSelected.add(feeds[i])
+                        selectedSize = feedsSelected.size
+                        Logd(TAG, "selectedIds: ${feedsSelected.size}")
+                    }))
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_downward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
+                        feedsSelected.clear()
+                        for (i in longPressIndex..<feeds.size) feedsSelected.add(feeds[i])
+                        selectedSize = feedsSelected.size
+                        Logd(TAG, "selectedIds: ${feedsSelected.size}")
+                    }))
                     var selectAllRes by remember { mutableIntStateOf(R.drawable.ic_select_all) }
-                    Icon(imageVector = ImageVector.vectorResource(selectAllRes), tint = buttonColor, contentDescription = null,
-                        modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
-                            if (selectedSize != feeds.size) {
-                                feedsSelected.clear()
-                                feedsSelected.addAll(feeds)
-                                selectAllRes = R.drawable.ic_select_none
-                            } else {
-                                feedsSelected.clear()
-                                longPressIndex = -1
-                                selectAllRes = R.drawable.ic_select_all
-                            }
-                            selectedSize = feedsSelected.size
-                            Logd(TAG, "selectedIds: ${feedsSelected.size}")
-                        }))
+                    Icon(imageVector = ImageVector.vectorResource(selectAllRes), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
+                        if (selectedSize != feeds.size) {
+                            feedsSelected.clear()
+                            feedsSelected.addAll(feeds)
+                            selectAllRes = R.drawable.ic_select_none
+                        } else {
+                            feedsSelected.clear()
+                            longPressIndex = -1
+                            selectAllRes = R.drawable.ic_select_all
+                        }
+                        selectedSize = feedsSelected.size
+                        Logd(TAG, "selectedIds: ${feedsSelected.size}")
+                    }))
+                    @Composable
+                    fun FeedsSpeedDial(selected: SnapshotStateList<Feed>, modifier: Modifier = Modifier) {
+                        val bgColor = MaterialTheme.colorScheme.tertiaryContainer
+                        val fgColor = remember { complementaryColorOf(bgColor) }
+                        if (isFeedsOptionsExpanded) CommonPopupCard(onDismissRequest = { isFeedsOptionsExpanded = false }) {
+                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { feedsOptionsMap.entries.forEachIndexed { _, entry -> entry.value() } }
+                        }
+                        FloatingActionButton(containerColor = bgColor, contentColor = fgColor,
+                            onClick = { isFeedsOptionsExpanded = !isFeedsOptionsExpanded }) { Icon(Icons.Filled.Menu, "Menu") }
+                    }
+                    FeedsSpeedDial(feedsSelected.toMutableStateList(), modifier = Modifier.padding(start = 16.dp))
                 }
-                FeedsSpeedDial(feedsSelected.toMutableStateList(), modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 16.dp, start = 16.dp))
             }
         }
     }

@@ -22,11 +22,14 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.FeedAutoDownloadFilter
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.actions.ButtonTypes
+import ac.mdiq.podcini.ui.actions.playActions
+import ac.mdiq.podcini.ui.actions.streamActions
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
+import ac.mdiq.podcini.ui.compose.FilterChipBorder
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
@@ -244,7 +247,7 @@ fun FeedsSettingsScreen() {
             //                    parent volume
             Column {
                 val none = "None"
-                var curVolumeName by remember { mutableStateOf(if (feedToSet.volumeId == null || feedToSet.volumeId == -1L) none else volumes.find { it.id == feedToSet.volumeId }?.name ?: none ) }
+                var curVolumeName by remember { mutableStateOf(if (feedToSet.volumeId == -1L) none else volumes.find { it.id == feedToSet.volumeId }?.name ?: none ) }
                 @Composable
                 fun SetVolume(selectedOption: String, onDismissRequest: () -> Unit) {
                     CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
@@ -681,8 +684,7 @@ fun FeedsSettingsScreen() {
                     }
                 }
                 //                    preferred action
-                val streamActions = remember { listOf(ButtonTypes.STREAM.name, ButtonTypes.STREAMREPEAT.name, ButtonTypes.STREAMONCE.name,) }
-                val actions = remember { listOf("Auto", ButtonTypes.PLAY.name, ButtonTypes.PLAYLOCAL.name, ButtonTypes.PLAYREPEAT.name, ButtonTypes.PLAYONCE.name) + streamActions + listOf(ButtonTypes.JUSTTTS.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
+                val actions = remember { listOf("Auto", ButtonTypes.PLAY_LOCAL.name) + playActions.map { it.name } + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
                 val curAction by remember { mutableStateOf(feedToSet.prefActionType ?: "Auto") }
                 var showChooseAction by remember { mutableStateOf(false) }
                 if (showChooseAction) Popup(onDismissRequest = { showChooseAction = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
@@ -692,7 +694,7 @@ fun FeedsSettingsScreen() {
                                 FilterChip(onClick = {
                                     if (action == "Auto") runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { it.prefActionType = null } } } }
                                     else {
-                                        preferStreaming = action in streamActions
+                                        if (action in streamActions.map { it.name }) preferStreaming = true else if (action in playActions.map { it.name }) preferStreaming = false
                                         if (preferStreaming) {
                                             prefStreamOverDownload = true
                                             autoDownloadChecked = false
@@ -710,7 +712,7 @@ fun FeedsSettingsScreen() {
                                         }
                                     }
                                     showChooseAction = false
-                                }, label = { Text(action) }, selected = curAction == action, border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))
+                                }, label = { Text(action) }, selected = curAction == action, border = FilterChipBorder(curAction == action))
                             }
                         }
                     }
@@ -856,7 +858,7 @@ fun FeedsSettingsScreen() {
                             confirmButton = {
                                 TextButton(onClick = {
                                     runOnIOScope {
-                                        feedToSet = upsert(feedToSet!!) { it.downloadUrl = url }
+                                        feedToSet = upsert(feedToSet) { it.downloadUrl = url }
                                         gearbox.feedUpdater(listOf(feedToSet)).startRefresh(context)
                                     }
                                     onDismiss()

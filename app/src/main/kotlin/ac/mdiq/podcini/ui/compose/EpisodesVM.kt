@@ -39,7 +39,6 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.stripDateTimeLines
-import android.content.Context
 import android.text.format.Formatter
 import android.util.TypedValue
 import androidx.compose.animation.core.Animatable
@@ -71,11 +70,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
@@ -165,7 +162,7 @@ enum class StatusRowMode {
 }
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
-fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = null,
+fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null,
                       lazyListState: LazyListState = rememberLazyListState(), scrollToOnStart: Int = -1,
                       layoutMode: Int = LayoutMode.Normal.ordinal,
                       showCoverImage: Boolean = true, forceFeedImage: Boolean = false,
@@ -256,164 +253,6 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
 
     OpenDialogs()
 
-    @Composable
-    fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
-        var isExpanded by remember { mutableStateOf(false) }
-        val bgColor = MaterialTheme.colorScheme.tertiaryContainer
-        val fgColor = remember { complementaryColorOf(bgColor) }
-        fun onSelected() {
-            isExpanded = false
-            selectMode = false
-            selectModeCB?.invoke(selectMode)
-        }
-        val options = mutableListOf<@Composable () -> Unit>(
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                showPlayStateDialog = true
-                onSelected()
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), contentDescription = "Set played state")
-                Text(stringResource(id = R.string.set_play_state_label)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                showChooseRatingDialog = true
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), contentDescription = "Set rating")
-                Text(stringResource(id = R.string.set_rating_label)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                showEditTagsDialog = true
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_label_24), contentDescription = "Edit tags")
-                Text(stringResource(id = R.string.edit_tags)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                showAddCommentDialog = true
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_comment_24), contentDescription = "Add comment")
-                Text(stringResource(id = R.string.add_opinion_label)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                fun download(now: Boolean) {
-                    for (e in selected) if (e.feed != null && !e.feed!!.isLocalFeed) DownloadServiceInterface.impl?.downloadNow(activity, e, now)
-                }
-                if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) download(true)
-                else {
-                    commonConfirm = CommonConfirmAttrib(
-                        title = context.getString(R.string.confirm_mobile_download_dialog_title),
-                        message = context.getString(if (getApp().networkMonitor.isNetworkRestricted && getApp().networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
-                        confirmRes = R.string.confirm_mobile_download_dialog_download_later,
-                        cancelRes = R.string.cancel_label,
-                        neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
-                        onConfirm = { download(false) },
-                        onNeutral = { download(true) })
-                }
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), contentDescription = "Download")
-                Text(stringResource(id = R.string.download_label)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                runOnIOScope { selected.forEach { addToAssQueue(listOf(it)) } }
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to associated or active queue")
-                Text(stringResource(id = R.string.add_to_associated_queue)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                runOnIOScope { addToQueue(selected, actQueue) }
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to active queue")
-                Text(stringResource(id = R.string.add_to_active_queue)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                showPutToQueueDialog = true
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to queue...")
-                Text(stringResource(id = R.string.add_to_queue)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                runOnIOScope { for (e in selected) smartRemoveFromAllQueues(e) }
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), contentDescription = "Remove from active queue")
-                Text(stringResource(id = R.string.remove_from_all_queues)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                runOnIOScope {
-                    realm.write {
-                        val selected_ = query(Episode::class, "id IN $0", selected.map { it.id }.toList()).find()
-                        for (e in selected_) {
-                            for (e1 in selected_) {
-                                if (e.id == e1.id) continue
-                                e.related.add(e1)
-                            }
-                        }
-                    }
-                }
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Set related")
-                Text(stringResource(id = R.string.set_related)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                runOnIOScope {
-                    realm.write {
-                        for (e_ in selected) {
-                            val e = findLatest(e_)
-                            if (e == null || (!e.downloaded && e.feed?.isLocalFeed != true)) continue
-                            val almostEnded = e.hasAlmostEnded()
-                            if (almostEnded) {
-                                if (e.playState < EpisodeState.PLAYED.code) e.setPlayState(EpisodeState.PLAYED)
-                                e.playbackCompletionDate = Date()
-                            }
-                        }
-                    }
-                    deleteEpisodesWarnLocalRepeat(selected)
-                }
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Delete media")
-                Text(stringResource(id = R.string.delete_episode_label)) } },
-            { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                onSelected()
-                showShelveDialog = true
-            }, verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_shelves_24), contentDescription = "Shelve")
-                Text(stringResource(id = R.string.shelve_label)) } },
-        )
-        if (selected.isNotEmpty() && selected[0].isRemote.value)
-            options.add {
-                Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    onSelected()
-                    CoroutineScope(Dispatchers.IO).launch {
-                        ytUrls.clear()
-                        for (e in selected) {
-                            try {
-                                val url = URL(e.downloadUrl ?: "")
-                                if (gearbox.isGearUrl(url)) ytUrls.add(e.downloadUrl!!)
-                                else addRemoteToMiscSyndicate(e)
-                            } catch (ex: MalformedURLException) { Loge(TAG, "episode downloadUrl not valid: ${e.title} : ${e.downloadUrl}") }
-                        }
-                        withContext(Dispatchers.Main) { showConfirmYoutubeDialog.value = ytUrls.isNotEmpty() }
-                    }
-                }, verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.AddCircle, contentDescription = "Reserve episodes")
-                    Text(stringResource(id = R.string.reserve_episodes_label))
-                }
-            }
-        if (feed != null) {
-            options.add {
-                Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                    onSelected()
-                    showEraseDialog = true
-                }, verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_delete_forever_24), contentDescription = "Erase episodes")
-                    Text(stringResource(id = R.string.erase_episodes_label))
-                }
-            }
-        }
-
-        Column(modifier = modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.Bottom) {
-            if (isExpanded) options.forEachIndexed { _, button -> FloatingActionButton(containerColor = bgColor, contentColor = fgColor, modifier = Modifier.padding(start = 4.dp, bottom = 6.dp).height(40.dp),onClick = {}) { button() } }
-            FloatingActionButton(containerColor = bgColor, contentColor = fgColor, onClick = { isExpanded = !isExpanded }) { Icon(Icons.Filled.Edit, "Edit") }
-        }
-    }
-
     var refreshing by remember { mutableStateOf(false)}
     PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
         refreshing = true
@@ -451,7 +290,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
             if (episodes.size > 5 && lifecycleState >= Lifecycle.State.RESUMED) {
                 when {
                     scrollToOnStart < 0 -> {
-                        scope.launch { lazyListState.scrollToItem(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset) }
+//                        scope.launch { lazyListState.scrollToItem(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset) }
                         Logd(TAG, "Screen on, triggered scroll for recomposition")
                     }
                     scrollToOnStart >= 0 -> {
@@ -665,7 +504,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                         onLongPress = { showAltActionsDialog = true },
                                         onTap = {
                                             val actType = actionButton.type
-                                            actionButton.onClick(activity)
+                                            actionButton.onClick(context)
                                             actionButtonCB?.invoke(episode, actType)
                                         }) }) {
                                     val dlStats by remember { derivedStateOf { downloadStates[episode.downloadUrl] } }
@@ -681,7 +520,7 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                                     Icon(imageVector = ImageVector.vectorResource(actionButton.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.size(33.dp))
                                     if (actionButton.processing > -1) CircularProgressIndicator(progress = { 0.01f * actionButton.processing }, strokeWidth = 4.dp, color = textColor, modifier = Modifier.size(37.dp).offset(y = 4.dp))
                                 }
-                                if (showAltActionsDialog) actionButton.AltActionsDialog(activity, onDismiss = { showAltActionsDialog = false })
+                                if (showAltActionsDialog) actionButton.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
                             }
                         }
                     }
@@ -761,8 +600,8 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
             }
         }
         if (selectMode) {
-            Row(modifier = Modifier.align(Alignment.TopEnd).width(150.dp).height(45.dp).background(MaterialTheme.colorScheme.tertiaryContainer),
-                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.align(Alignment.TopEnd).background(MaterialTheme.colorScheme.tertiaryContainer),
+                horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(end = 10.dp)
                     .clickable(onClick = {
                         selected.clear()
@@ -798,8 +637,164 @@ fun EpisodeLazyColumn(activity: Context, episodes: List<Episode>, feed: Feed? = 
                         selectedSize = selected.size
                         Logd(TAG, "selectedIds: ${selected.size}")
                     }))
+                @Composable
+                fun EpisodeSpeedDial(modifier: Modifier = Modifier) {
+                    var isExpanded by remember { mutableStateOf(false) }
+                    val bgColor = MaterialTheme.colorScheme.tertiaryContainer
+                    val fgColor = remember { complementaryColorOf(bgColor) }
+                    fun onSelected() {
+                        isExpanded = false
+                        selectMode = false
+                        selectModeCB?.invoke(selectMode)
+                    }
+                    val options = mutableListOf<@Composable () -> Unit>(
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            showPlayStateDialog = true
+                            onSelected()
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_mark_played), contentDescription = "Set played state")
+                            Text(stringResource(id = R.string.set_play_state_label)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            showChooseRatingDialog = true
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_star), contentDescription = "Set rating")
+                            Text(stringResource(id = R.string.set_rating_label)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            showEditTagsDialog = true
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_label_24), contentDescription = "Edit tags")
+                            Text(stringResource(id = R.string.edit_tags)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            showAddCommentDialog = true
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_comment_24), contentDescription = "Add comment")
+                            Text(stringResource(id = R.string.add_opinion_label)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            fun download(now: Boolean) {
+                                for (e in selected) if (e.feed != null && !e.feed!!.isLocalFeed) DownloadServiceInterface.impl?.downloadNow(context, e, now)
+                            }
+                            if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) download(true)
+                            else {
+                                commonConfirm = CommonConfirmAttrib(
+                                    title = context.getString(R.string.confirm_mobile_download_dialog_title),
+                                    message = context.getString(if (getApp().networkMonitor.isNetworkRestricted && getApp().networkMonitor.isVpnOverWifi) R.string.confirm_mobile_download_dialog_message_vpn else R.string.confirm_mobile_download_dialog_message),
+                                    confirmRes = R.string.confirm_mobile_download_dialog_download_later,
+                                    cancelRes = R.string.cancel_label,
+                                    neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
+                                    onConfirm = { download(false) },
+                                    onNeutral = { download(true) })
+                            }
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_download), contentDescription = "Download")
+                            Text(stringResource(id = R.string.download_label)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            runOnIOScope { selected.forEach { addToAssQueue(listOf(it)) } }
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to associated or active queue")
+                            Text(stringResource(id = R.string.add_to_associated_queue)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            runOnIOScope { addToQueue(selected, actQueue) }
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to active queue")
+                            Text(stringResource(id = R.string.add_to_active_queue)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            showPutToQueueDialog = true
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_play), contentDescription = "Add to queue...")
+                            Text(stringResource(id = R.string.add_to_queue)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            runOnIOScope { for (e in selected) smartRemoveFromAllQueues(e) }
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_playlist_remove), contentDescription = "Remove from active queue")
+                            Text(stringResource(id = R.string.remove_from_all_queues)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            runOnIOScope {
+                                realm.write {
+                                    val selected_ = query(Episode::class, "id IN $0", selected.map { it.id }.toList()).find()
+                                    for (e in selected_) {
+                                        for (e1 in selected_) {
+                                            if (e.id == e1.id) continue
+                                            e.related.add(e1)
+                                        }
+                                    }
+                                }
+                            }
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Set related")
+                            Text(stringResource(id = R.string.set_related)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            runOnIOScope {
+                                realm.write {
+                                    for (e_ in selected) {
+                                        val e = findLatest(e_)
+                                        if (e == null || (!e.downloaded && e.feed?.isLocalFeed != true)) continue
+                                        val almostEnded = e.hasAlmostEnded()
+                                        if (almostEnded) {
+                                            if (e.playState < EpisodeState.PLAYED.code) e.setPlayState(EpisodeState.PLAYED)
+                                            e.playbackCompletionDate = Date()
+                                        }
+                                    }
+                                }
+                                deleteEpisodesWarnLocalRepeat(selected)
+                            }
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "Delete media")
+                            Text(stringResource(id = R.string.delete_episode_label)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            showShelveDialog = true
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_shelves_24), contentDescription = "Shelve")
+                            Text(stringResource(id = R.string.shelve_label)) } },
+                    )
+                    if (selected.isNotEmpty() && selected[0].isRemote.value)
+                        options.add {
+                            Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                                onSelected()
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    ytUrls.clear()
+                                    for (e in selected) {
+                                        try {
+                                            val url = URL(e.downloadUrl ?: "")
+                                            if (gearbox.isGearUrl(url)) ytUrls.add(e.downloadUrl!!)
+                                            else addRemoteToMiscSyndicate(e)
+                                        } catch (ex: MalformedURLException) { Loge(TAG, "episode downloadUrl not valid: ${e.title} : ${e.downloadUrl}") }
+                                    }
+                                    withContext(Dispatchers.Main) { showConfirmYoutubeDialog.value = ytUrls.isNotEmpty() }
+                                }
+                            }, verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Filled.AddCircle, contentDescription = "Reserve episodes")
+                                Text(stringResource(id = R.string.reserve_episodes_label))
+                            }
+                        }
+                    if (feed != null) {
+                        options.add {
+                            Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                                onSelected()
+                                showEraseDialog = true
+                            }, verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_delete_forever_24), contentDescription = "Erase episodes")
+                                Text(stringResource(id = R.string.erase_episodes_label))
+                            }
+                        }
+                    }
+                    if (isExpanded) CommonPopupCard(onDismissRequest = { isExpanded = false }) {
+                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) { options.forEachIndexed { _, entry -> entry() } }
+                    }
+                    FloatingActionButton(containerColor = bgColor, contentColor = fgColor, onClick = { isExpanded = !isExpanded }) { Icon(Icons.Filled.Menu, "Menu") }
+                }
+                EpisodeSpeedDial(modifier = Modifier.padding(start = 16.dp))
             }
-            EpisodeSpeedDial(modifier = Modifier.align(Alignment.BottomStart).padding(bottom = 16.dp, start = 16.dp))
         }
     }
 }
