@@ -169,7 +169,7 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
 
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
             title = { Text(stringResource(R.string.gpodnetauth_login_butLabel), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -203,7 +203,7 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
 
     @Composable
     fun ChooseProviderAndLoginDialog(onDismissRequest: ()->Unit) {
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
             title = { Text(stringResource(R.string.dialog_choose_sync_service_title), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -269,7 +269,7 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
         var showProgress by remember { mutableStateOf(false) }
         var showConfirm by remember { mutableStateOf(true)  }
         var showCancel by remember { mutableStateOf(true)  }
-        AlertDialog(modifier = Modifier.fillMaxWidth().border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+        AlertDialog(modifier = Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
             title = { Text(stringResource(R.string.connect_to_peer), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -486,7 +486,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                 }
             }
         }
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
             title = { Text(stringResource(R.string.pref_proxy_title), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -636,7 +636,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                 var tempCleanupOption by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCleanup, "-1")) }
                 var interval by remember { mutableStateOf(getPref(AppPrefs.prefEpisodeCleanup, "-1")) }
                 if ((interval.toIntOrNull() ?: -1) > 0) tempCleanupOption = EpisodeCleanupOptions.LimitBy.num.toString()
-                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showCleanupOptions = false },
+                AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showCleanupOptions = false },
                     title = { Text(stringResource(R.string.pref_episode_cleanup_title), style = CustomTextStyles.titleCustom) },
                     text = {
                         Column {
@@ -672,7 +672,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
         var showSetCustomFolderDialog by remember { mutableStateOf(false) }
         if (showSetCustomFolderDialog) {
             val sumTextRes = if (useCustomMediaDir) R.string.pref_custom_media_dir_sum1 else R.string.pref_custom_media_dir_sum
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showSetCustomFolderDialog = false },
+            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showSetCustomFolderDialog = false },
                 title = { Text(stringResource(R.string.pref_custom_media_dir_title), style = CustomTextStyles.titleCustom) },
                 text = { Text(stringResource(sumTextRes), color = textColor, style = MaterialTheme.typography.bodySmall) },
                 confirmButton = {
@@ -689,7 +689,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
         }
         var showResetCustomFolderDialog by remember { mutableStateOf(false) }
         if (showResetCustomFolderDialog) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showResetCustomFolderDialog = false },
+            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showResetCustomFolderDialog = false },
                 title = { Text(stringResource(R.string.pref_custom_media_dir_title), style = CustomTextStyles.titleCustom) },
                 text = { Text(stringResource(R.string.pref_custom_media_dir_sum2), color = textColor, style = MaterialTheme.typography.bodySmall) },
                 confirmButton = {
@@ -737,7 +737,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                     else -> {}
                 }
             }
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showMeteredNetworkOptions = false },
+            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showMeteredNetworkOptions = false },
                 title = { Text(stringResource(R.string.pref_metered_network_title), style = CustomTextStyles.titleCustom) },
                 text = {
                     Column {

@@ -557,7 +557,7 @@ class VideoplayerActivity : BaseActivity() {
     @Composable
     fun PlaybackControlsDialog(onDismiss: ()-> Unit) {
         val textColor = MaterialTheme.colorScheme.onSurface
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.audio_controls)) },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.audio_controls)) },
             text = {
                 LazyColumn {
                     items(audioTracks.size) {index ->

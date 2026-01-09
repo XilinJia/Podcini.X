@@ -25,23 +25,25 @@ import ac.mdiq.podcini.utils.Logt
 import android.content.Intent
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -212,43 +214,43 @@ fun NavDrawerScreen(navigator: AppNavigator) {
     val density = LocalDensity.current
     val windowWidthDp = with(density) { windowSize.width.toDp() }
     val drawerWidth = min(350.dp,windowWidthDp * 0.7f)
+    val myShape = RoundedCornerShape(topEnd = 24.dp, bottomEnd = 24.dp)
 
-    Box(Modifier.width(drawerWidth).fillMaxHeight()) {
-        Scaffold { innerPadding ->
-            Column(modifier = Modifier.padding(innerPadding).padding(start = 10.dp, end = 5.dp, top = 10.dp, bottom = 10.dp).verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
-                for (nav in navMap.entries) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 15.dp).clickable {
-                        Logd(TAG, "nav.key: ${nav.key}")
-                        navigator.navigate(nav.key) {
-                            if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
-                            else popUpTo(nav.key) { inclusive = true }
-                        }
-                        drawerCtrl.close()
-                    }) {
-                        Icon(imageVector = ImageVector.vectorResource(nav.value.iconRes), tint = textColor, contentDescription = nav.key, modifier = Modifier.padding(start = 10.dp))
-                        Text(stringResource(nav.value.nameRes), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
-                        Spacer(Modifier.weight(1f))
-                        if (nav.value.count > 0) Text(nav.value.count.toString(), color = textColor, modifier = Modifier.padding(end = 10.dp))
+    ModalDrawerSheet(modifier = Modifier.width(drawerWidth).border(1.dp, MaterialTheme.colorScheme.tertiary, myShape),
+        drawerContainerColor = MaterialTheme.colorScheme.surface, drawerTonalElevation = 0.dp, drawerShape = myShape, windowInsets = WindowInsets.systemBars) {
+        Column(modifier = Modifier.background(MaterialTheme.colorScheme.surface).padding(start = 10.dp, end = 5.dp, top = 10.dp, bottom = 10.dp).verticalScroll(rememberScrollState())) {
+            for (nav in navMap.entries) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 15.dp).clickable {
+                    Logd(TAG, "nav.key: ${nav.key}")
+                    navigator.navigate(nav.key) {
+                        if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
+                        else popUpTo(nav.key) { inclusive = true }
                     }
-                }
-                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().clickable {
-                    context.startActivity(Intent(context, PreferenceActivity::class.java))
                     drawerCtrl.close()
                 }) {
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
-                    Text(stringResource(R.string.settings_label), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
+                    Icon(imageVector = ImageVector.vectorResource(nav.value.iconRes), tint = textColor, contentDescription = nav.key, modifier = Modifier.padding(start = 10.dp))
+                    Text(stringResource(nav.value.nameRes), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
+                    Spacer(Modifier.weight(1f))
+                    if (nav.value.count > 0) Text(nav.value.count.toString(), color = textColor, modifier = Modifier.padding(end = 10.dp))
                 }
-                HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
-                for (f in feedBriefs) {
-                    Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable {
-                        navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
-                        drawerCtrl.close()
-                        isBSExpanded = false
-                    }) {
-                        AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(40.dp).height(40.dp))
-                        Text(f.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
-                    }
+            }
+            HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth().clickable {
+                context.startActivity(Intent(context, PreferenceActivity::class.java))
+                drawerCtrl.close()
+            }) {
+                Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
+                Text(stringResource(R.string.settings_label), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
+            }
+            HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
+            for (f in feedBriefs) {
+                Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable {
+                    navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
+                    drawerCtrl.close()
+                    isBSExpanded = false
+                }) {
+                    AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(40.dp).height(40.dp))
+                    Text(f.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
                 }
             }
         }

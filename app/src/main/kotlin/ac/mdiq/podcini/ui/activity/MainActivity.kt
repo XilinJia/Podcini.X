@@ -6,7 +6,6 @@ import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.feed.FeedUpdateManager
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
-import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
@@ -64,7 +63,6 @@ import android.view.View
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -121,14 +119,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.await
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 
 class MainActivity : BaseActivity() {
     private var lastTheme = 0
@@ -246,11 +244,16 @@ class MainActivity : BaseActivity() {
         val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
         LaunchedEffect(Unit) { monitorNavStack(navController) }
 
-        val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.Hidden, skipHiddenState = false))
+        val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = false))
 
         if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
 
+        var firstRun by remember { mutableStateOf(true) }
         LaunchedEffect(key1 = isBSExpanded, key2 = curEpisode?.id) {
+            if (firstRun) {
+                firstRun = false
+                return@LaunchedEffect
+            }
             if ((curEpisode?.id ?: -1L) > 0) {
                 if (isBSExpanded) sheetState.bottomSheetState.expand()
                 else sheetState.bottomSheetState.partialExpand()
@@ -272,9 +275,7 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-        var savedDrawerValue by rememberSaveable {
-            mutableStateOf(DrawerValue.Closed)
-        }
+        var savedDrawerValue by rememberSaveable { mutableStateOf(DrawerValue.Closed) }
 
         val drawerState = rememberDrawerState(initialValue = savedDrawerValue)
 
@@ -333,7 +334,7 @@ class MainActivity : BaseActivity() {
     @Composable
     fun UnrestrictedBackgroundPermissionDialog(onDismiss: () -> Unit) {
         var dontAskAgain by remember { mutableStateOf(false) }
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text("Permission Required") },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss, title = { Text("Permission Required") },
             text = {
                 Column {
                     Text(stringResource(R.string.unrestricted_background_permission_text))

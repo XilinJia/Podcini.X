@@ -298,7 +298,7 @@ fun StatisticsScreen() {
     }
 
     if (vm.showTodayStats) {
-        AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.showTodayStats = false },  confirmButton = {},
+        AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showTodayStats = false },  confirmButton = {},
             text = { EpisodeLazyColumn(vm.statsOfDay.episodes, showCoverImage = false, showActionButtons = false) },
             dismissButton = { TextButton(onClick = { vm.showTodayStats = false }) { Text(stringResource(R.string.cancel_label)) } } )
     }
@@ -468,7 +468,7 @@ fun StatisticsScreen() {
             val screenWidth = with(LocalDensity.current) { getAppContext().resources.displayMetrics.widthPixels.toDp() }
             val barColor = MaterialTheme.colorScheme.tertiary
             Canvas(modifier = Modifier.horizontalScroll(rememberScrollState()).width(if (totalContentWidth.dp > screenWidth) totalContentWidth.dp else screenWidth).height(150.dp).padding(start = 10.dp, end = 10.dp)
-                .border(BorderStroke(1.dp, barColor)).pointerInput(Unit) {
+                .border(1.dp, barColor).pointerInput(Unit) {
                 detectTapGestures { offset ->
                     barRects.forEachIndexed { index, rect ->
                         if (rect.contains(offset)) {
@@ -512,7 +512,7 @@ fun StatisticsScreen() {
             episodes.addAll(data.episodes)
         }
 
-        if (episodes.isNotEmpty()) AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { episodes.clear() },  confirmButton = {},
+        if (episodes.isNotEmpty()) AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { episodes.clear() },  confirmButton = {},
             text = { EpisodeLazyColumn(episodes, showCoverImage = false, showActionButtons = false) },
             dismissButton = { TextButton(onClick = { episodes.clear() }) { Text(stringResource(R.string.cancel_label)) } } )
 
@@ -826,7 +826,7 @@ fun FeedStatisticsDialog(title: String, feedId: Long, timeFrom: Long, timeTo: Lo
         } catch (error: Throwable) { Logs(TAG, error, "loadStatistics failed") }
     }
     LaunchedEffect(Unit) { loadStatistics() }
-    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(10.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
         text = {
             val textColor = MaterialTheme.colorScheme.onSurface
             val context = LocalContext.current

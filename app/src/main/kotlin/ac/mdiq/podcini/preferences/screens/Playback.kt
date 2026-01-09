@@ -176,7 +176,7 @@ fun PlaybackScreen(activity: PreferenceActivity) {
         var tempFFSelectedOption by remember { mutableIntStateOf(R.string.keycode_media_fast_forward) }
         TitleSummaryActionColumn(R.string.pref_hardware_forward_button_title, R.string.pref_hardware_forward_button_summary) { showHardwareForwardButtonOptions = true }
         if (showHardwareForwardButtonOptions) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showHardwareForwardButtonOptions = false },
+            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showHardwareForwardButtonOptions = false },
                 title = { Text(stringResource(R.string.pref_hardware_forward_button_title), style = CustomTextStyles.titleCustom) },
                 text = {
                     Column {
@@ -201,7 +201,7 @@ fun PlaybackScreen(activity: PreferenceActivity) {
         var tempPRSelectedOption by remember { mutableIntStateOf(R.string.keycode_media_rewind) }
         TitleSummaryActionColumn(R.string.pref_hardware_previous_button_title, R.string.pref_hardware_previous_button_summary) { showHardwarePreviousButtonOptions = true }
         if (showHardwarePreviousButtonOptions) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showHardwarePreviousButtonOptions = false },
+            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showHardwarePreviousButtonOptions = false },
                 title = { Text(stringResource(R.string.pref_hardware_previous_button_title), style = CustomTextStyles.titleCustom) },
                 text = {
                     Column {

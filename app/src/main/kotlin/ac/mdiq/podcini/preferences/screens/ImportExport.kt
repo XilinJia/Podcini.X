@@ -228,7 +228,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
     val comboDic = remember { mutableStateMapOf<String, Boolean>() }
     var showComboImportDialog by remember { mutableStateOf(false) }
     if (showComboImportDialog) {
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showComboImportDialog = false },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showComboImportDialog = false },
             title = { Text(stringResource(R.string.pref_select_properties), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -285,7 +285,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
     }
     var showComboExportDialog by remember { mutableStateOf(false) }
     if (showComboExportDialog) {
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showComboExportDialog = false },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showComboExportDialog = false },
             title = { Text(stringResource(R.string.pref_select_properties), style = CustomTextStyles.titleCustom) },
             text = {
                 Column {
@@ -495,7 +495,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
         HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
         val showPAImportDialog = remember { mutableStateOf(false) }
         if (showPAImportDialog.value) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showPAImportDialog.value = false },
+            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showPAImportDialog.value = false },
                 title = { Text(stringResource(R.string.import_PA_label)) },
                 text = {
                     Column {

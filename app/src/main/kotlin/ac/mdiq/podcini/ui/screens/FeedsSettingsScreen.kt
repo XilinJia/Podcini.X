@@ -215,7 +215,7 @@ fun FeedsSettingsScreen() {
     fun TitleSummarySwitch(titleRes: Int, summaryRes: Int, iconRes: Int, initVal: Boolean, cb: ((Boolean)->Unit)) {
         val textColor = MaterialTheme.colorScheme.onSurface
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
                 if (iconRes > 0) Icon(ImageVector.vectorResource(id = iconRes), "", tint = textColor)
                 Spacer(modifier = Modifier.width(20.dp))
                 Text(text = stringResource(titleRes), style = CustomTextStyles.titleCustom, color = textColor)
@@ -234,15 +234,17 @@ fun FeedsSettingsScreen() {
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).padding(start = 20.dp, end = 16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (feedsToSet.size == 1) {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    // edit title
-                    Text(text = stringResource(R.string.title), style = CustomTextStyles.titleCustom)
-                    Spacer(Modifier.weight(1f))
-                    var showDialog by remember { mutableStateOf(false) }
-                    if (showDialog) RenameOrCreateSyntheticFeed(feedToSet) { showDialog = false }
-                    IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit title") }
+                Column {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        // edit title
+                        Text(text = stringResource(R.string.title), style = CustomTextStyles.titleCustom)
+                        Spacer(Modifier.weight(1f))
+                        var showDialog by remember { mutableStateOf(false) }
+                        if (showDialog) RenameOrCreateSyntheticFeed(feedToSet) { showDialog = false }
+                        IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit title") }
+                    }
+                    Text(text = feedToSet.title!!, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 15.dp))
                 }
-                Text(text = feedToSet.title!!, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 15.dp))
             } else Text(text = stringResource(R.string.multiple_podcasts), style = MaterialTheme.typography.titleMedium,  maxLines=1)
             //                    parent volume
             Column {
@@ -665,7 +667,6 @@ fun FeedsSettingsScreen() {
                     Text(text = stringResource(R.string.authentication_descr), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 }
             }
-
             var autoDownloadChecked by remember { mutableStateOf(feedToSet.autoDownload) }
             var preferStreaming by remember { mutableStateOf(feedToSet.prefStreamOverDownload) }
             if (feedToSet.type != Feed.FeedType.YOUTUBE.name || !preferStreaming || feedsToSet.size > 1) {
@@ -683,48 +684,48 @@ fun FeedsSettingsScreen() {
                         } } }
                     }
                 }
-                //                    preferred action
-                val actions = remember { listOf("Auto", ButtonTypes.PLAY_LOCAL.name) + playActions.map { it.name } + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
-                val curAction by remember { mutableStateOf(feedToSet.prefActionType ?: "Auto") }
-                var showChooseAction by remember { mutableStateOf(false) }
-                if (showChooseAction) Popup(onDismissRequest = { showChooseAction = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
-                    Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
-                            for (action in actions) {
-                                FilterChip(onClick = {
-                                    if (action == "Auto") runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { it.prefActionType = null } } } }
-                                    else {
-                                        if (action in streamActions.map { it.name }) preferStreaming = true else if (action in playActions.map { it.name }) preferStreaming = false
-                                        if (preferStreaming) {
-                                            prefStreamOverDownload = true
-                                            autoDownloadChecked = false
-                                        }
-                                        runOnIOScope {
-                                            realm.write {
-                                                for (f in feedsToSet) {
-                                                    findLatest(f)?.let {
-                                                        it.prefActionType = action
-                                                        it.prefStreamOverDownload = preferStreaming
-                                                        if (preferStreaming) it.autoDownload = false
-                                                    }
+            }
+            //                    preferred action
+            val actions = remember { listOf("Auto") + (if (feedToSet.type != Feed.FeedType.YOUTUBE.name) playActions.map { it.name }  else listOf()) + streamActions.map { it.name } + listOf(ButtonTypes.TTS_NOW.name, ButtonTypes.TTS.name, ButtonTypes.WEBSITE.name) }
+            val curAction by remember { mutableStateOf(feedToSet.prefActionType ?: "Auto") }
+            var showChooseAction by remember { mutableStateOf(false) }
+            if (showChooseAction) Popup(onDismissRequest = { showChooseAction = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
+                Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                        for (action in actions) {
+                            FilterChip(onClick = {
+                                if (action == "Auto") runOnIOScope { realm.write { for (f in feedsToSet) { findLatest(f)?.let { it.prefActionType = null } } } }
+                                else {
+                                    if (action in streamActions.map { it.name }) preferStreaming = true else if (action in playActions.map { it.name }) preferStreaming = false
+                                    if (preferStreaming) {
+                                        prefStreamOverDownload = true
+                                        autoDownloadChecked = false
+                                    }
+                                    runOnIOScope {
+                                        realm.write {
+                                            for (f in feedsToSet) {
+                                                findLatest(f)?.let {
+                                                    it.prefActionType = action
+                                                    it.prefStreamOverDownload = preferStreaming
+                                                    if (preferStreaming) it.autoDownload = false
                                                 }
                                             }
                                         }
                                     }
-                                    showChooseAction = false
-                                }, label = { Text(action) }, selected = curAction == action, border = FilterChipBorder(curAction == action))
-                            }
+                                }
+                                showChooseAction = false
+                            }, label = { Text(action) }, selected = curAction == action, border = FilterChipBorder(curAction == action))
                         }
                     }
                 }
-                Column {
-                    Row(Modifier.fillMaxWidth()) {
-                        Icon(ImageVector.vectorResource(id = R.drawable.play_stream_svgrepo_com), "", tint = textColor)
-                        Spacer(modifier = Modifier.width(20.dp))
-                        Text(text = stringResource(R.string.preferred_action), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showChooseAction = true }))
-                    }
-                    Text(text = stringResource(R.string.preferred_action_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
+            }
+            Column {
+                Row(Modifier.fillMaxWidth()) {
+                    Icon(ImageVector.vectorResource(id = R.drawable.play_stream_svgrepo_com), "", tint = textColor)
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Text(text = stringResource(R.string.preferred_action), style = CustomTextStyles.titleCustom, color = textColor, modifier = Modifier.clickable(onClick = { showChooseAction = true }))
                 }
+                Text(text = stringResource(R.string.preferred_action_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
             //                    auto skip
             Column {
@@ -844,34 +845,39 @@ fun FeedsSettingsScreen() {
             }
             if (feedToSet.id > MAX_SYNTHETIC_ID) {
                 // edit feed url
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Podcast URL", style = CustomTextStyles.titleCustom)
-                    Spacer(Modifier.weight(1f))
-                    @Composable
-                    fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
-                        var url by remember { mutableStateOf(feedToSet.downloadUrl ?: "") }
-                        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
-                            text = { Column {
-                                Text(stringResource(R.string.edit_url_confirmation_msg))
-                                TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth())
-                            } },
-                            confirmButton = {
-                                TextButton(onClick = {
-                                    runOnIOScope {
-                                        feedToSet = upsert(feedToSet) { it.downloadUrl = url }
-                                        gearbox.feedUpdater(listOf(feedToSet)).startRefresh(context)
+                Column {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "Podcast URL", style = CustomTextStyles.titleCustom)
+                        Spacer(Modifier.weight(1f))
+                        @Composable
+                        fun EditUrlSettingsDialog(onDismiss: () -> Unit) {
+                            var url by remember { mutableStateOf(feedToSet.downloadUrl ?: "") }
+                            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss, title = { Text(stringResource(R.string.edit_url_menu)) },
+                                text = {
+                                    Column {
+                                        Text(stringResource(R.string.edit_url_confirmation_msg))
+                                        TextField(value = url, onValueChange = { url = it }, modifier = Modifier.fillMaxWidth())
                                     }
-                                    onDismiss()
-                                }) { Text("OK") }
-                            },
-                            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
-                        )
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        runOnIOScope {
+                                            feedToSet = upsert(feedToSet) { it.downloadUrl = url }
+                                            gearbox.feedUpdater(listOf(feedToSet)).startRefresh(context)
+                                        }
+                                        onDismiss()
+                                    }) { Text("OK") }
+                                },
+                                dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel_label)) } }
+                            )
+                        }
+
+                        var showDialog by remember { mutableStateOf(false) }
+                        if (showDialog) EditUrlSettingsDialog { showDialog = false }
+                        IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit url") }
                     }
-                    var showDialog by remember { mutableStateOf(false) }
-                    if (showDialog) EditUrlSettingsDialog { showDialog = false }
-                    IconButton(onClick = { showDialog = true }) { Icon(Icons.Default.Edit, contentDescription = "Edit url") }
+                    Text(text = feedToSet.downloadUrl ?: "", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp))
                 }
-                Text(text = feedToSet.downloadUrl ?: "", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp))
             }
             if (feedToSet.id > MAX_SYNTHETIC_ID || feedsToSet.size > 1) {
                 //                    refresh
@@ -1021,7 +1027,7 @@ fun FeedsSettingsScreen() {
                 val (selectedPolicy, onPolicySelected) = remember { mutableStateOf(feedToSet.autoDLPolicy) }
                 @Composable
                 fun AutoDLEQPolicyDialog(onDismissRequest: () -> Unit) {
-                    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+                    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
                         title = { Text(stringResource(R.string.feed_automation_policy), style = CustomTextStyles.titleCustom) },
                         text = {
                             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {

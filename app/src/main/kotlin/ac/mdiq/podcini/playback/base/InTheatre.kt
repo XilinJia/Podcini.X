@@ -70,6 +70,7 @@ object InTheatre {
     init {
         CoroutineScope(Dispatchers.IO).launch {
             Logd(TAG, "starting curState")
+            curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}
             restoreMediaFromPreferences()
             if (curEpisode != null) {
                 val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
@@ -84,7 +85,7 @@ object InTheatre {
 
     fun monitorState() {
         if (curStateMonitor == null) curStateMonitor = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}
+//            curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}
             val item_ = realm.query(CurrentState::class).first()
             Logd(TAG, "start monitoring curState: ")
             val stateFlow = item_.asFlow()

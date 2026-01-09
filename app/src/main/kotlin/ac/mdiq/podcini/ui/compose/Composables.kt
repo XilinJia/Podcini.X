@@ -128,7 +128,7 @@ fun FilterChipBorder(selected: Boolean): BorderStroke {
 fun Spinner(items: List<String>, selectedItem: String, modifier: Modifier = Modifier, onItemSelected: (Int) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     var currentSelectedItem by remember { mutableStateOf(selectedItem) }
-    ExposedDropdownMenuBox(expanded = expanded, modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onExpandedChange = { expanded = it }) {
+    ExposedDropdownMenuBox(expanded = expanded, modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.large), onExpandedChange = { expanded = it }) {
         BasicTextField(readOnly = true, value = currentSelectedItem, onValueChange = { currentSelectedItem = it},
             textStyle = LocalTextStyle.current.copy(color = MaterialTheme.colorScheme.onSurface, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold),
             modifier = modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true), // Material3 requirement
@@ -278,7 +278,7 @@ fun ScrollRowGrid(columns: Int, itemCount: Int, modifier: Modifier = Modifier, c
 fun SimpleSwitchDialog(title: String, text: String, onDismissRequest: ()->Unit, callback: (Boolean)-> Unit) {
     val textColor = MaterialTheme.colorScheme.onSurface
     var isChecked by remember { mutableStateOf(false) }
-    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
         title = { Text(title, style = CustomTextStyles.titleCustom) },
         text = {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
@@ -365,7 +365,7 @@ data class CommonConfirmAttrib(
 
 @Composable
 fun CommonConfirmDialog(c: CommonConfirmAttrib) {
-    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { commonConfirm = null },
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { commonConfirm = null },
         title = { Text(c.title) },
         text = {
             Column {
@@ -399,7 +399,7 @@ data class CommonMessageAttrib(
 
 @Composable
 fun LargePoster(c: CommonMessageAttrib) {
-    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { },
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { },
         title = { Text(c.title) },
         text = {
             Box(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(c.message) }
@@ -416,7 +416,7 @@ fun LargePoster(c: CommonMessageAttrib) {
 @Composable
 fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boolean>, cancellable: Boolean = true, onConfirm: () -> Unit) {
     if (showDialog.value) {
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showDialog.value = false },
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showDialog.value = false },
             title = { if (titleRes != 0) Text(stringResource(titleRes)) },
             text = { Column(modifier = Modifier.verticalScroll(rememberScrollState())) { Text(message) } },
             confirmButton = {

@@ -1,3 +1,15 @@
+# 10.4.1
+
+* fixed possible failure of a full update of a feed
+* in Subscriptions screen, if in a Volume, simple/full refresh will only refresh the feeds in the volume tree
+* in PlayerUI, volume adaptation setting include option to set for the feed
+* when playing an episode, ensure volume adaptation setting in the feed is applied 
+* likely fixed playUI is position behind control bar on startup
+* amended FeedsSettings a bit
+* adjustments in drawer background, border, shape and spacing
+* most dialogs are round-cornered
+* some layout spacing adjustments
+
 # 10.4.0
 
 * amended actions buttons

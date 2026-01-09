@@ -434,7 +434,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     }
 
     if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = { vm.showTabsDialog = false }) { feed, map -> vm.handleFeed(feed, map) }
-    if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
+    if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
         title = { Text(stringResource(R.string.error_label)) },
         text = { Text(stringResource(R.string.null_value_podcast_error)) },
         confirmButton = { TextButton(onClick = { vm.showNoPodcastFoundDialog = false }) { Text("OK") } })
@@ -451,7 +451,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             msg.setSpan(ForegroundColorSpan(-0x77777778), errorMsg.length, total.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
             msg
         } else { context.getString(R.string.download_error_error_unknown) }
-        AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = onDismiss,
+        AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = onDismiss,
             title = { Text(stringResource(R.string.error_label)) },
             text = { Text(errorMessage.toString()) },
             confirmButton = { TextButton(onClick = { onDismiss() }) { Text("OK") } })
@@ -533,7 +533,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     Spacer(modifier = Modifier.weight(0.2f))
                 }
             }
-            Column(Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary))) {
+            Column(Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary)) {
 //                    TODO: alternate_urls_spinner
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(stringResource(R.string.limit_episodes_to), modifier = Modifier.weight(0.5f))

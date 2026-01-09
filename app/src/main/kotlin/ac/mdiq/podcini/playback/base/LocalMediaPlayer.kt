@@ -394,7 +394,8 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             setPlaybackParams(currentPlaybackSpeed(curEpisode))
             setRepeat(shouldRepeat)
             setSkipSilence()
-            setVolume(1.0f, 1.0f)
+            val volAdpFac = if (curEpisode != null) curEpisode!!.feed?.volumeAdaptionSetting?.adaptionFactor ?: 1f else 1f
+            setVolume(1.0f, 1.0f, volAdpFac)
             if (curEpisode != null && isPrepared && curEpisode!!.position > 0)
                 seekTo(positionWithRewind(curEpisode!!.position, curEpisode!!.lastPlayedTime))
 

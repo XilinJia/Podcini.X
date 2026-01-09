@@ -80,14 +80,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
@@ -320,10 +323,22 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             else -> 1f
         }
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            var forCurrent by remember { mutableStateOf(true) }
+            var forPodcast by remember { mutableStateOf(false) }
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.weight(1f))
+                Checkbox(checked = forCurrent, onCheckedChange = { isChecked -> forCurrent = isChecked })
+                Text(stringResource(R.string.current_episode))
+                Spacer(Modifier.weight(1f))
+                Checkbox(checked = forPodcast, onCheckedChange = { isChecked -> forPodcast = isChecked })
+                Text(stringResource(R.string.current_podcast))
+                Spacer(Modifier.weight(1f))
+            }
             VolumeAdaptionSetting.entries.forEach { setting ->
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = (setting == volumeAdaption),
                         onCheckedChange = { _ ->
+                            if (forPodcast && curItem?.feed != null) runOnIOScope { upsert(curItem.feed!!) { it.volumeAdaptionSetting = setting} }
                             if (setting != volumeAdaption) {
                                 volumeAdaption = setting
                                 mPlayer?.setVolume(1.0f, 1.0f, adaptionFactor())
@@ -535,7 +550,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
 
     @Composable
     fun PlayerUI(modifier: Modifier) {
-        Box(modifier = modifier.fillMaxWidth().height(100.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))) {
+        Box(modifier = modifier.fillMaxWidth().height(100.dp).border(1.dp, MaterialTheme.colorScheme.tertiary).background(MaterialTheme.colorScheme.surface.copy(alpha = 0.5f))) {
             Column {
                 Text(curItem?.title ?: "No title", maxLines = 1, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 ProgressBar()
@@ -644,7 +659,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         }
     }
 
-    Box(modifier = Modifier.fillMaxWidth().then(if (!isBSExpanded) Modifier else Modifier.statusBarsPadding().navigationBarsPadding())) {
+    Box(modifier = Modifier.fillMaxWidth().then(if (!isBSExpanded) Modifier.windowInsetsPadding(WindowInsets.navigationBars) else Modifier.statusBarsPadding().navigationBarsPadding())) {
         PlayerUI(Modifier.align(if (!isBSExpanded) Alignment.TopCenter else Alignment.BottomCenter).zIndex(1f))
         if (isBSExpanded) {
             Column(Modifier.padding(bottom = 120.dp)) {

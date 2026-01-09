@@ -295,7 +295,7 @@ class Episode : RealmObject {
     }
 
     fun updateFromOther(other: Episode, includingState: Boolean = false) {
-//        Logd(TAG, "updateFromOther ${other.viewCount} $title")
+//        Logd(TAG, "updateFromOther ${other.viewCount} ${other.title} $title")
         if (other.imageUrl != null) this.imageUrl = other.imageUrl
         if (other.title != null) title = other.title
         if (other.description != null) description = other.description

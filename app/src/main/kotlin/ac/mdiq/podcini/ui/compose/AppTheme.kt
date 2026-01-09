@@ -2,11 +2,8 @@ package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
 import ac.mdiq.podcini.preferences.ThemeSwitcher.readThemeValue
-import ac.mdiq.podcini.utils.Logd
 import android.content.Context
 import android.os.Build
-import android.util.TypedValue
-import androidx.annotation.AttrRes
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -24,9 +21,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.core.graphics.ColorUtils
-import kotlin.math.abs
 
 private const val TAG = "AppTheme"
 
@@ -40,15 +35,13 @@ object CustomTextStyles {
     val titleCustom = TextStyle(fontSize = 18.sp, fontWeight = FontWeight.Medium)
 }
 
-val Shapes = Shapes(small = RoundedCornerShape(4.dp), medium = RoundedCornerShape(4.dp), large = RoundedCornerShape(0.dp))
-
-fun getColorFromAttr(context: Context, @AttrRes attrColor: Int): Int {
-    val typedValue = TypedValue()
-    val theme = context.theme
-    theme.resolveAttribute(attrColor, typedValue, true)
-    Logd(TAG, "getColorFromAttr: ${typedValue.resourceId} ${typedValue.data}")
-    return if (typedValue.resourceId != 0) ContextCompat.getColor(context, typedValue.resourceId) else { typedValue.data }
-}
+val Shapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(16.dp),
+    extraLarge = RoundedCornerShape(28.dp)
+)
 
 private val LightColors = lightColorScheme().copy(
     tertiary = Color(0xFF4E3511),

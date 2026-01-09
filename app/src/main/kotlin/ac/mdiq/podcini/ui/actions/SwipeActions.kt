@@ -34,7 +34,6 @@ import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.utils.Logd
 import android.content.Context
 import android.util.TypedValue
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -403,12 +402,9 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
                         val end = textFieldValue.selection.end.coerceIn(start, textFieldValue.text.length)
                         textFieldValue.text.substring(startIndex = start, endIndex = end)
                     }) }
-                AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { showSearchDialog = false },
+                AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showSearchDialog = false },
                     title = { Text(stringResource(R.string.select_text_to_search), style = CustomTextStyles.titleCustom) },
-                    text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .border(1.dp, MaterialTheme.colorScheme.primary)) },
+                    text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },
                     confirmButton = {
                         if (selectedText.isNotEmpty()) {
                             Button(modifier = Modifier.padding(top = 8.dp), onClick = {

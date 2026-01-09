@@ -188,7 +188,7 @@ fun ShareDialog(item: Episode, act: Activity, onDismissRequest: () -> Unit) {
     var isChecked by remember { mutableStateOf(false) }
     val ctx = LocalContext.current
 
-    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
         text = {
             Column {
@@ -463,7 +463,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
         val context by rememberUpdatedState(LocalContext.current)
         var markToRemove by remember { mutableLongStateOf(0L) }
         if (markToRemove != 0L) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { markToRemove = 0L },
+            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { markToRemove = 0L },
                 text = { Text(stringResource(R.string.ask_remove_mark, markToRemove)) },
                 confirmButton = {
                     TextButton(onClick = {
@@ -492,7 +492,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
     if (episode.clips.isNotEmpty()) {
         var cliptToRemove by remember { mutableStateOf("") }
         if (cliptToRemove.isNotBlank()) {
-            AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { cliptToRemove = "" },
+            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { cliptToRemove = "" },
                 text = { Text(stringResource(R.string.ask_remove_clip, cliptToRemove.substringBefore("."))) },
                 confirmButton = {
                     TextButton(onClick = {
@@ -588,7 +588,7 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
     // TODO: somehow, episode is not updated after unrelate
 //    var episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return
 
-    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(5.dp).border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },  confirmButton = {},
+    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(5.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },  confirmButton = {},
         text = {
             EpisodeLazyColumn(episode.related.toList(), layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
                 actionButton_ = { EpisodeActionButton(it) },
@@ -1262,7 +1262,7 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
     var useAllTime by remember { mutableStateOf((from == null || from == 0L) && (to == null || to == Long.MAX_VALUE)) }
     val timeFrom by remember { derivedStateOf { if (timeFilterFrom == 0L) oldestDate else timeFilterFrom  } }
     val timeTo by remember { derivedStateOf { if (timeFilterTo == Long.MAX_VALUE) System.currentTimeMillis() else timeFilterTo } }
-    AlertDialog(modifier = Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)), onDismissRequest = { onDismissRequest() },
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
         title = { Text(stringResource(R.string.share_label), style = CustomTextStyles.titleCustom) },
         text = {
             Column {

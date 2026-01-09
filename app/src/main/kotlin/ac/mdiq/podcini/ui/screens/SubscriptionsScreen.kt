@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndscheduleUpdateTaskOnce
+import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.preferences.DocumentFileExportWorker
 import ac.mdiq.podcini.preferences.ExportTypes
@@ -570,7 +571,8 @@ fun SubscriptionsScreen() {
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
-                            runOnceOrAsk(context, fullUpdate = true)
+                            if (vm.curVolume == null) runOnceOrAsk(context, fullUpdate = true)
+                            else runOnceOrAsk(context, vm.curVolume!!.allFeeds, fullUpdate = true)
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
@@ -889,7 +891,10 @@ fun SubscriptionsScreen() {
                 message = "",
                 confirmRes = R.string.confirm_label,
                 cancelRes = R.string.cancel_label,
-                onConfirm = { checkAndscheduleUpdateTaskOnce(context, replace = true, force = true) },
+                onConfirm = {
+                    if (vm.curVolume == null) checkAndscheduleUpdateTaskOnce(context, replace = true, force = true)
+                    else runOnce(context, vm.curVolume!!.allFeeds)
+                },
             )
             refreshing = false
         }) {
@@ -1085,9 +1090,9 @@ fun SubscriptionsScreen() {
                 }
             }
             if (selectMode) {
-                Row(modifier = Modifier.align(Alignment.TopEnd).padding(end = 20.dp).background(MaterialTheme.colorScheme.tertiaryContainer),
+                Row(modifier = Modifier.align(Alignment.TopEnd).background(MaterialTheme.colorScheme.tertiaryContainer),
                     horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(start = 10.dp).clickable(onClick = {
                         feedsSelected.clear()
                         for (i in 0..longPressIndex) feedsSelected.add(feeds[i])
                         selectedSize = feedsSelected.size
