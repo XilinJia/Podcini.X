@@ -26,7 +26,7 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 4. Presents synthetic podcasts and allows episodes to be separately shelved.
 5. Allows setting tags, todos, notes/comments, 5-level rating, and 12-level play state on every episode.
 6. Boasts sophisticated sorting, filtering and searching on episodes and podcasts.
-7. Supports auto playing any episode based on timer
+7. Supports sleep and auto play timers.
 8. Handles auto-download or auto-enqueue governed by policy and limit settings of individual feed (podcast).
 9. Supports spaced repetition of repeat episodes: auto-download or auto-enqueue them at preset intervals specified in the feed
 10. Caches streamed audio for seamless local rewind and replay.

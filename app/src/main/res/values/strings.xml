@@ -936,6 +936,8 @@
     <string name="commented">Commented</string>
     <string name="add_comment">Add comment (auto save 10s)</string>
 
+    <string name="is_local">Is local</string>
+
     <string name="feed_type">Feed type</string>
     <string name="synthetic">Synthetic</string>
     <string name="normal">Normal</string>

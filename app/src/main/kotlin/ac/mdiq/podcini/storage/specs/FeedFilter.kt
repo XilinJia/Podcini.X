@@ -4,6 +4,7 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.Feed.Companion.PREFIX_LOCAL_FOLDER
 import ac.mdiq.podcini.utils.Logd
 import java.io.Serializable
 
@@ -42,6 +43,10 @@ class FeedFilter(vararg properties_: String) : Serializable {
         when {
             properties.contains(States.has_video.name) -> statements.add(" hasVideoMedia == true ")
             properties.contains(States.no_video.name) -> statements.add(" hasVideoMedia == false ")
+        }
+        when {
+            properties.contains(States.is_local.name) -> statements.add(" downloadUrl BEGINSWITH[c] \"$PREFIX_LOCAL_FOLDER\" ")
+            properties.contains(States.remote.name) -> statements.add(" downloadUrl == nil OR !(downloadUrl BEGINSWITH[c] \"$PREFIX_LOCAL_FOLDER\") ")
         }
         gearbox.feedFilter(properties, statements)
 
@@ -110,6 +115,8 @@ class FeedFilter(vararg properties_: String) : Serializable {
         no_comments,
         has_video,
         no_video,
+        is_local,
+        remote,
         youtube,
         rss,
         synthetic,
@@ -144,6 +151,7 @@ class FeedFilter(vararg properties_: String) : Serializable {
         PLAY_SPEED(R.string.play_speed, ItemProperties(R.string.global, States.global_playSpeed.name), ItemProperties(R.string.custom_speed, States.custom_playSpeed.name)),
         ORIGIN(R.string.feed_origin, ItemProperties(R.string.youtube, States.youtube.name), ItemProperties(R.string.rss, States.rss.name)),
         TYPE(R.string.feed_type, ItemProperties(R.string.synthetic, States.synthetic.name), ItemProperties(R.string.normal, States.normal.name)),
+        IS_LOCAL(R.string.is_local, ItemProperties(R.string.yes, States.is_local.name), ItemProperties(R.string.no, States.remote.name)),
         SKIPS(R.string.has_skips, ItemProperties(R.string.yes, States.has_skips.name), ItemProperties(R.string.no, States.no_skips.name)),
         AUTO_DELETE(
             R.string.auto_delete, ItemProperties(R.string.always, States.always_auto_delete.name),
