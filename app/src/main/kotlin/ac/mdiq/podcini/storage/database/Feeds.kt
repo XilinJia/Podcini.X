@@ -138,7 +138,7 @@ fun getFeed(feedId: Long, copy: Boolean = false): Feed? {
     } else null
 }
 
-private fun searchFeedByIdentifyingValueOrID(feed: Feed, copy: Boolean = false): Feed? {
+fun searchFeedByIdentifyingValueOrID(feed: Feed, copy: Boolean = false): Feed? {
     Logd(TAG, "searchFeedByIdentifyingValueOrID called")
     if (feed.id != 0L) return getFeed(feed.id, copy)
     val feedId = feed.identifyingValue
@@ -174,12 +174,8 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
         newFeed.lastFullUpdateTime = System.currentTimeMillis()
         try {
             addNewFeeds(newFeed)
-            // Update with default values that are set in database
             searchFeedByIdentifyingValueOrID(newFeed)
-            // TODO: This doesn't appear needed as unlistedItems is still empty
-            //                if (removeUnlistedItems && unlistedItems.isNotEmpty()) runBlocking { deleteEpisodes(context, unlistedItems).join() }
-        } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
-        } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
+        } catch (e: Throwable) { Logs(TAG, e, "updateFeedFull failed") }
         return
     }
 
@@ -201,7 +197,6 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     var idLong = newId()
     Logd(TAG, "updateFeedFull building savedFeedAssistant")
     val savedFeedAssistant = FeedAssistant(savedFeed)
-    // Look for new or updated Items
     val oldestDate = savedFeed.oldestItem?.pubDate ?: 0L
     val context = getAppContext()
     for (idx in newFeed.episodes.indices) {

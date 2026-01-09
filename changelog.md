@@ -1,3 +1,10 @@
+# 10.4.2
+
+* fixed remove volume getting interrupted
+* in Subscriptions screen, added toggle showAllFeeds in menu, which allows to show all feeds regardless of volumes
+* local feeds and volumes are no longer imported duplicated
+* new local feeds and volumes are imported to existing volume that corresponds to the parent folder
+
 # 10.4.1
 
 * fixed possible failure of a full update of a feed

@@ -176,6 +176,8 @@ private const val TAG = "SubscriptionsScreen"
 class SubscriptionsVM : ViewModel() {
     var subPrefs by mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?: SubscriptionsPrefs())
 
+    var showAllFeeds by mutableStateOf(false)
+
     var prefsFlow by mutableStateOf<Flow<SingleQueryChange<SubscriptionsPrefs>>>(emptyFlow())
 
     var feedsFlow by mutableStateOf<Flow<ResultsChange<Feed>>>(emptyFlow())
@@ -456,6 +458,7 @@ fun SubscriptionsScreen() {
 
     LaunchedEffect(feedOperationText, feeds.size) {
         Logd(TAG, "LaunchedEffect feedOperationText: $feedOperationText feeds.size: ${feeds.size}")
+        for (f in feeds) Logd(TAG, "LaunchedEffect feed: ${f.title}")
         if (feedOperationText.isBlank()) when (vm.subPrefs.sortIndex) {
             FeedSortIndex.Date.ordinal -> prepareDateSort()
             FeedSortIndex.Time.ordinal -> prepareTimeSort()
@@ -519,7 +522,7 @@ fun SubscriptionsScreen() {
         vm.subVolumesFlow = realm.query(Volume::class).query("parentId == ${vm.curVolume?.id ?: -1L}").asFlow()
     }
 
-    LaunchedEffect(vm.curVolume,vm.subPrefs.feedsFiltered, vm.subPrefs.feedsSorted) {
+    LaunchedEffect(vm.curVolume,vm.showAllFeeds, vm.subPrefs.feedsFiltered, vm.subPrefs.feedsSorted) {
         Logd(TAG, "LaunchedEffect feedsFiltered, sortPair.first, sortPair")
         val sb = StringBuilder(filterQueryStr)
         if (langsQueryStr.isNotEmpty())  sb.append(" AND $langsQueryStr")
@@ -528,7 +531,8 @@ fun SubscriptionsScreen() {
         val fetchQS = sb.toString()
         val sortPair = Pair(vm.subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (vm.subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
         Logd(TAG, "fetchQS: $fetchQS ${sortPair.first} ${sortPair.second.name}")
-        vm.feedsFlow = realm.query(Feed::class).query("volumeId == ${vm.curVolume?.id ?: -1L}").query(fetchQS).sort(sortPair).asFlow()
+        if (vm.showAllFeeds) vm.feedsFlow = realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
+        else vm.feedsFlow = realm.query(Feed::class).query("volumeId == ${vm.curVolume?.id ?: -1L}").query(fetchQS).sort(sortPair).asFlow()
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -546,8 +550,7 @@ fun SubscriptionsScreen() {
                         Text(feedCountState, color = textColor)
                     }
                 }
-            },
-                navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } },
+            }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } },
                 actions = {
                     IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
@@ -562,6 +565,15 @@ fun SubscriptionsScreen() {
                     DropdownMenu(expanded = expanded,
                         border = BorderStroke(1.dp, buttonColor),
                         onDismissRequest = { expanded = false }) {
+                        DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
+                            runOnIOScope { upsert(vm.subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
+                            expanded = false
+                        })
+                        DropdownMenuItem(text = { Text(stringResource(R.string.show_all_feeds)) }, onClick = {
+                            vm.curVolume = null
+                            vm.showAllFeeds = !vm.showAllFeeds
+                            expanded = false
+                        })
                         DropdownMenuItem(text = { Text(stringResource(R.string.new_volume_label)) }, onClick = {
                             showNewVolume = true
                             expanded = false
@@ -573,10 +585,6 @@ fun SubscriptionsScreen() {
                         DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
                             if (vm.curVolume == null) runOnceOrAsk(context, fullUpdate = true)
                             else runOnceOrAsk(context, vm.curVolume!!.allFeeds, fullUpdate = true)
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
-                            runOnIOScope { upsert(vm.subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
                             expanded = false
                         })
                     }
@@ -872,7 +880,7 @@ fun SubscriptionsScreen() {
                             cancelRes = R.string.cancel_label,
                             onConfirm = {
                                 Logd(TAG, "removing volume: ${volumeToOperate?.name}")
-                                deleteVolumeTree(volumeToOperate!!)
+                                runOnIOScope { deleteVolumeTree(volumeToOperate!!) }
                                 commonConfirm = null
                             },
                         )
@@ -900,7 +908,7 @@ fun SubscriptionsScreen() {
         }) {
             if (vm.subPrefs.prefFeedGridLayout) {
                 LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
-                    if (volumes.isNotEmpty()) items(volumes.size, key = { i -> volumes[i].id}) { index ->
+                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes.size, key = { i -> volumes[i].id}) { index ->
                         val volume = volumes[index]
                         Column(Modifier.background(MaterialTheme.colorScheme.surface)
                             .combinedClickable(onClick = { vm.curVolume = volume},
@@ -1016,7 +1024,7 @@ fun SubscriptionsScreen() {
                 }
 
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (volumes.isNotEmpty()) itemsIndexed(volumes, key = { _, v -> v.id}) { index, volume ->
+                    if (!vm.showAllFeeds && volumes.isNotEmpty()) itemsIndexed(volumes, key = { _, v -> v.id}) { index, volume ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.combinedClickable(
                             onClick = { vm.curVolume = volume },
                             onLongClick = {

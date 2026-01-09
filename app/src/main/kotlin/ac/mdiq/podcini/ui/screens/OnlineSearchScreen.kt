@@ -17,6 +17,7 @@ import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.searchFeedByIdentifyingValueOrID
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
@@ -247,21 +248,28 @@ fun OnlineSearchScreen() {
                         val uri = directory.uri
                         val title = directory.name ?: context.getString(R.string.local_folder)
                         val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
-                        dirFeed.volumeId = parentId
-                        dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
-                        updateFeedFull(dirFeed, removeUnlistedItems = false)
-                        feeds.add(dirFeed)
+                        val fExist = searchFeedByIdentifyingValueOrID(dirFeed)
+                        if (fExist == null) {
+                            dirFeed.volumeId = parentId
+                            dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
+                            updateFeedFull(dirFeed, removeUnlistedItems = false)
+                            feeds.add(dirFeed)
+                        } else Logt(TAG, "local feed already exists: $title $uri")
                     }
 
                     val subDirsInThisDir = content.filter { it.isDirectory }
                     if (subDirsInThisDir.isNotEmpty()) {
-                        val v = Volume()
-                        v.id = System.currentTimeMillis()
-                        v.name = directory.name ?: "no name"
-                        v.uriString = directory.uri.toString()
-                        v.parentId = parentId
-                        volumes.add(v)
-                        Logd(TAG, "Created volume: ${v.name} $parentId")
+                        val v: Volume
+                        val vExist = realm.query(Volume::class).query("uriString == $0", directory.uri.toString()).first().find()
+                        if (vExist == null) {
+                            v = Volume()
+                            v.id = System.currentTimeMillis()
+                            v.name = directory.name ?: "no name"
+                            v.uriString = directory.uri.toString()
+                            v.parentId = parentId
+                            volumes.add(v)
+                            Logd(TAG, "Created volume: ${v.name} $parentId")
+                        } else v = realm.copyFromRealm(vExist)
 
                         for (subDir in subDirsInThisDir) traverseDirectory(subDir, v.id)
                     }

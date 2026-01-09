@@ -18,15 +18,6 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 
 ### A fork of [Podcini.R](<https://github.com/XilinJia/Podcini>) as of Jan 13 2025, this project inherits all functionalities of Podcini.R only with the capability of accessing to Youtube stripped off.
 
-### Note:
-
-#### For Podcini to show up on car's HUD with Android Auto, please read AnroidAuto.md for instructions.
-#### If you need to cast to an external speaker or screen, you should install the "play" apk, not the "free" apk, that's about the difference between the two.
-
-Podcini.X requests for permission for unrestricted background activities for uninterrupted background play of a playlist.  For more see [this issue](https://github.com/XilinJia/Podcini.X/issues/88)
-
-If you intend to sync through a server, NextCloud server has been tested, but caution is advised. 
-
 ## Notable features
 
 1. Is fully based on Jetpack Compose, using `media3` with `AudioOffloadMode` enabled (nicer to device battery).
@@ -45,6 +36,15 @@ If you intend to sync through a server, NextCloud server has been tested, but ca
 14. Spotlights `instant sync` across devices without a server.
 15. Offers Readability and Text-to-Speech for RSS contents.
 16. Supports auto-backups, customized media folder and importing DB from other apps
+
+### Note:
+
+#### For Podcini to show up on car's HUD with Android Auto, please read AnroidAuto.md for instructions.
+#### If you need to cast to an external speaker or screen, you should install the "play" apk, not the "free" apk, that's about the difference between the two.
+
+Podcini.X requests for permission for unrestricted background activities for uninterrupted background play of a playlist.  For more see [this issue](https://github.com/XilinJia/Podcini.X/issues/88)
+
+If you intend to sync through a server, NextCloud server has been tested, but caution is advised. 
 
 ## Usage and notable features description 
 <details> <summary>Click to expand</summary>
