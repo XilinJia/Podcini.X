@@ -100,6 +100,7 @@
     <string name="chapter_duration0">期間: </string>
     <string name="description_label">説明</string>
     <string name="transcript">Transcript</string>
+    <string name="show_all_feeds">Show all feeds</string>
     <string name="episodes_suffix">\u0020エピソード</string>
     <string name="close_label">閉じる</string>
     <string name="retry_label">再試行する</string>
@@ -779,6 +780,7 @@
     <string name="has_skips">スキップセット</string>
     <string name="commented">コメント</string>
     <string name="add_comment">コメントを追加（10秒自動保存）</string>
+    <string name="is_local">Is local</string>
     <string name="feed_type">フィードの種類</string>
     <string name="synthetic">シンセティック</string>
     <string name="normal">標準</string>
