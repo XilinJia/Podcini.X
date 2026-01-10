@@ -100,6 +100,7 @@
     <string name="chapter_duration0">المدة: </string>
     <string name="description_label">الوصف</string>
     <string name="transcript">Transcript</string>
+    <string name="show_all_feeds">Show all feeds</string>
     <string name="episodes_suffix">\u0020episodes</string>
     <string name="close_label">أغلق</string>
     <string name="retry_label">إعادة المحاولة</string>
@@ -804,6 +805,7 @@
     <string name="has_skips">تم ضبط التخطي</string>
     <string name="commented">تعليق</string>
     <string name="add_comment">إضافة تعليق (حفظ تلقائي 10s)</string>
+    <string name="is_local">Is local</string>
     <string name="feed_type">نوع التغذية</string>
     <string name="synthetic">اصطناعي</string>
     <string name="normal">عادي</string>
