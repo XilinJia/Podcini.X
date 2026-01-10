@@ -269,7 +269,7 @@ enum class Screens {
     EpisodeInfo,
     Queues,
     Search,
-    OnlineSearch,
+    FindFeeds,
     OnlineFeed,
     TopChartFeeds,
     Logs,
@@ -282,7 +282,7 @@ private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.Facets.name to NavItem(R.drawable.baseline_view_in_ar_24, R.string.facets),
     Screens.Logs.name to NavItem(R.drawable.ic_history, R.string.logs_label),
     Screens.Statistics.name to NavItem(R.drawable.ic_chart_box, R.string.statistics_label),
-    Screens.OnlineSearch.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
+    Screens.FindFeeds.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
 )
 
 fun isValid(fullRoute: String): Boolean {
@@ -359,7 +359,7 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
             val shared = entry.arguments?.getBoolean("shared") ?: false
             OnlineFeedScreen(url, source, shared)
         }
-        composable(Screens.OnlineSearch.name) { OnlineSearchScreen() }
+        composable(Screens.FindFeeds.name) { FindFeedsScreen() }
         composable(Screens.Logs.name) { LogsScreen() }
         composable(Screens.Statistics.name) { StatisticsScreen() }
     }

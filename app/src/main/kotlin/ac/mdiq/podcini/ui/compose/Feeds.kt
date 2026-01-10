@@ -298,8 +298,6 @@ fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.Op
                                     feed.episodes.clear()
                                     updateFeedFull(feed, removeUnlistedItems = false)
                                 }
-                                // TODO: seems not needed
-//                                runOnce(context)
                             }
                         }
                     } catch (e: Throwable) { Logs("OpmlImportSelectionDialog", e) }

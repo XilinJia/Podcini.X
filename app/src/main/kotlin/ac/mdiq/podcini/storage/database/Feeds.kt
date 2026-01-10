@@ -22,6 +22,7 @@ import ac.mdiq.podcini.storage.utils.feedfilePath
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import android.app.backup.BackupManager
 import androidx.compose.runtime.getValue
@@ -168,14 +169,7 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     // Look up feed in the feedslist
     val savedFeed = searchFeedByIdentifyingValueOrID(newFeed, true)
     if (savedFeed == null) {
-        Logd(TAG, "updateFeedFull Found no existing Feed with title ${newFeed.title}. Adding as new one.")
-        Logd(TAG, "updateFeedFull newFeed.episodes: ${newFeed.episodes.size}")
-        newFeed.lastUpdateTime = System.currentTimeMillis()
-        newFeed.lastFullUpdateTime = System.currentTimeMillis()
-        try {
-            addNewFeeds(newFeed)
-            searchFeedByIdentifyingValueOrID(newFeed)
-        } catch (e: Throwable) { Logs(TAG, e, "updateFeedFull failed") }
+        addNewFeed(newFeed)
         return
     }
 
@@ -200,11 +194,15 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     val oldestDate = savedFeed.oldestItem?.pubDate ?: 0L
     val context = getAppContext()
     for (idx in newFeed.episodes.indices) {
-        val episode = newFeed.episodes[idx]
+        var episode = newFeed.episodes[idx]
         if (savedFeed.limitEpisodesCount > 0 && episode.pubDate < oldestDate) continue
 
         val oldItems = savedFeedAssistant.guessDuplicate(episode)
         if (!oldItems.isNullOrEmpty()) {
+            if (oldItems.size > 1) {
+                Loge(TAG, "found duplicate episodes in feed: ${savedFeed.title}")
+                for (e in oldItems) Loge(TAG, "duplicate episode: ${e.title}")
+            }
             if (!newFeed.isLocalFeed) {
 //            Logd(TAG, "updateFeedFull Update existing episode: ${episode.title}")
                 oldItems[0].identifier = episode.identifier
@@ -220,7 +218,7 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
                     SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, action)
                 }
             }
-            oldItems[0].updateFromOther(episode, overwriteStates)
+            upsertBlk(oldItems[0]) { it.updateFromOther(episode, overwriteStates) }
         } else {
             Logd(TAG, "updateFeedFull Found new episode: ${episode.pubDate} ${episode.title}")
             episode.feed = savedFeed
@@ -235,9 +233,8 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
             val pubDate = Date(episode.pubDate)
             if (priorMostRecentDate == null || priorMostRecentDate.before(pubDate) || priorMostRecentDate == pubDate) {
                 Logd(TAG, "updateFeedFull Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
-                episode.setPlayState(EpisodeState.NEW)
+                episode = upsertBlk(episode) { it.setPlayState(EpisodeState.NEW) }
                 if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
-                else upsertBlk(episode) {}
             } else upsertBlk(episode) {}
         }
         if (idx % 50 == 0) Logd(TAG, "updateFeedFull processing item $idx / ${newFeed.episodes.size} ")
@@ -304,7 +301,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
 
     // Look for new or updated Items
     for (idx in newFeed.episodes.indices) {
-        val episode = newFeed.episodes[idx]
+        var episode = newFeed.episodes[idx]
         if (episode.duration < 1000) continue
         val pubDate = Date(episode.pubDate)
         if (pubDate <= priorMostRecentDate || episode.downloadUrl == priorMostRecent?.downloadUrl || episode.title == priorMostRecent?.title) continue
@@ -315,14 +312,12 @@ suspend fun updateFeedSimple(newFeed: Feed) {
         episode.feedId = savedFeed.id
         if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
         if (!savedFeed.hasVideoMedia && episode.getMediaType() == MediaType.VIDEO) savedFeed.hasVideoMedia = true
-        upsertBlk(episode) {}
-//        savedFeed.episodes.add(episode)
 
         if (priorMostRecentDate < pubDate) {
             Logd(TAG, "Marking episode published on $pubDate new, prior most recent date = $priorMostRecentDate")
-            episode.setPlayState(EpisodeState.NEW)
+            episode = upsert(episode) { it.setPlayState(EpisodeState.NEW) }
             if (savedFeed.autoAddNewToQueue && savedFeed.queue != null) runOnIOScope { addToAssQueue(listOf(episode)) }
-        }
+        } else upsert(episode) {}
     }
 
     // update attributes
@@ -370,30 +365,27 @@ fun persistFeedLastUpdateFailed(feed: Feed, lastUpdateFailed: Boolean) : Job {
     }
 }
 
-private fun addNewFeeds(vararg feeds_: Feed) {
+fun addNewFeed(feed: Feed) {
     Logd(TAG, "addNewFeeds called")
+    feed.lastUpdateTime = System.currentTimeMillis()
+    feed.lastFullUpdateTime = System.currentTimeMillis()
     realm.writeBlocking {
         var idLong = newId()
-        for (feed in feeds_) {
-            feed.id = idLong
-            feed.totleDuration = 0
-            Logd(TAG, "feed.episodes count: ${feed.episodes.size}")
-            for (episode in feed.episodes) {
-                episode.id = idLong++
-                Logd(TAG, "addNewFeeds ${episode.id} ${episode.downloadUrl}")
-                episode.feedId = feed.id
-                feed.totleDuration += episode.duration
-                copyToRealm(episode)
-            }
-            copyToRealm(feed)
+        feed.id = idLong
+        feed.totleDuration = 0
+        Logd(TAG, "feed.episodes count: ${feed.episodes.size}")
+        for (episode in feed.episodes) {
+            episode.id = idLong++
+            Logd(TAG, "addNewFeeds ${episode.id} ${episode.downloadUrl}")
+            episode.feedId = feed.id
+            feed.totleDuration += episode.duration
+            copyToRealm(episode)
         }
+        copyToRealm(feed)
     }
     val context = getAppContext()
-    for (feed in feeds_) {
-        if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedAddedIfSyncActive(context, feed.downloadUrl!!)
-    }
-    val backupManager = BackupManager(context)
-    backupManager.dataChanged()
+    if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedAddedIfSyncActive(context, feed.downloadUrl!!)
+    BackupManager(context).dataChanged()
 }
 
 suspend fun deleteFeed(feedId: Long) {

@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.queueToVirtual
 import ac.mdiq.podcini.storage.database.realm
@@ -15,7 +14,6 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.InforBar
@@ -25,7 +23,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatLargeInteger
 import android.annotation.SuppressLint
-import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.foundation.background
@@ -83,22 +80,24 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import io.github.xilinjia.krdb.notifications.ResultsChange
-import kotlinx.coroutines.CoroutineScope
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+import java.text.NumberFormat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
-import java.text.NumberFormat
 
 private var curSearchString by mutableStateOf("")
 fun setSearchTerms(query: String? = null) {
@@ -183,11 +182,13 @@ fun SearchByGrid(exl: Set<SearchBy> = setOf()) {
     }
 }
 
-class SearchVM(val context: Context, val lcScope: CoroutineScope) {
-    internal var automaticSearchDebouncer: Handler
-
+class SearchVM: ViewModel() {
     internal val pafeeds = mutableStateListOf<PAFeed>()
     internal val feeds = mutableStateListOf<Feed>()
+    var episodes = listOf<Episode>()
+
+    val tabTitles = listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds)
+    val selectedTabIndex = mutableIntStateOf(0)
 
     var episodesFlow by mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow())
     var listIdentity by mutableStateOf("")
@@ -198,14 +199,14 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
         Logd(TAG, "init $curSearchString")
         setSearchByAll()
         queryText = curSearchString
-        automaticSearchDebouncer = Handler(Looper.getMainLooper())
+        if (queryText.isNotBlank()) search()
     }
 
     data class Triplet(val episodes:  Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
 
     private var searchJob: Job? = null
     @SuppressLint("StringFormatMatches")
-    internal fun search(query: String) {
+    internal fun search() {
         fun searchFeeds(queryWords: List<String>): List<Feed> {
             val sb = StringBuilder()
             for (i in queryWords.indices) {
@@ -291,21 +292,19 @@ class SearchVM(val context: Context, val lcScope: CoroutineScope) {
             return realm.query(Episode::class).query(queryString).sort(sortPairOf(EpisodeSortOrder.DATE_DESC)).asFlow()
         }
 
-        if (query.isBlank()) return
-        if (searchJob != null) {
-            searchJob?.cancel()
-        }
-        searchJob = lcScope.launch {
+        if (queryText.isBlank()) return
+        val queryText = queryText
+        if (searchJob != null) searchJob?.cancel()
+        searchJob = viewModelScope.launch {
             try {
                 val results_ = withContext(Dispatchers.IO) {
-                    if (query.isEmpty()) Triplet(emptyFlow(), listOf(), listOf())
+                    if (queryText.isEmpty()) Triplet(emptyFlow(), listOf(), listOf())
                     else {
-                        val queryWords = (if (query.contains(",")) query.split(",").map { it.trim() } else query.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
+                        val queryWords = (if (queryText.contains(",")) queryText.split(",").map { it.trim() } else queryText.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
                         listIdentity = "Search.${queryWords.joinToString()}"
                         val items = searchEpisodes(0L, queryWords)
                         val feeds: List<Feed> = searchFeeds(queryWords)
                         val pafeeds = searchPAFeeds(queryWords)
-//                        Logd(TAG, "performSearch items: ${items.size} feeds: ${feeds.size} pafeeds: ${pafeeds.size}")
                         Triplet(items, feeds, pafeeds)
                     }
                 }
@@ -330,7 +329,7 @@ fun SearchScreen() {
     val drawerController = LocalDrawerController.current
 
     val textColor = MaterialTheme.colorScheme.onSurface
-    val vm = remember { SearchVM(context, scope) }
+    val vm: SearchVM = viewModel()
 
     var swipeActions by remember { mutableStateOf(SwipeActions(context, TAG)) }
 
@@ -339,7 +338,6 @@ fun SearchScreen() {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
-                    if (vm.queryText.isNotBlank()) vm.search(vm.queryText)
                 }
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
@@ -350,7 +348,6 @@ fun SearchScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            vm.feeds.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -361,9 +358,10 @@ fun SearchScreen() {
         Box {
             TopAppBar(title = {
                 SearchBarRow(R.string.search_hint, defaultText = vm.queryText) {
+                    if (it.isBlank()) return@SearchBarRow
                     curSearchString = it
                     vm.queryText = it
-                    vm.search(vm.queryText)
+                    vm.search()
                 }
             }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController.open()  }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
@@ -451,13 +449,12 @@ fun SearchScreen() {
     }
 
     val episodesChange by vm.episodesFlow.collectAsStateWithLifecycle(initialValue = null)
-    val episodes = episodesChange?.list ?: emptyList()
-    val infoBarText = remember(episodes) { mutableStateOf("${episodes.size} episodes") }
+    vm.episodes = episodesChange?.list ?: emptyList()
 
+    val infoBarText = remember(vm.episodes) { mutableStateOf("${vm.episodes.size} episodes") }
+    val tabCounts = remember(vm.episodes) { listOf(vm.episodes.size, vm.feeds.size, vm.pafeeds.size) }
     swipeActions.ActionOptionsDialog()
-    val tabTitles = remember { listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds) }
-    val tabCounts = listOf(episodes.size, vm.feeds.size, vm.pafeeds.size)
-    val selectedTabIndex = remember { mutableIntStateOf(0) }
+
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             var showSearchBy by remember { mutableStateOf(false) }
@@ -471,28 +468,27 @@ fun SearchScreen() {
                         return@OutlinedButton
                     }
                     setOnlineSearchTerms(query = query)
-                    navController.navigate(Screens.OnlineSearch.name)
+                    navController.navigate(Screens.FindFeeds.name)
                 }) { Text(stringResource(R.string.search_online)) }
             }
             if (showSearchBy) SearchByGrid()
             Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                tabTitles.forEachIndexed { index, titleRes ->
+                vm.tabTitles.forEachIndexed { index, titleRes ->
                     Tab(modifier = Modifier.wrapContentWidth().padding(horizontal = 2.dp, vertical = 4.dp).background(shape = RoundedCornerShape(8.dp),
-                        color = if (selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }),
-                        selected = selectedTabIndex.intValue == index,
-                        onClick = { selectedTabIndex.intValue = index },
+                        color = if (vm.selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else { Color.Transparent }), selected = vm.selectedTabIndex.intValue == index,
+                        onClick = { vm.selectedTabIndex.intValue = index },
                         text = { Text(text = stringResource(titleRes) + "(${tabCounts[index]})", maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium,
-                            color = if (selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary else { MaterialTheme.colorScheme.onSurface }) }
+                            color = if (vm.selectedTabIndex.intValue == index) MaterialTheme.colorScheme.primary else { MaterialTheme.colorScheme.onSurface }) }
                     )
                 }
             }
-            when (selectedTabIndex.intValue) {
+            when (vm.selectedTabIndex.intValue) {
                 0 -> {
                     InforBar(swipeActions) { Text(infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
-                    EpisodeLazyColumn(episodes, swipeActions = swipeActions,
+                    EpisodeLazyColumn(vm.episodes, swipeActions = swipeActions,
                         actionButtonCB = { e, type ->
                             if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
-                                runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, EpisodeSortOrder.DATE_DESC) }
+                                runOnIOScope { queueToVirtual(e, vm.episodes, vm.listIdentity, EpisodeSortOrder.DATE_DESC) }
                         })
                 }
                 1 -> FeedsColumn()

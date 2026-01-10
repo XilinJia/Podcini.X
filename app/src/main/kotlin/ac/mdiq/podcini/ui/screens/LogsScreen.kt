@@ -437,7 +437,7 @@ fun LogsScreen() {
                                             return@clickable
                                         }
 //                                        FeedUpdateManager.runOnce(context, feed)
-                                        gearbox.feedUpdater(listOf(feed)).startRefresh(context)
+                                        gearbox.feedUpdater(listOf(feed)).startRefresh()
                                     }
                                     Episode.FEEDFILETYPE_FEEDMEDIA -> {
                                         showAction = false

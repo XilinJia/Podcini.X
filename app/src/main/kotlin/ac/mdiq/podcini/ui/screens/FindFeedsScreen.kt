@@ -13,12 +13,12 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
+import ac.mdiq.podcini.storage.database.addNewFeed
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.searchFeedByIdentifyingValueOrID
-import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.model.Volume
@@ -105,7 +105,7 @@ fun setOnlineSearchTerms(searchProvider_: Class<out PodcastSearcher?> = Combined
     searchProvider = searchProvider_.getDeclaredConstructor().newInstance()
 }
 
-class OnlineSearchVM: ViewModel() {
+class FindFeedsVM: ViewModel() {
     internal val searchResults = mutableStateListOf<PodcastSearchResult>()
     internal val readElements = mutableStateListOf<OpmlElement>()
 
@@ -122,14 +122,14 @@ class OnlineSearchVM: ViewModel() {
 }
 
 @Composable
-fun OnlineSearchScreen() {
+fun FindFeedsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
-    val vm: OnlineSearchVM = viewModel()
+    val vm: FindFeedsVM = viewModel()
 
     var showOpmlImportSelectionDialog by remember { mutableStateOf(false) }
     val showOPMLRestoreDialog = remember { mutableStateOf(false) }
@@ -252,7 +252,7 @@ fun OnlineSearchScreen() {
                         if (fExist == null) {
                             dirFeed.volumeId = parentId
                             dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
-                            updateFeedFull(dirFeed, removeUnlistedItems = false)
+                            addNewFeed(dirFeed)
                             feeds.add(dirFeed)
                         } else Logt(TAG, "local feed already exists: $title $uri")
                     }
@@ -277,7 +277,7 @@ fun OnlineSearchScreen() {
 
                 traverseDirectory(documentFile)
                 if (volumes.isNotEmpty()) realm.write { for (v in volumes) copyToRealm(v) }
-                if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds).startRefresh(context)
+                if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds).startRefresh()
                 Logt(TAG, "Imported ${feeds.size} local feeds in ${volumes.size} volumes")
             } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
         }

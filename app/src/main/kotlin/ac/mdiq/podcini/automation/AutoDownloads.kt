@@ -115,10 +115,12 @@ class AutoDownloadAlgorithm {
                         DownloadServiceInterface.impl?.download(context, e)
                     }
                     itemsToDownload.clear()
-                } else Logt(TAG, "Auto download not performed: candidates: ${candidates.size} allowedCount: $allowedCount")
+                } else Logt(TAG, "Auto download not performed, allowed count exceeded: candidates: ${candidates.size} allowedCount: $allowedCount")
                 candidates.clear()
             }
-        } else Logt(TAG, "Auto download not performed: network: ${getApp().networkMonitor.networkAllowAutoDownload} power: $powerShouldAutoDl")
+        } else Logt(TAG, "Auto download not performed: \n" +
+                "network setting allowed: ${getApp().networkMonitor.networkAllowAutoDownload} \n" +
+                "download when not charging setting allowed: $powerShouldAutoDl")
     }
 
     private fun deviceCharging(context: Context): Boolean {

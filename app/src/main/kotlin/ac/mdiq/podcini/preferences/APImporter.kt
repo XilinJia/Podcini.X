@@ -13,12 +13,11 @@ import android.net.Uri
 import androidx.core.database.getIntOrNull
 import androidx.core.database.getStringOrNull
 import io.github.xilinjia.krdb.ext.realmSetOf
-import io.github.xilinjia.krdb.ext.toRealmList
 import io.github.xilinjia.krdb.ext.toRealmSet
+import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.File
 
 fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
     val TAG = "importAP"

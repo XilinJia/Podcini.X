@@ -514,7 +514,7 @@ class MainActivity : BaseActivity() {
             }
             intent.hasExtra(Extras.search_string.name) -> {
                 setOnlineSearchTerms(query = intent.getStringExtra(Extras.search_string.name))
-                setIntentScreen(Screens.OnlineSearch.name)
+                setIntentScreen(Screens.FindFeeds.name)
             }
             intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> isBSExpanded = true
             else -> {

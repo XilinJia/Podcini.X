@@ -450,11 +450,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 expanded = false
                             })
                             if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
-                                gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).startRefresh(context)
+                                gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).startRefresh()
                                 expanded = false
                             })
                             if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                                if (feed != null) gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, true).startRefresh(context)
+                                if (feed != null) gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, true).startRefresh()
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
@@ -515,7 +515,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 Text(stringResource(R.string.feeds_related_to_author), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 10.dp).clickable(onClick = {
                         setOnlineSearchTerms(query = "${feed?.author} podcasts")
-                        navController.navigate(Screens.OnlineSearch.name)
+                        navController.navigate(Screens.FindFeeds.name)
                     }))
                 Text(stringResource(R.string.last_full_update) + ": ${formatDateTimeFlex(Date(feed?.lastFullUpdateTime?:0L))}", modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                 Text(stringResource(R.string.url_label), color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))

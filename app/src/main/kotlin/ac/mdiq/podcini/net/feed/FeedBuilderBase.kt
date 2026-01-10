@@ -6,11 +6,13 @@ import ac.mdiq.podcini.net.download.service.Downloader
 import ac.mdiq.podcini.net.download.service.HttpDownloader
 import ac.mdiq.podcini.net.feed.parser.FeedHandler
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
-import ac.mdiq.podcini.storage.database.updateFeedFull
+import ac.mdiq.podcini.storage.database.addNewFeed
+import ac.mdiq.podcini.storage.database.searchFeedByIdentifyingValueOrID
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import android.content.Context
 import io.github.xilinjia.krdb.ext.toRealmList
@@ -162,7 +164,8 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             item.origFeeddownloadUrl = null
             item.origFeedTitle = null
         }
-        updateFeedFull(feed, removeUnlistedItems = false)
+        if (searchFeedByIdentifyingValueOrID(feed) == null) addNewFeed(feed)
+        else Logt(TAG, "feed already exists: ${feed.title}")
     }
 
     /**

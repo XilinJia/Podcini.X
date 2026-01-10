@@ -40,23 +40,22 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import android.Manifest
 import android.app.Notification
-import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import io.github.xilinjia.krdb.ext.toRealmSet
+import java.io.File
+import java.io.IOException
+import java.util.Date
+import javax.xml.parsers.ParserConfigurationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.xml.sax.SAXException
-import java.io.File
-import java.io.IOException
-import java.util.Date
-import javax.xml.parsers.ParserConfigurationException
 
 open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false) {
     protected val TAG = "FeedUpdaterBase"
@@ -70,7 +69,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
     var force = false
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    fun startRefresh(context: Context) {
+    fun startRefresh() {
         Logd(TAG, "startRefresh doItAnyway: $doItAnyway")
         val ready = prepare()
         if (!ready) {
@@ -196,7 +195,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             addDownloadStatus(downloader.result)
             return
         }
-        val feedUpdateTask = FeedUpdateTask(context, request)
+        val feedUpdateTask = FeedUpdateTask(request)
         val success = if (fullUpdate) feedUpdateTask.run() else feedUpdateTask.runSimple()
         if (!success) {
             Logt(TAG, "refreshFeed: feed update failed: unsuccessful: ${feed.title}")
@@ -295,9 +294,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         @Throws(InvalidFeedException::class)
         private fun checkFeedData(feed: Feed) {
             if (feed.title == null) throw InvalidFeedException("Feed has no title")
-            for (item in feed.episodes) {
-                if (item.title == null) throw InvalidFeedException("Item has no title: $item")
-            }
+            for (item in feed.episodes) if (item.title == null) throw InvalidFeedException("Item has no title: $item")
         }
 
         /**
@@ -310,7 +307,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         }
     }
 
-    class FeedUpdateTask(private val context: Context, request: DownloadRequest) {
+    class FeedUpdateTask(request: DownloadRequest) {
         private val task = FeedParserTask(request)
         private var feedHandlerResult: FeedHandlerResult? = null
         val downloadStatus: DownloadResult

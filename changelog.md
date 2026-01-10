@@ -1,3 +1,12 @@
+# 10.4.3
+
+* fixed feed full update not updating old episodes
+* fixed crash on on adding to queue after feed updates
+* amended Search screen for better returns
+* clarified toasts on unperformed auto-downloads
+* added toast for unhandled feed uri
+* some code refactoring
+
 # 10.4.2
 
 * fixed remove volume getting interrupted

@@ -129,7 +129,7 @@ fun queueEntriesOf(queue: PlayQueue): List<QueueEntry> {
 }
 
 suspend fun addToAssQueue(episodes: List<Episode>) {
-    Logd(TAG, "addToQueueSync( ... ) called")
+    Logd(TAG, "addToAssQueue( ... ) called")
     val mapByFeed = episodes.groupBy { it.feedId }
     for (en in mapByFeed.entries) {
         val fid = en.key ?: continue
@@ -141,7 +141,7 @@ suspend fun addToAssQueue(episodes: List<Episode>) {
 }
 
 suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
-    Logd(TAG, "addToQueueSync( ... ) called")
+    Logd(TAG, "addToQueue( ... ) called")
     if (queue.isVirtual()) {
         Loge(TAG, "Current queue is virtual, ignored")
         return
@@ -156,7 +156,7 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
                 qes = queueEntriesOf(queue)
                 calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), (if (queue.id == actQueue.id) curEpisode else null))
             }
-            Logd(TAG, "addToQueueSync insertPosition: $insertPosition")
+            Logd(TAG, "addToQueue insertPosition: $insertPosition")
             val qe = QueueEntry().apply {
                 id = time + i++
                 queueId = queue.id

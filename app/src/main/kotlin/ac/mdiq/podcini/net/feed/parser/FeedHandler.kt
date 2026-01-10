@@ -9,7 +9,9 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.FeedFunding
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
 import androidx.core.text.HtmlCompat
 import java.io.File
 import java.io.FileNotFoundException
@@ -77,26 +79,25 @@ class FeedHandler {
                             }
                             RSS_ROOT -> {
                                 val strVersion = xpp.getAttributeValue(null, "version")
+//                                Logd(TAG, "getType strVersion $strVersion")
                                 when (strVersion) {
                                     null -> {
                                         feed.type = Feed.FeedType.RSS.name
-                                        Logd(TAG, "getType Assuming type RSS 2.0")
                                         return Type.RSS20
                                     }
                                     "2.0" -> {
                                         feed.type = Feed.FeedType.RSS.name
-                                        Logd(TAG, "getType Recognized type RSS 2.0")
                                         return Type.RSS20
                                     }
-                                    "0.91", "0.92" -> {
-                                        Logd(TAG, "getType Recognized type RSS 0.91/0.92")
-                                        return Type.RSS091
+                                    "0.91", "0.92" -> return Type.RSS091
+                                    else -> {
+                                        Loge(TAG, "getType Unsupported rss version")
+                                        throw UnsupportedFeedtypeException("Unsupported rss version")
                                     }
-                                    else -> throw UnsupportedFeedtypeException("Unsupported rss version")
                                 }
                             }
                             else -> {
-                                Logd(TAG, "getType Type is invalid")
+                                Loge(TAG, "getType Type is invalid")
                                 throw UnsupportedFeedtypeException(Type.INVALID, tag)
                             }
                         }
@@ -104,7 +105,8 @@ class FeedHandler {
                         // Apparently exception happens on some devices...
                         try { eventType = xpp.next() } catch (e: RuntimeException) {
                             Logs(TAG, e, "Unable to get type")
-                            throw UnsupportedFeedtypeException("Unable to get type") }
+                            throw UnsupportedFeedtypeException("Unable to get type")
+                        }
                     }
                 }
             } catch (e: XmlPullParserException) {
@@ -117,11 +119,7 @@ class FeedHandler {
                 } catch (e1: IOException) { Logs(TAG, e1, "IOException: " + feed.fileUrl) }
                 throw UnsupportedFeedtypeException(Type.INVALID, rootElement)
             } catch (e: IOException) { Logs(TAG, e, "IOException: " + feed.fileUrl)
-            } finally {
-                if (reader != null) {
-                    try { reader.close() } catch (e: IOException) { Logs(TAG, e, "IOException: $reader") }
-                }
-            }
+            } finally { if (reader != null) try { reader.close() } catch (e: IOException) { Logs(TAG, e, "IOException: $reader") } }
         }
         Logd(TAG, "getType Type is invalid")
         throw UnsupportedFeedtypeException(Type.INVALID)
@@ -142,9 +140,7 @@ class FeedHandler {
 
         companion object {
             fun fromName(name: String): Type {
-                for (t in entries) {
-                    if (t.name == name) return t
-                }
+                for (t in entries) if (t.name == name) return t
                 return INVALID
             }
         }
@@ -159,7 +155,6 @@ class FeedHandler {
          * Contains links to related feeds, e.g. feeds with enclosures in other formats. The key of the map is the
          * URL of the feed, the value is the title
          */
-        
         val alternateUrls: MutableMap<String, String> = mutableMapOf()
         
         var redirectUrl: String? = null
@@ -174,19 +169,16 @@ class FeedHandler {
         /**
          * Namespaces that have been defined so far.
          */
-        
         val namespaces: MutableMap<String, Namespace> = mutableMapOf()
         
         val defaultNamespaces: Stack<Namespace> = Stack()
         /**
          * Buffer for saving characters.
          */
-        
         var contentBuf: StringBuilder? = null
         /**
          * Temporarily saved objects.
          */
-        
         val tempObjects: MutableMap<String, Any> = mutableMapOf()
         /**
          * Returns the SyndElement that comes after the top element of the tagstack.
@@ -216,7 +208,6 @@ class FeedHandler {
 
     /** Superclass for all SAX Handlers which process Syndication formats  */
     class SyndHandler(feed: Feed, type: Type) : DefaultHandler() {
-        
         val state: HandlerState = HandlerState(feed)
 
         init {
@@ -253,41 +244,21 @@ class FeedHandler {
         override fun startPrefixMapping(prefix: String, uri: String) {
             // Find the right namespace
             if (!state.namespaces.containsKey(uri)) {
+//                Logd(TAG, "startPrefixMapping prefix: $prefix uri: $uri")
                 when {
                     uri == Atom.NSURI -> {
                         when (prefix) {
                             DEFAULT_PREFIX -> state.defaultNamespaces.push(Atom())
-                            Atom.NSTAG -> {
-                                state.namespaces[uri] = Atom()
-//                                Logd(TAG, "startPrefixMapping Recognized Atom namespace")
-                            }
+                            Atom.NSTAG -> state.namespaces[uri] = Atom()
                         }
                     }
-                    uri == Content.NSURI && prefix == Content.NSTAG -> {
-                        state.namespaces[uri] = Content()
-//                        Logd(TAG, "startPrefixMapping Recognized Content namespace")
-                    }
-                    uri == Itunes.NSURI && prefix == Itunes.NSTAG -> {
-                        state.namespaces[uri] = Itunes()
-//                        Logd(TAG, "startPrefixMapping Recognized ITunes namespace")
-                    }
-                    uri == SimpleChapters.NSURI && prefix.matches(SimpleChapters.NSTAG.toRegex()) -> {
-                        state.namespaces[uri] = SimpleChapters()
-//                        Logd(TAG, "startPrefixMapping Recognized SimpleChapters namespace")
-                    }
-                    uri == Media.NSURI && prefix == Media.NSTAG -> {
-                        state.namespaces[uri] = Media()
-//                        Logd(TAG, "startPrefixMapping Recognized media namespace")
-                    }
-                    uri == DublinCore.NSURI && prefix == DublinCore.NSTAG -> {
-                        state.namespaces[uri] = DublinCore()
-//                        Logd(TAG, "startPrefixMapping Recognized DublinCore namespace")
-                    }
-                    uri == PodcastIndex.NSURI || uri == PodcastIndex.NSURI2 && prefix == PodcastIndex.NSTAG -> {
-                        state.namespaces[uri] = PodcastIndex()
-//                        Logd(TAG, "startPrefixMapping Recognized PodcastIndex namespace")
-                    }
-                    else -> Logd(TAG, "startPrefixMapping can not handle uri: $uri")
+                    uri == Content.NSURI && prefix == Content.NSTAG -> state.namespaces[uri] = Content()
+                    uri == Itunes.NSURI && prefix == Itunes.NSTAG -> state.namespaces[uri] = Itunes()
+                    uri == SimpleChapters.NSURI && prefix.matches(SimpleChapters.NSTAG.toRegex()) -> state.namespaces[uri] = SimpleChapters()
+                    uri == Media.NSURI && prefix == Media.NSTAG -> state.namespaces[uri] = Media()
+                    uri == DublinCore.NSURI && prefix == DublinCore.NSTAG -> state.namespaces[uri] = DublinCore()
+                    uri == PodcastIndex.NSURI || uri == PodcastIndex.NSURI2 && prefix == PodcastIndex.NSTAG -> state.namespaces[uri] = PodcastIndex()
+                    else -> Logt(TAG, "startPrefixMapping can not handle uri: $uri")
                 }
             }
         }
@@ -577,8 +548,7 @@ class FeedHandler {
         }
 
         override fun handleElementEnd(localName: String, state: HandlerState) {
-            if (ENCODED == localName && state.contentBuf != null)
-                state.currentItem?.setDescriptionIfLonger(state.contentBuf.toString())
+            if (ENCODED == localName && state.contentBuf != null) state.currentItem?.setDescriptionIfLonger(state.contentBuf.toString())
         }
 
         companion object {

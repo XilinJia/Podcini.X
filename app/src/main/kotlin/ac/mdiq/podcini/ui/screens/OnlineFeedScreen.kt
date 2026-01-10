@@ -41,7 +41,6 @@ import android.app.Dialog
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -581,7 +580,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 Text(stringResource(R.string.feeds_related_to_author), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 10.dp).clickable(onClick = {
                         setOnlineSearchTerms(query = "${vm.feed?.author} podcasts")
-                        navController.navigate(Screens.OnlineSearch.name)
+                        navController.navigate(Screens.FindFeeds.name)
                     }))
                 LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     items(vm.relatedFeeds.size) { index ->
