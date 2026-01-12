@@ -384,7 +384,10 @@ private fun calcPosition(queueEntries: List<QueueEntry>, loc: EnqueueLocation, c
     return when (loc) {
         EnqueueLocation.BACK -> queueEntries[size-1].position + QUEUE_POSITION_DELTA
         EnqueueLocation.FRONT -> QUEUE_POSITION_DELTA / 2
-        EnqueueLocation.AFTER_CURRENTLY_PLAYING -> queueEntries[getCurrentlyPlayingPosition()].position + QUEUE_POSITION_DELTA / 2
+        EnqueueLocation.AFTER_CURRENTLY_PLAYING -> {
+            val curPlayPos = getCurrentlyPlayingPosition()
+            if (curPlayPos in 0..<size) queueEntries[curPlayPos].position + QUEUE_POSITION_DELTA / 2 else QUEUE_POSITION_DELTA / 2
+        }
         EnqueueLocation.RANDOM -> queueEntries[Random.nextInt(queueEntries.size)].position + QUEUE_POSITION_DELTA / 2
     }
 }

@@ -1259,8 +1259,8 @@ fun SubscriptionsScreen() {
                                             val downlaodedSortIndex = if (vm.subPrefs.downlaodedSortIndex != i) i else  -1
                                             upsert(vm.subPrefs) { it.downlaodedSortIndex = downlaodedSortIndex }
                                             downloadedQuery = when (downlaodedSortIndex) {
-                                                0 -> " downloaded == true "
-                                                1 -> " downloaded == false "
+                                                0 -> " fileUrl != nil "
+                                                1 -> " fileUrl == nil "
                                                 else -> ""
                                             }
                                             prepareCountSort()

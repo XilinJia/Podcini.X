@@ -1,0 +1,5 @@
+* when creating a new local feed, it's set to not auto-refresh
+* fixed crash when fetching episodes sizes on a local feed
+* fixed crash when adding item to queue at position after currently playing when there is no currently playing in the queue
+* amended LocalFeedUpdater and fixed existing items possibly not updated
+* made queue name on topbar of Queues screen a bit narrower

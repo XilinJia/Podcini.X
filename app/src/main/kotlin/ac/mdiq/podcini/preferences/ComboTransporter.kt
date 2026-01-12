@@ -173,7 +173,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             if (move) {
                 upsertBlk(episode) {
                     it.fileUrl = destFile.uri.toString()
-                    it.setIsDownloaded()
+                    it.downloaded = true
                 }
             }
         }
@@ -219,7 +219,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             if (!onlyUpdateDB) copyFile(srcFile, destFile, context, move)
             upsertBlk(episode) {
                 it.fileUrl = destFile.uri.toString()
-                it.setIsDownloaded()
+                it.downloaded = true
             }
         }
     }
@@ -267,7 +267,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 upsertBlk(episode) {
                     it.fileUrl = Uri.fromFile(destFile).toString()
                     Logd(TAG, "copyRecursiveDF fileUrl: ${it.fileUrl}")
-                    it.setIsDownloaded()
+                    it.downloaded = true
                 }
             }
         }
@@ -321,7 +321,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 upsertBlk(episode) {
                     it.fileUrl = Uri.fromFile(destFile).toString()
                     Logd(TAG, "copyRecursiveDF fileUrl: ${it.fileUrl}")
-                    it.setIsDownloaded()
+                    it.downloaded = true
                 }
             }
         }

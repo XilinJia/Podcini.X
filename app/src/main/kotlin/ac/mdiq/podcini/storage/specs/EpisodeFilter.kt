@@ -113,8 +113,8 @@ class EpisodeFilter(vararg properties_: String, var andOr: String = "AND") : Ser
             propertySet.contains(States.not_paused.name) -> statements.add(" position == 0 ")
         }
         when {
-            propertySet.contains(States.downloaded.name) -> statements.add("downloaded == true ")
-            propertySet.contains(States.not_downloaded.name) -> statements.add("downloaded == false ")
+            propertySet.contains(States.downloaded.name) -> statements.add("fileUrl != nil ")
+            propertySet.contains(States.not_downloaded.name) -> statements.add("fileUrl == nil ")
         }
         when {
             propertySet.contains(States.auto_downloadable.name) -> statements.add("isAutoDownloadEnabled == true ")

@@ -291,7 +291,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                 }
                 val broadcastUnreadStateUpdate = item.isNew
                 item = upsertBlk(item) {
-                    it.setIsDownloaded()
+                    it.downloaded = true
                     it.setfileUrlOrNull(request.destination)
                     Logd(TAG, "run() set request.destination: ${request.destination}")
                     if (!request.destination.isNullOrBlank()) {

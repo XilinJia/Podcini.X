@@ -252,6 +252,7 @@ fun FindFeedsScreen() {
                         if (fExist == null) {
                             dirFeed.volumeId = parentId
                             dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
+                            dirFeed.keepUpdated = false
                             addNewFeed(dirFeed)
                             feeds.add(dirFeed)
                         } else Logt(TAG, "local feed already exists: $title $uri")

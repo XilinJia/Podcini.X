@@ -1,3 +1,14 @@
+# 10.4.4
+
+* when creating a new local feed, it's set to not auto-refresh
+* in Episode, downloaded is no longer a persisted property, but a delegate of fileUrl being not null
+* in Facets, reconcile no longer needs to check downloaded vs file existed
+* fixed crash when fetching episodes sizes on a local feed
+* fixed crash when adding item to queue at position after currently playing when there is no currently playing in the queue
+	* in such situation, default the position to the front of the queue
+* amended LocalFeedUpdater and fixed existing items possibly not updated
+* made queue name on topbar of Queues screen a bit narrower
+
 # 10.4.3
 
 * fixed feed full update not updating old episodes

@@ -414,7 +414,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                                         it.mimeType = "audio/*"
                                         it.fileUrl = Uri.fromFile(mediaFile).toString()
                                         it.duration = durationMs
-                                        it.setIsDownloaded()
+                                        it.downloaded = true
                                         it.setTranscriptIfLonger(readerText)
                                     }
                                 }

@@ -444,20 +444,8 @@ fun FacetsScreen() {
             }
             Logd(TAG, "reconcile: end, episodes missing file: ${nameEpisodeMap.size}")
             if (nameEpisodeMap.isNotEmpty()) for (e in nameEpisodeMap.values) upsertBlk(e) { it.setfileUrlOrNull(null) }
-            var count = nameEpisodeMap.size
+            val count = nameEpisodeMap.size
             nameEpisodeMap.clear()
-            realm.write {
-                while (true) {
-                    val el = query(Episode::class, "fileUrl != nil AND downloaded == false LIMIT(50)").find()
-                    if (el.isEmpty()) break
-                    Logd(TAG, "batch processing episodes not downloaded with fileUrl not null $count")
-                    el.forEach { e ->
-                        count++
-                        e.setfileUrlOrNull(null)
-//                        copyToRealm(e, UpdatePolicy.ALL)
-                    }
-                }
-            }
             Logt(TAG, "Episodes reconciled: $count\nFiles removed: ${filesRemoved.size}")
             realm.write {
                 val el = query(Episode::class, "feedId == nil").find()

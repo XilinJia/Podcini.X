@@ -798,7 +798,7 @@ private fun getStatistics(timeFrom: Long, timeTo: Long, feedId: Long = 0L, forDL
         else -> getStatsQueryText(timeFrom, timeTo)
     }
     val queryString = when {
-        forDL -> "downloaded == true"
+        forDL -> "fileUrl != nil"
         feedId != 0L -> "feedId == $feedId AND ($qs2)"
         else -> "($qs2)"
     }

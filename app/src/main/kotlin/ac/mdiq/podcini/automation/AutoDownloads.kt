@@ -86,7 +86,7 @@ class AutoDownloadAlgorithm {
                 for (q in queues) {
                     if (q.autoDownloadEpisodes) {
                         val eids = queueEntriesOf(q).map { it.episodeId }
-                        val queueItems = realm.query(Episode::class).query("id IN $0 AND downloaded == false", eids).find()
+                        val queueItems = realm.query(Episode::class).query("id IN $0 AND fileUrl == nil", eids).find()
                         Logd(TAG, "run add from queue: ${q.name} ${queueItems.size}")
                         if (queueItems.isNotEmpty()) queueItems.forEach { if (!prefStreamOverDownload || it.feed?.prefStreamOverDownload != true) candidates.add(it) }
                     }
@@ -194,7 +194,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                     allowedDLCount -= es.size
                 }
             }
-            var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND downloaded == false"
+            var queryString = "feedId == ${f.id} AND isAutoDownloadEnabled == true AND fileUrl == nil"
             if (allowedDLCount > 0 || f.autoDLPolicy.replace) {
                 f.autoDownloadFilter?.queryString()?.let { if (it.isNotBlank()) queryString += " AND $it " }
                 when (f.autoDLPolicy) {

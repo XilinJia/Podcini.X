@@ -198,7 +198,13 @@ class Episode : RealmObject {
 
     var downloadUrl: String? = null
 
-    var downloaded: Boolean = false
+    @Ignore
+    var downloaded: Boolean
+        get() = fileUrl != null
+        set(value) {
+            if (value) downloadTime = Date().time
+            if (isNew) setPlayed(false)
+        }
 
     var downloadTime: Long = 0
 
@@ -514,8 +520,7 @@ class Episode : RealmObject {
         this.lastPlayedTime = lastPlayedTime
         setfileUrlOrNull(fileUrl)
         this.downloadUrl = downloadUrl
-        if (downloaded) setIsDownloaded()
-        else this.downloaded = false
+        this.downloaded = downloaded
     }
 
     fun fillMedia(downloadUrl: String?, size: Long, mimeType: String?) {
@@ -556,11 +561,11 @@ class Episode : RealmObject {
 //        return false
 //    }
 
-    fun setIsDownloaded() {
-        downloaded = true
-        downloadTime = Date().time
-        if (isNew) setPlayed(false)
-    }
+//    fun setIsDownloaded() {
+//        downloaded = true
+//        downloadTime = Date().time
+//        if (isNew) setPlayed(false)
+//    }
 
     fun setfileUrlOrNull(url: String?) {
         fileUrl = url
@@ -700,7 +705,7 @@ class Episode : RealmObject {
 
             var size_ = CHECKED_ON_SIZE_BUT_UNKNOWN.toLong()
             when {
-                downloaded -> {
+                fileUrl != null -> {
                     val url = fileUrl
                     if (!url.isNullOrEmpty()) size_ = fileSize() ?: 0
                 }
