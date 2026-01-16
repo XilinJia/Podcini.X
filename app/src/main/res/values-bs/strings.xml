@@ -488,6 +488,8 @@
     <string name="pref_parent_volume_sum">The volume to which the feed belongs</string>
     <string name="pref_fallback_speed">Fallback speed</string>
     <string name="pref_speed_forward">Fast forward speed</string>
+    <string name="pref_forward_speed_sum">Customize the speed to speed forward when the forward button is long-pressed</string>
+    <string name="pref_speed_skip">Fast skip speed</string>
     <string name="pref_speed_forward_sum">Customize the speed to speed forward when the skip button is clicked</string>
     <string name="pref_fallback_speed_sum">Customize the speed when the play button is long pressed</string>
     <string name="pref_fast_forward">Fast forward skip time</string>
@@ -759,10 +761,6 @@
     <string name="True_Crime">True Crime</string>
     <string name="TV_Film">TV Film</string>
     <string name="All">All</string>
-    <string name="discover_is_hidden">You selected to hide suggestions.</string>
-    <string name="discover_more">more »</string>
-    <string name="discover_powered_by_itunes">Suggestions by Apple Podcasts</string>
-    <string name="discover_confirm">Show suggestions</string>
     <string name="search_powered_by">Results by %1$s</string>
     <string name="select_country">Select country</string>
     <string name="country">Country</string>
