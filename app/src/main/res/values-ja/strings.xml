@@ -484,6 +484,8 @@
     <string name="pref_parent_volume_sum">The volume to which the feed belongs</string>
     <string name="pref_fallback_speed">フォールバック速度</string>
     <string name="pref_speed_forward">早送り速度</string>
+    <string name="pref_forward_speed_sum">Customize the speed to speed forward when the forward button is long-pressed</string>
+    <string name="pref_speed_skip">Fast skip speed</string>
     <string name="pref_speed_forward_sum">スキップボタンをクリックしたときのスピードを変更する</string>
     <string name="pref_fallback_speed_sum">再生ボタンを長押ししたときのスピードをカスタマイズする</string>
     <string name="pref_fast_forward">早送り時間をスキップ</string>
@@ -749,10 +751,6 @@
     <string name="True_Crime">True Crime</string>
     <string name="TV_Film">TV Film</string>
     <string name="All">All</string>
-    <string name="discover_is_hidden">候補を非表示にするように選択しました。</string>
-    <string name="discover_more">more »</string>
-    <string name="discover_powered_by_itunes">Apple Podcast による提案</string>
-    <string name="discover_confirm">候補を表示</string>
     <string name="search_powered_by">%1$s の結果</string>
     <string name="select_country">国を選択</string>
     <string name="country">Country</string>
