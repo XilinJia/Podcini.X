@@ -18,6 +18,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPrefOrNull
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
+import ac.mdiq.podcini.preferences.AppPreferences.skipforwardSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
@@ -357,6 +358,16 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                             else -> it
                         }
                         speedforwardSpeed = round(10 * speed_) / 10
+                    }
+                    HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
+                    Text(stringResource(R.string.pref_speed_skip), style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold)
+                    SpeedSetter(skipforwardSpeed, maxSpeed = 10f) {
+                        val speed_ = when {
+                            it < 0.0f -> 0.0f
+                            it > 10.0f -> 10.0f
+                            else -> it
+                        }
+                        skipforwardSpeed = round(10 * speed_) / 10
                     }
                 }
             }

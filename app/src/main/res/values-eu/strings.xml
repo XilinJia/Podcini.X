@@ -456,10 +456,10 @@
     <string name="advanced">Aurreratua</string>
     <string name="discover">Aurkitu</string>
   <string name="discover_hide">Ezkutatu</string>
-  <string name="discover_is_hidden">Iradokizunak ezkutatzea erabaki duzu.</string>
-  <string name="discover_more">gehiago »</string>
-  <string name="discover_powered_by_itunes">Apple Podcasts-en iradokizunak</string>
-  <string name="discover_confirm">Erakutsi iradokizunak</string>
+
+
+
+
   <string name="search_powered_by">%1$s -ren emaitzak</string>
   <string name="select_country">Hautatu herrialdea</string>
   <!--Local feeds-->

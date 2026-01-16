@@ -621,10 +621,10 @@
     <string name="advanced">Lanjutan</string>
     <string name="discover">Temukan</string>
     <string name="discover_hide">Sembunyikan</string>
-    <string name="discover_is_hidden">Anda memilih untuk menyembunyikan saran.</string>
-    <string name="discover_more">lebih »</string>
-    <string name="discover_powered_by_itunes">Saran dilansir dari Apple Podcasts</string>
-    <string name="discover_confirm">Tampilkan saran</string>
+
+
+
+
     <string name="search_powered_by">Hasil dari %1$s</string>
     <string name="select_country">Pilih negara</string>
     <!-- Local feeds -->

@@ -6,10 +6,10 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUrlNotFoundException
-import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
-import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
-import ac.mdiq.podcini.net.feed.searcher.PodcastSearcherRegistry
-import ac.mdiq.podcini.net.utils.HtmlToPlainText
+import ac.mdiq.podcini.net.feed.CombinedSearcher
+import ac.mdiq.podcini.net.feed.PodcastSearchResult
+import ac.mdiq.podcini.net.feed.PodcastSearcherRegistry
+import ac.mdiq.podcini.ui.utils.HtmlToPlainText
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.AppPreferences.isAutodownloadEnabled
 import ac.mdiq.podcini.storage.database.getFeed

@@ -626,10 +626,10 @@
     <string name="advanced">Avanceret</string>
     <string name="discover">Opdag</string>
     <string name="discover_hide">Skjul</string>
-    <string name="discover_is_hidden">Du valgte at skjule forslag.</string>
-    <string name="discover_more">mere »</string>
-    <string name="discover_powered_by_itunes">Forslag fra Apple Podcasts</string>
-    <string name="discover_confirm">Vis forslag</string>
+
+
+
+
     <string name="search_powered_by">Resultater fra %1$s</string>
     <string name="select_country">Vælg land</string>
     <!-- Local feeds -->

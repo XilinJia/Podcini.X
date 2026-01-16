@@ -2,6 +2,7 @@ package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
+import ac.mdiq.podcini.preferences.developerEmail
 import ac.mdiq.podcini.storage.utils.getDataFolder
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTheme
@@ -144,7 +145,7 @@ class BugReportActivity : ComponentActivity() {
 
     private fun sendEmail() {
         val emailIntent = Intent(Intent.ACTION_SEND).apply {
-            putExtra(Intent.EXTRA_EMAIL, arrayOf("xilin.vw@gmail.com"))
+            putExtra(Intent.EXTRA_EMAIL, arrayOf(developerEmail))
             putExtra(Intent.EXTRA_SUBJECT, "Podcini issue")
             putExtra(Intent.EXTRA_TEXT, crashDetailsTextView)
             setType("message/rfc822")

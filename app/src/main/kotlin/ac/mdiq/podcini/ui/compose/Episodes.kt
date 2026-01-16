@@ -140,8 +140,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -160,7 +158,6 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Date
-import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -474,7 +471,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
                 dismissButton = { TextButton(onClick = { markToRemove = 0L }) { Text(stringResource(R.string.cancel_label)) } }
             )
         }
-        Text(stringResource(R.string.marks), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp))
+        Text(stringResource(R.string.marks), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 5.dp, bottom = 5.dp))
         FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
             episode.marks.forEach { mark ->
                 FilterChip(onClick = {
@@ -507,7 +504,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
                 dismissButton = { TextButton(onClick = { cliptToRemove = "" }) { Text(stringResource(R.string.cancel_label)) } }
             )
         }
-        Text(stringResource(R.string.clips), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp))
+        Text(stringResource(R.string.clips), style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 5.dp, bottom = 5.dp))
         FlowRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(15.dp)) {
             episode.clips.forEach { clip ->
                 FilterChip(onClick = {
@@ -529,7 +526,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = MaterialTheme.colorScheme.tertiary
         val context = LocalContext.current
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)) {
             Text(stringResource(R.string.chapters_label))
             var curChapterIndex by remember { mutableIntStateOf(-1) }
             for (index in chapters.indices) {
@@ -550,24 +547,6 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
                 }
             }
         }
-    }
-    fun generateWebViewStyle(context: Context, colorPrimary: Color, colorAccent: Color, marginDp: Dp, density: Density): String {
-        val marginPx = with(density) { marginDp.toPx() }.toInt()
-        val styleTemplate = try { context.assets.open("shownotes-style.css").use { stream -> stream.bufferedReader().use { it.readText() } }
-        } catch (e: Exception) { "" }
-        fun Color.toCssRgba(): String {
-            val r = (red * 255).toInt()
-            val g = (green * 255).toInt()
-            val b = (blue * 255).toInt()
-            return "rgba($r, $g, $b, $alpha)"
-        }
-        return String.format(
-            Locale.US,
-            styleTemplate,
-            colorPrimary.toCssRgba(),
-            colorAccent.toCssRgba(),
-            marginPx, marginPx, marginPx, marginPx
-        )
     }
     AndroidView(modifier = Modifier.fillMaxSize(), factory = { context ->
         ShownotesWebView(context).apply {

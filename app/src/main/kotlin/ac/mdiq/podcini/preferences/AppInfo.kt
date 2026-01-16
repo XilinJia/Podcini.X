@@ -4,6 +4,8 @@ import android.content.Context
 
 const val githubAddress = "https://github.com/XilinJia/Podcini.X/"
 
+const val developerEmail = "xilin.vw@gmail.com"
+
 fun getCopyrightNoticeText(context: Context): String {
     var copyrightNoticeText = ""
     val packageHash = context.packageName.hashCode()

@@ -2,7 +2,7 @@ package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
+import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.storage.database.createSynthetic

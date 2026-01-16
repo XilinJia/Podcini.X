@@ -12,6 +12,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.prefStreamOverDownload
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
+import ac.mdiq.podcini.preferences.AppPreferences.skipforwardSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.speedforwardSpeed
 import ac.mdiq.podcini.preferences.AppPreferences.streamingCacheSizeMB
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
@@ -28,7 +29,6 @@ import ac.mdiq.podcini.ui.compose.TitleSummarySwitchPrefRow
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.Logd
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -107,48 +107,60 @@ fun PlaybackScreen(activity: PreferenceActivity) {
                 Text("", color = textColor, style = MaterialTheme.typography.bodySmall)
             }
         }
-        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.pref_rewind), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                NumberEditor(rewindSecs, modifier = Modifier.weight(0.6f)) { rewindSecs = it }
-            }
-            Text(stringResource(R.string.pref_rewind_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
-        }
-        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.pref_fast_forward), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                NumberEditor(fastForwardSecs, modifier = Modifier.weight(0.6f)) { fastForwardSecs = it }
-            }
-            Text(stringResource(R.string.pref_fast_forward_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
-        }
-        var showSpeedDialog by remember { mutableStateOf(false) }
-        if (showSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = prefPlaybackSpeed, maxSpeed = 3f, isGlobal = true,
-            onDismiss = { showSpeedDialog = false }) { speed -> putPref(AppPrefs.prefPlaybackSpeed, speed.toString()) }
-        TitleSummaryActionColumn(R.string.playback_speed, R.string.pref_playback_speed_sum) { showSpeedDialog = true }
-        var showFBSpeedDialog by remember { mutableStateOf(false) }
-        if (showFBSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = fallbackSpeed, maxSpeed = 3f, isGlobal = true,
-            onDismiss = { showFBSpeedDialog = false }) { speed ->
-            Logd("PlaybackPreferencesScreen", "speed: $speed")
-            val speed_ = when {
-                speed < 0.0f -> 0.0f
-                speed > 3.0f -> 3.0f
-                else -> speed
-            }
-            fallbackSpeed = round(100 * speed_) / 100f
-        }
-        TitleSummaryActionColumn(R.string.pref_fallback_speed, R.string.pref_fallback_speed_sum) { showFBSpeedDialog = true }
-        var showFFSpeedDialog by remember { mutableStateOf(false) }
-        if (showFFSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = speedforwardSpeed, maxSpeed = 10f, isGlobal = true,
-            onDismiss = { showFFSpeedDialog = false }) { speed ->
-            val speed_ = when {
-                speed < 0.0f -> 0.0f
-                speed > 10.0f -> 10.0f
-                else -> speed
-            }
-            speedforwardSpeed = round(10 * speed_) / 10
-        }
-        TitleSummaryActionColumn(R.string.pref_speed_forward, R.string.pref_speed_forward_sum) { showFFSpeedDialog = true }
-        TitleSummarySwitchPrefRow(R.string.pref_skip_silence_title, R.string.pref_skip_silence_sum, AppPrefs.prefSkipSilence)
+
+//        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+//            Row(verticalAlignment = Alignment.CenterVertically) {
+//                Text(stringResource(R.string.pref_rewind), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+//                NumberEditor(rewindSecs, modifier = Modifier.weight(0.6f)) { rewindSecs = it }
+//            }
+//            Text(stringResource(R.string.pref_rewind_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+//        }
+//        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, top = 10.dp)) {
+//            Row(verticalAlignment = Alignment.CenterVertically) {
+//                Text(stringResource(R.string.pref_fast_forward), color = textColor, style = CustomTextStyles.titleCustom, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+//                NumberEditor(fastForwardSecs, modifier = Modifier.weight(0.6f)) { fastForwardSecs = it }
+//            }
+//            Text(stringResource(R.string.pref_fast_forward_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
+//        }
+//        var showSpeedDialog by remember { mutableStateOf(false) }
+//        if (showSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = prefPlaybackSpeed, maxSpeed = 3f, isGlobal = true,
+//            onDismiss = { showSpeedDialog = false }) { speed -> putPref(AppPrefs.prefPlaybackSpeed, speed.toString()) }
+//        TitleSummaryActionColumn(R.string.playback_speed, R.string.pref_playback_speed_sum) { showSpeedDialog = true }
+//        var showFBSpeedDialog by remember { mutableStateOf(false) }
+//        if (showFBSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = fallbackSpeed, maxSpeed = 3f, isGlobal = true,
+//            onDismiss = { showFBSpeedDialog = false }) { speed ->
+//            Logd("PlaybackPreferencesScreen", "speed: $speed")
+//            val speed_ = when {
+//                speed < 0.0f -> 0.0f
+//                speed > 3.0f -> 3.0f
+//                else -> speed
+//            }
+//            fallbackSpeed = round(100 * speed_) / 100f
+//        }
+//        TitleSummaryActionColumn(R.string.pref_fallback_speed, R.string.pref_fallback_speed_sum) { showFBSpeedDialog = true }
+//        var showFastForwardSpeedDialog by remember { mutableStateOf(false) }
+//        if (showFastForwardSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = speedforwardSpeed, maxSpeed = 10f, isGlobal = true,
+//            onDismiss = { showFastForwardSpeedDialog = false }) { speed ->
+//            val speed_ = when {
+//                speed < 0.0f -> 0.0f
+//                speed > 10.0f -> 10.0f
+//                else -> speed
+//            }
+//            speedforwardSpeed = round(10 * speed_) / 10
+//        }
+//        TitleSummaryActionColumn(R.string.pref_speed_forward, R.string.pref_forward_speed_sum) { showFastForwardSpeedDialog = true }
+//        var showFastSkipSpeedDialog by remember { mutableStateOf(false) }
+//        if (showFastSkipSpeedDialog) PlaybackSpeedDialog(listOf(), initSpeed = skipforwardSpeed, maxSpeed = 10f, isGlobal = true,
+//            onDismiss = { showFastSkipSpeedDialog = false }) { speed ->
+//            val speed_ = when {
+//                speed < 0.0f -> 0.0f
+//                speed > 10.0f -> 10.0f
+//                else -> speed
+//            }
+//            skipforwardSpeed = round(10 * speed_) / 10
+//        }
+//        TitleSummaryActionColumn(R.string.pref_speed_skip, R.string.pref_speed_forward_sum) { showFastSkipSpeedDialog = true }
+//        TitleSummarySwitchPrefRow(R.string.pref_skip_silence_title, R.string.pref_skip_silence_sum, AppPrefs.prefSkipSilence)
         var prefStreaming by remember { mutableStateOf(prefStreamOverDownload) }
         TitleSummarySwitchPrefRow(R.string.pref_stream_over_download_title, R.string.pref_stream_over_download_sum, AppPrefs.prefStreamOverDownload) {
             prefStreaming = it

@@ -96,6 +96,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -249,14 +250,17 @@ class MainActivity : BaseActivity() {
         if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
 
         var firstRun by remember { mutableStateOf(true) }
-        LaunchedEffect(key1 = isBSExpanded, key2 = curEpisode?.id) {
+        LaunchedEffect(key1 = bsState, key2 = curEpisode?.id) {
             if (firstRun) {
                 firstRun = false
                 return@LaunchedEffect
             }
             if ((curEpisode?.id ?: -1L) > 0) {
-                if (isBSExpanded) sheetState.bottomSheetState.expand()
-                else sheetState.bottomSheetState.partialExpand()
+                when {
+                    bsState == MainActivity.BSState.Expanded -> sheetState.bottomSheetState.expand()
+                    bsState == MainActivity.BSState.Partial -> sheetState.bottomSheetState.partialExpand()
+                    else -> sheetState.bottomSheetState.hide()
+                }
             } else sheetState.bottomSheetState.hide()
         }
 
@@ -505,7 +509,7 @@ class MainActivity : BaseActivity() {
                 val feedId = intent.getLongExtra(Extras.fragment_feed_id.name, 0)
                 Logd(TAG, "handleNavIntent: feedId: $feedId")
                 if (feedId > 0) setIntentScreen("${Screens.FeedDetails.name}?feedId=${feedId}")
-                isBSExpanded = false
+                bsState = MainActivity.BSState.Partial
             }
             intent.hasExtra(Extras.fragment_feed_url.name) -> {
                 val feedurl = intent.getStringExtra(Extras.fragment_feed_url.name)
@@ -516,7 +520,7 @@ class MainActivity : BaseActivity() {
                 setOnlineSearchTerms(query = intent.getStringExtra(Extras.search_string.name))
                 setIntentScreen(Screens.FindFeeds.name)
             }
-            intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> isBSExpanded = true
+            intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> bsState = MainActivity.BSState.Expanded
             else -> {
                 // deeplink
                 val uri = intent.data
@@ -566,17 +570,19 @@ class MainActivity : BaseActivity() {
         isShared
     }
 
+    enum class BSState {
+        Hidden, Partial, Expanded
+    }
+
     companion object {
-       private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"  // have to keep, otherwise release build may fail?!
+        private val TAG: String = MainActivity::class.simpleName ?: "Anonymous"  // have to keep, otherwise release build may fail?!
 
         private const val INIT_KEY = "app_init_state"
 
         val downloadStates = mutableStateMapOf<String, DownloadStatus>()
-
         val LocalNavController = staticCompositionLocalOf<AppNavigator> { error("NavController not provided") }
+        var bsState by mutableStateOf(BSState.Partial)
 
-        var isBSExpanded by mutableStateOf(false)
-        
         fun getIntentToOpenFeed(context: Context, feedId: Long): Intent {
             val intent = Intent(context.applicationContext, MainActivity::class.java)
             intent.putExtra(Extras.fragment_feed_id.name, feedId)
@@ -584,7 +590,6 @@ class MainActivity : BaseActivity() {
             return intent
         }
 
-        
         fun showOnlineFeed(context: Context, feedUrl: String, isShared: Boolean = false): Intent {
             val intent = Intent(context.applicationContext, MainActivity::class.java)
             intent.putExtra(Extras.fragment_feed_url.name, feedUrl)
@@ -593,7 +598,6 @@ class MainActivity : BaseActivity() {
             return intent
         }
 
-        
         fun showOnlineSearch(context: Context, query: String): Intent {
             val intent = Intent(context.applicationContext, MainActivity::class.java)
             intent.putExtra(Extras.search_string.name, query)

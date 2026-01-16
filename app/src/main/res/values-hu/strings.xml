@@ -626,10 +626,10 @@
     <string name="advanced">Speciális</string>
     <string name="discover">Felfedezés</string>
     <string name="discover_hide">Elrejtés</string>
-    <string name="discover_is_hidden">A javaslatok elrejtését választotta.</string>
-    <string name="discover_more">több »</string>
-    <string name="discover_powered_by_itunes">Suggestions by Apple Podcasts</string>
-    <string name="discover_confirm">Javaslatok megjelenítése</string>
+
+
+
+
     <string name="search_powered_by">%1$s javaslatok</string>
     <string name="select_country">Ország kiválasztása</string>
     <!-- Local feeds -->

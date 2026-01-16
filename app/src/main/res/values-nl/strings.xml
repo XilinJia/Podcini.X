@@ -626,10 +626,10 @@
     <string name="advanced">Geavanceerd</string>
     <string name="discover">Ontdekken</string>
     <string name="discover_hide">Verbergen</string>
-    <string name="discover_is_hidden">Je kiest er voor aanbevelingen te verbergen.</string>
-    <string name="discover_more">meer »</string>
-    <string name="discover_powered_by_itunes">Suggesties door Apple Podcasts</string>
-    <string name="discover_confirm">Suggesties tonen</string>
+
+
+
+
     <string name="search_powered_by">Resultaten van %1$s</string>
     <string name="select_country">Kies een land</string>
     <!-- Local feeds -->

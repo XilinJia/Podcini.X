@@ -16,7 +16,8 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter.Companion.unfiltered
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.isBSExpanded
+import ac.mdiq.podcini.ui.activity.MainActivity
+import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.utils.Logd
@@ -60,6 +61,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -183,7 +185,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
     }
 
     BackHandler(enabled = !subscreenHandleBack.value) {
-        Logd(TAG, "BackHandler isBSExpanded: $isBSExpanded")
+        Logd(TAG, "BackHandler isBSExpanded: $bsState")
         val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
         val defPage = defaultScreen
         val currentDestination = navigator.currentDestination
@@ -191,7 +193,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         Logd(TAG, "BackHandler curruntRoute0: $curruntRoute defPage: $defPage")
         when {
             drawerState.isOpen -> drawerCtrl.close()
-            isBSExpanded -> isBSExpanded = false
+            bsState == MainActivity.BSState.Expanded -> bsState = MainActivity.BSState.Partial
             navigator.previousBackStackEntry != null -> {
                 Logd(TAG, "nav to back")
                 navigator.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
@@ -247,11 +249,15 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                 Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable {
                     navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
                     drawerCtrl.close()
-                    isBSExpanded = false
+                    bsState = MainActivity.BSState.Partial
                 }) {
                     AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(40.dp).height(40.dp))
                     Text(f.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 10.dp))
                 }
+            }
+            if (bsState == MainActivity.BSState.Hidden) {
+                Spacer(Modifier.height(50.dp))
+                AsyncImage(model = R.drawable.teaser, contentDescription = "PlayerUI", contentScale = ContentScale.FillBounds, modifier = Modifier.fillMaxWidth().height(60.dp).clickable(onClick = { bsState = MainActivity.BSState.Partial }))
             }
         }
     }
@@ -271,7 +277,7 @@ enum class Screens {
     Search,
     FindFeeds,
     OnlineFeed,
-    TopChartFeeds,
+    TopChart,
     Logs,
     Statistics
 }
@@ -341,7 +347,7 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
             QueuesScreen(index)
         }
         composable(Screens.Search.name) { SearchScreen() }
-        composable(Screens.TopChartFeeds.name) { TopChartFeeds() }
+        composable(Screens.TopChart.name) { TopChartScreen() }
         composable(route = "${Screens.OnlineFeed.name}?url={url}&source={source}&shared={shared}", arguments = listOf(
             navArgument("url") {
                 type = NavType.StringType

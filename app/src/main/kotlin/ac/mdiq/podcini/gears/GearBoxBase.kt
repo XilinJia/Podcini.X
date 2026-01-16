@@ -3,9 +3,9 @@ package ac.mdiq.podcini.gears
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUpdaterBase
-import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
-import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
-import ac.mdiq.podcini.net.feed.searcher.PodcastSearcher
+import ac.mdiq.podcini.net.feed.CombinedSearcher
+import ac.mdiq.podcini.net.feed.PodcastSearchResult
+import ac.mdiq.podcini.net.feed.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.getFinalRedirectedUrl
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.model.Episode

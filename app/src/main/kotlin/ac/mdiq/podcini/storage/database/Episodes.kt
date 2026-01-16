@@ -3,7 +3,6 @@ package ac.mdiq.podcini.storage.database
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
-import ac.mdiq.podcini.net.feed.updateLocalFeed
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
@@ -38,14 +37,13 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.media3.common.util.UnstableApi
 import io.github.xilinjia.krdb.notifications.ResultsChange
+import java.io.File
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
-import java.io.File
-import java.util.Date
-import java.util.Locale
-import java.util.concurrent.ExecutionException
 import kotlin.math.min
 
 private const val TAG: String = "Episodes"
@@ -119,13 +117,21 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
     val context = getAppContext()
     val localItems: MutableList<Episode> = mutableListOf()
     val repeatItems: MutableList<Episode> = mutableListOf()
+    fun deleteItems(items_: List<Episode>) {
+        deleteMedias(items_)
+        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(items_)
+    }
     for (item in items) {
-        if (item.feed?.isLocalFeed == true) localItems.add(item)
-        if (item.playState == EpisodeState.AGAIN.code || item.playState == EpisodeState.FOREVER.code) repeatItems.add(item)
-        else {
-            val episode_ = deleteMedia(item)
-            if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(episode_))
+        var toConfirm = false
+        if (item.feed?.isLocalFeed == true) {
+            localItems.add(item)
+            toConfirm = true
         }
+        if (item.playState == EpisodeState.AGAIN.code || item.playState == EpisodeState.FOREVER.code) {
+            repeatItems.add(item)
+            toConfirm = true
+        }
+        if (!toConfirm) deleteItems(listOf(item))
     }
 
     val userDone = CompletableDeferred<Unit>()
@@ -138,11 +144,10 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
                 confirmRes = R.string.delete_label,
                 cancelRes = R.string.cancel_label,
                 onConfirm = {
-                    try {
-                        deleteMedias(localItems)
-                        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(localItems)
-                    }  catch (e: ExecutionException) { Logs(TAG, e) }
-                    userDone.complete(Unit)
+                   runOnIOScope {
+                       deleteItems(localItems)
+                       userDone.complete(Unit)
+                   }
                 },
                 onNeutral = { userDone.complete(Unit)},
                 onCancel = { userDone.complete(Unit)})
@@ -159,10 +164,7 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
                 confirmRes = R.string.delete_label,
                 cancelRes = R.string.cancel_label,
                 onConfirm = {
-                    try {
-                        deleteMedias(repeatItems)
-                        if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(repeatItems)
-                    }  catch (e: ExecutionException) { Logs(TAG, e) }
+                    runOnIOScope { deleteItems(repeatItems) }
                 })
         }
     }
@@ -356,11 +358,7 @@ fun buildListInfo(episodes: List<Episode>, total: Int = 0): String {
     if (total > 0) infoText += "/" + String.format(Locale.getDefault(), "%d", total)
     if (episodes.isNotEmpty()) {
         var timeLeft: Long = 0
-        for (item in episodes) {
-            val playbackSpeed = currentPlaybackSpeed(item).takeIf { it > 0 } ?: 1f
-            val itemTimeLeft: Long = (item.duration - item.position).toLong()
-            timeLeft = (timeLeft + itemTimeLeft / playbackSpeed).toLong()
-        }
+        for (item in episodes) timeLeft += ((item.duration - item.position) / (currentPlaybackSpeed(item).takeIf { it > 0 } ?: 1f)).toLong()
         infoText += " * " + getDurationStringShort(timeLeft, true)
     }
     return infoText

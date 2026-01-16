@@ -636,10 +636,10 @@
     <string name="advanced">Дополнительные</string>
     <string name="discover">Ознакомиться</string>
     <string name="discover_hide">Скрыть</string>
-    <string name="discover_is_hidden">Вы предпочли скрыть рекомендации.</string>
-    <string name="discover_more">еще »</string>
-    <string name="discover_powered_by_itunes">Предложения Apple Podcasts</string>
-    <string name="discover_confirm">Показать рекомендации</string>
+
+
+
+
     <string name="search_powered_by">Результаты по %1$s</string>
     <string name="select_country">Выбор страны</string>
     <!-- Local feeds -->

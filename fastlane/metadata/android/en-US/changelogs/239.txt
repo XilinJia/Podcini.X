@@ -1,0 +1,7 @@
+* fixed Delete button deleting local or repeat episode before confirmation
+* fixed a possible null point crash in LocalFeedUpdater
+* likely fixed creating duplicate feeds in LocalFeedUpdater
+* lots of changes in PlayerDetails, PlayerUI, Queues screens
+* settings of speeds, rewind/forward seconds, skip silence are disabled in Settings, do them with the speedometer popup
+* Kotlin upped to 2.3.0, krdb upped to 3.3.0
+* AGP upped to 9.0.0, and amended build.gradle files accordingly

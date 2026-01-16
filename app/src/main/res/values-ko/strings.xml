@@ -621,10 +621,10 @@
     <string name="advanced">고급</string>
     <string name="discover">발견</string>
     <string name="discover_hide">숨기기</string>
-    <string name="discover_is_hidden">제안 사항을 감추도록 선택했습니다.</string>
-    <string name="discover_more">더 보기 »</string>
-    <string name="discover_powered_by_itunes">애플 팟캐스트에서 제안</string>
-    <string name="discover_confirm">제안 표시</string>
+
+
+
+
     <string name="search_powered_by">%1$s 검색 결과</string>
     <string name="select_country">국가 선택</string>
     <!-- Local feeds -->

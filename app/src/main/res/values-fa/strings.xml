@@ -626,10 +626,10 @@
     <string name="advanced">پیشرفته</string>
     <string name="discover">کشف کردن</string>
     <string name="discover_hide">پنهان کردن</string>
-    <string name="discover_is_hidden">شما مخفی کردن پیشنهادات را انتخاب کرده اید.</string>
-    <string name="discover_more">بیشتر </string>
-    <string name="discover_powered_by_itunes">پیشنهادها از سوی پادکست‌های اپل</string>
-    <string name="discover_confirm">نمایش پیشنهادات</string>
+
+
+
+
     <string name="search_powered_by">نتایج توسط %1$s</string>
     <string name="select_country">کشور را انتخاب کنید</string>
     <!-- Local feeds -->

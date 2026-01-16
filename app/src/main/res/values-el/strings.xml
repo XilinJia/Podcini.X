@@ -626,10 +626,10 @@
     <string name="advanced">Προχωρημένα</string>
     <string name="discover">Ανακαλύψτε</string>
     <string name="discover_hide">Απόκρυψη</string>
-    <string name="discover_is_hidden">Επιλέξατε να αποκρύψετε προτάσεις.</string>
-    <string name="discover_more">περισσότερα »</string>
-    <string name="discover_powered_by_itunes">Προτάσεις από Apple Podcasts</string>
-    <string name="discover_confirm">Εμφάνιση προτάσεων</string>
+
+
+
+
     <string name="search_powered_by">Αποτελέσματα από %1$s</string>
     <string name="select_country">Επιλέξτε χώρα</string>
     <!-- Local feeds -->

@@ -2,11 +2,11 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
-import ac.mdiq.podcini.net.feed.searcher.CombinedSearcher
-import ac.mdiq.podcini.net.feed.searcher.ItunesPodcastSearcher
-import ac.mdiq.podcini.net.feed.searcher.PodcastIndexPodcastSearcher
-import ac.mdiq.podcini.net.feed.searcher.PodcastSearchResult
-import ac.mdiq.podcini.net.feed.searcher.PodcastSearcher
+import ac.mdiq.podcini.net.feed.CombinedSearcher
+import ac.mdiq.podcini.net.feed.ItunesPodcastSearcher
+import ac.mdiq.podcini.net.feed.PodcastIndexPodcastSearcher
+import ac.mdiq.podcini.net.feed.PodcastSearchResult
+import ac.mdiq.podcini.net.feed.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -18,7 +18,7 @@ import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.searchFeedByIdentifyingValueOrID
+import ac.mdiq.podcini.storage.database.feedByIdentityOrID
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.model.Volume
@@ -248,11 +248,14 @@ fun FindFeedsScreen() {
                         val uri = directory.uri
                         val title = directory.name ?: context.getString(R.string.local_folder)
                         val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
-                        val fExist = searchFeedByIdentifyingValueOrID(dirFeed)
+                        val fExist = feedByIdentityOrID(dirFeed)
                         if (fExist == null) {
                             dirFeed.volumeId = parentId
                             dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
                             dirFeed.keepUpdated = false
+                            dirFeed.autoDownload = false
+                            dirFeed.description = context.getString(R.string.local_feed_description)
+                            dirFeed.author = context.getString(R.string.local_folder)
                             addNewFeed(dirFeed)
                             feeds.add(dirFeed)
                         } else Logt(TAG, "local feed already exists: $title $uri")
@@ -317,7 +320,7 @@ fun FindFeedsScreen() {
         ConstraintLayout(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val (controlRow, gridView, progressBar, empty, txtvError, butRetry, powered) = createRefs()
             Row(modifier = Modifier.padding(vertical = 8.dp, horizontal = 20.dp).fillMaxWidth().constrainAs(controlRow) { top.linkTo(parent.top) }) {
-                Text(stringResource(R.string.top_chart), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = { navController.navigate(Screens.TopChartFeeds.name) }))
+                Text(stringResource(R.string.top_chart), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = { navController.navigate(Screens.TopChart.name) }))
                 Spacer(Modifier.weight(1f))
                 Text(stringResource(R.string.local),color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = {
                     try { addLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, context.getString(R.string.unable_to_start_system_file_manager)) }

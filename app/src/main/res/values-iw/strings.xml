@@ -525,10 +525,10 @@
     <string name="advanced">מתקדם</string>
     <string name="discover">עיון</string>
   <string name="discover_hide">הסתרה</string>
-  <string name="discover_is_hidden">בחרת להסתיר הצעות.</string>
-  <string name="discover_more">עוד »</string>
-  <string name="discover_powered_by_itunes">הצעות מטעם Apple Podcasts</string>
-  <string name="discover_confirm">הצגת הצעות</string>
+
+
+
+
   <string name="search_powered_by">תוצאות מאת %1$s</string>
   <string name="select_country">בחירת מדינה</string>
   <!--Local feeds-->

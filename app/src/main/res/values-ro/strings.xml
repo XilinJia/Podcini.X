@@ -631,10 +631,10 @@
     <string name="advanced">Avansat</string>
     <string name="discover">Descoperă</string>
     <string name="discover_hide">Ascunde</string>
-    <string name="discover_is_hidden">Ai selectat să ascunzi sugestiile.</string>
-    <string name="discover_more">mai mult »</string>
-    <string name="discover_powered_by_itunes">Sugestii de la Apple Podcasts</string>
-    <string name="discover_confirm">Arată sugestiile</string>
+
+
+
+
     <string name="search_powered_by">Rezultatele %1$s</string>
     <string name="select_country">Selectează țara</string>
     <!-- Local feeds -->

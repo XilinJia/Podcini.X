@@ -629,10 +629,10 @@
     <string name="advanced">Avancé</string>
     <string name="discover">Découvrir</string>
     <string name="discover_hide">Ne pas montrer</string>
-    <string name="discover_is_hidden">Vous avez choisi de cacher les suggestions.</string>
-    <string name="discover_more">plus »</string>
-    <string name="discover_powered_by_itunes">Suggestions d\'Apple Podcasts</string>
-    <string name="discover_confirm">Montrer les suggestions</string>
+
+
+
+
     <string name="search_powered_by">Résultats de %1$s</string>
     <string name="select_country">Changer le pays</string>
     <!-- Local feeds -->

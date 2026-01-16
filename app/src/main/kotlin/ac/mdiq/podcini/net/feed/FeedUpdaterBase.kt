@@ -10,8 +10,7 @@ import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.service.DefaultDownloaderFactory
 import ac.mdiq.podcini.net.download.service.DownloadRequest
 import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
-import ac.mdiq.podcini.net.feed.parser.FeedHandler
-import ac.mdiq.podcini.net.feed.parser.FeedHandler.FeedHandlerResult
+import ac.mdiq.podcini.net.feed.FeedHandler.FeedHandlerResult
 import ac.mdiq.podcini.net.utils.NetworkUtils.isFeedRefreshAllowed
 import ac.mdiq.podcini.net.utils.NetworkUtils.mobileAllowFeedRefresh
 import ac.mdiq.podcini.storage.database.addDownloadStatus
@@ -26,6 +25,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.unmanaged
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.updateFeedSimple
+import ac.mdiq.podcini.storage.database.updateLocalFeed
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
@@ -300,11 +300,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         /**
          * Thrown if a feed has invalid attribute values.
          */
-        class InvalidFeedException(message: String?) : Exception(message) {
-            companion object {
-                private const val serialVersionUID = 1L
-            }
-        }
+        class InvalidFeedException(message: String?) : Exception(message)
     }
 
     class FeedUpdateTask(request: DownloadRequest) {

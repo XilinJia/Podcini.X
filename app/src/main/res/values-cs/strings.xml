@@ -636,10 +636,10 @@
     <string name="advanced">Pokročilé</string>
     <string name="discover">Objevit</string>
     <string name="discover_hide">Skrýt</string>
-    <string name="discover_is_hidden">Zvolili jste skrýt doporučení.</string>
-    <string name="discover_more">více »</string>
-    <string name="discover_powered_by_itunes">Návrhy od Apple Podcastů</string>
-    <string name="discover_confirm">Zobrazit návrhy</string>
+
+
+
+
     <string name="search_powered_by">Výsledky dle %1$s</string>
     <string name="select_country">Vybrat zemi</string>
     <!-- Local feeds -->

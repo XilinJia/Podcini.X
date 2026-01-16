@@ -51,6 +51,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.Locale
 import kotlin.coroutines.ContinuationInterceptor
 
 private const val TAG: String = "RealmDB"
@@ -76,7 +77,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(94)
+    )).name("Podcini.realm").schemaVersion(96)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -400,6 +401,14 @@ val config: RealmConfiguration by lazy {
                         )
                         ip += 10000L
                     }
+                }
+            }
+            if (oldRealm.schemaVersion() < 95) {
+                Logd(TAG, "migrating DB from below 95")
+                val attrNew = newRealm.query("AppAttribs").find()
+                if (attrNew.isNotEmpty()) {
+//                    attrNew[0].set("topChartNeedConfirm", true)
+                    attrNew[0].set("topChartCountryCode", Locale.getDefault().country)
                 }
             }
         }).build()

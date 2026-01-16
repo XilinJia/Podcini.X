@@ -38,7 +38,6 @@ import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.StatusRowMode
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
-import android.content.Context
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -85,11 +84,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
@@ -98,8 +99,11 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.xilinjia.krdb.notifications.DeletedObject
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.PendingObject
@@ -110,7 +114,6 @@ import io.github.xilinjia.krdb.query.RealmQuery
 import java.io.File
 import java.net.URLDecoder
 import java.util.Date
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -131,10 +134,28 @@ var facetsCustomQuery: RealmQuery<Episode> = realm.query(Episode::class)
 
 private val TAG = Screens.Facets.name
 
-class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
+class FacetsVM: ViewModel() {
     var tag = TAG+QuickAccess.entries[0]
 
+    var facetsPrefsJob: Job? by mutableStateOf(null)
+
     var facetsPrefs: FacetsPrefs = realm.query(FacetsPrefs::class).query("id == 0").first().find() ?: FacetsPrefs()
+
+    var episodesFlow by mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow())
+
+    var listIdentity by mutableStateOf("")
+
+    val feedsAssociated = mutableStateListOf<Feed>() 
+
+    var infoBarText by mutableStateOf("") 
+
+    var showFeeds by mutableStateOf(false)
+
+    val spinnerTexts by mutableStateOf(QuickAccess.entries.map { it.name })  
+    var curIndex by mutableIntStateOf(0)
+
+    var historyStartDate by mutableLongStateOf(0L)
+    var historyEndDate by mutableLongStateOf(Date().time)
 
     internal var sortOrder: EpisodeSortOrder
         get() = EpisodeSortOrder.fromCode(facetsPrefs.sortCodesMap[facetsMode.name] ?: EpisodeSortOrder.DATE_DESC.code)
@@ -147,6 +168,33 @@ class FacetsVM(val context: Context, val lcScope: CoroutineScope) {
         set(value) {
             upsertBlk(facetsPrefs) { it.filtersMap[facetsMode.name] = value.propertySet.joinToString() }
         }
+
+    init {
+        if (facetsPrefsJob == null) facetsPrefsJob = viewModelScope.launch(Dispatchers.IO) {
+            val flow = realm.query(FacetsPrefs::class).first().asFlow()
+            flow.collect { changes: SingleQueryChange<FacetsPrefs> ->
+                when (changes) {
+                    is InitialObject -> facetsPrefs = changes.obj
+                    is UpdatedObject -> facetsPrefs = changes.obj
+                    is DeletedObject -> {}
+                    is PendingObject -> {}
+                }
+            }
+        }
+        if (facetsMode != QuickAccess.Custom) {
+            curIndex = facetsPrefs.prefFacetsCurIndex
+            facetsMode = QuickAccess.valueOf(spinnerTexts[curIndex])
+            filter = EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: "")
+        } else curIndex = QuickAccess.Custom.ordinal
+        tag = TAG+QuickAccess.entries[curIndex]
+    }
+    override fun onCleared() {
+        super.onCleared()
+        facetsPrefsJob?.cancel()
+        facetsPrefsJob = null
+        feedsAssociated.clear()
+        facetsMode = QuickAccess.New
+    }
 }
 
 @Composable
@@ -154,27 +202,13 @@ fun FacetsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
-    val vm = remember {  FacetsVM(context, scope) }
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
-    var facetsPrefsJob: Job? by remember { mutableStateOf(null) }
-
-    var episodesFlow by remember { mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow()) }
-
-    var listIdentity by remember { mutableStateOf("") }
-
-    val feedsAssociated = remember { mutableStateListOf<Feed>() }
-
-    var infoBarText by remember {  mutableStateOf("") }
-
-    var showFeeds by remember { mutableStateOf(false) }
+    val vm: FacetsVM = viewModel()
 
     val filterButtonColor = remember { mutableStateOf(Color.White) }
-
-    val spinnerTexts by remember { mutableStateOf(QuickAccess.entries.map { it.name })  }
-    var curIndex by remember { mutableIntStateOf(0) }
-
+    
     var swipeActions by remember { mutableStateOf(SwipeActions(context, TAG+"_${facetsMode.name}")) }
 
     var actionButtonToPass by remember { mutableStateOf<((Episode) -> EpisodeActionButton)?>(null) }
@@ -183,46 +217,43 @@ fun FacetsScreen() {
     var showSortDialog by remember { mutableStateOf(false) }
     var showDatesFilterDialog by remember { mutableStateOf(false) }
     val showClearHistoryDialog = remember { mutableStateOf(false) }
-
-    var historyStartDate by remember { mutableLongStateOf(0L) }
-    var historyEndDate = remember { Date().time }
-
-    val episodesChange by episodesFlow.collectAsStateWithLifecycle(initialValue = null)
+    
+    val episodesChange by vm.episodesFlow.collectAsStateWithLifecycle(initialValue = null)
     val episodes = episodesChange?.list ?: emptyList()
 
     fun buildFlow() {
         Logd(TAG, "loadItems() called")
-        listIdentity = "Facets.${facetsMode.name}"
+        vm.listIdentity = "Facets.${facetsMode.name}"
         lifecycleOwner.lifecycle.removeObserver(swipeActions)
         swipeActions = SwipeActions(context, "${TAG}_${facetsMode.name}")
         lifecycleOwner.lifecycle.addObserver(swipeActions)
-        episodesFlow = when (facetsMode) {
+        vm.episodesFlow = when (facetsMode) {
             QuickAccess.New -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.NEW.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Planned -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.SOON.name, EpisodeFilter.States.LATER.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Repeats -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.AGAIN.name, EpisodeFilter.States.FOREVER.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Liked -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.good.name, EpisodeFilter.States.superb.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Commented -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.has_comments.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Tagged -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.tagged.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Timers -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 val time = System.currentTimeMillis()
                 val ids = appAttribs.timetable.filter { it.triggerTime > time }.map { it.episodeId }
                 val sortPair = sortPairOf(vm.sortOrder)
@@ -233,36 +264,36 @@ fun FacetsScreen() {
                 realm.query(Episode::class).query("id IN $0", ids).sort(sortPair).asFlow()
             }
             QuickAccess.Todos -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.has_todos.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Recorded -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.has_clips.name, EpisodeFilter.States.has_marks.name, andOr = "OR"), vm.sortOrder)
             }
             QuickAccess.Queued -> {
                 val qstr = EpisodeFilter(EpisodeFilter.States.QUEUE.name).add(vm.filter).queryString()
                 val ids = inQueueEpisodeIdSet()
                 val sortPair = sortPairOf(vm.sortOrder)
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 realm.query(Episode::class).query("$qstr OR id IN $0", ids).sort(sortPair).asFlow()
             }
             QuickAccess.History -> {
-                listIdentity += ".$historyStartDate-$historyEndDate"
-                getHistoryAsFlow(start = historyStartDate, end = historyEndDate, filter = vm.filter)
+                vm.listIdentity += ".${vm.historyStartDate}-${vm.historyEndDate}"
+                getHistoryAsFlow(start = vm.historyStartDate, end = vm.historyEndDate, filter = vm.filter)
             }
             QuickAccess.Downloaded -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(EpisodeFilter.States.downloaded.name).add(vm.filter), vm.sortOrder)
             }
             QuickAccess.Custom -> {
                 if (facetsCustomTag.isNotBlank()) {
-                    listIdentity += ".${vm.sortOrder.name}"
+                    vm.listIdentity += ".${vm.sortOrder.name}"
                     facetsCustomQuery.query(vm.filter.queryString()).sort(sortPairOf(vm.sortOrder)).asFlow()
                 } else facetsCustomQuery.query("id == 0").asFlow()
             }
             else -> {
-                listIdentity += ".${vm.sortOrder.name}"
+                vm.listIdentity += ".${vm.sortOrder.name}"
                 getEpisodesAsFlow(EpisodeFilter(vm.facetsPrefs.filtersMap[QuickAccess.All.name] ?: ""), vm.sortOrder)
             }
         }
@@ -280,7 +311,7 @@ fun FacetsScreen() {
             withContext(Dispatchers.Main) {
                 val isFiltered = vm.filter.propertySet.isNotEmpty()
                 filterButtonColor.value = if (isFiltered) Color.Green else Color.White
-                infoBarText = info
+                vm.infoBarText = info
             }
         }
     }
@@ -290,23 +321,6 @@ fun FacetsScreen() {
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
-                    if (facetsPrefsJob == null) facetsPrefsJob = scope.launch(Dispatchers.IO) {
-                        val flow = realm.query(FacetsPrefs::class).first().asFlow()
-                        flow.collect { changes: SingleQueryChange<FacetsPrefs> ->
-                            when (changes) {
-                                is InitialObject -> vm.facetsPrefs = changes.obj
-                                is UpdatedObject -> vm.facetsPrefs = changes.obj
-                                is DeletedObject -> {}
-                                is PendingObject -> {}
-                            }
-                        }
-                    }
-                    if (facetsMode != QuickAccess.Custom) {
-                        curIndex = vm.facetsPrefs.prefFacetsCurIndex
-                        facetsMode = QuickAccess.valueOf(spinnerTexts[curIndex])
-                        vm.filter = EpisodeFilter(vm.facetsPrefs.filtersMap[facetsMode.name] ?: "")
-                    } else curIndex = QuickAccess.Custom.ordinal
-                    vm.tag = TAG+QuickAccess.entries[curIndex]
                     updateToolbar()
                     buildFlow()
                 }
@@ -318,20 +332,19 @@ fun FacetsScreen() {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            feedsAssociated.clear()
-            facetsMode = QuickAccess.New
-            facetsPrefsJob?.cancel()
-            facetsPrefsJob = null
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    LaunchedEffect(episodes.size, showFeeds) {
-        updateToolbar()
-        if (showFeeds) {
-            feedsAssociated.clear()
-            if (facetsMode == QuickAccess.All) feedsAssociated.addAll(getFeedList())
-            else feedsAssociated.addAll(episodes.mapNotNull { it.feed }.distinctBy { it.id })
+    LaunchedEffect(episodes.size) {
+        if (!vm.showFeeds) updateToolbar()
+    }
+
+    LaunchedEffect(episodes.size, vm.showFeeds) {
+        if (vm.showFeeds) {
+            vm.feedsAssociated.clear()
+            if (facetsMode == QuickAccess.All) vm.feedsAssociated.addAll(getFeedList())
+            else vm.feedsAssociated.addAll(episodes.mapNotNull { it.feed }.distinctBy { it.id })
         }
     }
 
@@ -375,8 +388,8 @@ fun FacetsScreen() {
         swipeActions.ActionOptionsDialog()
         ComfirmDialog(titleRes = R.string.clear_history_label, message = stringResource(R.string.clear_playback_history_msg), showDialog = showClearHistoryDialog) { clearHistory() }
         if (showDatesFilterDialog) DatesFilterDialog(oldestDate = 0L, onDismissRequest = { showDatesFilterDialog = false} ) { timeFilterFrom, timeFilterTo ->
-            historyStartDate = timeFilterFrom
-            historyEndDate = timeFilterTo
+            vm.historyStartDate = timeFilterFrom
+            vm.historyEndDate = timeFilterTo
         }
     }
 
@@ -484,16 +497,16 @@ fun FacetsScreen() {
         Popup(onDismissRequest = { showChooseMode = false }, alignment = Alignment.TopStart, offset = IntOffset(100, 100), properties = PopupProperties(focusable = true)) {
             Card(modifier = Modifier.width(300.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
-                    for (index in spinnerTexts.indices) {
+                    for (index in vm.spinnerTexts.indices) {
                         FilterChip(onClick = {
-                            curIndex = index
-                            facetsMode = QuickAccess.valueOf(spinnerTexts[curIndex])
-                            vm.tag = TAG + QuickAccess.entries[curIndex]
+                            vm.curIndex = index
+                            facetsMode = QuickAccess.valueOf(vm.spinnerTexts[vm.curIndex])
+                            vm.tag = TAG + QuickAccess.entries[vm.curIndex]
                             upsertBlk(vm.facetsPrefs) { it.prefFacetsCurIndex = index}
                             actionButtonToPass = if (facetsMode == QuickAccess.Downloaded) { it -> EpisodeActionButton(it, ButtonTypes.DELETE) } else null
                             buildFlow()
                             showChooseMode = false
-                        }, label = { Text(spinnerTexts[index]) }, selected = curIndex == index, border = FilterChipBorder(curIndex == index))
+                        }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = FilterChipBorder(vm.curIndex == index))
                     }
                 }
             }
@@ -509,11 +522,11 @@ fun FacetsScreen() {
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
         Box {
-            TopAppBar(title = { Text(facetsMode.name, maxLines=1, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.clickable(onClick = { showChooseMode = true }))
+            TopAppBar(title = { Text(facetsMode.name, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).clickable(onClick = { showChooseMode = true }))
             }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {
                 Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                    val feedsIconRes by remember(showFeeds) { derivedStateOf { if (showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
-                    IconButton(onClick = { showFeeds = !showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
+                    val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
+                    IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
                     IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
                     if (facetsMode != QuickAccess.Recorded) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (filterButtonColor.value == Color.White) textColor else filterButtonColor.value, contentDescription = "filter") }
@@ -554,7 +567,7 @@ fun FacetsScreen() {
 
     OpenDialogs()
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
-        if (showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
+        if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(vm.feedsAssociated) }
         else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             val statusMode by remember(facetsMode) { mutableStateOf(
                 when (facetsMode) {
@@ -564,14 +577,14 @@ fun FacetsScreen() {
                     else -> StatusRowMode.Normal
                 })
             }
-            val info = remember(infoBarText, progressing, facetsMode) { mutableStateOf(
-                (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + infoBarText + (if (progressing) " - ${context.getString(R.string.progressing_label)}" else "")
+            val info = remember(vm.infoBarText, progressing, facetsMode) { mutableStateOf(
+                (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + vm.infoBarText + (if (progressing) " - ${context.getString(R.string.progressing_label)}" else "")
             ) }
             InforBar(swipeActions) { Text(info.value, style = MaterialTheme.typography.bodyMedium) }
             EpisodeLazyColumn(episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButton_ = actionButtonToPass,
                 actionButtonCB = { e, type ->
                     if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
-                        runOnIOScope { queueToVirtual(e, episodes, listIdentity, vm.sortOrder) }
+                        runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, vm.sortOrder) }
                 })
         }
     }

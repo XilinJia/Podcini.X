@@ -626,10 +626,10 @@
     <string name="advanced">Edistyneet</string>
     <string name="discover">Löydä</string>
     <string name="discover_hide">Piilota</string>
-    <string name="discover_is_hidden">Valitsit piilottaa ehdotukset.</string>
-    <string name="discover_more">lisää »</string>
-    <string name="discover_powered_by_itunes">Apple Podcastsin ehdotukset</string>
-    <string name="discover_confirm">Näytä ehdotukset</string>
+
+
+
+
     <string name="search_powered_by">Tulosten lähde %1$s</string>
     <string name="select_country">Valitse maa</string>
     <!-- Local feeds -->

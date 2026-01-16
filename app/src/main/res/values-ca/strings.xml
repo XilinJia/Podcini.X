@@ -494,10 +494,10 @@
     <string name="advanced">Avançat</string>
     <string name="discover">Descobreix</string>
   <string name="discover_hide">Amaga</string>
-  <string name="discover_is_hidden">Has seleccionat amagar els suggeriments.</string>
-  <string name="discover_more">més »</string>
-  <string name="discover_powered_by_itunes">Recomanacions d\'Apple Podcasts</string>
-  <string name="discover_confirm">Mostra suggeriments</string>
+
+
+
+
   <string name="search_powered_by">Resultats per %1$s</string>
   <string name="select_country">Selecciona país</string>
   <!--Local feeds-->

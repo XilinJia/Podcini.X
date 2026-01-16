@@ -647,10 +647,10 @@
     <string name="advanced">متقدم</string>
     <string name="discover">اكتشف</string>
     <string name="discover_hide">اخفاء</string>
-    <string name="discover_is_hidden">لقد اخترت اخفاء الاقتراحات.</string>
-    <string name="discover_more">المزيد »</string>
-    <string name="discover_powered_by_itunes">إقتراحات من Apple Podcasts</string>
-    <string name="discover_confirm">أظهر الاقتراحات</string>
+
+
+
+
     <string name="search_powered_by">النتائج من %1$s</string>
     <string name="select_country">أختر الدولة</string>
     <!-- Local feeds -->

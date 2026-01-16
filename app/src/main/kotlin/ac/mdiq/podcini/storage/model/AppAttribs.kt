@@ -8,6 +8,7 @@ import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.RealmSet
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
+import java.util.Locale
 
 class AppAttribs: RealmObject {
     @PrimaryKey
@@ -40,6 +41,10 @@ class AppAttribs: RealmObject {
     var statisticsFrom: Long = 0L
 
     var statisticsUntil: Long = 0L
+
+//    var topChartNeedConfirm: Boolean = true
+
+    var topChartCountryCode: String = Locale.getDefault().country
 
     constructor()
 }

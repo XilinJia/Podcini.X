@@ -2,15 +2,15 @@ package ac.mdiq.podcini.storage.model
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
-import ac.mdiq.podcini.net.feed.parser.media.id3.ChapterReader
-import ac.mdiq.podcini.net.feed.parser.media.id3.ID3ReaderException
-import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentChapterReader
-import ac.mdiq.podcini.net.feed.parser.media.vorbis.VorbisCommentReaderException
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed.Companion.TAG_SEPARATOR
+import ac.mdiq.podcini.storage.parser.ChapterReader
+import ac.mdiq.podcini.storage.parser.ID3ReaderException
+import ac.mdiq.podcini.storage.parser.VorbisCommentChapterReader
+import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
@@ -934,8 +934,6 @@ class Episode : RealmObject {
             try { release() } catch (e: IOException) { Logs(TAG, e, "MediaMetadataRetriever failed") }
         }
     }
-
-    // above from EpisodeMedia
 
     companion object {
         val TAG: String = Episode::class.simpleName ?: "Anonymous"

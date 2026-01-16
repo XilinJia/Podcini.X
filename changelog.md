@@ -1,3 +1,35 @@
+# 10.5.0
+
+* fixed Delete button deleting local or repeat episode before confirmation
+* fixed a possible null point crash in LocalFeedUpdater
+* likely fixed creating duplicate feeds in LocalFeedUpdater
+* in Queues screen
+	* title on the topbar no long shows size
+	* improved dragging operations
+* cleaned the topbar of PlayerDetails
+	* added actQueue button
+	* share buttons are moved to the menu
+	* access to EpisodeInfo is removed (no need)
+* the playerUI (botton row) can be horizontally swiped
+	* swipe left hides the UI to the drawer, to show, tap the teaser image at bottom of the drawer
+	* swipe right opens the sleep timer dialog
+* amended Fast forward speed and added Skip forward speed
+* amended PlayerUI button functions
+	* long-press Rewind button restarts the current media (no longer volume adaptation settings)
+	* long-press Forward button speeds forward at Fast forward speed (if set). (no longer the sleep timer)
+	* press Skip button speeds forward at Skip forward speed (if set)
+	* long-press Skip button, skips to the next media, but if Play/Stream Repeat, restarts the current media
+	* longpress the speedometer brings up volume adaptation settings
+	* rewind/forward seconds are shown above the Rewind/Forward buttons
+* settings of speeds, rewind/forward seconds, skip silence are disabled in Settings, do them with the speedometer popup
+* title on topbar of Facets and Subscriptions adopts same narrow style as Queues
+* improved TopChart, Queues, FeedDetails screens for better returns
+* removed fake language supports, and unused old xml files
+* Kotlin upped to 2.3.0, krdb upped to 3.3.0
+* AGP upped to 9.0.0, and amended build.gradle files accordingly
+* compose version update
+* some code refactoring and reorganization
+
 # 10.4.4
 
 * when creating a new local feed, it's set to not auto-refresh

@@ -3,6 +3,7 @@ package ac.mdiq.podcini.ui.activity
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
+import ac.mdiq.podcini.preferences.developerEmail
 import ac.mdiq.podcini.preferences.getCopyrightNoticeText
 import ac.mdiq.podcini.preferences.githubAddress
 import ac.mdiq.podcini.preferences.screens.ImportExportScreen
@@ -257,7 +258,7 @@ class PreferenceActivity : ComponentActivity() {
             IconTitleSummaryActionRow(R.drawable.ic_info, R.string.licenses, R.string.licenses_summary) { navController.navigate(Screens.LicensesScreen.name) }
             IconTitleSummaryActionRow(R.drawable.baseline_mail_outline_24, R.string.email_developer, R.string.email_sum) {
                 val emailIntent = Intent(Intent.ACTION_SEND).apply {
-                    putExtra(Intent.EXTRA_EMAIL, arrayOf("xilin.vw@gmail.com"))
+                    putExtra(Intent.EXTRA_EMAIL, arrayOf(developerEmail))
                     putExtra(Intent.EXTRA_SUBJECT, "Regarding Podcini")
                     type = "message/rfc822"
                 }

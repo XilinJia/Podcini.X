@@ -4,7 +4,7 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
-import ac.mdiq.podcini.net.feed.parser.utils.parseDate
+import ac.mdiq.podcini.storage.utils.parseDate
 import ac.mdiq.podcini.net.utils.NetworkUtils.getURIFromRequestUrl
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
 import ac.mdiq.podcini.storage.model.DownloadResult

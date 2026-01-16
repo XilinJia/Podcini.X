@@ -347,7 +347,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     fun skip() {
 //        in first second of playback, ignoring skip
         if (getPosition() < 1000) return
-        endPlayback(hasEnded = false, wasSkipped = true)
+        endPlayback(hasEnded = false, wasSkipped = !shouldRepeat)
     }
 
     /**

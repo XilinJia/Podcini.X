@@ -187,21 +187,20 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM -> {
-                fun stream() {
+                //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
+                askToStream {
                     PlaybackStarter(context, item).shouldStreamThisTime(true).start()
                     playVideoIfNeeded(context, item)
                 }
-                //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
-                askToStream { stream() }
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM_REPEAT -> {
-                fun stream() {
+                //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
+                askToStream {
                     PlaybackStarter(context, item).shouldStreamThisTime(true).setToRepeat(true).start()
                     playVideoIfNeeded(context, item)
+                    actQueue = tmpQueue()
                 }
-                //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
-                askToStream { stream() }
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM_ONE -> {

@@ -521,10 +521,10 @@
     <string name="advanced">Avanzado</string>
     <string name="discover">Descubrir</string>
   <string name="discover_hide">Agochar</string>
-  <string name="discover_is_hidden">Elexiches agochar as suxestións.</string>
-  <string name="discover_more">máis »</string>
-  <string name="discover_powered_by_itunes">Suxestións de Apple Podcasts</string>
-  <string name="discover_confirm">Mostrar suxestións</string>
+
+
+
+
   <string name="search_powered_by">Resultados por %1$s</string>
   <string name="select_country">Seleccionar país</string>
   <!--Local feeds-->

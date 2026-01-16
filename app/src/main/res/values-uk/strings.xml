@@ -636,10 +636,10 @@
     <string name="advanced">Розширені можливості</string>
     <string name="discover">Знайдіть канали</string>
     <string name="discover_hide">Сховати</string>
-    <string name="discover_is_hidden">Ви вибрали, щоб приховати пропозиції.</string>
-    <string name="discover_more">більше »</string>
-    <string name="discover_powered_by_itunes">Рекомендації Apple Podcasts</string>
-    <string name="discover_confirm">Показати рекомендації</string>
+
+
+
+
     <string name="search_powered_by">Результати за %1$s</string>
     <string name="select_country">Обрати країну</string>
     <!-- Local feeds -->

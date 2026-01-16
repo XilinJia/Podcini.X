@@ -4,10 +4,9 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
 import ac.mdiq.podcini.net.download.service.Downloader
 import ac.mdiq.podcini.net.download.service.HttpDownloader
-import ac.mdiq.podcini.net.feed.parser.FeedHandler
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.database.addNewFeed
-import ac.mdiq.podcini.storage.database.searchFeedByIdentifyingValueOrID
+import ac.mdiq.podcini.storage.database.feedByIdentityOrID
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -16,17 +15,17 @@ import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.error.DownloadErrorLabel.from
 import android.content.Context
 import io.github.xilinjia.krdb.ext.toRealmList
-import java.io.File
-import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.MalformedURLException
-import java.net.URL
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jsoup.Jsoup
+import java.io.File
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.MalformedURLException
+import java.net.URL
 import kotlin.math.min
 
 open class FeedBuilderBase(val context: Context, val showError: (String?, String)->Unit) {
@@ -164,7 +163,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
             item.origFeeddownloadUrl = null
             item.origFeedTitle = null
         }
-        if (searchFeedByIdentifyingValueOrID(feed) == null) addNewFeed(feed)
+        if (feedByIdentityOrID(feed) == null) addNewFeed(feed)
         else Logt(TAG, "feed already exists: ${feed.title}")
     }
 

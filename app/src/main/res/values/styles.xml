@@ -221,6 +221,15 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/launcher_animate</item>
     </style>
 
+<!--    <style name="Theme.Podcini.Splash" parent="Theme.SplashScreen">-->
+<!--        <item name="postSplashScreenTheme">@style/Theme.Podcini.Main</item>-->
+<!--        <item name="windowSplashScreenAnimatedIcon">@drawable/launcher_animate</item>-->
+<!--        <item name="windowSplashScreenBackground">#FFFFFF</item> <item name="android:windowLightStatusBar">true</item>-->
+<!--    </style>-->
+<!--    <style name="Theme.Podcini.Main" parent="Theme.Material3.DayNight.NoActionBar">-->
+<!--        <item name="colorPrimary">#6200EE</item>-->
+<!--    </style>-->
+
     <style name="ProgressBarLight">
         <item name="android:indeterminateOnly">false</item>
         <item name="android:progressDrawable">@drawable/progress_bar_horizontal_light</item>

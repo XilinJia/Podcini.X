@@ -483,9 +483,9 @@
     <string name="advanced">Avançado</string>
     <string name="discover">Descobrir</string>
   <string name="discover_hide">Esconder</string>
-  <string name="discover_is_hidden">Você selecionou esconder sugestões.</string>
-  <string name="discover_more">mais »</string>
-  <string name="discover_confirm">Mostrar sugestões</string>
+
+
+
   <string name="search_powered_by">Resultados por %1$s</string>
   <string name="select_country">Selecione o país</string>
   <!--Local feeds-->

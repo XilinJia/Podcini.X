@@ -129,6 +129,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -225,9 +226,6 @@ fun SubscriptionsScreen() {
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
     val vm: SubscriptionsVM = viewModel()
-    
-    //    TODO: currently not used
-    var displayedFolder by remember { mutableStateOf("") }
 
     var filterAndSort by remember { mutableStateOf(false) }
     var showFilterDialog by remember { mutableStateOf(false) }
@@ -543,11 +541,10 @@ fun SubscriptionsScreen() {
         Box {
             TopAppBar(title = {
                 Row {
-                    if (displayedFolder.isNotEmpty()) Text(displayedFolder, modifier = Modifier.padding(end = 5.dp))
                     if (feedOperationText.isNotEmpty()) Text(feedOperationText, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.clickable {})
                     else {
-                        var feedCountState by remember(feeds.size) { mutableStateOf(feeds.size.toString() + " / " + feedCount.toString()) }
-                        Text(feedCountState, color = textColor)
+                        var feedCountState by remember(feeds.size) { mutableStateOf(feeds.size.toString() + "/" + feedCount.toString()) }
+                        Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
                     }
                 }
             }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } },

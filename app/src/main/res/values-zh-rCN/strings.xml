@@ -621,10 +621,10 @@
     <string name="advanced">高级版</string>
     <string name="discover">发现</string>
     <string name="discover_hide">隐藏</string>
-    <string name="discover_is_hidden">您选择隐藏建议。</string>
-    <string name="discover_more">更多 »</string>
-    <string name="discover_powered_by_itunes">Apple Podcasts的建议</string>
-    <string name="discover_confirm">显示建议</string>
+
+
+
+
     <string name="search_powered_by">按 %1$s 排列的结果</string>
     <string name="select_country">选择国家</string>
     <!-- Local feeds -->

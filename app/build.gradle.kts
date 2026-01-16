@@ -1,8 +1,8 @@
+import com.android.build.api.artifact.SingleArtifact
+import com.android.build.api.dsl.ApplicationExtension
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("io.github.xilinjia.krdb")
     id("kotlin-parcelize")
@@ -13,7 +13,13 @@ composeCompiler {
 //    stabilityConfigurationFile = rootProject.layout.projectDirectory.file("stability_config.conf")
 }
 
-android {
+kotlin { jvmToolchain(17) }
+
+val metaInfExcludes = listOf("DEPENDENCIES", "LICENSE", "NOTICE", "CHANGES", "README.md", "NOTICE.txt", "LICENSE.txt", "MANIFEST.MF").map { "/META-INF/$it" }
+
+configure<ApplicationExtension> {
+    namespace = "ac.mdiq.podcini"
+
     compileSdk = 36
     buildToolsVersion = "36.1.0"
 
@@ -21,11 +27,8 @@ android {
         minSdk = 26
         targetSdk = 36
 
-        vectorDrawables.useSupportLibrary = false
-        vectorDrawables.generatedDensities?.clear()
-
-        versionCode = 238
-        versionName = "10.4.4"
+        versionCode = 239
+        versionName = "10.5.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -40,14 +43,9 @@ android {
             buildConfigField("String", "PODCASTINDEX_API_KEY", "\"QT2RYHSUZ3UC9GDJ5MFY\"")
             buildConfigField("String", "PODCASTINDEX_API_SECRET", "\"Zw2NL74ht5aCtx5zFL$#MY$##qdVCX7x37jq95Sz\"")
         }
-        vectorDrawables.useSupportLibrary = true
     }
 
-    kotlin {
-        jvmToolchain(17)
-    }
 
-    val metaInfExcludes = listOf("DEPENDENCIES", "LICENSE", "NOTICE", "CHANGES", "README.md", "NOTICE.txt", "LICENSE.txt", "MANIFEST.MF").map { "/META-INF/$it" }
     packaging {
         resources {
             excludes.addAll(metaInfExcludes)
@@ -62,6 +60,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        resValues = true
         compose = true
     }
 
@@ -84,7 +83,6 @@ android {
         }
     }
 
-    namespace = "ac.mdiq.podcini"
     lint {
         lintConfig = file("lint.xml")
         checkReleaseBuilds = false
@@ -112,10 +110,11 @@ android {
 
     buildTypes {
         getByName("release") {
-            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+//             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             resValue("string", "app_name", "Podcini.X")
             resValue("string", "provider_authority", "ac.mdiq.podcini.X.provider")
-            vcsInfo.include = false
+//             vcsInfo.include = false
             isMinifyEnabled = true
             isShrinkResources = true
             signingConfig = signingConfigs["releaseConfig"]
@@ -127,20 +126,7 @@ android {
         }
     }
 
-    applicationVariants.all {
-        val variant = this
-        variant.outputs.all {
-            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
-            val applicationName = "Podcini.X"
-            val buildType = variant.buildType.name
-            val versionName = variant.versionName
-            val flavorName = variant.flavorName ?: ""
-            val abiName = output.getFilter(com.android.build.OutputFile.ABI) ?: ""
-            outputFileName = "${applicationName}_${buildType}_${flavorName}_${versionName}_${abiName}.apk"
-        }
-    }
     androidResources {
-//        additionalParameters "--no-version-vectors"
         generateLocaleConfig = true
     }
 
@@ -152,8 +138,32 @@ android {
     }
 }
 
+androidComponents {
+    val androidExt = extensions.getByType<ApplicationExtension>()
+    val appName = "Podcini.X"
+    val versionName = androidExt.defaultConfig.versionName ?: "0.0.0"
+    onVariants { variant ->
+        val variantName = variant.name
+        val capitalized = variantName.replaceFirstChar { it.uppercase() }
+        val copyTask = tasks.register<Copy>("export${capitalized}Apks") {
+            from(variant.artifacts.get(SingleArtifact.APK)) {
+                include("**/*.apk")
+                eachFile {
+                    name = name
+                        .replace(Regex("-(release|debug)(?=\\.apk$)"), "")
+                        .replace("app", appName)
+                        .replace(".apk", "-$versionName.apk")
+                }
+                into("")
+            }
+            into(layout.buildDirectory.dir("exported-apks/$variantName"))
+        }
+        tasks.matching { it.name == "assemble$capitalized" }.configureEach { finalizedBy(copyTask) }
+    }
+}
+
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2025.12.01"))
+    implementation(platform("androidx.compose:compose-bom:2026.01.00"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
@@ -186,7 +196,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
 
-    implementation("io.github.xilinjia.krdb:library-base:3.2.9")
+    implementation("io.github.xilinjia.krdb:library-base:3.3.0")
 
     implementation("com.github.TeamNewPipe:nanojson:1d9e1aea9049fc9f85e68b43ba39fe7be1c1f751")
     implementation("io.reactivex.rxjava3:rxjava:3.1.12")
@@ -208,8 +218,8 @@ dependencies {
     compileOnly("com.google.android.wearable:wearable:2.9.0")
 
     "freeImplementation"("org.conscrypt:conscrypt-android:2.5.3")
-    debugImplementation("androidx.compose.ui:ui-tooling:1.10.0")
-    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.0")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.10.1")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.1")
 
     "playImplementation"("com.google.android.play:core-ktx:1.8.1")
     "playImplementation"("com.google.android.gms:play-services-base:18.9.0")

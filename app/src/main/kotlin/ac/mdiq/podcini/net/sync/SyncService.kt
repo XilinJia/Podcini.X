@@ -321,7 +321,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
 //        }
 
         val intent = applicationContext.packageManager.getLaunchIntentForPackage(applicationContext.packageName)
-        val pendingIntent = PendingIntent.getActivity(applicationContext, R.id.pending_intent_sync_error, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getActivity(applicationContext, REQUEST_CODE_SYNC_ERROR, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(applicationContext,
             CHANNEL_ID.sync_error.name)
             .setContentTitle(applicationContext.getString(R.string.gpodnetsync_error_title))
@@ -349,6 +349,8 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
 
     companion object {
         private val TAG = SyncService::class.simpleName ?: "Anonymous"
+
+        private const val REQUEST_CODE_SYNC_ERROR = 1001
 
         private const val WORK_ID_SYNC = "SyncServiceWorkId"
 

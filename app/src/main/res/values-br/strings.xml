@@ -403,9 +403,9 @@
     <string name="advanced">Araokaet</string>
     <string name="discover">Dizoloeiñ</string>
   <string name="discover_hide">Kuzhat</string>
-  <string name="discover_is_hidden">Dibabed ho peus kuzhat an alioù.</string>
-  <string name="discover_more">muioc\'h »</string>
-  <string name="discover_confirm">Diskouez an alioù</string>
+
+
+
   <string name="search_powered_by">Disoc\'hioù gant %1$s</string>
   <string name="select_country">Dibab ur vro</string>
   <!--Local feeds-->

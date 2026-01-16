@@ -7,8 +7,6 @@ object RatingDialog {
     fun init(context: Context?) {}
 
     fun check() {}
-
     
-    fun saveRated() {
-    }
+    fun saveRated() {}
 }

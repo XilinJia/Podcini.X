@@ -60,6 +60,12 @@ object AppPreferences {
             putPref(AppPrefs.prefSpeedforwardSpeed, speed.toString())
         }
 
+    var skipforwardSpeed: Float
+        get() = getPref(AppPrefs.prefSkipforwardSpeed, "0.00").toFloat()
+        set(speed) {
+            putPref(AppPrefs.prefSkipforwardSpeed, speed.toString())
+        }
+
     var fallbackSpeed: Float
         get() = getPref(AppPrefs.prefFallbackSpeed, "0.00").toFloat()
         set(speed) {
@@ -240,6 +246,7 @@ object AppPreferences {
         prefStreamOverDownload(false),
         prefLowQualityOnMobile(false),
         prefSpeedforwardSpeed("0.00"),
+        prefSkipforwardSpeed("0.00"),
         prefUseAdaptiveProgressUpdate(true),
 
         // Network

@@ -3,8 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:installLocation="auto">
 
-<!--    <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="34" />-->
-
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:ignore="ScopedStorage" />
