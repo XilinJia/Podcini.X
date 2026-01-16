@@ -494,6 +494,8 @@
     <string name="pref_parent_volume_sum">The volume to which the feed belongs</string>
     <string name="pref_fallback_speed">سرعة الرجوع</string>
     <string name="pref_speed_forward">سرعة التقدم السريعة</string>
+    <string name="pref_forward_speed_sum">Customize the speed to speed forward when the forward button is long-pressed</string>
+    <string name="pref_speed_skip">Fast skip speed</string>
     <string name="pref_speed_forward_sum">تخصيص السرعة للامام عند النقر على زر تخطي</string>
     <string name="pref_fallback_speed_sum">تخصيص السرعة عند الضغط لفترة طويلة على زر التشغيل</string>
     <string name="pref_fast_forward">وقت تخطي سريع للأمام</string>
@@ -774,10 +776,6 @@
     <string name="True_Crime">True Crime</string>
     <string name="TV_Film">TV Film</string>
     <string name="All">All</string>
-    <string name="discover_is_hidden">لقد اخترت إخفاء الاقتراحات.</string>
-    <string name="discover_more">أكثر»</string>
-    <string name="discover_powered_by_itunes">اقتراحات بواسطة Apple Podcasts</string>
-    <string name="discover_confirm">إظهار الاقتراحات</string>
     <string name="search_powered_by">النتائج بواسطة %1$s</string>
     <string name="select_country">حدد البلد</string>
     <string name="country">Country</string>
