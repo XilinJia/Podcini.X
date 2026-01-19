@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- Activity and fragment titles -->
-    <string name="languages">Languages</string>
-    <string name="feed_update_receiver_name">Update subscriptions</string>
-    <string name="feeds">Feeds</string>
-    <string name="preferred_languages">Preferred languages</string>
-    <string name="statistics_label">Statistics</string>
-    <string name="add_feed_label">Add podcast</string>
+    <string name="languages">Diller</string>
+    <string name="feed_update_receiver_name">Abonelikleri güncelle</string>
+    <string name="feeds">Akış</string>
+    <string name="preferred_languages">Seçilen diller</string>
+    <string name="statistics_label">İstatistikler</string>
+    <string name="add_feed_label">Podcast yayın ekle</string>
     <string name="online_episodes_label">Online episodes</string>
     <string name="feed">Feed</string>
     <string name="facets">Facets</string>
