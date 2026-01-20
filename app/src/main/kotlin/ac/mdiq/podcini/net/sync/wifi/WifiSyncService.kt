@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.net.sync.wifi
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.sync.LockingAsyncExecutor
 import ac.mdiq.podcini.net.sync.LockingAsyncExecutor.executeLockedAsync
@@ -14,7 +15,6 @@ import ac.mdiq.podcini.net.sync.model.SyncServiceException
 import ac.mdiq.podcini.net.sync.model.UploadChangesResponse
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.getEpisodes
-
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -26,13 +26,14 @@ import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import android.content.Context
-import androidx.core.content.ContextCompat.getString
 import androidx.work.BackoffPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.delay
+import org.apache.commons.lang3.StringUtils
+import org.json.JSONArray
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintWriter
@@ -43,11 +44,9 @@ import java.net.Socket
 import java.net.SocketTimeoutException
 import java.util.Date
 import java.util.concurrent.TimeUnit
-import org.apache.commons.lang3.StringUtils
-import org.json.JSONArray
 import kotlin.math.min
 
-class WifiSyncService(val context: Context, params: WorkerParameters) : SyncService(context, params), ISyncService {
+class WifiSyncService(context: Context, params: WorkerParameters) : SyncService(context, params), ISyncService {
 
     private var loginFail = false
 
@@ -73,10 +72,10 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
                 while (!receivedBye) {
                     try { receivedBye = receiveFromPeer()
                     } catch (e: SocketTimeoutException) {
-                        Logs("Guest", e, getString(context, R.string.sync_error_host_not_respond))
+                        Logs("Guest", e, getAppContext().getString(R.string.sync_error_host_not_respond))
                         logout()
                         EventFlow.postEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_in_progress, "100"))
-                        EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_error, getString(context, R.string.sync_error_host_not_respond)))
+                        EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_error, getAppContext().getString(R.string.sync_error_host_not_respond)))
                         SynchronizationSettings.setLastSynchronizationAttemptSuccess(false)
                         return Result.failure()
                     }
@@ -86,10 +85,10 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
                 while (!receivedBye) {
                     try { receivedBye = receiveFromPeer()
                     } catch (e: SocketTimeoutException) {
-                        Logs("Host", e, getString(context, R.string.sync_error_guest_not_respond))
+                        Logs("Host", e, getAppContext().getString(R.string.sync_error_guest_not_respond))
                         logout()
                         EventFlow.postEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_in_progress, "100"))
-                        EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_error, getString(context, R.string.sync_error_guest_not_respond)))
+                        EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_error, getAppContext().getString(R.string.sync_error_guest_not_respond)))
                         SynchronizationSettings.setLastSynchronizationAttemptSuccess(false)
                         return Result.failure()
                     }
@@ -263,7 +262,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
                     .position(item.position / 1000)
                     .playedDuration(item.playedDuration / 1000)
                     .total(item.duration / 1000)
-                    .isFavorite(item.isSUPER)
+                    .isFavorite(item.rating >= Rating.GOOD.code)
                     .playState(item.playState)
                     .build()
                 queuedEpisodeActions.add(played)
@@ -326,15 +325,15 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
         if (feedItem.lastPlayedTime < (action.timestamp?.time?:0L)) {
             feedItem = upsertBlk(feedItem) {
                 it.startPosition = action.started * 1000
-                it.setPosition(action.position * 1000)
+                it.position = action.position * 1000
                 it.playedDuration = action.playedDuration * 1000
                 it.lastPlayedTime = (action.timestamp!!.time)
                 it.rating = if (action.isFavorite) Rating.SUPER.code else Rating.UNRATED.code
                 it.setPlayState(EpisodeState.fromCode(action.playState))
                 if (it.hasAlmostEnded()) {
                     Logd(TAG, "Marking as played")
-                    it.setPlayed(true)
-                    it.setPosition(0)
+                    it.setPlayState(EpisodeState.PLAYED)
+//                    it.setPosition(0)
                     idRemove = it.id
                 } else Logd(TAG, "Setting position")
             }
@@ -362,7 +361,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
             isCurrentlyActive = active
         }
 
-        fun startInstantSync(context: Context, hostPort_: Int = 54628, hostIp_: String="", isGuest_: Boolean = false) {
+        fun startInstantSync(hostPort_: Int = 54628, hostIp_: String="", isGuest_: Boolean = false) {
             hostIp = hostIp_
             isGuest = isGuest_
             hostPort = hostPort_
@@ -376,7 +375,7 @@ class WifiSyncService(val context: Context, params: WorkerParameters) : SyncServ
                 EventFlow.postStickyEvent(FlowEvent.SyncServiceEvent(R.string.sync_status_started))
 
                 val workRequest: OneTimeWorkRequest = builder.setInitialDelay(0L, TimeUnit.SECONDS).build()
-                WorkManager.getInstance(context).enqueueUniqueWork(hostIp_, ExistingWorkPolicy.REPLACE, workRequest)
+                WorkManager.getInstance(getAppContext()).enqueueUniqueWork(hostIp_, ExistingWorkPolicy.REPLACE, workRequest)
             }
         }
     }

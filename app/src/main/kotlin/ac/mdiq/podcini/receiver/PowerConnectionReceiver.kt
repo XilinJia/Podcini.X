@@ -19,7 +19,7 @@ class PowerConnectionReceiver : BroadcastReceiver() {
      override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         Logd(TAG, "onReceive charging intent: $action")
-        ClientConfigurator.initialize(context.applicationContext)
+        ClientConfigurator.initialize()
         if (Intent.ACTION_POWER_CONNECTED == action) {
             Logd(TAG, "charging, starting auto-download")
             // we're plugged in, this is a great time to auto-download if everything else is
@@ -27,12 +27,12 @@ class PowerConnectionReceiver : BroadcastReceiver() {
             // downloading now. They shouldn't mind.
             // autodownloadUndownloadedItems will make sure we're on the right wifi networks,
             // etc... so we don't have to worry about it.
-            autodownload(context)
+            autodownload()
         } else {
             // if we're not supposed to be auto-downloading when we're not charging, stop it
             if (!getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false)) {
                 Logd(TAG, "not charging anymore, canceling auto-download")
-                DownloadServiceInterface.impl?.cancelAll(context)
+                DownloadServiceInterface.impl?.cancelAll()
             } else Logd(TAG, "not charging anymore, but the user allows auto-download when on battery so we'll keep going")
         }
     }

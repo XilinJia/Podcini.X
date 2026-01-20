@@ -104,7 +104,7 @@ fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null)
             }
             else -> {
                 val tempFileDS = curDataSource?.stopRecording(endPositionMs)
-                val cache = getCache(getAppContext())
+                val cache = getCache()
                 val bytesPerSecond = bitrate / 8.0
                 val startByte = startBytePlayer ?: (startPositionMs * bytesPerSecond / 1000).toLong()
                 val endByte = endBytePlayer ?: (endPositionMs * bytesPerSecond / 1000).toLong()

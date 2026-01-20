@@ -1,12 +1,12 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.storage.database.sleepPrefs
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Context.SENSOR_SERVICE
 import android.content.Context.VIBRATOR_SERVICE
 import android.hardware.Sensor
@@ -23,7 +23,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.sqrt
 
-class SleepManager(private val context: Context) {
+class SleepManager {
     private var sleepTimer: SleepTimer? = null
     private var sleepTimerJob: Job? = null
 
@@ -99,13 +99,13 @@ class SleepManager(private val context: Context) {
                         postTimeLeft()
                         Logd(TAG, "Sleep timer is about to expire")
                         if (sleepPrefs.Vibrate && !hasVibrated) {
-                            val v = context.getSystemService(VIBRATOR_SERVICE) as? Vibrator
+                            val v = getAppContext().getSystemService(VIBRATOR_SERVICE) as? Vibrator
                             if (v != null) {
                                 v.vibrate(500)
                                 hasVibrated = true
                             }
                         }
-                        if (shakeListener == null && sleepPrefs.ShakeToReset) shakeListener = ShakeListener(context, this@SleepTimer)
+                        if (shakeListener == null && sleepPrefs.ShakeToReset) shakeListener = ShakeListener(this@SleepTimer)
                         if (timeLeft <= 0) {
                             Logd(TAG, "Sleep timer expired")
                             shakeListener?.pause()
@@ -136,7 +136,7 @@ class SleepManager(private val context: Context) {
         }
     }
 
-    internal class ShakeListener(private val mContext: Context, private val mSleepTimer: SleepTimer) : SensorEventListener {
+    internal class ShakeListener(private val mSleepTimer: SleepTimer) : SensorEventListener {
         private var mAccelerometer: Sensor? = null
         private var mSensorMgr: SensorManager? = null
 
@@ -147,7 +147,7 @@ class SleepManager(private val context: Context) {
         private fun resume() {
             // only a precaution, the user should actually not be able to activate shake to reset
             // when the accelerometer is not available
-            mSensorMgr = mContext.getSystemService(SENSOR_SERVICE) as SensorManager
+            mSensorMgr = getAppContext().getSystemService(SENSOR_SERVICE) as SensorManager
             if (mSensorMgr == null) throw UnsupportedOperationException("Sensors not supported")
 
             mAccelerometer = mSensorMgr!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)

@@ -11,6 +11,8 @@ class SubscriptionsPrefs: RealmObject {
 
     var prefFeedGridLayout: Boolean = false
 
+    var showArchived: Boolean = false
+
     var feedsFilter: String = ""
 
     var langsSel: RealmSet<String> = realmSetOf()
@@ -21,20 +23,17 @@ class SubscriptionsPrefs: RealmObject {
 
     var sortIndex: Int = 0
 
-    var titleAscending: Boolean = true
+    var propertyAscending: Boolean = true
+    var propertySortIndex: Int = 0
 
     var dateAscending: Boolean = false
-
-    var timeAscending: Boolean = false
-
-    var countAscending: Boolean = false
-
     var dateSortIndex: Int = 0
 
+    var timeAscending: Boolean = false
     var timeSortIndex: Int = 0
 
+    var countAscending: Boolean = false
     var downlaodedSortIndex: Int = 0
-
     var commentedSortIndex: Int = 0
 
     var playStateCodeSet: RealmSet<String> = realmSetOf()

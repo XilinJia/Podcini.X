@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
@@ -51,7 +52,6 @@ import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.toastMassege
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -96,7 +96,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -120,14 +119,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.await
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 class MainActivity : BaseActivity() {
     private var lastTheme = 0
@@ -203,8 +202,7 @@ class MainActivity : BaseActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent { CustomTheme(this) { MainActivityUI() } }
 
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
-            postFornotificationPermission()
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) postFornotificationPermission()
         else checkAndRequestUnrestrictedBackgroundActivity()
 
         val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
@@ -250,15 +248,16 @@ class MainActivity : BaseActivity() {
         if (showUnrestrictedBackgroundPermissionDialog) UnrestrictedBackgroundPermissionDialog { showUnrestrictedBackgroundPermissionDialog = false }
 
         var firstRun by remember { mutableStateOf(true) }
-        LaunchedEffect(key1 = bsState, key2 = curEpisode?.id) {
+        LaunchedEffect(key1 = bsState, key2 = curEpisode?.id, firstRun) {
+            Logd(TAG, "LaunchedEffect(key1 = bsState, key2 = curEpisode?.id, firstRun)")
             if (firstRun) {
                 firstRun = false
                 return@LaunchedEffect
             }
             if ((curEpisode?.id ?: -1L) > 0) {
-                when {
-                    bsState == MainActivity.BSState.Expanded -> sheetState.bottomSheetState.expand()
-                    bsState == MainActivity.BSState.Partial -> sheetState.bottomSheetState.partialExpand()
+                when (bsState) {
+                    BSState.Expanded -> sheetState.bottomSheetState.expand()
+                    BSState.Partial -> sheetState.bottomSheetState.partialExpand()
                     else -> sheetState.bottomSheetState.hide()
                 }
             } else sheetState.bottomSheetState.hide()
@@ -509,7 +508,7 @@ class MainActivity : BaseActivity() {
                 val feedId = intent.getLongExtra(Extras.fragment_feed_id.name, 0)
                 Logd(TAG, "handleNavIntent: feedId: $feedId")
                 if (feedId > 0) setIntentScreen("${Screens.FeedDetails.name}?feedId=${feedId}")
-                bsState = MainActivity.BSState.Partial
+                bsState = BSState.Partial
             }
             intent.hasExtra(Extras.fragment_feed_url.name) -> {
                 val feedurl = intent.getStringExtra(Extras.fragment_feed_url.name)
@@ -520,7 +519,7 @@ class MainActivity : BaseActivity() {
                 setOnlineSearchTerms(query = intent.getStringExtra(Extras.search_string.name))
                 setIntentScreen(Screens.FindFeeds.name)
             }
-            intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> bsState = MainActivity.BSState.Expanded
+            intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> bsState = BSState.Expanded
             else -> {
                 // deeplink
                 val uri = intent.data
@@ -546,7 +545,7 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
-        if (intent.getBooleanExtra(Extras.refresh_on_start.name, false)) runOnceOrAsk(this)
+        if (intent.getBooleanExtra(Extras.refresh_on_start.name, false)) runOnceOrAsk()
 
         // to avoid handling the intent twice when the configuration changes    TODO: this is not a good way
 //        setIntent(Intent(this@MainActivity, MainActivity::class.java))
@@ -583,23 +582,23 @@ class MainActivity : BaseActivity() {
         val LocalNavController = staticCompositionLocalOf<AppNavigator> { error("NavController not provided") }
         var bsState by mutableStateOf(BSState.Partial)
 
-        fun getIntentToOpenFeed(context: Context, feedId: Long): Intent {
-            val intent = Intent(context.applicationContext, MainActivity::class.java)
+        fun getIntentToOpenFeed(feedId: Long): Intent {
+            val intent = Intent(getAppContext(), MainActivity::class.java)
             intent.putExtra(Extras.fragment_feed_id.name, feedId)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             return intent
         }
 
-        fun showOnlineFeed(context: Context, feedUrl: String, isShared: Boolean = false): Intent {
-            val intent = Intent(context.applicationContext, MainActivity::class.java)
+        fun showOnlineFeed(feedUrl: String, isShared: Boolean = false): Intent {
+            val intent = Intent(getAppContext(), MainActivity::class.java)
             intent.putExtra(Extras.fragment_feed_url.name, feedUrl)
             intent.putExtra(Extras.isShared.name, isShared)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             return intent
         }
 
-        fun showOnlineSearch(context: Context, query: String): Intent {
-            val intent = Intent(context.applicationContext, MainActivity::class.java)
+        fun showOnlineSearch(query: String): Intent {
+            val intent = Intent(getAppContext(), MainActivity::class.java)
             intent.putExtra(Extras.search_string.name, query)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             return intent

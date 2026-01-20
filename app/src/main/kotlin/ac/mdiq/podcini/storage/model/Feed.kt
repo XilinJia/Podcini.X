@@ -69,6 +69,8 @@ class Feed : RealmObject {
     var score: Int = -1000
     var scoreCount: Int = 0
 
+    var scoreUpdated: Long = 0
+
     var limitEpisodesCount: Int = 0
 
     // recorded when an episode starts playing when FeedDetails is open
@@ -203,7 +205,6 @@ class Feed : RealmObject {
     @Ignore
     var isBuilding by mutableStateOf(false)
 
-    // from FeedPreferences
     var useWideLayout: Boolean = false
 
     var keepUpdated: Boolean = true
@@ -394,8 +395,6 @@ class Feed : RealmObject {
 
     var preferredLnaguages: RealmSet<String> = realmSetOf()
 
-    // above from FeedPreferences
-
     constructor() : super()
 
     /**
@@ -475,15 +474,6 @@ class Feed : RealmObject {
 
     fun isSynthetic(): Boolean = id <= MAX_SYNTHETIC_ID
 
-//    fun getVirtualQueueItems():  List<Episode> {
-//        var qString = "feedId == $id AND (playState < ${EpisodeState.SKIPPED.code} OR playState == ${EpisodeState.AGAIN.code} OR playState == ${EpisodeState.FOREVER.code})"
-////        TODO: perhaps need to set prefStreamOverDownload for youtube feeds
-//        if (type != FeedType.YOUTUBE.name && !prefStreamOverDownload) qString += " AND downloaded == true"
-//        val eList_ = realm.query(Episode::class, qString).query(episodeFilter.queryString()).find().toMutableList()
-//        getPermutor(episodeSortOrder).reorder(eList_)
-//        return eList_
-//    }
-
     @Ignore
     val isWorthyQuerryStr: String
         get() = "(playState != ${EpisodeState.IGNORED.code} AND comment != '')" +
@@ -499,8 +489,8 @@ class Feed : RealmObject {
         return realm.query(Episode::class).query("feedId == $id AND ($isWorthyQuerryStr)").find()
     }
 
-    fun ordinariesCount(): Int {
-        return realm.query(Episode::class).query("feedId == $id AND !($isWorthyQuerryStr)").count().find().toInt()
+    fun getUnworthyEpisodes(): List<Episode> {
+        return realm.query(Episode::class).query("feedId == $id AND !($isWorthyQuerryStr)").find()
     }
 
     fun getFeedfileName(): String {

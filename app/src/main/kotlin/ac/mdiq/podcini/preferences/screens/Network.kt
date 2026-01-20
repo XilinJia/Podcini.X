@@ -49,7 +49,6 @@ import android.net.wifi.WifiManager
 import android.util.Patterns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -147,11 +146,11 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
             override fun onNextcloudAuthenticated(server: String, username: String, password: String) {
                 Logd("NextcloudAuthenticationDialog", "onNextcloudAuthenticated: $server")
                 setSelectedSyncProvider(SynchronizationProviderViewData.NEXTCLOUD_GPODDER)
-                SynchronizationCredentials.clear(activity)
+                SynchronizationCredentials.clear()
                 SynchronizationCredentials.password = password
                 SynchronizationCredentials.hosturl = server
                 SynchronizationCredentials.username = username
-                SyncService.fullSync(activity)
+                SyncService.fullSync()
                 loggedIn = isProviderConnected
                 onDismissRequest()
             }
@@ -325,7 +324,7 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
                     showConfirm = false
                     showCancel = false
                     setWifiSyncEnabled(true)
-                    startInstantSync(getAppContext(), portNum, hostAddress, isGuest!!)
+                    startInstantSync(portNum, hostAddress, isGuest!!)
                 }) { Text(stringResource(R.string.confirm_label)) }
             },
             dismissButton = { if (showCancel) TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
@@ -369,10 +368,10 @@ fun SynchronizationScreen(activity: PreferenceActivity) {
         TitleSummaryActionColumn(titleRes, summaryRes) { onClick?.invoke() }
     }
     if (loggedIn) {
-        TitleSummaryActionColumn(R.string.synchronization_sync_changes_title, R.string.synchronization_sync_summary) { SyncService.syncImmediately(activity.applicationContext) }
-        TitleSummaryActionColumn(R.string.synchronization_full_sync_title, R.string.synchronization_force_sync_summary) { SyncService.fullSync(activity) }
+        TitleSummaryActionColumn(R.string.synchronization_sync_changes_title, R.string.synchronization_sync_summary) { SyncService.syncImmediately() }
+        TitleSummaryActionColumn(R.string.synchronization_full_sync_title, R.string.synchronization_force_sync_summary) { SyncService.fullSync() }
         TitleSummaryActionColumn(R.string.synchronization_logout, 0) {
-            SynchronizationCredentials.clear(activity)
+            SynchronizationCredentials.clear()
             Logt("SynchronizationPreferencesScreen", activity.getString(R.string.pref_synchronization_logout_toast))
             setSelectedSyncProvider(null)
             loggedIn = isProviderConnected
@@ -580,7 +579,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                     activity.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
                     val baseDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: return@launch
                     val mediaDir = baseDir.createDirectory("Podcini.media") ?: return@launch
-                    MediaFilesTransporter("Podcini.media").exportToUri(mediaDir.uri, getAppContext(), move = true, useSubDir = false)
+                    MediaFilesTransporter("Podcini.media").exportToUri(mediaDir.uri, move = true, useSubDir = false)
                     customMediaFolderUriString = mediaDir.uri.toString()
                     useCustomMediaDir = true
                     putPref(AppPrefs.prefUseCustomMediaFolder, true)
@@ -595,7 +594,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
 
     var refreshInterval by remember { mutableStateOf(getPref(AppPrefs.prefAutoUpdateIntervalMinutes, "360")) }
     LaunchedEffect(Unit) {
-        getInitialDelay(activity)
+        getInitialDelay()
     }
 
     Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp).verticalScroll(rememberScrollState())) {
@@ -606,7 +605,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                     refreshInterval = it.toString()
                     Logd("DownloadsSetting", "refreshInterval: $refreshInterval")
                     putPref(AppPrefs.prefAutoUpdateIntervalMinutes, refreshInterval)
-                    checkAndscheduleUpdateTaskOnce(activity.applicationContext, replace = true, force = true)
+                    checkAndscheduleUpdateTaskOnce(replace = true, force = true)
                 }
             }
             Text(stringResource(R.string.feed_refresh_sum), color = textColor, style = MaterialTheme.typography.bodySmall)
@@ -701,7 +700,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                             useCustomMediaDir = false
                             putPref(AppPrefs.prefUseCustomMediaFolder, false)
                             putPref(AppPrefs.prefCustomMediaUri, "")
-                            MediaFilesTransporter("").importFromUri(chosenDir.uri, activity, move = true, verify = false)
+                            MediaFilesTransporter("").importFromUri(chosenDir.uri, move = true, verify = false)
                             deleteDirectoryRecursively(chosenDir)
 //                            createNoMediaFile()
                             showProgress = false
@@ -754,7 +753,7 @@ fun NetworkScreen(activity: PreferenceActivity) {
                         putPref(AppPrefs.prefMobileUpdateTypes, tempSelectedOptions)
                         val optionsDiff = (tempSelectedOptions - initMobileOptions) + (initMobileOptions - tempSelectedOptions)
                         if (optionsDiff.contains(MobileUpdateOptions.feed_refresh.name) || optionsDiff.contains(MobileUpdateOptions.auto_download.name))
-                            checkAndscheduleUpdateTaskOnce(activity.applicationContext, replace = true, force = true)
+                            checkAndscheduleUpdateTaskOnce(replace = true, force = true)
                         showMeteredNetworkOptions = false
                     }) { Text(text = "OK") }
                 },

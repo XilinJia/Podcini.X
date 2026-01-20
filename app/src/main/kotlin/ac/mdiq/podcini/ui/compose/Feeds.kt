@@ -8,8 +8,6 @@ import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.getEpisodesCount
-import ac.mdiq.podcini.storage.database.getPreserveSyndicate
-import ac.mdiq.podcini.storage.database.shelveToFeed
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -128,12 +126,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                 callback()
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val preserveFeed = if (saveImportant) getPreserveSyndicate() else null
                         for (f in feeds) {
-                            if (saveImportant) {
-                                val eList = f.getWorthyEpisodes()
-                                if (eList.isNotEmpty()) shelveToFeed(eList, preserveFeed!!)
-                            }
                             if (!f.isSynthetic()) {
                                 val sLog = SubscriptionLog(f.id, f.title ?: "", f.downloadUrl ?: "", f.link ?: "", SubscriptionLog.Type.Feed.name)
                                 upsert(sLog) {
@@ -154,7 +147,8 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                                     }
                                 }
                             }
-                            deleteFeed(f.id)
+                            val worthyEps = f.getWorthyEpisodes()
+                            deleteFeed(f.id, saveImportant && worthyEps.isNotEmpty())
                         }
                         EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.REMOVED, feeds.map { it.id }))
                     } catch (e: Throwable) { Logs("RemoveFeedDialog", e) }

@@ -31,14 +31,14 @@ class SPAReceiver : BroadcastReceiver() {
             return
         }
         Logd(TAG, "Received feeds list: " + feedUrls.contentToString())
-        ClientConfigurator.initialize(context.applicationContext)
+        ClientConfigurator.initialize()
         for (url in feedUrls) {
             val feed = Feed(url, null, "Unknown podcast")
             feed.episodes.clear()
             updateFeedFull(feed, removeUnlistedItems = false)
         }
         Logt(TAG, context.getString(R.string.sp_apps_importing_feeds_msg))
-        runOnce(context)
+        runOnce()
     }
 
     companion object {

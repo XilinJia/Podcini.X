@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.net.utils
 
 import ac.mdiq.podcini.PodciniApp.Companion.getApp
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
@@ -65,8 +66,8 @@ object NetworkUtils {
     val isFeedRefreshAllowed: Boolean
         get() = mobileAllowFeedRefresh || !getApp().networkMonitor.isNetworkRestricted
     
-    fun init(context: Context) {
-        NetworkUtils.context = context
+    fun init() {
+        context = getAppContext()
     }
 
     fun isAllowMobileFor(type: String): Boolean {
@@ -222,8 +223,8 @@ object NetworkUtils {
         return result
     }
 
-    class NetworkMonitor(context: Context) {
-        private val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    class NetworkMonitor() {
+        private val connectivityManager = getAppContext().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
         @Volatile var isConnected: Boolean = true
             private set

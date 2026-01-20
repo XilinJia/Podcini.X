@@ -1,9 +1,9 @@
 package ac.mdiq.podcini.config
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences
 import android.app.NotificationManager
-import android.content.Context
 import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationChannelGroupCompat
 import androidx.core.app.NotificationManagerCompat
@@ -25,22 +25,23 @@ enum class GROUP_ID {
     group_news
 }
 
-fun createChannels(context: Context) {
-    val mNotificationManager = NotificationManagerCompat.from(context)
+fun createChannels() {
+    val c = getAppContext()
+    val mNotificationManager = NotificationManagerCompat.from(c)
 
     val channelGroups = listOf(
-        createGroupErrors(context)
+        createGroupErrors()
         //            createGroupNews(context)
     )
     mNotificationManager.createNotificationChannelGroupsCompat(channelGroups)
 
     val channels = listOf(
-        createChannelUserAction(context),
-        createChannelFeedUpdate(context),
-        createChannelDownloading(context),
+        createChannelUserAction(),
+        createChannelFeedUpdate(),
+        createChannelDownloading(),
         //            createChannelPlaying(context),
-        createChannelError(context),
-        createChannelSyncError(context)
+        createChannelError(),
+        createChannelSyncError()
         //            createChannelEpisodeNotification(context)
     )
     mNotificationManager.createNotificationChannelsCompat(channels)
@@ -49,7 +50,8 @@ fun createChannels(context: Context) {
     mNotificationManager.deleteNotificationChannel(CHANNEL_ID.episode_notifications.name)
 }
 
-private fun createChannelUserAction(c: Context): NotificationChannelCompat {
+private fun createChannelUserAction(): NotificationChannelCompat {
+    val c = getAppContext()
     return NotificationChannelCompat.Builder(
         CHANNEL_ID.user_action.name, NotificationManagerCompat.IMPORTANCE_HIGH)
         .setName(c.getString(R.string.notification_channel_user_action))
@@ -58,7 +60,8 @@ private fun createChannelUserAction(c: Context): NotificationChannelCompat {
         .build()
 }
 
-private fun createChannelFeedUpdate(c: Context): NotificationChannelCompat {
+private fun createChannelFeedUpdate(): NotificationChannelCompat {
+    val c = getAppContext()
     return NotificationChannelCompat.Builder(CHANNEL_ID.refreshing.name, NotificationManager.IMPORTANCE_LOW)
         .setName(c.getString(R.string.notification_channel_refreshing))
         .setDescription(c.getString(R.string.notification_channel_refreshing_description))
@@ -66,7 +69,8 @@ private fun createChannelFeedUpdate(c: Context): NotificationChannelCompat {
         .build()
 }
 
-private fun createChannelDownloading(c: Context): NotificationChannelCompat {
+private fun createChannelDownloading(): NotificationChannelCompat {
+    val c = getAppContext()
     return NotificationChannelCompat.Builder(
         CHANNEL_ID.downloading.name, NotificationManagerCompat.IMPORTANCE_LOW)
         .setName(c.getString(R.string.notification_channel_downloading))
@@ -75,7 +79,8 @@ private fun createChannelDownloading(c: Context): NotificationChannelCompat {
         .build()
 }
 
-private fun createChannelError(c: Context): NotificationChannelCompat {
+private fun createChannelError(): NotificationChannelCompat {
+    val c = getAppContext()
     val notificationChannel = NotificationChannelCompat.Builder(
         CHANNEL_ID.error.name, NotificationManagerCompat.IMPORTANCE_HIGH)
         .setName(c.getString(R.string.notification_channel_download_error))
@@ -87,7 +92,8 @@ private fun createChannelError(c: Context): NotificationChannelCompat {
     return notificationChannel.build()
 }
 
-private fun createChannelSyncError(c: Context): NotificationChannelCompat {
+private fun createChannelSyncError(): NotificationChannelCompat {
+    val c = getAppContext()
     val notificationChannel = NotificationChannelCompat.Builder(
         CHANNEL_ID.sync_error.name, NotificationManagerCompat.IMPORTANCE_HIGH)
         .setName(c.getString(R.string.notification_channel_sync_error))
@@ -99,11 +105,12 @@ private fun createChannelSyncError(c: Context): NotificationChannelCompat {
     return notificationChannel.build()
 }
 
-private fun createGroupErrors(c: Context): NotificationChannelGroupCompat {
+private fun createGroupErrors(): NotificationChannelGroupCompat {
+    val c = getAppContext()
     return NotificationChannelGroupCompat.Builder(GROUP_ID.group_errors.name).setName(c.getString(R.string.notification_group_errors)).build()
 }
 
-//    private fun createChannelPlaying(c: Context): NotificationChannelCompat {
+//    private fun createChannelPlaying(): NotificationChannelCompat {
 //        return NotificationChannelCompat.Builder(
 //            CHANNEL_ID.playing.name, NotificationManagerCompat.IMPORTANCE_LOW)
 //            .setName(c.getString(R.string.notification_channel_playing))

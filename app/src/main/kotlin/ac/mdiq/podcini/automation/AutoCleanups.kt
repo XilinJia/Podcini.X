@@ -14,9 +14,9 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeState
+import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
-import android.content.Context
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
@@ -43,14 +43,14 @@ class ExceptFavoriteCleanupAlgorithm : EpisodeCleanupAlgorithm() {
         get() {
             val candidates: MutableList<Episode> = mutableListOf()
             val downloadedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_DESC)
-            for (item in downloadedItems) if (item.downloaded && !item.isSUPER) candidates.add(item)
+            for (item in downloadedItems) if (item.downloaded && item.rating < Rating.GOOD.code) candidates.add(item)
             return candidates
         }
     override fun getReclaimableItems(): Int {
         return candidates.size
     }
 
-    public override fun performCleanup(context: Context, numToRemove: Int): Int {
+    public override fun performCleanup(numToRemove: Int): Int {
         var candidates = candidates
         // in the absence of better data, we'll sort by item publication date
         candidates = candidates.sortedWith { lhs: Episode, rhs: Episode ->
@@ -81,13 +81,13 @@ class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
             val candidates: MutableList<Episode> = mutableListOf()
             val downloadedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.downloaded.name), EpisodeSortOrder.DATE_DESC)
             val idsInQueues = inQueueEpisodeIdSet()
-            for (item in downloadedItems) if (item.downloaded && !idsInQueues.contains(item.id) && !item.isSUPER) candidates.add(item)
+            for (item in downloadedItems) if (item.downloaded && !idsInQueues.contains(item.id) && item.rating < Rating.GOOD.code) candidates.add(item)
             return candidates
         }
     override fun getReclaimableItems(): Int {
         return candidates.size
     }
-    public override fun performCleanup(context: Context, numToRemove: Int): Int {
+    public override fun performCleanup(numToRemove: Int): Int {
         var candidates = candidates
         // in the absence of better data, we'll sort by item publication date
         candidates = candidates.sortedWith { lhs: Episode, rhs: Episode ->
@@ -106,7 +106,7 @@ class APQueueCleanupAlgorithm : EpisodeCleanupAlgorithm() {
  * A cleanup algorithm that never removes anything
  */
 class APNullCleanupAlgorithm : EpisodeCleanupAlgorithm() {
-    public override fun performCleanup(context: Context, numToRemove: Int): Int {
+    public override fun performCleanup(numToRemove: Int): Int {
         // never clean anything up
         Logt(TAG, "performCleanup: Not removing anything")
         return 0
@@ -130,7 +130,7 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
             val idsInQueues = inQueueEpisodeIdSet()
             val mostRecentDateForDeletion = calcMostRecentDateForDeletion(Date())
             for (item in downloadedItems) {
-                if (item.downloaded && !idsInQueues.contains(item.id) && item.playState >= EpisodeState.PLAYED.code && !item.isSUPER) {
+                if (item.downloaded && !idsInQueues.contains(item.id) && item.playState >= EpisodeState.PLAYED.code && item.rating < Rating.GOOD.code) {
                     // make sure this candidate was played at least the proper amount of days prior to now
                     if (item.playbackCompletionDate != null && item.playbackCompletionDate!!.before(mostRecentDateForDeletion)) candidates.add(item)
                 }
@@ -140,7 +140,7 @@ class APCleanupAlgorithm( val numberOfHoursAfterPlayback: Int) : EpisodeCleanupA
     override fun getReclaimableItems(): Int {
         return candidates.size
     }
-    public override fun performCleanup(context: Context, numToRemove: Int): Int {
+    public override fun performCleanup(numToRemove: Int): Int {
         val candidates = candidates.toMutableList()
         candidates.sortWith { lhs: Episode, rhs: Episode ->
             var l = lhs.playbackCompletionDate
@@ -172,7 +172,7 @@ abstract class EpisodeCleanupAlgorithm {
      * or getPerformCleanupParameter.
      * @return The number of episodes that were deleted.
      */
-    protected abstract fun performCleanup(context: Context, numToRemove: Int): Int
+    protected abstract fun performCleanup(numToRemove: Int): Int
 
     protected fun cleanup(candidates: List<Episode>, numToRemove: Int): Int {
         val delete = if (candidates.size > numToRemove) candidates.subList(0, numToRemove) else candidates
@@ -193,15 +193,14 @@ abstract class EpisodeCleanupAlgorithm {
     protected abstract fun getDefaultCleanupParameter(): Int
     /**
      * Cleans up just enough episodes to make room for the requested number
-     * @param context            Can be used for accessing the database
      * @param amountOfRoomNeeded the number of episodes we need space for
      * @return The number of epiosdes that were deleted
      */
-    fun makeRoomForEpisodes(context: Context, amountOfRoomNeeded: Int): Int {
+    fun makeRoomForEpisodes(amountOfRoomNeeded: Int): Int {
         val numToRemove = getNumEpisodesToCleanup(amountOfRoomNeeded)
         Logt("EpisodeCleanupAlgorithm", "makeRoomForEpisodes: $numToRemove")
         if (numToRemove <= 0) return 0
-        return performCleanup(context, numToRemove)
+        return performCleanup(numToRemove)
     }
     /**
      * @return the number of episodes/items that *could* be cleaned up, if needed

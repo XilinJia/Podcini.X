@@ -1,23 +1,23 @@
 package ac.mdiq.podcini.preferences
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.utils.getDataFolder
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
-import android.content.Context
 import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.documentfile.provider.DocumentFile
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.OutputStream
 import java.io.OutputStreamWriter
 import java.nio.charset.Charset
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 enum class ExportTypes(val contentType: String, val outputNameTemplate: String, @field:StringRes val labelResId: Int) {
     OPML("text/x-opml", "podcini-feeds-%s.opml", R.string.opml_export_label),
@@ -27,9 +27,8 @@ enum class ExportTypes(val contentType: String, val outputNameTemplate: String, 
     PROGRESS("text/x-json", "podcini-progress-%s.json", R.string.progress_export_label),
 }
 
-class ExportWorker private constructor(private val exportWriter: ExportWriter, private val output: File, private val context: Context) {
-    constructor(exportWriter: ExportWriter, context: Context)
-            : this(exportWriter, File(getDataFolder(EXPORT_DIR), DEFAULT_OUTPUT_NAME + "." + exportWriter.fileExtension()), context)
+class ExportWorker private constructor(private val exportWriter: ExportWriter, private val output: File) {
+    constructor(exportWriter: ExportWriter) : this(exportWriter, File(getDataFolder(EXPORT_DIR), DEFAULT_OUTPUT_NAME + "." + exportWriter.fileExtension()))
 
     suspend fun exportFile(feeds: List<Feed>? = null): File? {
         return withContext(Dispatchers.IO) {
@@ -42,7 +41,7 @@ class ExportWorker private constructor(private val exportWriter: ExportWriter, p
                 writer = OutputStreamWriter(FileOutputStream(output), Charset.forName("UTF-8"))
                 val feeds_ = feeds ?: getFeedList()
                 Logd(TAG, "feeds_: ${feeds_.size}")
-                exportWriter.writeDocument(feeds_, writer, context)
+                exportWriter.writeDocument(feeds_, writer)
                 output
             } catch (e: IOException) {
                 Logs(TAG, e, "Error during file export.")
@@ -57,21 +56,21 @@ class ExportWorker private constructor(private val exportWriter: ExportWriter, p
     }
 }
 
-class DocumentFileExportWorker(private val exportWriter: ExportWriter, private val context: Context, private val outputFileUri: Uri) {
+class DocumentFileExportWorker(private val exportWriter: ExportWriter, private val outputFileUri: Uri) {
     suspend fun exportFile(feeds: List<Feed>? = null): DocumentFile {
         return withContext(Dispatchers.IO) {
-            val output = DocumentFile.fromSingleUri(context, outputFileUri)
+            val output = DocumentFile.fromSingleUri(getAppContext(), outputFileUri)
             var outputStream: OutputStream? = null
             var writer: OutputStreamWriter? = null
             try {
                 if (output == null) throw IOException()
                 val uri = output.uri
-                outputStream = context.contentResolver.openOutputStream(uri, "wt")
+                outputStream = getAppContext().contentResolver.openOutputStream(uri, "wt")
                 if (outputStream == null) throw IOException()
                 writer = OutputStreamWriter(outputStream, Charset.forName("UTF-8"))
                 val feeds_ = feeds ?: getFeedList()
                 Logd("DocumentFileExportWorker", "feeds_: ${feeds_.size}")
-                exportWriter.writeDocument(feeds_, writer, context)
+                exportWriter.writeDocument(feeds_, writer)
                 output
             } catch (e: IOException) { throw e
             } finally {

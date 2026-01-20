@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.config
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterfaceImpl
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.setCacheDirectory
@@ -23,22 +24,22 @@ object ClientConfigurator {
     private var initialized = false
 
     @Synchronized
-    fun initialize(context: Context) {
+    fun initialize() {
         if (initialized) return
         Logd("ClientConfigurator", "initialize")
 
-        AppPreferences.init(context)
+        AppPreferences.init()
         getRealmInstance()
 
         initQueues()
-        SslProviderInstaller.install(context)
-        NetworkUtils.init(context)
+        SslProviderInstaller.install()
+        NetworkUtils.init()
         DownloadServiceInterface.impl = DownloadServiceInterfaceImpl()
-        SynchronizationQueueSink.setServiceStarterImpl { SyncService.sync(context) }
-        setCacheDirectory(File(context.cacheDir, "okhttp"))
+        SynchronizationQueueSink.setServiceStarterImpl { SyncService.sync() }
+        setCacheDirectory(File(getAppContext().cacheDir, "okhttp"))
         setProxyConfig(proxyConfig)
 //        SleepTimerPreferences.init(context)
-        createChannels(context)
+        createChannels()
         initialized = true
     }
 

@@ -32,7 +32,6 @@ import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.setSearchTerms
 import ac.mdiq.podcini.utils.Logd
-import android.content.Context
 import android.util.TypedValue
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -93,7 +92,7 @@ abstract class SwipeAction {
     }
 }
 
-class SwipeActions(private val context: Context, private val tag: String) : DefaultLifecycleObserver {
+class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
     val actionsList: List<SwipeAction> = listOf(
         NoAction(),
         Combo(),
@@ -461,7 +460,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
             val lastPlayedDate = e.lastPlayedTime
             setHistoryDates()
             commonConfirm = CommonConfirmAttrib(
-                title = context.getString(R.string.removed_history_label),
+                title = getAppContext().getString(R.string.removed_history_label),
                 message = "",
                 confirmRes = R.string.undo,
                 cancelRes = R.string.no,
@@ -500,7 +499,7 @@ class SwipeActions(private val context: Context, private val tag: String) : Defa
         @UnstableApi
         override fun performAction(e: Episode) {
             super.performAction(e)
-            if (!e.downloaded && e.feed != null && !e.feed!!.isLocalFeed) EpisodeActionButton(e, ButtonTypes.DOWNLOAD).onClick(context)
+            if (!e.downloaded && e.feed != null && !e.feed!!.isLocalFeed) EpisodeActionButton(e, ButtonTypes.DOWNLOAD).onClick()
         }
     }
 

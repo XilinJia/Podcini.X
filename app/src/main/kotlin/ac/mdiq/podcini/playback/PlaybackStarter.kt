@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.playback
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.playback.base.InTheatre.aController
 import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -27,7 +28,7 @@ import androidx.core.content.ContextCompat
 import androidx.media3.common.util.UnstableApi
 
 
-class PlaybackStarter(private val context: Context, private val media: Episode) {
+class PlaybackStarter(private val media: Episode) {
     private val TAG = "PlaybackStarter"
 
     private var shouldStreamThisTime = false
@@ -50,7 +51,9 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
     fun start() {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
         var media_ = media
+        var sameMedia = true
         if (curEpisode?.id != media.id) {
+            sameMedia = false
             media_ = checkAndMarkDuplicates(media)
             episodeChangedWhenScreenOff = true
             setAsCurEpisode(media_)
@@ -64,15 +67,19 @@ class PlaybackStarter(private val context: Context, private val media: Episode) 
 
                 mPlayer?.isStreaming = shouldStreamThisTime
                 when {
-                    isPlaying -> playPause()
+                    isPlaying -> {
+                        playPause()     // TODO: start new?
+//                        if (sameMedia) playPause()
+//                        else mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                    }
                     isPaused || isPrepared -> mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
-                    isStopped -> ContextCompat.startForegroundService(context, Intent(context, PlaybackService::class.java))
+                    isStopped -> ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
                     else -> mPlayer?.reinit()
                 }
                 sleepManager?.restartSleepTimer()
             } else {
                 Logd(TAG, "starting PlaybackService")
-                ContextCompat.startForegroundService(context, Intent(context, PlaybackService::class.java))
+                ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
             }
         }
     }

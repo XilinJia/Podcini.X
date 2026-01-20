@@ -25,11 +25,13 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class PodciniApp : Application() {
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    val networkMonitor: NetworkUtils.NetworkMonitor by lazy { NetworkUtils.NetworkMonitor(applicationContext) }
+//    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    val networkMonitor: NetworkUtils.NetworkMonitor by lazy { NetworkUtils.NetworkMonitor() }
 
     override fun onCreate() {
         super.onCreate()
+        podciniApp = this
+
         ClientConfig.USER_AGENT = "Podcini/" + BuildConfig.VERSION_NAME
         ClientConfig.applicationCallbacks = ApplicationCallbacksImpl()
         Thread.setDefaultUncaughtExceptionHandler(CrashReportWriter())
@@ -39,11 +41,10 @@ class PodciniApp : Application() {
         }
         CoroutineScope(Dispatchers.IO).launch { networkMonitor.networkFlow.collect {} }
 
-        podciniApp = this
-        ClientConfigurator.initialize(this@PodciniApp)
+        ClientConfigurator.initialize()
 
         gearbox.init()
-        sendSPAppsQueryFeedsIntent(this)
+        sendSPAppsQueryFeedsIntent()
         DynamicColors.applyToActivitiesIfAvailable(this)
     }
 
@@ -60,14 +61,13 @@ class PodciniApp : Application() {
      * sent before.
      */
     @Synchronized
-    fun sendSPAppsQueryFeedsIntent(context: Context): Boolean {
-        val appContext = context.applicationContext
-        if (appContext == null) {
+    fun sendSPAppsQueryFeedsIntent(): Boolean {
+        if (getAppContext() == null) {
             Loge("App", "Unable to get application context")
             return false
         }
         if (!getPref(PREF_HAS_QUERIED_SP_APPS, false)) {
-            appContext.sendBroadcast(Intent(SPAReceiver.ACTION_SP_APPS_QUERY_FEEDS))
+            getAppContext().sendBroadcast(Intent(SPAReceiver.ACTION_SP_APPS_QUERY_FEEDS))
             Logd("App", "Sending SP_APPS_QUERY_FEEDS intent")
             putPref(PREF_HAS_QUERIED_SP_APPS, true)
             return true

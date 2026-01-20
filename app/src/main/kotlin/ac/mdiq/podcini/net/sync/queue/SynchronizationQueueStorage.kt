@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.net.sync.queue
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import android.content.Context
 import android.content.SharedPreferences
 import ac.mdiq.podcini.net.sync.SynchronizationSettings
@@ -9,9 +10,9 @@ import org.json.JSONArray
 import org.json.JSONException
 import androidx.core.content.edit
 
-class SynchronizationQueueStorage(context: Context) {
+class SynchronizationQueueStorage() {
     private val TAG = "SynchronizationQueueStorage"
-    private val sharedPreferences: SharedPreferences = context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
+    private val sharedPreferences: SharedPreferences = getAppContext().getSharedPreferences(NAME, Context.MODE_PRIVATE)
 
     val queuedEpisodeActions: MutableList<EpisodeAction>
         get() {

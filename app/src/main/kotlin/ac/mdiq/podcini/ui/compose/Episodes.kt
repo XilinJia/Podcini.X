@@ -536,7 +536,7 @@ fun EpisodeDetails(episode: Episode, episodeFlow: Flow<SingleQueryChange<Episode
                     if (curEpisode == episode) {
                         if (!isPlaying) playPause()
                     } else {
-                        PlaybackStarter(context, episode).shouldStreamThisTime(episode.fileUrl == null).start()
+                        PlaybackStarter(episode).shouldStreamThisTime(episode.fileUrl == null).start()
                         playVideoIfNeeded(context, episode)
                     }
                     mPlayer?.seekTo(ch.start.toInt())
@@ -598,7 +598,7 @@ fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
             for (rating in Rating.entries.reversed()) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(4.dp)
                     .clickable {
-                        runOnIOScope { for (e in selected) upsert(e) { it.rating = rating.code } }
+                        runOnIOScope { for (e in selected) upsert(e) { it.setRating(rating) } }
                         onDismissRequest()
                     }) {
                     Icon(imageVector = ImageVector.vectorResource(id = rating.res), "")
@@ -628,7 +628,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                         EpisodeState.UNPLAYED -> {
                                             if (isProviderConnected && item_.feed?.isLocalFeed != true) {
                                                 val actionNew: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.NEW).currentTimestamp().build()
-                                                SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, actionNew)
+                                                SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(actionNew)
                                             }
                                         }
                                         EpisodeState.PLAYED -> {
@@ -641,7 +641,7 @@ fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futur
                                             if (item_.feed?.isLocalFeed != true && (isProviderConnected || wifiSyncEnabledKey)) { // not all items have media, Gpodder only cares about those that do
                                                 if (isProviderConnected) {
                                                     val actionPlay: EpisodeAction = EpisodeAction.Builder(item_, EpisodeAction.PLAY).currentTimestamp().started(item_.duration / 1000).position(item_.duration / 1000).total(item_.duration / 1000).build()
-                                                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, actionPlay)
+                                                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(actionPlay)
                                                 }
                                             }
                                         }

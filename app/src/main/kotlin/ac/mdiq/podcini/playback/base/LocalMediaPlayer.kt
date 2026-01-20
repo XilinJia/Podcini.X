@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.wasDownloadBlocked
@@ -26,6 +27,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.showStackTrace
 import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
@@ -69,7 +71,7 @@ import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
 @UnstableApi
-class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
+class LocalMediaPlayer : MediaPlayerBase() {
     @Volatile
     private var videoSize: Pair<Int, Int>? = null
 
@@ -127,7 +129,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     Logd(TAG, "onPlayerError ${error.message}")
                     setPlayerStatus(PlayerStatus.ERROR, curEpisode)
                     if (wasDownloadBlocked(error)) {
-                        Loge(TAG, "audioErrorListener: ${context.getString(R.string.download_error_blocked)}")
+                        Loge(TAG, "audioErrorListener: ${getAppContext().getString(R.string.download_error_blocked)}")
                         setPlayerStatus(PlayerStatus.ERROR, curEpisode)
                     } else {
                         var cause = error.cause
@@ -169,7 +171,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     Logt(TAG, "AudioOffloadListener CPU is sleeping for offload: $isSleepingForOffload")
                 }
             }
-            createStaticPlayer(context)
+            createStaticPlayer()
         }
         playbackParameters = exoPlayer!!.playbackParameters
     }
@@ -225,7 +227,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (wasPlaying) exoPlayer!!.play()
     }
 
-    override fun createStaticPlayer(context: Context) {
+    override fun createStaticPlayer() {
         val loadControl = DefaultLoadControl.Builder()
         loadControl.setBufferDurationsMs(90_000, 300_000, 2_000, 10_000)
 
@@ -236,7 +238,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
             .build()
         Logd(TAG, "createStaticPlayer creating exoPlayer_")
 
-        simpleCache = getCache(context)
+        simpleCache = getCache()
 
         // Initialize ExoPlayer
         trackSelector = DefaultTrackSelector(context)
@@ -293,7 +295,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
      */
     override fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean, doPostPlayback: Boolean) {
         Logd(TAG, "prepareMedia status=$status stream=$streaming startWhenPrepared=$startWhenPrepared prepareImmediately=$prepareImmediately forceReset=$forceReset ${playable.getEpisodeTitle()} ")
-//       showStackTrace()
+       showStackTrace()
         if (!forceReset && curEpisode?.id == prevMedia?.id && isPlaying) {
             Logd(TAG, "Method call to prepareMedia was ignored: media file already playing.")
             return
@@ -342,7 +344,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                             setDataSource(metadata, curEpisode!!)
                         } else throw IOException("episode downloadUrl is empty ${curEpisode?.title}")
                     }
-                    else -> {
+                    else -> {   // TODO: playing video often gets here??
                         val localMediaurl = curEpisode?.fileUrl
                         Logd(TAG, "prepareMedia localMediaurl: $localMediaurl")
                         if (!localMediaurl.isNullOrBlank()) setDataSource(curEpisode!!, metadata, localMediaurl, null, null)
@@ -468,10 +470,10 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                 Logd(TAG, "seekTo t: $t")
                 val statusBeforeSeeking = status
                 exoPlayer?.seekTo(t.toLong())
-                if (statusBeforeSeeking == PlayerStatus.PREPARED && curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(t) }
+                if (statusBeforeSeeking == PlayerStatus.PREPARED && curEpisode != null) upsertBlk(curEpisode!!) { it.position = t }
             }
             isInitialized -> {
-                if (curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(t) }
+                if (curEpisode != null) upsertBlk(curEpisode!!) { it.position = t }
                 startWhenPrepared.set(false)
                 prepare()
             }
@@ -648,7 +650,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
 //        val isPlaying = status == PlayerStatus.PLAYING
         // we're relying on the position stored in the EpisodeMedia object for post-playback processing
         val position = getPosition()
-        if (position >= 0) upsertBlk(curEpisode!!) { it.setPosition(position) }
+        if (position >= 0) upsertBlk(curEpisode!!) { it.position = position }
         Logd(TAG, "endPlayback hasEnded=$hasEnded wasSkipped=$wasSkipped shouldContinue=$shouldContinue")
 
         fun stopPlayer() {
@@ -673,7 +675,7 @@ class LocalMediaPlayer(context: Context) : MediaPlayerBase(context) {
                     Logd(TAG, "endPlayback has nextMedia. call callback.onPlaybackEnded false")
                     if (wasSkipped) setPlayerStatus(PlayerStatus.INDETERMINATE, null)
                     onPlaybackEnded(true)
-                    val needStreaming = (nextMedia.feed?.isLocalFeed != true && !nextMedia.localFileAvailable())
+                    val needStreaming = (nextMedia.feed?.isLocalFeed != true && nextMedia.fileUrl.isNullOrBlank())
                     if (needStreaming) {
                         if (!isStreamingCapable(nextMedia)) {
                             if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, false)

@@ -38,6 +38,7 @@ import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.PLAYER_STATUS_PLAYING
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage
@@ -419,7 +420,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         }) {
             fun ensureService() {
                 if (curItem == null) return
-                if (playbackService == null) PlaybackStarter(context, curItem).start()
+                if (playbackService == null) PlaybackStarter(curItem).start()
             }
             val img = remember(curItem?.id) { ImageRequest.Builder(context).data(curItem?.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
             AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(50.dp).height(50.dp).border(border = BorderStroke(1.dp, buttonColor)).padding(start = 5.dp).combinedClickable(
@@ -510,7 +511,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                             context.startActivity(getPlayerActivityIntent(context, curItem.getMediaType()))
                         } else {
                             Logd(TAG, "Play button clicked: status: $status is ready: ${playbackService?.isServiceReady()}")
-                            PlaybackStarter(context, curItem).shouldStreamThisTime(null).start()
+                            PlaybackStarter(curItem).shouldStreamThisTime(null).start()
                         }
                     }
                 },
@@ -628,7 +629,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
             if (mediaType == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_fullscreen_24), tint = textColor, contentDescription = "Play video",
                 modifier = Modifier.clickable {
                     if (!notAudioOnly && !curItem.forceVideo) {
-                        curItem.forceVideo = true
+                        upsertBlk(curItem) { it.forceVideo = false }
                         status = PlayerStatus.STOPPED
                         mPlayer?.pause(reinit = true)
                         playbackService?.recreateMediaPlayer()
@@ -655,7 +656,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                     expanded = false
                 })
                 if (curItem != null) DropdownMenuItem(text = { Text(stringResource(R.string.clear_cache)) }, onClick = {
-                    runOnIOScope { getCache(context).removeResource(curItem.id.toString()) }
+                    runOnIOScope { getCache().removeResource(curItem.id.toString()) }
                     expanded = false
                 })
                 DropdownMenuItem(text = { Text(stringResource(R.string.clear_all_cache)) }, onClick = {

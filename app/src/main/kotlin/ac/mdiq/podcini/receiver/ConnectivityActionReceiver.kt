@@ -17,20 +17,20 @@ class ConnectivityActionReceiver : BroadcastReceiver() {
         Logd(TAG, "onReceive called with action: ${intent.action}")
         if (intent.action == ConnectivityManager.CONNECTIVITY_ACTION) {
             Logd(TAG, "Received intent")
-            ClientConfigurator.initialize(context.applicationContext)
-            networkChangedDetected(context.applicationContext)
+            ClientConfigurator.initialize()
+            networkChangedDetected()
         }
     }
 
-    private fun networkChangedDetected(context: Context) {
+    private fun networkChangedDetected() {
         if (getApp().networkMonitor.networkAllowAutoDownload) {
             Logd(TAG, "auto-dl network available, starting auto-download")
-            autodownload(context)
+            autodownload()
         } else { // if new network is Wi-Fi, finish ongoing downloads,
             // otherwise cancel all downloads
             if (getApp().networkMonitor.isNetworkRestricted) {
                 Logt(TAG, "Device is no longer connected to Wi-Fi. Cancelling ongoing downloads")
-                DownloadServiceInterface.impl?.cancelAll(context)
+                DownloadServiceInterface.impl?.cancelAll()
             }
         }
     }

@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.ui.screens
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndscheduleUpdateTaskOnce
@@ -19,6 +20,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
@@ -28,6 +30,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.FeedFilter
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
@@ -47,6 +50,7 @@ import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.complementaryColorOf
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import android.annotation.SuppressLint
@@ -54,9 +58,12 @@ import android.app.Activity.RESULT_OK
 import android.content.ActivityNotFoundException
 import android.content.ContextWrapper
 import android.content.Intent
+import android.net.Uri
 import android.view.Gravity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -78,6 +85,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -125,6 +133,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
@@ -153,7 +162,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -163,6 +171,7 @@ import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -175,124 +184,59 @@ import java.util.Locale
 private const val TAG = "SubscriptionsScreen"
 
 class SubscriptionsVM : ViewModel() {
-    var subPrefs by mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?: SubscriptionsPrefs())
+    var subPrefs by mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?:
+    SubscriptionsPrefs().apply { this.queueSelIds.add(0L) })
+    var prefsFlow by mutableStateOf<Flow<SingleQueryChange<SubscriptionsPrefs>>>(emptyFlow())
 
     var showAllFeeds by mutableStateOf(false)
 
-    var prefsFlow by mutableStateOf<Flow<SingleQueryChange<SubscriptionsPrefs>>>(emptyFlow())
-
     var feedsFlow by mutableStateOf<Flow<ResultsChange<Feed>>>(emptyFlow())
+    var feeds by mutableStateOf<List<Feed>>(listOf())
+
     var subVolumesFlow by mutableStateOf<Flow<ResultsChange<Volume>>>(emptyFlow())
+    var volumes by mutableStateOf<List<Volume>>(listOf())
 
     var curVolume by mutableStateOf<Volume?>(null)
     val queueNames = mutableStateListOf<String>() 
     val queueIds = mutableListOf<Long>()
 
-    val shouldHandleBack: Boolean get() = curVolume != null
+    fun getVolumesFlow() {
+        val qStrArchive = if (curVolume == null) ( if (subPrefs.showArchived) "" else "AND id != $ARCHIVED_VOLUME_ID" ) else ""
+        Logd(TAG, "qStrArchive: $qStrArchive")
+        subVolumesFlow = realm.query(Volume::class).query("parentId == ${curVolume?.id ?: -1L} $qStrArchive").asFlow()
+    }
 
-    init {
-        viewModelScope.launch(Dispatchers.IO) {
-            queuesFlow.collect { changes ->
-                val ids = changes.list.map { it.id }
-                val names = changes.list.map { it.name }
-                withContext(Dispatchers.Main) {
-                    queueIds.clear()
-                    queueIds.addAll(ids)
-                    queueNames.clear()
-                    queueNames.addAll(names)
+    var playStateQueries by mutableStateOf("")
+    var ratingQueries by mutableStateOf("")
+    var downloadedQuery by mutableStateOf("")
+    var commentedQuery by mutableStateOf("")
+
+    fun preparePropertySort(subIndex: FeedPropertySortIndex? = null) {
+        val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.propertySortIndex
+        runOnIOScope { upsert(subPrefs) {
+            it.sortIndex = FeedSortIndex.Feed.ordinal
+            it.propertySortIndex = subIndexOrdinal
+            it.sortProperty =
+                when(subIndex) {
+                    FeedPropertySortIndex.Title -> "eigenTitle"
+                    FeedPropertySortIndex.Author -> "author"
+                    FeedPropertySortIndex.Rating -> "rating"
+                    FeedPropertySortIndex.Score -> "score"
+                    FeedPropertySortIndex.ScoreCount -> "scoreCount"
+                    FeedPropertySortIndex.Updated -> "lastUpdateTime"
+                    FeedPropertySortIndex.FullUpdate -> "lastFullUpdateTime"
+                    FeedPropertySortIndex.TotleDuration -> "totleDuration"
+                    FeedPropertySortIndex.Commented -> "commentTime"
+                    else -> "eigenTitle"
                 }
-            }
-        }
+            it.feedsSorted++
+        } }
     }
-
-    override fun onCleared() {
-        super.onCleared()
-        curVolume = null
-        queueIds.clear()
-        queueNames.clear()
-    }
-}
-
-@Composable
-fun SubscriptionsScreen() {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
-    val context by rememberUpdatedState(LocalContext.current)
-    val navController = LocalNavController.current
-    val drawerController = LocalDrawerController.current
-
-    val textColor = MaterialTheme.colorScheme.onSurface
-    val buttonColor = MaterialTheme.colorScheme.tertiary
-    val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
-
-    val vm: SubscriptionsVM = viewModel()
-
-    var filterAndSort by remember { mutableStateOf(false) }
-    var showFilterDialog by remember { mutableStateOf(false) }
-    var showSortDialog by remember { mutableStateOf(false) }
-    var showNewSynthetic by remember { mutableStateOf(false) }
-    var showNewVolume by remember { mutableStateOf(false) }
-    var selectMode by remember { mutableStateOf(false) }
-
-    val prefsChange by vm.prefsFlow.collectAsStateWithLifecycle(initialValue = null)
-    if (prefsChange?.obj != null) vm.subPrefs = prefsChange?.obj!!
-
-    val feedsChange by vm.feedsFlow.collectAsStateWithLifecycle(initialValue = null)
-    val feeds = feedsChange?.list ?: emptyList()
-
-    val volumesChange by vm.subVolumesFlow.collectAsStateWithLifecycle(initialValue = null)
-    val volumes = volumesChange?.list ?: emptyList()
-//    Logd(TAG, "volumes: ${volumes.size}")
-
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
-            when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-//                    Logd(TAG, "check vm.subPrefs count: ${realm.query(SubscriptionsPrefs::class).count().find()}")
-                    vm.subVolumesFlow = realm.query(Volume::class).query("parentId == ${vm.curVolume?.id ?: -1L}").asFlow()
-                    runOnIOScope {
-                        upsert(vm.subPrefs) {
-                            it.feedsSorted = 0
-                            it.feedsFiltered = 0
-                        }
-                    }
-                    vm.prefsFlow = realm.query(SubscriptionsPrefs::class).query("id == 0").first().asFlow()
-                }
-                Lifecycle.Event.ON_START -> gearbox.cleanGearData()
-                Lifecycle.Event.ON_RESUME -> {}
-                Lifecycle.Event.ON_STOP -> {}
-                Lifecycle.Event.ON_DESTROY -> {}
-                else -> {}
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            Logd(TAG, "Lifecycle.Event onDispose")
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    subscreenHandleBack.value = vm.shouldHandleBack
-
-    BackHandler(enabled = subscreenHandleBack.value) {
-        vm.curVolume = realm.query(Volume::class).query("id == ${vm.curVolume?.parentId ?: -1L}").first().find()
-    }
-
-    DisposableEffect(Unit) {
-        onDispose { subscreenHandleBack.value = false }
-    }
-
-    var playStateQueries by remember { mutableStateOf("") }
-    var ratingQueries by remember { mutableStateOf("") }
-    var downloadedQuery by remember { mutableStateOf("") }
-    var commentedQuery by remember { mutableStateOf("") }
-
     fun prepareDateSort(subIndex: FeedDateSortIndex? = null) {
-        val subIndexOrdinal = subIndex?.ordinal ?: vm.subPrefs.dateSortIndex
+        val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.dateSortIndex
         Logd(TAG, "prepareDateSort")
         suspend fun persistDateSort() {
-            upsert(vm.subPrefs) {
+            upsert(subPrefs) {
                 it.sortIndex = FeedSortIndex.Date.ordinal
                 it.dateSortIndex = subIndexOrdinal
                 it.sortProperty = "sortValue"
@@ -355,20 +299,20 @@ fun SubscriptionsScreen() {
                     Logd(TAG, "prepareSort queryString: $queryString")
                     persistDateSort()
                 }
-                else -> Loge(TAG, "No such date sorting ${vm.subPrefs.dateSortIndex}")
+                else -> Loge(TAG, "No such date sorting ${subPrefs.dateSortIndex}")
             }
         }
     }
 
     fun prepareTimeSort(subIndex: FeedTimeSortIndex? = null) {
-        val subIndexOrdinal = subIndex?.ordinal ?: vm.subPrefs.timeSortIndex
+        val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.timeSortIndex
         Logd(TAG, "prepareTimeSort")
         suspend fun persistTimeSort() {
-            upsert(vm.subPrefs) {
+            upsert(subPrefs) {
                 it.sortIndex = FeedSortIndex.Time.ordinal
                 it.timeSortIndex = subIndexOrdinal
                 it.sortProperty = "sortValue"
-//                it.timeAscending = !it.timeAscending
+                //                it.timeAscending = !it.timeAscending
                 it.feedsSorted++
             }
         }
@@ -422,7 +366,7 @@ fun SubscriptionsScreen() {
                     }
                     persistTimeSort()
                 }
-                else -> Loge(TAG, "No such time sorting ${vm.subPrefs.timeSortIndex}")
+                else -> Loge(TAG, "No such time sorting ${subPrefs.timeSortIndex}")
             }
         }
     }
@@ -445,93 +389,193 @@ fun SubscriptionsScreen() {
                     f.sortInfo = "$c counts"
                 }
             }
-            upsert(vm.subPrefs) {
+            upsert(subPrefs) {
                 it.sortIndex = FeedSortIndex.Count.ordinal
                 it.sortProperty = "sortValue"
-//                it.countAscending = !it.countAscending
+                //                it.countAscending = !it.countAscending
                 it.feedsSorted++
             }
         }
     }
 
-    LaunchedEffect(feedOperationText, feeds.size) {
-        Logd(TAG, "LaunchedEffect feedOperationText: $feedOperationText feeds.size: ${feeds.size}")
-        for (f in feeds) Logd(TAG, "LaunchedEffect feed: ${f.title}")
-        if (feedOperationText.isBlank()) when (vm.subPrefs.sortIndex) {
-            FeedSortIndex.Date.ordinal -> prepareDateSort()
-            FeedSortIndex.Time.ordinal -> prepareTimeSort()
-            FeedSortIndex.Count.ordinal -> prepareCountSort()
-            else -> {}
-        }
-    }
-
-    fun languagesQS() : String {
-        var qrs  = ""
-        when {
-            vm.subPrefs.langsSel.isEmpty() -> qrs = " (langSet.@count > 0) "
-            vm.subPrefs.langsSel.size == appAttribs.langSet.size -> qrs = ""
-            else -> {
-                for (l in vm.subPrefs.langsSel) {
-                    qrs += if (qrs.isEmpty()) " ( ANY langSet == '$l' " else " OR ANY langSet == '$l' "
+    fun buildFeedsFlows() {
+        fun languagesQS() : String {
+            var qrs  = ""
+            when {
+                subPrefs.langsSel.isEmpty() -> qrs = " (langSet.@count > 0) "
+                subPrefs.langsSel.size == appAttribs.langSet.size -> qrs = ""
+                else -> {
+                    for (l in subPrefs.langsSel) {
+                        qrs += if (qrs.isEmpty()) " ( ANY langSet == '$l' " else " OR ANY langSet == '$l' "
+                    }
+                    if (qrs.isNotEmpty()) qrs += " ) "
                 }
-                if (qrs.isNotEmpty()) qrs += " ) "
             }
+            Logd(TAG, "languagesQS: $qrs")
+            return qrs
         }
-        Logd(TAG, "languagesQS: $qrs")
-        return qrs
-    }
-    fun tagsQS() : String {
-        var qrs  = ""
-        when {
-            vm.subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
-            vm.subPrefs.tagsSel.size == appAttribs.feedTagSet.size -> qrs = ""
-            else -> {
-                for (t in vm.subPrefs.tagsSel) {
-                    qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
+        fun tagsQS() : String {
+            var qrs  = ""
+            when {
+                subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
+                subPrefs.tagsSel.size == appAttribs.feedTagSet.size -> qrs = ""
+                else -> {
+                    for (t in subPrefs.tagsSel) {
+                        qrs += if (qrs.isEmpty()) " ( ANY tags == '$t' " else " OR ANY tags == '$t' "
+                    }
+                    if (qrs.isNotEmpty()) qrs += " ) "
                 }
-                if (qrs.isNotEmpty()) qrs += " ) "
             }
+            Logd(TAG, "tagsQS: $qrs")
+            return qrs
         }
-        Logd(TAG, "tagsQS: $qrs")
-        return qrs
-    }
-    fun queuesQS() : String {
-        val qSelIds_ = vm.subPrefs.queueSelIds.toMutableSet()
-        if (qSelIds_.isEmpty()) qSelIds_.add(-2)
-        else {
-            if ((vm.queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
-            else qSelIds_.remove(-2)
+        fun queuesQS() : String {
+            val qSelIds_ = subPrefs.queueSelIds.toMutableSet()
+            if (qSelIds_.isEmpty()) qSelIds_.add(-2L)
+            else {
+                if ((queueIds - qSelIds_).isEmpty()) qSelIds_.clear()
+                else qSelIds_.remove(-2L)
+            }
+            var qrs  = ""
+            for (id in qSelIds_) {
+                qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
+            }
+            if (qrs.isNotEmpty()) qrs += " ) "
+            Logd(TAG, "queuesQS: $qrs")
+            return qrs
         }
-        var qrs  = ""
-        for (id in qSelIds_) {
-            qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
-        }
-        if (qrs.isNotEmpty()) qrs += " ) "
-        Logd(TAG, "queuesQS: $qrs")
-        return qrs
-    }
 
-    val langsQueryStr by remember(vm.subPrefs.langsSel.size) { mutableStateOf(languagesQS()) }
-    val tagsQueryStr by remember(vm.subPrefs.tagsSel.size) { mutableStateOf(tagsQS()) }
-    val queuesQueryStr by remember(vm.subPrefs.queueSelIds.size) { mutableStateOf(queuesQS()) }
-    val filterQueryStr by remember(vm.subPrefs.feedsFilter) { mutableStateOf(FeedFilter(vm.subPrefs.feedsFilter).queryString()) }
-
-    LaunchedEffect(vm.curVolume) {
-        vm.subVolumesFlow = realm.query(Volume::class).query("parentId == ${vm.curVolume?.id ?: -1L}").asFlow()
-    }
-
-    LaunchedEffect(vm.curVolume,vm.showAllFeeds, vm.subPrefs.feedsFiltered, vm.subPrefs.feedsSorted) {
-        Logd(TAG, "LaunchedEffect feedsFiltered, sortPair.first, sortPair")
-        val sb = StringBuilder(filterQueryStr)
-        if (langsQueryStr.isNotEmpty())  sb.append(" AND $langsQueryStr")
-        if (tagsQueryStr.isNotEmpty())  sb.append(" AND $tagsQueryStr")
-        if (queuesQueryStr.isNotEmpty())  sb.append(" AND $queuesQueryStr")
+        val sb = StringBuilder(FeedFilter(subPrefs.feedsFilter).queryString())
+        val langsStr = languagesQS()
+        if (langsStr.isNotEmpty())  sb.append(" AND $langsStr")
+        val tagsStr = tagsQS()
+        if (tagsStr.isNotEmpty())  sb.append(" AND $tagsStr")
+        val queuesStr = queuesQS()
+        if (queuesStr.isNotEmpty())  sb.append(" AND $queuesStr")
+        if (!subPrefs.showArchived)  sb.append(" AND id != $ARCHIVED_VOLUME_ID")
         val fetchQS = sb.toString()
-        val sortPair = Pair(vm.subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (vm.subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
+        val sortPair = Pair(subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
         Logd(TAG, "fetchQS: $fetchQS ${sortPair.first} ${sortPair.second.name}")
-        if (vm.showAllFeeds) vm.feedsFlow = realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
-        else vm.feedsFlow = realm.query(Feed::class).query("volumeId == ${vm.curVolume?.id ?: -1L}").query(fetchQS).sort(sortPair).asFlow()
+        feedsFlow = if (showAllFeeds) realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
+        else realm.query(Feed::class).query("volumeId == ${curVolume?.id ?: -1L}").query(fetchQS).sort(sortPair).asFlow()
     }
+
+    data class FeedsFlowkeys(
+        val id: Long?,
+        val showAllFeeds: Boolean,
+        val feedsFiltered: Int,
+        val feedsSorted: Int,
+        val showArchived: Boolean
+    )
+
+    init {
+        Logd(TAG, "vm init")
+        prefsFlow = realm.query(SubscriptionsPrefs::class).query("id == 0").first().asFlow()
+        runOnIOScope {
+            upsert(subPrefs) {
+                it.feedsSorted = 0
+                it.feedsFiltered = 0
+            }
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            queuesFlow.collect { changes ->
+                val ids = changes.list.map { it.id }
+                val names = changes.list.map { it.name }
+                withContext(Dispatchers.Main) {
+                    queueIds.clear()
+                    queueIds.addAll(ids)
+                    queueNames.clear()
+                    queueNames.addAll(names)
+                }
+            }
+        }
+        viewModelScope.launch { snapshotFlow { Pair(curVolume?.id, subPrefs.showArchived) }.distinctUntilChanged().collect { getVolumesFlow() } }
+
+        viewModelScope.launch { snapshotFlow { FeedsFlowkeys(curVolume?.id, showAllFeeds, subPrefs.feedsFiltered, subPrefs.feedsSorted, subPrefs.showArchived) }.distinctUntilChanged().collect { buildFeedsFlows() } }
+
+        viewModelScope.launch {
+            snapshotFlow { Pair(feedOperationText, feeds.size) }.distinctUntilChanged().collect {
+                if (feedOperationText.isBlank()) when (subPrefs.sortIndex) {
+                    FeedSortIndex.Date.ordinal -> prepareDateSort()
+                    FeedSortIndex.Time.ordinal -> prepareTimeSort()
+                    FeedSortIndex.Count.ordinal -> prepareCountSort()
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        Logd(TAG, "VM onCleared")
+        curVolume = null
+        queueIds.clear()
+        queueNames.clear()
+    }
+}
+
+@Composable
+fun SubscriptionsScreen() {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
+    val context by rememberUpdatedState(LocalContext.current)
+    val navController = LocalNavController.current
+    val drawerController = LocalDrawerController.current
+
+    val textColor = MaterialTheme.colorScheme.onSurface
+    val buttonColor = MaterialTheme.colorScheme.tertiary
+    val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
+
+    val vm: SubscriptionsVM = viewModel()
+
+    val connectLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        getAppContext().contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
+    var filterAndSort by remember { mutableStateOf(false) }
+    var showFilterDialog by remember { mutableStateOf(false) }
+    var showSortDialog by remember { mutableStateOf(false) }
+    var showNewSynthetic by remember { mutableStateOf(false) }
+    var showNewVolume by remember { mutableStateOf(false) }
+    var selectMode by remember { mutableStateOf(false) }
+
+    val prefsChange by vm.prefsFlow.collectAsStateWithLifecycle(initialValue = null)
+    if (prefsChange?.obj != null) vm.subPrefs = prefsChange?.obj!!
+
+    val feedsChange by vm.feedsFlow.collectAsStateWithLifecycle(initialValue = null)
+    if (feedsChange?.list != null) vm.feeds = feedsChange!!.list
+
+    val volumesChange by vm.subVolumesFlow.collectAsStateWithLifecycle(initialValue = null)
+    if (volumesChange != null) vm.volumes = volumesChange!!.list
+//    Logd(TAG, "volumes: ${volumes.size}")
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
+            when (event) {
+                Lifecycle.Event.ON_CREATE -> {}
+                Lifecycle.Event.ON_START -> gearbox.cleanGearData()
+                Lifecycle.Event.ON_RESUME -> {}
+                Lifecycle.Event.ON_STOP -> {}
+                Lifecycle.Event.ON_DESTROY -> {}
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            Logd(TAG, "Lifecycle.Event onDispose")
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    DisposableEffect(vm.curVolume) {
+        if (vm.curVolume != null) handleBackSubScreens.add(TAG)
+        else handleBackSubScreens.remove(TAG)
+        onDispose { handleBackSubScreens.remove(TAG) }
+    }
+
+    BackHandler(enabled = handleBackSubScreens.contains(TAG)) { vm.curVolume = realm.query(Volume::class).query("id == ${vm.curVolume?.parentId ?: -1L}").first().find() }
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
@@ -543,7 +587,7 @@ fun SubscriptionsScreen() {
                 Row {
                     if (feedOperationText.isNotEmpty()) Text(feedOperationText, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.clickable {})
                     else {
-                        var feedCountState by remember(feeds.size) { mutableStateOf(feeds.size.toString() + "/" + feedCount.toString()) }
+                        var feedCountState by remember(vm.feeds.size) { mutableStateOf(vm.feeds.size.toString() + "/" + feedCount.toString()) }
                         Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
                     }
                 }
@@ -555,7 +599,7 @@ fun SubscriptionsScreen() {
                     IconButton(onClick = {
                         facetsMode = QuickAccess.Custom
                         facetsCustomTag = "Subscriptions"
-                        facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", feeds.map { it.id })
+                        facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", vm.feeds.map { it.id })
                         navController.navigate(Screens.Facets.name)
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
@@ -580,58 +624,23 @@ fun SubscriptionsScreen() {
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
-                            if (vm.curVolume == null) runOnceOrAsk(context, fullUpdate = true)
-                            else runOnceOrAsk(context, vm.curVolume!!.allFeeds, fullUpdate = true)
+                            if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true)
+                            else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate = true)
                             expanded = false
                         })
+                        fun toggleArchived() {
+                            upsertBlk(vm.subPrefs) { it.showArchived = !it.showArchived }
+                            expanded = false
+                        }
+                        DropdownMenuItem(text = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(R.string.show_archived))
+                                Checkbox(checked = vm.subPrefs.showArchived, onCheckedChange = { toggleArchived() })
+                            }
+                        }, onClick = { toggleArchived() })
                     }
                 })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
-        }
-    }
-
-    @Composable
-    fun EditVolume(volume: Volume, onDismissRequest: () -> Unit) {
-        CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
-            val textColor = MaterialTheme.colorScheme.onSurface
-            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
-                var name by remember { mutableStateOf(volume.name) }
-                TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.rename)) })
-                var parent by remember { mutableStateOf<Volume?>(null) }
-                var selectedOption by remember {mutableStateOf("")}
-                val custom = "Custom"
-                val none = "None"
-                var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(checked = none == selected,
-                        onCheckedChange = { isChecked ->
-                            selected = none
-                            parent = null
-                        })
-                    Text(none)
-                    Spacer(Modifier.width(50.dp))
-                    Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
-                    Text(custom)
-                }
-                if (selected == custom) {
-                    Logd(TAG, "volumes: ${volumes.size}")
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        for (index in volumes.indices) FilterChip(onClick = { parent = volumes[index] }, label = { Text(volumes[index].name) }, selected = parent == volumes[index], border = FilterChipBorder(parent == volumes[index]))
-                    }
-                }
-                Row {
-                    Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
-                    Spacer(Modifier.weight(1f))
-                    Button({
-                        upsertBlk(volume) {
-                            it.name = name
-                            it.parentId = parent?.id ?: -1L
-                        }
-                        onDismissRequest()
-                    }) { Text(stringResource(R.string.confirm_label)) }
-                }
-            }
         }
     }
 
@@ -644,15 +653,8 @@ fun SubscriptionsScreen() {
         var refreshing by remember { mutableStateOf(false)}
 
         @SuppressLint("LocalContextResourcesRead")
-        fun saveFeed(cbBlock: (Feed)->Unit) {
-            runOnIOScope {
-                realm.write {
-                    for (f_ in feedsSelected) {
-                        val f = findLatest(f_)
-                        if (f != null) cbBlock(f)
-                    }
-                }
-            }
+        fun saveSelectedFeeds(cbBlock: (Feed)->Unit) {
+            runOnIOScope { realm.write { for (f_ in feedsSelected) findLatest(f_)?.let { cbBlock(it) } } }
             val numItems = feedsSelected.size
             Logt(TAG, context.resources.getQuantityString(R.plurals.updated_feeds_batch_label, numItems, numItems))
         }
@@ -727,9 +729,9 @@ fun SubscriptionsScreen() {
                         runOnIOScope {
                             try {
                                 Logd(TAG, "selectedFeeds: ${feedsSelected.size}")
-                                if (uri == null) ExportWorker(OpmlWriter(), context).exportFile(feedsSelected)
+                                if (uri == null) ExportWorker(OpmlWriter()).exportFile(feedsSelected)
                                 else {
-                                    val worker = DocumentFileExportWorker(OpmlWriter(), context, uri)
+                                    val worker = DocumentFileExportWorker(OpmlWriter(), uri)
                                     worker.exportFile(feedsSelected)
                                 }
                             } catch (e: Exception) { Loge(TAG, "exportOPML error: ${e.message}") }
@@ -741,6 +743,9 @@ fun SubscriptionsScreen() {
                 Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_import_export_24), "")
                 Text(stringResource(id = R.string.opml_export_label)) } }
             ) }
+
+        var volumeToOperate by remember { mutableStateOf<Volume?>(null) }
+        var showEditVolume by remember { mutableStateOf(false) }
 
         @Composable
         fun OpenDialogs() {
@@ -756,7 +761,7 @@ fun SubscriptionsScreen() {
                             Checkbox(checked = none == selected,
                                 onCheckedChange = { isChecked ->
                                     selected = none
-                                    saveFeed { it: Feed -> it.volumeId = -1L }
+                                    saveSelectedFeeds { it: Feed -> it.volumeId = -1L }
                                     onDismissRequest()
                                 })
                             Text(none)
@@ -765,13 +770,13 @@ fun SubscriptionsScreen() {
                             Text(custom)
                         }
                         if (selected == custom) {
-                            Logd(TAG, "volumes: ${volumes.size}")
+                            Logd(TAG, "volumes: ${vm.volumes.size}")
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                for (index in volumes.indices) {
+                                for (index in vm.volumes.indices) {
                                     FilterChip(onClick = {
-                                        saveFeed { it: Feed -> it.volumeId = volumes[index].id }
+                                        saveSelectedFeeds { it: Feed -> it.volumeId = vm.volumes[index].id }
                                         onDismissRequest()
-                                    }, label = { Text(volumes[index].name) }, selected = false )
+                                    }, label = { Text(vm.volumes[index].name) }, selected = false )
                                 }
                             }
                         }
@@ -791,7 +796,7 @@ fun SubscriptionsScreen() {
                             Checkbox(checked = none == selected,
                                 onCheckedChange = { isChecked ->
                                     selected = none
-                                    saveFeed { it: Feed ->
+                                    saveSelectedFeeds { it: Feed ->
                                         it.queueId = -2L
                                         it.autoDownload = false
                                         it.autoEnqueue = false
@@ -808,7 +813,7 @@ fun SubscriptionsScreen() {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                                 for (index in queuesLive.indices) {
                                     FilterChip(onClick = {
-                                        saveFeed { it: Feed -> it.queueId = queuesLive[index].id }
+                                        saveSelectedFeeds { it: Feed -> it.queueId = queuesLive[index].id }
                                         onDismissRequest()
                                     }, label = { Text(queuesLive[index].name) }, selected = false )
                                 }
@@ -842,6 +847,50 @@ fun SubscriptionsScreen() {
                 }
             }
 
+            @Composable
+            fun VolumeOptionsMenu(onDismissRequest: ()->Unit) {
+                CommonPopupCard(onDismissRequest = onDismissRequest) {
+                    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        feedsOptionsMap.entries.forEachIndexed { _, entry -> if (entry.key != "ParentVolume") entry.value() }
+                        HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable { showEditVolume = true }) {
+                            Icon(imageVector = Icons.Filled.Edit, "edit volume")
+                            Text(stringResource(id = R.string.edit_volume)) }
+                        if (volumeToOperate != null && volumeToOperate!!.id >= 0L) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            commonConfirm = CommonConfirmAttrib(
+                                title = context.getString(R.string.remove_volume) + "?",
+                                message = context.getString(R.string.remove_volume_msg) + "\n" + volumeToOperate?.name,
+                                confirmRes = R.string.confirm_label,
+                                cancelRes = R.string.cancel_label,
+                                onConfirm = {
+                                    Logd(TAG, "removing volume: ${volumeToOperate?.name}")
+                                    runOnIOScope { deleteVolumeTree(volumeToOperate!!) }
+                                    commonConfirm = null
+                                },
+                            )
+                        }) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "remove volume")
+                            Text(stringResource(id = R.string.remove_volume)) }
+                        if (volumeToOperate?.isLocal == true) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            commonConfirm = CommonConfirmAttrib(
+                                title = context.getString(R.string.reconnect_local_folder) + "?",
+                                message = volumeToOperate?.name + "\n" + context.getString(R.string.reconnect_local_folder_warning),
+                                confirmRes = R.string.confirm_label,
+                                cancelRes = R.string.cancel_label,
+                                onConfirm = {
+                                    Logd(TAG, "reconnecting folder: ${volumeToOperate?.name}")
+                                    try { connectLocalFolderLauncher.launch(null) } catch (e: ActivityNotFoundException) { Logs(TAG, e, "No activity found. Should never happen...") }
+                                    commonConfirm = null
+                                },
+                            )
+                        }) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.rounded_books_movies_and_music_24), "reconnect folder", modifier = Modifier.size(24.dp))
+                            Text(stringResource(id = R.string.reconnect_local_folder)) }
+                    }
+                }
+            }
+            if (volumeToOperate != null) VolumeOptionsMenu { volumeToOperate = null}
+
             if (showRemoveFeedDialog) RemoveFeedDialog(feedsSelected, onDismissRequest = {showRemoveFeedDialog = false}) {}
             if (showChooseRatingDialog) ChooseRatingDialog(feedsSelected) { showChooseRatingDialog = false }
             if (showAssociateDialog) SetAssociateQueueDialog {showAssociateDialog = false}
@@ -849,45 +898,54 @@ fun SubscriptionsScreen() {
             if (showTagsSettingDialog) TagSettingDialog(TagType.Feed, setOf(), multiples = true, { showTagsSettingDialog = false } ) { tags ->
                 runOnIOScope { realm.write { for (f_ in feedsSelected) findLatest(f_)?.tags?.addAll(tags) } }
             }
-        }
-
-        OpenDialogs()
-
-        var volumeToOperate by remember { mutableStateOf<Volume?>(null) }
-
-        var showEditVolume by remember { mutableStateOf(false) }
-        if (showEditVolume) EditVolume(volumeToOperate!!) { showEditVolume = false }
-
-        @Composable
-        fun VolumeOptionsMenu(onDismissRequest: ()->Unit) {
-            CommonPopupCard(onDismissRequest = onDismissRequest) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    feedsOptionsMap.entries.forEachIndexed { _, entry -> if (entry.key != "ParentVolume") entry.value() }
-                    HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(top = 5.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                        showEditVolume = true
-                    }) {
-                        Icon(imageVector = Icons.Filled.Edit, "edit volume")
-                        Text(stringResource(id = R.string.edit_volume)) }
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp).clickable {
-                        commonConfirm = CommonConfirmAttrib(
-                            title = context.getString(R.string.remove_volume) + "?",
-                            message = context.getString(R.string.remove_volume_msg) + "\n" + volumeToOperate?.name,
-                            confirmRes = R.string.confirm_label,
-                            cancelRes = R.string.cancel_label,
-                            onConfirm = {
-                                Logd(TAG, "removing volume: ${volumeToOperate?.name}")
-                                runOnIOScope { deleteVolumeTree(volumeToOperate!!) }
-                                commonConfirm = null
-                            },
-                        )
-                    }) {
-                        Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_delete), "remove volume")
-                        Text(stringResource(id = R.string.remove_volume)) }
+            @Composable
+            fun EditVolume(volume: Volume, onDismissRequest: () -> Unit) {
+                CommonPopupCard(onDismissRequest = { onDismissRequest() }) {
+                    val textColor = MaterialTheme.colorScheme.onSurface
+                    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                        Text(stringResource(R.string.rename_feed_label), color = textColor, style = MaterialTheme.typography.bodyLarge)
+                        var name by remember { mutableStateOf(volume.name) }
+                        TextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.rename)) })
+                        var parent by remember { mutableStateOf<Volume?>(null) }
+                        var selectedOption by remember {mutableStateOf("")}
+                        val custom = "Custom"
+                        val none = "None"
+                        var selected by remember {mutableStateOf(if (selectedOption == none) none else custom)}
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = none == selected,
+                                onCheckedChange = { isChecked ->
+                                    selected = none
+                                    parent = null
+                                })
+                            Text(none)
+                            Spacer(Modifier.width(50.dp))
+                            Checkbox(checked = custom == selected, onCheckedChange = { isChecked -> selected = custom })
+                            Text(custom)
+                        }
+                        if (selected == custom) {
+                            Logd(TAG, "volumes: ${vm.volumes.size}")
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                for (index in vm.volumes.indices) FilterChip(onClick = { parent = vm.volumes[index] }, label = { Text(vm.volumes[index].name) }, selected = parent == vm.volumes[index], border = FilterChipBorder(parent == vm.volumes[index]))
+                            }
+                        }
+                        Row {
+                            Button({ onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) }
+                            Spacer(Modifier.weight(1f))
+                            Button({
+                                upsertBlk(volume) {
+                                    it.name = name
+                                    it.parentId = parent?.id ?: -1L
+                                }
+                                onDismissRequest()
+                            }) { Text(stringResource(R.string.confirm_label)) }
+                        }
+                    }
                 }
             }
+            if (showEditVolume) EditVolume(volumeToOperate!!) { showEditVolume = false }
+
         }
-        if (volumeToOperate != null) VolumeOptionsMenu { volumeToOperate = null}
+        OpenDialogs()
 
         PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
             refreshing = true
@@ -897,16 +955,16 @@ fun SubscriptionsScreen() {
                 confirmRes = R.string.confirm_label,
                 cancelRes = R.string.cancel_label,
                 onConfirm = {
-                    if (vm.curVolume == null) checkAndscheduleUpdateTaskOnce(context, replace = true, force = true)
-                    else runOnce(context, vm.curVolume!!.allFeeds)
+                    if (vm.curVolume == null) checkAndscheduleUpdateTaskOnce(replace = true, force = true)
+                    else runOnce(vm.curVolume!!.allFeeds)
                 },
             )
             refreshing = false
         }) {
             if (vm.subPrefs.prefFeedGridLayout) {
                 LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
-                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes.size, key = { i -> volumes[i].id}) { index ->
-                        val volume = volumes[index]
+                    if (!vm.showAllFeeds && vm.volumes.isNotEmpty()) items(vm.volumes.size, key = { i -> vm.volumes[i].id}) { index ->
+                        val volume = vm.volumes[index]
                         Column(Modifier.background(MaterialTheme.colorScheme.surface)
                             .combinedClickable(onClick = { vm.curVolume = volume},
                                 onLongClick = {
@@ -918,8 +976,8 @@ fun SubscriptionsScreen() {
                             Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    items(feeds.size, key = {index -> feeds[index].id}) { index ->
-                        val feed by remember { mutableStateOf(feeds[index]) }
+                    items(vm.feeds.size, key = {index -> vm.feeds[index].id}) { index ->
+                        val feed by remember { mutableStateOf(vm.feeds[index]) }
                         var isSelected by remember(selectMode, selectedSize, feed.id) { mutableStateOf(selectMode && feed in feedsSelected) }
                         fun toggleSelected() {
                             isSelected = !isSelected
@@ -957,7 +1015,7 @@ fun SubscriptionsScreen() {
                                         bottom.linkTo(parent.bottom)
                                         start.linkTo(parent.start)
                                     })
-                                val numEpisodes by remember { mutableStateOf(getEpisodesCount(null, feed.id)) }
+                                val numEpisodes by remember(feed.id) { mutableIntStateOf(getEpisodesCount(null, feed.id)) }
                                 Text(NumberFormat.getInstance().format(numEpisodes.toLong()), color = buttonAltColor,
                                     modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
                                         end.linkTo(parent.end)
@@ -988,7 +1046,7 @@ fun SubscriptionsScreen() {
                         val offset = listState.firstVisibleItemScrollOffset
                         Logd(TAG, "DisposableEffect onDispose save positions: $index $offset")
                         runOnIOScope {
-                            upsert(vm.subPrefs) {
+                            vm.subPrefs = upsert(vm.subPrefs) {
                                 it.positionIndex = index
                                 it.positionOffset = offset
                             }
@@ -996,46 +1054,45 @@ fun SubscriptionsScreen() {
                     }
                 }
 
-                val currentEntry = navController.navController.currentBackStackEntryAsState().value
-                LaunchedEffect(feeds.size) {
-                    val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
-                    Logd(TAG, "LaunchedEffect(feeds.size) cameBack: $cameBack")
-                    if (!restored && feeds.size > 5) {
-                        if (!cameBack) {
-                            scope.launch {
-                                val (index, offset) = Pair(vm.subPrefs.positionIndex, vm.subPrefs.positionOffset)
-                                val safeIndex = index.coerceIn(0, feeds.size - 1)
-                                val safeOffset = if (safeIndex == index) offset else 0
-                                listState.scrollToItem(safeIndex, safeOffset)
-                                currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
-                            }
-                        }
-//                        else scope.launch { listState.scrollToItem(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
-                        restored = true
-                    }
-                }
-                LaunchedEffect(filterAndSort) {
-                    Logd(TAG, "LaunchedEffect(filterSorted) $filterAndSort")
-                    if (feeds.isNotEmpty() && filterAndSort) scope.launch { listState.scrollToItem(0) }
-                    filterAndSort = false
-                }
+//                val currentEntry = navController.navController.currentBackStackEntryAsState().value
+//                val cameBack = currentEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
+//                LaunchedEffect(vm.feeds.size) {
+//                    Logd(TAG, "LaunchedEffect(feeds.size) cameBack: $cameBack")
+//                    if (!restored && vm.feeds.size > 5) {
+//                        if (!cameBack) {
+//                            scope.launch {
+//                                val (index, offset) = Pair(vm.subPrefs.positionIndex, vm.subPrefs.positionOffset)
+//                                val safeIndex = index.coerceIn(0, vm.feeds.size - 1)
+//                                val safeOffset = if (safeIndex == index) offset else 0
+//                                listState.scrollToItem(safeIndex, safeOffset)
+////                                currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
+//                            }
+//                        }
+//                        currentEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
+////                        else scope.launch { listState.scrollToItem(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) }
+//                        restored = true
+//                    }
+//                }
+//                LaunchedEffect(filterAndSort) {
+//                    Logd(TAG, "LaunchedEffect(filterSorted) $filterAndSort")
+//                    if (vm.feeds.isNotEmpty() && filterAndSort) scope.launch { listState.scrollToItem(0) }
+//                    filterAndSort = false
+//                }
 
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!vm.showAllFeeds && volumes.isNotEmpty()) itemsIndexed(volumes, key = { _, v -> v.id}) { index, volume ->
+                    if (!vm.showAllFeeds && vm.volumes.isNotEmpty()) itemsIndexed(vm.volumes, key = { _, v -> v.id}) { index, volume ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.combinedClickable(
                             onClick = { vm.curVolume = volume },
                             onLongClick = {
                                 feedsSelected.clear()
                                 feedsSelected.addAll(volume.allFeeds)
                                 volumeToOperate = volume
-                            }
-                            )) {
+                            })) {
                             Icon(imageVector = ImageVector.vectorResource(R.drawable.rounded_books_movies_and_music_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(50.dp).height(50.dp))
                             Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f).fillMaxHeight().wrapContentHeight(Alignment.CenterVertically))
                         }
                     }
-
-                    itemsIndexed(feeds, key = { _, feed -> feed.id}) { index, feed_ ->
+                    itemsIndexed(vm.feeds, key = { _, feed -> feed.id}) { index, feed_ ->
                         val feed by rememberUpdatedState(feed_)
                         var isSelected by remember(key1 = selectMode, key2 = selectedSize) { mutableStateOf(selectMode && feed in feedsSelected) }
                         fun toggleSelected() {
@@ -1099,21 +1156,21 @@ fun SubscriptionsScreen() {
                     horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(start = 10.dp).clickable(onClick = {
                         feedsSelected.clear()
-                        for (i in 0..longPressIndex) feedsSelected.add(feeds[i])
+                        for (i in 0..longPressIndex) feedsSelected.add(vm.feeds[i])
                         selectedSize = feedsSelected.size
                         Logd(TAG, "selectedIds: ${feedsSelected.size}")
                     }))
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_downward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
                         feedsSelected.clear()
-                        for (i in longPressIndex..<feeds.size) feedsSelected.add(feeds[i])
+                        for (i in longPressIndex..<vm.feeds.size) feedsSelected.add(vm.feeds[i])
                         selectedSize = feedsSelected.size
                         Logd(TAG, "selectedIds: ${feedsSelected.size}")
                     }))
                     var selectAllRes by remember { mutableIntStateOf(R.drawable.ic_select_all) }
                     Icon(imageVector = ImageVector.vectorResource(selectAllRes), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
-                        if (selectedSize != feeds.size) {
+                        if (selectedSize != vm.feeds.size) {
                             feedsSelected.clear()
-                            feedsSelected.addAll(feeds)
+                            feedsSelected.addAll(vm.feeds)
                             selectAllRes = R.drawable.ic_select_none
                         } else {
                             feedsSelected.clear()
@@ -1149,23 +1206,24 @@ fun SubscriptionsScreen() {
                 Surface(modifier = Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 10.dp).height(350.dp), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, buttonColor)) {
                     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Title.ordinal) buttonColor else buttonAltColor),
+                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Feed.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
-                                    runOnIOScope {
-                                        upsert(vm.subPrefs) {
-                                            if (it.sortIndex == FeedSortIndex.Title.ordinal) {
-                                                it.titleAscending = !it.titleAscending
-                                                it.sortDirCode = if (it.titleAscending) 0 else 1
+                                    if (vm.subPrefs.sortIndex == FeedSortIndex.Feed.ordinal)
+                                        runOnIOScope {
+                                            upsert(vm.subPrefs) {
+                                                if (it.sortIndex == FeedSortIndex.Feed.ordinal) {
+                                                    it.propertyAscending = !it.propertyAscending
+                                                    it.sortDirCode = if (it.propertyAscending) 0 else 1
+                                                }
+                                                else {
+                                                    it.sortIndex = FeedSortIndex.Feed.ordinal
+                                                    it.sortProperty = "eigenTitle"
+                                                }
+                                                it.feedsSorted += 1
                                             }
-                                            else {
-                                                it.sortIndex = FeedSortIndex.Title.ordinal
-                                                it.sortProperty = "eigenTitle"
-                                            }
-                                            it.feedsSorted += 1
-                                        }
-                                    }
+                                        } else vm.preparePropertySort()
                                 }
-                            ) { Text(text = stringResource(FeedSortIndex.Title.res) + if (vm.subPrefs.titleAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
+                            ) { Text(text = stringResource(FeedSortIndex.Feed.res) + if (vm.subPrefs.propertyAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Date.ordinal) buttonColor else buttonAltColor),
                                 onClick = {
                                     if (vm.subPrefs.sortIndex == FeedSortIndex.Date.ordinal)
@@ -1176,7 +1234,7 @@ fun SubscriptionsScreen() {
                                                 it.feedsSorted += 1
                                             }
                                         }
-                                    else prepareDateSort()
+                                    else vm.prepareDateSort()
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Date.res) + if (vm.subPrefs.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Time.ordinal) buttonColor else buttonAltColor),
@@ -1189,7 +1247,7 @@ fun SubscriptionsScreen() {
                                                 it.feedsSorted += 1
                                             }
                                         }
-                                    else prepareTimeSort()
+                                    else vm.prepareTimeSort()
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Time.res) + if (vm.subPrefs.timeAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Count.ordinal) buttonColor else buttonAltColor),
@@ -1202,306 +1260,296 @@ fun SubscriptionsScreen() {
                                                 it.feedsSorted += 1
                                             }
                                         }
-                                    else prepareCountSort()
+                                    else vm.prepareCountSort()
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Count.res) + if (vm.subPrefs.countAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                         }
                         HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
-                        if (vm.subPrefs.sortIndex == FeedSortIndex.Date.ordinal) {
-                            Row {
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.dateSortIndex != FeedDateSortIndex.Played.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { if (vm.subPrefs.dateSortIndex != FeedDateSortIndex.Played.ordinal) prepareDateSort(FeedDateSortIndex.Played) }
-                                ) { Text(stringResource(FeedDateSortIndex.Played.res)) }
-                                Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { if (vm.subPrefs.dateSortIndex != FeedDateSortIndex.Downloaded.ordinal) prepareDateSort(FeedDateSortIndex.Downloaded) }
-                                ) { Text(stringResource(FeedDateSortIndex.Downloaded.res)) }
-                                Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.dateSortIndex != FeedDateSortIndex.Commented.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { if (vm.subPrefs.dateSortIndex != FeedDateSortIndex.Commented.ordinal) prepareDateSort(FeedDateSortIndex.Commented) }
-                                ) { Text(stringResource(FeedDateSortIndex.Commented.res)) }
-                            }
-                            OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.dateSortIndex != FeedDateSortIndex.Publish.ordinal) buttonColor else buttonAltColor),
-                                onClick = { if (vm.subPrefs.dateSortIndex != FeedDateSortIndex.Publish.ordinal)  prepareDateSort(FeedDateSortIndex.Publish) }
-                            ) { Text(stringResource(FeedDateSortIndex.Publish.res)) }
-                        } else if (vm.subPrefs.sortIndex == FeedSortIndex.Time.ordinal) {
-                            Row {
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.timeSortIndex != FeedTimeSortIndex.Min.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { if (vm.subPrefs.timeSortIndex != FeedTimeSortIndex.Min.ordinal) prepareTimeSort(FeedTimeSortIndex.Min) }
-                                ) { Text(stringResource(R.string.min_duration)) }
-                                Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.timeSortIndex != FeedTimeSortIndex.Max.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { if (vm.subPrefs.timeSortIndex != FeedTimeSortIndex.Max.ordinal) prepareTimeSort(FeedTimeSortIndex.Max) }
-                                ) { Text(stringResource(R.string.max_duration)) }
-                            }
-                            Row {
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.timeSortIndex != FeedTimeSortIndex.Total.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { if (vm.subPrefs.timeSortIndex != FeedTimeSortIndex.Total.ordinal) prepareTimeSort(FeedTimeSortIndex.Total) }
-                                ) { Text(stringResource(R.string.total_duration)) }
-                                Spacer(Modifier.weight(1f))
-                                OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.timeSortIndex != FeedTimeSortIndex.Average.ordinal) buttonColor else buttonAltColor),
-                                    onClick = { if (vm.subPrefs.timeSortIndex != FeedTimeSortIndex.Average.ordinal) prepareTimeSort(FeedTimeSortIndex.Average) }
-                                ) { Text(stringResource(R.string.average_duration)) }
-                            }
-                        }
-                        HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
-                        Column(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
-                            if (vm.subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
-                                Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                    val item = EpisodeFilter.EpisodesFilterGroup.DOWNLOADED
-                                    Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
-                                    Spacer(Modifier.weight(0.3f))
-                                    fun persistDLSort(i: Int) {
-                                        runOnIOScope {
-                                            val downlaodedSortIndex = if (vm.subPrefs.downlaodedSortIndex != i) i else  -1
-                                            upsert(vm.subPrefs) { it.downlaodedSortIndex = downlaodedSortIndex }
-                                            downloadedQuery = when (downlaodedSortIndex) {
-                                                0 -> " fileUrl != nil "
-                                                1 -> " fileUrl == nil "
-                                                else -> ""
-                                            }
-                                            prepareCountSort()
-                                        }
-                                    }
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.downlaodedSortIndex != 0) buttonColor else buttonAltColor),
-                                        onClick = { persistDLSort(0) },
-                                    ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
-                                    Spacer(Modifier.weight(0.1f))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.downlaodedSortIndex != 1) buttonColor else buttonAltColor),
-                                        onClick = { persistDLSort(1) },
-                                    ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
-                                    Spacer(Modifier.weight(0.5f))
-                                }
-                                Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                                    val item = EpisodeFilter.EpisodesFilterGroup.OPINION
-                                    Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
-                                    Spacer(Modifier.weight(0.3f))
-                                    fun persistCommentSort(i: Int) {
-                                        runOnIOScope {
-                                            val commentedSortIndex = if (vm.subPrefs.commentedSortIndex != i) i else -1
-                                            upsert(vm.subPrefs) { it.commentedSortIndex = commentedSortIndex }
-                                            commentedQuery = when (vm.subPrefs.commentedSortIndex) {
-                                                0 -> " comment != '' "
-                                                1 -> " comment == '' "
-                                                else -> ""
-                                            }
-                                            prepareCountSort()
-                                        }
-                                    }
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.commentedSortIndex != 0) buttonColor else buttonAltColor),
-                                        onClick = { persistCommentSort(0) },
-                                    ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
-                                    Spacer(Modifier.weight(0.1f))
-                                    OutlinedButton(modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.commentedSortIndex != 1) buttonColor else buttonAltColor),
-                                        onClick = { persistCommentSort(1) },
-                                    ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
-                                    Spacer(Modifier.weight(0.5f))
-                                }
-                            }
-                            val episodeStateSort = remember { MutableList(EpisodeState.entries.size) { mutableStateOf(false) } }
-                            val ratingSort = remember { MutableList(Rating.entries.size) { mutableStateOf(false) } }
-                            if ((vm.subPrefs.sortIndex == FeedSortIndex.Date.ordinal && vm.subPrefs.dateSortIndex == FeedDateSortIndex.Publish.ordinal) || vm.subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
-                                var allOrNone by remember { mutableStateOf(false) }
-                                LaunchedEffect(Unit) {
-                                    for (i in episodeStateSort.indices) {
-                                        if (EpisodeState.entries[i].code.toString() in vm.subPrefs.playStateCodeSet) episodeStateSort[i].value = true
-                                    }
-                                    val c = episodeStateSort.count { it.value }
-                                    allOrNone = c == 0 || c == episodeStateSort.size
-                                }
-                                fun persistStateSort() {
-                                    runOnIOScope {
-                                        val sb = StringBuilder()
-                                        val playStateCodeSet = mutableSetOf<String>()
-                                        for (i in episodeStateSort.indices) {
-                                            if (episodeStateSort[i].value) {
-                                                playStateCodeSet.add(EpisodeState.entries[i].code.toString())
-                                                if (sb.isNotEmpty()) sb.append(" OR ")
-                                                sb.append(" playState == ${EpisodeState.entries[i].code} ")
-                                            }
-                                        }
-                                        playStateQueries = sb.toString()
-                                        upsert(vm.subPrefs) {
-                                            it.playStateCodeSet.clear()
-                                            it.playStateCodeSet.addAll(playStateCodeSet)
-                                        }
-                                        when (vm.subPrefs.sortIndex) {
-                                            FeedSortIndex.Date.ordinal -> prepareDateSort()
-                                            FeedSortIndex.Count.ordinal -> prepareCountSort()
-                                            else -> {}
-                                        }
+                        when (vm.subPrefs.sortIndex) {
+                            FeedSortIndex.Feed.ordinal -> {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                                    for (sd in FeedPropertySortIndex.entries) {
+                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.propertySortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.propertySortIndex != sd.ordinal) vm.preparePropertySort(sd) }) { Text(stringResource(sd.res)) }
                                     }
                                 }
-                                val item = EpisodeFilter.EpisodesFilterGroup.PLAY_STATE
-                                var expandRow by remember { mutableStateOf(false) }
-                                Row {
-                                    Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = if (allOrNone) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
-                                    if (expandRow) {
-                                        var lowerSelected by remember { mutableStateOf(false) }
-                                        var higherSelected by remember { mutableStateOf(false) }
-                                        Spacer(Modifier.weight(1f))
-                                        Text("<<<", color = if (lowerSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                            modifier = Modifier.clickable {
+                            }
+                            FeedSortIndex.Date.ordinal -> {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                                    for (sd in FeedDateSortIndex.entries) {
+                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.dateSortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.dateSortIndex != sd.ordinal) vm.prepareDateSort(sd) }) { Text(stringResource(sd.res)) }
+                                    }
+                                }
+                            }
+                            FeedSortIndex.Time.ordinal -> {
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                                    for (sd in FeedTimeSortIndex.entries) {
+                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.timeSortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.timeSortIndex != sd.ordinal) vm.prepareTimeSort(sd) }) { Text(stringResource(sd.res)) }
+                                    }
+                                }
+                            }
+                            else -> {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.onTertiaryContainer, thickness = 1.dp)
+                                Column(modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
+                                    if (vm.subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
+                                        Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                                            val item = EpisodeFilter.EpisodesFilterGroup.DOWNLOADED
+                                            Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
+                                            Spacer(Modifier.weight(0.3f))
+                                            fun persistDLSort(i: Int) {
                                                 runOnIOScope {
-                                                    val hIndex = episodeStateSort.indexOfLast { it.value }
-                                                    if (hIndex < 0) return@runOnIOScope
-                                                    if (!lowerSelected) {
-                                                        for (i in 0..hIndex) episodeStateSort[i].value = true
-                                                    } else {
-                                                        for (i in 0..hIndex) episodeStateSort[i].value = false
-                                                        episodeStateSort[hIndex].value = true
+                                                    val downlaodedSortIndex = if (vm.subPrefs.downlaodedSortIndex != i) i else -1
+                                                    upsert(vm.subPrefs) { it.downlaodedSortIndex = downlaodedSortIndex }
+                                                    vm.downloadedQuery = when (downlaodedSortIndex) {
+                                                        0 -> " fileUrl != nil "
+                                                        1 -> " fileUrl == nil "
+                                                        else -> ""
                                                     }
-                                                    val c = episodeStateSort.count { it.value }
-                                                    allOrNone = c == 0 || c == episodeStateSort.size
-                                                    lowerSelected = !lowerSelected
-                                                    persistStateSort()
+                                                    vm.prepareCountSort()
                                                 }
-                                            })
-                                        Spacer(Modifier.weight(1f))
-                                        Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                            modifier = Modifier.clickable {
+                                            }
+                                            OutlinedButton(
+                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.downlaodedSortIndex != 0) buttonColor else buttonAltColor),
+                                                onClick = { persistDLSort(0) },
+                                            ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
+                                            Spacer(Modifier.weight(0.1f))
+                                            OutlinedButton(
+                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.downlaodedSortIndex != 1) buttonColor else buttonAltColor),
+                                                onClick = { persistDLSort(1) },
+                                            ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
+                                            Spacer(Modifier.weight(0.5f))
+                                        }
+                                        Row(modifier = Modifier.padding(2.dp).fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                                            val item = EpisodeFilter.EpisodesFilterGroup.OPINION
+                                            Text(stringResource(item.nameRes) + " :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = textColor, modifier = Modifier.padding(end = 10.dp))
+                                            Spacer(Modifier.weight(0.3f))
+                                            fun persistCommentSort(i: Int) {
                                                 runOnIOScope {
-                                                    val selectAll = !(lowerSelected && higherSelected)
-                                                    lowerSelected = selectAll
-                                                    higherSelected = selectAll
-                                                    for (i in item.properties.indices) episodeStateSort[i].value = selectAll
-                                                    val c = episodeStateSort.count { it.value }
-                                                    allOrNone = c == 0 || c == episodeStateSort.size
-                                                    persistStateSort()
-                                                }
-                                            })
-                                        Spacer(Modifier.weight(1f))
-                                        Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                            modifier = Modifier.clickable {
-                                                runOnIOScope {
-                                                    val lIndex = episodeStateSort.indexOfFirst { it.value }
-                                                    if (lIndex < 0) return@runOnIOScope
-                                                    if (!higherSelected) {
-                                                        for (i in lIndex..<item.properties.size) episodeStateSort[i].value = true
-                                                    } else {
-                                                        for (i in lIndex..<item.properties.size) episodeStateSort[i].value = false
-                                                        episodeStateSort[lIndex].value = true
+                                                    val commentedSortIndex = if (vm.subPrefs.commentedSortIndex != i) i else -1
+                                                    upsert(vm.subPrefs) { it.commentedSortIndex = commentedSortIndex }
+                                                    vm.commentedQuery = when (vm.subPrefs.commentedSortIndex) {
+                                                        0 -> " comment != '' "
+                                                        1 -> " comment == '' "
+                                                        else -> ""
                                                     }
-                                                    val c = episodeStateSort.count { it.value }
-                                                    allOrNone = c == 0 || c == episodeStateSort.size
-                                                    higherSelected = !higherSelected
-                                                    persistStateSort()
+                                                    vm.prepareCountSort()
                                                 }
-                                            })
+                                            }
+                                            OutlinedButton(
+                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.commentedSortIndex != 0) buttonColor else buttonAltColor),
+                                                onClick = { persistCommentSort(0) },
+                                            ) { Text(text = stringResource(item.properties[0].displayName), color = textColor) }
+                                            Spacer(Modifier.weight(0.1f))
+                                            OutlinedButton(
+                                                modifier = Modifier.padding(0.dp), border = BorderStroke(2.dp, if (vm.subPrefs.commentedSortIndex != 1) buttonColor else buttonAltColor),
+                                                onClick = { persistCommentSort(1) },
+                                            ) { Text(text = stringResource(item.properties[1].displayName), color = textColor) }
+                                            Spacer(Modifier.weight(0.5f))
+                                        }
                                     }
-                                    Spacer(Modifier.weight(1f))
-                                }
-                                if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (episodeStateSort[index].value) buttonAltColor else buttonColor),
-                                        onClick = {
-                                            episodeStateSort[index].value = !episodeStateSort[index].value
+                                    val episodeStateSort = remember { MutableList(EpisodeState.entries.size) { mutableStateOf(false) } }
+                                    val ratingSort = remember { MutableList(Rating.entries.size) { mutableStateOf(false) } }
+                                    if ((vm.subPrefs.sortIndex == FeedSortIndex.Date.ordinal && vm.subPrefs.dateSortIndex == FeedDateSortIndex.Publish.ordinal) || vm.subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
+                                        var allOrNone by remember { mutableStateOf(false) }
+                                        LaunchedEffect(Unit) {
+                                            for (i in episodeStateSort.indices) {
+                                                if (EpisodeState.entries[i].code.toString() in vm.subPrefs.playStateCodeSet) episodeStateSort[i].value = true
+                                            }
                                             val c = episodeStateSort.count { it.value }
                                             allOrNone = c == 0 || c == episodeStateSort.size
-                                            persistStateSort()
-                                        },
-                                    ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
-                                }
-                            }
-                            if (vm.subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
-                                var allOrNone by remember { mutableStateOf(false) }
-                                LaunchedEffect(Unit) {
-                                    for (i in ratingSort.indices) {
-                                        if (Rating.entries[i].code.toString() in vm.subPrefs.ratingCodeSet) ratingSort[i].value = true
-                                    }
-                                    val c = ratingSort.count { it.value }
-                                    allOrNone = c == 0 || c == ratingSort.size
-                                }
-                                fun persistRatingSort() {
-                                    runOnIOScope {
-                                        val sb = StringBuilder()
-                                        val ratingCodeSet = mutableSetOf<String>()
-                                        for (i in ratingSort.indices) {
-                                            if (ratingSort[i].value) {
-                                                ratingCodeSet.add(Rating.entries[i].code.toString())
-                                                if (sb.isNotEmpty()) sb.append(" OR ")
-                                                sb.append(" rating == ${Rating.entries[i].code} ")
+                                        }
+                                        fun persistStateSort() {
+                                            runOnIOScope {
+                                                val sb = StringBuilder()
+                                                val playStateCodeSet = mutableSetOf<String>()
+                                                for (i in episodeStateSort.indices) {
+                                                    if (episodeStateSort[i].value) {
+                                                        playStateCodeSet.add(EpisodeState.entries[i].code.toString())
+                                                        if (sb.isNotEmpty()) sb.append(" OR ")
+                                                        sb.append(" playState == ${EpisodeState.entries[i].code} ")
+                                                    }
+                                                }
+                                                vm.playStateQueries = sb.toString()
+                                                upsert(vm.subPrefs) {
+                                                    it.playStateCodeSet.clear()
+                                                    it.playStateCodeSet.addAll(playStateCodeSet)
+                                                }
+                                                when (vm.subPrefs.sortIndex) {
+                                                    FeedSortIndex.Date.ordinal -> vm.prepareDateSort()
+                                                    FeedSortIndex.Count.ordinal -> vm.prepareCountSort()
+                                                    else -> {}
+                                                }
                                             }
                                         }
-                                        ratingQueries = sb.toString()
-                                        upsert(vm.subPrefs) {
-                                            it.ratingCodeSet.clear()
-                                            it.ratingCodeSet.addAll(ratingCodeSet)
+
+                                        val item = EpisodeFilter.EpisodesFilterGroup.PLAY_STATE
+                                        var expandRow by remember { mutableStateOf(false) }
+                                        Row {
+                                            Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = if (allOrNone) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                            if (expandRow) {
+                                                var lowerSelected by remember { mutableStateOf(false) }
+                                                var higherSelected by remember { mutableStateOf(false) }
+                                                Spacer(Modifier.weight(1f))
+                                                Text("<<<", color = if (lowerSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.clickable {
+                                                    runOnIOScope {
+                                                        val hIndex = episodeStateSort.indexOfLast { it.value }
+                                                        if (hIndex < 0) return@runOnIOScope
+                                                        if (!lowerSelected) {
+                                                            for (i in 0..hIndex) episodeStateSort[i].value = true
+                                                        } else {
+                                                            for (i in 0..hIndex) episodeStateSort[i].value = false
+                                                            episodeStateSort[hIndex].value = true
+                                                        }
+                                                        val c = episodeStateSort.count { it.value }
+                                                        allOrNone = c == 0 || c == episodeStateSort.size
+                                                        lowerSelected = !lowerSelected
+                                                        persistStateSort()
+                                                    }
+                                                })
+                                                Spacer(Modifier.weight(1f))
+                                                Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.clickable {
+                                                    runOnIOScope {
+                                                        val selectAll = !(lowerSelected && higherSelected)
+                                                        lowerSelected = selectAll
+                                                        higherSelected = selectAll
+                                                        for (i in item.properties.indices) episodeStateSort[i].value = selectAll
+                                                        val c = episodeStateSort.count { it.value }
+                                                        allOrNone = c == 0 || c == episodeStateSort.size
+                                                        persistStateSort()
+                                                    }
+                                                })
+                                                Spacer(Modifier.weight(1f))
+                                                Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.clickable {
+                                                    runOnIOScope {
+                                                        val lIndex = episodeStateSort.indexOfFirst { it.value }
+                                                        if (lIndex < 0) return@runOnIOScope
+                                                        if (!higherSelected) {
+                                                            for (i in lIndex..<item.properties.size) episodeStateSort[i].value = true
+                                                        } else {
+                                                            for (i in lIndex..<item.properties.size) episodeStateSort[i].value = false
+                                                            episodeStateSort[lIndex].value = true
+                                                        }
+                                                        val c = episodeStateSort.count { it.value }
+                                                        allOrNone = c == 0 || c == episodeStateSort.size
+                                                        higherSelected = !higherSelected
+                                                        persistStateSort()
+                                                    }
+                                                })
+                                            }
+                                            Spacer(Modifier.weight(1f))
                                         }
-                                        when (vm.subPrefs.sortIndex) {
-                                            FeedSortIndex.Count.ordinal -> prepareCountSort()
-                                            else -> {}
+                                        if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                            OutlinedButton(
+                                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (episodeStateSort[index].value) buttonAltColor else buttonColor),
+                                                onClick = {
+                                                    episodeStateSort[index].value = !episodeStateSort[index].value
+                                                    val c = episodeStateSort.count { it.value }
+                                                    allOrNone = c == 0 || c == episodeStateSort.size
+                                                    persistStateSort()
+                                                },
+                                            ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
                                         }
                                     }
-                                }
-                                val item = EpisodeFilter.EpisodesFilterGroup.RATING
-                                var expandRow by remember { mutableStateOf(false) }
-                                Row {
-                                    Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = if (allOrNone) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
-                                    if (expandRow) {
-                                        var lowerSelected by remember { mutableStateOf(false) }
-                                        var higherSelected by remember { mutableStateOf(false) }
-                                        Spacer(Modifier.weight(1f))
-                                        Text("<<<", color = if (lowerSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                            modifier = Modifier.clickable {
-                                                runOnIOScope {
-                                                    val hIndex = ratingSort.indexOfLast { it.value }
-                                                    if (hIndex < 0) return@runOnIOScope
-                                                    if (!lowerSelected) {
-                                                        for (i in 0..hIndex) ratingSort[i].value = true
-                                                    } else {
-                                                        for (i in 0..hIndex) ratingSort[i].value = false
-                                                        ratingSort[hIndex].value = true
+                                    if (vm.subPrefs.sortIndex == FeedSortIndex.Count.ordinal) {
+                                        var allOrNone by remember { mutableStateOf(false) }
+                                        LaunchedEffect(Unit) {
+                                            for (i in ratingSort.indices) {
+                                                if (Rating.entries[i].code.toString() in vm.subPrefs.ratingCodeSet) ratingSort[i].value = true
+                                            }
+                                            val c = ratingSort.count { it.value }
+                                            allOrNone = c == 0 || c == ratingSort.size
+                                        }
+                                        fun persistRatingSort() {
+                                            runOnIOScope {
+                                                val sb = StringBuilder()
+                                                val ratingCodeSet = mutableSetOf<String>()
+                                                for (i in ratingSort.indices) {
+                                                    if (ratingSort[i].value) {
+                                                        ratingCodeSet.add(Rating.entries[i].code.toString())
+                                                        if (sb.isNotEmpty()) sb.append(" OR ")
+                                                        sb.append(" rating == ${Rating.entries[i].code} ")
                                                     }
-                                                    val c = ratingSort.count { it.value }
-                                                    allOrNone = c == 0 || c == ratingSort.size
-                                                    lowerSelected = !lowerSelected
-                                                    persistRatingSort()
                                                 }
-                                            })
-                                        Spacer(Modifier.weight(1f))
-                                        Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                            modifier = Modifier.clickable {
-                                                runOnIOScope {
-                                                    val selectAll = !(lowerSelected && higherSelected)
-                                                    lowerSelected = selectAll
-                                                    higherSelected = selectAll
-                                                    for (i in item.properties.indices) ratingSort[i].value = selectAll
-                                                    val c = ratingSort.count { it.value }
-                                                    allOrNone = c == 0 || c == ratingSort.size
-                                                    persistRatingSort()
+                                                vm.ratingQueries = sb.toString()
+                                                upsert(vm.subPrefs) {
+                                                    it.ratingCodeSet.clear()
+                                                    it.ratingCodeSet.addAll(ratingCodeSet)
                                                 }
-                                            })
-                                        Spacer(Modifier.weight(1f))
-                                        Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall,
-                                            modifier = Modifier.clickable {
-                                                runOnIOScope {
-                                                    val lIndex = ratingSort.indexOfFirst { it.value }
-                                                    if (lIndex >= 0) {
-                                                        if (!higherSelected) {
-                                                            for (i in lIndex..<item.properties.size) ratingSort[i].value = true
+                                                when (vm.subPrefs.sortIndex) {
+                                                    FeedSortIndex.Count.ordinal -> vm.prepareCountSort()
+                                                    else -> {}
+                                                }
+                                            }
+                                        }
+
+                                        val item = EpisodeFilter.EpisodesFilterGroup.RATING
+                                        var expandRow by remember { mutableStateOf(false) }
+                                        Row {
+                                            Text(stringResource(item.nameRes) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.headlineSmall, color = if (allOrNone) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
+                                            if (expandRow) {
+                                                var lowerSelected by remember { mutableStateOf(false) }
+                                                var higherSelected by remember { mutableStateOf(false) }
+                                                Spacer(Modifier.weight(1f))
+                                                Text("<<<", color = if (lowerSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.clickable {
+                                                    runOnIOScope {
+                                                        val hIndex = ratingSort.indexOfLast { it.value }
+                                                        if (hIndex < 0) return@runOnIOScope
+                                                        if (!lowerSelected) {
+                                                            for (i in 0..hIndex) ratingSort[i].value = true
                                                         } else {
-                                                            for (i in lIndex..<item.properties.size) ratingSort[i].value = false
-                                                            ratingSort[lIndex].value = true
+                                                            for (i in 0..hIndex) ratingSort[i].value = false
+                                                            ratingSort[hIndex].value = true
                                                         }
                                                         val c = ratingSort.count { it.value }
                                                         allOrNone = c == 0 || c == ratingSort.size
-                                                        higherSelected = !higherSelected
+                                                        lowerSelected = !lowerSelected
                                                         persistRatingSort()
                                                     }
-                                                }
-                                            })
+                                                })
+                                                Spacer(Modifier.weight(1f))
+                                                Text("A", color = buttonColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.clickable {
+                                                    runOnIOScope {
+                                                        val selectAll = !(lowerSelected && higherSelected)
+                                                        lowerSelected = selectAll
+                                                        higherSelected = selectAll
+                                                        for (i in item.properties.indices) ratingSort[i].value = selectAll
+                                                        val c = ratingSort.count { it.value }
+                                                        allOrNone = c == 0 || c == ratingSort.size
+                                                        persistRatingSort()
+                                                    }
+                                                })
+                                                Spacer(Modifier.weight(1f))
+                                                Text(">>>", color = if (higherSelected) buttonAltColor else buttonColor, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.clickable {
+                                                    runOnIOScope {
+                                                        val lIndex = ratingSort.indexOfFirst { it.value }
+                                                        if (lIndex >= 0) {
+                                                            if (!higherSelected) {
+                                                                for (i in lIndex..<item.properties.size) ratingSort[i].value = true
+                                                            } else {
+                                                                for (i in lIndex..<item.properties.size) ratingSort[i].value = false
+                                                                ratingSort[lIndex].value = true
+                                                            }
+                                                            val c = ratingSort.count { it.value }
+                                                            allOrNone = c == 0 || c == ratingSort.size
+                                                            higherSelected = !higherSelected
+                                                            persistRatingSort()
+                                                        }
+                                                    }
+                                                })
+                                            }
+                                            Spacer(Modifier.weight(1f))
+                                        }
+                                        if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
+                                            OutlinedButton(
+                                                modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (ratingSort[index].value) buttonAltColor else buttonColor),
+                                                onClick = {
+                                                    ratingSort[index].value = !ratingSort[index].value
+                                                    val c = ratingSort.count { it.value }
+                                                    allOrNone = c == 0 || c == ratingSort.size
+                                                    persistRatingSort()
+                                                },
+                                            ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
+                                        }
                                     }
-                                    Spacer(Modifier.weight(1f))
-                                }
-                                if (expandRow) ScrollRowGrid(columns = 3, itemCount = item.properties.size, modifier = Modifier.padding(start = 10.dp)) { index ->
-                                    OutlinedButton(modifier = Modifier.padding(0.dp).heightIn(min = 20.dp).widthIn(min = 20.dp).wrapContentWidth(), border = BorderStroke(2.dp, if (ratingSort[index].value) buttonAltColor else buttonColor),
-                                        onClick = {
-                                            ratingSort[index].value = !ratingSort[index].value
-                                            val c = ratingSort.count { it.value }
-                                            allOrNone = c == 0 || c == ratingSort.size
-                                            persistRatingSort()
-                                        },
-                                    ) { Text(text = stringResource(item.properties[index].displayName), maxLines = 1, color = textColor) }
                                 }
                             }
                         }
@@ -1805,7 +1853,6 @@ fun SubscriptionsScreen() {
                         Button({
                             val v = Volume()
                             v.id = System.currentTimeMillis()
-                            v
                             upsertBlk(v) {
                                 it.name = name
                                 it.parentId = parent?.id ?: -1L
@@ -1834,7 +1881,6 @@ fun SubscriptionsScreen() {
         if (showNewSynthetic) RenameOrCreateSyntheticFeed { showNewSynthetic = false }
         if (showNewVolume) CreateVolume(parent = vm.curVolume) { showNewVolume = false }
     }
-
     OpenDialogs()
 
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
@@ -1845,11 +1891,24 @@ fun SubscriptionsScreen() {
 }
 
 enum class FeedSortIndex(val res: Int) {
-    Title(R.string.title),
+    Feed(R.string.feed),
     Date(R.string.date),
     Time(R.string.time),
     Count(R.string.count)
 }
+
+enum class FeedPropertySortIndex(val res: Int) {
+    Title(R.string.title),
+    Author(R.string.author),
+    Rating(R.string.rating_label),
+    Score(R.string.score),
+    ScoreCount(R.string.score_count),
+    Updated(R.string.last_update),
+    FullUpdate(R.string.last_full_update),
+    TotleDuration(R.string.total_duration),
+    Commented(R.string.last_commented)
+}
+
 enum class FeedDateSortIndex(val res: Int) {
     Publish(R.string.publish_date),
     Downloaded(R.string.downloaded_label),

@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.preferences
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.sync.SyncService.Companion.isValidGuid
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.model.EpisodeAction.Companion.readFromJsonObject
@@ -48,15 +49,15 @@ class EpisodeProgressReader {
         var idRemove = 0L
         feedItem = upsertBlk(feedItem) {
             it.startPosition = action.started * 1000
-            it.setPosition(action.position * 1000)
+            it.position = action.position * 1000
             it.playedDuration = action.playedDuration * 1000
             it.lastPlayedTime = (action.timestamp!!.time)
             it.rating = if (action.isFavorite) Rating.SUPER.code else Rating.UNRATED.code
             it.setPlayState(EpisodeState.fromCode(action.playState))
             if (it.hasAlmostEnded()) {
                 Logd(TAG, "Marking as played: $action")
-                it.setPlayed(true)
-                it.setPosition(0)
+                it.setPlayState(EpisodeState.PLAYED)
+//                it.setPosition(0)
                 idRemove = it.id
             } else Logd(TAG, "Setting position: $action")
         }
@@ -68,7 +69,7 @@ class EpisodesProgressWriter : ExportWriter {
     val TAG = "EpisodesProgressWriter"
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-    override fun writeDocument(feeds: List<Feed>, writer: Writer, context: Context) {
+    override fun writeDocument(feeds: List<Feed>, writer: Writer) {
         Logd(TAG, "Starting to write document")
         val queuedEpisodeActions: MutableList<EpisodeAction> = mutableListOf()
         val pausedItems = getEpisodes(EpisodeFilter(EpisodeFilter.States.paused.name), EpisodeSortOrder.DATE_DESC)
@@ -86,7 +87,7 @@ class EpisodesProgressWriter : ExportWriter {
                 .position(item.position / 1000)
                 .playedDuration(item.playedDuration / 1000)
                 .total(item.duration / 1000)
-                .isFavorite(item.isSUPER)
+                .isFavorite(item.rating >= Rating.GOOD.code)
                 .playState(item.playState)
                 .build()
             queuedEpisodeActions.add(played)
@@ -121,7 +122,8 @@ class FavoritesWriter : ExportWriter {
     private val FEED_TEMPLATE = "html-export-feed-template.html"
     private val UTF_8 = "UTF-8"
     @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-    override fun writeDocument(feeds: List<Feed>, writer: Writer, context: Context) {
+    override fun writeDocument(feeds: List<Feed>, writer: Writer) {
+        val context = getAppContext()
         Logd(TAG, "Starting to write document")
         val templateStream = context.assets.open("html-export-template.html")
         var template = IOUtils.toString(templateStream, UTF_8)
@@ -188,9 +190,9 @@ class HtmlWriter : ExportWriter {
     val TAG = "HtmlWriter"
 
     @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-    override fun writeDocument(feeds: List<Feed>, writer: Writer, context: Context) {
+    override fun writeDocument(feeds: List<Feed>, writer: Writer) {
         Logd(TAG, "Starting to write document")
-        val templateStream = context.assets.open("html-export-template.html")
+        val templateStream = getAppContext().assets.open("html-export-template.html")
         var template = IOUtils.toString(templateStream, "UTF-8")
         template = template.replace("\\{TITLE\\}".toRegex(), "Subscriptions")
         val templateParts = template.split("\\{FEEDS\\}".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()

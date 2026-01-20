@@ -4,7 +4,9 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import java.util.Locale
 
-/** Provides methods for converting various units.  */
+const val DAY_MIL = 8.64e+7
+const val FOUR_DAY_MIL = 3.456e+8
+
 private const val HOURS_MIL = 3600000
 private const val MINUTES_MIL = 60000
 private const val SECONDS_MIL = 1000

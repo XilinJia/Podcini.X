@@ -89,7 +89,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 
-class LogsVM(val context: Context, val lcScope: CoroutineScope) {
+class LogsVM(val lcScope: CoroutineScope) {
     internal val shareLogs = mutableStateListOf<ShareLog>()
     internal val subscriptionLogs = mutableStateListOf<SubscriptionLog>()
     internal val downloadLogs = mutableStateListOf<DownloadResult>()
@@ -158,7 +158,7 @@ fun LogsScreen() {
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
-    val vm = remember { LogsVM(context, scope) }
+    val vm = remember { LogsVM(scope) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->

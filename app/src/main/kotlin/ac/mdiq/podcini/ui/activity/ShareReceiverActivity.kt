@@ -71,7 +71,7 @@ class ShareReceiverActivity : ComponentActivity() {
                 sharedText.matches(Regex("^[^<>/]+$")) -> {  // include spaces
                     if (log != null)  upsertBlk(log) {it.type = ShareLog.Type.Text.name }
                     Logd(TAG, "Activity is started with text $sharedText")
-                    val intent = MainActivity.showOnlineSearch(activity, sharedText)
+                    val intent = MainActivity.showOnlineSearch(sharedText)
                     activity.startActivity(intent)
                     if (finish) activity.finish()
                 }
@@ -81,7 +81,7 @@ class ShareReceiverActivity : ComponentActivity() {
                 else -> {
                     if (log != null) upsertBlk(log) { it.type = ShareLog.Type.Podcast.name }
                     Logd(TAG, "Activity is started with url $sharedText")
-                    val intent = MainActivity.showOnlineFeed(activity, sharedText, true)
+                    val intent = MainActivity.showOnlineFeed(sharedText, true)
                     activity.startActivity(intent)
                     if (finish) activity.finish()
                 }

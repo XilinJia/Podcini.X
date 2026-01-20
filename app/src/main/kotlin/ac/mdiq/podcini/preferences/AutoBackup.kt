@@ -103,9 +103,9 @@ fun autoBackup(activity: Activity) {
                         val dirName = dateStampFilename("$autoBackupDirName-%s")
                         val exportSubDir = chosenDir.createDirectory(dirName) ?: throw IOException("Error creating subdirectory $dirName")
                         val subUri: Uri = exportSubDir.uri
-                        PreferencesTransporter(prefsDirName).exportToDocument(subUri, activity)
+                        PreferencesTransporter(prefsDirName).exportToDocument(subUri)
                         val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
-                        if (realmFile != null) DatabaseTransporter().exportToDocument(realmFile.uri, activity)
+                        if (realmFile != null) DatabaseTransporter().exportToDocument(realmFile.uri)
 
                         putPref(AppPrefs.prefAutoBackupTimeStamp, curTime)
                     } catch (e: Exception) { Loge("autoBackup", "Error backing up ${e.message}") }

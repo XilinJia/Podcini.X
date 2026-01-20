@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.preferences.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.forceRestart
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
@@ -37,14 +38,12 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.dateStampFilename
 import android.app.Activity.RESULT_OK
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -128,14 +127,14 @@ fun ImportExportScreen(activity: PreferenceActivity) {
     ComfirmDialog(titleRes = R.string.import_export_error_label, message = importErrorMessage, showDialog = showImporErrortDialog) {}
 
     fun exportWithWriter(exportWriter: ExportWriter, uri: Uri?, exportType: ExportTypes) {
-        val context: Context? = activity
+        val context = getAppContext()
         showProgress = true
         if (uri == null) {
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val output = ExportWorker(exportWriter, activity).exportFile()
+                    val output = ExportWorker(exportWriter).exportFile()
                     withContext(Dispatchers.Main) {
-                        val fileUri = FileProvider.getUriForFile(context!!.applicationContext, context.getString(R.string.provider_authority), output!!)
+                        val fileUri = FileProvider.getUriForFile(context, context.getString(R.string.provider_authority), output!!)
                         showExportSuccess(fileUri, exportType.contentType)
                     }
                 } catch (e: Exception) {
@@ -146,7 +145,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
             }
         } else {
             CoroutineScope(Dispatchers.IO).launch {
-                val worker = DocumentFileExportWorker(exportWriter, context!!, uri)
+                val worker = DocumentFileExportWorker(exportWriter, uri)
                 try {
                     val output = worker.exportFile()
                     withContext(Dispatchers.Main) { showExportSuccess(output.uri, exportType.contentType) }
@@ -217,7 +216,7 @@ fun ImportExportScreen(activity: PreferenceActivity) {
     val chooseOpmlImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         Logd(TAG, "chooseOpmlImportPathResult: uri: $uri")
-        OpmlTransporter.startImport(activity, uri) {
+        OpmlTransporter.startImport(uri) {
             readElements.addAll(it)
             Logd(TAG, "readElements: ${readElements.size}")
         }
@@ -259,11 +258,11 @@ fun ImportExportScreen(activity: PreferenceActivity) {
                                     for (child in rootFile.listFiles()) {
                                         if (child.isDirectory) {
                                             if (child.name == prefsDirName) {
-                                                if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).importBackup(child.uri, activity)
+                                                if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).importBackup(child.uri)
                                             } else if (child.name == mediaFilesDirName) {
-                                                if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).importFromUri(child.uri, activity)
+                                                if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).importFromUri(child.uri)
                                             }
-                                        } else if (isRealmFile(child.uri) && comboDic["Database"] == true) DatabaseTransporter().importBackup(child.uri, activity)
+                                        } else if (isRealmFile(child.uri) && comboDic["Database"] == true) DatabaseTransporter().importBackup(child.uri)
                                     }
                                 }
                             }
@@ -306,11 +305,11 @@ fun ImportExportScreen(activity: PreferenceActivity) {
                             val chosenDir = DocumentFile.fromTreeUri(activity, uri) ?: throw IOException("Destination directory is not valid")
                             val exportSubDir = chosenDir.createDirectory(dateStampFilename("$backupDirName-%s")) ?: throw IOException("Error creating subdirectory $backupDirName")
                             val subUri: Uri = exportSubDir.uri
-                            if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).exportToDocument(subUri, activity)
-                            if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).exportToUri(subUri, activity)
+                            if (comboDic["Preferences"] == true) PreferencesTransporter(prefsDirName).exportToDocument(subUri)
+                            if (comboDic["Media files"] == true) MediaFilesTransporter(mediaFilesDirName).exportToUri(subUri)
                             if (comboDic["Database"] == true) {
                                 val realmFile = exportSubDir.createFile("application/octet-stream", "backup.realm")
-                                if (realmFile != null) DatabaseTransporter().exportToDocument(realmFile.uri, activity)
+                                if (realmFile != null) DatabaseTransporter().exportToDocument(realmFile.uri)
                             }
                         }
                         withContext(Dispatchers.Main) { showProgress = false }

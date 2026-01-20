@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.AppAttribs
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState
@@ -77,7 +78,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(96)
+    )).name("Podcini.realm").schemaVersion(101)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -406,10 +407,25 @@ val config: RealmConfiguration by lazy {
             if (oldRealm.schemaVersion() < 95) {
                 Logd(TAG, "migrating DB from below 95")
                 val attrNew = newRealm.query("AppAttribs").find()
-                if (attrNew.isNotEmpty()) {
-//                    attrNew[0].set("topChartNeedConfirm", true)
-                    attrNew[0].set("topChartCountryCode", Locale.getDefault().country)
-                }
+                if (attrNew.isNotEmpty()) attrNew[0].set("topChartCountryCode", Locale.getDefault().country)
+            }
+            if (oldRealm.schemaVersion() < 98) {
+                Logd(TAG, "migrating DB from below 98")
+                newRealm.copyToRealm(
+                    DynamicMutableRealmObject.create(
+                        type = "Volume",
+                        mapOf(
+                            "id" to ARCHIVED_VOLUME_ID,
+                            "name" to "Archived",
+                            "parentId" to -1L
+                        )
+                    )
+                )
+            }
+            if (oldRealm.schemaVersion() < 101) {
+                Logd(TAG, "migrating DB from below 101")
+                val presSynd = newRealm.query("Feed").query("id == 21").first().find()
+                presSynd?.set("volumeId", ARCHIVED_VOLUME_ID)
             }
         }).build()
 }

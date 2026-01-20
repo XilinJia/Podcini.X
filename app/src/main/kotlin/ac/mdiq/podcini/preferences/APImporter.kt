@@ -46,7 +46,7 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
                         "read" -> {
                             val read = cursor.getInt(i)
                             if (read == -1) episode.setPlayState(EpisodeState.NEW)
-                            else episode.setPlayed(read == 1)
+                            else episode.setPlayState(if (read == 1) EpisodeState.PLAYED else EpisodeState.UNPLAYED)
                         }
                         "link" -> episode.link = cursor.getStringOrNull(i)
                         "description" -> episode.description = cursor.getStringOrNull(i)

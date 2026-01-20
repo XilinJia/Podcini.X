@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.mPlayer
@@ -8,7 +9,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
 import android.annotation.SuppressLint
-import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import kotlinx.coroutines.CoroutineScope
@@ -19,7 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-class PositionSaver(private val context: Context) {
+class PositionSaver {
 
     private var positionSaverJob: Job? = null
 
@@ -46,7 +46,7 @@ class PositionSaver(private val context: Context) {
                 //                  Logd(TAG, "skipEndingIfNecessary: checking " + remainingTime + " " + skipEndMS + " speed " + currentPlaybackSpeed)
                 if (skipEnd > 0 && skipEndMS < curDuration && (remainingTime - skipEndMS < 0)) {
                     Logd(TAG, "skipEndingIfNecessary: Skipping the remaining $remainingTime $skipEndMS")
-                    Logt(TAG, context.getString(R.string.pref_feed_skip_ending_toast, skipEnd))
+                    Logt(TAG, getAppContext().getString(R.string.pref_feed_skip_ending_toast, skipEnd))
                     mPlayer?.autoSkippedFeedMediaId = item.identifyingValue
                     mPlayer?.skip()
                 }

@@ -15,30 +15,34 @@ import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
-import android.content.Context
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.text.format.Formatter
+import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import java.io.*
-import java.nio.channels.FileChannel
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
-import androidx.core.net.toUri
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.nio.channels.FileChannel
 
 class PreferencesTransporter(val prefsDirName: String) {
     val TAG = "PreferencesTransporter"
 
     @Throws(IOException::class)
-    fun exportToDocument(uri: Uri, context: Context) {
+    fun exportToDocument(uri: Uri) {
         try {
-            val chosenDir = DocumentFile.fromTreeUri(context, uri) ?: throw IOException("Destination directory is not valid")
+            val chosenDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: throw IOException("Destination directory is not valid")
             val exportSubDir = chosenDir.createDirectory(prefsDirName) ?: throw IOException("Error creating subdirectory $prefsDirName")
-            val sharedPreferencesDir = context.applicationContext.filesDir.parentFile?.listFiles { file -> file.name.startsWith("shared_prefs") }?.firstOrNull()
+            val sharedPreferencesDir = getAppContext().filesDir.parentFile?.listFiles { file -> file.name.startsWith("shared_prefs") }?.firstOrNull()
             if (sharedPreferencesDir != null) {
                 sharedPreferencesDir.listFiles()!!.forEach { file ->
                     val destFile = exportSubDir.createFile("text/xml", file.name)
-                    if (destFile != null) copyFile(file, destFile, context)
+                    if (destFile != null) copyFile(file, destFile)
                 }
             } else Loge("exportToDocument", "shared_prefs directory not found")
         } catch (e: IOException) {
@@ -46,10 +50,10 @@ class PreferencesTransporter(val prefsDirName: String) {
             throw e
         } finally { }
     }
-    private fun copyFile(sourceFile: File, destFile: DocumentFile, context: Context) {
+    private fun copyFile(sourceFile: File, destFile: DocumentFile) {
         try {
             val inputStream = FileInputStream(sourceFile)
-            val outputStream = context.contentResolver.openOutputStream(destFile.uri)
+            val outputStream = getAppContext().contentResolver.openOutputStream(destFile.uri)
             if (outputStream != null) copyStream(inputStream, outputStream)
             inputStream.close()
             outputStream?.close()
@@ -58,9 +62,9 @@ class PreferencesTransporter(val prefsDirName: String) {
             throw e
         }
     }
-    private fun copyFile(sourceFile: DocumentFile, destFile: File, context: Context) {
+    private fun copyFile(sourceFile: DocumentFile, destFile: File) {
         try {
-            val inputStream = context.contentResolver.openInputStream(sourceFile.uri)
+            val inputStream = getAppContext().contentResolver.openInputStream(sourceFile.uri)
             val outputStream = FileOutputStream(destFile)
             if (inputStream != null) copyStream(inputStream, outputStream)
             inputStream?.close()
@@ -76,10 +80,10 @@ class PreferencesTransporter(val prefsDirName: String) {
         while (inputStream.read(buffer).also { bytesRead = it } != -1) outputStream.write(buffer, 0, bytesRead)
     }
     @Throws(IOException::class)
-    fun importBackup(uri: Uri, context: Context) {
+    fun importBackup(uri: Uri) {
         try {
-            val exportedDir = DocumentFile.fromTreeUri(context, uri) ?: throw IOException("Backup directory is not valid")
-            val sharedPreferencesDir = context.applicationContext.filesDir.parentFile?.listFiles { file -> file.name.startsWith("shared_prefs") }?.firstOrNull()
+            val exportedDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: throw IOException("Backup directory is not valid")
+            val sharedPreferencesDir = getAppContext().applicationContext.filesDir.parentFile?.listFiles { file -> file.name.startsWith("shared_prefs") }?.firstOrNull()
             if (sharedPreferencesDir != null) sharedPreferencesDir.listFiles()?.forEach { file -> file.delete() }
             else Loge("Error", "shared_prefs directory not found")
             val files = exportedDir.listFiles()
@@ -105,7 +109,7 @@ class PreferencesTransporter(val prefsDirName: String) {
                         !BuildConfig.DEBUG && destName.contains(".debug") -> destName = destName.replace(".debug", "")
                     }
                     val destFile = File(sharedPreferencesDir, destName)
-                    copyFile(file, destFile, context)
+                    copyFile(file, destFile)
                 }
             }
         } catch (e: IOException) {
@@ -122,26 +126,26 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
     private val nameFeedMap: MutableMap<String, Feed> = mutableMapOf()
     private val nameEpisodeMap: MutableMap<String, Episode> = mutableMapOf()
     @Throws(IOException::class)
-    fun exportToUri(uri: Uri, context: Context, move: Boolean = false, useSubDir: Boolean = true) {
+    fun exportToUri(uri: Uri, move: Boolean = false, useSubDir: Boolean = true) {
         try {
-            val chosenDir = DocumentFile.fromTreeUri(context, uri) ?: throw IOException("Destination directory is not valid")
+            val chosenDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: throw IOException("Destination directory is not valid")
             val exportSubDir = if (useSubDir) chosenDir.createDirectory(mediaFilesDirName) ?: throw IOException("Error creating subdirectory $mediaFilesDirName") else chosenDir
             val feeds = getFeedList()
             feeds.forEach { f -> if (!f.title.isNullOrEmpty()) nameFeedMap[generateFileName(f.title!!)] = f }
             if (customMediaUriString.isNotBlank()) {
                 val customUri = customMediaUriString.toUri()
                 val directory = DocumentFile.fromTreeUri(getAppContext(), customUri) ?: throw IllegalArgumentException("Invalid tree URI: $customMediaUriString")
-                directory.listFiles().forEach { file -> copyRecursive(context, file, directory, exportSubDir, move) }
+                directory.listFiles().forEach { file -> copyRecursive(file, directory, exportSubDir, move) }
             } else {
-                val mediaDir = context.getExternalFilesDir("media") ?: return
-                mediaDir.listFiles()?.forEach { file -> copyRecursive(context, file, mediaDir, exportSubDir, move) }
+                val mediaDir = getAppContext().getExternalFilesDir("media") ?: return
+                mediaDir.listFiles()?.forEach { file -> copyRecursive(file, mediaDir, exportSubDir, move) }
             }
         } catch (e: IOException) {
             Logs(TAG, e)
             throw e
         } finally { }
     }
-    private fun copyRecursive(context: Context, srcFile: File, srcRootDir: File, destRootDir: DocumentFile, move: Boolean) {
+    private fun copyRecursive(srcFile: File, srcRootDir: File, destRootDir: DocumentFile, move: Boolean) {
         val relativePath = srcFile.absolutePath.substring(srcRootDir.absolutePath.length+1)
 //        val relativePath = srcFile.name
         if (srcFile.isDirectory) {
@@ -155,7 +159,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             Logd(TAG, "srcFile: ${srcFile.name} dirFiles: ${dirFiles?.size}")
             if (!dirFiles.isNullOrEmpty()) {
                 val destDir = destRootDir.findFile(relativePath) ?: destRootDir.createDirectory(relativePath) ?: return
-                dirFiles.forEach { file -> copyRecursive(context, file, srcFile, destDir, move) }
+                dirFiles.forEach { file -> copyRecursive(file, srcFile, destDir, move) }
             }
             if (move) srcFile.delete()
         } else {
@@ -169,7 +173,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             val destName = "$title.${episode.id}.$ext"
             val destFile = destRootDir.createFile(getMimeType(destName), relativePath) ?: return
             Logd(TAG, "copyRecursiveFD copying file to: ${destFile.uri}")
-            copyFile(srcFile, destFile, context, move)
+            copyFile(srcFile, destFile, move)
             if (move) {
                 upsertBlk(episode) {
                     it.fileUrl = destFile.uri.toString()
@@ -178,9 +182,9 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             }
         }
     }
-    private fun copyFile(sourceFile: File, destFile: DocumentFile, context: Context, move: Boolean) {
+    private fun copyFile(sourceFile: File, destFile: DocumentFile, move: Boolean) {
         try {
-            val outputStream = context.contentResolver.openOutputStream(destFile.uri) ?: return
+            val outputStream = getAppContext().contentResolver.openOutputStream(destFile.uri) ?: return
             val inputStream = FileInputStream(sourceFile)
             copyStream(inputStream, outputStream)
             inputStream.close()
@@ -191,7 +195,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             throw e
         }
     }
-    private fun copyRecursive(context: Context, srcFile: DocumentFile, srcRootDir: DocumentFile, destRootDir: DocumentFile, move: Boolean, onlyUpdateDB: Boolean = false) {
+    private fun copyRecursive(srcFile: DocumentFile, srcRootDir: DocumentFile, destRootDir: DocumentFile, move: Boolean, onlyUpdateDB: Boolean = false) {
         val relativePath = srcFile.uri.path?.substring(srcRootDir.uri.path!!.length+1) ?: return
         if (srcFile.isDirectory) {
             Logd(TAG, "copyRecursiveDD folder title: $relativePath")
@@ -203,7 +207,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             nameEpisodeMap.keys.forEach { Logd(TAG, "key: $it") }
             val destDir = destRootDir.findFile(relativePath) ?: destRootDir.createDirectory(relativePath) ?: return
             val files = srcFile.listFiles()
-            if (files.isNotEmpty()) files.forEach { file -> copyRecursive(context, file, srcFile, destDir, move) }
+            if (files.isNotEmpty()) files.forEach { file -> copyRecursive(file, srcFile, destDir, move) }
             if (!onlyUpdateDB && move) srcFile.delete()
         } else {
             val nameParts = relativePath.split(".")
@@ -216,17 +220,17 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             val destName = "$title.${episode.id}.$ext"
             val destFile = destRootDir.createFile(getMimeType(destName), destName) ?: return
             Logd(TAG, "copyRecursiveDD copying file to: ${destFile.uri}")
-            if (!onlyUpdateDB) copyFile(srcFile, destFile, context, move)
+            if (!onlyUpdateDB) copyFile(srcFile, destFile, move)
             upsertBlk(episode) {
                 it.fileUrl = destFile.uri.toString()
                 it.downloaded = true
             }
         }
     }
-    private fun copyFile(sourceFile: DocumentFile, destFile: DocumentFile, context: Context, move: Boolean) {
+    private fun copyFile(sourceFile: DocumentFile, destFile: DocumentFile, move: Boolean) {
         try {
-            val inputStream = context.contentResolver.openInputStream(sourceFile.uri) ?: return
-            val outputStream = context.contentResolver.openOutputStream(destFile.uri) ?: return
+            val inputStream = getAppContext().contentResolver.openInputStream(sourceFile.uri) ?: return
+            val outputStream = getAppContext().contentResolver.openOutputStream(destFile.uri) ?: return
             copyStream(inputStream, outputStream)
             inputStream.close()
             outputStream.close()
@@ -236,7 +240,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             throw e
         }
     }
-    private fun copyRecursive(context: Context, srcFile: DocumentFile, srcRootDir: DocumentFile, destRootDir: File, move: Boolean) {
+    private fun copyRecursive(srcFile: DocumentFile, srcRootDir: DocumentFile, destRootDir: File, move: Boolean) {
         val relativePath = srcFile.uri.path?.substring(srcRootDir.uri.path!!.length+1) ?: return
         if (srcFile.isDirectory) {
             Logd(TAG, "copyRecursiveDF folder title: $relativePath")
@@ -247,9 +251,9 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
             val destFile = File(destRootDir, relativePath)
             if (!destFile.exists()) destFile.mkdirs()
-//            srcFile.listFiles().forEach { file -> copyRecursive(context, file, srcFile, destFile, move) }
+//            srcFile.listFiles().forEach { file -> copyRecursive(file, srcFile, destFile, move) }
             val files = srcFile.listFiles()
-            if (files.isNotEmpty()) files.forEach { file -> copyRecursive(context, file, srcFile, destFile, move) }
+            if (files.isNotEmpty()) files.forEach { file -> copyRecursive(file, srcFile, destFile, move) }
             if (move) srcFile.delete()
         } else {
             val nameParts = relativePath.split(".")
@@ -263,7 +267,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             val destFile = File(destRootDir, destName)
             if (!destFile.exists()) {
                 Logd(TAG, "copyRecursiveDF copying file to: ${destFile.absolutePath}")
-                copyFile(srcFile, destFile, context, move)
+                copyFile(srcFile, destFile, move)
                 upsertBlk(episode) {
                     it.fileUrl = Uri.fromFile(destFile).toString()
                     Logd(TAG, "copyRecursiveDF fileUrl: ${it.fileUrl}")
@@ -272,9 +276,9 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             }
         }
     }
-    private fun copyFile(sourceFile: DocumentFile, destFile: File, context: Context, move: Boolean) {
+    private fun copyFile(sourceFile: DocumentFile, destFile: File, move: Boolean) {
         try {
-            val inputStream = context.contentResolver.openInputStream(sourceFile.uri) ?: return
+            val inputStream = getAppContext().contentResolver.openInputStream(sourceFile.uri) ?: return
             val outputStream = FileOutputStream(destFile)
             copyStream(inputStream, outputStream)
             inputStream.close()
@@ -340,9 +344,9 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
         }
     }
     @Throws(IOException::class)
-    fun importFromUri(uri: Uri, context: Context, move: Boolean = false, verify : Boolean = true) {
+    fun importFromUri(uri: Uri, move: Boolean = false, verify : Boolean = true) {
         try {
-            val exportedDir = DocumentFile.fromTreeUri(context, uri) ?: throw IOException("Backup directory is not valid")
+            val exportedDir = DocumentFile.fromTreeUri(getAppContext(), uri) ?: throw IOException("Backup directory is not valid")
             if (verify && exportedDir.name?.contains(mediaFilesDirName) != true) return
             val fileList = exportedDir.listFiles()
             if (fileList.isNotEmpty()) {
@@ -352,10 +356,10 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 if (customMediaUriString.isNotBlank()) {
                     val customUri = customMediaUriString.toUri()
                     val directory = DocumentFile.fromTreeUri(getAppContext(), customUri) ?: throw IllegalArgumentException("Invalid tree URI: $customMediaUriString")
-                    fileList.forEach { file -> copyRecursive(context, file, exportedDir, directory, move) }
+                    fileList.forEach { file -> copyRecursive(file, exportedDir, directory, move) }
                 } else {
-                    val mediaDir = context.getExternalFilesDir("media") ?: return
-                    fileList.forEach { file -> copyRecursive(context, file, exportedDir, mediaDir, move) }
+                    val mediaDir = getAppContext().getExternalFilesDir("media") ?: return
+                    fileList.forEach { file -> copyRecursive(file, exportedDir, mediaDir, move) }
                 }
             }
         } catch (e: IOException) {
@@ -368,7 +372,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
         }
     }
     @Throws(IOException::class)
-    fun updateDB(context: Context) {
+    fun updateDB() {
         try {
             val feeds = getFeedList()
             feeds.forEach { f -> if (!f.title.isNullOrEmpty()) nameFeedMap[generateFileName(f.title!!)] = f }
@@ -377,9 +381,9 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
                 val customUri = customMediaUriString.toUri()
                 val directory = DocumentFile.fromTreeUri(getAppContext(), customUri) ?: throw IllegalArgumentException("Invalid tree URI: $customMediaUriString")
                 val fileList = directory.listFiles()
-                fileList.forEach { file -> copyRecursive(context, file, directory, directory, move = false, onlyUpdateDB = true) }
+                fileList.forEach { file -> copyRecursive(file, directory, directory, move = false, onlyUpdateDB = true) }
             } else {
-                val mediaDir = context.getExternalFilesDir("media") ?: return
+                val mediaDir = getAppContext().getExternalFilesDir("media") ?: return
                 val fileList = mediaDir.listFiles()
                 fileList?.forEach { file -> copyRecursive(file, mediaDir, mediaDir, move = false, onlyUpdateDB = true) }
             }
@@ -398,13 +402,13 @@ class DatabaseTransporter {
     val TAG = "DatabaseTransporter"
 
     @Throws(IOException::class)
-    fun exportToDocument(uri: Uri?, context: Context) {
+    fun exportToDocument(uri: Uri?) {
         var pfd: ParcelFileDescriptor? = null
         var fileOutputStream: FileOutputStream? = null
         try {
-            pfd = context.contentResolver.openFileDescriptor(uri!!, "wt")
+            pfd = getAppContext().contentResolver.openFileDescriptor(uri!!, "wt")
             fileOutputStream = FileOutputStream(pfd!!.fileDescriptor)
-            exportToStream(fileOutputStream, context)
+            exportToStream(fileOutputStream)
         } catch (e: IOException) {
             Logs(TAG, e)
             throw e
@@ -414,7 +418,7 @@ class DatabaseTransporter {
         }
     }
     @Throws(IOException::class)
-    fun exportToStream(outFileStream: FileOutputStream, context: Context) {
+    fun exportToStream(outFileStream: FileOutputStream) {
         var src: FileChannel? = null
         var dst: FileChannel? = null
         try {
@@ -428,7 +432,7 @@ class DatabaseTransporter {
                 dst.transferFrom(src, 0, srcSize)
                 val newDstSize = dst.size()
                 if (newDstSize != srcSize)
-                    throw IOException(String.format("Unable to write entire database. Expected to write %s, but wrote %s.", Formatter.formatShortFileSize(context, srcSize), Formatter.formatShortFileSize(context, newDstSize)))
+                    throw IOException(String.format("Unable to write entire database. Expected to write %s, but wrote %s.", Formatter.formatShortFileSize(getAppContext(), srcSize), Formatter.formatShortFileSize(getAppContext(), newDstSize)))
             } else throw IOException("Can not access current database")
         } catch (e: IOException) {
             Logs(TAG, e)
@@ -439,12 +443,12 @@ class DatabaseTransporter {
         }
     }
     @Throws(IOException::class)
-    fun importBackup(inputUri: Uri?, context: Context) {
+    fun importBackup(inputUri: Uri?) {
         val TEMP_DB_NAME = "temp.realm"
         var inputStream: InputStream? = null
         try {
-            val tempDB = context.getDatabasePath(TEMP_DB_NAME)
-            inputStream = context.contentResolver.openInputStream(inputUri!!)
+            val tempDB = getAppContext().getDatabasePath(TEMP_DB_NAME)
+            inputStream = getAppContext().contentResolver.openInputStream(inputUri!!)
             FileUtils.copyInputStreamToFile(inputStream, tempDB)
             val realmPath = realm.configuration.path
             val currentDB = File(realmPath)

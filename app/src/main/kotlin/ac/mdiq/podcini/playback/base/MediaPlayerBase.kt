@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.playback.base
 
 import ac.mdiq.podcini.PodciniApp.Companion.getApp
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.download.service.HttpCredentialEncoder
@@ -34,6 +35,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
+import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -86,7 +88,9 @@ import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 @UnstableApi
-abstract class MediaPlayerBase protected constructor(protected val context: Context) {
+abstract class MediaPlayerBase {
+
+    val context = getAppContext()
     @Volatile
     private var oldStatus: PlayerStatus? = null
     internal var prevMedia: Episode? = null
@@ -110,7 +114,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     val isAudioChannelInUse: Boolean
         get() {
-            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val audioManager = getAppContext().getSystemService(Context.AUDIO_SERVICE) as AudioManager
             return (audioManager.mode != AudioManager.MODE_NORMAL || audioManager.isMusicActive)
         }
     
@@ -134,7 +138,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 
     open fun resetMediaPlayer() {}
 
-    open fun createStaticPlayer(context: Context) {}
+    open fun createStaticPlayer() {}
 
     @OptIn(UnstableApi::class)
     protected fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
@@ -148,7 +152,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
 //        val dataSourceFactory = CustomDataSourceFactory(context, httpDataSourceFactory)
 
         val cacheFactory = CacheDataSource.Factory()
-            .setCache(getCache(context))
+            .setCache(getCache())
             .setUpstreamDataSourceFactory(httpDataSourceFactory)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
         val segmentFactory = SegmentSavingDataSourceFactory(cacheFactory)
@@ -249,7 +253,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         Logd(TAG, "onPlaybackStart position: $position delayInterval: $delayInterval")
         if (position != Episode.INVALID_TIME) {
             upsertBlk(playable) {
-                it.setPosition(position)
+                it.position = position
                 it.setPlaybackStart()
             }
         } else {
@@ -289,7 +293,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         positionSaver?.cancelPositionSaver()
         persistCurrentPosition(position == Episode.INVALID_TIME || playable == null, playable, position)
         Logd(TAG, "onPlaybackPause start ${playable?.timeSpent}")
-        if (playable != null) SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(context, playable, false)
+        if (playable != null) SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(playable, false)
     }
 
     /**
@@ -387,7 +391,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             autoSkipped = true
         }
         val completed = ended || smartMarkAsPlayed
-        SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(context, playable, completed)
+        SynchronizationQueueSink.enqueueEpisodePlayedIfSyncActive(playable, completed)
 
         fun shouldSetPlayed(e: Episode): Boolean {
             return when (e.playState) {
@@ -405,15 +409,15 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     upsertDB(it, item.position)
                     it.startTime = 0
                     it.startPosition = if (completed) -1 else it.position
-                    if (ended || (skipped && smartMarkAsPlayed)) it.setPosition(0)
+                    if (ended || (skipped && smartMarkAsPlayed)) it.position = 0
                     if (ended || skipped || playingNext) it.playbackCompletionDate = Date()
                 }
 
                 val action = item.feed?.autoDeleteAction
                 val shouldAutoDelete = (action == AutoDeleteAction.ALWAYS || (action == AutoDeleteAction.GLOBAL && item.feed != null && allowForAutoDelete(item.feed!!)))
-                val isItemdeletable = (!getPref(AppPrefs.prefFavoriteKeepsEpisode, true) || (!item.isSUPER && item.playState != EpisodeState.AGAIN.code && item.playState != EpisodeState.FOREVER.code))
+                val isItemdeletable = (!getPref(AppPrefs.prefFavoriteKeepsEpisode, true) || (item.rating < Rating.GOOD.code && item.playState != EpisodeState.AGAIN.code && item.playState != EpisodeState.FOREVER.code))
                 if (shouldAutoDelete && isItemdeletable) {
-                    if (item.localFileAvailable()) item = deleteMedia(item)
+                    if (!item.fileUrl.isNullOrBlank()) item = deleteMedia(item)
                     if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(item))
                 } else if (getPref(AppPrefs.prefRemoveFromQueueMarkedPlayed, true)) removeFromAllQueues(listOf(item))
             }
@@ -431,7 +435,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     protected fun acquireWifiLockIfNecessary() {
         if (shouldLockWifi()) {
             if (wifiLock == null) {
-                wifiLock = (context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager).createWifiLock(WifiManager.WIFI_MODE_FULL, TAG)
+                wifiLock = (context.getSystemService(Context.WIFI_SERVICE) as WifiManager).createWifiLock(WifiManager.WIFI_MODE_FULL, TAG)
                 wifiLock?.setReferenceCounted(false)
             }
             wifiLock?.acquire()
@@ -462,7 +466,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
     }
 
     private fun upsertDB(it: Episode, position: Int) {
-        it.setPosition(position)
+        it.position = position
 
         if (it.startPosition >= 0 && it.position > it.startPosition) it.playedDuration = (it.playedDurationWhenStarted + it.position - it.startPosition)
         if (it.startTime > 0) {
@@ -476,7 +480,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
         }
 
         it.lastPlayedTime = (System.currentTimeMillis())
-        if (it.isNew) it.setPlayState(EpisodeState.UNPLAYED)
+        if (it.playState == EpisodeState.NEW.code) it.setPlayState(EpisodeState.UNPLAYED)
         Logd(TAG, "upsertDB ${it.startTime} timeSpent: ${it.timeSpent} playedDuration: ${it.playedDuration}")
     }
 
@@ -564,7 +568,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
             else -> {}
         }
         TileService.requestListeningState(context, ComponentName(context, QuickSettingsTileService::class.java))
-        sendLocalBroadcast(context, ACTION_PLAYER_STATUS_CHANGED)
+        sendLocalBroadcast(ACTION_PLAYER_STATUS_CHANGED)
         bluetoothNotifyChange(AVRCP_ACTION_PLAYER_STATUS_CHANGED)
         bluetoothNotifyChange(AVRCP_ACTION_META_CHANGED)
     }
@@ -748,7 +752,8 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                 mPlayer?.startWhenPrepared?.set(s)
             }
 
-        fun getCache(context: Context): SimpleCache {
+        fun getCache(): SimpleCache {
+            val context = getAppContext()
             return simpleCache ?: synchronized(this) {
                 if (simpleCache != null) simpleCache!!
                 else {
@@ -823,7 +828,7 @@ abstract class MediaPlayerBase protected constructor(protected val context: Cont
                     mPlayer?.pause(reinit = false)
                     isSpeedForward =  false
                     isFallbackSpeed = false
-                    curEpisode?.forceVideo = false
+                    if (curEpisode != null) upsertBlk(curEpisode!!) { it.forceVideo = false }
                 }
                 isPaused || isPrepared -> {
                     mPlayer?.play()

@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.utils
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.utils.durationStringFull
@@ -18,16 +19,15 @@ private const val TAG: String = "IntentUtils"
 /*
  *  Checks if there is at least one exported activity that can be performed for the intent
  */
-
-fun isCallable(context: Context, intent: Intent?): Boolean {
-    val list = context.packageManager.queryIntentActivities(intent!!, PackageManager.MATCH_DEFAULT_ONLY)
+fun isCallable(intent: Intent?): Boolean {
+    if (intent == null) return false
+    val list = getAppContext().packageManager.queryIntentActivities(intent!!, PackageManager.MATCH_DEFAULT_ONLY)
     for (info in list) if (info.activityInfo.exported) return true
     return false
 }
 
-
-fun sendLocalBroadcast(context: Context, action: String?) {
-    context.sendBroadcast(Intent(action).setPackage(context.packageName))
+fun sendLocalBroadcast(action: String?) {
+    getAppContext().sendBroadcast(Intent(action).setPackage(getAppContext().packageName))
 }
 
 fun openInBrowser(context: Context, url: String) {
@@ -47,7 +47,6 @@ fun shareLink(context: Context, text: String) {
         .createChooserIntent()
     context.startActivity(intent)
 }
-
 
 fun shareFeedItemLinkWithDownloadLink(context: Context, item: Episode, withPosition: Boolean) {
     var text: String? = item.feed?.title + ": " + item.title

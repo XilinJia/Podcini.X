@@ -1,12 +1,12 @@
 package ac.mdiq.podcini.playback.cast
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase
 import ac.mdiq.podcini.playback.base.PlayerStatus
 import ac.mdiq.podcini.playback.base.VideoMode
-import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -53,7 +53,7 @@ import kotlin.math.min
  */
 @SuppressLint("VisibleForTests")
 @OptIn(UnstableApi::class)
-class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
+class CastMediaPlayer : MediaPlayerBase() {
     @Volatile
     private var mediaInfo: MediaInfo? = null
     @Volatile
@@ -81,7 +81,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
     }
 
     init {
-        if (castContext == null) castContext = CastContext.getSharedInstance(context.applicationContext)
+        if (castContext == null) castContext = CastContext.getSharedInstance(getAppContext())
         remoteMediaClient = castContext!!.sessionManager.currentCastSession?.remoteMediaClient
         remoteMediaClient?.registerCallback(remoteMediaClientCallback)
         setAsCurEpisode(null)
@@ -152,7 +152,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             MediaStatus.PLAYER_STATE_PLAYING -> {
                 if (!stateChanged) {
                     //These steps are necessary because they won't be performed by setPlayerStatus()
-                    if (position >= 0 && curEpisode != null) upsertBlk(curEpisode!!) { it.setPosition(position) }
+                    if (position >= 0 && curEpisode != null) upsertBlk(curEpisode!!) { it.position = position }
                     if (curEpisode != null) upsertBlk(curEpisode!!) { it.setPlaybackStart() }
                 }
                 setPlayerStatus(PlayerStatus.PLAYING, curEpisode, position)
@@ -168,7 +168,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
                         onPlaybackEnded(true)
                         setPlayerStatus(PlayerStatus.STOPPED, curEpisode)
                         if (curEpisode != null) {
-                            if (position >= 0) upsertBlk(curEpisode!!) { it.setPosition(position) }
+                            if (position >= 0) upsertBlk(curEpisode!!) { it.position = position }
                             onPostPlayback(curEpisode!!, ended = false, skipped = false, playingNext = false)
                         }
                         // onPlaybackEnded pretty much takes care of updating the UI
@@ -356,7 +356,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
         if (curEpisode != null && wasSkipped) {
             // current position only really matters when we skip
             val position = getPosition()
-            if (position >= 0) upsertBlk(curEpisode!!) { it.setPosition(position) }
+            if (position >= 0) upsertBlk(curEpisode!!) { it.position = position }
         }
         val currentMedia = curEpisode
         when {
@@ -505,7 +505,7 @@ class CastMediaPlayer(context: Context) : MediaPlayerBase(context) {
             if (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context) != ConnectionResult.SUCCESS) return null
             try {
                 if (castContext == null) castContext = CastContext.getSharedInstance(context.applicationContext)
-                if (castContext?.castState == CastState.CONNECTED) return CastMediaPlayer(context) } catch (e: Exception) { Logs(TAG, e) }
+                if (castContext?.castState == CastState.CONNECTED) return CastMediaPlayer() } catch (e: Exception) { Logs(TAG, e) }
             return null
         }
     }

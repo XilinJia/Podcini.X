@@ -1,8 +1,5 @@
 package ac.mdiq.podcini.storage.database
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
-import ac.mdiq.podcini.automation.autodownloadForQueue
-import ac.mdiq.podcini.automation.autoenqueueForQueue
 import ac.mdiq.podcini.playback.base.InTheatre.VIRTUAL_QUEUE_SIZE
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -14,7 +11,6 @@ import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.model.VIRTUAL_QUEUE_ID
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent.QueueEvent
@@ -95,7 +91,6 @@ fun cancelQueuesJob() {
     queuesJob?.cancel()
 }
 
-
 var curIndexInActQueue = -1
 
 fun inQueueEpisodeIdSet(): Set<Long> {
@@ -115,17 +110,6 @@ suspend fun persistOrdered(episodes: List<Episode>, queueEntries: List<QueueEntr
             findLatest(qe)?.position = (i+1) * QUEUE_POSITION_DELTA
         }
     }
-}
-
-suspend fun sortQueue(queue: PlayQueue) {
-    val queueEntries = queueEntriesOf(queue)
-    val episodes = realm.query(Episode::class).query("id IN $0", queueEntries.map { it.episodeId }).find().toMutableList()
-    getPermutor(queue.sortOrder).reorder(episodes)
-    persistOrdered(episodes, queueEntries)
-}
-
-fun queueEntriesOf(queue: PlayQueue): List<QueueEntry> {
-    return realm.query(QueueEntry::class).query("queueId == ${queue.id}").sort("position").find()
 }
 
 suspend fun addToAssQueue(episodes: List<Episode>) {
@@ -148,12 +132,12 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
     }
     val time = System.currentTimeMillis()
     var i = 0L
-    var qes = queueEntriesOf(queue)
+    var qes = queue.entries
     realm.write {
         for (e in episodes) {
             if (qes.indexOfFirst { it.episodeId == e.id } >= 0) continue
             val insertPosition = if (queue.autoSort) 0 else {
-                qes = queueEntriesOf(queue)
+                qes = queue.entries
                 calcPosition(qes, EnqueueLocation.fromCode(queue.enqueueLocation), (if (queue.id == actQueue.id) curEpisode else null))
             }
             Logd(TAG, "addToQueue insertPosition: $insertPosition")
@@ -168,18 +152,13 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
     }
     val toSetStat = episodes.filter { it.playState < EpisodeState.QUEUE.code }
     if (toSetStat.isNotEmpty()) setPlayState(EpisodeState.QUEUE, toSetStat, false)
-    if (queue.autoSort) sortQueue(queue)
+    if (queue.autoSort) queue.sort()
 }
 
 suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdentity: String, sortOrder: EpisodeSortOrder, playInSequence: Boolean = true) {
     Logd(TAG, "queueToVirtual ${virQueue.identity} $listIdentity ${episodes.size}")
     virQueue = queuesLive.find { it.id == VIRTUAL_QUEUE_ID } ?: return
-    if (virQueue.identity != listIdentity) {
-        if (virQueue.contains(episode)) {
-            Logd(TAG, "VirQueue has the episode, ignore")
-            actQueue = virQueue
-            return
-        }
+    if (virQueue.identity != listIdentity || !virQueue.contains(episode)) {
         val index = episodes.indexOfFirst { it.id == episode.id }
         if (index >= 0) {
             Logd(TAG, "queueToVirtual index: $index")
@@ -214,12 +193,6 @@ suspend fun queueToVirtual(episode: Episode, episodes: List<Episode>, listIdenti
     } else actQueue = virQueue
 }
 
-fun checkAndFillQueue(queue: PlayQueue) {
-    if (queue.size() == 0 && !queue.isVirtual()) {
-        autoenqueueForQueue(queue)
-        if(queue.launchAutoEQDlWhenEmpty) autodownloadForQueue(getAppContext(), queue)
-    }
-}
 
 suspend fun smartRemoveFromAllQueues(item_: Episode) {
     Logd(TAG, "smartRemoveFromAllQueues: ${item_.title}")
@@ -239,11 +212,11 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
     }
     //        ensure actQueue is last updated
     Logd(TAG, "actQueue: [${actQueue.name}]")
-    val qes = queueEntriesOf(actQueue)
+    val qes = actQueue.entries
     if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
     if (actQueue.size() > 0 && actQueue.contains(item)) removeFromQueue(actQueue, listOf(item))
     else upsertBlk(actQueue) { it.update() }
-    checkAndFillQueue(actQueue)
+    actQueue.checkAndFill()
 }
 
 fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? = null) {
@@ -252,7 +225,7 @@ fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? 
         if (q.id != actQueue.id) removeFromQueue(q, episodes, playState)
     }
     //        ensure actQueue is last updated
-    val qes = queueEntriesOf(actQueue)
+    val qes = actQueue.entries
     if (curEpisode != null) curIndexInActQueue = qes.indexOfFirst { it.episodeId == curEpisode!!.id }
     if (actQueue.size() > 0) removeFromQueue(actQueue, episodes, playState)
 }
@@ -264,7 +237,7 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
     Logd(TAG, "removeFromQueue called ")
     val queue = queue_ ?: actQueue
     if (queue.size() == 0) {
-        checkAndFillQueue(queue)
+        queue.checkAndFill()
         return
     }
     if (episodes.isEmpty()) return
@@ -289,9 +262,17 @@ internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, 
             }
             delete(qes)
         }
+        val qqes = query(QueueEntry::class).query("queueId == $0", queue.id).find()
+        val eps = query(Episode::class).query("id IN $0", qqes.map { it.episodeId }).find()
+        if (eps.size < qqes.size) {
+            for (qe in qqes) {
+                val e = query(Episode::class).query("id == $0", qe.episodeId).find()
+                if (e.isEmpty()) delete(qe)
+            }
+        }
     }
     if (removeFromActQueue.isNotEmpty()) EventFlow.postEvent(QueueEvent.removed(removeFromActQueue))
-    checkAndFillQueue(queue)
+    queue.checkAndFill()
 }
 
 suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolean = true) {
@@ -300,7 +281,7 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
     suspend fun doit(q: PlayQueue, isActQueue: Boolean = false) {
         if (q.size() == 0) {
             if (isActQueue) upsert(q) { it.update() }
-            checkAndFillQueue(q)
+            q.checkAndFill()
             return
         }
         val qes = realm.query(QueueEntry::class).query("queueId == $0 AND episodeId IN $1", q.id, episodeIds).find()
@@ -322,7 +303,7 @@ suspend fun removeFromAllQueuesQuiet(episodeIds: List<Long>, updateState: Boolea
                 it.trimBin()
                 it.update()
             }
-            checkAndFillQueue(qNew)
+            qNew.checkAndFill()
         }
     }
 
@@ -341,7 +322,7 @@ fun getNextInQueue(currentMedia: Episode?): Episode? {
         savePlayerStatus(null)
         return null
     }
-    val qes = queueEntriesOf(actQueue)
+    val qes = actQueue.entries
     if (qes.isEmpty()) {
         Logd(TAG, "getNextInQueue queue is empty")
         savePlayerStatus(null)

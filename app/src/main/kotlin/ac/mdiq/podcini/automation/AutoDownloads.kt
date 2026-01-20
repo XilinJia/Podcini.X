@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.automation
 
 import ac.mdiq.podcini.PodciniApp.Companion.getApp
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.playback.base.InTheatre.isCurMedia
 import ac.mdiq.podcini.preferences.AppPreferences
@@ -13,7 +14,6 @@ import ac.mdiq.podcini.storage.database.deleteMedias
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.getFeedList
-import ac.mdiq.podcini.storage.database.queueEntriesOf
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.removeFromAllQueues
 import ac.mdiq.podcini.storage.database.runOnIOScope
@@ -30,7 +30,6 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
-import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.BatteryManager
@@ -41,17 +40,17 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "AutoDownloads"
 
-fun autodownload(context: Context, feeds: List<Feed>? = null): Job {
-    return CoroutineScope(Dispatchers.IO).launch { if (isAutodownloadEnabled) AutoDownloadAlgorithm().run(context, feeds) }
+fun autodownload(feeds: List<Feed>? = null): Job {
+    return CoroutineScope(Dispatchers.IO).launch { if (isAutodownloadEnabled) AutoDownloadAlgorithm().run(feeds) }
 }
 
 fun autoenqueue(feeds: List<Feed>? = null): Job {
     return CoroutineScope(Dispatchers.IO).launch { AutoEnqueueAlgorithm().run(feeds) }
 }
 
-fun autodownloadForQueue(context: Context, queue: PlayQueue): Job {
+fun autodownloadForQueue(queue: PlayQueue): Job {
     val feeds = realm.query(Feed::class).query("queueId == ${queue.id}").find()
-    return CoroutineScope(Dispatchers.IO).launch { if (isAutodownloadEnabled) AutoDownloadAlgorithm().run(context, feeds, false, onlyExisting = true) }
+    return CoroutineScope(Dispatchers.IO).launch { if (isAutodownloadEnabled) AutoDownloadAlgorithm().run(feeds, false, onlyExisting = true) }
 }
 
 fun autoenqueueForQueue(queue: PlayQueue): Job {
@@ -71,10 +70,9 @@ class AutoDownloadAlgorithm {
      * 2. The device is charging or the user allows auto download on battery
      * 3. There is free space in the episode cache
      * This method is executed on an internal single thread executor.
-     * @param context  Used for accessing the DB.
      */
-    fun run(context: Context, feeds: List<Feed>?, checkQueues: Boolean = true, onlyExisting: Boolean = false) {
-        val powerShouldAutoDl = (deviceCharging(context) || getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false))
+    fun run(feeds: List<Feed>?, checkQueues: Boolean = true, onlyExisting: Boolean = false) {
+        val powerShouldAutoDl = (deviceCharging() || getPref(AppPrefs.prefEnableAutoDownloadOnBattery, false))
         Logd(TAG, "run prepare ${getApp().networkMonitor.networkAllowAutoDownload} $powerShouldAutoDl")
         // we should only auto download if both network AND power are happy
         if (getApp().networkMonitor.networkAllowAutoDownload && powerShouldAutoDl) {
@@ -85,7 +83,7 @@ class AutoDownloadAlgorithm {
                 val queues = realm.query(PlayQueue::class).find().filter { !it.isVirtual() }
                 for (q in queues) {
                     if (q.autoDownloadEpisodes) {
-                        val eids = queueEntriesOf(q).map { it.episodeId }
+                        val eids = q.entries.map { it.episodeId }
                         val queueItems = realm.query(Episode::class).query("id IN $0 AND fileUrl == nil", eids).find()
                         Logd(TAG, "run add from queue: ${q.name} ${queueItems.size}")
                         if (queueItems.isNotEmpty()) queueItems.forEach { if (!prefStreamOverDownload || it.feed?.prefStreamOverDownload != true) candidates.add(it) }
@@ -98,7 +96,7 @@ class AutoDownloadAlgorithm {
                 val autoDownloadableCount = candidates.size
                 if (toReplace.isNotEmpty()) deleteMedias(toReplace.toList())
                 val downloadedCount = getEpisodesCount(EpisodeFilter(EpisodeFilter.States.downloaded.name))
-                val deletedCount = toReplace.size + cleanupAlgorithm().makeRoomForEpisodes(context, autoDownloadableCount - toReplace.size)
+                val deletedCount = toReplace.size + cleanupAlgorithm().makeRoomForEpisodes(autoDownloadableCount - toReplace.size)
                 val appEpisodeCache = getPref(AppPrefs.prefEpisodeCacheSize, "0").toInt()
                 val cacheIsUnlimited = appEpisodeCache <= AppPreferences.EPISODE_CACHE_SIZE_UNLIMITED
                 Logd(TAG, "run cacheIsUnlimited: $cacheIsUnlimited appEpisodeCache: $appEpisodeCache downloadedCount: $downloadedCount autoDownloadableCount: $autoDownloadableCount deletedCount: $deletedCount")
@@ -112,7 +110,7 @@ class AutoDownloadAlgorithm {
                     Logt(TAG, "Auto download requesting episodes: ${itemsToDownload.size}")
                     for (e in itemsToDownload) {
                         Logd(TAG, "run download ${e.title} ${e.playState} ${e.downloadUrl}")
-                        DownloadServiceInterface.impl?.download(context, e)
+                        DownloadServiceInterface.impl?.download(e)
                     }
                     itemsToDownload.clear()
                 } else Logt(TAG, "Auto download not performed, allowed count exceeded: candidates: ${candidates.size} allowedCount: $allowedCount")
@@ -123,10 +121,10 @@ class AutoDownloadAlgorithm {
                 "download when not charging setting allowed: $powerShouldAutoDl")
     }
 
-    private fun deviceCharging(context: Context): Boolean {
+    private fun deviceCharging(): Boolean {
         // from http://developer.android.com/training/monitoring-device-state/battery-monitoring.html
         val iFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        val batteryStatus = context.registerReceiver(null, iFilter)
+        val batteryStatus = getAppContext().registerReceiver(null, iFilter)
         val status = batteryStatus!!.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
         return (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL)
     }
@@ -143,7 +141,7 @@ class AutoEnqueueAlgorithm {
         if (candidates.isNotEmpty()) {
             if (toReplace.isNotEmpty()) removeFromAllQueues(toReplace, EpisodeState.UNPLAYED)
             Logd(TAG, "Enqueueing ${candidates.size} items")
-            realm.write { for (e in candidates) findLatest(e)?.disableAutoDownload() }
+            realm.write { for (e in candidates) findLatest(e)?.isAutoDownloadEnabled = false }
             addToAssQueue(candidates.toList())
             Logt(TAG, "Auto enqueued episodes: ${candidates.size}")
             candidates.clear()
@@ -167,7 +165,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
             val downloadedCount = if (dl) getEpisodesCount(dlFilter, f.id) else {
                 if (f.queue == null) 0
                 else {
-                    val eids = queueEntriesOf(f.queue!!).map { it.episodeId }
+                    val eids = f.queue!!.entries.map { it.episodeId }
                     realm.query(Episode::class).query("feedId == ${f.id} AND id IN $0",eids).count().find().toInt()
                 }
             }
@@ -261,7 +259,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                     if (isCurMedia(e)) continue
                     if (e.downloadUrl.isNullOrBlank()) {
                         Loge(TAG, "episode downloadUrl is null or blank, skipped from auto-download: ${e.title}")
-                        upsertBlk(e) { it.disableAutoDownload() }
+                        upsertBlk(e) { it.isAutoDownloadEnabled = false }
                         continue
                     }
                     candidates.add(e)
@@ -285,7 +283,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                             while (true) {
                                 val eExc = query(Episode::class, "feedId == ${f.id} AND playState == ${EpisodeState.NEW.code} LIMIT(20)").find()
                                 if (eExc.isEmpty()) break
-                                eExc.forEach { it.setPlayed(true) }
+                                eExc.forEach { it.setPlayState(EpisodeState.PLAYED) }
                             }
                         }
                     }
@@ -295,7 +293,7 @@ private fun assembleFeedsCandidates(feeds_: List<Feed>?, candidates: MutableSet<
                             if (episodesNew.isEmpty()) break
                             Logd(TAG, "run episodesNew: ${episodesNew.size}")
                             episodesNew.forEach { e->
-                                e.setPlayed(false)
+                                e.setPlayState(EpisodeState.UNPLAYED)
                                 Logd(TAG, "run reset NEW ${e.title} ${e.playState} ${e.downloadUrl}")
                             }
                             //                            episodesNew.map { e ->

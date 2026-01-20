@@ -53,6 +53,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -120,7 +121,7 @@ val defaultScreen: String
         return value
     }
 
-var subscreenHandleBack = mutableStateOf(false)
+val handleBackSubScreens = mutableStateSetOf<String>()
 
 data class FeedBrief(val id: Long, val title: String?, val imageUrl: String?)
 
@@ -184,7 +185,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         return count > 0
     }
 
-    BackHandler(enabled = !subscreenHandleBack.value) {
+    BackHandler(enabled = handleBackSubScreens.isEmpty()) {
         Logd(TAG, "BackHandler isBSExpanded: $bsState")
         val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
         val defPage = defaultScreen

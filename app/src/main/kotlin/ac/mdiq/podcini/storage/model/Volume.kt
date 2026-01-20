@@ -3,7 +3,7 @@ package ac.mdiq.podcini.storage.model
 import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.utils.Logd
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.UpdatedResults
@@ -27,6 +27,8 @@ class Volume : RealmObject {
     @Index
     var parentId: Long = -1L
 
+    var isLocal: Boolean = false
+
     @Ignore
     val directFeeds: List<Feed>
         get() = getFeedList("volumeId == $id")
@@ -45,6 +47,8 @@ class Volume : RealmObject {
             return afs.toList()
         }
 }
+
+const val ARCHIVED_VOLUME_ID = -10L
 
 var volumes = listOf<Volume>()
 private var volumeMonitorJob: Job? = null
@@ -76,6 +80,13 @@ fun monitorVolumes(scope: CoroutineScope) {
             }
         }
     }
+    val archived = realm.query(Volume::class).query("id == $ARCHIVED_VOLUME_ID").first().find() ?: run {
+        val v = Volume()
+        v.id = ARCHIVED_VOLUME_ID
+        v.name = "Archived"
+        v.parentId = -1L
+        upsertBlk(v) {}
+    }
 }
 
 fun Volume.allChildren(): List<Volume> {
@@ -88,10 +99,13 @@ fun Volume.allChildren(): List<Volume> {
     return result
 }
 
-fun deleteVolumeTree(volume: Volume) {
+suspend fun deleteVolumeTree(volume: Volume) {
     Logd(TAG, "deleteVolumeTree volume: ${volume.name}")
     val feeds_ = realm.query(Feed::class).query("volumeId == ${volume.id}").find()
-    for (f in feeds_) runOnIOScope { deleteFeed(f.id) }
+    for (f in feeds_) {
+        val worthyEps = f.getWorthyEpisodes()
+        deleteFeed(f.id, worthyEps.isNotEmpty())
+    }
 
     val iterator = realm.query(Volume::class).query("parentId == ${volume.id}").find().iterator()
     while (iterator.hasNext()) deleteVolumeTree(iterator.next())

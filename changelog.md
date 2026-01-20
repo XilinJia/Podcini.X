@@ -1,3 +1,39 @@
+# 10.6.0
+
+* cleaned out lots of shitty context parameters being passed around
+* feeds' scores are computed no more frequent than once per day, on refresh, no longer on FeedDetails screen
+* added system volume Archived, used for storing unsubscribed feeds
+	* Feed "Preserve syndicate" is moved to Archive volume 
+* when deleting/unsubscribe a feed, the feed and its worthy episodes are archived in volume Archived
+	* an archived feed can be used in the same way as a normal feed except it is not auto-updated/enqueued/downloaded etc.
+	* an archived feed can be restored by setting it to a normal volume
+* in Subscriptions screen
+	* on first install, set queues filter to "Default", so that newly added feeds show up by default
+	* amended feeds sorting
+		* changed "Title" category to "Feed" to sort on various properties of the feed
+			* also including Author, Rating, Score, Score Count, Last Update, Last FullUpdate, TotleDuration, Last Commented 
+		* note other categories sort on computed values of the episodes chosen
+	* Archived volume can be toggled on/off in the menu
+	* auto scroll to previously saved position is temporarily disabled
+* on remove from queue, possible loose queue entries are checked and cleared
+* fixed confirmation not showing when swipe deleting episode with Again or Forever status
+* ensure to renew VirQueue when previously added episodes complete 
+* amended OnlineFeed screen
+	* backpress from Episodes returns home (not exit)
+	* episodes are cached for multiple opens
+* likely fixed backpress not always behaving in Queues and FeedDetails screens
+* in Facets screen
+	* backpress in Feeds view returns to episodes list view
+	* added Archived view showing worthy episodes from unsubscribed podcasts
+* fixed adding local feed loads no episodes, introduced in 10.4.4
+* likely fixed playUI showing up on launch when there is no media to be played, introduced in 10.4.2
+* fixed failure connecting to a local folder in FeedDetails
+* volumes created to load local folders are set to be local
+	* no further feeds can be added to them
+	* in Subscriptions screen, selected a local volume can be reconnected to the local folder via popup menu (if case Android permission lost)
+* settings of speeds, rewind/forward seconds, skip silence are restored in Settings, with a note, just for the benefit of the descriptions
+* various code refactoring and enhancements
+
 # 10.5.0
 
 * fixed Delete button deleting local or repeat episode before confirmation

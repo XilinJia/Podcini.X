@@ -104,6 +104,7 @@
     <string name="global_default">Global default</string>
     <string name="url_label">URL</string>
     <string name="last_full_update">Last full update</string>
+    <string name="last_update">Last update</string>
     <string name="support_funding_label">Support</string>
     <string name="support_podcast">Support this podcast</string>
     <string name="error_label">Error</string>
@@ -135,6 +136,7 @@
     <string name="transcript">Transcript</string>
 
     <string name="show_all_feeds">Show all feeds</string>
+    <string name="show_archived">Show archived</string>
 
     <string name="episodes_suffix">\u0020episodes</string>
     <string name="close_label">Close</string>
@@ -429,6 +431,8 @@
     <string name="show_criteria">Show criteria</string>
     <string name="title">Title</string>
     <string name="author">Author</string>
+    <string name="score">Score</string>
+    <string name="score_count">Score count</string>
     <string name="random">Random</string>
     <string name="smart_shuffle">Smart shuffle</string>
     <string name="size">Size</string>
@@ -459,6 +463,7 @@
     <string name="add_to_feed">Add to feed</string>
     <string name="interruptions">Interruptions</string>
     <string name="playback_control">Playback control</string>
+    <string name="playback_speeds_sum">These can be more conveniently set from the speedometer on the Player UI.</string>
     <string name="reassign_hardware_buttons">Reassign hardware buttons</string>
     <string name="pref_episode_cleanup_title">Episode cleanup</string>
     <string name="pref_episode_cleanup_summary">Episodes that should be eligible for removal if Auto Download needs space for new episodes</string>
@@ -937,6 +942,7 @@
     <string name="has_skips">Skips set</string>
     <string name="commented">Commented</string>
     <string name="add_comment">Add comment (auto save 10s)</string>
+    <string name="last_commented">Last commented</string>
 
     <string name="is_local">Is local</string>
 

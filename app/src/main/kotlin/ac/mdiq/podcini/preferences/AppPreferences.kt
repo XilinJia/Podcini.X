@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.preferences
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
 import ac.mdiq.podcini.storage.specs.ProxyConfig
@@ -122,9 +123,9 @@ object AppPreferences {
      * Sets up the UserPreferences class.
      * @throws IllegalArgumentException if context is null
      */
-    fun init(context: Context) {
+    fun init() {
         Logd(TAG, "Creating new instance of UserPreferences")
-        appPrefs = PreferenceManager.getDefaultSharedPreferences(context)
+        appPrefs = PreferenceManager.getDefaultSharedPreferences(getAppContext())
         AppPrefs.entries.map { it.name }.forEach { key -> cachedPrefs[key] = appPrefs.all[key] }
         createNoMediaFile()
     }

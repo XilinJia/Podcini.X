@@ -41,6 +41,7 @@ import android.app.Dialog
 import android.text.Spannable
 import android.text.SpannableString
 import android.text.style.ForegroundColorSpan
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -104,6 +105,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -118,7 +121,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class OnlineFeedVM: ViewModel() {
+class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = false): ViewModel() {
     var feedSource: String = ""
     internal var feedUrl: String = ""
     internal var isShared: Boolean = false
@@ -163,6 +166,36 @@ class OnlineFeedVM: ViewModel() {
 
     val relatedFeeds = mutableStateListOf<PodcastSearchResult>()
 
+    internal var showNoPodcastFoundDialog by mutableStateOf(false)
+    internal var showErrorDialog by mutableStateOf(false)
+    internal var errorMessage by mutableStateOf("")
+    internal var errorDetails by mutableStateOf("")
+
+    init {
+        feedUrl = url
+        feedSource = source
+        isShared = shared
+
+        feedBuilder = gearbox.formFeedBuilder(feedUrl, feedSource) { message, details ->
+            errorMessage = message ?: "No message"
+            errorDetails = details
+            showErrorDialog = true
+        }
+        if (feedUrl.isEmpty()) {
+            Loge(TAG, "feedUrl is null.")
+            showNoPodcastFoundDialog = true
+        } else {
+            Logd(TAG, "Activity was started with url $feedUrl")
+            showProgress = true
+            // Remove subscribeonandroid.com from feed URL in order to subscribe to the actual feed URL
+            if (feedUrl.contains("subscribeonandroid.com")) feedUrl = feedUrl.replaceFirst("((www.)?(subscribeonandroid.com/))".toRegex(), "")
+            //                            if (savedInstanceState != null) {
+            //                                vm.username = savedInstanceState.getString("username")
+            //                                vm.password = savedInstanceState.getString("password")
+            //                            }
+            lookupUrlAndBuild(feedUrl)
+        }
+    }
     internal fun handleFeed(feed_: Feed, map: Map<String, String>) {
         selectedDownloadUrl = feedBuilder.selectedDownloadUrl
         feed = feed_
@@ -309,19 +342,20 @@ class OnlineFeedVM: ViewModel() {
 
     internal fun showEpisodes() {
         if (feed == null) return
-        episodes = feed!!.episodes
-        infoBarText.value = "${episodes.size} episodes"
+        if (episodes.isEmpty()) {
+            episodes = feed!!.episodes
+            infoBarText.value = "${episodes.size} episodes"
 
-        Logd(TAG, "showEpisodes ${episodes.size}")
-        if (episodes.isEmpty()) return
-        episodes.sortByDescending { it.pubDate }
-        var id_ = Feed.newId()
-        for (i in 0..<episodes.size) {
-            episodes[i].id = id_++
-            episodes[i].isRemote.value = true
-            episodes[i].origFeedlink = feed!!.link
-            episodes[i].origFeeddownloadUrl = feed!!.downloadUrl
-            episodes[i].origFeedTitle = feed!!.title
+            Logd(TAG, "showEpisodes ${episodes.size}")
+            if (episodes.isEmpty()) return
+            episodes.sortByDescending { it.pubDate }
+            var id_ = Feed.newId()
+            for (i in 0..<episodes.size) {
+                episodes[i].id = id_++
+                episodes[i].origFeedlink = feed!!.link
+                episodes[i].origFeeddownloadUrl = feed!!.downloadUrl
+                episodes[i].origFeedTitle = feed!!.title
+            }
         }
         showEpisodes = true
     }
@@ -359,10 +393,11 @@ class OnlineFeedVM: ViewModel() {
         }
     }
 
-    internal var showNoPodcastFoundDialog by mutableStateOf(false)
-    internal var showErrorDialog by mutableStateOf(false)
-    internal var errorMessage by mutableStateOf("")
-    internal var errorDetails by mutableStateOf("")
+    override fun onCleared() {
+        super.onCleared()
+        feeds = null
+        episodes.clear()
+    }
 }
 
 @Composable
@@ -374,39 +409,15 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     val textColor = MaterialTheme.colorScheme.onSurface
     val navController = LocalNavController.current
 
-//    val vm = remember { OnlineFeedVM(scope) }
-    val vm: OnlineFeedVM = viewModel()
+    val vm: OnlineFeedVM = viewModel(factory = viewModelFactory { initializer { OnlineFeedVM(url, source, shared) } })
 
-    var swipeActions by remember { mutableStateOf(SwipeActions(context, TAG)) }
-
-    vm.feedUrl = url
-    vm.feedSource = source
-    vm.isShared = shared
+    var swipeActions by remember { mutableStateOf(SwipeActions(TAG)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     Logd(TAG, "feedUrl: ${vm.feedUrl}")
-                    vm.feedBuilder = gearbox.formFeedBuilder(vm.feedUrl, vm.feedSource) { message, details ->
-                        vm.errorMessage = message ?: "No message"
-                        vm.errorDetails = details
-                        vm.showErrorDialog = true
-                    }
-                    if (vm.feedUrl.isEmpty()) {
-                        Loge(TAG, "feedUrl is null.")
-                        vm.showNoPodcastFoundDialog = true
-                    } else {
-                        Logd(TAG, "Activity was started with url ${vm.feedUrl}")
-                        vm.showProgress = true
-                        // Remove subscribeonandroid.com from feed URL in order to subscribe to the actual feed URL
-                        if (vm.feedUrl.contains("subscribeonandroid.com")) vm.feedUrl = vm.feedUrl.replaceFirst("((www.)?(subscribeonandroid.com/))".toRegex(), "")
-//                            if (savedInstanceState != null) {
-//                                vm.username = savedInstanceState.getString("username")
-//                                vm.password = savedInstanceState.getString("password")
-//                            }
-                        vm.lookupUrlAndBuild(vm.feedUrl)
-                    }
                     lifecycleOwner.lifecycle.addObserver(swipeActions)
                 }
                 Lifecycle.Event.ON_START -> {
@@ -426,11 +437,17 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            vm.feeds = null
-            vm.episodes.clear()
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
+
+    DisposableEffect(vm.showEpisodes) {
+        if (vm.showEpisodes) handleBackSubScreens.add(TAG)
+        else handleBackSubScreens.remove(TAG)
+        onDispose { handleBackSubScreens.remove(TAG) }
+    }
+
+    BackHandler(enabled = handleBackSubScreens.contains(TAG)) { vm.showEpisodes = false }
 
     if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = { vm.showTabsDialog = false }) { feed, map -> vm.handleFeed(feed, map) }
     if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
@@ -474,7 +491,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showEpisodes) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
             InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
-            EpisodeLazyColumn(vm.episodes.toList(), swipeActions = swipeActions,
+            EpisodeLazyColumn(vm.episodes.toList(), isRemote = true, swipeActions = swipeActions,
                 actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
         } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
             ConstraintLayout(modifier = Modifier.fillMaxWidth().height(100.dp).background(MaterialTheme.colorScheme.surface)) {
@@ -561,7 +578,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 if (sLog != null) {
                     val commentTextState by remember { mutableStateOf(TextFieldValue(sLog.comment)) }
                     val context = LocalContext.current
-                    val cancelDate = remember { formatAbbrev(context, Date(sLog.cancelDate)) }
+                    val cancelDate = remember { formatAbbrev(Date(sLog.cancelDate)) }
                     val ratingRes = remember { fromCode(sLog.rating).res }
                     if (commentTextState.text.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {

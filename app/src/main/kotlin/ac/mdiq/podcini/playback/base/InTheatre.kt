@@ -72,6 +72,7 @@ object InTheatre {
             Logd(TAG, "starting curState")
             curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}
             restoreMediaFromPreferences()
+            Logd(TAG, "curEpisode from preference: ${curEpisode?.title}")
             if (curEpisode != null) {
                 val qes = realm.query(QueueEntry::class).query("episodeId == ${curEpisode!!.id}").find()
                 if (qes.isNotEmpty()) {

@@ -18,6 +18,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideo
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
 import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -422,21 +423,18 @@ class VideoplayerActivity : BaseActivity() {
             actions = {
                 if (!landscape) {
                     var sleepIconRes by remember { mutableIntStateOf(if (!isSleepTimerActive()) R.drawable.ic_sleep else R.drawable.ic_sleep_off) }
-                    IconButton(onClick = { showSleepTimeDialog = true
-                    }) { Icon(imageVector = ImageVector.vectorResource(sleepIconRes), contentDescription = "sleeper") }
-                    IconButton(onClick = { showSpeedDialog = true
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playback_speed), contentDescription = "open podcast") }
+                    IconButton(onClick = { showSleepTimeDialog = true }) { Icon(imageVector = ImageVector.vectorResource(sleepIconRes), contentDescription = "sleeper") }
+                    IconButton(onClick = { showSpeedDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playback_speed), contentDescription = "open podcast") }
                     IconButton(onClick = {
                         switchToAudioOnly = true
-                        curEpisode?.forceVideo = false
+                        if (curEpisode != null) upsertBlk(curEpisode!!) { it.forceVideo = false }
                         finish()
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_audiotrack_24), contentDescription = "audio only") }
                     if (curEpisode != null) IconButton(onClick = {
                         val feedItem = curEpisode
-                        if (feedItem != null) startActivity(MainActivity.getIntentToOpenFeed(this@VideoplayerActivity, feedItem.feedId!!))
+                        if (feedItem != null) startActivity(MainActivity.getIntentToOpenFeed(feedItem.feedId!!))
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), contentDescription = "open podcast") }
-                    IconButton(onClick = { showShareDialog = true
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), contentDescription = "share") }
+                    IconButton(onClick = { showShareDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_share), contentDescription = "share") }
                 }
                 CastIconButton()
                 IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
@@ -452,13 +450,13 @@ class VideoplayerActivity : BaseActivity() {
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.player_switch_to_audio_only)) }, onClick = {
                             switchToAudioOnly = true
-                            curEpisode?.forceVideo = false
+                            if (curEpisode != null) upsertBlk(curEpisode!!) { it.forceVideo = false }
                             finish()
                             expanded = false
                         })
                         if (curEpisode != null) DropdownMenuItem(text = { Text(stringResource(R.string.open_podcast)) }, onClick = {
                             val feedItem = curEpisode
-                            if (feedItem != null) startActivity(MainActivity.getIntentToOpenFeed(this@VideoplayerActivity, feedItem.feedId!!))
+                            if (feedItem != null) startActivity(MainActivity.getIntentToOpenFeed(feedItem.feedId!!))
                             expanded = false
                         })
                         DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {

@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.preferences
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
@@ -8,7 +9,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatRfc822Date
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.text.Spannable
@@ -62,7 +62,7 @@ class OpmlTransporter {
          * Takes a list of feeds and a writer and writes those into an OPML document.
          */
         @Throws(IllegalArgumentException::class, IllegalStateException::class, IOException::class)
-        override fun writeDocument(feeds: List<Feed>, writer: Writer, context: Context) {
+        override fun writeDocument(feeds: List<Feed>, writer: Writer) {
             val xs = Xml.newSerializer()
             xs.setFeature(OpmlSymbols.XML_FEATURE_INDENT_OUTPUT, true)
             xs.setOutput(writer)
@@ -166,11 +166,11 @@ class OpmlTransporter {
     }
 
     companion object {
-        fun startImport(context: Context, uri: Uri, CB: (List<OpmlElement>)->Unit) {
+        fun startImport(uri: Uri, CB: (List<OpmlElement>)->Unit) {
             val TAG = "OpmlTransporter"
             CoroutineScope(Dispatchers.IO).launch {
                 try {
-                    val opmlFileStream = context.contentResolver.openInputStream(uri)
+                    val opmlFileStream = getAppContext().contentResolver.openInputStream(uri)
                     val bomInputStream = BOMInputStream(opmlFileStream)
                     val bom = bomInputStream.bom
                     val charsetName = if (bom == null) "UTF-8" else bom.charsetName
@@ -184,7 +184,7 @@ class OpmlTransporter {
                         Logs(TAG, e)
                         val message = if (e.message == null) "" else e.message!!
                         if (message.lowercase().contains("permission")) {
-                            val permission = ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE)
+                            val permission = ActivityCompat.checkSelfPermission(getAppContext(), Manifest.permission.READ_EXTERNAL_STORAGE)
                             if (permission != PackageManager.PERMISSION_GRANTED) {
 //                                requestPermission()
                                 CB(listOf())
@@ -192,7 +192,7 @@ class OpmlTransporter {
                             }
                         }
 
-                        val userReadable = context.getString(R.string.opml_reader_error)
+                        val userReadable = getAppContext().getString(R.string.opml_reader_error)
                         val details = e.message
                         val total = """
                             $userReadable
@@ -202,7 +202,7 @@ class OpmlTransporter {
                         val errorMessage = SpannableString(total)
                         errorMessage.setSpan(ForegroundColorSpan(-0x77777778), userReadable.length, total.length, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)
                         commonConfirm = CommonConfirmAttrib(
-                            title = context.getString(R.string.error_label),
+                            title = getAppContext().getString(R.string.error_label),
                             message = errorMessage.toString(),
                             confirmRes = android.R.string.ok,
                             cancelRes = R.string.cancel_label,

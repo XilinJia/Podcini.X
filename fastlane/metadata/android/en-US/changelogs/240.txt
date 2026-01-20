@@ -1,0 +1,7 @@
+* added system volume Archived, used for storing unsubscribed feeds
+* when deleting/unsubscribe a feed, the feed and its worthy episodes are archived in volume Archived
+* in Subscriptions screen, enhanced feeds sorting
+* fixed confirmation not showing when swipe deleting episode with Again or Forever status
+* ensure to renew VirQueue when previously added complete
+* on OnlineFeed screen, episodes are cached for multiple opens
+* in Facets screen, backpress in Feeds returns to episodes list

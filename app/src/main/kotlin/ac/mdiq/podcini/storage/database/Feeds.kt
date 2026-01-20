@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Episode.MediaMetadataRetrieverCompat
@@ -22,6 +23,8 @@ import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.DAY_MIL
+import ac.mdiq.podcini.storage.utils.FOUR_DAY_MIL
 import ac.mdiq.podcini.storage.utils.feedfilePath
 import ac.mdiq.podcini.storage.utils.getMimeType
 import ac.mdiq.podcini.storage.utils.parseDate
@@ -32,7 +35,6 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import android.app.backup.BackupManager
-import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.provider.DocumentsContract
@@ -236,7 +238,7 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
                         .position(durs)
                         .total(durs)
                         .build()
-                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, action)
+                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(action)
                 }
             }
             upsertBlk(oldItems[0]) { it.updateFromOther(episode, overwriteStates) }
@@ -297,7 +299,10 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
     } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
 
-    runOnIOScope { trimEpisodes(savedFeed) }
+    runOnIOScope {
+        trimEpisodes(savedFeed)
+        computeScores(savedFeed)
+    }
 }
 
 suspend fun updateFeedSimple(newFeed: Feed) {
@@ -353,11 +358,37 @@ suspend fun updateFeedSimple(newFeed: Feed) {
     try { upsert(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedSimple failed") } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedSimple failed") }
 
     trimEpisodes(savedFeed)
+    computeScores(savedFeed)
+}
+
+suspend fun computeScores(f: Feed) {
+    val cTime = System.currentTimeMillis()
+    if (cTime - f.scoreUpdated < DAY_MIL) return
+    val upCount = realm.query(Episode::class).query("feedId == $0 AND (ratingTime > $1 OR playStateSetTime > $1)", f.id, f.scoreUpdated).count().find()
+    if (upCount == 0L || (upCount < 4L && cTime - f.scoreUpdated < FOUR_DAY_MIL)) return
+    val episodes = realm.query(Episode::class).query("feedId == ${f.id}").find()
+    if (episodes.isNotEmpty()) {
+        var sumR = 0.0
+        var scoreCount = 0
+        for (e in episodes) {
+            if (e.playState >= EpisodeState.PROGRESS.code) {
+                scoreCount++
+                if (e.rating != Rating.UNRATED.code) sumR += e.rating
+                if (e.playState >= EpisodeState.SKIPPED.code) sumR += - 0.5 + 1.0 * e.playedDuration / e.duration
+                else if (e.playState in listOf(EpisodeState.AGAIN.code, EpisodeState.FOREVER.code)) sumR += 0.5
+            }
+        }
+        upsert(f) {
+            it.scoreCount = scoreCount
+            it.score = if (scoreCount > 0) (100 * sumR / scoreCount / Rating.SUPER.code).toInt() else -1000
+            it.scoreUpdated = cTime
+        }
+    }
 }
 
 private suspend fun trimEpisodes(feed_: Feed) {
     if (feed_.limitEpisodesCount > 0) {
-        val n = feed_.ordinariesCount()
+        val n = realm.query(Episode::class).query("feedId == ${feed_.id} AND !(${feed_.isWorthyQuerryStr})").count().find().toInt()
         if (n > feed_.limitEpisodesCount + 5) {
             val f = feedByIdentityOrID(feed_, true) ?: return
             val dc = n - f.limitEpisodesCount
@@ -405,25 +436,32 @@ fun addNewFeed(feed: Feed) {
         copyToRealm(feed)
     }
     val context = getAppContext()
-    if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedAddedIfSyncActive(context, feed.downloadUrl!!)
+    if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedAddedIfSyncActive(feed.downloadUrl!!)
     BackupManager(context).dataChanged()
 }
 
-suspend fun deleteFeed(feedId: Long) {
+suspend fun deleteFeed(feedId: Long, preserve: Boolean = false) {
     Logd(TAG, "deleteFeed called")
-    val episodes = getEpisodes(null, null, feedId=feedId, copy = false)
-    val eids = episodes.map { it.id }
-    removeFromAllQueuesQuiet(eids, false)
+    val feed = feedsMap[feedId]
+    val episodes = if (preserve && feed != null) feed.getUnworthyEpisodes() else getEpisodes(null, null, feedId=feedId, copy = false)
+    removeFromAllQueuesQuiet(episodes.map { it.id }, false)
     eraseEpisodes(episodes, "", false)
 
-    val feed = feedsMap[feedId]
     if (feed != null) {
         realm.write {
-            val feedToDelete = findLatest(feed)
-            if (feedToDelete != null) delete(feedToDelete)
+            findLatest(feed)?.let {
+                if (preserve) {
+                    it.volumeId = ARCHIVED_VOLUME_ID
+                    it.keepUpdated = false
+                    it.autoEnqueue = false
+                    it.autoDownload = false
+                    it.autoDeleteAction = Feed.AutoDeleteAction.NEVER
+                    it.queue = null
+                } else  delete(it)
+            }
         }
         val context = getAppContext()
-        if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedRemovedIfSyncActive(context, feed.downloadUrl!!)
+        if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedRemovedIfSyncActive(feed.downloadUrl!!)
         val backupManager = BackupManager(context)
         backupManager.dataChanged()
     }
@@ -435,7 +473,6 @@ fun allowForAutoDelete(feed: Feed): Boolean {
 }
 
 suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: Boolean = false) {
-    val eList: MutableList<Episode> = mutableListOf()
     val toFeedEpisodes = getEpisodes(null, null, feedId=toFeed.id, copy = false)
     for (e in episodes) {
         if (toFeedEpisodes.firstOrNull { it.identifyingValue == e.identifyingValue } != null) continue
@@ -449,11 +486,7 @@ suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: B
                 e_.origFeedlink = e.feed?.link
             }
         }
-        upsert(e_) {
-            it.feed = toFeed
-            it.feedId = toFeed.id
-            eList.add(it)
-        }
+        upsert(e_) { it.feedId = toFeed.id }
     }
 }
 
@@ -680,7 +713,7 @@ class FeedAssistant(val feed: Feed, private val savedFeedId: Long = 0L, private 
     fun clear() = map.clear()
 }
 
-fun updateLocalFeed(feed: Feed, context: Context, progressCB: ((Int, Int)->Unit)? = null) {
+fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
     /**
      * Android's DocumentFile is slow because every single method call queries the ContentResolver.
      * This queries the ContentResolver a single time with all the information.
@@ -698,9 +731,9 @@ fun updateLocalFeed(feed: Feed, context: Context, progressCB: ((Int, Int)->Unit)
         }
         return Feed.PREFIX_GENERATIVE_COVER + folderUri
     }
-    fun createEpisode(feed: Feed, file: FastDocumentFile, context: Context): Episode {
+    fun createEpisode(feed: Feed, file: FastDocumentFile): Episode {
         val item = Episode(0L, file.name, UUID.randomUUID().toString(), file.name, Date(file.lastModified), EpisodeState.UNPLAYED.code, feed)
-        item.disableAutoDownload()
+        item.isAutoDownloadEnabled = false
         val size = file.length
         Logd(TAG, "createEpisode file.uri: ${file.uri}")
         item.fillMedia(0, 0, size, file.type, file.uri.toString(), file.uri.toString(), false, null, 0, 0)
@@ -716,7 +749,7 @@ fun updateLocalFeed(feed: Feed, context: Context, progressCB: ((Int, Int)->Unit)
         try {
             MediaMetadataRetrieverCompat().use { mediaMetadataRetriever ->
                 val NULL_DATE_PLACEHOLDER = "19040101T000000.000Z"
-                mediaMetadataRetriever.setDataSource(context, file.uri)
+                mediaMetadataRetriever.setDataSource(getAppContext(), file.uri)
                 val dateStr = mediaMetadataRetriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DATE)
                 if (!dateStr.isNullOrEmpty() && dateStr != NULL_DATE_PLACEHOLDER) {
                     try {
@@ -734,7 +767,7 @@ fun updateLocalFeed(feed: Feed, context: Context, progressCB: ((Int, Int)->Unit)
                 if (!durationStr.isNullOrBlank()) item.duration = durationStr.toIntOrNull() ?: 30000
                 item.hasEmbeddedPicture = (mediaMetadataRetriever.embeddedPicture != null)
                 try {
-                    context.contentResolver.openInputStream(file.uri).use { inputStream ->
+                    getAppContext().contentResolver.openInputStream(file.uri).use { inputStream ->
                         val reader = Id3MetadataReader(CountingInputStream(BufferedInputStream(inputStream)))
                         reader.readInputStream()
                         item.setDescriptionIfLonger(reader.comment)
@@ -742,7 +775,7 @@ fun updateLocalFeed(feed: Feed, context: Context, progressCB: ((Int, Int)->Unit)
                 } catch (e: Throwable) {
                     Logs(TAG, e, "Unable to parse ID3 of " + file.uri + ": ")
                     try {
-                        context.contentResolver.openInputStream(file.uri)?.use { inputStream ->
+                        getAppContext().contentResolver.openInputStream(file.uri)?.use { inputStream ->
                             val reader = VorbisCommentMetadataReader(inputStream)
                             reader.readInputStream()
                             item.setDescriptionIfLonger(reader.description)
@@ -756,9 +789,9 @@ fun updateLocalFeed(feed: Feed, context: Context, progressCB: ((Int, Int)->Unit)
             item.setDescriptionIfLonger(e.message) }
         return item
     }
-    fun listFastFiles(context: Context, folderUri: Uri?): List<FastDocumentFile> {
+    fun listFastFiles(folderUri: Uri?): List<FastDocumentFile> {
         val childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(folderUri, DocumentsContract.getDocumentId(folderUri))
-        val cursor = context.contentResolver.query(childrenUri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+        val cursor = getAppContext().contentResolver.query(childrenUri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID,
             DocumentsContract.Document.COLUMN_DISPLAY_NAME,
             DocumentsContract.Document.COLUMN_SIZE,
             DocumentsContract.Document.COLUMN_LAST_MODIFIED,
@@ -780,11 +813,11 @@ fun updateLocalFeed(feed: Feed, context: Context, progressCB: ((Int, Int)->Unit)
     if (feed.downloadUrl.isNullOrEmpty()) return
     try {
         val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
-        val documentFolder = DocumentFile.fromTreeUri(context, uriString.toUri()) ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
+        val documentFolder = DocumentFile.fromTreeUri(getAppContext(), uriString.toUri()) ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
         if (!documentFolder.exists() || !documentFolder.canRead()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
 
         val folderUri = documentFolder.uri
-        val allFiles = listFastFiles(context, folderUri)
+        val allFiles = listFastFiles(folderUri)
         val mediaFiles: MutableList<FastDocumentFile> = mutableListOf()
         val mediaFileNames: MutableSet<String> = HashSet()
         for (file in allFiles) {
@@ -802,7 +835,7 @@ fun updateLocalFeed(feed: Feed, context: Context, progressCB: ((Int, Int)->Unit)
         for (i in mediaFiles.indices) {
             Logd(TAG, "updateLocalFeed mediaFiles ${mediaFiles[i].name}")
             val oldItem = realm.query(Episode::class).query("feedId == ${feed.id} AND link == $0", mediaFiles[i].name).first().find()
-            val newItem = createEpisode(feed, mediaFiles[i], context)
+            val newItem = createEpisode(feed, mediaFiles[i])
             Logd(TAG, "updateLocalFeed oldItem: ${oldItem?.title} url: ${oldItem?.downloadUrl}")
             Logd(TAG, "updateLocalFeed newItem: ${newItem.title} url: ${newItem.downloadUrl}")
             if (oldItem != null) upsertBlk(oldItem) { it.updateFromOther(newItem) }

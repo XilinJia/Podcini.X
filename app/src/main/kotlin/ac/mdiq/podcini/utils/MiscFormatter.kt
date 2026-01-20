@@ -1,6 +1,6 @@
 package ac.mdiq.podcini.utils
 
-import android.content.Context
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import android.text.format.DateUtils
 import java.text.DateFormat
 import java.text.SimpleDateFormat
@@ -37,7 +37,7 @@ fun stripDateTimeLines(input: String): String {
 }
 
 
-fun formatAbbrev(context: Context?, date: Date?): String {
+fun formatAbbrev(date: Date?): String {
     if (date == null) return ""
     val now = GregorianCalendar()
     val cal = GregorianCalendar()
@@ -45,7 +45,7 @@ fun formatAbbrev(context: Context?, date: Date?): String {
     val withinLastYear = now[Calendar.YEAR] == cal[Calendar.YEAR]
     var format = DateUtils.FORMAT_ABBREV_ALL
     if (withinLastYear) format = format or DateUtils.FORMAT_NO_YEAR
-    return DateUtils.formatDateTime(context, date.time, format)
+    return DateUtils.formatDateTime(getAppContext(), date.time, format)
 }
 
 

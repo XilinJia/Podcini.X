@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.ui.screens
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.CombinedSearcher
@@ -14,15 +15,16 @@ import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.storage.database.addNewFeed
+import ac.mdiq.podcini.storage.database.feedByIdentityOrID
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.feedByIdentityOrID
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
@@ -35,7 +37,6 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -90,12 +91,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 private var searchText by mutableStateOf("")
 private var searchProvider by mutableStateOf<PodcastSearcher?>(null)
@@ -118,6 +119,67 @@ class FindFeedsVM: ViewModel() {
 //                break
 //            }
 //        }
+    }
+
+    fun addLocalFloder(uri: Uri) {
+        val context = getAppContext()
+        context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        runOnIOScope {
+            try {
+                val documentFile = DocumentFile.fromTreeUri(context, uri)
+                requireNotNull(documentFile) { "Unable to retrieve document tree" }
+
+                val feeds = mutableListOf<Feed>()
+                val volumes = mutableListOf<Volume>()
+                fun traverseDirectory(directory: DocumentFile?, parentId: Long = -1) {
+                    if (directory == null || !directory.isDirectory) return
+
+                    val content = directory.listFiles()
+                    val filesInThisDir = content.filter { it.isFile }
+
+                    if (filesInThisDir.isNotEmpty()) {
+                        Logd(TAG,"Found files in folder: ${directory.uri}")
+                        val uri = directory.uri
+                        val title = directory.name ?: context.getString(R.string.local_folder)
+                        val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
+                        val fExist = feedByIdentityOrID(dirFeed)
+                        if (fExist == null) {
+                            dirFeed.volumeId = parentId
+                            dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
+                            dirFeed.keepUpdated = false
+                            dirFeed.autoDownload = false
+                            dirFeed.description = context.getString(R.string.local_feed_description)
+                            dirFeed.author = context.getString(R.string.local_folder)
+                            addNewFeed(dirFeed)
+                            feeds.add(dirFeed)
+                        } else Logt(TAG, "local feed already exists: $title $uri")
+                    }
+
+                    val subDirsInThisDir = content.filter { it.isDirectory }
+                    if (subDirsInThisDir.isNotEmpty()) {
+                        val v: Volume
+                        val vExist = realm.query(Volume::class).query("uriString == $0", directory.uri.toString()).first().find()
+                        if (vExist == null) {
+                            v = Volume()
+                            v.id = System.currentTimeMillis()
+                            v.name = directory.name ?: "no name"
+                            v.uriString = directory.uri.toString()
+                            v.parentId = parentId
+                            v.isLocal = true
+                            volumes.add(v)
+                            Logd(TAG, "Created volume: ${v.name} $parentId")
+                        } else v = realm.copyFromRealm(vExist)
+
+                        for (subDir in subDirsInThisDir) traverseDirectory(subDir, v.id)
+                    }
+                }
+
+                traverseDirectory(documentFile)
+                if (volumes.isNotEmpty()) realm.write { for (v in volumes) copyToRealm(v) }
+                if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds, doItAnyway = true).startRefresh()
+                Logt(TAG, "Imported ${feeds.size} local feeds in ${volumes.size} volumes")
+            } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
+        }
     }
 }
 
@@ -219,72 +281,17 @@ fun FindFeedsScreen() {
     val actionColor = MaterialTheme.colorScheme.tertiary
     ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, numberOPMLFeedsToRestore.intValue), showOPMLRestoreDialog) {
         showProgress = true
-        performRestore(context)
+        performRestore()
         showProgress = false
     }
     val chooseOpmlImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        OpmlTransporter.startImport(context, uri) { vm.readElements.addAll(it) }
+        OpmlTransporter.startImport(uri) { vm.readElements.addAll(it) }
         showOpmlImportSelectionDialog = true
     }
     val addLocalFolderLauncher = rememberLauncherForActivityResult(AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
-        runOnIOScope {
-            try {
-                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                val documentFile = DocumentFile.fromTreeUri(context, uri)
-                requireNotNull(documentFile) { "Unable to retrieve document tree" }
-
-                val feeds = mutableListOf<Feed>()
-                val volumes = mutableListOf<Volume>()
-                fun traverseDirectory(directory: DocumentFile?, parentId: Long = -1) {
-                    if (directory == null || !directory.isDirectory) return
-
-                    val content = directory.listFiles()
-                    val filesInThisDir = content.filter { it.isFile }
-
-                    if (filesInThisDir.isNotEmpty()) {
-                        Logd(TAG,"Found files in folder: ${directory.uri}")
-                        val uri = directory.uri
-                        val title = directory.name ?: context.getString(R.string.local_folder)
-                        val dirFeed = Feed(Feed.PREFIX_LOCAL_FOLDER + uri.toString(), null, title)
-                        val fExist = feedByIdentityOrID(dirFeed)
-                        if (fExist == null) {
-                            dirFeed.volumeId = parentId
-                            dirFeed.episodeSortOrder = EpisodeSortOrder.EPISODE_TITLE_ASC
-                            dirFeed.keepUpdated = false
-                            dirFeed.autoDownload = false
-                            dirFeed.description = context.getString(R.string.local_feed_description)
-                            dirFeed.author = context.getString(R.string.local_folder)
-                            addNewFeed(dirFeed)
-                            feeds.add(dirFeed)
-                        } else Logt(TAG, "local feed already exists: $title $uri")
-                    }
-
-                    val subDirsInThisDir = content.filter { it.isDirectory }
-                    if (subDirsInThisDir.isNotEmpty()) {
-                        val v: Volume
-                        val vExist = realm.query(Volume::class).query("uriString == $0", directory.uri.toString()).first().find()
-                        if (vExist == null) {
-                            v = Volume()
-                            v.id = System.currentTimeMillis()
-                            v.name = directory.name ?: "no name"
-                            v.uriString = directory.uri.toString()
-                            v.parentId = parentId
-                            volumes.add(v)
-                            Logd(TAG, "Created volume: ${v.name} $parentId")
-                        } else v = realm.copyFromRealm(vExist)
-
-                        for (subDir in subDirsInThisDir) traverseDirectory(subDir, v.id)
-                    }
-                }
-
-                traverseDirectory(documentFile)
-                if (volumes.isNotEmpty()) realm.write { for (v in volumes) copyToRealm(v) }
-                if (feeds.isNotEmpty()) gearbox.feedUpdater(feeds).startRefresh()
-                Logt(TAG, "Imported ${feeds.size} local feeds in ${volumes.size} volumes")
-            } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
-        }
+        vm.addLocalFloder(uri)
     }
 
     if (showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { showOpmlImportSelectionDialog = false }
@@ -352,12 +359,6 @@ fun FindFeedsScreen() {
                     end.linkTo(parent.end)
                 })
         }
-    }
-}
-
-class AddLocalFolder : ActivityResultContracts.OpenDocumentTree() {
-    override fun createIntent(context: Context, input: Uri?): Intent {
-        return super.createIntent(context, input).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 }
 

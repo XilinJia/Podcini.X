@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.playback.service
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre
@@ -339,7 +340,7 @@ class PlaybackService : MediaLibraryService() {
             /* This is the trickiest part, if you don't do this here, nothing will play */
             val episode = episodeByGuidOrUrl(null, mediaItems.first().mediaId, copy = false) ?: return Futures.immediateFuture(mutableListOf())
             if (!InTheatre.isCurMedia(episode)) {
-                PlaybackStarter(applicationContext, episode).start()
+                PlaybackStarter(episode).start()
             }
             val updatedMediaItems = mediaItems.map { it.buildUpon().setUri(it.mediaId).build() }.toMutableList()
 //            updatedMediaItems += mediaItemsInQueue
@@ -367,8 +368,8 @@ class PlaybackService : MediaLibraryService() {
         registerReceiver(bluetoothStateUpdated, IntentFilter(BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED))
         registerReceiver(audioBecomingNoisy, IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY))
         procFlowEvents()
-        positionSaver = PositionSaver(applicationContext)
-        sleepManager = SleepManager(applicationContext)
+        positionSaver = PositionSaver()
+        sleepManager = SleepManager()
         monitorState()
 
         recreateMediaSessionIfNeeded()
@@ -384,10 +385,10 @@ class PlaybackService : MediaLibraryService() {
     fun recreateMediaSessionIfNeeded() {
         if (mediaSession != null) return
         Logd(TAG, "recreateMediaSessionIfNeeded")
-        setMediaNotificationProvider(CustomMediaNotificationProvider(applicationContext))
+        setMediaNotificationProvider(CustomMediaNotificationProvider())
 
         recreateMediaPlayer()
-        if (exoPlayer == null) mPlayer?.createStaticPlayer(applicationContext)
+        if (exoPlayer == null) mPlayer?.createStaticPlayer()
         val intent = packageManager.getLaunchIntentForPackage(packageName)
         val pendingIntent = PendingIntent.getActivity(this, 0, intent, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
         mediaSession = MediaLibrarySession.Builder(applicationContext, exoPlayer!!, MediaLibrarySessionCK())
@@ -406,7 +407,7 @@ class PlaybackService : MediaLibraryService() {
             mPlayer!!.shutdown()
         }
         mPlayer = CastMediaPlayer.getInstanceIfConnected(applicationContext)
-        if (mPlayer == null) mPlayer = LocalMediaPlayer(applicationContext) // Cast not supported or not connected
+        if (mPlayer == null) mPlayer = LocalMediaPlayer() // Cast not supported or not connected
 
         Logd(TAG, "recreateMediaPlayer wasPlaying: $wasPlaying")
         // TODO: test not preparing on first start
@@ -624,7 +625,7 @@ class PlaybackService : MediaLibraryService() {
             return
         }
         val media = curEpisode!!
-        val needStreaming = media.feed?.isLocalFeed != true && !media.localFileAvailable()
+        val needStreaming = media.feed?.isLocalFeed != true && media.fileUrl.isNullOrBlank()
         if (needStreaming && !isStreamingCapable(media)) return
         mPlayer?.prepareMedia(playable = media, streaming = needStreaming, startWhenPrepared = true, prepareImmediately = true, forceReset = true, doPostPlayback = false)
     }
@@ -754,7 +755,7 @@ class PlaybackService : MediaLibraryService() {
         ),
     }
 
-    class CustomMediaNotificationProvider(context: Context) : DefaultMediaNotificationProvider(context) {
+    class CustomMediaNotificationProvider : DefaultMediaNotificationProvider(getAppContext()) {
         override fun addNotificationActions(mediaSession: MediaSession, mediaButtons: ImmutableList<CommandButton>, builder: NotificationCompat.Builder, actionFactory: MediaNotification.ActionFactory): IntArray {
             val defaultPlayPauseButton = mediaButtons.getOrNull(1)
             val notificationMediaButtons = ImmutableList.builder<CommandButton>().apply {
@@ -783,10 +784,8 @@ class PlaybackService : MediaLibraryService() {
         var playbackService: PlaybackService? = null
         var mediaBrowser: MediaBrowser? = null
 
-        
         var isRunning: Boolean = false
 
-        
         @Volatile
         var isCasting: Boolean = false
             internal set
@@ -810,7 +809,6 @@ class PlaybackService : MediaLibraryService() {
          * type of media that is being played or the medaitype that is provided as an argument.
          * If the playbackservice is not running, the type of the last played media will be looked up.
          */
-        
         fun getPlayerActivityIntent(context: Context, mediaType_: MediaType? = null): Intent {
             val mediaType = mediaType_ ?: currentMediaType
             val showVideoPlayer = if (isRunning) mediaType == MediaType.VIDEO && !isCasting else curState.curIsVideo

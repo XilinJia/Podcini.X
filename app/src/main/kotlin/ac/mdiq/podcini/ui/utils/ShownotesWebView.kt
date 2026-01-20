@@ -133,7 +133,7 @@ class ShownotesWebView : WebView, View.OnLongClickListener {
         } else {
             val uri = selectedUrl!!.toUri()
             val intent = Intent(Intent.ACTION_VIEW, uri)
-            if (isCallable(context, intent)) menu.add(Menu.NONE, R.id.open_in_browser_item, Menu.NONE, R.string.open_in_browser_label)
+            if (isCallable(intent)) menu.add(Menu.NONE, R.id.open_in_browser_item, Menu.NONE, R.string.open_in_browser_label)
             menu.add(Menu.NONE, R.id.copy_url_item, Menu.NONE, R.string.copy_url_label)
             menu.add(Menu.NONE, R.id.share_url_item, Menu.NONE, R.string.share_url_label)
             menu.setHeaderTitle(selectedUrl)

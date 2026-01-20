@@ -140,7 +140,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
                 try {
                     Logd(TAG, "updating local feed? ${feed.isLocalFeed} ${feed.title}")
                     when {
-                        feed.isLocalFeed -> updateLocalFeed(feed, context, null)
+                        feed.isLocalFeed -> updateLocalFeed(feed, null)
                         else -> refreshFeed(feed)
                     }
                 } catch (e: Exception) {
@@ -166,7 +166,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
         if (feedsToOnlyEnqueue.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyEnqueue)
         if (feedsToOnlyDownload.isNotEmpty()) feedsToUpdate.addAll(feedsToOnlyDownload)
         autoenqueue(feedsToUpdate.toList())
-        autodownload(context, feedsToUpdate.toList())
+        autodownload(feedsToUpdate.toList())
         feedsToUpdate.clear()
         feedsToOnlyEnqueue.clear()
         feedsToOnlyDownload.clear()

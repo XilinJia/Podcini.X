@@ -31,7 +31,7 @@ class MediaButtonReceiver : BroadcastReceiver() {
         Logd(TAG, "onReceive keyEvent = $keyEvent" )
 
         if (keyEvent != null && keyEvent.action == KeyEvent.ACTION_DOWN && keyEvent.repeatCount == 0) {
-            ClientConfigurator.initialize(context.applicationContext)
+            ClientConfigurator.initialize()
             val serviceIntent = Intent(PLAYBACK_SERVICE_INTENT)
             serviceIntent.setPackage(context.packageName)
             serviceIntent.putExtra(EXTRA_KEYCODE, keyEvent.keyCode)

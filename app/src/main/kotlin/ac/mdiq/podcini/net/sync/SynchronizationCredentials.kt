@@ -58,11 +58,11 @@ object SynchronizationCredentials {
         }
 
     @Synchronized
-    fun clear(context: Context) {
+    fun clear() {
         username = null
         password = null
         deviceID = null
-        clearQueue(context)
+        clearQueue()
         putPref(AppPrefs.pref_gpodnet_notifications, true)
     }
 }

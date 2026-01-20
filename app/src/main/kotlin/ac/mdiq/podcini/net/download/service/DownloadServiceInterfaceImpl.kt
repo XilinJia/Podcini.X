@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.net.download.service
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.CHANNEL_ID
 import ac.mdiq.podcini.config.ClientConfigurator
@@ -34,6 +35,7 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.media.MediaMetadataRetriever
+import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.work.Constraints
@@ -64,7 +66,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
 
 class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
-    override fun downloadNow(context: Context, item: Episode, ignoreConstraints: Boolean) {
+    override fun downloadNow(item: Episode, ignoreConstraints: Boolean) {
         if (item.downloadUrl.isNullOrEmpty()) {
             Loge(TAG, "downloadUrl is null or empty ${item.title}")
             return
@@ -74,10 +76,10 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         workRequest.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
         if (ignoreConstraints) workRequest.setConstraints(Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
         else workRequest.setConstraints(constraints)
-        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(item.downloadUrl!!, ExistingWorkPolicy.KEEP, workRequest.build())
+        WorkManager.getInstance(getAppContext()).enqueueUniqueWork(item.downloadUrl!!, ExistingWorkPolicy.KEEP, workRequest.build())
     }
 
-    override fun download(context: Context, item: Episode) {
+    override fun download(item: Episode) {
         if (item.downloadUrl.isNullOrEmpty()) {
             Loge(TAG, "downloadUrl is null or empty ${item.title}")
             return
@@ -92,29 +94,29 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
         Logd(TAG, "starting download")
         val workRequest: OneTimeWorkRequest.Builder = getRequest(item)
         workRequest.setConstraints(constraints)
-        WorkManager.getInstance(context.applicationContext).enqueueUniqueWork(item.downloadUrl!!, ExistingWorkPolicy.KEEP, workRequest.build())
+        WorkManager.getInstance(getAppContext()).enqueueUniqueWork(item.downloadUrl!!, ExistingWorkPolicy.KEEP, workRequest.build())
     }
 
-    override fun cancel(context: Context, media: Episode) {
+    override fun cancel(media: Episode) {
         Logd(TAG, "starting cancel")
         // This needs to be done here, not in the worker. Reason: The worker might or might not be running.
         // Remove partially downloaded file
         val episode_ = deleteMedia(media)
         if (getPref(AppPrefs.prefDeleteRemovesFromQueue, true)) removeFromAllQueues(listOf(episode_))
         val tag = WORK_TAG_EPISODE_URL + media.downloadUrl
-        val future: Future<List<WorkInfo>> = WorkManager.getInstance(context).getWorkInfosByTag(tag)
+        val future: Future<List<WorkInfo>> = WorkManager.getInstance(getAppContext()).getWorkInfosByTag(tag)
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val workInfoList = future.get() // Wait for the completion of the future operation and retrieve the result
                 workInfoList.forEach { workInfo -> if (workInfo.tags.contains(WORK_DATA_WAS_QUEUED)) removeFromQueue(actQueue, listOf(media), playState = EpisodeState.UNSPECIFIED) }
             } catch (exception: Throwable) { Logs(TAG, exception)
-            } finally { WorkManager.getInstance(context).cancelAllWorkByTag(tag) }
+            } finally { WorkManager.getInstance(getAppContext()).cancelAllWorkByTag(tag) }
         }
     }
 
-    override fun cancelAll(context: Context) {
-        WorkManager.getInstance(context).cancelAllWorkByTag(WORK_TAG)
+    override fun cancelAll() {
+        WorkManager.getInstance(getAppContext()).cancelAllWorkByTag(WORK_TAG)
     }
 
     class EpisodeDownloadWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
@@ -124,7 +126,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
 
         override suspend fun doWork(): Result {
             Logd(TAG, "starting doWork")
-            ClientConfigurator.initialize(applicationContext)
+            ClientConfigurator.initialize()
             val mediaId = inputData.getLong(WORK_DATA_MEDIA_ID, 0)
             val media = realm.query(Episode::class).query("id == $0", mediaId).first().find()
             if (media == null) {
@@ -204,7 +206,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             if (downloader!!.cancelled) return Result.success()
             val status = downloader!!.result
             if (status.isSuccessful) {
-                val handler = MediaDownloadedHandler(applicationContext, downloader!!.result, request)
+                val handler = MediaDownloadedHandler(downloader!!.result, request)
                 handler.run()
                 addDownloadStatus(handler.updatedStatus)
                 return Result.success()
@@ -282,31 +284,40 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
             return builder.build()
         }
 
-        class MediaDownloadedHandler(private val context: Context, var updatedStatus: DownloadResult, private val request: DownloadRequest) {
+        class MediaDownloadedHandler(var updatedStatus: DownloadResult, private val request: DownloadRequest) {
             fun run() {
                 var item = realm.query(Episode::class).query("id == ${request.feedfileId}").first().find()
                 if (item == null) {
                     Loge(TAG, "Could not find downloaded episode object in database")
                     return
                 }
-                val broadcastUnreadStateUpdate = item.isNew
+//                val broadcastUnreadStateUpdate = item.isNew
                 item = upsertBlk(item) {
                     it.downloaded = true
-                    it.setfileUrlOrNull(request.destination)
+                    it.fileUrl = request.destination
                     Logd(TAG, "run() set request.destination: ${request.destination}")
                     if (!request.destination.isNullOrBlank()) {
                         val file = File(URI.create(request.destination).path)
                         it.size = if (file.exists()) file.length() else 0
                         Logd(TAG, "run() set size: ${it.size}")
                     }
-                    it.checkEmbeddedPicture(false) // enforce check
+                    try {
+                        Episode.MediaMetadataRetrieverCompat().use { mmr ->
+                            mmr.setDataSource(getAppContext(), Uri.parse(it.fileUrl))
+                            val image = mmr.embeddedPicture
+                            it.hasEmbeddedPicture = image != null
+                        }
+                    } catch (e: Exception) {
+                        Logs(TAG, e)
+                        it.hasEmbeddedPicture = false
+                    }
                     if (it.chapters.isEmpty()) it.setChapters(it.loadChaptersFromMediaFile())
                     if (!it.podcastIndexChapterUrl.isNullOrBlank()) loadChaptersFromUrl(it.podcastIndexChapterUrl!!, false)
                     if (!it.fileUrl.isNullOrBlank()) {
                         var durationStr: String? = null
                         try {
                             Episode.MediaMetadataRetrieverCompat().use { mmr ->
-                                mmr.setDataSource(context, it.fileUrl?.toUri())
+                                mmr.setDataSource(getAppContext(), it.fileUrl?.toUri())
                                 durationStr = mmr.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
                                 if (durationStr != null) it.duration = durationStr.toInt()
                             }
@@ -320,16 +331,16 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                         it.duration = 30000
                     }
                     Logd(TAG, "run() set duration: ${it.duration}")
-                    it.disableAutoDownload()
+                    it.isAutoDownloadEnabled = false
                 }
                 // TODO: need to post two events?
 //                if (broadcastUnreadStateUpdate) EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.updated(item))
                 if (isProviderConnected) {
                     Logd(TAG, "enqueue synch")
                     val action = EpisodeAction.Builder(item, EpisodeAction.DOWNLOAD).currentTimestamp().build()
-                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, action)
+                    SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(action)
                 }
-                Logd(TAG, "episode.isNew: ${item.isNew} ${item.playState}")
+//                Logd(TAG, "episode.isNew: ${item.isNew} ${item.playState}")
             }
         }
 

@@ -89,13 +89,6 @@ class Episode : RealmObject {
 
     var pubDate: Long = 0
 
-//    @Ignore
-//    var feed: Feed? = null
-//        get() {
-//            if (field == null && feedId != null) field = getFeed(feedId!!)
-//            return field
-//        }
-
     @Index
     var feedId: Long? = null
 
@@ -124,6 +117,7 @@ class Episode : RealmObject {
             this.playStateSetTime = value?.time ?: 0L
         }
     var playStateSetTime: Long = 0L
+        private set
 
     var paymentLink: String? = null
 
@@ -149,16 +143,22 @@ class Episode : RealmObject {
 
     var chaptersLoaded: Boolean = false
 
+    @set:JvmName("setRatingProperty")
     var rating: Int = Rating.UNRATED.code
+
+    var ratingTime: Long = 0L
+        private set
+
+    @JvmName("setRatingFunction")
+    fun setRating(r: Rating) {
+        rating = r.code
+        ratingTime = System.currentTimeMillis()
+    }
 
     // info from youtube
     var viewCount: Int = 0
 
     var likeCount: Int = 0
-
-    @Ignore
-    var isSUPER: Boolean = (rating == Rating.SUPER.code)
-        private set
 
     var comment: String = ""
         private set
@@ -167,14 +167,6 @@ class Episode : RealmObject {
         private set
 
     var todos: RealmList<Todo> = realmListOf()
-
-    @Ignore
-    val isNew: Boolean
-        get() = playState == EpisodeState.NEW.code
-
-    @Ignore
-    val isInProgress: Boolean
-        get() = position > 0
 
     /**
      * Returns the value that uniquely identifies this FeedItem. If the
@@ -191,9 +183,6 @@ class Episode : RealmObject {
             else -> link
         }
 
-    @Ignore
-    val isRemote = mutableStateOf(false)
-
     var fileUrl: String? = null
 
     var downloadUrl: String? = null
@@ -203,14 +192,13 @@ class Episode : RealmObject {
         get() = fileUrl != null
         set(value) {
             if (value) downloadTime = Date().time
-            if (isNew) setPlayed(false)
+            if (playState == EpisodeState.NEW.code) setPlayState(EpisodeState.UNPLAYED)
         }
 
     var downloadTime: Long = 0
 
     var duration: Int = 0    // in milliseconds
 
-    @set:JvmName("setPositionProperty")
     var position: Int = 0 // Current position in file, in milliseconds
 
     @Ignore
@@ -248,17 +236,16 @@ class Episode : RealmObject {
         }
     var playbackCompletionTime: Long = 0
 
-    // if null: unknown, will be checked
-    // TODO: what to do with this? can be expensive
-    @Ignore
+    // if null: unknown, need to be checked
     var hasEmbeddedPicture: Boolean? = null
 
-    @Ignore
-    var forceVideo by mutableStateOf(false)
+    var forceVideo: Boolean = false
 
+    // TODO: needed in cast player
     @Ignore
     var effectUrl = ""
 
+    // TODO: needed in cast player
     @Ignore
     var effectMimeType = ""
 
@@ -297,7 +284,6 @@ class Episode : RealmObject {
         this.playState = state
         playStateSetTime = System.currentTimeMillis()
         if (feed != null) this.feedId = feed.id
-        this.feed = feed
     }
 
     fun updateFromOther(other: Episode, includingState: Boolean = false) {
@@ -344,7 +330,7 @@ class Episode : RealmObject {
                 when {
                     imageUrl != null -> imageUrl
                     feed != null -> feed!!.imageUrl
-                    hasEmbeddedPicture() -> FILENAME_PREFIX_EMBEDDED_COVER + fileUrl
+                    hasEmbeddedPicture == true -> FILENAME_PREFIX_EMBEDDED_COVER + fileUrl
                     else -> null
                 }
             }
@@ -358,19 +344,14 @@ class Episode : RealmObject {
             if (playState == EpisodeState.PLAYED.code) EpisodeState.UNPLAYED.code
             else EpisodeState.PLAYED.code
         }
-        if (resetPosition || playState == EpisodeState.PLAYED.code || playState == EpisodeState.IGNORED.code) setPosition(0)
+        if (resetPosition || playState == EpisodeState.PLAYED.code || playState == EpisodeState.IGNORED.code) position = 0
         if (state in listOf(EpisodeState.QUEUE, EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) isAutoDownloadEnabled = false
         playStateSetTime = System.currentTimeMillis()
     }
 
     fun isPlayed(): Boolean = playState >= EpisodeState.SKIPPED.code
 
-    fun setPlayed(played: Boolean) {
-        playState = if (played) EpisodeState.PLAYED.code else EpisodeState.UNPLAYED.code
-        playStateSetTime = System.currentTimeMillis()
-    }
-
-    fun hasAlmostEnded(): Boolean = duration > 0 && position >= duration * smartMarkAsPlayedPercent * 0.01
+    fun hasAlmostEnded(): Boolean = duration > 0 && position >= duration * smartMarkAsPlayedPercent * 0.05
 
     /**
      * Updates this item's description property if the given argument is longer than the already stored description
@@ -414,10 +395,6 @@ class Episode : RealmObject {
         }
     }
 
-    fun disableAutoDownload() {
-        this.isAutoDownloadEnabled = false
-    }
-
     override fun toString(): String {
         return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE)
     }
@@ -445,11 +422,9 @@ class Episode : RealmObject {
         if (chapters != other.chapters) return false
         if (rating != other.rating) return false
         if (comment != other.comment) return false
-        if (isInProgress != other.isInProgress) return false
 
         if (fileUrl != other.fileUrl) return false
         if (downloadUrl != other.downloadUrl) return false
-        if (downloaded != other.downloaded) return false
         if (downloadTime != other.downloadTime) return false
         if (duration != other.duration) return false
         if (position != other.position) return false
@@ -484,11 +459,9 @@ class Episode : RealmObject {
         result = 31 * result + chapters.hashCode()
         result = 31 * result + rating.hashCode()
         result = 31 * result + comment.hashCode()
-        result = 31 * result + isInProgress.hashCode()
 
         result = 31 * result + (fileUrl?.hashCode() ?: 0)
         result = 31 * result + (downloadUrl?.hashCode() ?: 0)
-        result = 31 * result + downloaded.hashCode()
         result = 31 * result + downloadTime.hashCode()
         result = 31 * result + duration
         result = 31 * result + position
@@ -518,7 +491,7 @@ class Episode : RealmObject {
         this.playbackCompletionDate =  playbackCompletionDate?.clone() as? Date
         this.playbackCompletionTime =  playbackCompletionDate?.time ?: 0
         this.lastPlayedTime = lastPlayedTime
-        setfileUrlOrNull(fileUrl)
+        this.fileUrl = fileUrl
         this.downloadUrl = downloadUrl
         this.downloaded = downloaded
     }
@@ -526,16 +499,11 @@ class Episode : RealmObject {
     fun fillMedia(downloadUrl: String?, size: Long, mimeType: String?) {
         this.size = size
         this.mimeType = mimeType
-        setfileUrlOrNull(null)
+        fileUrl = null
         this.downloadUrl = downloadUrl
 //        Logd(TAG, "fillMedia downloadUrl: $downloadUrl")
     }
 
-    // from EpisodeMedia
-
-    /**
-     * Uses mimetype to determine the type of media.
-     */
     fun getMediaType(): MediaType {
         return MediaType.fromMimeType(mimeType)
     }
@@ -560,22 +528,6 @@ class Episode : RealmObject {
 //
 //        return false
 //    }
-
-//    fun setIsDownloaded() {
-//        downloaded = true
-//        downloadTime = Date().time
-//        if (isNew) setPlayed(false)
-//    }
-
-    fun setfileUrlOrNull(url: String?) {
-        fileUrl = url
-        if (url.isNullOrBlank()) downloaded = false
-    }
-
-    fun setPosition(newPosition: Int) {
-        this.position = newPosition
-        if (newPosition > 0 && isNew) setPlayed(false)
-    }
 
     fun fileSize(): Long? {
         if (fileUrl == null) return null
@@ -742,11 +694,6 @@ class Episode : RealmObject {
 
     fun isSizeSetUnknown(): Boolean = (CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() == this.size)
 
-    fun hasEmbeddedPicture(): Boolean {
-        if (hasEmbeddedPicture == null) checkEmbeddedPicture()
-        return hasEmbeddedPicture == true
-    }
-
 //    override fun writeToParcel(dest: Parcel, flags: Int) {
 //        dest.writeString(id.toString())
 //        dest.writeString(if (episode != null) episode!!.id.toString() else "")
@@ -763,11 +710,6 @@ class Episode : RealmObject {
 //    }
 
     fun getEpisodeTitle(): String = title ?: identifyingValue ?: "No title"
-
-    /**
-     * Returns true if a local file that can be played is available. getFileUrl MUST return a non-null string if this method returns true.
-     */
-    fun localFileAvailable(): Boolean = downloaded && !fileUrl.isNullOrBlank()
 
     /**
      * This method should be called every time playback starts on this object.
@@ -833,7 +775,7 @@ class Episode : RealmObject {
     @Throws(IOException::class)
     private fun openStream(): CountingInputStream {
         val context = getAppContext()
-        if (localFileAvailable()) {
+        if (!fileUrl.isNullOrBlank()) {
             if (fileUrl.isNullOrBlank()) throw IOException("No local url")
             val fileuri = fileUrl!!.toUri()
             when (fileuri.scheme) {
@@ -908,7 +850,7 @@ class Episode : RealmObject {
 //    }
 
     fun checkEmbeddedPicture(persist: Boolean = true) {
-        if (!localFileAvailable()) hasEmbeddedPicture = false
+        if (fileUrl.isNullOrBlank()) hasEmbeddedPicture = false
         else {
             // TODO: what to do with this
 //            try {

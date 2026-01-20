@@ -7,10 +7,12 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.os.StatFs
 import android.os.storage.StorageManager
 import android.webkit.MimeTypeMap
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import kotlinx.coroutines.CoroutineScope
@@ -299,5 +301,11 @@ fun getTotalSpaceAvailable(path: String?): Long {
     val blockCount = stat.blockCountLong
     val blockSize = stat.blockSizeLong
     return blockCount * blockSize
+}
+
+class AddLocalFolder : ActivityResultContracts.OpenDocumentTree() {
+    override fun createIntent(context: Context, input: Uri?): Intent {
+        return super.createIntent(context, input).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
 }
 

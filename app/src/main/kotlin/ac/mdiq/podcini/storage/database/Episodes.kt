@@ -152,9 +152,8 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
                 onNeutral = { userDone.complete(Unit)},
                 onCancel = { userDone.complete(Unit)})
         }
+        userDone.await()
     }
-
-    userDone.await()
 
     if (repeatItems.isNotEmpty()) {
         withContext(Dispatchers.Main) {
@@ -188,6 +187,7 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String, saveLog: Boolean
             }
         }
         for (e in episodes) if (e.feed?.isLocalFeed != true) deleteMedia(e)
+        Logd(TAG, "eraseEpisodes deleting episodes: ${episodes.size}")
         realm.write { for (e in episodes) findLatest(e)?.let { delete(it) } }
         EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
     } catch (e: Throwable) { Logs("eraseEpisodes", e) }
@@ -212,7 +212,7 @@ fun deleteMedia(episode: Episode): Episode {
                     return episode
                 }
                 episode = upsertBlk(episode) {
-                    it.setfileUrlOrNull(null)
+                    it.fileUrl = null
                     if (it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
                 }
                 // TODO: need to change event
@@ -235,7 +235,7 @@ fun deleteMedia(episode: Episode): Episode {
                     return episode
                 }
                 episode = upsertBlk(episode) {
-                    it.setfileUrlOrNull(null)
+                    it.fileUrl = null
                     it.hasEmbeddedPicture = false
                     if (it.playState < EpisodeState.SKIPPED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.SKIPPED)
                 }
@@ -247,19 +247,19 @@ fun deleteMedia(episode: Episode): Episode {
 
     if (episode.id == curState.curMediaId) {
         savePlayerStatus(null)
-        sendLocalBroadcast(context, ACTION_SHUTDOWN_PLAYBACK_SERVICE)
+        sendLocalBroadcast(ACTION_SHUTDOWN_PLAYBACK_SERVICE)
         val nm = NotificationManagerCompat.from(context)
         nm.cancel(R.id.notification_playing)
     }
 
     // Do full update of this feed to get rid of the episode
     if (localDelete) {
-        if (episode.feed != null) updateLocalFeed(episode.feed!!, context.applicationContext, null)
+        if (episode.feed != null) updateLocalFeed(episode.feed!!, null)
     } else {
         if (isProviderConnected) {
             // Gpodder: queue delete action for synchronization
             val action = EpisodeAction.Builder(episode, EpisodeAction.DELETE).currentTimestamp().build()
-            SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(context, action)
+            SynchronizationQueueSink.enqueueEpisodeActionIfSyncActive(action)
         }
         EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode))
     }
@@ -273,7 +273,6 @@ fun deleteMedia(episode: Episode): Episode {
  */
 @OptIn(UnstableApi::class)
 fun deleteMedias(episodes: List<Episode>)  {
-    val context = getAppContext()
     val removedFromQueue: MutableList<Episode> = mutableListOf()
     val queueItems = actQueue.episodes.toMutableList()
     for (episode in episodes) {
@@ -281,20 +280,14 @@ fun deleteMedias(episodes: List<Episode>)  {
         if (episode.id == curState.curMediaId) {
             // Applies to both downloaded and streamed media
             savePlayerStatus(null)
-            sendLocalBroadcast(context, ACTION_SHUTDOWN_PLAYBACK_SERVICE)
+            sendLocalBroadcast(ACTION_SHUTDOWN_PLAYBACK_SERVICE)
         }
         if (episode.feed != null && !episode.feed!!.isLocalFeed) {
-            DownloadServiceInterface.impl?.cancel(context, episode)
+            DownloadServiceInterface.impl?.cancel(episode)
             if (episode.downloaded) deleteMedia(episode)
         }
     }
     if (removedFromQueue.isNotEmpty()) removeFromAllQueues(removedFromQueue)
-//    for (episode in removedFromQueue) EventFlow.postEvent(FlowEvent.QueueEvent.irreversibleRemoved(episode))
-
-    // we assume we also removed download log entries for the feed or its media files.
-    // especially important if download or refresh failed, as the user should not be able
-    // to retry these
-//    EventFlow.postEvent(FlowEvent.DownloadLogEvent())
 }
 
 fun checkAndMarkDuplicates(episode: Episode): Episode {

@@ -158,7 +158,7 @@ enum class StatusRowMode {
 }
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
 @Composable
-fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null,
+fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boolean = false,
                       lazyListState: LazyListState = rememberLazyListState(), scrollToOnStart: Int = -1,
                       layoutMode: Int = LayoutMode.Normal.ordinal,
                       showCoverImage: Boolean = true, forceFeedImage: Boolean = false,
@@ -544,7 +544,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null,
                         }
 
 
-                        if (showActionButtons && (episode.isInProgress || curEpisode?.id == episode.id)) {
+                        if (showActionButtons && (episode.position > 0 || curEpisode?.id == episode.id)) {
                             fun calcProg(): Float {
                                 val pos = episode.position
                                 val dur = episode.duration
@@ -639,7 +639,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null,
                         { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                             onSelected()
                             fun download(now: Boolean) {
-                                for (e in selected) if (e.feed != null && !e.feed!!.isLocalFeed) DownloadServiceInterface.impl?.downloadNow(context, e, now)
+                                for (e in selected) if (e.feed != null && !e.feed!!.isLocalFeed) DownloadServiceInterface.impl?.downloadNow(e, now)
                             }
                             if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) download(true)
                             else {
@@ -721,7 +721,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null,
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_shelves_24), contentDescription = "Shelve")
                             Text(stringResource(id = R.string.shelve_label)) } },
                     )
-                    if (selected.isNotEmpty() && selected[0].isRemote.value)
+                    if (selected.isNotEmpty() && isRemote)
                         options.add {
                             Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                                 onSelected()

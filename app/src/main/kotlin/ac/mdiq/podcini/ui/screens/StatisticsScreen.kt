@@ -18,7 +18,6 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import android.annotation.SuppressLint
-import android.content.Context
 import android.text.format.DateFormat
 import android.text.format.Formatter
 import androidx.compose.foundation.BorderStroke
@@ -98,7 +97,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -120,7 +121,7 @@ import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.jvmErasure
 
 
-class StatisticsVM(val context: Context, val lcScope: CoroutineScope) {
+class StatisticsVM: ViewModel() {
 
     internal var statisticsState by mutableIntStateOf(0)
     internal val selectedTabIndex = mutableIntStateOf(0)
@@ -198,7 +199,7 @@ fun StatisticsScreen() {
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
-    val vm = remember { StatisticsVM(context, scope) }
+    val vm: StatisticsVM = viewModel()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->

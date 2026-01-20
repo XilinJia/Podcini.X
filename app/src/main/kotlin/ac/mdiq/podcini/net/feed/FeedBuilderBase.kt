@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.net.feed
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadRequestCreator.create
 import ac.mdiq.podcini.net.download.service.Downloader
@@ -28,7 +29,7 @@ import java.net.MalformedURLException
 import java.net.URL
 import kotlin.math.min
 
-open class FeedBuilderBase(val context: Context, val showError: (String?, String)->Unit) {
+open class FeedBuilderBase(val showError: (String?, String)->Unit) {
     protected val TAG = "FeedBuilder"
 
     var feedSource: String = ""
@@ -74,7 +75,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
                             withContext(Dispatchers.Main) { showError(e.message, "") }
                         }
                     }
-                    else -> withContext(Dispatchers.Main) { showError(context.getString(from(status.reason)), status.reasonDetailed) }
+                    else -> withContext(Dispatchers.Main) { showError(getAppContext().getString(from(status.reason)), status.reasonDetailed) }
                 }
             } catch (e: Throwable) {
                 Logs(TAG, e)
@@ -116,7 +117,7 @@ open class FeedBuilderBase(val context: Context, val showError: (String?, String
 //                    val dialogShown = showFeedDiscoveryDialog(destinationFile, selectedDownloadUrl!!)
 //                    if (dialogShown) null // Should not display an error message
 //                    else throw FeedHandler.UnsupportedFeedtypeException(getString(R.string.download_error_unsupported_type_html))
-                    throw FeedHandler.UnsupportedFeedtypeException(context.getString(R.string.download_error_unsupported_type_html))
+                    throw FeedHandler.UnsupportedFeedtypeException(getAppContext().getString(R.string.download_error_unsupported_type_html))
                 } else null
             } else throw e
         } catch (e: Exception) {

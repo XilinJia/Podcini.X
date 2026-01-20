@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.ui.actions
 
 import ac.mdiq.podcini.PodciniApp.Companion.getApp
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.utils.NetworkUtils
@@ -83,7 +84,7 @@ import net.dankito.readability4j.Readability4J
 import kotlin.math.max
 import kotlin.math.min
 
-class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) {
+class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) {
     private val TAG = this::class.simpleName ?: "ItemActionButton"
 
     private var _type = mutableStateOf(typeInit)
@@ -117,11 +118,12 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
     var ttsJob: Job? = null
 
     @UnstableApi
-    fun onClick(context: Context) {
+    fun onClick(actContext: Context? = null) {
+        val context = getAppContext()
         fun fileNotExist(): Boolean {
             if (!item.fileExists()) {
                 Loge(TAG, context.getString(R.string.error_file_not_found) + ": ${item.title}")
-                val episode_ = upsertBlk(item) { it.setfileUrlOrNull(null) }
+                val episode_ = upsertBlk(item) { it.fileUrl = null }
                 EventFlow.postEvent(FlowEvent.EpisodeMediaEvent.removed(episode_))
                 update(episode_)
                 return true
@@ -146,11 +148,11 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
         }
         Logd(TAG, "onClick type: $type")
         when (type) {
-            ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty()) openInBrowser(context, item.link!!)
+            ButtonTypes.WEBSITE -> if (!item.link.isNullOrEmpty() && actContext != null) openInBrowser(actContext, item.link!!)
             ButtonTypes.CANCEL -> {
                 if (typeToCancel == ButtonTypes.DOWNLOAD) {
-                    DownloadServiceInterface.impl?.cancel(context, item)
-                    if (AppPreferences.isAutodownloadEnabled) upsertBlk(item) { it.disableAutoDownload() }
+                    DownloadServiceInterface.impl?.cancel(item)
+                    if (AppPreferences.isAutodownloadEnabled) upsertBlk(item) { it.isAutoDownloadEnabled = false }
                     type = ButtonTypes.DOWNLOAD
                 } else if (typeToCancel == ButtonTypes.TTS) {
                     runOnIOScope {
@@ -168,45 +170,45 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
             }
             ButtonTypes.PLAY -> {
                 if (fileNotExist()) return
-                PlaybackStarter(context, item).start()
-                playVideoIfNeeded(context, item)
+                PlaybackStarter(item).start()
+                if (actContext != null) playVideoIfNeeded(actContext, item)
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.PLAY_ONE -> {
                 if (fileNotExist()) return
-                PlaybackStarter(context, item).start()
-                playVideoIfNeeded(context, item)
+                PlaybackStarter(item).start()
+                if (actContext != null) playVideoIfNeeded(actContext, item)
                 actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.PLAY_REPEAT -> {
                 if (fileNotExist()) return
-                PlaybackStarter(context, item).setToRepeat(true).start()
-                playVideoIfNeeded(context, item)
+                PlaybackStarter(item).setToRepeat(true).start()
+                if (actContext != null) playVideoIfNeeded(actContext, item)
                 actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM -> {
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
                 askToStream {
-                    PlaybackStarter(context, item).shouldStreamThisTime(true).start()
-                    playVideoIfNeeded(context, item)
+                    PlaybackStarter(item).shouldStreamThisTime(true).start()
+                    if (actContext != null) playVideoIfNeeded(actContext, item)
                 }
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM_REPEAT -> {
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
                 askToStream {
-                    PlaybackStarter(context, item).shouldStreamThisTime(true).setToRepeat(true).start()
-                    playVideoIfNeeded(context, item)
+                    PlaybackStarter(item).shouldStreamThisTime(true).setToRepeat(true).start()
+                    if (actContext != null) playVideoIfNeeded(actContext, item)
                     actQueue = tmpQueue()
                 }
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             ButtonTypes.STREAM_ONE -> {
                 //        Logd("StreamActionButton", "item.feed: ${item.feedId}")
-                PlaybackStarter(context, item).shouldStreamThisTime(true).start()
-                playVideoIfNeeded(context, item)
+                PlaybackStarter(item).shouldStreamThisTime(true).start()
+                if (actContext != null) playVideoIfNeeded(actContext, item)
                 actQueue = tmpQueue()
                 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
@@ -232,7 +234,7 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                 }
                 if (shouldNotDownload(item)) return
                 if (mobileAllowEpisodeDownload || !getApp().networkMonitor.isNetworkRestricted) {
-                    DownloadServiceInterface.impl?.downloadNow(context, item, false)
+                    DownloadServiceInterface.impl?.downloadNow(item, false)
                     Logd(TAG, "downloading ${item.title}")
                     typeToCancel = ButtonTypes.DOWNLOAD
                     type = ButtonTypes.CANCEL
@@ -244,8 +246,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     confirmRes = R.string.confirm_mobile_download_dialog_download_later,
                     cancelRes = R.string.cancel_label,
                     neutralRes = R.string.confirm_mobile_download_dialog_allow_this_time,
-                    onConfirm = { DownloadServiceInterface.impl?.downloadNow(context, item, false) },
-                    onNeutral = { DownloadServiceInterface.impl?.downloadNow(context, item, true) })
+                    onConfirm = { DownloadServiceInterface.impl?.downloadNow( item, false) },
+                    onNeutral = { DownloadServiceInterface.impl?.downloadNow( item, true) })
             }
             ButtonTypes.TTS_NOW -> {
                 Logd("JUSTTTSButton", "onClick called")
@@ -450,11 +452,11 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
                     sleepManager?.restartSleepTimer()
                 } else {
                     curTempSpeed = SPEED_USE_GLOBAL
-                    PlaybackStarter(context, item).start()
+                    PlaybackStarter(item).start()
                     if (item.playState < EpisodeState.PROGRESS.code || item.playState == EpisodeState.SKIPPED.code || item.playState == EpisodeState.AGAIN.code)
                         item = upsertBlk(item) { it.setPlayState(EpisodeState.PROGRESS) }
                 }
-                if (item.getMediaType() == MediaType.VIDEO) context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
+                if (item.getMediaType() == MediaType.VIDEO && actContext != null) actContext.startActivity(getPlayerActivityIntent(actContext, MediaType.VIDEO))
 //                type = ButtonTypes.PAUSE  leave it to playerStat
             }
             else -> {}
@@ -641,9 +643,8 @@ class EpisodeActionButton( var item: Episode, typeInit: ButtonTypes = ButtonType
     companion object {
         @OptIn(UnstableApi::class)
         fun playVideoIfNeeded(context: Context, item: Episode) {
-            if (item.forceVideo || (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY
-                            && videoPlayMode != VideoMode.AUDIO_ONLY.code && videoMode != VideoMode.AUDIO_ONLY
-                            && item.getMediaType() == MediaType.VIDEO))
+            if (item.forceVideo ||
+                (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && videoPlayMode != VideoMode.AUDIO_ONLY.code && videoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO))
                 context.startActivity(getPlayerActivityIntent(context, MediaType.VIDEO))
         }
     }

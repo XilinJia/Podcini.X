@@ -331,7 +331,7 @@ fun SearchScreen() {
     val textColor = MaterialTheme.colorScheme.onSurface
     val vm: SearchVM = viewModel()
 
-    var swipeActions by remember { mutableStateOf(SwipeActions(context, TAG)) }
+    var swipeActions by remember { mutableStateOf(SwipeActions(TAG)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->

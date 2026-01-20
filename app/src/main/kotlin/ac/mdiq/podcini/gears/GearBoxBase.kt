@@ -1,9 +1,8 @@
 package ac.mdiq.podcini.gears
 
-import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
+import ac.mdiq.podcini.net.feed.CombinedSearcher
 import ac.mdiq.podcini.net.feed.FeedBuilderBase
 import ac.mdiq.podcini.net.feed.FeedUpdaterBase
-import ac.mdiq.podcini.net.feed.CombinedSearcher
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.net.feed.PodcastSearcher
 import ac.mdiq.podcini.net.utils.NetworkUtils.getFinalRedirectedUrl
@@ -78,7 +77,7 @@ open class GearBoxBase {
     open fun feedUpdater(feeds: List<Feed>, fullUpdate: Boolean = false, doItAnyway: Boolean = false) : FeedUpdaterBase = FeedUpdaterBase(feeds, fullUpdate, doItAnyway)
 
     open fun formFeedBuilder(url: String, feedSource: String, showError: (String?, String) -> Unit): FeedBuilderBase {
-        return FeedBuilderBase(getAppContext(), showError)
+        return FeedBuilderBase(showError)
     }
 
     open suspend fun buildFeed(url: String, username: String, password: String, fbb: FeedBuilderBase, handleFeed: (Feed, Map<String, String>)->Unit, showDialog: ()->Unit) {
@@ -93,7 +92,7 @@ open class GearBoxBase {
     open fun subscribeFeed(feed: PodcastSearchResult) {
         if (feed.feedUrl == null) return
         runOnIOScope {
-            val fbb = FeedBuilderBase(getAppContext()) { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
+            val fbb = FeedBuilderBase() { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
             fbb.buildPodcast(feed.feedUrl, "", "") { feed, _ -> runOnIOScope { fbb.subscribe(feed) } }
         }
     }

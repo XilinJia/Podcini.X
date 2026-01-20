@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.net.sync
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.config.CHANNEL_ID
 import ac.mdiq.podcini.gears.gearbox
@@ -33,6 +34,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
+import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -64,7 +66,7 @@ import kotlin.text.startsWith
 open class SyncService(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     val TAG = this::class.simpleName ?: "Anonymous"
 
-    protected val synchronizationQueueStorage = SynchronizationQueueStorage(context)
+    protected val synchronizationQueueStorage = SynchronizationQueueStorage()
 
      override suspend fun doWork(): Result {
         Logd(TAG, "doWork() called")
@@ -265,11 +267,11 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             return null
         }
         var idRemove: Long? = null
-        feedItem.setPosition(action.position * 1000)
+        feedItem.position = action.position * 1000
         if (feedItem.hasAlmostEnded()) {
             Logd(TAG, "Marking as played: $action")
-            feedItem.setPlayed(true)
-            feedItem.setPosition(0)
+            feedItem.setPlayState(EpisodeState.PLAYED)
+//            feedItem.setPosition(0)
             idRemove = feedItem.id
         } else Logd(TAG, "Setting position: $action")
 
@@ -384,21 +386,21 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
             return builder
         }
 
-        fun sync(context: Context) {
+        fun sync() {
             val workRequest: OneTimeWorkRequest = getWorkRequest().build()
-            WorkManager.getInstance(context).enqueueUniqueWork(WORK_ID_SYNC, ExistingWorkPolicy.REPLACE, workRequest)
+            WorkManager.getInstance(getAppContext()).enqueueUniqueWork(WORK_ID_SYNC, ExistingWorkPolicy.REPLACE, workRequest)
         }
 
-        fun syncImmediately(context: Context) {
+        fun syncImmediately() {
             val workRequest: OneTimeWorkRequest = getWorkRequest().setInitialDelay(0L, TimeUnit.SECONDS).build()
-            WorkManager.getInstance(context).enqueueUniqueWork(WORK_ID_SYNC, ExistingWorkPolicy.REPLACE, workRequest)
+            WorkManager.getInstance(getAppContext()).enqueueUniqueWork(WORK_ID_SYNC, ExistingWorkPolicy.REPLACE, workRequest)
         }
 
-        fun fullSync(context: Context) {
+        fun fullSync() {
             executeLockedAsync {
                 SynchronizationSettings.resetTimestamps()
                 val workRequest: OneTimeWorkRequest = getWorkRequest().setInitialDelay(0L, TimeUnit.SECONDS).build()
-                WorkManager.getInstance(context).enqueueUniqueWork(WORK_ID_SYNC, ExistingWorkPolicy.REPLACE, workRequest)
+                WorkManager.getInstance(getAppContext()).enqueueUniqueWork(WORK_ID_SYNC, ExistingWorkPolicy.REPLACE, workRequest)
             }
         }
 

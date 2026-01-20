@@ -23,7 +23,7 @@ class AlarmReceiver : BroadcastReceiver() {
             val id = msgs[1].toLong()
             val episode = episodeById(id) ?: return
             val repeat = if (msgs.size == 3) msgs[2].toBoolean() else false
-            PlaybackStarter(context, episode).shouldStreamThisTime(null).setToRepeat(repeat).start()
+            PlaybackStarter(episode).shouldStreamThisTime(null).setToRepeat(repeat).start()
         }
     }
 }

@@ -1,6 +1,5 @@
 package ac.mdiq.podcini.net.download.service
 
-import android.content.Context
 import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.storage.model.Episode
 
@@ -14,16 +13,16 @@ abstract class DownloadServiceInterface {
     /**
      * Download immediately after user action.
      */
-    abstract fun downloadNow(context: Context, item: Episode, ignoreConstraints: Boolean)
+    abstract fun downloadNow(item: Episode, ignoreConstraints: Boolean)
 
     /**
      * Download when device seems fit.
      */
-    abstract fun download(context: Context, item: Episode)
+    abstract fun download(item: Episode)
 
-    abstract fun cancel(context: Context, media: Episode)
+    abstract fun cancel(media: Episode)
 
-    abstract fun cancelAll(context: Context)
+    abstract fun cancelAll()
 
     fun isDownloadingEpisode(url: String): Boolean {
         return (currentDownloads.containsKey(url) && currentDownloads[url]!!.state < DownloadStatus.State.COMPLETED.ordinal)

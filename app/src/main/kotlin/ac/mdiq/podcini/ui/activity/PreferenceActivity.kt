@@ -105,7 +105,7 @@ class PreferenceActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         Logd("PreferenceActivity", "onCreate")
 
-        copyrightNoticeText = getCopyrightNoticeText(this)
+        copyrightNoticeText = getCopyrightNoticeText()
         setContent {
             val navController = rememberNavController()
             CustomTheme(this) {

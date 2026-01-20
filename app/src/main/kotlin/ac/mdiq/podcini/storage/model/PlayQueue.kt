@@ -1,10 +1,13 @@
 package ac.mdiq.podcini.storage.model
 
-import ac.mdiq.podcini.storage.database.queueEntriesOf
+import ac.mdiq.podcini.automation.autodownloadForQueue
+import ac.mdiq.podcini.automation.autoenqueueForQueue
+import ac.mdiq.podcini.storage.database.persistOrdered
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.specs.EnqueueLocation
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
+import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.types.RealmList
@@ -52,11 +55,15 @@ class PlayQueue : RealmObject {
     val episodes: MutableList<Episode> = mutableListOf()
         get() {
             if (field.isEmpty()) {
-                val eids = queueEntriesOf(this).map { it.episodeId }
+                val eids = entries.map { it.episodeId }
                 field.addAll(realm.query(Episode::class).query("id IN $0", eids).sort(sortPairOf(sortOrder)).find())
             }
             return field
         }
+
+    @Ignore
+    val entries: List<QueueEntry>
+        get() = realm.query(QueueEntry::class).query("queueId == $id").sort("position").find()
 
     var scrollPosition: Int = 0
 
@@ -86,6 +93,19 @@ class PlayQueue : RealmObject {
         }
     }
 
+    suspend fun sort() {
+        val queueEntries = entries
+        val episodes = realm.query(Episode::class).query("id IN $0", queueEntries.map { it.episodeId }).find().toMutableList()
+        getPermutor(sortOrder).reorder(episodes)
+        persistOrdered(episodes, queueEntries)
+    }
+
+    fun checkAndFill() {
+        if (size() == 0 && !isVirtual()) {
+            autoenqueueForQueue(this)
+            if(launchAutoEQDlWhenEmpty) autodownloadForQueue(this)
+        }
+    }
 }
 
 fun tmpQueue(): PlayQueue = PlayQueue().apply { id = TMP_QUEUE_ID }
