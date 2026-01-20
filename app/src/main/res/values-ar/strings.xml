@@ -73,6 +73,7 @@
     <string name="global_default">الافتراضي العالمي</string>
     <string name="url_label">الرابط</string>
     <string name="last_full_update">آخر تحديث كامل</string>
+    <string name="last_update">Last update</string>
     <string name="support_funding_label">الدعم</string>
     <string name="support_podcast">دعم هذا podcast</string>
     <string name="error_label">خطأ</string>
@@ -101,6 +102,7 @@
     <string name="description_label">الوصف</string>
     <string name="transcript">Transcript</string>
     <string name="show_all_feeds">Show all feeds</string>
+    <string name="show_archived">Show archived</string>
     <string name="episodes_suffix">\u0020episodes</string>
     <string name="close_label">أغلق</string>
     <string name="retry_label">إعادة المحاولة</string>
@@ -355,6 +357,8 @@
     <string name="show_criteria">إظهار المعايير</string>
     <string name="title">العنوان</string>
     <string name="author">المؤلف</string>
+    <string name="score">Score</string>
+    <string name="score_count">Score count</string>
     <string name="random">عشوائي</string>
     <string name="smart_shuffle">خلط ذكي</string>
     <string name="size">الحجم</string>
@@ -382,6 +386,7 @@
     <string name="add_to_feed">إضافة إلى التغذية</string>
     <string name="interruptions">الانقطاع</string>
     <string name="playback_control">التحكم في التشغيل</string>
+    <string name="playback_speeds_sum">These can be more conveniently set from the speedometer on the Player UI.</string>
     <string name="reassign_hardware_buttons">إعادة تعيين أزرار الجهاز</string>
     <string name="pref_episode_cleanup_title">تنظيف الحلقة</string>
     <string name="pref_episode_cleanup_summary">الحلقات التي يجب أن تكون مؤهلة للإزالة إذا كان التحميل التلقائي يحتاج إلى مساحة للحلقات الجديدة</string>
@@ -803,6 +808,7 @@
     <string name="has_skips">تم ضبط التخطي</string>
     <string name="commented">تعليق</string>
     <string name="add_comment">إضافة تعليق (حفظ تلقائي 10s)</string>
+    <string name="last_commented">Last commented</string>
     <string name="is_local">Is local</string>
     <string name="feed_type">نوع التغذية</string>
     <string name="synthetic">اصطناعي</string>
