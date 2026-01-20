@@ -73,6 +73,7 @@
     <string name="global_default">グローバルデフォルト</string>
     <string name="url_label">URL</string>
     <string name="last_full_update">最終更新日時</string>
+    <string name="last_update">Last update</string>
     <string name="support_funding_label">サポート</string>
     <string name="support_podcast">このポッドキャストをサポートする</string>
     <string name="error_label">エラー</string>
@@ -101,6 +102,7 @@
     <string name="description_label">説明</string>
     <string name="transcript">Transcript</string>
     <string name="show_all_feeds">Show all feeds</string>
+    <string name="show_archived">Show archived</string>
     <string name="episodes_suffix">\u0020エピソード</string>
     <string name="close_label">閉じる</string>
     <string name="retry_label">再試行する</string>
@@ -345,6 +347,8 @@
     <string name="show_criteria">基準を表示</string>
     <string name="title">タイトル</string>
     <string name="author">作成者</string>
+    <string name="score">Score</string>
+    <string name="score_count">Score count</string>
     <string name="random">Random</string>
     <string name="smart_shuffle">スマートシャッフル</string>
     <string name="size">サイズ</string>
@@ -372,6 +376,7 @@
     <string name="add_to_feed">フィードに追加</string>
     <string name="interruptions">中断</string>
     <string name="playback_control">再生コントロール</string>
+    <string name="playback_speeds_sum">These can be more conveniently set from the speedometer on the Player UI.</string>
     <string name="reassign_hardware_buttons">ハードウェアボタンの再割り当て</string>
     <string name="pref_episode_cleanup_title">エピソードのクリーンアップ</string>
     <string name="pref_episode_cleanup_summary">自動ダウンロードに新しいエピソードのためのスペースが必要な場合、削除の対象となるエピソード</string>
@@ -778,6 +783,7 @@
     <string name="has_skips">スキップセット</string>
     <string name="commented">コメント</string>
     <string name="add_comment">コメントを追加（10秒自動保存）</string>
+    <string name="last_commented">Last commented</string>
     <string name="is_local">Is local</string>
     <string name="feed_type">フィードの種類</string>
     <string name="synthetic">シンセティック</string>
