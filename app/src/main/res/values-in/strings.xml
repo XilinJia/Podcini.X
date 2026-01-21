@@ -560,7 +560,7 @@
     <!-- Search -->
     <string name="search_status_no_results">No results were found</string>
     <string name="search_label">Search</string>
-    <string name="search_hint">delimit by comma, prefix with \'-\' to exclude</string>
+    <string name="search_hint">delimit by , prefix with - to exclude</string>
     <string name="no_results_for_query">No results were found for \"%1$s\"</string>
     <string name="search_online">Search online</string>
     <!-- Synchronization -->
