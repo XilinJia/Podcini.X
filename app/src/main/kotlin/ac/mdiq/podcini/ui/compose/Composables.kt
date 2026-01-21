@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -110,7 +111,7 @@ fun CommonPopupCard(onDismissRequest: () -> Unit, alignment: Alignment = Alignme
 
 
 @Composable
-fun FilterChipBorder(selected: Boolean): BorderStroke {
+fun filterChipBorder(selected: Boolean): BorderStroke {
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
     return FilterChipDefaults.filterChipBorder(
@@ -431,16 +432,30 @@ fun ComfirmDialog(titleRes: Int, message: String, showDialog: MutableState<Boole
 }
 
 @Composable
-fun SearchBarRow(hintTextRes: Int, defaultText: String, modifier: Modifier = Modifier, performSearch: (String) -> Unit) {
+fun SearchBarRow(hintTextRes: Int, defaultText: String, modifier: Modifier = Modifier, history: List<String> = listOf(), performSearch: (String) -> Unit) {
     val buttonColor = MaterialTheme.colorScheme.tertiary
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()) {
-        var queryText by remember { mutableStateOf(defaultText) }
+    var showHistory by remember { mutableStateOf(false) }
+    var queryText by remember { mutableStateOf(defaultText) }
+    DropdownMenu(expanded = showHistory, onDismissRequest = { showHistory = false }) {
+        for (i in history.indices) {
+            DropdownMenuItem(text = { Text(history[i]) },
+                onClick = {
+                    queryText = history[i]
+                    performSearch(queryText)
+                    showHistory = false
+                }
+            )
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         TextField(value = queryText, onValueChange = { queryText = it }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
             textStyle = TextStyle(fontSize = 16.sp), label = { Text(stringResource(hintTextRes)) },
             keyboardActions = KeyboardActions(onDone = { performSearch(queryText) }), modifier = Modifier.weight(1f),
+            leadingIcon = if (history.isNotEmpty()) { { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = buttonColor, contentDescription = "history",
+                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable(onClick = { showHistory = true })) } } else null,
             trailingIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), tint = buttonColor, contentDescription = "search",
-                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable(onClick = { performSearch(queryText) }))
-            })
+                modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable(onClick = { performSearch(queryText) })) }
+        )
     }
 }
 

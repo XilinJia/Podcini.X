@@ -230,9 +230,6 @@ fun removeFromAllQueues(episodes: Collection<Episode>, playState: EpisodeState? 
     if (actQueue.size() > 0) removeFromQueue(actQueue, episodes, playState)
 }
 
-/**
- * @param queue_    if null, use actQueue
- */
 internal fun removeFromQueue(queue_: PlayQueue?, episodes: Collection<Episode>, playState: EpisodeState? = null) {
     Logd(TAG, "removeFromQueue called ")
     val queue = queue_ ?: actQueue

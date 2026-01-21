@@ -152,6 +152,45 @@ fun mergeAudios(selection: Array<String>, outpath: String?, callback: OperationC
 
 @Throws(IOException::class)
 fun rawToWave(rawfn: String, wavefn: String) {
+    @Throws(IOException::class)
+    fun fullyReadFileToBytes(f: File): ByteArray {
+        val size = f.length().toInt()
+        val bytes = ByteArray(size)
+        val tmpBuff = ByteArray(size)
+        val fis = FileInputStream(f)
+        try {
+            var read = fis.read(bytes, 0, size)
+            if (read < size) {
+                var remain = size - read
+                while (remain > 0) {
+                    read = fis.read(tmpBuff, 0, remain)
+                    System.arraycopy(tmpBuff, 0, bytes, size - remain, read)
+                    remain -= read
+                }
+            }
+        } catch (e: IOException) { throw e
+        } finally { fis.close() }
+        return bytes
+    }
+    @Throws(IOException::class)
+    fun writeInt(output: DataOutputStream, value: Int) {
+        output.write(value shr 0)
+        output.write(value shr 8)
+        output.write(value shr 16)
+        output.write(value shr 24)
+    }
+
+    @Throws(IOException::class)
+    fun writeShort(output: DataOutputStream, value: Short) {
+        output.write(value.toInt() shr 0)
+        output.write(value.toInt() shr 8)
+    }
+
+    @Throws(IOException::class)
+    fun writeString(output: DataOutputStream, value: String) {
+        for (element in value) output.write(element.code)
+    }
+
     val rawFile = File(rawfn)
     val waveFile = File(wavefn)
     val rawData = ByteArray(rawFile.length().toInt())
@@ -187,54 +226,12 @@ fun rawToWave(rawfn: String, wavefn: String) {
         val shorts = ShortArray(rawData.size / 2)
         ByteBuffer.wrap(rawData).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()[shorts]
         val bytes = ByteBuffer.allocate(shorts.size * 2)
-        for (s in shorts) {
-            bytes.putShort(s)
-        }
+        for (s in shorts) bytes.putShort(s)
 
         output.write(fullyReadFileToBytes(rawFile))
     } finally {
         output?.close()
     }
-}
-
-@Throws(IOException::class)
-private fun fullyReadFileToBytes(f: File): ByteArray {
-    val size = f.length().toInt()
-    val bytes = ByteArray(size)
-    val tmpBuff = ByteArray(size)
-    val fis = FileInputStream(f)
-    try {
-        var read = fis.read(bytes, 0, size)
-        if (read < size) {
-            var remain = size - read
-            while (remain > 0) {
-                read = fis.read(tmpBuff, 0, remain)
-                System.arraycopy(tmpBuff, 0, bytes, size - remain, read)
-                remain -= read
-            }
-        }
-    } catch (e: IOException) { throw e
-    } finally { fis.close() }
-    return bytes
-}
-
-@Throws(IOException::class)
-private fun writeInt(output: DataOutputStream, value: Int) {
-    output.write(value shr 0)
-    output.write(value shr 8)
-    output.write(value shr 16)
-    output.write(value shr 24)
-}
-
-@Throws(IOException::class)
-private fun writeShort(output: DataOutputStream, value: Short) {
-    output.write(value.toInt() shr 0)
-    output.write(value.toInt() shr 8)
-}
-
-@Throws(IOException::class)
-private fun writeString(output: DataOutputStream, value: String) {
-    for (element in value) output.write(element.code)
 }
 
 interface OperationCallbacks {

@@ -10,6 +10,7 @@ import io.github.xilinjia.krdb.types.RealmSet
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import java.util.Locale
 
+const val SearchHistorySize = 20
 class AppAttribs: RealmObject {
     @PrimaryKey
     var id: Long = 0L
@@ -38,11 +39,11 @@ class AppAttribs: RealmObject {
 
     var timetable: RealmList<Timer> = realmListOf()
 
+    var searchHistory: RealmList<String> = realmListOf()
+
     var statisticsFrom: Long = 0L
 
     var statisticsUntil: Long = 0L
-
-//    var topChartNeedConfirm: Boolean = true
 
     var topChartCountryCode: String = Locale.getDefault().country
 

@@ -22,7 +22,9 @@ import org.apache.commons.lang3.ArrayUtils
 import org.apache.commons.lang3.StringUtils
 import java.io.File
 import java.io.FileNotFoundException
+import java.io.FilterInputStream
 import java.io.IOException
+import java.io.InputStream
 import java.io.UnsupportedEncodingException
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -287,7 +289,6 @@ private fun md5(md5: String): String? {
 /**
  * Get the number of free bytes that are available on the external storage.
  */
-
 fun getFreeSpaceAvailable(path: String?): Long {
     val stat = StatFs(path)
     val availableBlocks = stat.availableBlocksLong
@@ -309,3 +310,21 @@ class AddLocalFolder : ActivityResultContracts.OpenDocumentTree() {
     }
 }
 
+class CountingInputStream2(
+    private val delegate: InputStream
+) : FilterInputStream(delegate) {
+    var count: Int = 0
+        private set
+
+    override fun read(): Int {
+        val r = super.read()
+        if (r >= 0) count++
+        return r
+    }
+
+    override fun read(b: ByteArray, off: Int, len: Int): Int {
+        val r = super.read(b, off, len)
+        if (r > 0) count += r
+        return r
+    }
+}

@@ -2,11 +2,11 @@ package ac.mdiq.podcini.storage.parser
 
 import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.specs.EmbeddedChapterImage
+import ac.mdiq.podcini.storage.utils.CountingInputStream2
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.Logt
 import org.apache.commons.io.IOUtils
-import org.apache.commons.io.input.CountingInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.net.URLDecoder
@@ -43,7 +43,7 @@ class FrameHeader(
  * Reads the ID3 Tag of a given file.
  * See https://id3.org/id3v2.3.0
  */
-open class ID3Reader(private val inputStream: CountingInputStream) {
+open class ID3Reader(private val inputStream: CountingInputStream2) {
     private var tagHeader: TagHeader? = null
     val position: Int
         get() = inputStream.count
@@ -98,16 +98,22 @@ open class ID3Reader(private val inputStream: CountingInputStream) {
         return (firstByte.code shl 24) or (secondByte.code shl 16) or (thirdByte.code shl 8) or fourthByte.code
     }
 
-    fun expectChar(expected: Char): Boolean {
-        val read = inputStream.read().toChar()
-//        if (read != expected) throw ID3ReaderException("Expected $expected and got $read")
-        if (read != expected) Loge("ID3Reader", "Expected $expected and got $read")
-        return read == expected
-    }
-
     @Throws(ID3ReaderException::class, IOException::class)
     fun readTagHeader(): TagHeader? {
-        if (!expectChar('I') || !expectChar('D') || !expectChar('3')) return null
+//        fun expectChar(expected: Char): Boolean {
+//            val read = inputStream.read().toChar()
+//            //        if (read != expected) throw ID3ReaderException("Expected $expected and got $read")
+//            if (read != expected) Logt("ID3Reader", "Expected $expected and got $read")
+//            return read == expected
+//        }
+//        if (!expectChar('I') || !expectChar('D') || !expectChar('3')) return null
+
+        val header = ByteArray(3)
+        inputStream.read(header)
+        if (header.decodeToString() != "ID3") {
+            Logt(TAG, "File is either not a ID3 file or does not have ID3 header")
+            return null
+        }
         val version = readShort()
         val flags = readByte()
         val size = unsynchsafe(readInt())
@@ -229,7 +235,7 @@ open class ID3Reader(private val inputStream: CountingInputStream) {
     }
 }
 
-class Id3MetadataReader(input: CountingInputStream) : ID3Reader(input) {
+class Id3MetadataReader(input: CountingInputStream2) : ID3Reader(input) {
     var comment: String? = null
         private set
 
@@ -254,84 +260,76 @@ class Id3MetadataReader(input: CountingInputStream) : ID3Reader(input) {
  * Reads ID3 chapters.
  * See https://id3.org/id3v2-chapters-1.0
  */
-class ChapterReader(input: CountingInputStream) : ID3Reader(input) {
-    private val chapters: MutableList<Chapter> = mutableListOf()
+class ChapterReader(input: CountingInputStream2) : ID3Reader(input) {
+    val chapters: MutableList<Chapter> = mutableListOf()
 
     @Throws(IOException::class, ID3ReaderException::class)
     override fun readFrame(frameHeader: FrameHeader) {
+        @Throws(IOException::class, ID3ReaderException::class)
+        fun readChapter(frameHeader: FrameHeader): Chapter {
+            @Throws(IOException::class, ID3ReaderException::class)
+            fun readChapterSubFrame(frameHeader: FrameHeader, chapter: Chapter) {
+                Logd(TAG, "Handling subframe: $frameHeader")
+                val frameStartPosition = position
+                when (frameHeader.id) {
+                    FRAME_ID_TITLE -> {
+                        chapter.title = readEncodingAndString(frameHeader.size)
+                        Logd(TAG, "Found title: " + chapter.title)
+                    }
+                    FRAME_ID_LINK -> {
+                        readEncodingAndString(frameHeader.size) // skip description
+                        val url = readIsoStringNullTerminated(frameStartPosition + frameHeader.size - position)
+                        try {
+                            val decodedLink = URLDecoder.decode(url, "ISO-8859-1")
+                            chapter.link = decodedLink
+                            Logd(TAG, "Found link: " + chapter.link)
+                        } catch (e: IllegalArgumentException) { Logs(TAG, e, "Bad URL found in ID3 data") }
+                    }
+                    FRAME_ID_PICTURE -> {
+                        val encoding = readByte()
+                        val mime = readIsoStringNullTerminated(frameHeader.size)
+                        val type = readByte()
+                        val description = readEncodedString(encoding.toInt(), frameHeader.size)
+                        Logd(TAG, "Found apic: $mime,$description")
+                        if (MIME_IMAGE_URL == mime) {
+                            val link = readIsoStringNullTerminated(frameHeader.size)
+                            Logd(TAG, "Link: $link")
+                            if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = link
+                        } else {
+                            val alreadyConsumed = position - frameStartPosition
+                            val rawImageDataLength = frameHeader.size - alreadyConsumed
+                            if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = EmbeddedChapterImage.makeUrl(position, rawImageDataLength)
+                        }
+                    }
+                    else -> Logd(TAG, "Unknown chapter sub-frame.")
+                }
+                // Skip garbage to fill frame completely
+                // This also asserts that we are not reading too many bytes from this frame.
+                val alreadyConsumed = position - frameStartPosition
+                skipBytes(frameHeader.size - alreadyConsumed)
+            }
+            val chapterStartedPosition = position
+            val elementId = readIsoStringNullTerminated(100)
+            val startTime = readInt().toLong()
+            skipBytes(12) // Ignore end time, start offset, end offset
+
+            val chapter = Chapter()
+            chapter.start = startTime
+            chapter.chapterId = elementId
+
+            // Read sub-frames
+            while (position < chapterStartedPosition + frameHeader.size) {
+                val subFrameHeader = readFrameHeader()
+                readChapterSubFrame(subFrameHeader, chapter)
+            }
+            return chapter
+        }
         if (FRAME_ID_CHAPTER == frameHeader.id) {
             Logd(TAG, "Handling frame: $frameHeader")
             val chapter = readChapter(frameHeader)
             Logd(TAG, "Chapter done: $chapter")
             chapters.add(chapter)
         } else super.readFrame(frameHeader)
-    }
-
-    @Throws(IOException::class, ID3ReaderException::class)
-    fun readChapter(frameHeader: FrameHeader): Chapter {
-        val chapterStartedPosition = position
-        val elementId = readIsoStringNullTerminated(100)
-        val startTime = readInt().toLong()
-        skipBytes(12) // Ignore end time, start offset, end offset
-
-        val chapter = Chapter()
-        chapter.start = startTime
-        chapter.chapterId = elementId
-
-        // Read sub-frames
-        while (position < chapterStartedPosition + frameHeader.size) {
-            val subFrameHeader = readFrameHeader()
-            readChapterSubFrame(subFrameHeader, chapter)
-        }
-        return chapter
-    }
-
-    @Throws(IOException::class, ID3ReaderException::class)
-    fun readChapterSubFrame(frameHeader: FrameHeader, chapter: Chapter) {
-        Logd(TAG, "Handling subframe: $frameHeader")
-        val frameStartPosition = position
-        when (frameHeader.id) {
-            FRAME_ID_TITLE -> {
-                chapter.title = readEncodingAndString(frameHeader.size)
-                Logd(TAG, "Found title: " + chapter.title)
-            }
-            FRAME_ID_LINK -> {
-                readEncodingAndString(frameHeader.size) // skip description
-                val url = readIsoStringNullTerminated(frameStartPosition + frameHeader.size - position)
-                try {
-                    val decodedLink = URLDecoder.decode(url, "ISO-8859-1")
-                    chapter.link = decodedLink
-                    Logd(TAG, "Found link: " + chapter.link)
-                } catch (e: IllegalArgumentException) {
-                    Logs(TAG, e, "Bad URL found in ID3 data")
-                }
-            }
-            FRAME_ID_PICTURE -> {
-                val encoding = readByte()
-                val mime = readIsoStringNullTerminated(frameHeader.size)
-                val type = readByte()
-                val description = readEncodedString(encoding.toInt(), frameHeader.size)
-                Logd(TAG, "Found apic: $mime,$description")
-                if (MIME_IMAGE_URL == mime) {
-                    val link = readIsoStringNullTerminated(frameHeader.size)
-                    Logd(TAG, "Link: $link")
-                    if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = link
-                } else {
-                    val alreadyConsumed = position - frameStartPosition
-                    val rawImageDataLength = frameHeader.size - alreadyConsumed
-                    if (chapter.imageUrl.isNullOrEmpty() || type.toInt() == IMAGE_TYPE_COVER) chapter.imageUrl = EmbeddedChapterImage.Companion.makeUrl(position, rawImageDataLength)
-                }
-            }
-            else -> Logd(TAG, "Unknown chapter sub-frame.")
-        }
-        // Skip garbage to fill frame completely
-        // This also asserts that we are not reading too many bytes from this frame.
-        val alreadyConsumed = position - frameStartPosition
-        skipBytes(frameHeader.size - alreadyConsumed)
-    }
-
-    fun getChapters(): List<Chapter> {
-        return chapters
     }
 
     companion object {

@@ -51,7 +51,7 @@ import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton.Companion.playVideoIfNeeded
 import ac.mdiq.podcini.ui.screens.SearchBy
 import ac.mdiq.podcini.ui.screens.SearchByGrid
-import ac.mdiq.podcini.ui.screens.searchEpisodesQuery
+import ac.mdiq.podcini.ui.screens.searchEpisodesQueryString
 import ac.mdiq.podcini.ui.screens.setSearchByAll
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.utils.EventFlow
@@ -670,7 +670,7 @@ fun PutToQueueDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
             var toQueue by remember { mutableStateOf(actQueue) }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                 for (q in queuesLive) {
-                    FilterChip(label = { Text(q.name) }, onClick = { toQueue = q }, selected = toQueue == q, border = FilterChipBorder(toQueue == q) )
+                    FilterChip(label = { Text(q.name) }, onClick = { toQueue = q }, selected = toQueue == q, border = filterChipBorder(toQueue == q) )
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -966,12 +966,12 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                         ))
                     }
                     if (expandRow) {
-                        SearchBarRow(R.string.search_hint, defaultText = queryText, modifier = Modifier.padding(start = 10.dp)) { query ->
+                        SearchBarRow(R.string.search_hint, defaultText = queryText, modifier = Modifier.fillMaxWidth().padding(start = 10.dp)) { query ->
                             Logd(TAG, "SearchBarRow cb query: $query")
                             if (query.isNotBlank()) {
                                 selectNone = false
                                 val queryWords = (if (query.contains(",")) query.split(",").map { it.trim() } else query.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
-                                val queryString = searchEpisodesQuery(0L, queryWords)
+                                val queryString = searchEpisodesQueryString(0L, queryWords)
                                 Logd(TAG, "SearchBarRow cb queryString: $queryString")
                                 filter.addTextQuery(queryString)
                             } else filter.addTextQuery("")

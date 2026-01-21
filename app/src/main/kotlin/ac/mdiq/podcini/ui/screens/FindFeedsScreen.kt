@@ -90,6 +90,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -110,15 +111,60 @@ class FindFeedsVM: ViewModel() {
     internal val searchResults = mutableStateListOf<PodcastSearchResult>()
     internal val readElements = mutableStateListOf<OpmlElement>()
 
+    var showOpmlImportSelectionDialog by mutableStateOf(false)
+    val showOPMLRestoreDialog = mutableStateOf(false)
+    val numberOPMLFeedsToRestore = mutableIntStateOf(0)
+
     init {
+        if (getPref(AppPrefs.prefOPMLRestore, false) && feedCount == 0) {
+            numberOPMLFeedsToRestore.intValue = getPref(AppPrefs.prefOPMLFeedsToRestore, 0)
+            showOPMLRestoreDialog.value = true
+        }
         if (searchProvider == null) searchProvider = CombinedSearcher::class.java.getDeclaredConstructor().newInstance()
-//        for (info in PodcastSearcherRegistry.searchProviders) {
+        if (searchProvider != null) search(searchText)
+
+        //        for (info in PodcastSearcherRegistry.searchProviders) {
 //            Logd(TAG, "searchProvider: $info")
 //            if (info.searcher.javaClass.name == searchProvider?.name) {
 //                searchProvider = info.searcher
 //                break
 //            }
 //        }
+    }
+
+    var showProgress by mutableStateOf(false)
+    var errorText by mutableStateOf("")
+    var retryQerry by mutableStateOf("")
+
+    var searchJob by mutableStateOf<Job?>(null)
+    @SuppressLint("StringFormatMatches")
+    fun search(query: String) {
+        if (query.isBlank()) return
+        if (searchJob != null) {
+            searchJob?.cancel()
+            searchResults.clear()
+        }
+        errorText = ""
+        retryQerry = ""
+        showProgress = true
+        searchJob = viewModelScope.launch(Dispatchers.IO) {
+            val feeds = getFeedList()
+            fun feedId(r: PodcastSearchResult): Long {
+                for (f in feeds) if (f.downloadUrl == r.feedUrl) return f.id
+                return 0L
+            }
+            try {
+                val result = searchProvider?.search(query) ?: listOf()
+                for (r in result) r.feedId = feedId(r)
+                searchResults.clear()
+                searchResults.addAll(result)
+                withContext(Dispatchers.Main) { showProgress = false }
+            } catch (e: Exception) {
+                showProgress = false
+                errorText = e.toString()
+                retryQerry = query
+            }
+        }.apply { invokeOnCompletion { searchJob = null } }
     }
 
     fun addLocalFloder(uri: Uri) {
@@ -193,60 +239,11 @@ fun FindFeedsScreen() {
 
     val vm: FindFeedsVM = viewModel()
 
-    var showOpmlImportSelectionDialog by remember { mutableStateOf(false) }
-    val showOPMLRestoreDialog = remember { mutableStateOf(false) }
-    val numberOPMLFeedsToRestore = remember { mutableIntStateOf(0) }
-
-    var showProgress by remember { mutableStateOf(false) }
-    var errorText by remember { mutableStateOf("") }
-    var retryQerry by remember { mutableStateOf("") }
-
-    var searchJob by remember { mutableStateOf<Job?>(null) }
-    @SuppressLint("StringFormatMatches")
-    fun search(query: String) {
-        if (query.isBlank()) return
-        if (searchJob != null) {
-            searchJob?.cancel()
-            vm.searchResults.clear()
-        }
-        errorText = ""
-        retryQerry = ""
-        showProgress = true
-        searchJob = scope.launch(Dispatchers.IO) {
-            val feeds = getFeedList()
-            fun feedId(r: PodcastSearchResult): Long {
-                for (f in feeds) if (f.downloadUrl == r.feedUrl) return f.id
-                return 0L
-            }
-            try {
-                val result = searchProvider?.search(query) ?: listOf()
-                for (r in result) r.feedId = feedId(r)
-                vm.searchResults.clear()
-                vm.searchResults.addAll(result)
-                withContext(Dispatchers.Main) { showProgress = false }
-            } catch (e: Exception) {
-                showProgress = false
-                errorText = e.toString()
-                retryQerry = query
-            }
-        }.apply { invokeOnCompletion { searchJob = null } }
-    }
-
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-                    if (getPref(AppPrefs.prefOPMLRestore, false) && feedCount == 0) {
-                        numberOPMLFeedsToRestore.intValue = getPref(AppPrefs.prefOPMLFeedsToRestore, 0)
-                        showOPMLRestoreDialog.value = true
-                    }
-                    if (searchProvider != null) search(searchText)
-                    else {
-                        Loge(TAG,"Podcast searcher not found, use Combined")
-                        searchProvider = CombinedSearcher::class.java.getDeclaredConstructor().newInstance()
-                    }
-                }
+                Lifecycle.Event.ON_CREATE -> {}
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -266,11 +263,11 @@ fun FindFeedsScreen() {
         Box {
             TopAppBar(title = {
                 Logd(TAG, "Topbar searchText: $searchText")
-                SearchBarRow(R.string.search_podcast_hint, searchText) { queryText ->
+                SearchBarRow(R.string.search_podcast_hint, modifier = Modifier.fillMaxWidth(), defaultText = searchText) { queryText ->
                     if (queryText.isBlank()) return@SearchBarRow
                     searchText = queryText
                     if (queryText.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(queryText, StandardCharsets.UTF_8.name())}")
-                    else search(queryText)
+                    else vm.search(queryText)
                 }
             }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
@@ -279,22 +276,22 @@ fun FindFeedsScreen() {
 
     val textColor = MaterialTheme.colorScheme.onSurface
     val actionColor = MaterialTheme.colorScheme.tertiary
-    ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, numberOPMLFeedsToRestore.intValue), showOPMLRestoreDialog) {
-        showProgress = true
+    ComfirmDialog(R.string.restore_subscriptions_label, stringResource(R.string.restore_subscriptions_summary, vm.numberOPMLFeedsToRestore.intValue), vm.showOPMLRestoreDialog) {
+        vm.showProgress = true
         performRestore()
-        showProgress = false
+        vm.showProgress = false
     }
     val chooseOpmlImportPathLauncher = rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         OpmlTransporter.startImport(uri) { vm.readElements.addAll(it) }
-        showOpmlImportSelectionDialog = true
+        vm.showOpmlImportSelectionDialog = true
     }
     val addLocalFolderLauncher = rememberLauncherForActivityResult(AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         vm.addLocalFloder(uri)
     }
 
-    if (showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { showOpmlImportSelectionDialog = false }
+    if (vm.showOpmlImportSelectionDialog) OpmlImportSelectionDialog(vm.readElements) { vm.showOpmlImportSelectionDialog = false }
 
     var showAdvanced by remember { mutableStateOf(false) }
     if (showAdvanced) CommonPopupCard({ showAdvanced = false }) {
@@ -336,7 +333,7 @@ fun FindFeedsScreen() {
                 Text(stringResource(R.string.advanced), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = { showAdvanced = !showAdvanced }))
             }
 
-            if (showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
+            if (vm.showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
             if (vm.searchResults.isNotEmpty()) LazyColumn(state = rememberLazyListState(), verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).constrainAs(gridView) {
                     top.linkTo(controlRow.bottom)
@@ -351,8 +348,8 @@ fun FindFeedsScreen() {
                     OnlineFeedItem(result, sLog.value)
                 }
             } else Text(stringResource(R.string.no_results_for_query, searchText), color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })
-            if (errorText.isNotEmpty()) Text(errorText, color = textColor, modifier = Modifier.constrainAs(txtvError) { centerTo(parent) })
-            if (retryQerry.isNotEmpty()) Button(modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) }, onClick = { search(retryQerry) }) { Text(stringResource(id = R.string.retry_label)) }
+            if (vm.errorText.isNotEmpty()) Text(vm.errorText, color = textColor, modifier = Modifier.constrainAs(txtvError) { centerTo(parent) })
+            if (vm.retryQerry.isNotEmpty()) Button(modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) }, onClick = { vm.search(vm.retryQerry) }) { Text(stringResource(id = R.string.retry_label)) }
             Text(context.getString(R.string.search_powered_by, searchProvider!!.name), color = Color.Black, style = MaterialTheme.typography.labelSmall, modifier = Modifier.background(Color.LightGray)
                 .constrainAs(powered) {
                     bottom.linkTo(parent.bottom)

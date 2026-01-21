@@ -64,8 +64,8 @@ sealed class FlowEvent {
         fun contains(feed: Feed): Boolean = feedIds.contains(feed.id)
     }
 
-    // TODO: perhaps FeedDetails Settings need to post this
-    data class FeedChangeEvent(val feed: Feed, val changedFields: Array<String>) : FlowEvent()
+    // TODO: perhaps FeedDetails Settings need to post this?
+//    data class FeedChangeEvent(val feed: Feed, val changedFields: Array<String>) : FlowEvent()
 
     data class SpeedChangedEvent(val newSpeed: Float) : FlowEvent()
 

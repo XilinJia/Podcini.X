@@ -20,6 +20,16 @@ import kotlin.math.abs
 private const val TAG: String = "ChapterUtils"
 
 fun loadChaptersFromUrl(url: String, forceRefresh: Boolean): List<Chapter> {
+    fun loadChaptersFromUrl(url: String, cacheControl: CacheControl): List<Chapter> {
+        var response: Response? = null
+        try {
+            val request: Request = Builder().url(url).cacheControl(cacheControl).build()
+            response = getHttpClient().newCall(request).execute()
+            if (response.isSuccessful) return parse(response.body.string())
+        } catch (e: IOException) { Logs(TAG, e)
+        } finally { response?.close() }
+        return listOf()
+    }
     if (forceRefresh) return loadChaptersFromUrl(url, CacheControl.FORCE_NETWORK)
     val cachedChapters = loadChaptersFromUrl(url, CacheControl.FORCE_CACHE)
     // Some publishers use one dummy chapter before actual chapters are available
@@ -27,22 +37,21 @@ fun loadChaptersFromUrl(url: String, forceRefresh: Boolean): List<Chapter> {
     return cachedChapters
 }
 
-private fun loadChaptersFromUrl(url: String, cacheControl: CacheControl): List<Chapter> {
-    var response: Response? = null
-    try {
-        val request: Request = Builder().url(url).cacheControl(cacheControl).build()
-        response = getHttpClient().newCall(request).execute()
-        if (response.isSuccessful) return parse(response.body.string())
-    } catch (e: IOException) { Logs(TAG, e)
-    } finally { response?.close() }
-    return listOf()
-}
-
 /**
  * This method might modify the input data.
  */
 fun merge(chapters1: List<Chapter>?, chapters2: List<Chapter>?): List<Chapter>? {
     Logd(TAG, "Merging chapters")
+    /**
+     * Tries to give a score that can determine which list of chapters a user might want to see.
+     */
+    fun score(chapters: List<Chapter>): Int {
+        var score = 0
+        for (chapter in chapters) {
+            score = (score + (if (chapter.title.isNullOrEmpty()) 0 else 1) + (if (chapter.link.isNullOrEmpty()) 0 else 1) + (if (chapter.imageUrl.isNullOrEmpty()) 0 else 1))
+        }
+        return score
+    }
     when {
         chapters1 == null -> return chapters2
         chapters2 == null -> return chapters1
@@ -67,20 +76,6 @@ fun merge(chapters1: List<Chapter>?, chapters2: List<Chapter>?): List<Chapter>? 
             return chapters2
         }
     }
-}
-
-/**
- * Tries to give a score that can determine which list of chapters a user might want to see.
- */
-private fun score(chapters: List<Chapter>): Int {
-    var score = 0
-    for (chapter in chapters) {
-        score = (score
-                + (if (chapter.title.isNullOrEmpty()) 0 else 1)
-                + (if (chapter.link.isNullOrEmpty()) 0 else 1)
-                + (if (chapter.imageUrl.isNullOrEmpty()) 0 else 1))
-    }
-    return score
 }
 
 fun parse(jsonStr: String): List<Chapter> {

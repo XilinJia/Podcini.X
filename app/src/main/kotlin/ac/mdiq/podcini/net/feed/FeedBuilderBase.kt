@@ -30,7 +30,7 @@ import java.net.URL
 import kotlin.math.min
 
 open class FeedBuilderBase(val showError: (String?, String)->Unit) {
-    protected val TAG = "FeedBuilder"
+    private val TAG = "FeedBuilderBase"
 
     var feedSource: String = ""
     var selectedDownloadUrl: String? = null
@@ -159,7 +159,7 @@ open class FeedBuilderBase(val showError: (String?, String)->Unit) {
         for (item in feed.episodes) {
             item.id = 0L
             item.feedId = null
-            item.feed = feed
+//            item.feed = feed
             item.origFeedlink = null
             item.origFeeddownloadUrl = null
             item.origFeedTitle = null

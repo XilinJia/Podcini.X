@@ -643,7 +643,12 @@ class PlaybackService : MediaLibraryService() {
                     is FlowEvent.QueueEvent -> onQueueEvent(event)
                     is FlowEvent.BufferUpdateEvent -> onBufferUpdate(event)
                     is FlowEvent.SleepTimerUpdatedEvent -> onSleepTimerUpdate(event)
-                    is FlowEvent.FeedChangeEvent -> if (curEpisode?.feed?.id == event.feed.id) curEpisode?.feed = null
+//                    is FlowEvent.FeedChangeEvent -> {
+//                        if (curEpisode?.feedId == event.feed.id) {
+////                            curEpisode?.feed = null
+//                            curEpisode?.feedId = null
+//                        }
+//                    }
                     is FlowEvent.EpisodeMediaEvent -> onEpisodeMediaEvent(event)
                     else -> {}
                 }

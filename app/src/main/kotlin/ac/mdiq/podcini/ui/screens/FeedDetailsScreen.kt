@@ -322,7 +322,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     if (feChange?.list != null) vm.feedEpisodes = feChange!!.list
 
     val episodesChange by vm.episodesFlow.collectAsStateWithLifecycle(initialValue = null)
-    if (!episodesChange?.list.isNullOrEmpty()) vm.episodes = episodesChange!!.list
+    if (episodesChange?.list != null) vm.episodes = episodesChange!!.list
 
     @Composable
     fun OpenDialogs() {

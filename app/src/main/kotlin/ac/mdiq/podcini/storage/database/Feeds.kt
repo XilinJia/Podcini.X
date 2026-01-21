@@ -23,6 +23,7 @@ import ac.mdiq.podcini.storage.parser.VorbisCommentReaderException
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
+import ac.mdiq.podcini.storage.utils.CountingInputStream2
 import ac.mdiq.podcini.storage.utils.DAY_MIL
 import ac.mdiq.podcini.storage.utils.FOUR_DAY_MIL
 import ac.mdiq.podcini.storage.utils.feedfilePath
@@ -51,7 +52,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.apache.commons.io.input.CountingInputStream
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.IOException
@@ -244,7 +244,7 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
             upsertBlk(oldItems[0]) { it.updateFromOther(episode, overwriteStates) }
         } else {
             Logd(TAG, "updateFeedFull Found new episode: ${episode.pubDate} ${episode.title}")
-            episode.feed = savedFeed
+//            episode.feed = savedFeed
             episode.id = idLong++
             episode.feedId = savedFeed.id
             if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) runBlocking { episode.fetchMediaSize(false) }
@@ -333,7 +333,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
         if (pubDate <= priorMostRecentDate || episode.downloadUrl == priorMostRecent?.downloadUrl || episode.title == priorMostRecent?.title) continue
 
         Logd(TAG, "Found new episode: ${episode.title}")
-        episode.feed = savedFeed
+//        episode.feed = savedFeed
         episode.id = idLong++
         episode.feedId = savedFeed.id
         if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)
@@ -535,7 +535,7 @@ fun addRemoteToMiscSyndicate(episode: Episode) {
     //            episode.origFeeddownloadUrl = episode.feed?.downloadUrl
     //            episode.origFeedlink = episode.feed?.link
     //        }
-    episode.feed = feed
+//    episode.feed = feed
     episode.id = newId()
     episode.feedId = feed.id
     upsertBlk(episode) {}
@@ -768,7 +768,7 @@ fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
                 item.hasEmbeddedPicture = (mediaMetadataRetriever.embeddedPicture != null)
                 try {
                     getAppContext().contentResolver.openInputStream(file.uri).use { inputStream ->
-                        val reader = Id3MetadataReader(CountingInputStream(BufferedInputStream(inputStream)))
+                        val reader = Id3MetadataReader(CountingInputStream2(BufferedInputStream(inputStream)))
                         reader.readInputStream()
                         item.setDescriptionIfLonger(reader.comment)
                     }

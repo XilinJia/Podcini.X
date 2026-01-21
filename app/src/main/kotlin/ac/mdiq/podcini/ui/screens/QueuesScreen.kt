@@ -39,7 +39,7 @@ import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
-import ac.mdiq.podcini.ui.compose.FilterChipBorder
+import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
@@ -345,7 +345,7 @@ fun QueuesScreen(id: Long = -1L) {
     val queueEntries = qeResults?.list ?: emptyList()
 
     val queuesResults by queuesFlow.collectAsStateWithLifecycle(initialValue = null)
-    if (!queuesResults?.list.isNullOrEmpty()) vm.queues = queuesResults!!.list
+    if (queuesResults?.list != null) vm.queues = queuesResults!!.list
 
     val queueChange by vm.curQueueFlow.collectAsStateWithLifecycle(initialValue = null)
     if (queueChange?.obj != null) vm.curQueue = queueChange?.obj!!
@@ -444,7 +444,7 @@ fun QueuesScreen(id: Long = -1L) {
                             upsertBlk(vm.curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
                             setCurIndex(index)
                             showChooseQueue = false
-                        }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = FilterChipBorder(vm.curIndex == index))
+                        }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index))
                     }
                 }
             }

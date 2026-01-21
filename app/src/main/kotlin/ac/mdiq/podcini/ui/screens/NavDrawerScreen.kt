@@ -6,6 +6,7 @@ import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
+import ac.mdiq.podcini.storage.database.feeds
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
@@ -102,6 +103,8 @@ val isRemember: Boolean
 
 val defaultScreen: String
     get() {
+        if (feeds.isEmpty()) return Screens.FindFeeds.name
+
         var value = getPref(AppPrefs.prefDefaultPage, "")
         Logd(TAG, "get defaultScreen 0: [$value]")
         val isValid = try {

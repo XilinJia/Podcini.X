@@ -8,7 +8,7 @@ import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.FilterChipBorder
+import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -314,7 +314,7 @@ fun TopChartScreen() {
                             Logd(TAG, "SpinnerExternalSet ${vm.curIndex} curGenre: ${vm.curGenre}")
                             vm.loadToplist()
                             showChooseGenre = false
-                        }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = FilterChipBorder(vm.curIndex == index))
+                        }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index))
                     }
                 }
             }

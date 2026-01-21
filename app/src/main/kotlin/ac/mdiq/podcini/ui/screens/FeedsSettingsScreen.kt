@@ -30,7 +30,7 @@ import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
-import ac.mdiq.podcini.ui.compose.FilterChipBorder
+import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
@@ -716,7 +716,7 @@ fun FeedsSettingsScreen() {
                                     }
                                 }
                                 showChooseAction = false
-                            }, label = { Text(action) }, selected = curAction == action, border = FilterChipBorder(curAction == action))
+                            }, label = { Text(action) }, selected = curAction == action, border = filterChipBorder(curAction == action))
                         }
                     }
                 }

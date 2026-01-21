@@ -58,7 +58,7 @@ import kotlinx.coroutines.withContext
 import org.xml.sax.SAXException
 
 open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = false, val doItAnyway: Boolean = false) {
-    protected val TAG = "FeedUpdaterBase"
+    private val TAG = "FeedUpdaterBase"
     protected val context = getAppContext()
     private val notificationManager = NotificationManagerCompat.from(context)
 
@@ -297,9 +297,6 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             for (item in feed.episodes) if (item.title == null) throw InvalidFeedException("Item has no title: $item")
         }
 
-        /**
-         * Thrown if a feed has invalid attribute values.
-         */
         class InvalidFeedException(message: String?) : Exception(message)
     }
 

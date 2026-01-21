@@ -35,9 +35,9 @@ import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
-import ac.mdiq.podcini.ui.compose.FilterChipBorder
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.StatusRowMode
+import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
 import androidx.activity.compose.BackHandler
@@ -78,7 +78,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -150,7 +149,7 @@ class FacetsVM: ViewModel() {
 
     var listIdentity by mutableStateOf("")
 
-    val feedsAssociated = mutableStateListOf<Feed>() 
+    var feedsAssociated by mutableStateOf<List<Feed>>(listOf())
 
     var infoBarText by mutableStateOf("")
     val filterButtonColor = mutableStateOf(Color.White)
@@ -296,11 +295,7 @@ class FacetsVM: ViewModel() {
 
         viewModelScope.launch { snapshotFlow { episodes.size }.distinctUntilChanged().collect { viewModelScope.launch(Dispatchers.IO) { if (!showFeeds) updateToolbar() } } }
         viewModelScope.launch { snapshotFlow { Pair(episodes.size, showFeeds) }.distinctUntilChanged().collect {
-            if (showFeeds) {
-                feedsAssociated.clear()
-                if (facetsMode == QuickAccess.All) feedsAssociated.addAll(getFeedList())
-                else feedsAssociated.addAll(episodes.mapNotNull { it.feed }.distinctBy { it.id })
-            }
+            if (showFeeds) feedsAssociated = if (facetsMode == QuickAccess.All) getFeedList() else episodes.mapNotNull { it.feed }.distinctBy { it.id }
         } }
     }
 
@@ -308,7 +303,6 @@ class FacetsVM: ViewModel() {
         super.onCleared()
         facetsPrefsJob?.cancel()
         facetsPrefsJob = null
-        feedsAssociated.clear()
         facetsMode = QuickAccess.New
     }
 }
@@ -429,7 +423,7 @@ fun FacetsScreen() {
                                 resetSwipes()
                                 vm.buildFlow()
                                 showChooseMode = false
-                            }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = FilterChipBorder(vm.curIndex == index))
+                            }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index))
                         }
                     }
                 }

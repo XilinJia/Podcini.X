@@ -1,3 +1,15 @@
+# 10.6.1
+
+* fixed Bin in FeedDetails showing full episodes when empty
+* on new install, first opens FindFeeds screen
+* amended Search screen
+	* search texts are persisted (capped around 20) and can be recalled
+	* search options are by default hidden, tap "Setting" icon to show
+* when starting a new episode, skipSilence is reset
+* fixed deprecation of CountingInputStream
+* amended the code checking ID3 header
+* some code refactoring
+
 # 10.6.0
 
 * cleaned out lots of shitty context parameters being passed around

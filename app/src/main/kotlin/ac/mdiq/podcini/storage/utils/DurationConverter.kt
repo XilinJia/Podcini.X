@@ -15,6 +15,14 @@ private const val SECONDS_MIL = 1000
  * Converts milliseconds to a string containing hours, minutes and seconds.
  */
 fun durationStringFull(duration: Int): String {
+    fun millisecondsToHms(duration: Long): IntArray {
+        val h = (duration / HOURS_MIL).toInt()
+        var rest = duration - h * HOURS_MIL
+        val m = (rest / MINUTES_MIL).toInt()
+        rest -= (m * MINUTES_MIL).toLong()
+        val s = (rest / SECONDS_MIL).toInt()
+        return intArrayOf(h, m, s)
+    }
     if (duration <= 0) return "00:00:00"
     else {
         val hms = millisecondsToHms(duration.toLong())
@@ -30,15 +38,6 @@ fun durationStringAdapt(ms: Int): String {
 
     return if (hours > 0) String.format(Locale.getDefault(), "%02d:%02d:%02d", hours, minutes, seconds)
     else String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
-}
-
-private fun millisecondsToHms(duration: Long): IntArray {
-    val h = (duration / HOURS_MIL).toInt()
-    var rest = duration - h * HOURS_MIL
-    val m = (rest / MINUTES_MIL).toInt()
-    rest -= (m * MINUTES_MIL).toLong()
-    val s = (rest / SECONDS_MIL).toInt()
-    return intArrayOf(h, m, s)
 }
 
 /**

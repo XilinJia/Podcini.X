@@ -15,6 +15,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.ChapterStartTimeComparator
+import ac.mdiq.podcini.storage.utils.CountingInputStream2
 import ac.mdiq.podcini.storage.utils.MEDIA_DOWNLOADPATH
 import ac.mdiq.podcini.storage.utils.customMediaUriString
 import ac.mdiq.podcini.storage.utils.generateFileName
@@ -33,9 +34,6 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.webkit.URLUtil.guessFileName
 import androidx.compose.runtime.Stable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.ext.realmListOf
@@ -52,7 +50,6 @@ import okhttp3.Request
 import okhttp3.Request.Builder
 import org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR
 import org.apache.commons.io.FilenameUtils.getExtension
-import org.apache.commons.io.input.CountingInputStream
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import java.io.BufferedInputStream
@@ -93,7 +90,7 @@ class Episode : RealmObject {
     var feedId: Long? = null
 
     @Ignore
-    var feed: Feed? = null
+    val feed: Feed?
         get() = if (feedId != null) feedsMap[feedId!!] else null
 
     // parent in these refers to the original parent of the content (shared)
@@ -344,7 +341,7 @@ class Episode : RealmObject {
             if (playState == EpisodeState.PLAYED.code) EpisodeState.UNPLAYED.code
             else EpisodeState.PLAYED.code
         }
-        if (resetPosition || playState == EpisodeState.PLAYED.code || playState == EpisodeState.IGNORED.code) position = 0
+        if (resetPosition || playState in listOf(EpisodeState.PLAYED.code, EpisodeState.IGNORED.code)) position = 0
         if (state in listOf(EpisodeState.QUEUE, EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) isAutoDownloadEnabled = false
         playStateSetTime = System.currentTimeMillis()
     }
@@ -754,6 +751,66 @@ class Episode : RealmObject {
     }
 
     fun loadChaptersFromMediaFile(): List<Chapter> {
+        @Throws(IOException::class)
+        fun openStream(): CountingInputStream2 {
+            val context = getAppContext()
+            if (!fileUrl.isNullOrBlank()) {
+                if (fileUrl.isNullOrBlank()) throw IOException("No local url")
+                val fileuri = fileUrl!!.toUri()
+                when (fileuri.scheme) {
+                    "file" -> {
+                        if (fileuri.path.isNullOrBlank()) throw IOException("Local file does not exist")
+                        val source = File(fileuri.path!!)
+                        if (!source.exists()) throw IOException("Local file does not exist")
+                        return CountingInputStream2(BufferedInputStream(FileInputStream(source)))
+                    }
+                    "content" -> return CountingInputStream2(BufferedInputStream(context.contentResolver.openInputStream(fileuri)))
+                }
+                throw IOException("Local file is not valid")
+            } else {
+                val streamurl = downloadUrl
+                if (streamurl != null && streamurl.startsWith(ContentResolver.SCHEME_CONTENT))
+                    return CountingInputStream2(BufferedInputStream(context.contentResolver.openInputStream(streamurl.toUri())))
+
+                if (streamurl.isNullOrEmpty()) throw IOException("stream url is null of empty")
+                val request: Request = Builder().url(streamurl).build()
+                val response = getHttpClient().newCall(request).execute()
+                if (response.body == null) throw IOException("Body is null")
+                return CountingInputStream2(BufferedInputStream(response.body.byteStream()))
+            }
+        }
+        fun enumerateEmptyChapterTitles(chapters: List<Chapter>) {
+            for (i in chapters.indices) {
+                val c = chapters[i]
+                if (c.title == null) c.title = i.toString()
+            }
+        }
+        fun chaptersValid(chapters: List<Chapter>): Boolean {
+            if (chapters.isEmpty()) return false
+            for (c in chapters) if (c.start < 0) return false
+            return true
+        }
+        @Throws(IOException::class, ID3ReaderException::class)
+        fun readId3ChaptersFrom(inVal: CountingInputStream2): List<Chapter> {
+            val reader = ChapterReader(inVal)
+            reader.readInputStream()
+            var chapters = reader.chapters.toList()
+            chapters = chapters.sortedWith(ChapterStartTimeComparator())
+            enumerateEmptyChapterTitles(chapters)
+            if (!chaptersValid(chapters)) return emptyList()
+            return chapters
+        }
+        @Throws(VorbisCommentReaderException::class)
+        fun readOggChaptersFromInputStream(input: InputStream): List<Chapter> {
+            val reader = VorbisCommentChapterReader(BufferedInputStream(input))
+            reader.readInputStream()
+            var chapters = reader.chapters.toList()
+            chapters = chapters.sortedWith(ChapterStartTimeComparator())
+            enumerateEmptyChapterTitles(chapters)
+            if (chaptersValid(chapters)) return chapters
+            return emptyList()
+        }
+
         try {
             openStream().use { inVal ->
                 val chapters = readId3ChaptersFrom(inVal)
@@ -772,69 +829,6 @@ class Episode : RealmObject {
         return listOf()
     }
 
-    @Throws(IOException::class)
-    private fun openStream(): CountingInputStream {
-        val context = getAppContext()
-        if (!fileUrl.isNullOrBlank()) {
-            if (fileUrl.isNullOrBlank()) throw IOException("No local url")
-            val fileuri = fileUrl!!.toUri()
-            when (fileuri.scheme) {
-                "file" -> {
-                    if (fileuri.path.isNullOrBlank()) throw IOException("Local file does not exist")
-                    val source = File(fileuri.path!!)
-                    if (!source.exists()) throw IOException("Local file does not exist")
-                    return CountingInputStream(BufferedInputStream(FileInputStream(source)))
-                }
-                "content" -> return CountingInputStream(BufferedInputStream(context.contentResolver.openInputStream(fileuri)))
-            }
-            throw IOException("Local file is not valid")
-        } else {
-            val streamurl = downloadUrl
-            if (streamurl != null && streamurl.startsWith(ContentResolver.SCHEME_CONTENT))
-                return CountingInputStream(BufferedInputStream(context.contentResolver.openInputStream(streamurl.toUri())))
-
-            if (streamurl.isNullOrEmpty()) throw IOException("stream url is null of empty")
-            val request: Request = Builder().url(streamurl).build()
-            val response = getHttpClient().newCall(request).execute()
-            if (response.body == null) throw IOException("Body is null")
-            return CountingInputStream(BufferedInputStream(response.body.byteStream()))
-        }
-    }
-
-    @Throws(IOException::class, ID3ReaderException::class)
-    private fun readId3ChaptersFrom(inVal: CountingInputStream): List<Chapter> {
-        val reader = ChapterReader(inVal)
-        reader.readInputStream()
-        var chapters = reader.getChapters()
-        chapters = chapters.sortedWith(ChapterStartTimeComparator())
-        enumerateEmptyChapterTitles(chapters)
-        if (!chaptersValid(chapters)) return emptyList()
-        return chapters
-    }
-
-    @Throws(VorbisCommentReaderException::class)
-    private fun readOggChaptersFromInputStream(input: InputStream): List<Chapter> {
-        val reader = VorbisCommentChapterReader(BufferedInputStream(input))
-        reader.readInputStream()
-        var chapters = reader.getChapters()
-        chapters = chapters.sortedWith(ChapterStartTimeComparator())
-        enumerateEmptyChapterTitles(chapters)
-        if (chaptersValid(chapters)) return chapters
-        return emptyList()
-    }
-
-    private fun enumerateEmptyChapterTitles(chapters: List<Chapter>) {
-        for (i in chapters.indices) {
-            val c = chapters[i]
-            if (c.title == null) c.title = i.toString()
-        }
-    }
-
-    private fun chaptersValid(chapters: List<Chapter>): Boolean {
-        if (chapters.isEmpty()) return false
-        for (c in chapters) if (c.start < 0) return false
-        return true
-    }
 
 //    fun checkEmbeddedPicture(persist: Boolean = true) {
 //        if (!localFileAvailable()) hasEmbeddedPicture = false

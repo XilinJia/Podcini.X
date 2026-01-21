@@ -298,14 +298,14 @@ fun PlaybackSpeedFullDialog(settingCode: BooleanArray, indexDefault: Int, maxSpe
                     Text(stringResource(R.string.pref_skip_silence_title), fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp))
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                         Spacer(Modifier.weight(1f))
-                        var tmpChecked by remember { mutableStateOf(tempSkipSilence) }
+                        var tmpChecked by remember(curEpisode?.id) { mutableStateOf(tempSkipSilence) }
                         Checkbox(checked = tmpChecked?: false, onCheckedChange = { isChecked ->
                             tmpChecked = isChecked
                             tempSkipSilence = isChecked
                             mPlayer?.setSkipSilence()
                         })
                         Text(stringResource(R.string.current_episode))
-                        var feedChecked by remember { mutableStateOf(curEpisode!!.feed?.skipSilence?: false) }
+                        var feedChecked by remember(curEpisode?.id) { mutableStateOf(curEpisode!!.feed?.skipSilence?: false) }
                         Spacer(Modifier.weight(1f))
                         Checkbox(checked = feedChecked, onCheckedChange = { isChecked ->
                             feedChecked = isChecked

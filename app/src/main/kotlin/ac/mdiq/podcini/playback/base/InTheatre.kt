@@ -120,6 +120,7 @@ object InTheatre {
         when {
             episode_ != null -> {
                 curEpisode = episode_
+                tempSkipSilence = null
                 shouldRepeat = false
                 curTempSpeed = SPEED_USE_GLOBAL
                 Logd(TAG, "setCurEpisode start monitoring curEpisode ${curEpisode?.title}")

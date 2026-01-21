@@ -123,7 +123,7 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
                 for (item in feed.episodes) {
                     item.id = 0L
                     item.feedId = null
-                    item.feed = feed
+//                    item.feed = feed
                 }
                 updateFeedFull(feed, removeUnlistedItems = false, overwriteStates = true)
             }

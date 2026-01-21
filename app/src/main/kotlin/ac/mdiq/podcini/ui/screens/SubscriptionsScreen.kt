@@ -38,7 +38,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.compose.FilterChipBorder
+import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
@@ -925,7 +925,7 @@ fun SubscriptionsScreen() {
                         if (selected == custom) {
                             Logd(TAG, "volumes: ${vm.volumes.size}")
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                                for (index in vm.volumes.indices) FilterChip(onClick = { parent = vm.volumes[index] }, label = { Text(vm.volumes[index].name) }, selected = parent == vm.volumes[index], border = FilterChipBorder(parent == vm.volumes[index]))
+                                for (index in vm.volumes.indices) FilterChip(onClick = { parent = vm.volumes[index] }, label = { Text(vm.volumes[index].name) }, selected = parent == vm.volumes[index], border = filterChipBorder(parent == vm.volumes[index]))
                             }
                         }
                         Row {
