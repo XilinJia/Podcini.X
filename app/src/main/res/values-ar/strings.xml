@@ -570,7 +570,7 @@
     <!-- Search -->
     <string name="search_status_no_results">لم يتم العثور على نتائج</string>
     <string name="search_label">البحث</string>
-    <string name="search_hint">delimit by comma, prefix with \'-\' to exclude</string>
+    <string name="search_hint">delimit by , prefix with - to exclude</string>
     <string name="no_results_for_query">لم يتم العثور على أي نتائج ل \"%1$s\"</string>
     <string name="search_online">البحث عبر الإنترنت</string>
     <!-- Synchronization -->
