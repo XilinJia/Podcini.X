@@ -16,6 +16,7 @@
     <string name="downloads_label">التنزيلات</string>
     <string name="logs_label">السجلات</string>
     <string name="subscriptions_label">اشتراكات</string>
+    <string name="library">Library</string>
     <string name="cancel_download_label">إلغاء التحميل</string>
     <string name="playback_history_label">التاريخ</string>
     <string name="overview">نظرة عامة</string>
