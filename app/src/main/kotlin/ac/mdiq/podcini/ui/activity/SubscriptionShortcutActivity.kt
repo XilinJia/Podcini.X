@@ -88,7 +88,7 @@ class SubscriptionShortcutActivity : ComponentActivity() {
 
     private fun addShortcut(feed: Feed, bitmap: Bitmap?) {
         val intent = Intent(this, MainActivity::class.java)
-        intent.setAction(Intent.ACTION_MAIN)
+        intent.action = Intent.ACTION_MAIN
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         intent.putExtra(MainActivity.Extras.fragment_feed_id.name, feed.id)
         val id = "subscription-" + feed.id

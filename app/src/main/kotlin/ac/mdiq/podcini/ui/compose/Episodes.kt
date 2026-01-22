@@ -50,9 +50,7 @@ import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton.Companion.playVideoIfNeeded
 import ac.mdiq.podcini.ui.screens.SearchBy
-import ac.mdiq.podcini.ui.screens.SearchByGrid
-import ac.mdiq.podcini.ui.screens.searchEpisodesQueryString
-import ac.mdiq.podcini.ui.screens.setSearchByAll
+import ac.mdiq.podcini.ui.utils.SearchAlgo
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -955,15 +953,14 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                 var selectNone by remember { mutableStateOf(false) }
                 Column(modifier = Modifier.fillMaxWidth()) {
                     var expandRow by remember { mutableStateOf(false) }
+                    val searchAlgo = remember { SearchAlgo() }
                     var queryText by remember { mutableStateOf(filter.extractText()) }
                     var showSearchBy by remember { mutableStateOf(false) }
-                    LaunchedEffect(Unit) { setSearchByAll() }
+                    LaunchedEffect(Unit) { searchAlgo.setSearchByAll() }
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 5.dp, bottom = 2.dp).fillMaxWidth()) {
                         Text(stringResource(R.string.text_label) + "… :", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleLarge, color = if (queryText.isBlank()) buttonColor else buttonAltColor, modifier = Modifier.clickable { expandRow = !expandRow })
                         Spacer(Modifier.width(20.dp))
-                        if (expandRow) Text(stringResource(R.string.show_criteria), color = buttonColor, modifier = Modifier.clickable(
-                            onClick = {showSearchBy = !showSearchBy}
-                        ))
+                        if (expandRow) Text(stringResource(R.string.show_criteria), color = buttonColor, modifier = Modifier.clickable(onClick = {showSearchBy = !showSearchBy}))
                     }
                     if (expandRow) {
                         SearchBarRow(R.string.search_hint, defaultText = queryText, modifier = Modifier.fillMaxWidth().padding(start = 10.dp)) { query ->
@@ -971,14 +968,14 @@ fun EpisodesFilterDialog(filter_: EpisodeFilter, disabledSet: MutableSet<Episode
                             if (query.isNotBlank()) {
                                 selectNone = false
                                 val queryWords = (if (query.contains(",")) query.split(",").map { it.trim() } else query.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
-                                val queryString = searchEpisodesQueryString(0L, queryWords)
+                                val queryString = searchAlgo.episodesQueryString(0L, queryWords)
                                 Logd(TAG, "SearchBarRow cb queryString: $queryString")
                                 filter.addTextQuery(queryString)
                             } else filter.addTextQuery("")
                             queryText = query
                             onFilterChanged(filter)
                         }
-                        if (showSearchBy) SearchByGrid(setOf(SearchBy.AUTHOR))
+                        if (showSearchBy) searchAlgo.SearchByGrid(setOf(SearchBy.AUTHOR))
                     }
                 }
                 if (appAttribs.episodeTagSet.isNotEmpty()) {

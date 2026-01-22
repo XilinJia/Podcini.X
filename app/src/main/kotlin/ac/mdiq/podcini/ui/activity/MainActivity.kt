@@ -113,6 +113,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
@@ -131,6 +132,7 @@ import java.nio.charset.StandardCharsets
 class MainActivity : BaseActivity() {
     private var lastTheme = 0
 //    private var navigationBarInsets = Insets.NONE
+    private var intentState by mutableStateOf<Intent?>(null)
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
         Logt(TAG, getString(R.string.notification_permission_text))
@@ -175,6 +177,8 @@ class MainActivity : BaseActivity() {
     }
 
     public override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
+
         lastTheme = getNoTitleTheme(this)
         setTheme(lastTheme)
 
@@ -189,6 +193,8 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         handleNavIntent()
 
+        intentState = intent
+
         if (savedInstanceState != null) hasInitialized.value = savedInstanceState.getBoolean(INIT_KEY, false)
         if (!hasInitialized.value) hasInitialized.value = true
 
@@ -200,7 +206,7 @@ class MainActivity : BaseActivity() {
 //            }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        setContent { CustomTheme(this) { MainActivityUI() } }
+        setContent { CustomTheme(this) { intentState?.let { currentIntent -> MainActivityUI(currentIntent) } } }
 
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) postFornotificationPermission()
         else checkAndRequestUnrestrictedBackgroundActivity()
@@ -237,11 +243,25 @@ class MainActivity : BaseActivity() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    fun MainActivityUI() {
+    fun MainActivityUI(intent: Intent) {
         val lcScope = rememberCoroutineScope()
         val navController = rememberNavController()
         val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
         LaunchedEffect(Unit) { monitorNavStack(navController) }
+
+//        LaunchedEffect(intent) {
+//            val route = intent.getStringExtra("shortcut_route")
+//            Logd(TAG, "LaunchedEffect(intent) route $route")
+//            intendedScreen = when (route) {
+//                "queues" -> Screens.Queues.name
+//                "library" -> Screens.Library.name
+//                else -> Screens.Library.name
+//            }
+////            navController.navigate(screen) {
+////                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+////                launchSingleTop = true
+////            }
+//        }
 
         val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = false))
 
@@ -520,6 +540,19 @@ class MainActivity : BaseActivity() {
                 setIntentScreen(Screens.FindFeeds.name)
             }
             intent.getBooleanExtra(MainActivityStarter.Extras.open_player.name, false) -> bsState = BSState.Expanded
+            intent.hasExtra("shortcut_route") -> {
+                val route = intent.getStringExtra("shortcut_route")
+                Logd(TAG, "intent.hasExtra(shortcut_route) route $route")
+                val screen = when (route) {
+                    "Queues" -> Screens.Queues.name
+                    "Facets" -> Screens.Facets.name
+                    "library" -> Screens.Library.name
+                    "FindFeeds" -> Screens.FindFeeds.name
+                    "Statistics" -> Screens.Statistics.name
+                    else -> Screens.Library.name
+                }
+                setIntentScreen(screen)
+            }
             else -> {
                 // deeplink
                 val uri = intent.data
@@ -534,9 +567,9 @@ class MainActivity : BaseActivity() {
                     "/deeplink/main" -> {
                         val feature = uri.getQueryParameter("page") ?: return
                         when (feature) {
-                            "EPISODES" -> setIntentScreen(Screens.Facets.name)
-                            "QUEUE" -> setIntentScreen(Screens.Queues.name)
-                            "SUBSCRIPTIONS" -> setIntentScreen(Screens.Subscriptions.name)
+                            "FACETS" -> setIntentScreen(Screens.Facets.name)
+                            "QUEUES" -> setIntentScreen(Screens.Queues.name)
+                            "LIBRARY" -> setIntentScreen(Screens.Library.name)
                             "STATISTCS" -> setIntentScreen(Screens.Statistics.name)
                             else -> Logt(TAG, getString(R.string.app_action_not_found) + feature)
                         }

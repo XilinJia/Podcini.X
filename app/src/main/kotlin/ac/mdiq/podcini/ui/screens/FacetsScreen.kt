@@ -8,6 +8,7 @@ import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
+import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
 import ac.mdiq.podcini.storage.database.inQueueEpisodeIdSet
@@ -162,6 +163,8 @@ class FacetsVM: ViewModel() {
     var historyStartDate by mutableLongStateOf(0L)
     var historyEndDate by mutableLongStateOf(Date().time)
 
+    var progressing by mutableStateOf(false)
+
     internal var sortOrder: EpisodeSortOrder
         get() = EpisodeSortOrder.fromCode(facetsPrefs.sortCodesMap[facetsMode.name] ?: EpisodeSortOrder.DATE_DESC.code)
         set(s) {
@@ -272,9 +275,134 @@ class FacetsVM: ViewModel() {
         }
     }
 
+    fun clearHistory() : Job {
+        Logd(TAG, "clearHistory called")
+        return runOnIOScope {
+            progressing = true
+            while (realm.query(Episode::class).query("playbackCompletionTime > 0 || lastPlayedTime > 0").count().find() > 0) {
+                realm.write {
+                    val episodes_ = query(Episode::class).query("playbackCompletionTime > 0 || lastPlayedTime > 0").find()
+                    for (e in episodes_) {
+                        e.playbackCompletionDate = null
+                        e.lastPlayedTime = 0
+                    }
+                }
+            }
+            Logt(TAG, "History cleared")
+            withContext(Dispatchers.Main) { progressing = false }
+        }
+    }
+
+    fun reconcile() {
+        val nameEpisodeMap: MutableMap<String, Episode> = mutableMapOf()
+        val filesRemoved: MutableList<String> = mutableListOf()
+        fun traverse(srcFile: File) {
+            val filename = srcFile.name
+            if (srcFile.isDirectory) {
+                Logd(TAG, "traverse folder title: $filename")
+                val dirFiles = srcFile.listFiles()
+                dirFiles?.forEach { file -> traverse(file) }
+            } else {
+                Logd(TAG, "traverse: $srcFile filename: $filename")
+                val episode = nameEpisodeMap.remove(filename)
+                if (episode == null) {
+                    Logd(TAG, "traverse: error: episode not exist in map: $filename")
+                    filesRemoved.add(filename)
+                    srcFile.delete()
+                    return
+                }
+                Logd(TAG, "traverse found episode: ${episode.title}")
+            }
+        }
+        fun traverse(srcFile: DocumentFile) {
+            val filename = srcFile.name
+            if (srcFile.isDirectory) {
+                Logd(TAG, "traverse folder title: $filename")
+                val dirFiles = srcFile.listFiles()
+                dirFiles.forEach { file -> traverse(file) }
+            } else {
+                Logd(TAG, "traverse: $srcFile filename: $filename")
+                val episode = nameEpisodeMap.remove(filename)
+                if (episode == null) {
+                    Logd(TAG, "traverse: error: episode not exist in map: $filename")
+                    if (filename != null) filesRemoved.add(filename)
+                    srcFile.delete()
+                    return
+                }
+                Logd(TAG, "traverse found episode: ${episode.title}")
+            }
+        }
+        runOnIOScope {
+            progressing = true
+            nameEpisodeMap.clear()
+            MediaFilesTransporter("").updateDB()
+            var eList = getEpisodes(EpisodeFilter(facetsPrefs.filtersMap[QuickAccess.Downloaded.name] ?: EpisodeFilter.States.downloaded.name), sortOrder, copy=false)
+            val feMap = eList.associateBy { it.feedId }.toMutableMap()
+            val iterator = feMap.iterator()
+            while (iterator.hasNext()) {
+                val en = iterator.next()
+                if (en.key == null) continue
+                val f = getFeed(en.key!!) ?: continue
+                if (f.isLocalFeed) iterator.remove()
+            }
+            val el = feMap.values
+            for (e in el) {
+                var fileUrl = e.fileUrl
+                if (fileUrl.isNullOrBlank()) continue
+                Logd(TAG, "reconcile: fileUrl: $fileUrl")
+                fileUrl = fileUrl.substring(fileUrl.lastIndexOf('/') + 1)
+                fileUrl = URLDecoder.decode(fileUrl, "UTF-8")
+                Logd(TAG, "reconcile: add to map: fileUrl: $fileUrl")
+                nameEpisodeMap[fileUrl] = e
+            }
+            eList = listOf()
+            if (customMediaUriString.isBlank()) {
+                val mediaDir = getAppContext().getExternalFilesDir("media") ?: return@runOnIOScope
+                mediaDir.listFiles()?.forEach { file -> traverse(file) }
+            } else {
+                val customUri = customMediaUriString.toUri()
+                val baseDir = DocumentFile.fromTreeUri(getAppContext(), customUri)
+                baseDir?.listFiles()?.forEach { file -> traverse(file) }
+            }
+            Logd(TAG, "reconcile: end, episodes missing file: ${nameEpisodeMap.size}")
+            if (nameEpisodeMap.isNotEmpty()) for (e in nameEpisodeMap.values) upsertBlk(e) { it.fileUrl = null }
+            val count = nameEpisodeMap.size
+            nameEpisodeMap.clear()
+            Logt(TAG, "Episodes reconciled: $count\nFiles removed: ${filesRemoved.size}")
+            realm.write {
+                val el = query(Episode::class, "feedId == nil").find()
+                if (el.isNotEmpty()) {
+                    val size = el.size
+                    for (e in el) Logd(TAG, "deleting ${e.title}")
+                    delete(el)
+                    Logt(TAG, "reconcile deleted $size loose episodes")
+                }
+            }
+            val ids = realm.query(Episode::class).find().mapNotNull { it.feedId }.toSet()
+            for (id in ids) {
+                val f = feedsMap[id]
+                if (f == null) {
+                    realm.write {
+                        val el = query(Episode::class, "feedId == $id").find()
+                        if (el.isNotEmpty()) {
+                            val size = el.size
+                            for (e in el) Logd(TAG, "deleting ${e.title}")
+                            delete(el)
+                            Logt(TAG, "reconcile deleted $size episodes in non-existent feed $id")
+                        }
+                    }
+                }
+            }
+            withContext(Dispatchers.Main) {
+//                resetSwipes()
+                buildFlow()
+                progressing = false
+            }
+        }
+    }
+
     init {
         updateToolbar()
-        buildFlow()
         if (facetsPrefsJob == null) facetsPrefsJob = viewModelScope.launch(Dispatchers.IO) {
             val flow = realm.query(FacetsPrefs::class).first().asFlow()
             flow.collect { changes: SingleQueryChange<FacetsPrefs> ->
@@ -292,9 +420,11 @@ class FacetsVM: ViewModel() {
             filter = EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: "")
         } else curIndex = QuickAccess.Custom.ordinal
         tag = TAG+QuickAccess.entries[curIndex]
+        buildFlow()
 
-        viewModelScope.launch { snapshotFlow { episodes.size }.distinctUntilChanged().collect { viewModelScope.launch(Dispatchers.IO) { if (!showFeeds) updateToolbar() } } }
+        viewModelScope.launch { snapshotFlow { episodes.size }.distinctUntilChanged().collect { withContext(Dispatchers.IO) { if (!showFeeds) updateToolbar() } } }
         viewModelScope.launch { snapshotFlow { Pair(episodes.size, showFeeds) }.distinctUntilChanged().collect {
+            Logd(TAG, "snapshotFlow Pair(episodes.size, showFeeds)")
             if (showFeeds) feedsAssociated = if (facetsMode == QuickAccess.All) getFeedList() else episodes.mapNotNull { it.feed }.distinctBy { it.id }
         } }
     }
@@ -362,28 +492,10 @@ fun FacetsScreen() {
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) { vm.showFeeds = false }
 
-    var progressing by remember { mutableStateOf(false) }
     var showChooseMode by remember { mutableStateOf(false) }
 
     @Composable
     fun OpenDialogs() {
-        fun clearHistory() : Job {
-            Logd(TAG, "clearHistory called")
-            return runOnIOScope {
-                progressing = true
-                while (realm.query(Episode::class).query("playbackCompletionTime > 0 || lastPlayedTime > 0").count().find() > 0) {
-                    realm.write {
-                        val episodes_ = query(Episode::class).query("playbackCompletionTime > 0 || lastPlayedTime > 0").find()
-                        for (e in episodes_) {
-                            e.playbackCompletionDate = null
-                            e.lastPlayedTime = 0
-                        }
-                    }
-                }
-                Logt(TAG, "History cleared")
-                withContext(Dispatchers.Main) { progressing = false }
-            }
-        }
         fun filtersDisabled(): MutableSet<EpisodeFilter.EpisodesFilterGroup> {
             return if (facetsMode == QuickAccess.Downloaded) mutableSetOf(EpisodeFilter.EpisodesFilterGroup.DOWNLOADED)
             else mutableSetOf()
@@ -402,7 +514,7 @@ fun FacetsScreen() {
             }
         }
         swipeActions.ActionOptionsDialog()
-        ComfirmDialog(titleRes = R.string.clear_history_label, message = stringResource(R.string.clear_playback_history_msg), showDialog = showClearHistoryDialog) { clearHistory() }
+        ComfirmDialog(titleRes = R.string.clear_history_label, message = stringResource(R.string.clear_playback_history_msg), showDialog = showClearHistoryDialog) { vm.clearHistory() }
         if (showDatesFilterDialog) DatesFilterDialog(oldestDate = 0L, onDismissRequest = { showDatesFilterDialog = false} ) { timeFilterFrom, timeFilterTo ->
             vm.historyStartDate = timeFilterFrom
             vm.historyEndDate = timeFilterTo
@@ -432,105 +544,6 @@ fun FacetsScreen() {
         if (showChooseMode) ChooseMode()
     }
 
-    fun reconcile() {
-        val nameEpisodeMap: MutableMap<String, Episode> = mutableMapOf()
-        val filesRemoved: MutableList<String> = mutableListOf()
-        fun traverse(srcFile: File) {
-            val filename = srcFile.name
-            if (srcFile.isDirectory) {
-                Logd(TAG, "traverse folder title: $filename")
-                val dirFiles = srcFile.listFiles()
-                dirFiles?.forEach { file -> traverse(file) }
-            } else {
-                Logd(TAG, "traverse: $srcFile filename: $filename")
-                val episode = nameEpisodeMap.remove(filename)
-                if (episode == null) {
-                    Logd(TAG, "traverse: error: episode not exist in map: $filename")
-                    filesRemoved.add(filename)
-                    srcFile.delete()
-                    return
-                }
-                Logd(TAG, "traverse found episode: ${episode.title}")
-            }
-        }
-        fun traverse(srcFile: DocumentFile) {
-            val filename = srcFile.name
-            if (srcFile.isDirectory) {
-                Logd(TAG, "traverse folder title: $filename")
-                val dirFiles = srcFile.listFiles()
-                dirFiles.forEach { file -> traverse(file) }
-            } else {
-                Logd(TAG, "traverse: $srcFile filename: $filename")
-                val episode = nameEpisodeMap.remove(filename)
-                if (episode == null) {
-                    Logd(TAG, "traverse: error: episode not exist in map: $filename")
-                    if (filename != null) filesRemoved.add(filename)
-                    srcFile.delete()
-                    return
-                }
-                Logd(TAG, "traverse found episode: ${episode.title}")
-            }
-        }
-        runOnIOScope {
-            progressing = true
-            nameEpisodeMap.clear()
-            MediaFilesTransporter("").updateDB()
-            var eList = getEpisodes(EpisodeFilter(vm.facetsPrefs.filtersMap[QuickAccess.Downloaded.name] ?: EpisodeFilter.States.downloaded.name), vm.sortOrder, copy=false)
-            for (e in eList) {
-                var fileUrl = e.fileUrl
-                if (fileUrl.isNullOrBlank()) continue
-                Logd(TAG, "reconcile: fileUrl: $fileUrl")
-                fileUrl = fileUrl.substring(fileUrl.lastIndexOf('/') + 1)
-                fileUrl = URLDecoder.decode(fileUrl, "UTF-8")
-                Logd(TAG, "reconcile: add to map: fileUrl: $fileUrl")
-                nameEpisodeMap[fileUrl] = e
-            }
-            eList = listOf()
-            if (customMediaUriString.isBlank()) {
-                val mediaDir = context.getExternalFilesDir("media") ?: return@runOnIOScope
-                mediaDir.listFiles()?.forEach { file -> traverse(file) }
-            } else {
-                val customUri = customMediaUriString.toUri()
-                val baseDir = DocumentFile.fromTreeUri(getAppContext(), customUri)
-                baseDir?.listFiles()?.forEach { file -> traverse(file) }
-            }
-            Logd(TAG, "reconcile: end, episodes missing file: ${nameEpisodeMap.size}")
-            if (nameEpisodeMap.isNotEmpty()) for (e in nameEpisodeMap.values) upsertBlk(e) { it.fileUrl = null }
-            val count = nameEpisodeMap.size
-            nameEpisodeMap.clear()
-            Logt(TAG, "Episodes reconciled: $count\nFiles removed: ${filesRemoved.size}")
-            realm.write {
-                val el = query(Episode::class, "feedId == nil").find()
-                if (el.isNotEmpty()) {
-                    val size = el.size
-                    for (e in el) Logd(TAG, "deleting ${e.title}")
-                    delete(el)
-                    Logt(TAG, "reconcile deleted $size loose episodes")
-                }
-            }
-            val ids = realm.query(Episode::class).find().mapNotNull { it.feedId }.toSet()
-            for (id in ids) {
-                val f = feedsMap[id]
-                if (f == null) {
-                    realm.write {
-                        val el = query(Episode::class, "feedId == $id").find()
-                        if (el.isNotEmpty()) {
-                            val size = el.size
-                            for (e in el) Logd(TAG, "deleting ${e.title}")
-                            delete(el)
-                            Logt(TAG, "reconcile deleted $size episodes in non-existent feed $id")
-                        }
-                    }
-                }
-            }
-            withContext(Dispatchers.Main) {
-                resetSwipes()
-                vm.buildFlow()
-                progressing = false
-            }
-        }
-    }
-
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun MyTopAppBar() {
@@ -538,46 +551,51 @@ fun FacetsScreen() {
         val textColor = MaterialTheme.colorScheme.onSurface
         val buttonColor = Color(0xDDFFD700)
         Box {
-            TopAppBar(title = { Text(facetsMode.name, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).clickable(onClick = { showChooseMode = true }))
-            }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {
-                Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-                    val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
-                    IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                    IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                    IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
-                    if (facetsMode != QuickAccess.Recorded) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "filter") }
-                    if (facetsMode in listOf(QuickAccess.History, QuickAccess.Downloaded, QuickAccess.New)) {
-                        IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                        DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
-                            if (vm.episodes.isNotEmpty() && facetsMode == QuickAccess.History) {
-                                DropdownMenuItem(text = { Text(stringResource(R.string.between_dates)) }, onClick = {
-                                    showDatesFilterDialog = true
+            TopAppBar(title = { Text(facetsMode.name, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).clickable(onClick = { showChooseMode = true })) },
+                navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {
+                    Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                        val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
+                        IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
+                        IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
+                        if (facetsMode != QuickAccess.Recorded) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (vm.filterButtonColor.value == Color.White) textColor else vm.filterButtonColor.value, contentDescription = "filter") }
+                        if (vm.showFeeds) IconButton(onClick = {
+                            feedIdsToUse.clear()
+                            feedIdsToUse.addAll(vm.feedsAssociated.map { it.id })
+                            navController.navigate(Screens.Library.name)
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "library") }
+                        IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                        if (facetsMode in listOf(QuickAccess.History, QuickAccess.Downloaded, QuickAccess.New)) {
+                            IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
+                            DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
+                                if (vm.episodes.isNotEmpty() && facetsMode == QuickAccess.History) {
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.between_dates)) }, onClick = {
+                                        showDatesFilterDialog = true
+                                        expanded = false
+                                    })
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.clear_history_label)) }, onClick = {
+                                        showClearHistoryDialog.value = true
+                                        expanded = false
+                                    })
+                                }
+                                if (facetsMode == QuickAccess.Downloaded) DropdownMenuItem(text = { Text(stringResource(R.string.reconcile_label)) }, onClick = {
+                                    vm.reconcile()
                                     expanded = false
                                 })
-                                DropdownMenuItem(text = { Text(stringResource(R.string.clear_history_label)) }, onClick = {
-                                    showClearHistoryDialog.value = true
+                                if (vm.episodes.isNotEmpty() && facetsMode == QuickAccess.New) DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
+                                    vm.progressing = true
+                                    runOnIOScope {
+                                        for (e in vm.episodes) if (e.playState == EpisodeState.NEW.code) upsert(e) { it.setPlayState(EpisodeState.UNPLAYED) }
+                                        Logt(TAG, "New items cleared")
+                                        withContext(Dispatchers.Main) { vm.progressing = false }
+                                        resetSwipes()
+                                        vm.buildFlow()
+                                    }
                                     expanded = false
                                 })
                             }
-                            if (facetsMode == QuickAccess.Downloaded) DropdownMenuItem(text = { Text(stringResource(R.string.reconcile_label)) }, onClick = {
-                                reconcile()
-                                expanded = false
-                            })
-                            if (vm.episodes.isNotEmpty() && facetsMode == QuickAccess.New) DropdownMenuItem(text = { Text(stringResource(R.string.clear_new_label)) }, onClick = {
-                                progressing = true
-                                runOnIOScope {
-                                    for (e in vm.episodes) if (e.playState == EpisodeState.NEW.code) upsert(e) { it.setPlayState(EpisodeState.UNPLAYED) }
-                                    Logt(TAG, "New items cleared")
-                                    withContext(Dispatchers.Main) { progressing = false }
-                                    resetSwipes()
-                                    vm.buildFlow()
-                                }
-                                expanded = false
-                            })
                         }
                     }
-                }
-            })
+                })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -594,8 +612,8 @@ fun FacetsScreen() {
                     else -> StatusRowMode.Normal
                 })
             }
-            val info = remember(vm.infoBarText, progressing, facetsMode) { mutableStateOf(
-                (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + vm.infoBarText + (if (progressing) " - ${context.getString(R.string.progressing_label)}" else "")
+            val info = remember(vm.infoBarText, vm.progressing, facetsMode) { mutableStateOf(
+                (if (facetsMode == QuickAccess.Custom) "$facetsCustomTag | " else "") + vm.infoBarText + (if (vm.progressing) " - ${context.getString(R.string.progressing_label)}" else "")
             ) }
             InforBar(swipeActions) { Text(info.value, style = MaterialTheme.typography.bodyMedium) }
             EpisodeLazyColumn(vm.episodes, statusRowMode = statusMode, showActionButtons = facetsMode != QuickAccess.Commented, swipeActions = swipeActions, actionButton_ = actionButtonToPass,

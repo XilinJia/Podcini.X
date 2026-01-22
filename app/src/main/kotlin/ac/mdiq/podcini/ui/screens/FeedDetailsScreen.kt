@@ -200,7 +200,7 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
         feedEpisodesFlow = getEpisodesAsFlow(null, null, feedId)
         feedFlow = realm.query<Feed>("id == $0", feedId).first().asFlow()
 
-        viewModelScope.launch { snapshotFlow { episodes.size }.distinctUntilChanged().collect { viewModelScope.launch(Dispatchers.IO) { listInfoText = buildListInfo(episodes, feedEpisodes.size) } } }
+        viewModelScope.launch { snapshotFlow { episodes.size }.distinctUntilChanged().collect { withContext(Dispatchers.IO) { listInfoText = buildListInfo(episodes, feedEpisodes.size) } } }
 
         viewModelScope.launch { snapshotFlow { EpisodesKeys(feed?.id, feed?.filterString, feed?.sortOrderCode, enableFilter, feedScreenMode) }.distinctUntilChanged().collect { getEpisodes() } }
     }

@@ -3,45 +3,53 @@
     <shortcut
         android:enabled="true"
         android:icon="@drawable/ic_playlist_shortcut"
-        android:shortcutId="queue"
+        android:shortcutId="Queues"
         android:shortcutShortLabel="@string/queue_label">
+        <intent
+            android:action="android.intent.action.MAIN"
+            android:targetClass="ac.mdiq.podcini.ui.activity.MainActivity"
+            android:targetPackage="ac.mdiq.podcini.X">
+            <extra android:name="shortcut_route" android:value="Queues" />c
+        </intent>
+        <categories android:name="android.shortcut.conversation"/>
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_add"
+        android:shortcutId="FindFeeds"
+        android:shortcutShortLabel="@string/add_feed_label">
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="ac.mdiq.podcini.ui.activity.MainActivity"
-            android:targetPackage="ac.mdiq.podcini">
-            <extra
-                android:name="fragment_tag"
-                android:value="QueuesFragment" />
+            android:targetPackage="ac.mdiq.podcini.X">
+            <extra android:name="shortcut_route" android:value="FindFeeds" />
         </intent>
     </shortcut>
 
     <shortcut
         android:enabled="true"
-        android:icon="@drawable/ic_feed_shortcut"
-        android:shortcutId="episodes"
-        android:shortcutShortLabel="@string/episodes_label">
+        android:icon="@drawable/baseline_view_in_ar_24"
+        android:shortcutId="Facets"
+        android:shortcutShortLabel="@string/facets">
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="ac.mdiq.podcini.ui.activity.MainActivity"
-            android:targetPackage="ac.mdiq.podcini">
-            <extra
-                android:name="fragment_tag"
-                android:value="EpisodesFragment" />
+            android:targetPackage="ac.mdiq.podcini.X">
+            <extra android:name="shortcut_route" android:value="Facets" />
         </intent>
     </shortcut>
 
     <shortcut
         android:enabled="true"
         android:icon="@drawable/ic_subscriptions_shortcut"
-        android:shortcutId="subscriptions"
-        android:shortcutShortLabel="@string/subscriptions_label">
+        android:shortcutId="Library"
+        android:shortcutShortLabel="@string/library">
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="ac.mdiq.podcini.ui.activity.MainActivity"
-            android:targetPackage="ac.mdiq.podcini">
-            <extra
-                android:name="fragment_tag"
-                android:value="SubscriptionsFragment" />
+            android:targetPackage="ac.mdiq.podcini.X">
+            <extra android:name="shortcut_route" android:value="Library" />
         </intent>
     </shortcut>
 
@@ -53,7 +61,7 @@
         <intent
             android:action="android.intent.action.VIEW"
             android:targetClass="ac.mdiq.podcini.ui.activity.MainActivity"
-            android:targetPackage="ac.mdiq.podcini">
+            android:targetPackage="ac.mdiq.podcini.X">
             <extra
                 android:name="refresh_on_start"
                 android:value="true" />

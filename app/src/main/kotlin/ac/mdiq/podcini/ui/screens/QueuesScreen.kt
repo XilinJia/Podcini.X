@@ -462,21 +462,21 @@ fun QueuesScreen(id: Long = -1L) {
             TopAppBar(title = {
                 if (vm.queuesMode == QueuesScreenMode.Queue) Text(
                     (if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in vm.queueNames.indices) vm.queueNames[vm.curIndex].ifBlank { "No name" } else "No name",
-                maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary,
-                modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
-                    if (vm.curQueue.id == actQueue.id) {
-                        if (episodes.size > 5) {
-                            val index = episodes.indexOfFirst { it.id == curEpisode?.id }
-                            if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
-                            else Logt(TAG, "can not find curEpisode to scroll to")
-                        } else Logt(TAG, "only scroll in actQueue when size is larger than 5")
-                    } else {
-                        upsertBlk(vm.curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
-                        val index = vm.queues.indexOfFirst { it.id == actQueue.id }
-                        if (index >= 0) setCurIndex(index)
-                        else Logt(TAG, "actQueue is not available")
-                    }
-                })) else Text(vm.title) },
+                    maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary,
+                    modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
+                        if (vm.curQueue.id == actQueue.id) {
+                            if (episodes.size > 5) {
+                                val index = episodes.indexOfFirst { it.id == curEpisode?.id }
+                                if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
+                                else Logt(TAG, "can not find curEpisode to scroll to")
+                            } else Logt(TAG, "only scroll in actQueue when size is larger than 5")
+                        } else {
+                            upsertBlk(vm.curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
+                            val index = vm.queues.indexOfFirst { it.id == actQueue.id }
+                            if (index >= 0) setCurIndex(index)
+                            else Logt(TAG, "actQueue is not available")
+                        }
+                    })) else Text(vm.title) },
                 navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
                 actions = {
                     val binIconRes by remember(vm.queuesMode) { derivedStateOf { if (vm.queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history } }
@@ -497,12 +497,19 @@ fun QueuesScreen(id: Long = -1L) {
                         }
                         runOnIOScope { upsert(appAttribs) { it.queuesMode = vm.queuesMode.name } }
                     }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
-                    if (vm.queuesMode == QueuesScreenMode.Feed) IconButton(onClick = {
-                        facetsMode = QuickAccess.Custom
-                        facetsCustomTag = vm.spinnerTexts[vm.curIndex]
-                        facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", vm.feedsAssociated.map { it.id })
-                        navController.navigate(Screens.Facets.name)
-                    }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
+                    if (vm.queuesMode == QueuesScreenMode.Feed) {
+                        IconButton(onClick = {
+                            facetsMode = QuickAccess.Custom
+                            facetsCustomTag = vm.spinnerTexts[vm.curIndex]
+                            facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", vm.feedsAssociated.map { it.id })
+                            navController.navigate(Screens.Facets.name)
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
+                        IconButton(onClick = {
+                            feedIdsToUse.clear()
+                            feedIdsToUse.addAll(vm.feedsAssociated.map { it.id })
+                            navController.navigate(Screens.Library.name)
+                        }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "library") }
+                    }
                     if (vm.queuesMode == QueuesScreenMode.Queue) IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                     DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {

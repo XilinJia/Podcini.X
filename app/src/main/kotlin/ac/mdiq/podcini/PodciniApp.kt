@@ -5,23 +5,16 @@ import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.config.ClientConfigurator
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.utils.NetworkUtils
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.receiver.SPAReceiver
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.ui.activity.SplashActivity
-import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.utils.error.CrashReportWriter
 import android.app.Application
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.StrictMode
 import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 class PodciniApp : Application() {
@@ -42,36 +35,14 @@ class PodciniApp : Application() {
         CoroutineScope(Dispatchers.IO).launch { networkMonitor.networkFlow.collect {} }
 
         ClientConfigurator.initialize()
-
         gearbox.init()
-        sendSPAppsQueryFeedsIntent()
+
         DynamicColors.applyToActivitiesIfAvailable(this)
     }
 
     override fun onTerminate() {
         super.onTerminate()
         ClientConfigurator.destroy()
-    }
-    /**
-     * Sends an ACTION_SP_APPS_QUERY_FEEDS intent to all Podcini Single Purpose apps.
-     * The receiving single purpose apps will then send their feeds back to Podcini via an
-     * ACTION_SP_APPS_QUERY_FEEDS_RESPONSE intent.
-     * This intent will only be sent once.
-     * @return True if an intent was sent, false otherwise (for example if the intent has already been
-     * sent before.
-     */
-    @Synchronized
-    fun sendSPAppsQueryFeedsIntent(): Boolean {
-        if (getAppContext() == null) {
-            Loge("App", "Unable to get application context")
-            return false
-        }
-        if (!getPref(PREF_HAS_QUERIED_SP_APPS, false)) {
-            getAppContext().sendBroadcast(Intent(SPAReceiver.ACTION_SP_APPS_QUERY_FEEDS))
-            Logd("App", "Sending SP_APPS_QUERY_FEEDS intent")
-            putPref(PREF_HAS_QUERIED_SP_APPS, true)
-            return true
-        } else return false
     }
 
     class ApplicationCallbacksImpl : ApplicationCallbacks {
@@ -81,7 +52,7 @@ class PodciniApp : Application() {
     }
 
     companion object {
-        private const val PREF_HAS_QUERIED_SP_APPS = "prefSPAUtil.hasQueriedSPApps"
+//        private const val PREF_HAS_QUERIED_SP_APPS = "prefSPAUtil.hasQueriedSPApps"
         private lateinit var podciniApp: PodciniApp
 
         fun getApp(): PodciniApp = podciniApp
@@ -89,9 +60,8 @@ class PodciniApp : Application() {
         fun getAppContext(): Context = podciniApp.applicationContext
 
         fun forceRestart() {
-            val intent = Intent(getApp(), SplashActivity::class.java)
-            val cn: ComponentName? = intent.component
-            val mainIntent: Intent = Intent.makeRestartActivityTask(cn)
+            val intent = Intent(getApp(), MainActivity::class.java)
+            val mainIntent = Intent.makeRestartActivityTask(intent.component)
             realm.close()
             getApp().startActivity(mainIntent)
             Runtime.getRuntime().exit(0)

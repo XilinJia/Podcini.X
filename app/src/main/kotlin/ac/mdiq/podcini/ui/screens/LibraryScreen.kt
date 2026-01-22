@@ -181,14 +181,17 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private const val TAG = "SubscriptionsScreen"
+private const val TAG = "LibraryScreen"
 
-class SubscriptionsVM : ViewModel() {
+val feedIdsToUse = mutableStateListOf<Long>()
+
+class LibraryVM : ViewModel() {
     var subPrefs by mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?:
     SubscriptionsPrefs().apply { this.queueSelIds.add(0L) })
     var prefsFlow by mutableStateOf<Flow<SingleQueryChange<SubscriptionsPrefs>>>(emptyFlow())
 
-    var showAllFeeds by mutableStateOf(false)
+    var showAllFeeds by mutableStateOf(feedIdsToUse.isNotEmpty())
+    val isViewGarden by mutableStateOf(feedIdsToUse.isNotEmpty())
 
     var feedsFlow by mutableStateOf<Flow<ResultsChange<Feed>>>(emptyFlow())
     var feeds by mutableStateOf<List<Feed>>(listOf())
@@ -405,9 +408,7 @@ class SubscriptionsVM : ViewModel() {
                 subPrefs.langsSel.isEmpty() -> qrs = " (langSet.@count > 0) "
                 subPrefs.langsSel.size == appAttribs.langSet.size -> qrs = ""
                 else -> {
-                    for (l in subPrefs.langsSel) {
-                        qrs += if (qrs.isEmpty()) " ( ANY langSet == '$l' " else " OR ANY langSet == '$l' "
-                    }
+                    for (l in subPrefs.langsSel) qrs += if (qrs.isEmpty()) " ( ANY langSet == '$l' " else " OR ANY langSet == '$l' "
                     if (qrs.isNotEmpty()) qrs += " ) "
                 }
             }
@@ -437,9 +438,7 @@ class SubscriptionsVM : ViewModel() {
                 else qSelIds_.remove(-2L)
             }
             var qrs  = ""
-            for (id in qSelIds_) {
-                qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
-            }
+            for (id in qSelIds_) qrs += if (qrs.isEmpty()) " ( queueId == '$id' " else " OR queueId == '$id' "
             if (qrs.isNotEmpty()) qrs += " ) "
             Logd(TAG, "queuesQS: $qrs")
             return qrs
@@ -453,11 +452,14 @@ class SubscriptionsVM : ViewModel() {
         val queuesStr = queuesQS()
         if (queuesStr.isNotEmpty())  sb.append(" AND $queuesStr")
         if (!subPrefs.showArchived)  sb.append(" AND id != $ARCHIVED_VOLUME_ID")
+
         val fetchQS = sb.toString()
         val sortPair = Pair(subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
         Logd(TAG, "fetchQS: $fetchQS ${sortPair.first} ${sortPair.second.name}")
-        feedsFlow = if (showAllFeeds) realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
-        else realm.query(Feed::class).query("volumeId == ${curVolume?.id ?: -1L}").query(fetchQS).sort(sortPair).asFlow()
+        feedsFlow = if (showAllFeeds) {
+            if (feedIdsToUse.isEmpty()) realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
+            else realm.query(Feed::class).query("id IN $0", feedIdsToUse).sort(sortPair).asFlow()
+        } else realm.query(Feed::class).query("volumeId == ${curVolume?.id ?: -1L}").query(fetchQS).sort(sortPair).asFlow()
     }
 
     data class FeedsFlowkeys(
@@ -511,11 +513,12 @@ class SubscriptionsVM : ViewModel() {
         curVolume = null
         queueIds.clear()
         queueNames.clear()
+        feedIdsToUse.clear()
     }
 }
 
 @Composable
-fun SubscriptionsScreen() {
+fun LibraryScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
@@ -526,7 +529,7 @@ fun SubscriptionsScreen() {
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
-    val vm: SubscriptionsVM = viewModel()
+    val vm: LibraryVM = viewModel()
 
     val connectLocalFolderLauncher: ActivityResultLauncher<Uri?> = rememberLauncherForActivityResult(contract = AddLocalFolder()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
@@ -590,39 +593,43 @@ fun SubscriptionsScreen() {
                         var feedCountState by remember(vm.feeds.size) { mutableStateOf(vm.feeds.size.toString() + "/" + feedCount.toString()) }
                         Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
                     }
-                }
-            }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } },
+                } },
+                navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_subscriptions), contentDescription = "Open Drawer") } },
                 actions = {
-                    IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
-                    IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
+                    if (!vm.isViewGarden) IconButton(onClick = { navController.navigate(Screens.Search.name) }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_search), contentDescription = "search") }
+                    if (!vm.isViewGarden) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
                     IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
-                    IconButton(onClick = {
+                    if (!vm.isViewGarden) IconButton(onClick = {
                         facetsMode = QuickAccess.Custom
                         facetsCustomTag = "Subscriptions"
                         facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", vm.feeds.map { it.id })
                         navController.navigate(Screens.Facets.name)
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
-                    DropdownMenu(expanded = expanded,
-                        border = BorderStroke(1.dp, buttonColor),
-                        onDismissRequest = { expanded = false }) {
+                    DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                         DropdownMenuItem(text = { Text(stringResource(R.string.toggle_grid_list)) }, onClick = {
                             runOnIOScope { upsert(vm.subPrefs) { it.prefFeedGridLayout = !it.prefFeedGridLayout } }
                             expanded = false
                         })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.show_all_feeds)) }, onClick = {
-                            vm.curVolume = null
-                            vm.showAllFeeds = !vm.showAllFeeds
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.new_volume_label)) }, onClick = {
-                            showNewVolume = true
-                            expanded = false
-                        })
-                        DropdownMenuItem(text = { Text(stringResource(R.string.new_synth_label)) }, onClick = {
-                            showNewSynthetic = true
-                            expanded = false
-                        })
+                        if (!vm.isViewGarden) {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.show_all_feeds)) }, onClick = {
+                                vm.curVolume = null
+                                vm.showAllFeeds = !vm.showAllFeeds
+                                expanded = false
+                            })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.new_volume_label)) }, onClick = {
+                                showNewVolume = true
+                                expanded = false
+                            })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.new_synth_label)) }, onClick = {
+                                showNewSynthetic = true
+                                expanded = false
+                            })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.add_feed_label)) }, onClick = {
+                                navController.navigate(Screens.FindFeeds.name)
+                                expanded = false
+                            })
+                        }
                         DropdownMenuItem(text = { Text(stringResource(R.string.full_refresh_label)) }, onClick = {
                             if (vm.curVolume == null) runOnceOrAsk(fullUpdate = true)
                             else runOnceOrAsk(vm.curVolume!!.allFeeds, fullUpdate = true)
@@ -632,7 +639,7 @@ fun SubscriptionsScreen() {
                             upsertBlk(vm.subPrefs) { it.showArchived = !it.showArchived }
                             expanded = false
                         }
-                        DropdownMenuItem(text = {
+                        if (!vm.isViewGarden) DropdownMenuItem(text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(stringResource(R.string.show_archived))
                                 Checkbox(checked = vm.subPrefs.showArchived, onCheckedChange = { toggleArchived() })
@@ -864,7 +871,11 @@ fun SubscriptionsScreen() {
                                 cancelRes = R.string.cancel_label,
                                 onConfirm = {
                                     Logd(TAG, "removing volume: ${volumeToOperate?.name}")
-                                    runOnIOScope { deleteVolumeTree(volumeToOperate!!) }
+                                    runOnIOScope {
+                                        feedOperationText = "Processing"
+                                        deleteVolumeTree(volumeToOperate!!)
+                                        feedOperationText = "s"
+                                    }
                                     commonConfirm = null
                                 },
                             )

@@ -27,6 +27,7 @@
     <string name="logs_label">Logs</string>
 
     <string name="subscriptions_label">Subscriptions</string>
+    <string name="library">Library</string>
 
     <string name="cancel_download_label">Cancel download</string>
     <string name="playback_history_label">History</string>

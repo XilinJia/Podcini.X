@@ -98,7 +98,7 @@ fun UserInterfaceScreen(activity: PreferenceActivity) {
         var showDefaultPageOptions by remember { mutableStateOf(false) }
         TitleSummaryActionColumn(R.string.pref_default_page, R.string.pref_default_page_sum) { showDefaultPageOptions = true }
         if (showDefaultPageOptions) {
-            var tempSelectedOption by remember { mutableStateOf(getPref(AppPrefs.prefDefaultPage, DefaultPages.Subscriptions.name)) }
+            var tempSelectedOption by remember { mutableStateOf(getPref(AppPrefs.prefDefaultPage, DefaultPages.Library.name)) }
             AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { showDefaultPageOptions = false },
                 title = { Text(stringResource(R.string.pref_default_page), style = CustomTextStyles.titleCustom) },
                 text = {

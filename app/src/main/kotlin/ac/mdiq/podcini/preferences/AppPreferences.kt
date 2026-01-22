@@ -191,7 +191,7 @@ object AppPreferences {
     }
 
     enum class DefaultPages(val res: Int) {
-        Subscriptions(R.string.subscriptions_label),
+        Library(R.string.library),
         Queues(R.string.queue_label),
         Facets(R.string.facets),
         OnlineSearch(R.string.add_feed_label),
@@ -214,7 +214,7 @@ object AppPreferences {
         prefEpisodeCover(false),
         prefShowSkip(true),
         prefShowDownloadReport(true),
-        prefDefaultPage(DefaultPages.Subscriptions.name),
+        prefDefaultPage(DefaultPages.Library.name),
         prefBackButtonOpensDrawer(false),
         prefShowErrorToasts(true),
         prefPrintDebugLogs(false),

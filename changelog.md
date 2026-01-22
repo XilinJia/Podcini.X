@@ -1,3 +1,17 @@
+# 10.7.0
+
+* renamed Subscriptions screen to Library screen
+* in topbar of Queues and Facets screens, added Library button in Feeds view, to open a specialized view of Library for better operations
+* in Library screen
+	* added "Add podcast" in menu to open FindFeeds screen
+	* show "processing" when removing a volume
+* in Facets screen
+	* fixed not refreshing on initial opening 
+	* ensure reconcile skips local feeds
+* amended and fixed shortcuts with long-press on app icon
+* removed SplashActivity
+* some code refactoring and removed some old unused stuff
+
 # 10.6.1
 
 * fixed Bin in FeedDetails showing full episodes when empty

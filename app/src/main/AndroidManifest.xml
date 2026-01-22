@@ -125,8 +125,10 @@
         <meta-data android:name="com.samsung.android.multidisplay.keep_process_alive" android:value="true"/>
 
         <activity
-            android:name=".ui.activity.SplashActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:name=".ui.activity.MainActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|density|uiMode|keyboard|navigation"
+            android:windowSoftInputMode="stateAlwaysHidden"
+            android:launchMode="singleTop"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -136,24 +138,14 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
                 <category android:name="android.intent.category.APP_MUSIC" />
-            </intent-filter>
+                <category android:name="com.android.launcher3.DEEP_SHORTCUT" />
 
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
-        </activity>
-
-        <activity
-            android:name=".ui.activity.MainActivity"
-            android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|screenLayout|density|uiMode|keyboard|navigation"
-            android:windowSoftInputMode="stateAlwaysHidden"
-            android:launchMode="singleTask"
-            android:exported="true">
-            <intent-filter>
-                <category android:name="android.intent.category.DEFAULT" />
                 <action android:name="ac.mdiq.podcini.intents.MAIN_ACTIVITY" />
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES"/>
             </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <activity
@@ -260,14 +252,6 @@
             <intent-filter>
                 <action android:name="android.intent.action.ACTION_POWER_CONNECTED"/>
                 <action android:name="android.intent.action.ACTION_POWER_DISCONNECTED"/>
-            </intent-filter>
-        </receiver>
-
-        <receiver
-            android:name=".receiver.SPAReceiver"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="de.danoeh.antennapdsp.intent.SP_APPS_QUERY_FEEDS_RESPONSE"/>
             </intent-filter>
         </receiver>
 

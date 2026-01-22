@@ -16,10 +16,9 @@
     </action>
 
     <entity-set entitySetId="featureEntitySet">
-        <entity identifier="QUEUE" name="@string/queue_label" />
-        <entity identifier="EPISODES" name="@string/episodes_label" />
-        <entity identifier="DOWNLOADS" name="@string/downloads_label" />
-        <entity identifier="SUBSCRIPTIONS" name="@string/subscriptions_label" />
-        <entity identifier="HISTORY" name="@string/playback_history_label" />
+        <entity identifier="QUEUES" name="@string/queue_label" />
+        <entity identifier="FACETS" name="@string/facets" />
+        <entity identifier="LIBRARY" name="@string/library" />
+        <entity identifier="STATISTCS" name="@string/statistics_label" />
     </entity-set>
 </actions>

@@ -4,7 +4,6 @@ import ac.mdiq.podcini.R
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.queueToVirtual
-import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
@@ -12,7 +11,6 @@ import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
 import ac.mdiq.podcini.storage.model.SearchHistorySize
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
-import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.ui.actions.ButtonTypes
@@ -20,8 +18,8 @@ import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.InforBar
-import ac.mdiq.podcini.ui.compose.NonlazyGrid
 import ac.mdiq.podcini.ui.compose.SearchBarRow
+import ac.mdiq.podcini.ui.utils.SearchAlgo
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatLargeInteger
@@ -47,7 +45,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -105,84 +102,9 @@ fun setSearchTerms(query: String? = null) {
     if (query != null) curSearchString = query
 }
 
-private val searchBIES = SearchBy.entries.toMutableSet()
-fun setSearchByAll() {
-    searchBIES.addAll(SearchBy.entries)
-}
-private fun isSelected(by: SearchBy) = searchBIES.contains(by)
-private fun setSelected(by: SearchBy, selected: Boolean) {
-    if (selected) searchBIES.add(by) else searchBIES.remove(by)
-}
-
-private fun contains(s: String): String {
-    return if (s.startsWith('-')) {
-        val s1 = s.substring(1).trim()
-        "contains[c] '$s1'"
-    } else "contains[c] '$s'"
-}
-
-fun searchEpisodesQueryString(feedID: Long, queryWords: List<String>): String {
-    Logd("searchEpisodesQuery", "searchEpisodes called")
-    val sb = StringBuilder()
-    for (i in queryWords.indices) {
-        val sb1 = StringBuilder()
-        var isStart = true
-        val qw = queryWords[i]
-        val exl = qw.startsWith('-')
-        val command = contains(qw)
-        if (isSelected(SearchBy.TITLE)) {
-            if (exl) sb1.append("NOT " )
-            sb1.append("(title $command)")
-            isStart = false
-        }
-        if (isSelected(SearchBy.DESCRIPTION)) {
-            if (!isStart) sb1.append(if (exl) " AND " else " OR ")
-            if (exl) sb1.append("NOT ")
-            sb1.append("(description $command)")
-            if (exl) sb1.append(" AND ") else sb1.append(" OR ")
-            if (exl) sb1.append("NOT ")
-            sb1.append("(transcript $command)")
-            isStart = false
-        }
-        if (isSelected(SearchBy.COMMENT)) {
-            if (!isStart) sb1.append(if (exl) " AND " else " OR ")
-            if (exl) sb1.append("NOT ")
-            sb1.append("(comment $command)")
-        }
-        if (sb1.isEmpty()) continue
-        sb.append("(")
-        sb.append(sb1)
-        sb.append(") ")
-        if (i != queryWords.size - 1) sb.append("AND ")
-    }
-    if (sb.isEmpty()) return ""
-
-    var queryString = sb.toString()
-    if (feedID != 0L) queryString = "(feedId == $feedID) AND $queryString"
-    Logd(TAG, "searchEpisodes queryString: $queryString")
-
-    return queryString
-}
-
-@Composable
-fun SearchByGrid(exl: Set<SearchBy> = setOf()) {
-    NonlazyGrid(columns = 2, itemCount = SearchBy.entries.size) { index ->
-        val c = SearchBy.entries[index]
-        if (c !in exl) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 10.dp, end = 10.dp)) {
-            var isChecked by remember { mutableStateOf(isSelected(c)) }
-            Checkbox(checked = isChecked,
-                onCheckedChange = { newValue ->
-                    setSelected(c, newValue)
-                    isChecked = newValue
-                }
-            )
-            Spacer(modifier = Modifier.width(2.dp))
-            Text(stringResource(c.nameRes))
-        }
-    }
-}
-
 class SearchVM: ViewModel() {
+    val algo = SearchAlgo()
+
     internal val pafeeds = mutableStateListOf<PAFeed>()
     internal val feeds = mutableStateListOf<Feed>()
     var episodes by mutableStateOf<List<Episode>>(listOf())
@@ -199,7 +121,7 @@ class SearchVM: ViewModel() {
 
     init {
         Logd(TAG, "init $curSearchString")
-        setSearchByAll()
+        algo.setSearchByAll()
         queryText = curSearchString
         if (queryText.isNotBlank()) search()
     }
@@ -209,91 +131,6 @@ class SearchVM: ViewModel() {
     private var searchJob: Job? = null
     @SuppressLint("StringFormatMatches")
     internal fun search() {
-        fun searchFeeds(queryWords: List<String>): List<Feed> {
-            val sb = StringBuilder()
-            for (i in queryWords.indices) {
-                var isStart = true
-                val sb1 = StringBuilder()
-                val qw = queryWords[i]
-                val exl = qw.startsWith('-')
-                val command = contains(qw)
-                if (isSelected(SearchBy.TITLE)) {
-                    if (exl) sb1.append("NOT ")
-                    sb1.append("(eigenTitle $command)")
-                    if (exl) sb1.append(" AND ") else sb1.append(" OR ")
-                    if (exl) sb1.append("NOT ")
-                    sb1.append("(customTitle $command)")
-                    isStart = false
-                }
-                if (isSelected(SearchBy.AUTHOR)) {
-                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
-                    if (exl) sb1.append("NOT ")
-                    sb1.append("(author $command)")
-                    isStart = false
-                }
-                if (isSelected(SearchBy.DESCRIPTION)) {
-                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
-                    if (exl) sb1.append("NOT ")
-                    sb1.append("(description $command)")
-                    isStart = false
-                }
-                if (isSelected(SearchBy.COMMENT)) {
-                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
-                    if (exl) sb1.append("NOT ")
-                    sb1.append("(comment $command)")
-                }
-                if (sb1.isEmpty()) continue
-                sb.append("(")
-                sb.append(sb1)
-                sb.append(") ")
-                if (i != queryWords.size - 1) sb.append("AND ")
-            }
-            if (sb.isEmpty()) return listOf()
-            val queryString = sb.toString()
-            Logd(TAG, "searchFeeds queryString: $queryString")
-            return realm.query(Feed::class).query(queryString).find()
-        }
-        fun searchPAFeeds(queryWords: List<String>): List<PAFeed> {
-            val sb = StringBuilder()
-            for (i in queryWords.indices) {
-                var isStart = true
-                val sb1 = StringBuilder()
-                val qw = queryWords[i]
-                val exl = qw.startsWith('-')
-                val command = contains(qw)
-                if (isSelected(SearchBy.TITLE)) {
-                    if (exl) sb1.append("NOT ")
-                    sb1.append("(name $command)")
-                    isStart = false
-                }
-                if (isSelected(SearchBy.AUTHOR)) {
-                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
-                    if (exl) sb1.append("NOT ")
-                    sb1.append("(author $command)")
-                    isStart = false
-                }
-                if (isSelected(SearchBy.DESCRIPTION)) {
-                    if (!isStart) sb1.append(if (exl) " AND " else " OR ")
-                    if (exl) sb1.append("NOT ")
-                    sb1.append("(description $command)")
-                }
-                if (sb1.isEmpty()) continue
-                sb.append("(")
-                sb.append(sb1)
-                sb.append(") ")
-                if (i != queryWords.size - 1) sb.append("AND ")
-            }
-            if (sb.isEmpty()) return listOf()
-            val queryString = sb.toString()
-            Logd(TAG, "searchFeeds queryString: $queryString")
-            return realm.query(PAFeed::class).query(queryString).find()
-        }
-        fun searchEpisodes(feedID: Long, queryWords: List<String>): Flow<ResultsChange<Episode>> {
-            val queryString = searchEpisodesQueryString(feedID, queryWords)
-            if (queryString.isBlank()) return emptyFlow()
-            return realm.query(Episode::class).query(queryString).sort(sortPairOf(EpisodeSortOrder.DATE_DESC)).asFlow()
-        }
-
         if (queryText.isBlank()) return
         val queryText = queryText
         if (searchJob != null) searchJob?.cancel()
@@ -304,9 +141,9 @@ class SearchVM: ViewModel() {
                     else {
                         val queryWords = (if (queryText.contains(",")) queryText.split(",").map { it.trim() } else queryText.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
                         listIdentity = "Search.${queryWords.joinToString()}"
-                        val items = searchEpisodes(0L, queryWords)
-                        val feeds: List<Feed> = searchFeeds(queryWords)
-                        val pafeeds = searchPAFeeds(queryWords)
+                        val items = algo.searchEpisodes(0L, queryWords)
+                        val feeds: List<Feed> = algo.searchFeeds(queryWords)
+                        val pafeeds = algo.searchPAFeeds(queryWords)
                         Triplet(items, feeds, pafeeds)
                     }
                 }
@@ -482,7 +319,7 @@ fun SearchScreen() {
                         navController.navigate(Screens.FindFeeds.name)
                     }))
                 }
-                if (showSearchBy) SearchByGrid()
+                if (showSearchBy) vm.algo.SearchByGrid()
             }
             Row(modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                 vm.tabTitles.forEachIndexed { index, titleRes ->

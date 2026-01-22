@@ -53,7 +53,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -114,12 +113,12 @@ val defaultScreen: String
         if (value == AppPreferences.DefaultPages.Remember.name) {
             value = appAttribs.prefLastScreen
             Logd(TAG, "get defaultScreen 1: [$value]")
-            if (value.isBlank()) value = Screens.Subscriptions.name
+            if (value.isBlank()) value = Screens.Library.name
             if (value == Screens.FeedDetails.name) {
                 val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
                 if (feedId != null) value = "${Screens.FeedDetails.name}?feedId=${feedId}"
             }
-        } else if (value.isBlank() || !isValid) value = Screens.Subscriptions.name
+        } else if (value.isBlank() || !isValid) value = Screens.Library.name
         Logd(TAG, "get defaultScreen: [$value]")
         return value
     }
@@ -165,7 +164,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         Logd(TAG, "LaunchedEffect(drawerState.currentValue): ${drawerState.isOpen}")
         if (drawerState.isOpen) scope.launch(Dispatchers.IO) {
             navMap[Screens.Queues.name]?.count = queuesLive.sumOf { it.size()}
-            navMap[Screens.Subscriptions.name]?.count = feedCount
+            navMap[Screens.Library.name]?.count = feedCount
             navMap[Screens.Facets.name]?.count = getEpisodesCount(unfiltered())
             navMap[Screens.Logs.name]?.count = realm.query(ShareLog::class).count().find().toInt() +
                     realm.query(SubscriptionLog::class).count().find().toInt() +
@@ -229,7 +228,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 15.dp).clickable {
                     Logd(TAG, "nav.key: ${nav.key}")
                     navigator.navigate(nav.key) {
-                        if (nav.key in listOf(Screens.Subscriptions.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
+                        if (nav.key in listOf(Screens.Library.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
                         else popUpTo(nav.key) { inclusive = true }
                     }
                     drawerCtrl.close()
@@ -272,7 +271,7 @@ class NavItem(val iconRes: Int, val nameRes: Int) {
 }
 
 enum class Screens {
-    Subscriptions,
+    Library,
     FeedDetails,
     FeedsSettings,
     Facets,
@@ -287,7 +286,7 @@ enum class Screens {
 }
 
 private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
-    Screens.Subscriptions.name to NavItem(R.drawable.ic_subscriptions, R.string.subscriptions_label),
+    Screens.Library.name to NavItem(R.drawable.ic_subscriptions, R.string.library),
     Screens.Queues.name to NavItem(R.drawable.ic_playlist_play, R.string.queue_label),
     Screens.Facets.name to NavItem(R.drawable.baseline_view_in_ar_24, R.string.facets),
     Screens.Logs.name to NavItem(R.drawable.ic_history, R.string.logs_label),
@@ -316,11 +315,14 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
     var startScreen = startScreen
     if (startScreen.isBlank()) {
         val dfs = defaultScreen
-        startScreen = if (isValid(dfs)) dfs else Screens.Subscriptions.name
+        startScreen = if (isValid(dfs)) dfs else Screens.Library.name
     }
     Logd(TAG, "Navigate startScreen 1: $startScreen")
     NavHost(navController = navController, startDestination = startScreen) { // TODO: defaultScreen
-        composable(Screens.Subscriptions.name) { SubscriptionsScreen() }
+        composable(Screens.Library.name) {
+//            feedIdsToUse.clear()
+            LibraryScreen()
+        }
         composable(route = "${Screens.FeedDetails.name}?feedId={feedId}&modeName={modeName}", arguments = listOf(
             navArgument("feedId") {
                 type = NavType.LongType
@@ -412,7 +414,7 @@ fun NavHostController.safeNavigate(route: String, builder: NavOptionsBuilder.() 
         this.navigate(route, builder)
     } catch (e: IllegalArgumentException) {
         Loge(TAG, "Navigation failed: ${e.message}")
-        this.navigate(Screens.Subscriptions.name, builder)
+        this.navigate(Screens.Library.name, builder)
     }
 }
 
@@ -427,8 +429,8 @@ class AppNavigator(
     fun navigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
         var route = route
         if (!navController.routeExists(route)) {
-            Loge(TAG, "navigate invalid route: $route. Open Subscriptions")
-            route = Screens.Subscriptions.name
+            Loge(TAG, "navigate invalid route: $route. Open Library")
+            route = Screens.Library.name
         }
         onNavigated(route)
         navController.safeNavigate(route, builder)
