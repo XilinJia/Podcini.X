@@ -16,6 +16,7 @@
     <string name="downloads_label">ダウンロード</string>
     <string name="logs_label">ログ</string>
     <string name="subscriptions_label">サブスクリプション</string>
+    <string name="library">Library</string>
     <string name="cancel_download_label">ダウンロードをキャンセル</string>
     <string name="playback_history_label">沿革</string>
     <string name="overview">概要</string>
