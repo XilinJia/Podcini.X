@@ -16,6 +16,7 @@
     <string name="downloads_label">Закачки</string>
     <string name="logs_label">Журнал</string>
     <string name="subscriptions_label">Подписки</string>
+    <string name="library">Library</string>
     <string name="cancel_download_label">Отменить закачку</string>
     <string name="playback_history_label">История</string>
     <string name="overview">Overview</string>
