@@ -16,6 +16,7 @@
     <string name="downloads_label">İndirilenler</string>
     <string name="logs_label">Günlükler</string>
     <string name="subscriptions_label">Subscriptions</string>
+    <string name="library">Library</string>
     <string name="cancel_download_label">İndirmeyi İptal et</string>
     <string name="playback_history_label">Geçmiş</string>
     <string name="overview">Genel Bakış</string>
