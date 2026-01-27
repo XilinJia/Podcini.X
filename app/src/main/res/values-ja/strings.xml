@@ -9,6 +9,7 @@
     <string name="add_feed_label">ポッドキャストを追加</string>
     <string name="online_episodes_label">オンラインエピソード</string>
     <string name="feed">フィード</string>
+    <string name="facet">Facet</string>
     <string name="facets">ファセット</string>
     <string name="episodes_label">エピソード</string>
     <string name="queue_label">キュー</string>
@@ -846,7 +847,10 @@
     <string name="on_demand_config_setting_changed">設定が更新されました。</string>
     <string name="on_demand_config_stream_text">ストリームボタンを表示するエピソードリストを表示しますか？</string>
     <string name="on_demand_config_download_text">たくさんダウンロードしたようです。エピソードリストにダウンロードボタンを表示しますか？</string>
-    <string name="shortcut_subscription_label">サブスクリプションショートカット</string>
-    <string name="shortcut_select_subscription">サブスクリプションを選択</string>
+    <string name="podcast">Podcast</string>
+    <string name="queue">Queue</string>
+    <string name="select_podcast">Select podcast</string>
+    <string name="select_queue">Select queue</string>
+    <string name="select_facet">Select facet</string>
     <string name="add_shortcut">ショートカットを追加</string>
 </resources>
