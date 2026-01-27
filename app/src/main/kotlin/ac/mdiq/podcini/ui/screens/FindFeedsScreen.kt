@@ -25,14 +25,14 @@ import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
 import ac.mdiq.podcini.ui.compose.OpmlImportSelectionDialog
 import ac.mdiq.podcini.ui.compose.SearchBarRow
+import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import android.annotation.SuppressLint
@@ -60,6 +60,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -229,6 +230,7 @@ class FindFeedsVM: ViewModel() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FindFeedsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -257,7 +259,7 @@ fun FindFeedsScreen() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    
     @Composable
     fun MyTopAppBar() {
         Box {
@@ -269,7 +271,7 @@ fun FindFeedsScreen() {
                     if (queryText.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(queryText, StandardCharsets.UTF_8.name())}")
                     else vm.search(queryText)
                 }
-            }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
+            }, navigationIcon = { IconButton(onClick = { drawerController?.open() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

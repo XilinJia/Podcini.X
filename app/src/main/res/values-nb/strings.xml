@@ -569,7 +569,7 @@
   <string name="on_demand_config_setting_changed">Innstillingen suksessfull oppdatert.</string>
   <string name="on_demand_config_stream_text">Ser ut som du strømmer masse. Vil du at episodenes lister viser strømmingsknapper\?</string>
   <string name="on_demand_config_download_text">Ser ut som du laster ned masse. Vil du at episodenes lister viser nedlastingsknapper\?</string>
-  <string name="shortcut_subscription_label">Abonnement snarvei</string>
-  <string name="shortcut_select_subscription">Velg abonnement</string>
+
+
   <string name="add_shortcut">Legg til snarvei</string>
 </resources>

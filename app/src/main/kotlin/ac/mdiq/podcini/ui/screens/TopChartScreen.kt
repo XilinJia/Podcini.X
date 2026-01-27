@@ -6,14 +6,15 @@ import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.OnlineFeedItem
+import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
+import ac.mdiq.podcini.utils.timeIt
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -41,6 +42,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilterChip
@@ -124,7 +126,7 @@ class DiscoveryVM: ViewModel() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val NUM_LOADED = 100
-                val COUNTRY_CODE_UNSET: String = "99"
+                val COUNTRY_CODE_UNSET = "99"
                 val client = getHttpClient()
                 var loadCountry = countryCode
                 if (countryCode == COUNTRY_CODE_UNSET) loadCountry = Locale.getDefault().country
@@ -205,6 +207,7 @@ class DiscoveryVM: ViewModel() {
     }
 
     init {
+        timeIt("$TAG start of init")
         countryCode = appAttribs.topChartCountryCode
 
         for (code in Locale.getISOCountries()) {
@@ -220,9 +223,11 @@ class DiscoveryVM: ViewModel() {
         textInput = selectedCountry
 
         loadToplist()
+        timeIt("$TAG end of init")
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopChartScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -254,7 +259,7 @@ fun TopChartScreen() {
 
         LaunchedEffect(Unit) {
         }
-        @OptIn(ExperimentalMaterial3Api::class)
+
         @Composable
         fun CountrySelection() {
             val filteredCountries = remember { vm.countryNamesSort.toMutableStateList() }
@@ -322,7 +327,7 @@ fun TopChartScreen() {
     }
     if (showChooseGenre) ChooseGenre()
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    
     @Composable
     fun MyTopAppBar() {
         Box {
@@ -332,7 +337,7 @@ fun TopChartScreen() {
                     Spacer(Modifier.weight(1f))
                     Text(vm.countryCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end=20.dp).clickable(onClick = { showSelectCounrty = true }))
                 } },
-                navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController.open() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } }, )
+                navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } }, )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

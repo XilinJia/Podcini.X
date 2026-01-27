@@ -701,7 +701,7 @@
     <string name="on_demand_config_setting_changed">Indstilling opdateret.</string>
     <string name="on_demand_config_stream_text">Det ser ud til at du streamer en del. Vil du have vist streamknapper i afsnitslister\?</string>
     <string name="on_demand_config_download_text">Det ser ud til at du downloader meget. Vil du have downloadknapper vist i afsnitslister\?</string>
-    <string name="shortcut_subscription_label">Genvej til abonnement</string>
-    <string name="shortcut_select_subscription">Vælg abonnement</string>
+
+
     <string name="add_shortcut">Tilføj genvej</string>
 </resources>

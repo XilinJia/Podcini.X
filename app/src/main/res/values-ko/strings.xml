@@ -696,7 +696,7 @@
     <string name="on_demand_config_setting_changed">성공적으로 설정 업데이트함.</string>
     <string name="on_demand_config_stream_text">평소에 스트리밍을 많이 이용하는 것 같습니다. 에피소드 목록에서 스트리밍 버튼을 표시할까요\?</string>
     <string name="on_demand_config_download_text">평소에 다운로드를 많이 이용하는 것 같습니다. 에피소드 목록에서 다운로드 버튼을 표시할까요\?</string>
-    <string name="shortcut_subscription_label">구독 바로가기</string>
-    <string name="shortcut_select_subscription">구독 선택</string>
+
+
     <string name="add_shortcut">바로가기 추가</string>
 </resources>

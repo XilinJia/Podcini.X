@@ -1,6 +1,7 @@
 package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.BuildConfig
+import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.AppAttribs
 import ac.mdiq.podcini.storage.model.Chapter
@@ -24,6 +25,7 @@ import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.showStackTrace
+import ac.mdiq.podcini.utils.timeIt
 import android.net.Uri
 import io.github.xilinjia.krdb.MutableRealm
 import io.github.xilinjia.krdb.Realm
@@ -435,7 +437,9 @@ lateinit var realm: Realm
 
 fun getRealmInstance() {
     if (::realm.isInitialized) return
+    timeIt("$TAG start of getRealmInstance")
     realm = Realm.open(config)
+    timeIt("$TAG end of getRealmInstance")
 }
 
 fun <T : TypedRealmObject> unmanaged(entity: T) : T {

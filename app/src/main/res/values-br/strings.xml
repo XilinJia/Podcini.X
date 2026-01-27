@@ -477,6 +477,6 @@
   <string name="on_demand_config_setting_changed">Arventenn hizivaet</string>
   <string name="on_demand_config_stream_text">War a-seblant e lennit e streaming kalz. Fellout a ra deoc\'h e vefe diskouezet an afelloù lenn e streaming er roll?</string>
   <string name="on_demand_config_download_text">War a-seblant e pellgargit kalz. Fellout a ra deoc\'h e vefe diskouezet an afelloù pellgargañ er roll?</string>
-  <string name="shortcut_subscription_label">Berradenn ar c\'houmanant</string>
-  <string name="shortcut_select_subscription">Dibab ar c\'houmanant</string>
+
+
 </resources>

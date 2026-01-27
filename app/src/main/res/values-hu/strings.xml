@@ -701,7 +701,7 @@
     <string name="on_demand_config_setting_changed">Beállítás sikeresen frissítve.</string>
     <string name="on_demand_config_stream_text">Úgy néz ki, hogy sokszor használja a közvetítést. Szeretné megjeleníteni a közvetítési gombokat az epizódlistákban\?</string>
     <string name="on_demand_config_download_text">Úgy néz ki, hogy sokszor tölt le. Szeretné megjeleníteni a letöltési gombokat az epizódlistákban\?</string>
-    <string name="shortcut_subscription_label">Feliratkozás indítója</string>
-    <string name="shortcut_select_subscription">Feliratkozás kiválasztása</string>
+
+
     <string name="add_shortcut">Add shortcut</string>
 </resources>

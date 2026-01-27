@@ -26,17 +26,23 @@ import ac.mdiq.podcini.storage.model.tmpQueue
 import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.NumberEditor
+import ac.mdiq.podcini.ui.compose.COME_BACK
+import ac.mdiq.podcini.ui.compose.EpisodeScreen
+import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.compose.episodeForInfo
+import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatAbbrev
+import ac.mdiq.podcini.utils.timeIt
 import android.app.Dialog
 import android.text.Spannable
 import android.text.SpannableString
@@ -68,6 +74,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -172,6 +179,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal var errorDetails by mutableStateOf("")
 
     init {
+        timeIt("$TAG start of init")
         feedUrl = url
         feedSource = source
         isShared = shared
@@ -195,6 +203,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
             //                            }
             lookupUrlAndBuild(feedUrl)
         }
+        timeIt("$TAG end of init")
     }
     internal fun handleFeed(feed_: Feed, map: Map<String, String>) {
         selectedDownloadUrl = feedBuilder.selectedDownloadUrl
@@ -400,6 +409,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     }
 }
 
+@ExperimentalMaterial3Api
 @Composable
 fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -441,13 +451,16 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
         }
     }
 
-    DisposableEffect(vm.showEpisodes) {
-        if (vm.showEpisodes) handleBackSubScreens.add(TAG)
+    DisposableEffect(vm.showEpisodes, episodeForInfo) {
+        if (vm.showEpisodes || episodeForInfo != null) handleBackSubScreens.add(TAG)
         else handleBackSubScreens.remove(TAG)
         onDispose { handleBackSubScreens.remove(TAG) }
     }
 
-    BackHandler(enabled = handleBackSubScreens.contains(TAG)) { vm.showEpisodes = false }
+    BackHandler(enabled = handleBackSubScreens.contains(TAG)) {
+        episodeForInfo = null
+        vm.showEpisodes = false
+    }
 
     if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = { vm.showTabsDialog = false }) { feed, map -> vm.handleFeed(feed, map) }
     if (vm.showNoPodcastFoundDialog) AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { vm.showNoPodcastFoundDialog = false },
@@ -474,7 +487,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     }
     if (vm.showErrorDialog) FoundDialog(vm.errorMessage, vm.errorDetails) { vm.showErrorDialog = false}
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    
     @Composable
     fun MyTopAppBar() {
         Box {
@@ -482,13 +495,14 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
-                } else drawerController.close()
+                } else drawerController?.close()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 
-    Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
+    else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showEpisodes) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
             InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
             EpisodeLazyColumn(vm.episodes.toList(), isRemote = true, swipeActions = swipeActions,

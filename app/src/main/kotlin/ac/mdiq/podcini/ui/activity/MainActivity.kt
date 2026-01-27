@@ -12,43 +12,49 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.TTSEngine.closeTTS
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.putPref
-import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.autoBackup
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.cancelAppPrefs
 import ac.mdiq.podcini.storage.database.cancelMonitorFeeds
 import ac.mdiq.podcini.storage.database.initAppPrefs
 import ac.mdiq.podcini.storage.database.monitorFeeds
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.cancelMonitorVolumes
 import ac.mdiq.podcini.storage.model.monitorVolumes
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
-import ac.mdiq.podcini.ui.compose.CustomTheme
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.LargePoster
+import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.ui.dialog.RatingDialog
-import ac.mdiq.podcini.ui.screens.AppNavigator
 import ac.mdiq.podcini.ui.screens.AudioPlayerScreen
 import ac.mdiq.podcini.ui.screens.DrawerController
 import ac.mdiq.podcini.ui.screens.LocalDrawerController
 import ac.mdiq.podcini.ui.screens.LocalDrawerState
 import ac.mdiq.podcini.ui.screens.NavDrawerScreen
-import ac.mdiq.podcini.ui.screens.Navigate
-import ac.mdiq.podcini.ui.screens.Screens
-import ac.mdiq.podcini.ui.screens.cancelMonitornavStack
-import ac.mdiq.podcini.ui.screens.monitorNavStack
+import ac.mdiq.podcini.ui.screens.QuickAccess
 import ac.mdiq.podcini.ui.screens.setOnlineSearchTerms
 import ac.mdiq.podcini.ui.screens.setSearchTerms
-import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
+import ac.mdiq.podcini.ui.compose.AppNavigator
+import ac.mdiq.podcini.ui.compose.COME_BACK
+import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.Navigate
+import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.compose.defaultScreen
+import ac.mdiq.podcini.ui.compose.handleBackSubScreens
+import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.timeIt
 import ac.mdiq.podcini.utils.toastMassege
 import android.Manifest
 import android.annotation.SuppressLint
@@ -60,6 +66,8 @@ import android.os.PowerManager
 import android.os.StrictMode
 import android.provider.Settings
 import android.view.View
+import android.view.Window
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -83,6 +91,7 @@ import androidx.compose.material3.BottomSheetScaffold
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.SheetValue
@@ -103,7 +112,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -114,12 +122,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.core.view.WindowCompat
+import androidx.core.view.WindowCompat.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.await
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -129,8 +140,9 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
+@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : BaseActivity() {
-    private var lastTheme = 0
+    private var lastTheme = AppPreferences.theme
 //    private var navigationBarInsets = Insets.NONE
     private var intentState by mutableStateOf<Intent?>(null)
 
@@ -171,7 +183,7 @@ class MainActivity : BaseActivity() {
     private var intendedScreen by mutableStateOf("")
 
     fun setIntentScreen(screen: String) {
-        Logd(Companion.TAG, "setIntentScreen screen: $screen initScreen: $initScreen")
+        Logd(TAG, "setIntentScreen screen: $screen initScreen: $initScreen")
         if (initScreen == null) initScreen = screen
         else intendedScreen = screen
     }
@@ -179,8 +191,10 @@ class MainActivity : BaseActivity() {
     public override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
 
-        lastTheme = getNoTitleTheme(this)
-        setTheme(lastTheme)
+        lastTheme = AppPreferences.theme
+
+        window.requestFeature(Window.FEATURE_ACTION_MODE_OVERLAY)
+        enableEdgeToEdge(window)
 
         if (BuildConfig.DEBUG) {
             val builder = StrictMode.ThreadPolicy.Builder()
@@ -193,6 +207,7 @@ class MainActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         handleNavIntent()
 
+        timeIt("$TAG after handleNavIntent")
         intentState = intent
 
         if (savedInstanceState != null) hasInitialized.value = savedInstanceState.getBoolean(INIT_KEY, false)
@@ -205,11 +220,14 @@ class MainActivity : BaseActivity() {
 //                workInfos?.forEach { workInfo -> Logd(TAG, "FeedUpdateWork status: ${workInfo.state}") }
 //            }
 
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        setContent { CustomTheme(this) { intentState?.let { currentIntent -> MainActivityUI(currentIntent) } } }
+//        WindowCompat.setDecorFitsSystemWindows(window, false)
+        setContent { PodciniTheme { intentState?.let { currentIntent -> MainActivityUI(currentIntent) } } }
+
+        timeIt("$TAG after setContent")
 
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) postFornotificationPermission()
         else checkAndRequestUnrestrictedBackgroundActivity()
+        timeIt("$TAG after checking permission")
 
         val currentVersion = packageManager.getPackageInfo(packageName, 0).versionName
 //        val lastScheduledVersion = getPref(AppPreferences.AppPrefs.lastVersion, "0")
@@ -239,29 +257,33 @@ class MainActivity : BaseActivity() {
                 EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(isRefreshingFeeds))
             }
         observeDownloads()
+        timeIt("$TAG end of onCreate")
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    private var navStackJob: Job? = null
+    fun monitorNavStack(navController: NavHostController) {
+        fun NavBackStackEntry.resolvedRoute(): String {
+            val template = destination.route ?: return ""
+            var resolved = template
+            arguments?.keySet()?.forEach { key -> resolved = resolved.replace("{$key}", arguments?.get(key)?.toString() ?: "") }
+            return resolved
+        }
+        if (navStackJob == null) navStackJob = CoroutineScope(Dispatchers.Default).launch {
+            navController.currentBackStackEntryFlow.collect { entry ->
+                val resolved = entry.resolvedRoute()
+                runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = resolved } }
+                Logd(TAG, "currentBackStackEntryFlow Now at: $resolved")
+            }
+        }
+    }
+
+    
     @Composable
     fun MainActivityUI(intent: Intent) {
         val lcScope = rememberCoroutineScope()
         val navController = rememberNavController()
         val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
         LaunchedEffect(Unit) { monitorNavStack(navController) }
-
-//        LaunchedEffect(intent) {
-//            val route = intent.getStringExtra("shortcut_route")
-//            Logd(TAG, "LaunchedEffect(intent) route $route")
-//            intendedScreen = when (route) {
-//                "queues" -> Screens.Queues.name
-//                "library" -> Screens.Library.name
-//                else -> Screens.Library.name
-//            }
-////            navController.navigate(screen) {
-////                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-////                launchSingleTop = true
-////            }
-//        }
 
         val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = false))
 
@@ -309,7 +331,7 @@ class MainActivity : BaseActivity() {
         }
 
         LaunchedEffect(drawerState.currentValue) { savedDrawerValue = drawerState.currentValue }
-        val controller = remember {
+        val drawerCtrl = remember {
             object : DrawerController {
                 override fun isOpen() = drawerState.isOpen
                 override fun open() {
@@ -327,7 +349,7 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        CompositionLocalProvider(LocalDrawerController provides controller, LocalDrawerState provides drawerState) {
+        CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState) {
             //        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
             ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen(navigator) }) {
                 BottomSheetScaffold(sheetContent = { AudioPlayerScreen(navigator) }, scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
@@ -352,6 +374,43 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
+
+        BackHandler(enabled = handleBackSubScreens.isEmpty()) {
+            fun haveCommonPrefix(a: String, b: String): Boolean {
+                val min = minOf(a.length, b.length)
+                var count = 0
+                for (i in 0 until min) {
+                    if (a[i] != b[i]) break
+                    count++
+                }
+                return count > 0
+            }
+            Logd(TAG, "BackHandler isBSExpanded: $bsState")
+            val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
+            val defPage = defaultScreen
+            val currentDestination = navigator.currentDestination
+            var curruntRoute = currentDestination?.route ?: ""
+            Logd(TAG, "BackHandler curruntRoute0: $curruntRoute defPage: $defPage")
+            when {
+                drawerState.isOpen -> drawerCtrl.close()
+                bsState == BSState.Expanded -> bsState = BSState.Partial
+                navigator.previousBackStackEntry != null -> {
+                    Logd(TAG, "nav to back")
+                    navigator.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
+                    navigator.popBackStack()
+                    curruntRoute = currentDestination?.route ?: ""
+                    Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")
+                }
+                !isRemember && defPage.isNotBlank() && curruntRoute.isNotBlank() && !haveCommonPrefix(curruntRoute, defPage) -> {
+                    Logd(TAG, "nav to defPage: $defPage")
+                    navigator.navigate(defPage) { popUpTo(0) { inclusive = true } }
+                    curruntRoute = currentDestination?.route ?: ""
+                    Logd(TAG, "BackHandler curruntRoute1: [$curruntRoute]")
+                }
+                openDrawer -> drawerCtrl.open()
+                else -> Logt(TAG, getString(R.string.no_more_screens_back))
+            }
+        }
     }
 
     @Composable
@@ -369,7 +428,7 @@ class MainActivity : BaseActivity() {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (dontAskAgain) putPref(AppPreferences.AppPrefs.dont_ask_again_unrestricted_background, true)
+                    if (dontAskAgain) putPref(AppPrefs.dont_ask_again_unrestricted_background, true)
                     val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply { data = "package:$packageName".toUri() }
 //                    val intent = Intent()
 //                    intent.action = Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
@@ -384,7 +443,7 @@ class MainActivity : BaseActivity() {
     private fun checkAndRequestUnrestrictedBackgroundActivity() {
         val powerManager = getSystemService(POWER_SERVICE) as PowerManager
         val isIgnoringBatteryOptimizations = powerManager.isIgnoringBatteryOptimizations(packageName)
-        val dontAskAgain = getPref(AppPreferences.AppPrefs.dont_ask_again_unrestricted_background, false)
+        val dontAskAgain = getPref(AppPrefs.dont_ask_again_unrestricted_background, false)
         if (!isIgnoringBatteryOptimizations && !dontAskAgain) showUnrestrictedBackgroundPermissionDialog = true
     }
 
@@ -453,7 +512,8 @@ class MainActivity : BaseActivity() {
         closeTTS()
 //        cancelQueuesJob()
         cancelAppPrefs()
-        cancelMonitornavStack()
+        navStackJob?.cancel()
+        navStackJob = null
         super.onDestroy()
     }
 
@@ -464,6 +524,7 @@ class MainActivity : BaseActivity() {
         RatingDialog.init(this)
         monitorFeeds(lifecycleScope)
         monitorVolumes(lifecycleScope)
+        timeIt("$TAG end of onStart")
     }
 
     override fun onStop() {
@@ -477,16 +538,17 @@ class MainActivity : BaseActivity() {
         super.onResume()
         autoBackup(this)
         RatingDialog.check()
-        if (lastTheme != getNoTitleTheme(this)) {
+        if (lastTheme != AppPreferences.theme) {
             finish()
             startActivity(Intent(this, MainActivity::class.java))
         }
+        timeIt("$TAG end of onStart")
     }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        lastTheme = getNoTitleTheme(this) // Don't recreate activity when a result is pending
+//        lastTheme = getNoTitleTheme(this) // Don't recreate activity when a result is pending
     }
 
     private var eventSink: Job?     = null
@@ -524,10 +586,22 @@ class MainActivity : BaseActivity() {
     private fun handleNavIntent() {
         Logd(TAG, "handleNavIntent()")
         when {
-            intent.hasExtra(Extras.fragment_feed_id.name) -> {
-                val feedId = intent.getLongExtra(Extras.fragment_feed_id.name, 0)
+            intent.hasExtra(Extras.feed_id.name) -> {
+                val feedId = intent.getLongExtra(Extras.feed_id.name, 0)
                 Logd(TAG, "handleNavIntent: feedId: $feedId")
                 if (feedId > 0) setIntentScreen("${Screens.FeedDetails.name}?feedId=${feedId}")
+                bsState = BSState.Partial
+            }
+            intent.hasExtra(Extras.queue_id.name) -> {
+                val queueId = intent.getLongExtra(Extras.queue_id.name, 0)
+                Logd(TAG, "handleNavIntent: queueId: $queueId")
+                if (queueId >= 0) setIntentScreen("${Screens.Queues.name}?index=${queueId}")
+                bsState = BSState.Partial
+            }
+            intent.hasExtra(Extras.facet_name.name) -> {
+                val facetName = intent.getStringExtra(Extras.facet_name.name)
+                Logd(TAG, "handleNavIntent: facetName: $facetName")
+                if (!facetName.isNullOrEmpty()) QuickAccess.entries.find { it.name == facetName }?.let { setIntentScreen("${Screens.Facets.name}?modeName=${it.name}") }
                 bsState = BSState.Partial
             }
             intent.hasExtra(Extras.fragment_feed_url.name) -> {
@@ -594,7 +668,9 @@ class MainActivity : BaseActivity() {
     @Suppress("EnumEntryName")
     enum class Extras {
         lastVersion,
-        fragment_feed_id,
+        queue_id,
+        facet_name,
+        feed_id,
         fragment_feed_url,
         refresh_on_start,
         generated_view_id,
@@ -612,12 +688,14 @@ class MainActivity : BaseActivity() {
         private const val INIT_KEY = "app_init_state"
 
         val downloadStates = mutableStateMapOf<String, DownloadStatus>()
-        val LocalNavController = staticCompositionLocalOf<AppNavigator> { error("NavController not provided") }
         var bsState by mutableStateOf(BSState.Partial)
+
+        val isRemember: Boolean
+            get() = getPref(AppPrefs.prefDefaultPage, "") == AppPreferences.DefaultPages.Remember.name
 
         fun getIntentToOpenFeed(feedId: Long): Intent {
             val intent = Intent(getAppContext(), MainActivity::class.java)
-            intent.putExtra(Extras.fragment_feed_id.name, feedId)
+            intent.putExtra(Extras.feed_id.name, feedId)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
             return intent
         }

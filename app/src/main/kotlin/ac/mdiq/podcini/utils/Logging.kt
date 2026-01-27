@@ -69,3 +69,20 @@ fun showStackTrace() {
         stackTraceElements.forEach { element -> Log.d("showStackTrace", element.toString()) }
     }
 }
+
+var startTime: Long = 0
+var nanoTime: Long = 0
+
+fun startTiming() {
+    nanoTime = System.nanoTime()
+    startTime = nanoTime
+}
+fun timeIt(msg: String) {
+    if (BuildConfig.DEBUG) {
+        val time = System.nanoTime()
+        val dTime = (time - nanoTime) / 1000000
+        val dsTime = (time - startTime) / 1000000
+        Logd("TimeIt", "$msg $time delta: $dTime from Start: $dsTime" )
+        nanoTime = time
+    }
+}

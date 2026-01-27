@@ -37,14 +37,15 @@ import ac.mdiq.podcini.receiver.MediaButtonReceiver
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.specs.MediaType
-import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
-import ac.mdiq.podcini.ui.utils.starter.VideoPlayerActivityStarter
+import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
+import ac.mdiq.podcini.ui.activity.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.timeIt
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.NotificationChannel
@@ -68,14 +69,12 @@ import android.os.Vibrator
 import android.view.KeyEvent
 import android.view.KeyEvent.KEYCODE_MEDIA_STOP
 import android.view.ViewConfiguration
-import androidx.annotation.OptIn
 import androidx.annotation.RequiresPermission
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player.STATE_ENDED
 import androidx.media3.common.Player.STATE_IDLE
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.LibraryResult
@@ -96,7 +95,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
-@UnstableApi
 class PlaybackService : MediaLibraryService() {
     private val scope = CoroutineScope(Dispatchers.Main)
 
@@ -108,7 +106,6 @@ class PlaybackService : MediaLibraryService() {
     private val clickHandler = Handler(Looper.getMainLooper())
 
     private val autoStateUpdated: BroadcastReceiver = object : BroadcastReceiver() {
-        @OptIn(UnstableApi::class)
         override fun onReceive(context: Context, intent: Intent) {
             Logd(TAG, "autoStateUpdated onReceive called with action: ${intent.action}")
             val status = intent.getStringExtra("media_connection_status")
@@ -176,7 +173,7 @@ class PlaybackService : MediaLibraryService() {
     }
 
     private val audioBecomingNoisy: BroadcastReceiver = object : BroadcastReceiver() {
-        @OptIn(UnstableApi::class)
+        
         override fun onReceive(context: Context, intent: Intent) {
             // sound is about to change, eg. bluetooth -> speaker
             Logd(TAG, "audioBecomingNoisy onReceive called with action: ${intent.action}")
@@ -217,7 +214,7 @@ class PlaybackService : MediaLibraryService() {
 
     val mediaItemsInQueue: MutableList<MediaItem> by lazy {
         val list = mutableListOf<MediaItem>()
-        actQueue.episodes.forEach {
+        actQueue.episodesSorted.forEach {
             val item = buildMediaItem(it)
             if (item != null) list += item
         }
@@ -353,6 +350,8 @@ class PlaybackService : MediaLibraryService() {
     override fun onCreate() {
         super.onCreate()
         Logd(TAG, "onCreate Service created.")
+        timeIt("$TAG onCreate Service")
+
         isRunning = true
         playbackService = this
 
@@ -380,6 +379,7 @@ class PlaybackService : MediaLibraryService() {
             }
         }
         EventFlow.postEvent(FlowEvent.PlaybackServiceEvent(FlowEvent.PlaybackServiceEvent.Action.SERVICE_STARTED))
+        timeIt("$TAG onCreate Service end")
     }
 
     fun recreateMediaSessionIfNeeded() {

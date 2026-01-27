@@ -559,6 +559,6 @@
   <string name="on_demand_config_setting_changed">Configuração atualizada com sucesso</string>
   <string name="on_demand_config_stream_text">Parece que você faz muito stream. Quer que as listas de episódios mostrem botões de stream\?</string>
   <string name="on_demand_config_download_text">Parece que você faz muitos downloads. Quer que as listas de episódios mostrem botões de download\?</string>
-  <string name="shortcut_subscription_label">Atalho da assinatura</string>
-  <string name="shortcut_select_subscription">Selecione a assinatura</string>
+
+
 </resources>

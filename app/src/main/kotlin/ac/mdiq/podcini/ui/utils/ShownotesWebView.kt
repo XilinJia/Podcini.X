@@ -29,9 +29,7 @@ import androidx.core.view.size
 import kotlin.math.max
 
 class ShownotesWebView : WebView, View.OnLongClickListener {
-    /**
-     * URL that was selected via long-press.
-     */
+
     private var selectedUrl: String? = null
     private var timecodeSelectedListener: ((Int) -> Unit)? = null
     private var pageFinishedListener: (()->Unit)? = null

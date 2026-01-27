@@ -713,7 +713,7 @@
     <string name="on_demand_config_setting_changed">Ustawienia uaktualnione pomyślnie.</string>
     <string name="on_demand_config_stream_text">Wygląda na to, że dużo streamujesz. Czy chcesz, aby na listach odcinków pokazywać przyciski do streamowania\?</string>
     <string name="on_demand_config_download_text">Wygląda na to, że dużo pobierasz. Czy chcesz, aby na listach odcinków pokazywać przyciski do pobierania\?</string>
-    <string name="shortcut_subscription_label">Skrót subskrypcji</string>
-    <string name="shortcut_select_subscription">Wybierz subskrypcję</string>
+
+
     <string name="add_shortcut">Dodaj skrót</string>
 </resources>

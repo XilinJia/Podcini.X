@@ -25,10 +25,10 @@ class PositionSaver {
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
-    @OptIn(UnstableApi::class)
+    
     @Synchronized
     fun startPositionSaver(delayInterval: Long) {
-        @OptIn(UnstableApi::class)
+        
         fun positionSaverTick() {
             if (mPlayer == null) {
                 Loge(TAG, "positionSaverTick mPlayer is null")

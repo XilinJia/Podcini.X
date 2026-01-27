@@ -704,7 +704,7 @@
     <string name="on_demand_config_setting_changed">Impostazione aggiornata correttamente.</string>
     <string name="on_demand_config_stream_text">Sembra che ascolti molto in streaming. Vuoi che gli elenchi degli episodi mostrino i pulsanti per lo streaming\?</string>
     <string name="on_demand_config_download_text">Sembra che scarichi molto. Vuoi che gli elenchi degli episodi mostrino i pulsanti per il download\?</string>
-    <string name="shortcut_subscription_label">Scorciatoia iscrizione</string>
-    <string name="shortcut_select_subscription">Seleziona podcast</string>
+
+
     <string name="add_shortcut">Aggiungi collegamento</string>
 </resources>

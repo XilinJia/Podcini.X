@@ -31,11 +31,9 @@ import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.localDateTimeString
 import ac.mdiq.podcini.utils.sendLocalBroadcast
-import androidx.annotation.OptIn
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import androidx.media3.common.util.UnstableApi
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +79,7 @@ fun getEpisodesAsFlow(filter: EpisodeFilter?, sortOrder: EpisodeSortOrder?, feed
 
 fun getEpisodesCount(filter: EpisodeFilter?, feedId: Long = -1): Int {
     var queryString = filter?.queryString()?:"id > 0"
-    Logd(TAG, "getEpisodesCount called queryString: $queryString")
+    Logd(TAG, "getEpisodesCount called queryString: $queryString $feedId")
     if (feedId >= 0) queryString += " AND feedId == $feedId "
     return realm.query(Episode::class).query(queryString).count().find().toInt()
 }
@@ -193,7 +191,7 @@ suspend fun eraseEpisodes(episodes: List<Episode>, msg: String, saveLog: Boolean
     } catch (e: Throwable) { Logs("eraseEpisodes", e) }
 }
 
-@OptIn(UnstableApi::class)
+
 fun deleteMedia(episode: Episode): Episode {
     val context = getAppContext()
     Logd(TAG, String.format(Locale.US, "deleteMedia [id=%d, title=%s, downloaded=%s", episode.id, episode.getEpisodeTitle(), episode.downloaded))
@@ -271,7 +269,7 @@ fun deleteMedia(episode: Episode): Episode {
  * Remove the listed episodes and their EpisodeMedia entries.
  * Deleting media also removes the download log entries.
  */
-@OptIn(UnstableApi::class)
+
 fun deleteMedias(episodes: List<Episode>)  {
     val removedFromQueue: MutableList<Episode> = mutableListOf()
     val queueItems = actQueue.episodes.toMutableList()

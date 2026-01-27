@@ -711,7 +711,7 @@
     <string name="on_demand_config_setting_changed">Налаштування успішно оновлено.</string>
     <string name="on_demand_config_stream_text">Схоже, ви багато передаєте. Ви хочете, щоб у списках епізодів відображалися кнопки трансляції\?</string>
     <string name="on_demand_config_download_text">Схоже, ви багато завантажуєте. Ви хочете, щоб у списках епізодів відображалися кнопки завантаження\?</string>
-    <string name="shortcut_subscription_label">Скорочення підписки</string>
-    <string name="shortcut_select_subscription">Вибрати підписку</string>
+
+
     <string name="add_shortcut">Додати ярлик</string>
 </resources>

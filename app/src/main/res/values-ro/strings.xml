@@ -706,7 +706,7 @@
     <string name="on_demand_config_setting_changed">Setarea a fost actualizată cu succes</string>
     <string name="on_demand_config_stream_text">Se pare că faci streaming foarte mult. Dorești ca lista de episoade să arate butonul de stream \?</string>
     <string name="on_demand_config_download_text">Se pare că descarci foarte mult. Dorești ca lista de episoade să arate butonul de descărcare \?</string>
-    <string name="shortcut_subscription_label">Scurtătură pentru abonamente</string>
-    <string name="shortcut_select_subscription">Selectează abonamentul</string>
+
+
     <string name="add_shortcut">Adaugă scurtătură</string>
 </resources>

@@ -17,21 +17,21 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isCasting
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideoLocally
 import ac.mdiq.podcini.preferences.AppPreferences.videoPlayMode
 import ac.mdiq.podcini.preferences.SleepTimerPreferences.SleepTimerDialog
-import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.ui.compose.ChaptersDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.CustomTheme
+
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
+import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.ShareDialog
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.isLightTheme
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
-import ac.mdiq.podcini.ui.utils.starter.MainActivityStarter
+import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -65,6 +65,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -105,6 +106,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@OptIn(ExperimentalMaterial3Api::class)
 class VideoplayerActivity : BaseActivity() {
     var switchToAudioOnly = false
 
@@ -126,9 +128,9 @@ class VideoplayerActivity : BaseActivity() {
 
     var showShareDialog by mutableStateOf(false)
 
-    @UnstableApi
+    
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(getNoTitleTheme(this))
+//        setTheme(getNoTitleTheme(this))
         window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         var vmCode = 0
         if (curEpisode != null) {
@@ -156,13 +158,13 @@ class VideoplayerActivity : BaseActivity() {
         setForVideoMode()
 
         setContent {
-            CustomTheme(this) {
+            PodciniTheme {
                 if (showChapterDialog) ChaptersDialog(curEpisode!!, onDismissRequest = { showChapterDialog = false })
                 if (showAudioControlDialog) PlaybackControlsDialog(onDismiss = { showAudioControlDialog = false })
                 if (showSpeedDialog) PlaybackSpeedFullDialog(settingCode = booleanArrayOf(true, true, true), indexDefault = 0, maxSpeed = 3f, onDismiss = { showSpeedDialog = false })
                 if (showShareDialog) {
                     val feedItem = curEpisode
-                    if (feedItem != null) ShareDialog(feedItem, this@VideoplayerActivity) { showShareDialog = false }
+                    if (feedItem != null) ShareDialog(feedItem) { showShareDialog = false }
                     else showShareDialog = false
                 }
 
@@ -206,7 +208,7 @@ class VideoplayerActivity : BaseActivity() {
             win.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN)
             win.decorView.apply { systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE }
             val insetsController = getInsetsController(win, win.decorView)
-            insetsController.isAppearanceLightStatusBars = isLightTheme(this)
+            insetsController.isAppearanceLightStatusBars = isLightTheme()
         } else {
             val decorView = win.decorView
             decorView.post {
@@ -214,7 +216,7 @@ class VideoplayerActivity : BaseActivity() {
                 win.insetsController?.apply {
                     show(WindowInsetsCompat.Type.systemBars())
                     systemBarsBehavior = WindowInsetsController.BEHAVIOR_DEFAULT
-                    if (isLightTheme(this@VideoplayerActivity)) {
+                    if (isLightTheme()) {
                         setSystemBarsAppearance(
                             WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
                             WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
@@ -256,7 +258,7 @@ class VideoplayerActivity : BaseActivity() {
         }
     }
 
-    @androidx.annotation.OptIn(UnstableApi::class)
+    
     @Composable
     fun VideoPlayer() {
         AndroidView(modifier = Modifier.fillMaxWidth(),
@@ -274,7 +276,7 @@ class VideoplayerActivity : BaseActivity() {
         )
     }
 
-    @UnstableApi
+    
     @Composable
     fun MediaDetails() {
 //        val textColor = MaterialTheme.colorScheme.onSurface
@@ -295,7 +297,7 @@ class VideoplayerActivity : BaseActivity() {
         Logd(TAG, "onConfigurationChanged landscape: $landscape")
     }
 
-    @UnstableApi
+    
     override fun onResume() {
         super.onResume()
         setForVideoMode()
@@ -325,7 +327,7 @@ class VideoplayerActivity : BaseActivity() {
         if (!isInPictureInPictureMode) compatEnterPictureInPicture()
     }
 
-    @UnstableApi
+    
     override fun onStart() {
         super.onStart()
         procFlowEvents()
@@ -344,7 +346,7 @@ class VideoplayerActivity : BaseActivity() {
 
     private var loadItemsRunning = false
 
-    @UnstableApi
+    
     private fun loadMediaInfo() {
         Logd(TAG, "loadMediaInfo called")
         if (curEpisode == null) return
@@ -361,7 +363,7 @@ class VideoplayerActivity : BaseActivity() {
                     val episode = withContext(Dispatchers.IO) {
                         var episode_ = curEpisode
                         if (episode_ != null) {
-                            val result = gearbox.buildCleanedNotes(episode_, ShownotesCleaner(this@VideoplayerActivity))
+                            val result = gearbox.buildCleanedNotes(episode_, ShownotesCleaner())
                             episode_ = result.first
                             cleanedNotes = result.second
                         }
@@ -408,7 +410,7 @@ class VideoplayerActivity : BaseActivity() {
             onConfirm = { event.action?.invoke(this) })
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
@@ -551,7 +553,7 @@ class VideoplayerActivity : BaseActivity() {
         else false
     }
 
-    @UnstableApi
+    
     @Composable
     fun PlaybackControlsDialog(onDismiss: ()-> Unit) {
         val textColor = MaterialTheme.colorScheme.onSurface
@@ -576,7 +578,7 @@ class VideoplayerActivity : BaseActivity() {
 //        var media3Controller: MediaController? = null
 
         private val audioTracks: List<String>
-            @UnstableApi
+            
             get() {
                 val tracks = mPlayer?.getAudioTracks()
                 if (tracks.isNullOrEmpty()) return emptyList()
@@ -584,7 +586,7 @@ class VideoplayerActivity : BaseActivity() {
             }
 
         private val selectedAudioTrack: Int
-            @UnstableApi
+            
             get() = mPlayer?.getSelectedAudioTrack() ?: -1
 
         private fun getWebsiteLinkWithFallback(media: Episode?): String? {

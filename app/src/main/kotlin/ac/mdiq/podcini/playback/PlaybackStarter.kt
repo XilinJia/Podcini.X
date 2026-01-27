@@ -22,10 +22,8 @@ import ac.mdiq.podcini.storage.database.checkAndMarkDuplicates
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.utils.Logd
-import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
-import androidx.media3.common.util.UnstableApi
 
 
 class PlaybackStarter(private val media: Episode) {
@@ -33,6 +31,8 @@ class PlaybackStarter(private val media: Episode) {
 
     private var shouldStreamThisTime = false
     private var repeat = false
+
+    private var widgetId: String = ""
 
     fun shouldStreamThisTime(shouldStreamThisTime: Boolean?): PlaybackStarter {
         if (shouldStreamThisTime == null) {
@@ -47,7 +47,11 @@ class PlaybackStarter(private val media: Episode) {
         return this
     }
 
-    @UnstableApi
+    fun setWidgetId(widgetId: String): PlaybackStarter {
+        this.widgetId = widgetId
+        return this
+    }
+
     fun start() {
         Logd(TAG, "start PlaybackService.isRunning: ${PlaybackService.isRunning}")
         var media_ = media
@@ -60,27 +64,35 @@ class PlaybackStarter(private val media: Episode) {
         }
         shouldRepeat = repeat
         Logd(TAG, "start: status: $status")
+        mPlayer?.isStreaming = shouldStreamThisTime
+        mPlayer?.widgetId = widgetId
+
+        Logd(TAG, "aCtrlFuture: ${aCtrlFuture != null} isPlaying: $isPlaying isPaused: $isPaused isPrepared: $isPrepared isStopped: $isStopped")
+        fun processTask() {
+            when {
+                isPlaying -> {
+                    playPause()     // TODO: start new?
+                    //                        if (sameMedia) playPause()
+                    //                        else mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                }
+                isPaused || isPrepared -> mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+                isStopped -> ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
+                else -> mPlayer?.reinit()
+            }
+            sleepManager?.restartSleepTimer()
+        }
         aCtrlFuture?.let { future ->
             if (future.isDone && aController?.isConnected == true) {
                 Logd(TAG, "aController ready, play, $status $shouldStreamThisTime")
                 if (shouldStreamThisTime && !isStreamingCapable(media)) return
-
-                mPlayer?.isStreaming = shouldStreamThisTime
-                when {
-                    isPlaying -> {
-                        playPause()     // TODO: start new?
-//                        if (sameMedia) playPause()
-//                        else mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
-                    }
-                    isPaused || isPrepared -> mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
-                    isStopped -> ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
-                    else -> mPlayer?.reinit()
-                }
-                sleepManager?.restartSleepTimer()
+                processTask()
             } else {
                 Logd(TAG, "starting PlaybackService")
                 ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))
             }
+        } ?: run {
+            Logd(TAG, "aCtrlFuture is null, starting service")
+            processTask()
         }
     }
 }

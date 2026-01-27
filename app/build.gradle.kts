@@ -27,8 +27,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 242
-        versionName = "10.7.0"
+        versionCode = 243
+        versionName = "10.8.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -185,11 +185,11 @@ dependencies {
     implementation("androidx.window:window:1.5.1")
     implementation("androidx.work:work-runtime:2.11.0")
 
-    implementation("androidx.media3:media3-exoplayer:1.9.0")
-    implementation("androidx.media3:media3-datasource-okhttp:1.9.0")
-    implementation("androidx.media3:media3-ui:1.9.0")
-    implementation("androidx.media3:media3-common:1.9.0")
-    implementation("androidx.media3:media3-session:1.9.0")
+    implementation("androidx.media3:media3-exoplayer:1.9.1")
+    implementation("androidx.media3:media3-datasource-okhttp:1.9.1")
+    implementation("androidx.media3:media3-ui:1.9.1")
+    implementation("androidx.media3:media3-common:1.9.1")
+    implementation("androidx.media3:media3-session:1.9.1")
 
     implementation("com.google.android.material:material:1.13.0")
 

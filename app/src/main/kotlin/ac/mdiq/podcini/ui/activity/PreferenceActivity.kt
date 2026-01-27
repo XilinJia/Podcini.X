@@ -2,7 +2,6 @@ package ac.mdiq.podcini.ui.activity
 
 import ac.mdiq.podcini.BuildConfig
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.preferences.ThemeSwitcher.getNoTitleTheme
 import ac.mdiq.podcini.preferences.developerEmail
 import ac.mdiq.podcini.preferences.getCopyrightNoticeText
 import ac.mdiq.podcini.preferences.githubAddress
@@ -15,9 +14,10 @@ import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.CustomTheme
+
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.IconTitleSummaryActionRow
+import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
@@ -32,6 +32,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.Window
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -55,6 +56,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,6 +81,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -94,21 +97,25 @@ import java.io.IOException
 import java.io.InputStreamReader
 import javax.xml.parsers.DocumentBuilderFactory
 
+@OptIn(ExperimentalMaterial3Api::class)
 class PreferenceActivity : ComponentActivity() {
-    val TAG = "PreferenceActivity"
+    private val TAG = "PreferenceActivity"
     private var copyrightNoticeText by mutableStateOf("")
     private var topAppBarTitle by mutableStateOf("Home")
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    
     override fun onCreate(savedInstanceState: Bundle?) {
-        setTheme(getNoTitleTheme(this))
+//        setTheme(getNoTitleTheme(this))
         super.onCreate(savedInstanceState)
         Logd("PreferenceActivity", "onCreate")
+
+        window.requestFeature(Window.FEATURE_ACTION_MODE_OVERLAY)
+        enableEdgeToEdge(window)
 
         copyrightNoticeText = getCopyrightNoticeText()
         setContent {
             val navController = rememberNavController()
-            CustomTheme(this) {
+            PodciniTheme {
                 if (toastMassege.isNotEmpty()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                 if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                 BackHandler(enabled = true) {

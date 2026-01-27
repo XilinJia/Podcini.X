@@ -701,7 +701,7 @@
     <string name="on_demand_config_setting_changed">تنظیم با موفقیت به روز شد.</string>
     <string name="on_demand_config_stream_text">گویا زیاد پخش جریانی می‌کنید. می‌خواهید سیاهه‌های قسمت‌ها دکمهٔ جریان را نشان دهند؟</string>
     <string name="on_demand_config_download_text">گویا زیاد بارگیری می‌کنید. می‌خواهید سیاهه‌های قسمت‌ها دکمهٔ بارگیری را نشان دهند؟</string>
-    <string name="shortcut_subscription_label">میانبر اشتراک</string>
-    <string name="shortcut_select_subscription">اشتراک را انتخاب کنید</string>
+
+
     <string name="add_shortcut">افزودن میان‌بر</string>
 </resources>

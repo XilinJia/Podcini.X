@@ -419,6 +419,6 @@
   <string name="on_demand_config_setting_changed">Nustatymas sėkmingai atnaujintas.</string>
   <string name="on_demand_config_stream_text">Panašu, jog dažnai klausotės tiesiogiai. Ar norite, jog epizodų sąraše būtų rodomi tiesioginio klausymosi mygtukai\?</string>
   <string name="on_demand_config_download_text">Panašu, jog dažnai atsisiunčiate epizodus. Ar norite, jog epizodų sąraše būtų rodomi atsiuntimo mygtukai\?</string>
-  <string name="shortcut_subscription_label">Prenumeratos trumpinys</string>
-  <string name="shortcut_select_subscription">Pažymėti prenumeratą</string>
+
+
 </resources>

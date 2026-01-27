@@ -704,7 +704,7 @@
     <string name="on_demand_config_setting_changed">Einstellung erfolgreich aktualisiert.</string>
     <string name="on_demand_config_stream_text">Es sieht so aus, als würdest du viel streamen. Möchtest du in Listen den Streamen-Button anzeigen\?</string>
     <string name="on_demand_config_download_text">Es sieht so aus, als würdest du viel herunterladen. Möchtest du in Listen den Download-Button anzeigen\?</string>
-    <string name="shortcut_subscription_label">Abonnement-Verknüpfung</string>
-    <string name="shortcut_select_subscription">Abonnement auswählen</string>
+
+
     <string name="add_shortcut">Verknüpfung hinzufügen</string>
 </resources>

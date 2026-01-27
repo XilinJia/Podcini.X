@@ -62,17 +62,12 @@ object PodciniHttpClient {
     @Volatile
     private var httpClient: OkHttpClient? = null
 
-    /**
-     * Returns the HttpClient singleton.
-     */
-    
     @Synchronized
     fun getHttpClient(): OkHttpClient {
         if (httpClient == null) httpClient = newBuilder().build()
         return httpClient!!
     }
 
-    
     @Synchronized
     fun reinit() {
         httpClient = newBuilder().build()
@@ -85,7 +80,6 @@ object PodciniHttpClient {
      * copy so that the clients don't share state.
      * @return http client
      */
-    
     fun newBuilder(): Builder {
         Logd(TAG, "Creating new instance of HTTP client")
         System.setProperty("http.maxConnections", MAX_CONNECTIONS.toString())
@@ -127,11 +121,9 @@ object PodciniHttpClient {
         return builder
     }
 
-    
     fun setCacheDirectory(cacheDirectory: File?) {
         PodciniHttpClient.cacheDirectory = cacheDirectory
     }
-
     
     fun setProxyConfig(proxyConfig: ProxyConfig?) {
         PodciniHttpClient.proxyConfig = proxyConfig

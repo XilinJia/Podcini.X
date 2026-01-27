@@ -76,7 +76,7 @@ object SleepTimerPreferences {
         }
     }
 
-    @OptIn(UnstableApi::class)
+    
     @Composable
     fun SleepTimerDialog(onDismiss: () -> Unit) {
         val lcScope = rememberCoroutineScope()

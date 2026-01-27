@@ -5,7 +5,8 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.ShareLog
-import ac.mdiq.podcini.ui.compose.CustomTheme
+
+import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import android.content.Intent
@@ -43,7 +44,7 @@ class ShareReceiverActivity : ComponentActivity() {
         receiveShared(text,this, true) {
             setContent {
                 val showDialog = remember { mutableStateOf(true) }
-                CustomTheme(this) {
+                PodciniTheme {
                     gearbox.ConfirmAddEpisode(listOf(text), showDialog.value, onDismissRequest = {
                         showDialog.value = false
                         finish()

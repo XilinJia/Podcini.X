@@ -9,11 +9,13 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.savePlayerStatus
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.tempSkipSilence
+import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.fastForwardSecs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
 import ac.mdiq.podcini.preferences.AppPreferences.isSkipSilence
 import ac.mdiq.podcini.preferences.AppPreferences.rewindSecs
+import ac.mdiq.podcini.receiver.PodciniWidget
 import ac.mdiq.podcini.storage.database.getNextInQueue
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
@@ -28,12 +30,15 @@ import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.showStackTrace
+import ac.mdiq.podcini.utils.timeIt
 import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
 import android.media.audiofx.LoudnessEnhancer
 import android.util.Pair
 import android.view.SurfaceHolder
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Format
@@ -70,7 +75,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
 
-@UnstableApi
+
 class LocalMediaPlayer : MediaPlayerBase() {
     @Volatile
     private var videoSize: Pair<Int, Int>? = null
@@ -103,6 +108,7 @@ class LocalMediaPlayer : MediaPlayerBase() {
         get() = exoPlayer?.videoFormat?.height ?: 0
 
     init {
+        timeIt("$TAG start of init")
         if (httpDataSourceFactory == null) runOnIOScope { httpDataSourceFactory = OkHttpDataSource.Factory(PodciniHttpClient.getHttpClient() as okhttp3.Call.Factory).setUserAgent("Mozilla/5.0") }
         if (exoPlayer == null) {
             exoplayerListener = object: Listener {
@@ -174,6 +180,8 @@ class LocalMediaPlayer : MediaPlayerBase() {
             createStaticPlayer()
         }
         playbackParameters = exoPlayer!!.playbackParameters
+
+        timeIt("$TAG end of init")
     }
 
     override suspend fun invokeBufferListener() {
@@ -228,6 +236,8 @@ class LocalMediaPlayer : MediaPlayerBase() {
     }
 
     override fun createStaticPlayer() {
+        timeIt("$TAG createStaticPlayer")
+
         val loadControl = DefaultLoadControl.Builder()
         loadControl.setBufferDurationsMs(90_000, 300_000, 2_000, 10_000)
 
@@ -265,6 +275,7 @@ class LocalMediaPlayer : MediaPlayerBase() {
             exoPlayer?.removeAudioOffloadListener(exoplayerOffloadListener!!)
             exoPlayer?.addAudioOffloadListener(exoplayerOffloadListener!!)
         }
+        timeIt("$TAG createStaticPlayer end")
     }
 
     private fun release() {
@@ -683,6 +694,18 @@ class LocalMediaPlayer : MediaPlayerBase() {
                         } else acquireWifiLockIfNecessary()
                     } else releaseWifiLockIfNecessary()
                     prepareMedia(playable = nextMedia, streaming = needStreaming, startWhenPrepared = isPlaying, prepareImmediately = isPlaying)
+                    if (widgetId.isNotEmpty()) {
+                        CoroutineScope(Dispatchers.IO).launch {
+                            val manager = GlanceAppWidgetManager(getAppContext())
+                            val glanceId = manager.getGlanceIds(PodciniWidget::class.java).find { it.toString() == widgetId }
+                            glanceId?.let { id ->
+                                updateAppWidgetState(context, id) { prefs ->
+//                                    prefs[statusKey] = "Updated from App!"
+                                }
+                                PodciniWidget().update(context, id)
+                            }
+                        }
+                    }
                 }
                 if (currentMedia != null) onPostPlayback(currentMedia, hasEnded, wasSkipped, nextMedia != null)
             }

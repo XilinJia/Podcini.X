@@ -696,7 +696,7 @@
     <string name="on_demand_config_setting_changed">设置已成功更新。</string>
     <string name="on_demand_config_stream_text">看起来您想要剧集列表显示流按钮\？</string>
     <string name="on_demand_config_download_text">看起来您下载了很多。您想要剧集列表显示下载按钮\吗？</string>
-    <string name="shortcut_subscription_label">订阅快捷方式</string>
-    <string name="shortcut_select_subscription">选择订阅</string>
+
+
     <string name="add_shortcut">添加快捷方式</string>
 </resources>

@@ -1,27 +1,31 @@
 package ac.mdiq.podcini.ui.compose
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
+import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
-import ac.mdiq.podcini.preferences.ThemeSwitcher.readThemeValue
-import android.content.Context
-import android.os.Build
+import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import android.app.Activity
+import android.content.res.Configuration
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.graphics.ColorUtils
+import androidx.core.view.WindowCompat
 
 private const val TAG = "AppTheme"
 
@@ -46,31 +50,51 @@ val Shapes = Shapes(
 private val LightColors = lightColorScheme().copy(
     tertiary = Color(0xFF4E3511),
     tertiaryContainer = Color(0xFFB6EEEE),
+    surface = Color(0xFFFDFCF0),
+    onSurface = Color(0xFF2D2E30)
 )
 private val DarkColors = darkColorScheme().copy(
     tertiary = Color(0xFFE9A43E),
     tertiaryContainer = Color(0xFF0D343E),
+    onSurface = Color(0xFFE0D7C1),
 )
 
 @Composable
-fun CustomTheme(context: Context, content: @Composable () -> Unit) {
-    // TODO
-    val dynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+fun PodciniTheme(content: @Composable () -> Unit) {
+    val themePreference: ThemePreference = AppPreferences.theme
+    val isDark = when (themePreference) {
+        ThemePreference.LIGHT -> false
+        ThemePreference.DARK, ThemePreference.BLACK -> true
+        ThemePreference.SYSTEM -> isSystemInDarkTheme()
+    }
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = Color.Transparent.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
+        }
+    }
+    val isBlackModeEnabled: Boolean = getPref(AppPrefs.prefThemeBlack, false)
     val colorScheme = when {
-        dynamicColor -> dynamicLightColorScheme(LocalContext.current)
-        else -> lightColorScheme()
+        isDark && (themePreference == ThemePreference.BLACK || isBlackModeEnabled) -> DarkColors.copy(surface = Color(0xFF000000))
+        isDark -> DarkColors
+        else -> LightColors
     }
-    val colors = when (readThemeValue(context)) {
-        ThemePreference.LIGHT -> LightColors
-        ThemePreference.DARK -> DarkColors
-        ThemePreference.BLACK -> DarkColors.copy(surface = Color(0xFF000000))
-        ThemePreference.SYSTEM -> if (isSystemInDarkTheme()) DarkColors else LightColors
-    }
-    MaterialTheme(colorScheme = colors, typography = CustomTypography, shapes = Shapes, content = content)
+    MaterialTheme(colorScheme = colorScheme, content = content)
 }
 
-fun isLightTheme(context: Context): Boolean {
-    return readThemeValue(context) == ThemePreference.LIGHT
+fun isLightTheme(): Boolean {
+    val themePreference: ThemePreference = AppPreferences.theme
+    return when (themePreference) {
+        ThemePreference.LIGHT -> true
+        ThemePreference.DARK, ThemePreference.BLACK -> false
+        ThemePreference.SYSTEM -> {
+            val uiMode = getAppContext().resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            uiMode != Configuration.UI_MODE_NIGHT_YES
+        }
+    }
 }
 
 fun distinctColorOf(colorA: Color, colorB: Color): Color {

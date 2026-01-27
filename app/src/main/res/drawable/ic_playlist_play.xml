@@ -4,15 +4,15 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:fillColor="?attr/action_icon_color"
+        android:fillColor="#FF000000"
         android:pathData="M3,10h11v2h-11z" />
     <path
-        android:fillColor="?attr/action_icon_color"
+        android:fillColor="#FF000000"
         android:pathData="M3,6h11v2h-11z" />
     <path
-        android:fillColor="?attr/action_icon_color"
+        android:fillColor="#FF000000"
         android:pathData="M3,14h7v2h-7z" />
     <path
-        android:fillColor="?attr/action_icon_color"
+        android:fillColor="#FF000000"
         android:pathData="M16,13l0,8l6,-4z" />
 </vector>

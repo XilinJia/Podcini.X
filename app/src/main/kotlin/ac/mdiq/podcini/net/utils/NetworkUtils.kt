@@ -37,8 +37,6 @@ object NetworkUtils {
 
     private const val REGEX_PATTERN_IP_ADDRESS = "([0-9]{1,3}[\\.]){3}[0-9]{1,3}"
 
-    private lateinit var context: Context
-
     var mobileAllowStreaming: Boolean
         get() = isAllowMobileFor(MobileUpdateOptions.streaming.name)
         set(allow) {
@@ -65,10 +63,6 @@ object NetworkUtils {
 
     val isFeedRefreshAllowed: Boolean
         get() = mobileAllowFeedRefresh || !getApp().networkMonitor.isNetworkRestricted
-    
-    fun init() {
-        context = getAppContext()
-    }
 
     fun isAllowMobileFor(type: String): Boolean {
         val defaultValue = HashSet<String>()

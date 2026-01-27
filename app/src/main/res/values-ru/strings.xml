@@ -711,7 +711,7 @@
     <string name="on_demand_config_setting_changed">Настройки успешно обновлены.</string>
     <string name="on_demand_config_stream_text">Похоже, вы часто слушаете по сети. Хотите, чтобы в списке выпусков отображались кнопки для потокового воспроизведения\?</string>
     <string name="on_demand_config_download_text">Похоже, вы часто слушаете загружаете выпуски. Хотите, чтобы в списке выпусков отображались кнопки для загрузки\?</string>
-    <string name="shortcut_subscription_label">Ярлык подписки</string>
-    <string name="shortcut_select_subscription">Выбрать подписку</string>
+
+
     <string name="add_shortcut">Добавить ярлык</string>
 </resources>

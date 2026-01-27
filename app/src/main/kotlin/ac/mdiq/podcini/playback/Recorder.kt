@@ -28,7 +28,7 @@ private const val TAG = "Recorder"
  * startPositionMs: Long? = null, // Null for stop/save
  * endPositionMs: Long? = null,   // Null for start
  */
-@OptIn(UnstableApi::class)
+
 fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null) {
     val mediaItem = exoPlayer!!.currentMediaItem ?: run {
         Loge(TAG, "No current media item.")
@@ -197,7 +197,7 @@ fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null)
     }
 }
 
-@OptIn(UnstableApi::class)
+
 fun ExoPlayer.contentPositionToByte(positionMs: Long): Long? {
     val timeline = currentTimeline
     if (timeline.isEmpty) return null
@@ -228,7 +228,7 @@ private fun extractFromInputStream(input: java.io.InputStream, startByte: Long, 
 private fun adjustMp3Clip(bytes: ByteArray): ByteArray = bytes
 private fun adjustRawAacClip(bytes: ByteArray): ByteArray = bytes
 
-@OptIn(UnstableApi::class)
+
 private fun adjustOggClip(bytes: ByteArray, cache: SimpleCache, key: String, startByte: Long, endByte: Long): ByteArray {
     if (startByte > 0) {
         val headerBytes = getHeaderBytesFromCache(cache, key, 1024)
@@ -237,7 +237,7 @@ private fun adjustOggClip(bytes: ByteArray, cache: SimpleCache, key: String, sta
     return bytes
 }
 
-@OptIn(UnstableApi::class)
+
 private fun adjustMp4Clip(bytes: ByteArray, cache: SimpleCache, key: String, startByte: Long, endByte: Long): ByteArray {
     if (startByte > 0 || endByte < spansTotalLength(cache, key)) {
         Logt(TAG, "MP4 clip may not be playable without re-muxing.")
@@ -252,7 +252,7 @@ private fun adjustLocalMp4Clip(bytes: ByteArray): ByteArray {
     return bytes
 }
 
-@OptIn(UnstableApi::class)
+
 private fun getHeaderBytesFromCache(cache: SimpleCache, key: String, maxHeaderSize: Int): ByteArray? {
     val firstSpan = cache.getCachedSpans(key).minByOrNull { it.position } ?: return null
     if (firstSpan.position > 0 || firstSpan.file?.exists() != true) return null
@@ -263,7 +263,7 @@ private fun getHeaderBytesFromCache(cache: SimpleCache, key: String, maxHeaderSi
     }
 }
 
-@OptIn(UnstableApi::class)
+
 private fun getFullFileFromCache(cache: SimpleCache, key: String): ByteArray? {
     val spans = cache.getCachedSpans(key).sortedBy { it.position }
     if (spans.isEmpty()) return null
@@ -272,7 +272,7 @@ private fun getFullFileFromCache(cache: SimpleCache, key: String): ByteArray? {
     return outputStream.toByteArray().takeIf { it.isNotEmpty() }
 }
 
-@OptIn(UnstableApi::class)
+
 private fun spansTotalLength(cache: SimpleCache, key: String): Long = cache.getCachedSpans(key).sumOf { it.length }
 
 private fun getFileExtensionFromMimeType(mimeType: String?): String? {

@@ -15,15 +15,20 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationInHours
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
+import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.SearchBarRow
+import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.compose.episodeForInfo
+import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.ui.utils.SearchAlgo
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatLargeInteger
 import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -47,6 +52,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -89,7 +95,12 @@ import io.github.xilinjia.krdb.notifications.ResultsChange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
@@ -107,14 +118,13 @@ class SearchVM: ViewModel() {
 
     internal val pafeeds = mutableStateListOf<PAFeed>()
     internal val feeds = mutableStateListOf<Feed>()
-    var episodes by mutableStateOf<List<Episode>>(listOf())
 
     var showAdvanced by mutableStateOf(false)
 
     val tabTitles = listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds)
     val selectedTabIndex = mutableIntStateOf(0)
 
-    var episodesFlow by mutableStateOf<Flow<ResultsChange<Episode>>>(emptyFlow())
+    var episodesFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList())
     var listIdentity by mutableStateOf("")
 
     internal var queryText by mutableStateOf("")
@@ -148,7 +158,7 @@ class SearchVM: ViewModel() {
                     }
                 }
                 withContext(Dispatchers.Main) {
-                    episodesFlow = results_.episodes
+                    episodesFlow = results_.episodes.map { it.list }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
                     feeds.clear()
                     if (results_.feeds.isNotEmpty()) feeds.addAll(results_.feeds)
                     pafeeds.clear()
@@ -159,6 +169,7 @@ class SearchVM: ViewModel() {
     }
 }
 
+@ExperimentalMaterial3Api
 @Composable
 fun SearchScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -191,7 +202,15 @@ fun SearchScreen() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    DisposableEffect(episodeForInfo) {
+        if (episodeForInfo != null) handleBackSubScreens.add(TAG)
+        else handleBackSubScreens.remove(TAG)
+        onDispose { handleBackSubScreens.remove(TAG) }
+    }
+
+    BackHandler(enabled = handleBackSubScreens.contains(TAG)) { episodeForInfo = null }
+
+    
     @Composable
     fun MyTopAppBar() {
         Box {
@@ -210,7 +229,7 @@ fun SearchScreen() {
                     }
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.clickable(onClick = { vm.showAdvanced = !vm.showAdvanced}))
                 }
-            }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController.open()  }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
+            }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open()  }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -295,14 +314,14 @@ fun SearchScreen() {
         }
     }
 
-    val episodesChange by vm.episodesFlow.collectAsStateWithLifecycle(initialValue = null)
-    if (episodesChange != null) vm.episodes = episodesChange!!.list
+    val episodes by vm.episodesFlow.collectAsStateWithLifecycle()
 
-    val infoBarText = remember(vm.episodes) { mutableStateOf("${vm.episodes.size} episodes") }
-    val tabCounts = remember(vm.episodes) { listOf(vm.episodes.size, vm.feeds.size, vm.pafeeds.size) }
+    val infoBarText = remember(episodes) { mutableStateOf("${episodes.size} episodes") }
+    val tabCounts = remember(episodes) { listOf(episodes.size, vm.feeds.size, vm.pafeeds.size) }
     swipeActions.ActionOptionsDialog()
 
-    Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
+    else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             if (vm.showAdvanced) {
                 var showSearchBy by remember { mutableStateOf(false) }
@@ -334,10 +353,10 @@ fun SearchScreen() {
             when (vm.selectedTabIndex.intValue) {
                 0 -> {
                     InforBar(swipeActions) { Text(infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
-                    EpisodeLazyColumn(vm.episodes, swipeActions = swipeActions,
+                    EpisodeLazyColumn(episodes, swipeActions = swipeActions,
                         actionButtonCB = { e, type ->
                             if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
-                                runOnIOScope { queueToVirtual(e, vm.episodes, vm.listIdentity, EpisodeSortOrder.DATE_DESC) }
+                                runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, EpisodeSortOrder.DATE_DESC) }
                         })
                 }
                 1 -> FeedsColumn()

@@ -701,7 +701,7 @@
     <string name="on_demand_config_setting_changed">Asetuksen päivitys onnistui.</string>
     <string name="on_demand_config_stream_text">Näyttää siltä, että suoratoistat paljon. Haluatko, että jaksoluetteloissa näytetään suoratoistopainikkeet\?</string>
     <string name="on_demand_config_download_text">Näyttää siltä, että lataat paljon. Haluatko, että jaksoluetteloissa näytetään latauspainikkeet\?</string>
-    <string name="shortcut_subscription_label">Tilauksen pikakuvake</string>
-    <string name="shortcut_select_subscription">Valitse tilaus</string>
+
+
     <string name="add_shortcut">Lisää pikakuvake</string>
 </resources>

@@ -15,10 +15,11 @@ import ac.mdiq.podcini.storage.specs.Rating.Companion.fromCode
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.ShareReceiverActivity.Companion.receiveShared
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
+import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -53,6 +54,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -150,6 +152,7 @@ class LogsVM(val lcScope: CoroutineScope) {
     }
 }
 
+@ExperimentalMaterial3Api
 @Composable
 fun LogsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -453,11 +456,11 @@ fun LogsScreen() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    
     @Composable
      fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(vm.title) }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer") } }, actions = {
+            TopAppBar(title = { Text(vm.title) }, navigationIcon = { IconButton(onClick = { drawerController?.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer") } }, actions = {
                 if (vm.title != "Session") IconButton(onClick = {
                     vm.clearAllLogs()
                     vm.title = "Session"

@@ -711,7 +711,7 @@
     <string name="on_demand_config_setting_changed">Nastavení úspěšně aktualizováno</string>
     <string name="on_demand_config_stream_text"> Vypadá to, že častěji streamujete než stahujete. Chcete zobrazovat tlačítko streamovat v seznamu epizod\? </string>
     <string name="on_demand_config_download_text">Vypadá to, že častěji stahujete než streamujete. Chcete zobrazovat tlačítko stáhnout v seznamu epizod\?</string>
-    <string name="shortcut_subscription_label">Zkratka odběru</string>
-    <string name="shortcut_select_subscription">Vyberte odběr</string>
+
+
     <string name="add_shortcut">Přidat zkratku</string>
 </resources>

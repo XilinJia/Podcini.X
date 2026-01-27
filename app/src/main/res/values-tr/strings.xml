@@ -858,7 +858,7 @@
     <string name="on_demand_config_stream_text">Çok fazla akış yapıyor gibisiniz. Bölüm listelerinin akış düğmelerini göstermesini ister misiniz\?</string>
     <string name="on_demand_config_download_text">Çok fazla indiriyor gibisiniz. Bölüm listelerinin indirme düğmelerini göstermesini ister misiniz\?</string>
 
-    <string name="shortcut_subscription_label">Abonelik kısayolu</string>
-    <string name="shortcut_select_subscription">Abonelik seç</string>
+
+
     <string name="add_shortcut">Kısayol ekle</string>
 </resources>

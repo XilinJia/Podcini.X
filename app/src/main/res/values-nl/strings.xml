@@ -701,7 +701,7 @@
     <string name="on_demand_config_setting_changed">De instelling is aangepast.</string>
     <string name="on_demand_config_stream_text">Het lijkt er op dat je vaak streamt. Wil je streamknoppen tonen in de lijst met afleveringen\?</string>
     <string name="on_demand_config_download_text">Het lijkt er op dat je vaak dowloadt. Wil je downloadknoppen tonen in de lijst met afleveringen\?</string>
-    <string name="shortcut_subscription_label">Abonnementssnelkoppeling</string>
-    <string name="shortcut_select_subscription">Kies een abonnement</string>
+
+
     <string name="add_shortcut">Snelkoppeling toevoegen</string>
 </resources>

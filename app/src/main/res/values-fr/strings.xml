@@ -704,7 +704,7 @@
     <string name="on_demand_config_setting_changed">Paramètre mis à jour.</string>
     <string name="on_demand_config_stream_text">Il semble que vous streamez beaucoup. Voulez-vous que la liste des épisodes montre le bouton de streaming \?</string>
     <string name="on_demand_config_download_text">Il semble que vous téléchargez beaucoup. Voulez-vous que la liste des épisodes montre le bouton de téléchargement \?</string>
-    <string name="shortcut_subscription_label">Raccourci abonnement</string>
-    <string name="shortcut_select_subscription">Sélectionner un abonnement</string>
+
+
     <string name="add_shortcut">Ajouter le raccourci</string>
 </resources>

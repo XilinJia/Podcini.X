@@ -31,26 +31,30 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.AssociatedFeedsGrid
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
+import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
-import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.ui.compose.InforBar
+import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.NumberEditor
+import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.ui.compose.TitleSummaryActionColumn
 import ac.mdiq.podcini.ui.compose.TitleSummarySwitchRow
 import ac.mdiq.podcini.ui.compose.commonConfirm
+import ac.mdiq.podcini.ui.compose.episodeForInfo
+import ac.mdiq.podcini.ui.compose.filterChipBorder
+import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.timeIt
 import android.content.ComponentName
-import android.util.TypedValue
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -140,29 +144,29 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaBrowser
 import androidx.media3.session.SessionToken
-import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import io.github.xilinjia.krdb.ext.query
-import io.github.xilinjia.krdb.notifications.ResultsChange
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.collections.map
 import kotlin.math.roundToInt
 
 private val TAG = Screens.Queues.name
@@ -179,6 +183,8 @@ enum class QueuesScreenMode {
 class QueuesVM(id_: Long): ViewModel() {
     val id: Long = id_
 
+    var cameBack by mutableStateOf(false)
+
     var queues by mutableStateOf<List<PlayQueue>>(listOf())
     val queueNames = mutableStateListOf<String>()
     val spinnerTexts = mutableStateListOf<String>()
@@ -191,34 +197,37 @@ class QueuesVM(id_: Long): ViewModel() {
     var curIndex by  mutableIntStateOf(-1)
     var curQueue by mutableStateOf(actQueue)
 
-    var queueEntriesFlow by mutableStateOf<Flow<ResultsChange<QueueEntry>>>(emptyFlow()) 
-
-    var orderedEpisodeIdsFlow by mutableStateOf<Flow<List<Long>>>(flowOf(emptyList())) 
-    var episodesFlow by  mutableStateOf<Flow<List<Episode>>>(flowOf(emptyList())) 
-    var episodesSortedFlow by mutableStateOf<Flow<List<Episode>>>(flowOf(emptyList()))
+    var queueEntriesFlow: StateFlow<List<QueueEntry>> = MutableStateFlow(emptyList())
+    var episodesSortedFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList())
 
     var title by mutableStateOf("")
 
     fun initBinFlow() {
-        episodesSortedFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).asFlow().map { it.list }
+        val coldFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).asFlow().map { it.list }
             .map { episodes ->
                 val orderMap = curQueue.idsBinList.withIndex().associate { it.value to it.index }
                 episodes.sortedBy { episode -> orderMap[episode.id] ?: Int.MAX_VALUE }.reversed()
             }
+        episodesSortedFlow = coldFlow.distinctUntilChanged()
+            .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
     }
     fun initQueueFlow() {
-        queueEntriesFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow()
-        orderedEpisodeIdsFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow().map { results -> results.list.map { it.episodeId } }
-        episodesFlow = orderedEpisodeIdsFlow.flatMapLatest { ids ->
+        val qeRealmFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow()
+        queueEntriesFlow = qeRealmFlow.map { it.list }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+
+        val orderedEpisodeIdsFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow().map { results -> results.list.map { it.episodeId } }
+        val episodesFlow = orderedEpisodeIdsFlow.flatMapLatest { ids ->
             if (ids.isEmpty()) flowOf(emptyList()) else realm.query<Episode>("id IN $0", ids).asFlow().map { it.list }
         }
-        episodesSortedFlow = combine(orderedEpisodeIdsFlow, episodesFlow) { ids, episodes ->
+        val coldFlow = combine(orderedEpisodeIdsFlow, episodesFlow) { ids, episodes ->
             val episodeMap = episodes.associateBy { it.id }
             ids.mapNotNull { episodeMap[it] }
         }
+        episodesSortedFlow = coldFlow.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
     }
 
     init {
+        timeIt("$TAG start of init")
         curQueueFlow = realm.query<PlayQueue>("id == $0", appAttribs.curQueueId).first().asFlow()
         viewModelScope.launch { snapshotFlow { Pair(queues, actQueue.id) }.distinctUntilChanged().collect {
             spinnerTexts.clear()
@@ -255,6 +264,7 @@ class QueuesVM(id_: Long): ViewModel() {
                 else -> title = "Settings"
             }
         } }
+        timeIt("$TAG end of init")
     }
 
     override fun onCleared() {
@@ -263,7 +273,7 @@ class QueuesVM(id_: Long): ViewModel() {
     }
 }
 
-@androidx.annotation.OptIn(UnstableApi::class)
+@ExperimentalMaterial3Api
 @Composable
 fun QueuesScreen(id: Long = -1L) {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -282,7 +292,6 @@ fun QueuesScreen(id: Long = -1L) {
     Logd(TAG, "curQueuePosition: $curQueuePosition ${vm.curQueue.id}")
 
     val lazyListState = rememberLazyListState()
-    val stackEntry = navController.navController.currentBackStackEntryAsState().value
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -297,7 +306,6 @@ fun QueuesScreen(id: Long = -1L) {
                         mediaBrowser = browserFuture!!.get()
                         mediaBrowser?.subscribe("ActQueue", null)
                     }, MoreExecutors.directExecutor())
-                    stackEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
                 }
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
@@ -317,32 +325,34 @@ fun QueuesScreen(id: Long = -1L) {
                 }
             }
             if (browserFuture != null) MediaBrowser.releaseFuture(browserFuture!!)
+            lifecycleOwner.lifecycle.removeObserver(swipeActions)
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    DisposableEffect(vm.queuesMode) {
+    DisposableEffect(vm.queuesMode, episodeForInfo) {
         Logd(TAG, "DisposableEffect queuesMode: ${vm.queuesMode}")
-        if (vm.queuesMode != QueuesScreenMode.Queue) handleBackSubScreens.add(TAG)
+        if (vm.queuesMode != QueuesScreenMode.Queue || episodeForInfo != null) handleBackSubScreens.add(TAG)
         else handleBackSubScreens.remove(TAG)
         onDispose { handleBackSubScreens.remove(TAG) }
     }
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) {
         Logd(TAG, "BackHandler ${vm.queuesMode}")
-        when(vm.queuesMode) {
+        if (episodeForInfo != null) {
+            vm.cameBack = true
+            episodeForInfo = null
+        } else when(vm.queuesMode) {
             QueuesScreenMode.Bin, QueuesScreenMode.Feed, QueuesScreenMode.Settings -> {
                 vm.queuesMode = QueuesScreenMode.Queue
                 runOnIOScope { upsert(appAttribs) { it.queuesMode = vm.queuesMode.name } }
-                stackEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
             }
             else -> {}
         }
     }
     
-    val episodes by vm.episodesSortedFlow.collectAsStateWithLifecycle(emptyList())
-    val qeResults by vm.queueEntriesFlow.collectAsStateWithLifecycle(initialValue = null)
-    val queueEntries = qeResults?.list ?: emptyList()
+    val episodes by vm.episodesSortedFlow.collectAsStateWithLifecycle()
+    val queueEntries by vm.queueEntriesFlow.collectAsStateWithLifecycle()
 
     val queuesResults by queuesFlow.collectAsStateWithLifecycle(initialValue = null)
     if (queuesResults?.list != null) vm.queues = queuesResults!!.list
@@ -379,8 +389,9 @@ fun QueuesScreen(id: Long = -1L) {
             upsert(appAttribs) { it.curQueueId = vm.queues[index].id }
         }
         vm.curQueueFlow = realm.query<PlayQueue>("id == $0", vm.queues[index].id).first().asFlow()
-        stackEntry?.savedStateHandle?.remove<Boolean>(COME_BACK)
     }
+
+    Logd(TAG, "in Composition")
 
     @Composable
     fun OpenDialogs() {
@@ -453,7 +464,7 @@ fun QueuesScreen(id: Long = -1L) {
 
     OpenDialogs()
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
@@ -477,11 +488,12 @@ fun QueuesScreen(id: Long = -1L) {
                             else Logt(TAG, "actQueue is not available")
                         }
                     })) else Text(vm.title) },
-                navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
+                navigationIcon = { IconButton(onClick = { drawerController?.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
                 actions = {
                     val binIconRes by remember(vm.queuesMode) { derivedStateOf { if (vm.queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history } }
                     val feedsIconRes by remember(vm.queuesMode) { derivedStateOf { if (vm.queuesMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
                     if (vm.queuesMode != QueuesScreenMode.Feed) IconButton(onClick = {
+                        vm.cameBack = false
                         vm.queuesMode = when(vm.queuesMode) {
                             QueuesScreenMode.Queue -> QueuesScreenMode.Bin
                             QueuesScreenMode.Bin -> QueuesScreenMode.Queue
@@ -490,6 +502,7 @@ fun QueuesScreen(id: Long = -1L) {
                         runOnIOScope { upsert(appAttribs) { it.queuesMode = vm.queuesMode.name } }
                     }) { Icon(imageVector = ImageVector.vectorResource(binIconRes), contentDescription = "bin") }
                     if (vm.queuesMode in listOf(QueuesScreenMode.Queue, QueuesScreenMode.Feed)) IconButton(onClick = {
+                        vm.cameBack = false
                         vm.queuesMode = when(vm.queuesMode) {
                             QueuesScreenMode.Queue -> QueuesScreenMode.Feed
                             QueuesScreenMode.Feed -> QueuesScreenMode.Queue
@@ -502,7 +515,8 @@ fun QueuesScreen(id: Long = -1L) {
                             facetsMode = QuickAccess.Custom
                             facetsCustomTag = vm.spinnerTexts[vm.curIndex]
                             facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", vm.feedsAssociated.map { it.id })
-                            navController.navigate(Screens.Facets.name)
+                            navController.navigate("${Screens.Facets.name}?modeName=${QuickAccess.Custom.name}")
+//                            navController.navigate(Screens.Facets.name)
                         }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                         IconButton(onClick = {
                             feedIdsToUse.clear()
@@ -672,7 +686,8 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
 
-    Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
+    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
+    else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
 //        Logd(TAG, "Scaffold screenMode: $queuesMode")
         when (vm.queuesMode) {
             QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(vm.feedsAssociated) }
@@ -688,13 +703,15 @@ fun QueuesScreen(id: Long = -1L) {
                             }
                         }
                 }
-                val cameBack = stackEntry?.savedStateHandle?.get<Boolean>(COME_BACK) ?: false
-                var scrollToOnStart by remember { mutableIntStateOf(-1) }
-                LaunchedEffect(vm.curQueue, episodes.size) {
-                    Logd(TAG, "scrollToOnStart ${vm.curQueue.id == actQueue.id} $curQueuePosition ${vm.curQueue.scrollPosition} ${episodes.size}")
-                    scrollToOnStart = if (cameBack) -1 else if (vm.curQueue.id == actQueue.id) episodes.indexOfFirst { it.id == curEpisode?.id } else curQueuePosition
-                }
-                Logd(TAG, "Scaffold scrollToOnStart: cameBack: $cameBack $scrollToOnStart $curQueuePosition")
+                var scrollToOnStart by remember(vm.curQueue, episodes.size, curEpisode?.id, vm.cameBack) { mutableIntStateOf(
+                    when {
+                        vm.queuesMode != QueuesScreenMode.Queue -> -1
+                        vm.cameBack -> -1
+                        vm.curQueue.id == actQueue.id -> episodes.indexOfFirst { it.id == curEpisode?.id }
+                        else -> curQueuePosition
+                    }
+                ) }
+                Logd(TAG, "Scaffold scrollToOnStart: cameBack: ${vm.cameBack} $scrollToOnStart $curQueuePosition")
 
                 var listInfoText by remember { mutableStateOf("") }
                 LaunchedEffect(episodes.size) {
@@ -726,9 +743,7 @@ fun QueuesScreen(id: Long = -1L) {
                                 var yOffset by remember(index) { mutableFloatStateOf(0f) }
                                 var draggedIndex by remember { mutableStateOf<Int?>(null) }
                                 Row(Modifier.background(MaterialTheme.colorScheme.surface).zIndex(if (draggedIndex == index) 1f else 0f).offset { IntOffset(0, if (draggedIndex == index) yOffset.roundToInt() else 0) }) {
-                                    val typedValue = TypedValue()
-                                    context.theme.resolveAttribute(R.attr.dragview_background, typedValue, true)
-                                    Icon(imageVector = ImageVector.vectorResource(typedValue.resourceId), tint = buttonColor, contentDescription = "drag handle", modifier = Modifier.width(30.dp).align(Alignment.CenterVertically).padding(start = 5.dp, end = 5.dp).zIndex(if (draggedIndex == index) 1f else 0f)
+                                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_drag_darktheme), tint = buttonColor, contentDescription = "drag handle", modifier = Modifier.width(30.dp).align(Alignment.CenterVertically).padding(start = 5.dp, end = 5.dp).zIndex(if (draggedIndex == index) 1f else 0f)
                                         .draggable(orientation = Orientation.Vertical,
                                             state = rememberDraggableState { delta ->
                                                 yOffset += delta
@@ -761,8 +776,7 @@ fun QueuesScreen(id: Long = -1L) {
                                                 yOffset = 0f
                                             }))
                                     Box(modifier = Modifier.width(imageWidth).height(imageHeight)) {
-                                        val img = remember(episode.id) { ImageRequest.Builder(context).data(episode.imageLocation(false)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                                        AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
+                                        AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(false)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                                     }
                                     Text(episode.title?: "No vm.title")
                                 }

@@ -703,7 +703,7 @@
     <string name="on_demand_config_setting_changed">Configuración actualizada satisfactoriamente.</string>
     <string name="on_demand_config_stream_text">Parece que usas mucho la reproducción en directo. ¿Quieres que las listas de episodios muestren los botones de escuchar en directo\?</string>
     <string name="on_demand_config_download_text">Parece que usas mucho las descargas. ¿Quieres mostrar el botón de descargar en la lista de episodios\?</string>
-    <string name="shortcut_subscription_label">Atajo de suscripción</string>
-    <string name="shortcut_select_subscription">Seleccionar suscripción</string>
+
+
     <string name="add_shortcut">Añadir atajo</string>
 </resources>

@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting.Companion.fromInteger
 import ac.mdiq.podcini.storage.utils.generateFileName
 import ac.mdiq.podcini.utils.Logd
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -33,6 +34,7 @@ import io.github.xilinjia.krdb.types.annotations.Index
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import java.util.Date
 
+@Stable
 class Feed : RealmObject {
     @PrimaryKey
     var id: Long = 0L  // increments from Date().time * 100 at time of creation

@@ -117,7 +117,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
     val ttsTmpFiles = mutableListOf<String>()
     var ttsJob: Job? = null
 
-    @UnstableApi
+    
     fun onClick(actContext: Context? = null) {
         val context = getAppContext()
         fun fileNotExist(): Boolean {
@@ -512,7 +512,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
 //        Logd(TAG, "update type: $type")
     }
 
-    @UnstableApi
+    
     @Composable
     fun AltActionsDialog(context: Context, onDismiss: () -> Unit) {
         CommonPopupCard(onDismissRequest = onDismiss) {
@@ -641,7 +641,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
     }
     
     companion object {
-        @OptIn(UnstableApi::class)
+        
         fun playVideoIfNeeded(context: Context, item: Episode) {
             if (item.forceVideo ||
                 (item.feed?.videoModePolicy != VideoMode.AUDIO_ONLY && videoPlayMode != VideoMode.AUDIO_ONLY.code && videoMode != VideoMode.AUDIO_ONLY && item.getMediaType() == MediaType.VIDEO))

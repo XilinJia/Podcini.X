@@ -23,6 +23,8 @@ import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
+import ac.mdiq.podcini.utils.showStackTrace
+import ac.mdiq.podcini.utils.timeIt
 import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -68,6 +70,8 @@ object InTheatre {
     var bitrate by mutableIntStateOf(0)
 
     init {
+        showStackTrace()
+        timeIt("$TAG start of init")
         CoroutineScope(Dispatchers.IO).launch {
             Logd(TAG, "starting curState")
             curState = realm.query(CurrentState::class).query("id == 0").first().find() ?: upsertBlk(CurrentState()) {}
@@ -82,6 +86,7 @@ object InTheatre {
             }
         }
         monitorState()
+        timeIt("$TAG end of init")
     }
 
     fun monitorState() {
@@ -190,7 +195,7 @@ object InTheatre {
         }
     }
 
-    @OptIn(UnstableApi::class)
+    
     fun isCurrentlyPlaying(media: Episode?): Boolean {
         return isCurMedia(media) && PlaybackService.isRunning && isPlaying
     }

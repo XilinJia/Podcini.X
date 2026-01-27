@@ -1,17 +1,10 @@
 package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.preferences.AppPreferences
-import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
-import ac.mdiq.podcini.preferences.AppPreferences.getPref
-import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
-import ac.mdiq.podcini.storage.database.feeds
 import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
-import ac.mdiq.podcini.storage.database.runOnIOScope
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.ShareLog
@@ -21,11 +14,10 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
+import ac.mdiq.podcini.ui.compose.AppNavigator
+import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.Logt
 import android.content.Intent
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -53,7 +45,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateSetOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -75,59 +66,17 @@ import androidx.compose.ui.unit.min
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavDestination
-import androidx.navigation.NavHostController
-import androidx.navigation.NavOptionsBuilder
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import coil.compose.AsyncImage
 import io.github.xilinjia.krdb.query.Sort
-import java.net.URLDecoder
-import java.nio.charset.StandardCharsets
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private const val TAG = "NavDrawerScreen"
 
-const val COME_BACK = "comeback"
-
-val isRemember: Boolean
-    get() = getPref(AppPrefs.prefDefaultPage, "") == AppPreferences.DefaultPages.Remember.name
-
-val defaultScreen: String
-    get() {
-        if (feeds.isEmpty()) return Screens.FindFeeds.name
-
-        var value = getPref(AppPrefs.prefDefaultPage, "")
-        Logd(TAG, "get defaultScreen 0: [$value]")
-        val isValid = try {
-            Screens.valueOf(value)
-            true
-        } catch (_: Throwable) { false }
-        if (value == AppPreferences.DefaultPages.Remember.name) {
-            value = appAttribs.prefLastScreen
-            Logd(TAG, "get defaultScreen 1: [$value]")
-            if (value.isBlank()) value = Screens.Library.name
-            if (value == Screens.FeedDetails.name) {
-                val feedId = appAttribs.prefLastScreenArg.toLongOrNull()
-                if (feedId != null) value = "${Screens.FeedDetails.name}?feedId=${feedId}"
-            }
-        } else if (value.isBlank() || !isValid) value = Screens.Library.name
-        Logd(TAG, "get defaultScreen: [$value]")
-        return value
-    }
-
-val handleBackSubScreens = mutableStateSetOf<String>()
-
 data class FeedBrief(val id: Long, val title: String?, val imageUrl: String?)
 
-val LocalDrawerController = staticCompositionLocalOf<DrawerController> { error("DrawerController not provided") }
+val LocalDrawerController = staticCompositionLocalOf<DrawerController?> { null }
 val LocalDrawerState = staticCompositionLocalOf<DrawerState> { error("DrawerState not provided") }
 
 @Composable
@@ -177,44 +126,6 @@ fun NavDrawerScreen(navigator: AppNavigator) {
         }
     }
 
-    fun haveCommonPrefix(a: String, b: String): Boolean {
-        val min = minOf(a.length, b.length)
-        var count = 0
-        for (i in 0 until min) {
-            if (a[i] != b[i]) break
-            count++
-        }
-        return count > 0
-    }
-
-    BackHandler(enabled = handleBackSubScreens.isEmpty()) {
-        Logd(TAG, "BackHandler isBSExpanded: $bsState")
-        val openDrawer = getPref(AppPrefs.prefBackButtonOpensDrawer, false)
-        val defPage = defaultScreen
-        val currentDestination = navigator.currentDestination
-        curruntRoute = currentDestination?.route ?: ""
-        Logd(TAG, "BackHandler curruntRoute0: $curruntRoute defPage: $defPage")
-        when {
-            drawerState.isOpen -> drawerCtrl.close()
-            bsState == MainActivity.BSState.Expanded -> bsState = MainActivity.BSState.Partial
-            navigator.previousBackStackEntry != null -> {
-                Logd(TAG, "nav to back")
-                navigator.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
-                navigator.popBackStack()
-                curruntRoute = currentDestination?.route ?: ""
-                Logd(TAG, "BackHandler curruntRoute: [$curruntRoute]")
-            }
-            !isRemember && defPage.isNotBlank() && curruntRoute.isNotBlank() && !haveCommonPrefix(curruntRoute, defPage) -> {
-                Logd(TAG, "nav to defPage: $defPage")
-                navigator.navigate(defPage) { popUpTo(0) { inclusive = true } }
-                curruntRoute = currentDestination?.route ?: ""
-                Logd(TAG, "BackHandler curruntRoute1: [$curruntRoute]")
-            }
-            openDrawer -> drawerCtrl.open()
-            else -> Logt(TAG, context.getString(R.string.no_more_screens_back))
-        }
-    }
-
     val windowSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
     val windowWidthDp = with(density) { windowSize.width.toDp() }
@@ -231,7 +142,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
                         if (nav.key in listOf(Screens.Library.name, Screens.Queues.name, Screens.Facets.name)) popUpTo(0) { inclusive = true }
                         else popUpTo(nav.key) { inclusive = true }
                     }
-                    drawerCtrl.close()
+                    drawerCtrl?.close()
                 }) {
                     Icon(imageVector = ImageVector.vectorResource(nav.value.iconRes), tint = textColor, contentDescription = nav.key, modifier = Modifier.padding(start = 10.dp))
                     Text(stringResource(nav.value.nameRes), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
@@ -242,7 +153,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
             HorizontalDivider(modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp))
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 10.dp).fillMaxWidth().clickable {
                 context.startActivity(Intent(context, PreferenceActivity::class.java))
-                drawerCtrl.close()
+                drawerCtrl?.close()
             }) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), tint = textColor, contentDescription = "settings", modifier = Modifier.padding(start = 10.dp))
                 Text(stringResource(R.string.settings_label), color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 20.dp))
@@ -251,7 +162,7 @@ fun NavDrawerScreen(navigator: AppNavigator) {
             for (f in feedBriefs) {
                 Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp).clickable {
                     navigator.navigate("${Screens.FeedDetails.name}?feedId=${f.id}")
-                    drawerCtrl.close()
+                    drawerCtrl?.close()
                     bsState = MainActivity.BSState.Partial
                 }) {
                     AsyncImage(model = f.imageUrl, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.width(40.dp).height(40.dp))
@@ -270,21 +181,6 @@ class NavItem(val iconRes: Int, val nameRes: Int) {
     var count by mutableIntStateOf(0)
 }
 
-enum class Screens {
-    Library,
-    FeedDetails,
-    FeedsSettings,
-    Facets,
-    EpisodeInfo,
-    Queues,
-    Search,
-    FindFeeds,
-    OnlineFeed,
-    TopChart,
-    Logs,
-    Statistics
-}
-
 private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.Library.name to NavItem(R.drawable.ic_subscriptions, R.string.library),
     Screens.Queues.name to NavItem(R.drawable.ic_playlist_play, R.string.queue_label),
@@ -294,159 +190,9 @@ private val navMap: LinkedHashMap<String, NavItem> = linkedMapOf(
     Screens.FindFeeds.name to NavItem(R.drawable.ic_add, R.string.add_feed_label)
 )
 
-fun isValid(fullRoute: String): Boolean {
-    val pathEndIndex = fullRoute.indexOf('/')
-    if (pathEndIndex > 0) return false
-
-    val queryStartIndex = fullRoute.indexOf('?')
-    val endIndex = when {
-        pathEndIndex != -1 && queryStartIndex != -1 -> minOf(pathEndIndex, queryStartIndex)
-        pathEndIndex != -1 -> pathEndIndex
-        queryStartIndex != -1 -> queryStartIndex
-        else -> -1
-    }
-    val r = if (endIndex != -1) fullRoute.take(endIndex) else { fullRoute }
-    return (Screens.entries.any { it.name == r })
-}
-
-@Composable
-fun Navigate(navController: NavHostController, startScreen: String = "") {
-    Logd(TAG, "Navigate startScreen: $startScreen")
-    var startScreen = startScreen
-    if (startScreen.isBlank()) {
-        val dfs = defaultScreen
-        startScreen = if (isValid(dfs)) dfs else Screens.Library.name
-    }
-    Logd(TAG, "Navigate startScreen 1: $startScreen")
-    NavHost(navController = navController, startDestination = startScreen) { // TODO: defaultScreen
-        composable(Screens.Library.name) {
-//            feedIdsToUse.clear()
-            LibraryScreen()
-        }
-        composable(route = "${Screens.FeedDetails.name}?feedId={feedId}&modeName={modeName}", arguments = listOf(
-            navArgument("feedId") {
-                type = NavType.LongType
-                defaultValue = -1L
-            }, navArgument("modeName") {
-                type = NavType.StringType
-                defaultValue = FeedScreenMode.List.name
-        })) { entry ->
-            val feedId = entry.arguments?.getLong("feedId") ?: -1L
-            val modeName = entry.arguments?.getString("modeName") ?: FeedScreenMode.List.name
-            FeedDetailsScreen(feedId, modeName)
-        }
-        composable(Screens.FeedsSettings.name) { FeedsSettingsScreen() }
-        composable(route = "${Screens.EpisodeInfo.name}?episodeId={episodeId}", arguments = listOf(
-            navArgument("episodeId") {
-                type = NavType.LongType
-                defaultValue = -1L
-            })) { entry ->
-            val episodeId = entry.arguments?.getLong("episodeId") ?: -1L
-            EpisodeInfoScreen(episodeId)
-        }
-        composable(Screens.Facets.name) { FacetsScreen() }
-        composable(route = "${Screens.Queues.name}?index={index}", arguments = listOf(navArgument("index") {
-            type = NavType.LongType
-            defaultValue = -1L
-        })) { entry ->
-            val index = entry.arguments?.getLong("index") ?: -1L
-            QueuesScreen(index)
-        }
-        composable(Screens.Search.name) { SearchScreen() }
-        composable(Screens.TopChart.name) { TopChartScreen() }
-        composable(route = "${Screens.OnlineFeed.name}?url={url}&source={source}&shared={shared}", arguments = listOf(
-            navArgument("url") {
-                type = NavType.StringType
-                defaultValue = ""
-            }, navArgument("source") {
-                type = NavType.StringType
-                defaultValue = ""
-            }, navArgument("shared") {
-                type = NavType.BoolType
-                defaultValue = false
-            })) { entry ->
-            val encodedUrl = entry.arguments?.getString("url") ?: "Error"
-            val url = URLDecoder.decode(encodedUrl, StandardCharsets.UTF_8.name())
-            val source = entry.arguments?.getString("source") ?: ""
-            val shared = entry.arguments?.getBoolean("shared") ?: false
-            OnlineFeedScreen(url, source, shared)
-        }
-        composable(Screens.FindFeeds.name) { FindFeedsScreen() }
-        composable(Screens.Logs.name) { LogsScreen() }
-        composable(Screens.Statistics.name) { StatisticsScreen() }
-    }
-}
-
 interface DrawerController {
     fun isOpen(): Boolean
     fun open()
     fun close()
     fun toggle()
-}
-
-private var navStackJob: Job? = null
-fun monitorNavStack(navController: NavHostController) {
-    fun NavBackStackEntry.resolvedRoute(): String {
-        val template = destination.route ?: return ""
-        var resolved = template
-        arguments?.keySet()?.forEach { key ->
-            val value = arguments?.get(key)?.toString() ?: ""
-            resolved = resolved.replace("{$key}", value)
-        }
-        return resolved
-    }
-    if (navStackJob == null) navStackJob = CoroutineScope(Dispatchers.Default).launch {
-        navController.currentBackStackEntryFlow.collect { entry ->
-            val resolved = entry.resolvedRoute()
-            runOnIOScope { upsertBlk(appAttribs) { it.prefLastScreen = resolved } }
-            Logd(TAG, "currentBackStackEntryFlow Now at: $resolved")
-        }
-    }
-}
-
-fun cancelMonitornavStack() {
-    navStackJob?.cancel()
-    navStackJob = null
-}
-
-fun NavHostController.safeNavigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
-    try {
-        this.navigate(route, builder)
-    } catch (e: IllegalArgumentException) {
-        Loge(TAG, "Navigation failed: ${e.message}")
-        this.navigate(Screens.Library.name, builder)
-    }
-}
-
-fun NavHostController.routeExists(route: String): Boolean {
-    return try { this.graph.findNode(route) != null } catch (e: Exception) { false }
-}
-
-class AppNavigator(
-    val navController: NavHostController,
-    private val onNavigated: (String) -> Unit
-) {
-    fun navigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
-        var route = route
-        if (!navController.routeExists(route)) {
-            Loge(TAG, "navigate invalid route: $route. Open Library")
-            route = Screens.Library.name
-        }
-        onNavigated(route)
-        navController.safeNavigate(route, builder)
-    }
-
-    val currentDestination:  NavDestination?
-        get() = navController.currentDestination
-
-    val previousBackStackEntry: NavBackStackEntry?
-        get() = navController.previousBackStackEntry
-
-    fun popBackStack(): Boolean {
-        return navController.popBackStack()
-    }
-
-    fun popBackStack(route: String, inclusive: Boolean, saveState: Boolean = false): Boolean {
-        return navController.popBackStack(route, inclusive, saveState)
-    }
 }

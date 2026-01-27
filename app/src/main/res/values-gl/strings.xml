@@ -602,7 +602,7 @@
   <string name="on_demand_config_setting_changed">Actualizouse o axuste.</string>
   <string name="on_demand_config_stream_text">Semella que prefires a Difusión. Queres que a lista de episodios mostre botóns de Difusión?</string>
   <string name="on_demand_config_download_text">Semella que prefires as Descargas. Queres que a lista de episodios mostre botóns de Descarga?</string>
-  <string name="shortcut_subscription_label">Atallo á subscrición</string>
-  <string name="shortcut_select_subscription">Elexir subscrición</string>
+
+
   <string name="add_shortcut">Engadir atallo</string>
 </resources>

@@ -17,6 +17,7 @@ import ac.mdiq.podcini.utils.FlowEvent.QueueEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
+import ac.mdiq.podcini.utils.timeIt
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -36,7 +37,7 @@ private const val TAG: String = "Queues"
 const val QUEUE_POSITION_DELTA = 10000L
 
 val queuesFlow = realm.query(PlayQueue::class).sort("name").asFlow()
-var queuesLive = realm.query(PlayQueue::class).sort("name").find()
+var queuesLive = listOf<PlayQueue>()
     private set
 var virQueue by mutableStateOf(PlayQueue())
 
@@ -44,6 +45,9 @@ var queuesJob: Job? = null
 
 fun initQueues() {
     Logd(TAG, "initQueues called ")
+    timeIt("$TAG start of initQueues")
+    queuesLive = realm.query(PlayQueue::class).sort("name").find()
+
     if (queuesJob == null) queuesJob = CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
         Logd(TAG, "starting queues queuesLive: ${queuesLive.size}")
         if (queuesLive.isEmpty()) {
@@ -85,6 +89,7 @@ fun initQueues() {
             }
         }
     }
+    timeIt("$TAG start of initQueues")
 }
 
 fun cancelQueuesJob() {

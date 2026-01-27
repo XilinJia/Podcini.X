@@ -13,7 +13,6 @@ import ac.mdiq.podcini.storage.model.ShareLog
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.ShownotesCleaner
-import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.media3.common.MediaMetadata
 import androidx.media3.exoplayer.source.MediaSource
@@ -40,8 +39,10 @@ open class GearBoxBase {
         episode.loadChapters(false)
     }
 
-    fun buildWebviewData(context: Context, episode: Episode): String? {
-        val shownotesCleaner = ShownotesCleaner(context)
+    open fun canCheckMediaSize(episode: Episode): Boolean = true
+
+    fun buildWebviewData(episode: Episode): String? {
+        val shownotesCleaner = ShownotesCleaner()
         val webDataPair = buildWebviewPair(episode, shownotesCleaner)
         return webDataPair?.second ?: buildCleanedNotes(episode, shownotesCleaner).second
     }

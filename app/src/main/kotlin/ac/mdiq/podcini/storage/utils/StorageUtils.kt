@@ -254,7 +254,6 @@ fun createNoMediaFile() {
 /**
  * This method will return a new string that doesn't contain any illegal characters of the given string.
  */
-
 fun generateFileName(string_: String): String {
     val string = StringUtils.stripAccents(string_)
     val buf = StringBuilder()

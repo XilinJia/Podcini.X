@@ -696,7 +696,7 @@
     <string name="on_demand_config_setting_changed">Setelan diperbaharui.</string>
     <string name="on_demand_config_stream_text">Tampaknya Anda sering streaming. Apakah Anda ingin untuk daftar episode menunjukkan tombol streaming?</string>
     <string name="on_demand_config_download_text">Kelihatannya Anda sering mengunduh episode. Apakah Anda ingin untuk daftar episode menunjukkan tombol unduh?</string>
-    <string name="shortcut_subscription_label">Pintasan langganan</string>
-    <string name="shortcut_select_subscription">Pilih langganan</string>
+
+
     <string name="add_shortcut">Add shortcut</string>
 </resources>

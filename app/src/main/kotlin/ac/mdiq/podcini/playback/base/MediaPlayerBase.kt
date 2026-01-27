@@ -87,7 +87,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.max
 
-@UnstableApi
+
 abstract class MediaPlayerBase {
 
     val context = getAppContext()
@@ -106,6 +106,8 @@ abstract class MediaPlayerBase {
     var prevPosition: Int = -1
 
     var isStreaming = false
+
+    var widgetId: String = ""
 
     /**
      * A wifi-lock that is acquired if the media file is being streamed.
@@ -140,7 +142,7 @@ abstract class MediaPlayerBase {
 
     open fun createStaticPlayer() {}
 
-    @OptIn(UnstableApi::class)
+    
     protected fun setDataSource(media: Episode, metadata: MediaMetadata, mediaUrl: String, user: String?, password: String?) {
         Logd(TAG, "setDataSource: $mediaUrl")
         val uri = mediaUrl.toUri()
@@ -162,7 +164,7 @@ abstract class MediaPlayerBase {
         setSourceCredentials(user, password)
     }
 
-    @UnstableApi
+    
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     protected open fun setDataSource(metadata: MediaMetadata, media: Episode) {
         Logd(TAG, "setDataSource called ${media.title}")
@@ -194,7 +196,7 @@ abstract class MediaPlayerBase {
         }
     }
 
-    @OptIn(UnstableApi::class)
+    
     private fun setSourceCredentials(user: String?, password: String?) {
         if (!user.isNullOrEmpty() && !password.isNullOrEmpty()) {
             if (httpDataSourceFactory == null)
@@ -592,7 +594,7 @@ abstract class MediaPlayerBase {
      * Custom DataSource that saves clip data during read when recording is active.
      * Adapted to use an existing CacheDataSource instance.
      */
-    @OptIn(UnstableApi::class)
+    
     class SegmentSavingDataSource(private val cacheDataSource: CacheDataSource) : DataSource {
         private val TAG = "SegmentSavingDataSource"
 
@@ -764,7 +766,7 @@ abstract class MediaPlayerBase {
             }
         }
 
-        @OptIn(UnstableApi::class)
+        
         fun releaseCache() {
             simpleCache?.release()
             simpleCache = null

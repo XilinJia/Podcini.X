@@ -47,6 +47,7 @@
         android:resizeableActivity="true"
         android:allowAudioPlaybackCapture="true"
         android:networkSecurityConfig="@xml/network_security_config"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="33">
 
         <service android:name=".playback.service.PlaybackService"
@@ -151,6 +152,7 @@
         <activity
             android:name=".ui.activity.PreferenceActivity"
             android:configChanges="keyboardHidden|orientation|screenSize"
+            android:theme="@style/Theme.Podcini"
             android:exported="false"
             android:label="@string/settings_label">
             <meta-data
@@ -186,7 +188,7 @@
         <activity
             android:name=".ui.activity.ShareReceiverActivity"
             android:configChanges="orientation|screenSize"
-            android:theme="@style/Theme.Podcini.Dark.Translucent"
+            android:theme="@style/Theme.Podcini"
             android:label="@string/add_feed_label"
             android:exported="true">
             <meta-data
@@ -225,18 +227,83 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <data android:mimeType="text/plain"/>
             </intent-filter>
-
         </activity>
 
-        <activity android:name=".ui.activity.SubscriptionShortcutActivity"
-                  android:label="@string/shortcut_subscription_label"
-                  android:icon="@drawable/ic_launcher_foreground"
-                  android:theme="@style/Theme.Podcini.Dark.Translucent"
-                  android:exported="true">
+        <activity
+            android:name=".ui.activity.QueuePickerActivity"
+            android:theme="@style/Theme.Podcini.Dialog"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.activity.EpisodeInfoActivity"
+            android:theme="@style/Theme.Podcini.Dialog"
+            android:launchMode="singleInstance"
+            android:taskAffinity=".episode_info"
+            android:excludeFromRecents="true"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.activity.PlayerUIActivity"
+            android:theme="@style/Theme.Podcini.Dialog"
+            android:launchMode="singleInstance"
+            android:taskAffinity=".player_ui"
+            android:excludeFromRecents="true"
+            android:exported="false" />
+
+        <activity
+            android:name=".ui.activity.ShortcutsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Podcini">
+        </activity>
+
+        <activity-alias
+            android:name=".FeedAlias"
+            android:targetActivity=".ui.activity.ShortcutsActivity"
+            android:label="@string/podcast"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.CREATE_SHORTCUT" />
             </intent-filter>
-        </activity>
+        </activity-alias>
+
+        <activity-alias
+            android:name=".QueueAlias"
+            android:targetActivity=".ui.activity.ShortcutsActivity"
+            android:label="@string/queue"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.CREATE_SHORTCUT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ui.activity.MainActivity" />
+        </activity-alias>
+
+        <activity-alias
+            android:name=".FacetAlias"
+            android:targetActivity=".ui.activity.ShortcutsActivity"
+            android:label="@string/facet"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.CREATE_SHORTCUT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".ui.activity.MainActivity" />
+        </activity-alias>
+
+        <receiver
+            android:name=".receiver.WidgetReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
+        </receiver>
 
         <receiver
             android:name=".receiver.ConnectivityActionReceiver"

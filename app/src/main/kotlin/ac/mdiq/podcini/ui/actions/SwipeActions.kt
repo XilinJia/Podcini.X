@@ -13,7 +13,6 @@ import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.AddTimerDialog
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommentEditingDialog
@@ -29,10 +28,10 @@ import ac.mdiq.podcini.ui.compose.ShelveDialog
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.ui.screens.setSearchTerms
+import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.Logd
-import android.util.TypedValue
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -80,7 +79,8 @@ abstract class SwipeAction {
     abstract val title: String
     open fun enabled(): Boolean = true
     abstract val iconRes: Int
-    abstract val colorRes: Int
+//    abstract val colorRes: Int
+    abstract val color: Color
     @Composable
     open fun ActionOptions() {}
     open fun performAction(e: Episode) {
@@ -149,7 +149,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.set_play_state_label)
 
         override val iconRes:  Int = R.drawable.ic_mark_played
-        override val colorRes:  Int = R.attr.icon_gray
+        override val color: Color = Color.Gray
 
         override fun performAction(e: Episode) {
             super.performAction(e)
@@ -172,7 +172,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.add_to_active_queue)
 
         override val iconRes:  Int = R.drawable.ic_playlist_play
-        override val colorRes:  Int = android.R.attr.colorAccent
+        override val color: Color = Color.Cyan
 
         override fun enabled(): Boolean {
             if (onEpisode?.feed?.queue != null) return false
@@ -192,7 +192,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.add_to_associated_queue)
 
         override val iconRes:  Int = R.drawable.ic_playlist_play
-        override val colorRes:  Int = android.R.attr.colorAccent
+        override val color: Color = Color.Cyan
 
         override fun enabled(): Boolean {
             val q = onEpisode?.feed?.queue ?: return false
@@ -213,7 +213,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.add_to_queue)
 
         override val iconRes:  Int = R.drawable.ic_playlist_play
-        override val colorRes:  Int = R.attr.icon_gray
+        override val color: Color = Color.Gray
 
         override fun performAction(e: Episode) {
             super.performAction(e)
@@ -231,7 +231,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
         override val title: String
             get() = getAppContext().getString(R.string.combo_action)
         override val iconRes:  Int = R.drawable.baseline_category_24
-        override val colorRes:  Int = android.R.attr.colorAccent
+        override val color: Color = Color.Cyan
 
         var showDialog by mutableStateOf(false)
         private var useAction by mutableStateOf<SwipeAction?>(null)
@@ -255,12 +255,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
                                 action.performAction(onEpisode!!)
                                 showDialog = false
                             }) {
-                            val colorAccent = remember {
-                                val typedValue = TypedValue()
-                                context.theme.resolveAttribute(action.colorRes, typedValue, true)
-                                Color(typedValue.data)
-                            }
-                            Icon(imageVector = ImageVector.vectorResource(id = action.iconRes),  tint = colorAccent, contentDescription = action.title)
+                            Icon(imageVector = ImageVector.vectorResource(id = action.iconRes),  tint = action.color, contentDescription = action.title)
                             Text(action.title, Modifier.padding(start = 4.dp))
                         }
                     }
@@ -276,7 +271,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.delete_episode_label)
 
         override val iconRes:  Int = R.drawable.ic_delete
-        override val colorRes:  Int = R.attr.icon_red
+        override val color: Color = Color.Red
 
         override fun enabled(): Boolean = onEpisode?.downloaded == true
 
@@ -308,7 +303,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.set_rating_label)
 
         override val iconRes:  Int = R.drawable.ic_star
-        override val colorRes:  Int = R.attr.icon_yellow
+        override val color: Color = Color.Yellow
 
         override fun performAction(e: Episode) {
             super.performAction(e)
@@ -329,7 +324,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.add_opinion_label)
 
         override val iconRes:  Int = R.drawable.baseline_comment_24
-        override val colorRes:  Int = R.attr.icon_yellow
+        override val color: Color = Color.Yellow
 
         override fun performAction(e: Episode) {
 //            val e_ = (if (isCurMedia(e)) curEpisode else realm.query(Episode::class).query("id == ${e.id}").first().find()) ?: return
@@ -354,7 +349,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.tags_label)
 
         override val iconRes:  Int = R.drawable.baseline_label_24
-        override val colorRes:  Int = R.attr.icon_yellow
+        override val color: Color = Color.Yellow
 
         override fun performAction(e: Episode) {
             onEpisode = e
@@ -383,7 +378,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.search_selected)
 
         override val iconRes:  Int = R.drawable.ic_search
-        override val colorRes:  Int = R.attr.icon_yellow
+        override val color: Color = Color.Yellow
 
         override fun performAction(e: Episode) {
             super.performAction(e)
@@ -423,7 +418,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.no_action_label)
 
         override val iconRes:  Int = R.drawable.ic_questionmark
-        override val colorRes:  Int = R.attr.icon_red
+        override val color: Color = Color.Red
 
         override fun enabled(): Boolean = false
     }
@@ -437,7 +432,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.remove_history_label)
 
         override val iconRes:  Int = R.drawable.ic_history_remove
-        override val colorRes:  Int = R.attr.icon_purple
+        override val color: Color = Color.Magenta
 
         override fun enabled(): Boolean = (onEpisode?.lastPlayedTime ?: 0L) > 0L || (onEpisode?.playbackCompletionTime ?: 0L) > 0L
 
@@ -475,7 +470,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.remove_from_all_queues)
 
         override val iconRes:  Int = R.drawable.ic_playlist_remove
-        override val colorRes:  Int = android.R.attr.colorAccent
+        override val color: Color = Color.Cyan
 
         override fun enabled(): Boolean = onEpisode != null && actQueue.contains(onEpisode!!)
 
@@ -492,11 +487,11 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.download_label)
 
         override val iconRes:  Int = R.drawable.ic_download
-        override val colorRes:  Int = R.attr.icon_green
+        override val color: Color = Color.Green
 
         override fun enabled(): Boolean = onEpisode?.downloaded == false && onEpisode?.feed != null && !onEpisode!!.feed!!.isLocalFeed
 
-        @UnstableApi
+        
         override fun performAction(e: Episode) {
             super.performAction(e)
             if (!e.downloaded && e.feed != null && !e.feed!!.isLocalFeed) EpisodeActionButton(e, ButtonTypes.DOWNLOAD).onClick()
@@ -511,7 +506,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.shelve_label)
 
         override val iconRes:  Int = R.drawable.baseline_shelves_24
-        override val colorRes:  Int = R.attr.icon_gray
+        override val color: Color = Color.Gray
 
         override fun performAction(e: Episode) {
             super.performAction(e)
@@ -531,7 +526,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.erase_episodes_label)
 
         override val iconRes: Int = R.drawable.baseline_delete_forever_24
-        override val colorRes: Int = R.attr.icon_gray
+        override val color: Color = Color.Gray
 
         override fun performAction(e: Episode) {
             super.performAction(e)
@@ -552,7 +547,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.alarm_episodes_label)
 
         override val iconRes:  Int = R.drawable.baseline_access_alarms_24
-        override val colorRes:  Int = R.attr.icon_red
+        override val color: Color = Color.Red
 
         override fun performAction(e: Episode) {
             super.performAction(e)

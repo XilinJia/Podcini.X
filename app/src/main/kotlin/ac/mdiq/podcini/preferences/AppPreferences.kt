@@ -6,6 +6,7 @@ import ac.mdiq.podcini.preferences.screens.EpisodeCleanupOptions
 import ac.mdiq.podcini.storage.specs.ProxyConfig
 import ac.mdiq.podcini.storage.utils.createNoMediaFile
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.timeIt
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
@@ -124,10 +125,12 @@ object AppPreferences {
      * @throws IllegalArgumentException if context is null
      */
     fun init() {
+        timeIt("$TAG start of init")
         Logd(TAG, "Creating new instance of UserPreferences")
         appPrefs = PreferenceManager.getDefaultSharedPreferences(getAppContext())
         AppPrefs.entries.map { it.name }.forEach { key -> cachedPrefs[key] = appPrefs.all[key] }
         createNoMediaFile()
+        timeIt("$TAG end of init")
     }
 
     inline fun <reified T> getPref(key: String, defaultValue: T): T {

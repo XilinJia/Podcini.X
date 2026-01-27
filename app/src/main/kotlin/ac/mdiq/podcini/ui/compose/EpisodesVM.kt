@@ -30,19 +30,18 @@ import ac.mdiq.podcini.ui.actions.SwipeAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
 import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
-import ac.mdiq.podcini.ui.screens.Screens
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.stripDateTimeLines
 import android.text.format.Formatter
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.ExperimentalFoundationApi
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -64,13 +63,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -80,7 +79,6 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -113,14 +111,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
-import java.net.MalformedURLException
-import java.net.URL
-import java.util.Date
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.net.MalformedURLException
+import java.net.URL
+import java.util.Date
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -156,7 +154,7 @@ enum class LayoutMode {
 enum class StatusRowMode {
     Normal, Comment, Tags, Todos
 }
-@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class, FlowPreview::class)
+
 @Composable
 fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boolean = false,
                       lazyListState: LazyListState = rememberLazyListState(), scrollToOnStart: Int = -1,
@@ -166,7 +164,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                       swipeActions: SwipeActions? = null,
                       refreshCB: (()->Unit)? = null, selectModeCB: ((Boolean)->Unit)? = null,
                       showActionButtons: Boolean = true,
-                      actionButton_: ((Episode)->EpisodeActionButton)? = null, actionButtonCB: ((Episode, ButtonTypes)->Unit)? = null) {
+                      actionButtonType: ButtonTypes? = null, actionButtonCB: ((Episode, ButtonTypes)->Unit)? = null) {
 
     var selectMode by remember { mutableStateOf(false) }
     var selectedSize by remember { mutableIntStateOf(0) }
@@ -248,8 +246,18 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
 
     OpenDialogs()
 
+    DisposableEffect(episodeForInfo?.id) {
+        if (episodeForInfo != null) handleBackSubScreens.add(TAG)
+        else handleBackSubScreens.remove(TAG)
+        onDispose { handleBackSubScreens.remove(TAG) }
+    }
+    BackHandler(enabled = handleBackSubScreens.contains(TAG)) {
+        Logd(TAG, "BackHandler")
+        episodeForInfo = null
+    }
+
     var refreshing by remember { mutableStateOf(false)}
-    PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
+    if (episodeForInfo == null) PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
         refreshing = true
         refreshCB?.invoke()
         refreshing = false
@@ -260,10 +268,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                 add(toIndex, item)
             }
         }
-
-        val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
+//        val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
         val lifecycleOwner = LocalLifecycleOwner.current
-        val lifecycleState by lifecycleOwner.lifecycle.currentStateFlow.collectAsState()
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 Logd(TAG, "LifecycleEventObserver: $event")
@@ -281,6 +287,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
         }
 
         LaunchedEffect(episodes.size, scrollToOnStart) {
+            val lifecycleState = lifecycleOwner.lifecycle.currentState
             Logd(TAG, "LaunchedEffect(scrollToOnStart) ${episodes.size} $scrollToOnStart ${lazyListState.firstVisibleItemIndex} $lifecycleState")
             if (episodes.size > 5 && lifecycleState >= Lifecycle.State.RESUMED) {
                 when {
@@ -298,12 +305,18 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
 
         val swipeVelocityThreshold = 1500f
         val swipeDistanceThreshold = with(LocalDensity.current) { 100.dp.toPx() }
-        val useFeedImage = remember(feed) { feed?.useFeedImage() == true }
+        val useFeedImage = remember(feed?.useEpisodeImage) { feed?.useFeedImage() == true }
 
+        val titleMaxLines = if (layoutMode == LayoutMode.Normal.ordinal) { if (statusRowMode == StatusRowMode.Comment) 1 else 2 } else 3
+//        val density = LocalDensity.current
+        val imageWidth = if (layoutMode == LayoutMode.WideImage.ordinal) 150.dp else 56.dp
+        val imageHeight = if (layoutMode == LayoutMode.WideImage.ordinal) 100.dp else 56.dp
+
+        Logd(TAG, "outside of LazyColumn")
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            itemsIndexed(episodes, key = { _, e -> e.id }) { index, episode_ ->
+            items(items = episodes, key = { it.id }) { episode_ ->
                 val episode by rememberUpdatedState(episode_)
-                var actionButton by remember(episode.id) { mutableStateOf(EpisodeActionButton(episode)) }
+                var actionButton by remember(episode.id) { mutableStateOf(if (actionButtonType != null) EpisodeActionButton(episode, actionButtonType) else EpisodeActionButton(episode)) }
                 var showAltActionsDialog by remember(episode.id) { mutableStateOf(false) }
                 var isSelected by remember(episode.id, selectMode, selectedSize) { mutableStateOf( selectMode && episode in selected ) }
 
@@ -347,14 +360,14 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                     )
                 }.offset { IntOffset(offsetX.value.roundToInt(), 0) }) {
                     Column {
-                        val titleMaxLines = if (layoutMode == LayoutMode.Normal.ordinal) { if (statusRowMode == StatusRowMode.Comment) 1 else 2 } else 3
                         @Composable
-                        fun TitleColumn(index: Int, modifier: Modifier) {
+                        fun TitleColumn(modifier: Modifier) {
                             Column(modifier.padding(start = 6.dp, end = 6.dp).combinedClickable(
                                 onClick = {
                                     Logd(TAG, "clicked: ${episode.title}")
                                     if (selectMode) toggleSelected(episode)
-                                    else navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${episode.id}")
+//                                    else navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${episode.id}")
+                                    else episodeForInfo = episode
                                 },
                                 onLongClick = {
                                     selectMode = !selectMode
@@ -362,7 +375,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                     isSelected = selectMode
                                     selected.clear()
                                     if (selectMode) {
-                                        selected.add(episodes[index])
+                                        selected.add(episode)
+                                        val index = episodes.indexOfFirst { it.id == episode.id }
                                         longPressIndex = index
                                     } else {
                                         selectedSize = 0
@@ -377,7 +391,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                         val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
                                         Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                                         if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
-                                        val comment = remember(episode) { stripDateTimeLines(episode.comment).replace("\n", "  ") }
+                                        val comment = remember(episode.comment) { stripDateTimeLines(episode.comment).replace("\n", "  ") }
                                         Spacer(Modifier.width(10.dp))
                                         Text(comment, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 3, overflow = TextOverflow.Ellipsis)
                                     }
@@ -388,7 +402,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                         val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
                                         Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                                         if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
-                                        val tags = remember(episode) { episode.tags.joinToString(",") }
+                                        val tags = remember(episode.tags.size) { episode.tags.joinToString(",") }
                                         Spacer(Modifier.width(10.dp))
                                         Text(tags, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     }
@@ -399,7 +413,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                         val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
                                         Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
                                         if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
-                                        val todos = remember(episode) { episode.todos.filter { !it.completed }.joinToString(" | ") { it.title + if (it.dueTime > 0) ("D:" + formatDateTimeFlex(Date(it.dueTime))) else "" } }
+                                        val todos = remember(episode.todos.size) { episode.todos.filter { !it.completed }.joinToString(" | ") { it.title + if (it.dueTime > 0) ("D:" + formatDateTimeFlex(Date(it.dueTime))) else "" } }
                                         Spacer(Modifier.width(10.dp))
                                         Text(todos, color = textColor, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                     }
@@ -412,7 +426,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                         if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                         if (episode.comment.isNotBlank()) Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_comment_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "comment", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                                         if (episode.getMediaType() == MediaType.VIDEO) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_videocam), tint = textColor, contentDescription = "isVideo", modifier = Modifier.width(16.dp).height(16.dp))
-                                        val dateSizeText = remember(episode) {
+                                        val dateSizeText = remember(episode.id) {
                                             " · " + formatDateTimeFlex(Date(episode.pubDate)) + " · " + durationStringFull(episode.duration) +
                                                     (if (episode.size > 0) " · " + Formatter.formatShortFileSize(context, episode.size) else "") +
                                                     (if (episode.viewCount > 0) " · " + formatLargeInteger(episode.viewCount) else "") +
@@ -473,7 +487,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                         }
                                     }
                                     EpisodeState.SKIPPED.code -> {
-                                        val dateSizeText = remember(episode) {
+                                        val dateSizeText = remember(episode.id) {
                                             (if (episode.lastPlayedTime > 0) "P:" + formatDateTimeFlex(episode.lastPlayedDate) else "") +
                                                     (if (episode.playbackCompletionTime > 0) " · C:" + formatDateTimeFlex(episode.playbackCompletionDate) else "") +
                                                     (if (episode.playStateSetTime > 0) " · S:" + formatDateTimeFlex(episode.playStateSetDate) else "") +
@@ -484,9 +498,6 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                 }
                             }
                         }
-                        val density = LocalDensity.current
-                        val imageWidth = if (layoutMode == LayoutMode.WideImage.ordinal) 150.dp else 56.dp
-                        val imageHeight = if (layoutMode == LayoutMode.WideImage.ordinal) 100.dp else 56.dp
                         Row(Modifier.background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
                             if (showCoverImage && (feed == null || !useFeedImage)) {
                                 Box(modifier = Modifier.width(imageWidth).height(imageHeight).clickable(onClick = {
@@ -494,29 +505,26 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                     when {
                                         selectMode -> toggleSelected(episode)
                                         feed == null && episode.feed?.isSynthetic() != true -> navController.navigate("${Screens.FeedDetails.name}?feedId=${episode.feed!!.id}&modeName=${FeedScreenMode.Info.name}")
-                                        else -> navController.navigate("${Screens.EpisodeInfo.name}?episodeId=${episode.id}")
+                                        else -> episodeForInfo = episode
                                     }
                                 })) {
-                                    val img = remember(episode.id) { ImageRequest.Builder(context).data(episode.imageLocation(forceFeedImage)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                                    AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
+                                    AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(forceFeedImage)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                                     if (episode.feed != null && episode.feed!!.useFeedImage() && episode.feed!!.rating != Rating.UNRATED.code)
                                         Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.feed!!.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.width(imageWidth/4).height(imageHeight/4).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer) )
                                 }
                             }
                             Box(Modifier.weight(1f).wrapContentHeight()) {
-                                TitleColumn(index, modifier = Modifier.fillMaxWidth())
+                                TitleColumn(modifier = Modifier.fillMaxWidth())
                                 if (showActionButtons) {
-                                    if (actionButton_ == null) {
-                                        when {
-                                            episode.id == curEpisode?.id -> {
-                                                if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
-                                                else actionButton.update(episode)
-                                            }
-                                            actionButton.speaking -> actionButton.type = ButtonTypes.PAUSE
-                                            actionButton.type == ButtonTypes.PAUSE -> actionButton.update(episode)
+                                    when {
+                                        episode.id == curEpisode?.id -> {
+                                            if (playerStat == PLAYER_STATUS_PLAYING) actionButton.type = ButtonTypes.PAUSE
+                                            else actionButton.update(episode)
                                         }
-                                        LaunchedEffect(episode.downloaded) { actionButton.update(episode) }
-                                    } else LaunchedEffect(Unit) { actionButton = actionButton_(episode) }
+                                        actionButton.speaking -> actionButton.type = ButtonTypes.PAUSE
+                                        actionButton.type == ButtonTypes.PAUSE -> actionButton.update(episode)
+                                    }
+                                    LaunchedEffect(episode.downloaded) { actionButton.update(episode) }
                                     Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).align(Alignment.BottomEnd).pointerInput(Unit) {
                                         detectTapGestures(
                                             onLongPress = { showAltActionsDialog = true },
@@ -542,7 +550,6 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                 }
                             }
                         }
-
 
                         if (showActionButtons && (episode.position > 0 || curEpisode?.id == episode.id)) {
                             fun calcProg(): Float {

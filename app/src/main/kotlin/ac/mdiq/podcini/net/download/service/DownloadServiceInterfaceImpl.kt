@@ -35,7 +35,6 @@ import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
 import android.media.MediaMetadataRetriever
-import android.net.Uri
 import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
 import androidx.work.Constraints
@@ -303,7 +302,7 @@ class DownloadServiceInterfaceImpl : DownloadServiceInterface() {
                     }
                     try {
                         Episode.MediaMetadataRetrieverCompat().use { mmr ->
-                            mmr.setDataSource(getAppContext(), Uri.parse(it.fileUrl))
+                            mmr.setDataSource(getAppContext(), it.fileUrl?.toUri())
                             val image = mmr.embeddedPicture
                             it.hasEmbeddedPicture = image != null
                         }

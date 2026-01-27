@@ -703,7 +703,7 @@
     <string name="on_demand_config_setting_changed">Definições atualizadas com sucesso.</string>
     <string name="on_demand_config_stream_text">Parece que você prefere as emissões. Deseja que a lista de episódios mostre os botões adequados\?</string>
     <string name="on_demand_config_download_text">Parece que você prefere as descargas. Deseja que a lista de episódios mostre os botões adequados\?</string>
-    <string name="shortcut_subscription_label">Atalho da subscrição</string>
-    <string name="shortcut_select_subscription">Selecione a subscrição</string>
+
+
     <string name="add_shortcut">Adicionar atalho</string>
 </resources>

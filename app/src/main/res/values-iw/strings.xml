@@ -606,7 +606,7 @@
   <string name="on_demand_config_setting_changed">ההגדרות עודכנו בהצלחה.</string>
   <string name="on_demand_config_stream_text">נראה כי הזרמה משמשת אותך רבות. מעניין אותך שרשימות פרקים יציגו כפתורי הזרמה?</string>
   <string name="on_demand_config_download_text">נראה כי הורדה משמשת אותך רבות. מעניין אותך שרשימות פרקים יציגו כפתורי הורדה?</string>
-  <string name="shortcut_subscription_label">קיצור למינוי</string>
-  <string name="shortcut_select_subscription">בחירת מינוי</string>
+
+
   <string name="add_shortcut">הוספת קיצור דרך</string>
 </resources>

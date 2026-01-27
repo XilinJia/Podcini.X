@@ -10,10 +10,11 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.ComfirmDialog
 import ac.mdiq.podcini.ui.compose.DatesFilterDialog
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
+import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -50,6 +51,7 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -190,7 +192,8 @@ class StatisticsVM: ViewModel() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
+@ExperimentalMaterial3Api
 @Composable
 fun StatisticsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -224,7 +227,7 @@ fun StatisticsScreen() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
@@ -232,7 +235,7 @@ fun StatisticsScreen() {
         val buttonColor = Color(0xDDFFD700)
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
         Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { drawerController.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } }, actions = {
+            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { drawerController?.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_chart_box), contentDescription = "Open Drawer") } }, actions = {
                 if (vm.selectedTabIndex.intValue <= 2) {
                     IconButton(onClick = { vm.showFilter = true }) {
                         val filterColor = if (vm.timeFilterFrom > 0L || vm.timeFilterTo < Long.MAX_VALUE) buttonAltColor else textColor

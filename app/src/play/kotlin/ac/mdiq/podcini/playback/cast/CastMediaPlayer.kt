@@ -52,7 +52,7 @@ import kotlin.math.min
  * Implementation of MediaPlayerBase suitable for remote playback on Cast Devices.
  */
 @SuppressLint("VisibleForTests")
-@OptIn(UnstableApi::class)
+
 class CastMediaPlayer : MediaPlayerBase() {
     @Volatile
     private var mediaInfo: MediaInfo? = null

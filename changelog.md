@@ -1,3 +1,21 @@
+# 10.8.0
+
+* fixed/amended "add Podcast widget" routines
+* added "add Queue widget" and "add Facet widget" features
+* the main feature added is a feature-rich large widget
+	* the widget is never auto-refreshed
+		* unless when media is played from the widget, updated at beginning of a new media in queue
+	* on the top bar, tap on queue name can change queue, the Refresh icon refreshes the widget contents, and the Podcini icon opens the app
+	* the list is the queue chosen (actQueue by default), tap on each item opens the EpisodeInfo, the Play button plays/streams the episode
+		* when the app is off, the first tap can have a delay of a couple seconds
+	* the bottom has the media control buttons. the left-most one opens the full PlayerUI
+* enhanced performance of list screens
+* EpisodeInfo is now an embedded screen for better performance
+* tuned colors a bit in both light and dark themes for eye comfort
+* removed all "?attr/action_icon_color" in drawables
+* cleaned old xml styles and themes
+* large refactoring and cleaning
+
 # 10.7.0
 
 * renamed Subscriptions screen to Library screen

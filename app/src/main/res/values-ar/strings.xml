@@ -722,7 +722,7 @@
     <string name="on_demand_config_setting_changed">تم تحديث الإعداد بنجاح.</string>
     <string name="on_demand_config_stream_text">يبدو أنك تثتخدم البث المتدفق كثيرًا. هل تريد أن تظهر قوائم الحلقات أزرار البث المتدفق؟</string>
     <string name="on_demand_config_download_text">يبدو أنك تقوم بالتنزيل كثيراً. هل تريد إظهار أزرار التنزيل في قوائم الحلقات؟</string>
-    <string name="shortcut_subscription_label">اختصار الاشتراك</string>
-    <string name="shortcut_select_subscription">أختر الاشتراك</string>
+
+
     <string name="add_shortcut">أضف اختصارا</string>
 </resources>

@@ -575,7 +575,7 @@
   <string name="on_demand_config_setting_changed">Ajust actualitzar exitosament</string>
   <string name="on_demand_config_stream_text">Pareix que escoltes en línia molt a sovint. Vols que les llistes d\'episodis mostren botons per a escoltar en línia\?</string>
   <string name="on_demand_config_download_text">Pareix que baixes molt a sovint. Vols que les llistes d\'episodis mostren botons per a baixar episodis\?</string>
-  <string name="shortcut_subscription_label">Drecera a la subscripció</string>
-  <string name="shortcut_select_subscription">Selecciona subscripció</string>
+
+
   <string name="add_shortcut">Afegeix drecera</string>
 </resources>

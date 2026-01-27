@@ -1,0 +1,5 @@
+* fixed/amended "add Podcast widget" routines
+* added "add Queue widget" and "add Facet widget" features
+* the main feature added is a feature-rich large widget
+* enhanced performance of list screens
+* tuned colors a bit in both light and dark themes for eye comfort

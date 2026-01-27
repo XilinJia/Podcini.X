@@ -701,7 +701,7 @@
     <string name="on_demand_config_setting_changed">Η ρύθμιση ενημερώθηκε επιτυχώς.</string>
     <string name="on_demand_config_stream_text">Φαίνεται ότι μπορείτε να κάνετε stream πολλά. Θέλετε οι λίστες επεισοδίων να εμφανίζουν τα κουμπιά ροής\?</string>
     <string name="on_demand_config_download_text">Φαίνεται ότι έχετε κατεβάσει πολλά. Θέλετε να εμφανίζονται τα κουμπιά λήψης\?</string>
-    <string name="shortcut_subscription_label">Συντόμευση συνδρομής</string>
-    <string name="shortcut_select_subscription">Επιλογή συνδρομής</string>
+
+
     <string name="add_shortcut">Προσθήκη συντόμευσης</string>
 </resources>

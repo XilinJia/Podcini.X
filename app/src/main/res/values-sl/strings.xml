@@ -711,7 +711,7 @@
     <string name="on_demand_config_setting_changed">Nastavitev je bila uspešno posodobljena.</string>
     <string name="on_demand_config_stream_text">Videti je, da veliko pretakate. Ali želite, da so na seznamih epizod prikazani gumbi za pretočno predvajanje\?</string>
     <string name="on_demand_config_download_text">Videti je, da veliko prenašate. Ali želite, da so na seznamih epizod prikazani gumbi za prenos\?</string>
-    <string name="shortcut_subscription_label">Bližnica do naročnine</string>
-    <string name="shortcut_select_subscription">Izberi naročnino</string>
+
+
     <string name="add_shortcut">Add shortcut</string>
 </resources>

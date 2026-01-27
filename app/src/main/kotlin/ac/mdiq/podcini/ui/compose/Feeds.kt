@@ -14,15 +14,15 @@ import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.Rating
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
-import ac.mdiq.podcini.ui.screens.Screens
+import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.localDateTimeString
-import androidx.compose.foundation.ExperimentalFoundationApi
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -159,7 +159,6 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
     val context = LocalContext.current
@@ -327,7 +326,6 @@ fun VideoModeDialog(initMode: VideoMode?, onDismissRequest: () -> Unit, callback
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
     val TAG = "AssociatedFeedsGrid"

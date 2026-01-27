@@ -701,7 +701,7 @@
     <string name="on_demand_config_setting_changed">Inställningen sparad.</string>
     <string name="on_demand_config_stream_text">Det verkar som att du strömmar mycket. Vill du att episodlistan ska visa strömmningsknapparna\?</string>
     <string name="on_demand_config_download_text">Det verkar som at du laddar ner mycket. Vill du att episodlistan ska visa nedladdningsknapparna\?</string>
-    <string name="shortcut_subscription_label">Prenumerationsgenväg</string>
-    <string name="shortcut_select_subscription">Välj prenumeration</string>
+
+
     <string name="add_shortcut">Lägg till genväg</string>
 </resources>

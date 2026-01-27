@@ -25,7 +25,6 @@ import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.playActions
 import ac.mdiq.podcini.ui.actions.streamActions
-import ac.mdiq.podcini.ui.activity.MainActivity.Companion.LocalNavController
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
@@ -37,6 +36,8 @@ import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
+import ac.mdiq.podcini.ui.compose.COME_BACK
+import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -71,6 +72,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -124,6 +126,7 @@ private const val TAG = "FeedSettingsScreen"
 
 var feedsToSet: List<Feed> = listOf()
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedsSettingsScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -197,7 +200,7 @@ fun FeedsSettingsScreen() {
     val feedChange by feedFlow.collectAsStateWithLifecycle(initialValue = null)
     if (feedChange?.obj != null) feedToSet = feedChange?.obj!!
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    
     @Composable
     fun MyTopAppBar() {
         Box {
@@ -206,7 +209,7 @@ fun FeedsSettingsScreen() {
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
-                } else drawerController.open()
+                } else drawerController?.open()
             }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }

@@ -9,6 +9,7 @@ import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.fromCode
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.getPermutor
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder.Companion.sortPairOf
+import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
@@ -52,13 +53,20 @@ class PlayQueue : RealmObject {
     var isLocked: Boolean = true
 
     @Ignore
-    val episodes: MutableList<Episode> = mutableListOf()
+    val episodes: List<Episode>
         get() {
-            if (field.isEmpty()) {
-                val eids = entries.map { it.episodeId }
-                field.addAll(realm.query(Episode::class).query("id IN $0", eids).sort(sortPairOf(sortOrder)).find())
-            }
-            return field
+            val eids = entries.map { it.episodeId }
+            return realm.query(Episode::class).query("id IN $0", eids).sort(sortPairOf(sortOrder)).find()
+        }
+
+    @Ignore
+    val episodesSorted: List<Episode>
+        get() {
+            val orderedIds = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", id).find().map { it.episodeId }
+            if (orderedIds.isEmpty()) return listOf()
+            val eList = realm.query<Episode>("id IN $0", orderedIds).find()
+            val episodeMap = eList.associateBy { it.id }
+            return orderedIds.mapNotNull { id -> episodeMap[id] }
         }
 
     @Ignore

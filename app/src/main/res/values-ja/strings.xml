@@ -698,7 +698,7 @@
     <string name="on_demand_config_setting_changed">設定の更新に成功しました。</string>
     <string name="on_demand_config_stream_text">たくさんストリーミングしているように見えます。エピソードのリストにストリームボタンを表示しますか？</string>
     <string name="on_demand_config_download_text">たくさんダウンロードしているように見えます。エピソードのリストにダウンロードボタンを表示しますか？</string>
-    <string name="shortcut_subscription_label">購読のショートカット</string>
-    <string name="shortcut_select_subscription">購読を選択</string>
+
+
     <string name="add_shortcut">ショートカットを追加</string>
 </resources>
