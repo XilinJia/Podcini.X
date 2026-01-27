@@ -214,6 +214,7 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp-urlconnection:5.3.2")
     implementation("net.dankito.readability4j:readability4j:1.0.8")
     implementation("com.github.ByteHamster:SearchPreference:v2.5.0")
+    implementation("androidx.glance:glance-appwidget:1.1.1")
 
     compileOnly("com.google.android.wearable:wearable:2.9.0")
 
