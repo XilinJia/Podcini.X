@@ -9,6 +9,7 @@
     <string name="add_feed_label">إضافة podcast</string>
     <string name="online_episodes_label">الحلقات عبر الإنترنت</string>
     <string name="feed">تغذية</string>
+    <string name="facet">Facet</string>
     <string name="facets">الأوجه</string>
     <string name="episodes_label">الحلقات</string>
     <string name="queue_label">طوابير</string>
@@ -871,7 +872,10 @@
     <string name="on_demand_config_setting_changed">تم تحديث الإعداد بنجاح.</string>
     <string name="on_demand_config_stream_text">يبدو أنك تبث الكثير. هل تريد قوائم الحلقات لإظهار أزرار البث \؟</string>
     <string name="on_demand_config_download_text">يبدو أنك تقوم بتنزيل الكثير. هل تريد قوائم الحلقات لإظهار أزرار التنزيل\؟</string>
-    <string name="shortcut_subscription_label">اختصار الاشتراك</string>
-    <string name="shortcut_select_subscription">حدد الاشتراك</string>
+    <string name="podcast">Podcast</string>
+    <string name="queue">Queue</string>
+    <string name="select_podcast">Select podcast</string>
+    <string name="select_queue">Select queue</string>
+    <string name="select_facet">Select facet</string>
     <string name="add_shortcut">إضافة اختصار</string>
 </resources>
