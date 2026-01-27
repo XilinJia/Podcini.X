@@ -9,6 +9,7 @@
     <string name="add_feed_label">Добавить подкаст</string>
     <string name="online_episodes_label">Выпуски онлайн</string>
     <string name="feed">Feed</string>
+    <string name="facet">Facet</string>
     <string name="facets">Facets</string>
     <string name="episodes_label">Выпуски</string>
     <string name="queue_label">Плейлисты</string>
@@ -861,7 +862,10 @@
     <string name="on_demand_config_setting_changed">Setting updated successfully.</string>
     <string name="on_demand_config_stream_text">Looks like you stream a lot. Do you want episode lists to show stream buttons\?</string>
     <string name="on_demand_config_download_text">Looks like you download a lot. Do you want episode lists to show download buttons\?</string>
-    <string name="shortcut_subscription_label">Subscription shortcut</string>
-    <string name="shortcut_select_subscription">Select subscription</string>
+    <string name="podcast">Podcast</string>
+    <string name="queue">Queue</string>
+    <string name="select_podcast">Select podcast</string>
+    <string name="select_queue">Select queue</string>
+    <string name="select_facet">Select facet</string>
     <string name="add_shortcut">Add shortcut</string>
 </resources>
