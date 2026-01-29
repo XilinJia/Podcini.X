@@ -1,5 +1,7 @@
 package ac.mdiq.podcini.ui.activity
 
+import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.AppNavigator
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
@@ -34,11 +36,14 @@ private const val TAG = "EpisodeInfoActivity"
 
 class EpisodeInfoActivity : ComponentActivity() {
     private val currentEpisodeId = MutableStateFlow<Long?>(null)
+    private var lastTheme = AppPreferences.theme
 
     override fun onCreate(savedInstanceState: Bundle?) {
 //        installSplashScreen()
         super.onCreate(savedInstanceState)
         Logd(TAG, "in onCreate")
+
+        lastTheme = AppPreferences.theme
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -47,7 +52,7 @@ class EpisodeInfoActivity : ComponentActivity() {
         })
 
         setContent {
-            PodciniTheme {
+            PodciniTheme(ThemePreference.BLACK) {
                 val navController = rememberNavController()
                 val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
                 val episodeId by currentEpisodeId.collectAsStateWithLifecycle()
@@ -64,8 +69,8 @@ class EpisodeInfoActivity : ComponentActivity() {
         currentEpisodeId.value = intent.getLongExtra("episode_info_id", -1L)
 
         window.setLayout(
-            (resources.displayMetrics.widthPixels * 0.90).toInt(),
-            (resources.displayMetrics.heightPixels * 0.95).toInt()
+            (resources.displayMetrics.widthPixels * 0.95).toInt(),
+            (resources.displayMetrics.heightPixels * 0.90).toInt()
         )
     }
 
@@ -85,6 +90,14 @@ class EpisodeInfoActivity : ComponentActivity() {
         setIntent(intent)
         currentEpisodeId.value = intent.getLongExtra("episode_info_id", -1L)
     }
+
+//    override fun onResume() {
+//        super.onResume()
+//        if (lastTheme != AppPreferences.theme) {
+//            finish()
+//            startActivity(Intent(this, MainActivity::class.java))
+//        }
+//    }
 
     override fun onDestroy() {
         super.onDestroy()

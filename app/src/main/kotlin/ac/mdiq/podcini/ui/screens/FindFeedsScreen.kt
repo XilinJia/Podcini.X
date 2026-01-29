@@ -53,6 +53,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
@@ -337,16 +338,14 @@ fun FindFeedsScreen() {
 
             if (vm.showProgress) CircularProgressIndicator(progress = { 0.6f }, strokeWidth = 10.dp, modifier = Modifier.size(50.dp).constrainAs(progressBar) { centerTo(parent) })
             if (vm.searchResults.isNotEmpty()) LazyColumn(state = rememberLazyListState(), verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).constrainAs(gridView) {
+                modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp).constrainAs(gridView) {
                     top.linkTo(controlRow.bottom)
                     bottom.linkTo(parent.bottom)
                     start.linkTo(parent.start)
                 }) {
-                items(vm.searchResults.size) { index ->
-                    val result = vm.searchResults[index]
+                items(vm.searchResults) { result ->
                     val urlPrepared by remember { mutableStateOf(prepareUrl(result.feedUrl!!)) }
                     val sLog = remember { mutableStateOf(feedLogsMap!![urlPrepared] ?: feedLogsMap!![result.title]) }
-//                    Logd(TAG, "result: ${result.feedUrl} ${feedLogs[urlPrepared]}")
                     OnlineFeedItem(result, sLog.value)
                 }
             } else Text(stringResource(R.string.no_results_for_query, searchText), color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })

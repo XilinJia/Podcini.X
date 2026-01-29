@@ -1,37 +1,47 @@
 package ac.mdiq.podcini.ui.activity
 
-import ac.mdiq.podcini.ui.compose.PodciniTheme
-import ac.mdiq.podcini.ui.screens.AudioPlayerUIScreen
+import ac.mdiq.podcini.preferences.AppPreferences
+import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
 import ac.mdiq.podcini.ui.compose.AppNavigator
 import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
 import ac.mdiq.podcini.ui.compose.CustomToast
 import ac.mdiq.podcini.ui.compose.LargePoster
+import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.compose.commonMessage
+import ac.mdiq.podcini.ui.screens.AudioPlayerUIScreen
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.toastMassege
+import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.compose.rememberNavController
 
 private const val TAG = "PlayerUIActivity"
 class PlayerUIActivity : ComponentActivity() {
+    private var lastTheme = AppPreferences.theme
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         Logd(TAG, "in onCreate")
+
+        lastTheme = AppPreferences.theme
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -40,28 +50,45 @@ class PlayerUIActivity : ComponentActivity() {
         })
 
         setContent {
-            PodciniTheme {
+            PodciniTheme(ThemePreference.BLACK) {
                 val navController = rememberNavController()
                 val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
-                Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth()) {
+                Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars)) {
                     if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                     if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                     if (commonMessage != null) LargePoster(commonMessage!!)
-//                    CompositionLocalProvider(LocalNavController provides navigator) {
-                        AudioPlayerUIScreen(Modifier, navigator)
-//                        Navigate(navController, "${Screens.EpisodeInfo.name}?episodeId=$episodeId")
-//                    }
+                    AudioPlayerUIScreen(Modifier, navigator)
                 }
             }
         }
 
-        val window = window
         val params = window.attributes
         params.width = (resources.displayMetrics.widthPixels * 0.95).toInt()
         params.height = WindowManager.LayoutParams.WRAP_CONTENT
         params.gravity = Gravity.BOTTOM
+        params.flags = params.flags or WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
         window.attributes = params
     }
+
+//    override fun onResume() {
+//        super.onResume()
+//        if (lastTheme != AppPreferences.theme) {
+//            finish()
+//            startActivity(Intent(this, MainActivity::class.java))
+//        }
+//    }
+
+//    override fun onNewIntent(intent: Intent) {
+//        super.onNewIntent(intent)
+//        Logd(TAG, "onNewIntent")
+//        setIntent(intent)
+//        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+//            moveTaskToBack(true)
+//        }
+////        if (intent.getBooleanExtra("TOGGLE_STATE", false)) {
+////            moveTaskToBack(true)
+////        }
+//    }
 
     override fun onDestroy() {
         super.onDestroy()

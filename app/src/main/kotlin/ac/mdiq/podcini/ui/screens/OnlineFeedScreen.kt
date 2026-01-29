@@ -63,6 +63,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -134,7 +135,7 @@ class OnlineFeedVM(url: String = "", source: String = "", shared: Boolean = fals
     internal var isShared: Boolean = false
 
     internal var urlToLog: String = ""
-    internal lateinit var feedBuilder: FeedBuilderBase
+    internal var feedBuilder: FeedBuilderBase
     internal var showTabsDialog by mutableStateOf(false)
 
     internal var showEpisodes by mutableStateOf(false)
@@ -614,10 +615,8 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                         navController.navigate(Screens.FindFeeds.name)
                     }))
                 LazyRow(state = rememberLazyListState(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                    items(vm.relatedFeeds.size) { index ->
-                        val feed = remember(index) { vm.relatedFeeds[index] }
-                        val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
-                        AsyncImage(model = img, contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable(onClick = {
+                    items(vm.relatedFeeds) { feed ->
+                        AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", modifier = Modifier.width(100.dp).height(100.dp).clickable(onClick = {
                             navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}&source=${feed.source}")
                         }))
                     }

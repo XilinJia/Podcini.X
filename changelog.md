@@ -1,3 +1,9 @@
+# 10.8.1
+
+* amended some lazy lists and fixed some list layout not starting at the top
+* set popups from the large widget to use dark theme, same as the widget
+* minor dependencies update
+
 # 10.8.0
 
 * fixed/amended "add Podcast widget" routines

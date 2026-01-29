@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -575,18 +576,18 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             if (showPickerDialog) {
                 CommonPopupCard(onDismissRequest = { showPickerDialog = false }) {
                     LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.padding(16.dp)) {
-                        items(keys.size) { index ->
+                        items(keys) { key ->
                             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(16.dp)
                                 .clickable {
                                     when (direction) {
-                                        -1 -> leftAction.value = keys[index]
-                                        1 -> rightAction.value = keys[index]
+                                        -1 -> leftAction.value = key
+                                        1 -> rightAction.value = key
                                         else -> {}
                                     }
                                     showPickerDialog = false
                                 }) {
-                                Icon(imageVector = ImageVector.vectorResource(keys[index].iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp))
-                                Text(keys[index].title, color = textColor, textAlign = TextAlign.Center)
+                                Icon(imageVector = ImageVector.vectorResource(key.iconRes), tint = textColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp))
+                                Text(key.title, color = textColor, textAlign = TextAlign.Center)
                             }
                         }
                     }

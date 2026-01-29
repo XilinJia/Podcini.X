@@ -542,7 +542,7 @@ class MainActivity : BaseActivity() {
             finish()
             startActivity(Intent(this, MainActivity::class.java))
         }
-        timeIt("$TAG end of onStart")
+        timeIt("$TAG end of onResume")
     }
 
     @Deprecated("Deprecated in Java")

@@ -27,8 +27,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 243
-        versionName = "10.8.0"
+        versionCode = 244
+        versionName = "10.8.1"
 
         ndkVersion = "29.0.14206865"
 
@@ -163,17 +163,17 @@ androidComponents {
 }
 
 dependencies {
-    implementation(platform("androidx.compose:compose-bom:2026.01.00"))
+    implementation(platform("androidx.compose:compose-bom:2026.01.01"))
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
 
-    implementation("androidx.paging:paging-compose:3.3.6")
+//     implementation("androidx.paging:paging-compose:3.3.6")
 
-    implementation("androidx.activity:activity-compose:1.12.2")
+    implementation("androidx.activity:activity-compose:1.12.3")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
-    implementation("androidx.navigation:navigation-compose:2.9.6")
+    implementation("androidx.navigation:navigation-compose:2.9.7")
 
     implementation("androidx.annotation:annotation:1.9.1")
     implementation("androidx.core:core-ktx:1.17.0")
@@ -183,7 +183,7 @@ dependencies {
     implementation("androidx.preference:preference-ktx:1.2.1")
     implementation("androidx.webkit:webkit:1.15.0")
     implementation("androidx.window:window:1.5.1")
-    implementation("androidx.work:work-runtime:2.11.0")
+    implementation("androidx.work:work-runtime:2.11.1")
 
     implementation("androidx.media3:media3-exoplayer:1.9.1")
     implementation("androidx.media3:media3-datasource-okhttp:1.9.1")
@@ -198,9 +198,8 @@ dependencies {
 
     implementation("io.github.xilinjia.krdb:library-base:3.3.0")
 
-    implementation("com.github.TeamNewPipe:nanojson:1d9e1aea9049fc9f85e68b43ba39fe7be1c1f751")
-    implementation("io.reactivex.rxjava3:rxjava:3.1.12")
-    implementation("io.reactivex.rxjava3:rxandroid:3.0.2")
+//    implementation("io.reactivex.rxjava3:rxjava:3.1.12")
+//    implementation("io.reactivex.rxjava3:rxandroid:3.0.2")
 
     implementation("io.coil-kt:coil:2.7.0")
     implementation("io.coil-kt:coil-compose:2.7.0")
@@ -219,8 +218,8 @@ dependencies {
     compileOnly("com.google.android.wearable:wearable:2.9.0")
 
     "freeImplementation"("org.conscrypt:conscrypt-android:2.5.3")
-    debugImplementation("androidx.compose.ui:ui-tooling:1.10.1")
-    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.1")
+    debugImplementation("androidx.compose.ui:ui-tooling:1.10.2")
+    debugImplementation("androidx.compose.ui:ui-tooling-preview:1.10.2")
 
     "playImplementation"("com.google.android.play:core-ktx:1.8.1")
     "playImplementation"("com.google.android.gms:play-services-base:18.9.0")

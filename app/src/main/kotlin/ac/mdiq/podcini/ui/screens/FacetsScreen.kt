@@ -2,7 +2,6 @@ package ac.mdiq.podcini.ui.screens
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
-import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.preferences.MediaFilesTransporter
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
@@ -347,7 +346,7 @@ class FacetsVM(modeName_: String): ViewModel() {
         runOnIOScope {
             progressing = true
             nameEpisodeMap.clear()
-            MediaFilesTransporter("").updateDB()
+            MediaFilesTransporter("").updateDB()    // TODO: check out, may run out of memory?
             var eList = getEpisodes(EpisodeFilter(facetsPrefs.filtersMap[QuickAccess.Downloaded.name] ?: EpisodeFilter.States.downloaded.name), sortOrder, copy=false)
             val feMap = eList.associateBy { it.feedId }.toMutableMap()
             val iterator = feMap.iterator()

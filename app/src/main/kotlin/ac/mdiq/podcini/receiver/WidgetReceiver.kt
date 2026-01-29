@@ -51,6 +51,7 @@ import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.lazy.LazyColumn
+import androidx.glance.appwidget.lazy.items
 import androidx.glance.appwidget.provideContent
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.background
@@ -114,9 +115,8 @@ class PodciniWidget : GlanceAppWidget() {
                         modifier = GlanceModifier.size(48.dp).clickable(actionRunCallback<RefreshAction>(), rippleOverride = R.drawable.widget_ripple))
                 }
                 LazyColumn(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
-                    items(episodes.size) { index ->
+                    items(episodes) { episode ->
                         Row(modifier = GlanceModifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                            val episode = episodes[index]
                             val isMarked = episode.id == markedId || episode.id == curEpisode?.id
                             Column(modifier = GlanceModifier.defaultWeight().clickable(
                                 actionStartActivity<EpisodeInfoActivity>(parameters = actionParametersOf(EPISODE_INFO_ID_KEY to episode.id)),
@@ -142,8 +142,12 @@ class PodciniWidget : GlanceAppWidget() {
                 Row(modifier = GlanceModifier.fillMaxWidth().padding(horizontal = 10.dp),  horizontalAlignment = Alignment.CenterHorizontally) {
                     Image(provider = ImageProvider(R.drawable.outline_smart_display_24), contentDescription = "PlayerUI", colorFilter = ColorFilter.tint(buttonColorProvider),
                         modifier = GlanceModifier.size(buttonSize).padding(end = 5.dp).clickable(
-//                            actionStartActivity(Intent(context, PlayerUIActivity::class.java).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP) }),
                             actionStartActivity<PlayerUIActivity>(),
+//                            actionStartActivity(Intent(context, PlayerUIActivity::class.java).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP) }),
+//                            actionStartActivity(Intent(context, PlayerUIActivity::class.java).apply {
+//                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//                                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+//                                addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)                            }),
                             rippleOverride = R.drawable.widget_ripple
                         ))
                     Image(provider = ImageProvider(R.drawable.baseline_skip_previous_24), contentDescription = "Restart", colorFilter = ColorFilter.tint(buttonColorProvider),
@@ -165,24 +169,6 @@ class PodciniWidget : GlanceAppWidget() {
 val EPISODE_INFO_ID_KEY = ActionParameters.Key<Long>("episode_info_id")
 val EPISODE_ID_KEY = ActionParameters.Key<Long>("episode_id")
 val MARKED_EPISODE_KEY = longPreferencesKey("marked_episode_id")
-
-class LaunchEpisodeAction : ActionCallback {
-    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
-        val id = parameters[EPISODE_INFO_ID_KEY] ?: return
-//        updateAppWidgetState(context, glanceId) { prefs -> prefs[IS_LOADING_KEY] = true }
-        PodciniWidget().update(context, glanceId)
-//        delay(50)
-
-        val intent = Intent(context, EpisodeInfoActivity::class.java).apply {
-            putExtra("episode_info_id", id)
-            putExtra("WidgetGlanceId", glanceId.toString())
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-            addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-        }
-        context.startActivity(intent)
-    }
-}
 
 class PlayAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {

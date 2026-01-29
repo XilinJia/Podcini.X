@@ -96,6 +96,7 @@ import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -988,8 +989,7 @@ fun LibraryScreen() {
         }) {
             if (vm.subPrefs.prefFeedGridLayout) {
                 LazyVerticalGrid(state = rememberLazyGridState(), columns = GridCells.Adaptive(80.dp), modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(start = 12.dp, top = 16.dp, end = 12.dp, bottom = 16.dp)) {
-                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes.size, key = { i -> volumes[i].id}) { index ->
-                        val volume = volumes[index]
+                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { it.id}) { volume ->
                         Column(Modifier.background(MaterialTheme.colorScheme.surface)
                             .combinedClickable(onClick = { vm.curVolume = volume},
                                 onLongClick = {
@@ -1001,8 +1001,7 @@ fun LibraryScreen() {
                             Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    items(feeds.size, key = {index -> feeds[index].id}) { index ->
-                        val feed by remember { mutableStateOf(feeds[index]) }
+                    items(feeds, key = { it.id}) { feed ->
                         var isSelected by remember(selectMode, selectedSize, feed.id) { mutableStateOf(selectMode && feed in feedsSelected) }
                         fun toggleSelected() {
                             isSelected = !isSelected
@@ -1022,6 +1021,7 @@ fun LibraryScreen() {
                                     isSelected = selectMode
                                     feedsSelected.clear()
                                     if (selectMode) {
+                                        val index = feeds.indexOfFirst { it.id == feed.id }
                                         feedsSelected.add(feed)
                                         longPressIndex = index
                                     } else {

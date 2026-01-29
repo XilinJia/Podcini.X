@@ -301,7 +301,7 @@ class MediaFilesTransporter(val mediaFilesDirName: String) {
             feed = nameFeedMap[relativePath] ?: return
             Logd(TAG, "copyRecursiveFD found feed: ${feed?.title}")
             nameEpisodeMap.clear()
-            val episodes = getEpisodes(EpisodeFilter("feedId == ${feed!!.id}"), null)
+            val episodes = getEpisodes(EpisodeFilter("feedId == ${feed!!.id}"), null)   // TODO: can run out of memory?
             episodes.forEach { e -> if (!e.title.isNullOrEmpty()) nameEpisodeMap[generateFileName(e.title!!)] = e }
             nameEpisodeMap.keys.forEach { Logd(TAG, "key: $it") }
             val destFile = File(destRootDir, relativePath)

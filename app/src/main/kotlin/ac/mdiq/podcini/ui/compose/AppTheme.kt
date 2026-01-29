@@ -60,22 +60,33 @@ private val DarkColors = darkColorScheme().copy(
 )
 
 @Composable
-fun PodciniTheme(content: @Composable () -> Unit) {
-    val themePreference: ThemePreference = AppPreferences.theme
+fun PodciniTheme(forceTheme: ThemePreference? = null, content: @Composable () -> Unit) {
+    val themePreference: ThemePreference = if (forceTheme != null) forceTheme!! else AppPreferences.theme
     val isDark = when (themePreference) {
         ThemePreference.LIGHT -> false
         ThemePreference.DARK, ThemePreference.BLACK -> true
         ThemePreference.SYSTEM -> isSystemInDarkTheme()
     }
 
+//    val view = LocalView.current
+//    if (!view.isInEditMode) {
+//        SideEffect {
+//            val window = (view.context as Activity).window
+//            window.statusBarColor = Color.Transparent.toArgb()
+//            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
+//        }
+//    }
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = Color.Transparent.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
+            val insetsController = WindowCompat.getInsetsController(window, view)
+            insetsController.isAppearanceLightStatusBars = !isDark
+            insetsController.isAppearanceLightNavigationBars = !isDark
         }
     }
+
     val isBlackModeEnabled: Boolean = getPref(AppPrefs.prefThemeBlack, false)
     val colorScheme = when {
         isDark && (themePreference == ThemePreference.BLACK || isBlackModeEnabled) -> DarkColors.copy(surface = Color(0xFF000000))
