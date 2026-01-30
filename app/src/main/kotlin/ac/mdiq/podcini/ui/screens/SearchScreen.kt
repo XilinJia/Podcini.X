@@ -25,9 +25,7 @@ import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.ui.utils.SearchAlgo
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.Logs
 import ac.mdiq.podcini.utils.formatLargeInteger
-import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -69,6 +67,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -92,15 +91,14 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -131,52 +129,37 @@ class SearchVM: ViewModel() {
         Logd(TAG, "init $curSearchString")
         algo.setSearchByAll()
         queryText = curSearchString
-        if (queryText.isNotBlank()) search()
     }
 
     data class Triplet(val episodes:  Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
 
-    var realmFlow: Flow<ResultsChange<Episode>> = emptyFlow()
-    val episodesFlow: StateFlow<List<Episode>> = realmFlow.map { it.list }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
-
-    private var searchJob: Job? = null
-    @SuppressLint("StringFormatMatches")
-    internal fun search() {
-        if (queryText.isBlank()) return
-        val queryText = queryText
-        if (searchJob != null) searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            try {
-                val results_ = withContext(Dispatchers.IO) {
-                    if (queryText.isEmpty()) Triplet(emptyFlow(), listOf(), listOf())
-                    else {
-                        val queryWords = (if (queryText.contains(",")) queryText.split(",").map { it.trim() } else queryText.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
-                        listIdentity = "Search.${queryWords.joinToString()}"
-                        val items = algo.searchEpisodes(0L, queryWords)
-                        val feeds: List<Feed> = algo.searchFeeds(queryWords)
-                        val pafeeds = algo.searchPAFeeds(queryWords)
-                        Triplet(items, feeds, pafeeds)
-                    }
-                }
-                withContext(Dispatchers.Main) {
-                    realmFlow = results_.episodes
-                    feeds.clear()
-                    if (results_.feeds.isNotEmpty()) feeds.addAll(results_.feeds)
-                    pafeeds.clear()
-                    if (results_.pafeeds.isNotEmpty()) pafeeds.addAll(results_.pafeeds)
-                    Logd(TAG, "Search found feeds: ${feeds.size}")
-                }
-            } catch (e: Throwable) { Logs(TAG, e) }
-        }.apply { invokeOnCompletion { searchJob = null } }
-    }
+    val episodesFlow: StateFlow<List<Episode>> = snapshotFlow { queryText }.flatMapLatest {
+        val results_ = withContext(Dispatchers.IO) {
+            if (queryText.isEmpty()) Triplet(emptyFlow(), listOf(), listOf())
+            else {
+                val queryWords = (if (queryText.contains(",")) queryText.split(",").map { it.trim() } else queryText.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
+                listIdentity = "Search.${queryWords.joinToString()}"
+                val items = algo.searchEpisodes(0L, queryWords)
+                val feeds: List<Feed> = algo.searchFeeds(queryWords)
+                val pafeeds = algo.searchPAFeeds(queryWords)
+                Triplet(items, feeds, pafeeds)
+            }
+        }
+        withContext(Dispatchers.Main) {
+            feeds.clear()
+            if (results_.feeds.isNotEmpty()) feeds.addAll(results_.feeds)
+            pafeeds.clear()
+            if (results_.pafeeds.isNotEmpty()) pafeeds.addAll(results_.pafeeds)
+            Logd(TAG, "Search found feeds: ${feeds.size}")
+        }
+        results_.episodes.map { it.list }
+    }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 }
 
 @ExperimentalMaterial3Api
 @Composable
 fun SearchScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-//    val scope = rememberCoroutineScope()
-//    val context = LocalContext.current
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
@@ -226,7 +209,7 @@ fun SearchScreen() {
                             it.searchHistory.add(0, str)
                             if (it.searchHistory.size > SearchHistorySize+4) it.searchHistory.apply { subList(SearchHistorySize, size).clear() }
                         }
-                        vm.search()
+//                        vm.search()
                     }
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.clickable(onClick = { vm.showAdvanced = !vm.showAdvanced}))
                 }

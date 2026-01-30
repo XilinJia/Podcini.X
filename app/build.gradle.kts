@@ -27,8 +27,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 245
-        versionName = "10.8.2"
+        versionCode = 246
+        versionName = "10.8.3"
 
         ndkVersion = "29.0.14206865"
 
@@ -168,8 +168,6 @@ dependencies {
     implementation("androidx.compose.material:material-icons-core")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
-
-//     implementation("androidx.paging:paging-compose:3.3.6")
 
     implementation("androidx.activity:activity-compose:1.12.3")
     implementation("androidx.constraintlayout:constraintlayout-compose:1.1.1")
