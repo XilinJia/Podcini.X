@@ -18,9 +18,9 @@ import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
 import ac.mdiq.podcini.ui.compose.InforBar
-import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.compose.SearchBarRow
 import ac.mdiq.podcini.ui.compose.episodeForInfo
 import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.ui.utils.SearchAlgo
@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -52,7 +53,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,7 +68,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,9 +94,9 @@ import io.github.xilinjia.krdb.notifications.ResultsChange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -124,7 +123,6 @@ class SearchVM: ViewModel() {
     val tabTitles = listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds)
     val selectedTabIndex = mutableIntStateOf(0)
 
-    var episodesFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList())
     var listIdentity by mutableStateOf("")
 
     internal var queryText by mutableStateOf("")
@@ -137,6 +135,9 @@ class SearchVM: ViewModel() {
     }
 
     data class Triplet(val episodes:  Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
+
+    var realmFlow: Flow<ResultsChange<Episode>> = emptyFlow()
+    val episodesFlow: StateFlow<List<Episode>> = realmFlow.map { it.list }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
     private var searchJob: Job? = null
     @SuppressLint("StringFormatMatches")
@@ -158,11 +159,12 @@ class SearchVM: ViewModel() {
                     }
                 }
                 withContext(Dispatchers.Main) {
-                    episodesFlow = results_.episodes.map { it.list }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+                    realmFlow = results_.episodes
                     feeds.clear()
                     if (results_.feeds.isNotEmpty()) feeds.addAll(results_.feeds)
                     pafeeds.clear()
                     if (results_.pafeeds.isNotEmpty()) pafeeds.addAll(results_.pafeeds)
+                    Logd(TAG, "Search found feeds: ${feeds.size}")
                 }
             } catch (e: Throwable) { Logs(TAG, e) }
         }.apply { invokeOnCompletion { searchJob = null } }
@@ -173,8 +175,8 @@ class SearchVM: ViewModel() {
 @Composable
 fun SearchScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
-    val context = LocalContext.current
+//    val scope = rememberCoroutineScope()
+//    val context = LocalContext.current
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
@@ -209,7 +211,6 @@ fun SearchScreen() {
     }
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) { episodeForInfo = null }
-
     
     @Composable
     fun MyTopAppBar() {
@@ -239,7 +240,7 @@ fun SearchScreen() {
         val context = LocalContext.current
         val lazyListState = rememberLazyListState()
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            itemsIndexed(vm.feeds, key = { _, feed -> feed.id }) { index, feed ->
+            items(vm.feeds, key = { feed -> feed.id }) { feed ->
                 Row(Modifier.background(MaterialTheme.colorScheme.surface)) {
                     val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                     AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
@@ -317,7 +318,7 @@ fun SearchScreen() {
     val episodes by vm.episodesFlow.collectAsStateWithLifecycle()
 
     val infoBarText = remember(episodes) { mutableStateOf("${episodes.size} episodes") }
-    val tabCounts = remember(episodes) { listOf(episodes.size, vm.feeds.size, vm.pafeeds.size) }
+    val tabCounts = remember(episodes.size, vm.feeds.size, vm.pafeeds.size) { listOf(episodes.size, vm.feeds.size, vm.pafeeds.size) }
     swipeActions.ActionOptionsDialog()
 
     if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)

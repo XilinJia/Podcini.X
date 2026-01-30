@@ -25,6 +25,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.PlayerUIActivity
 import ac.mdiq.podcini.ui.activity.QueuePickerActivity
 import ac.mdiq.podcini.utils.Logd
+import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import android.content.Context
@@ -173,8 +174,16 @@ val MARKED_EPISODE_KEY = longPreferencesKey("marked_episode_id")
 class PlayAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         updateAppWidgetState(context, glanceId) { prefs ->
-            val id = parameters[EPISODE_ID_KEY] ?: return@updateAppWidgetState
-            val episode = episodeById(id) ?: return@updateAppWidgetState
+            val id = parameters[EPISODE_ID_KEY]
+            if (id == null) {
+                Loge("PlayAction", "id from parameter is null.")
+                return@updateAppWidgetState
+            }
+            val episode = episodeById(id)
+            if (episode == null) {
+                Loge("PlayAction", "episode with id: $id is null.")
+                return@updateAppWidgetState
+            }
             prefs[MARKED_EPISODE_KEY] = id
             Logd(TAG, "PlayAction onAction episode: ${episode.title}")
             withContext(Dispatchers.Main) { PlaybackStarter(episode).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start() }

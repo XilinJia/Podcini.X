@@ -71,9 +71,9 @@ class PlaybackStarter(private val media: Episode) {
         fun processTask() {
             when {
                 isPlaying -> {
-                    playPause()     // TODO: start new?
-                    //                        if (sameMedia) playPause()
-                    //                        else mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
+//                    playPause()     // TODO: start new?
+                    if (sameMedia) playPause()
+                    else mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
                 }
                 isPaused || isPrepared -> mPlayer?.prepareMedia(media_, shouldStreamThisTime, startWhenPrepared = true, prepareImmediately = true)
                 isStopped -> ContextCompat.startForegroundService(getAppContext(), Intent(getAppContext(), PlaybackService::class.java))

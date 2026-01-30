@@ -70,7 +70,7 @@ object InTheatre {
     var bitrate by mutableIntStateOf(0)
 
     init {
-        showStackTrace()
+//        showStackTrace()
         timeIt("$TAG start of init")
         CoroutineScope(Dispatchers.IO).launch {
             Logd(TAG, "starting curState")

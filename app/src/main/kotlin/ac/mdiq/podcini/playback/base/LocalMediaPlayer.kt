@@ -306,7 +306,7 @@ class LocalMediaPlayer : MediaPlayerBase() {
      */
     override fun prepareMedia(playable: Episode, streaming: Boolean, startWhenPrepared: Boolean, prepareImmediately: Boolean, forceReset: Boolean, doPostPlayback: Boolean) {
         Logd(TAG, "prepareMedia status=$status stream=$streaming startWhenPrepared=$startWhenPrepared prepareImmediately=$prepareImmediately forceReset=$forceReset ${playable.getEpisodeTitle()} ")
-       showStackTrace()
+//       showStackTrace()
         if (!forceReset && curEpisode?.id == prevMedia?.id && isPlaying) {
             Logd(TAG, "Method call to prepareMedia was ignored: media file already playing.")
             return

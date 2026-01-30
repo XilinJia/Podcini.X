@@ -1,3 +1,11 @@
+# 10.8.2
+
+* fixed search empty issue
+* rearranged remove feed dialog to avoid Confirm button disappearing
+* fixed Related dialog showing nothing
+* amended flow setups for better reactions
+* fixed app crash on second open of "Add podcast"
+
 # 10.8.1
 
 * amended some lazy lists and fixed some list layout not starting at the top

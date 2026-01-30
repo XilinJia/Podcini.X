@@ -501,6 +501,12 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
                 }
             }
         }
+        //        Logd(TAG, "episode.related: ${episode.related.size}")
+        if (episode.related.isNotEmpty()) {
+            var showTodayStats by remember { mutableStateOf(false) }
+            if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
+            Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
+        }
 
         //                    if (!episode?.chapters.isNullOrEmpty()) Text(stringResource(id = R.string.chapters_label), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable(onClick = { showChaptersDialog = true }))
         if (episode.chapters.isNotEmpty()) {
@@ -542,20 +548,15 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
                     view.loadDataWithBaseURL("https://127.0.0.1", if (webviewData.isNullOrBlank()) "No notes" else webviewData!!, "text/html", "utf-8", "about:blank")
                 }
         })
-
-        if (episode.related.isNotEmpty()) {
-            var showTodayStats by remember { mutableStateOf(false) }
-            if (showTodayStats) RelatedEpisodesDialog(episode) { showTodayStats = false }
-            Text(stringResource(R.string.related), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 10.dp).clickable(onClick = { showTodayStats = true }))
-        }
     }
 }
 
 @Composable
 fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
     // TODO: somehow, episode is not updated after unrelate
-    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().padding(5.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },  confirmButton = {},
+    AlertDialog(properties = DialogProperties(usePlatformDefaultWidth = false), modifier = Modifier.fillMaxWidth().height(300.dp).padding(5.dp).border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },  confirmButton = {},
         text = {
+            Logd(TAG, "episode.related: ${episode.related.size}")
             EpisodeLazyColumn(episode.related.toList(), layoutMode = LayoutMode.FeedTitle.ordinal, forceFeedImage = true,
                 actionButtonCB = {e1, _ ->
                     runOnIOScope {
@@ -566,12 +567,6 @@ fun RelatedEpisodesDialog(episode: Episode, onDismissRequest: () -> Unit) {
                                 es[1].related.remove(es[0])
                             }
                         }
-                        //                        episode = realm.query(Episode::class, "id == ${episode.id}").first().find() ?: return@runOnIOScope
-//                        Logd("RelatedEpisodesDialog", "episode.related: ${episode.related.size}")
-//                        withContext(Dispatchers.Main) {
-////                            vmsr.clear()
-////                            for (e in episode.related) vmsr.add(EpisodeVM(e, TAG))
-//                        }
                     }
                 } ) },
         dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } } )

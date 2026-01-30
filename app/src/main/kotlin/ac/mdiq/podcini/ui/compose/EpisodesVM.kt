@@ -257,7 +257,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
     }
 
     var refreshing by remember { mutableStateOf(false)}
-    if (episodeForInfo == null) PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
+    PullToRefreshBox(modifier = Modifier.fillMaxSize(), isRefreshing = refreshing, indicator = {}, onRefresh = {
         refreshing = true
         refreshCB?.invoke()
         refreshing = false
@@ -469,6 +469,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                         }
                                     }
                                     LayoutMode.FeedTitle.ordinal -> {
+                                        Logd(TAG, "title: ${episode.feed?.title}")
                                         Text(episode.feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         when (statusRowMode) {
                                             StatusRowMode.Comment -> Comment()
@@ -694,6 +695,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                     for (e in selected_) {
                                         for (e1 in selected_) {
                                             if (e.id == e1.id) continue
+                                            Logd(TAG, "set related: ${e.id} ${e1.id}")
                                             e.related.add(e1)
                                         }
                                     }

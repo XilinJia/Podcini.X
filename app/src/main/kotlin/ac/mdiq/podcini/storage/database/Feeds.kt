@@ -176,7 +176,6 @@ fun feedByIdentityOrID(feed: Feed, copy: Boolean = false): Feed? {
  * These FeedItems will be marked as unread with the exception of the most recent FeedItem.
  * This method can update multiple feeds at once. Submitting a feed twice in the same method call can result in undefined behavior.
  * This method should NOT be executed on the GUI thread.
- * @param context Used for accessing the DB.
  * @param newFeed The new Feed object.
  * @param removeUnlistedItems The episode list in the new Feed object is considered to be exhaustive.
  * I.e. episodes are removed from the database if they are not in this episode list.
@@ -215,7 +214,6 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     Logd(TAG, "updateFeedFull building savedFeedAssistant")
     val savedFeedAssistant = FeedAssistant(savedFeed)
     val oldestDate = savedFeed.oldestItem?.pubDate ?: 0L
-    val context = getAppContext()
     for (idx in newFeed.episodes.indices) {
         var episode = newFeed.episodes[idx]
         if (savedFeed.limitEpisodesCount > 0 && episode.pubDate < oldestDate) continue
@@ -435,9 +433,8 @@ fun addNewFeed(feed: Feed) {
         }
         copyToRealm(feed)
     }
-    val context = getAppContext()
     if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedAddedIfSyncActive(feed.downloadUrl!!)
-    BackupManager(context).dataChanged()
+    BackupManager(getAppContext()).dataChanged()
 }
 
 suspend fun deleteFeed(feedId: Long, preserve: Boolean = false) {
@@ -460,10 +457,8 @@ suspend fun deleteFeed(feedId: Long, preserve: Boolean = false) {
                 } else  delete(it)
             }
         }
-        val context = getAppContext()
         if (!feed.isLocalFeed && feed.downloadUrl != null) SynchronizationQueueSink.enqueueFeedRemovedIfSyncActive(feed.downloadUrl!!)
-        val backupManager = BackupManager(context)
-        backupManager.dataChanged()
+        BackupManager(getAppContext()).dataChanged()
     }
 }
 

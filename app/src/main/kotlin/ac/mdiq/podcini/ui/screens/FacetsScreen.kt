@@ -118,13 +118,16 @@ import io.github.xilinjia.krdb.notifications.PendingObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import io.github.xilinjia.krdb.notifications.UpdatedObject
 import io.github.xilinjia.krdb.query.RealmQuery
+import io.github.xilinjia.krdb.query.RealmResults
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -154,9 +157,6 @@ class FacetsVM(modeName_: String): ViewModel() {
 
     var facetsPrefsJob: Job? by mutableStateOf(null)
     var facetsPrefs: FacetsPrefs = realm.query(FacetsPrefs::class).query("id == 0").first().find() ?: FacetsPrefs()
-
-    var episodesFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList())
-    var feedsAssFlow: StateFlow<List<Feed>> = MutableStateFlow(emptyList())
 
     var listIdentity by mutableStateOf("")
 
@@ -202,7 +202,7 @@ class FacetsVM(modeName_: String): ViewModel() {
         }
     }
 
-    fun buildFlow() {
+    private fun buildFlow(): Flow<RealmResults<Episode>> {
         Logd(TAG, "loadItems() called")
         listIdentity = "Facets.${facetsMode.name}"
         val realmFlow = when (facetsMode) {
@@ -283,8 +283,20 @@ class FacetsVM(modeName_: String): ViewModel() {
                 getEpisodesAsFlow(EpisodeFilter(facetsPrefs.filtersMap[QuickAccess.All.name] ?: ""), sortOrder)
             }
         }
-        episodesFlow = realmFlow.map { it.list }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+        return realmFlow.map { it.list }
     }
+
+    val episodesFlow: StateFlow<List<Episode>> = snapshotFlow { Triple(facetsMode, filter, sortOrder) }.distinctUntilChanged().flatMapLatest { buildFlow() }
+        .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+
+    val feedsAssFlow: StateFlow<List<Feed>> = combine(episodesFlow, snapshotFlow { showFeeds }) { episodes, showFeeds -> Pair(episodes, showFeeds) }.distinctUntilChanged().flatMapLatest { (episodes, showFeeds) ->
+        if (!showFeeds) updateToolbar(episodes)
+            when {
+            !showFeeds -> emptyFlow()
+            facetsMode == QuickAccess.All -> realm.query(Feed::class).asFlow().map { it.list }
+            else -> episodesFlow.map { episodes -> episodes.mapNotNull { it.feed }.distinctBy { it.id } }
+        }
+    }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun clearHistory() : Job {
         Logd(TAG, "clearHistory called")
@@ -406,7 +418,7 @@ class FacetsVM(modeName_: String): ViewModel() {
             }
             withContext(Dispatchers.Main) {
 //                resetSwipes()
-                buildFlow()
+//                buildFlow()
                 progressing = false
             }
         }
@@ -437,14 +449,8 @@ class FacetsVM(modeName_: String): ViewModel() {
         } else curIndex = QuickAccess.Custom.ordinal
         tag = TAG + QuickAccess.entries[curIndex]
 
-        buildFlow()
+//        buildFlow()
 
-        feedsAssFlow = combine(episodesFlow, snapshotFlow { showFeeds }) { episodes, showFeeds -> Pair(episodes, showFeeds) }.distinctUntilChanged().map { (episodes, showFeeds) ->
-            withContext(Dispatchers.IO) { if (!showFeeds) updateToolbar(episodes) }
-            if (!showFeeds) emptyList()
-            else if (facetsMode == QuickAccess.All) getFeedList()
-            else episodes.mapNotNull { it.feed }.distinctBy { it.id }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
         timeIt("$TAG end of init")
     }
 
@@ -528,13 +534,13 @@ fun FacetsScreen(modeName: String = "") {
             vm.filter = filter
             upsertBlk(vm.facetsPrefs) { it.filtersMap[facetsMode.name] = StringUtils.join(vm.filter.propertySet, ",") }
             resetSwipes()
-            vm.buildFlow()
+//            vm.buildFlow()
         }
         if (showSortDialog) EpisodeSortDialog(initOrder = vm.sortOrder, onDismissRequest = { showSortDialog = false }) { order ->
             if (order != null) {
                 vm.sortOrder = order
                 resetSwipes()
-                vm.buildFlow()
+//                vm.buildFlow()
             }
         }
         swipeActions.ActionOptionsDialog()
@@ -558,7 +564,7 @@ fun FacetsScreen(modeName: String = "") {
                                 upsertBlk(vm.facetsPrefs) { it.prefFacetsCurIndex = index}
                                 actionButtonType = if (facetsMode == QuickAccess.Downloaded) ButtonTypes.DELETE else null
                                 resetSwipes()
-                                vm.buildFlow()
+//                                vm.buildFlow()
                                 showChooseMode = false
                             }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index))
                         }
@@ -613,7 +619,7 @@ fun FacetsScreen(modeName: String = "") {
                                         Logt(TAG, "New items cleared")
                                         withContext(Dispatchers.Main) { vm.progressing = false }
                                         resetSwipes()
-                                        vm.buildFlow()
+//                                        vm.buildFlow()
                                     }
                                     expanded = false
                                 })

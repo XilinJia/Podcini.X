@@ -155,7 +155,6 @@ import io.github.xilinjia.krdb.ext.query
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -197,38 +196,45 @@ class QueuesVM(id_: Long): ViewModel() {
     var curIndex by  mutableIntStateOf(-1)
     var curQueue by mutableStateOf(actQueue)
 
-    var queueEntriesFlow: StateFlow<List<QueueEntry>> = MutableStateFlow(emptyList())
-    var episodesSortedFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList())
-
-    var title by mutableStateOf("")
-
-    fun initBinFlow() {
-        val coldFlow = realm.query(Episode::class, "id IN $0", curQueue.idsBinList).asFlow().map { it.list }
-            .map { episodes ->
-                val orderMap = curQueue.idsBinList.withIndex().associate { it.value to it.index }
-                episodes.sortedBy { episode -> orderMap[episode.id] ?: Int.MAX_VALUE }.reversed()
+    val queueEntriesFlow: StateFlow<List<QueueEntry>> = snapshotFlow { Pair(curQueue.id, queuesMode) }.distinctUntilChanged().flatMapLatest {
+        when (queuesMode) {
+            QueuesScreenMode.Queue -> {
+                val qeRealmFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow()
+                qeRealmFlow.map { it.list }
             }
-        episodesSortedFlow = coldFlow.distinctUntilChanged()
-            .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
-    }
-    fun initQueueFlow() {
-        val qeRealmFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow()
-        queueEntriesFlow = qeRealmFlow.map { it.list }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+            else -> emptyFlow()
+        }
+    }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
-        val orderedEpisodeIdsFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow().map { results -> results.list.map { it.episodeId } }
-        val episodesFlow = orderedEpisodeIdsFlow.flatMapLatest { ids ->
-            if (ids.isEmpty()) flowOf(emptyList()) else realm.query<Episode>("id IN $0", ids).asFlow().map { it.list }
+    val episodesSortedFlow: StateFlow<List<Episode>> = snapshotFlow { Triple(curQueue.id, curQueue.sortOrderCode, queuesMode) }.distinctUntilChanged().flatMapLatest {
+        fun initBinFlow(): Flow<List<Episode>> {
+            return realm.query(Episode::class, "id IN $0", curQueue.idsBinList).asFlow().map { it.list }
+                .map { episodes ->
+                    val orderMap = curQueue.idsBinList.withIndex().associate { it.value to it.index }
+                    episodes.sortedBy { episode -> orderMap[episode.id] ?: Int.MAX_VALUE }.reversed()
+                }
         }
-        val coldFlow = combine(orderedEpisodeIdsFlow, episodesFlow) { ids, episodes ->
-            val episodeMap = episodes.associateBy { it.id }
-            ids.mapNotNull { episodeMap[it] }
+        fun initQueueFlow():  Flow<List<Episode>> {
+            val orderedEpisodeIdsFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow().map { results -> results.list.map { it.episodeId } }
+            val episodesFlow = orderedEpisodeIdsFlow.flatMapLatest { ids ->
+                if (ids.isEmpty()) flowOf(emptyList()) else realm.query<Episode>("id IN $0", ids).asFlow().map { it.list }
+            }
+            return combine(orderedEpisodeIdsFlow, episodesFlow) { ids, episodes ->
+                val episodeMap = episodes.associateBy { it.id }
+                ids.mapNotNull { episodeMap[it] }
+            }
         }
-        episodesSortedFlow = coldFlow.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
-    }
+        when (queuesMode) {
+            QueuesScreenMode.Queue -> initQueueFlow()
+            QueuesScreenMode.Bin -> initBinFlow()
+            else -> emptyFlow()
+        }
+    }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
     init {
         timeIt("$TAG start of init")
         curQueueFlow = realm.query<PlayQueue>("id == $0", appAttribs.curQueueId).first().asFlow()
+
         viewModelScope.launch { snapshotFlow { Pair(queues, actQueue.id) }.distinctUntilChanged().collect {
             spinnerTexts.clear()
             spinnerTexts.addAll(queues.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" })
@@ -245,25 +251,7 @@ class QueuesVM(id_: Long): ViewModel() {
             feedsAssociated.clear()
             feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
         } }
-        viewModelScope.launch { snapshotFlow { Pair(curQueue.id, curQueue.idsBinList.size) }.distinctUntilChanged().collect { if (queuesMode == QueuesScreenMode.Bin) initBinFlow() } }
-        viewModelScope.launch { snapshotFlow { Pair(curQueue.id, curQueue.sortOrderCode) }.distinctUntilChanged().collect { if (queuesMode == QueuesScreenMode.Queue) initQueueFlow() } }
-        viewModelScope.launch { snapshotFlow { queuesMode }.distinctUntilChanged().collect {
-            when (queuesMode) {
-                QueuesScreenMode.Bin -> {
-                    initBinFlow()
-                    title = curQueue.name + " Bin"
-                }
-                QueuesScreenMode.Queue -> {
-                    initQueueFlow()
-                    title = ""
-                }
-                QueuesScreenMode.Feed -> {
-                    Logd(TAG, "vm.feedsAssociated: ${feedsAssociated.size} ${curQueue.id}")
-                    title = "${feedsAssociated.size} Feeds"
-                }
-                else -> title = "Settings"
-            }
-        } }
+
         timeIt("$TAG end of init")
     }
 
@@ -463,7 +451,6 @@ fun QueuesScreen(id: Long = -1L) {
     }
 
     OpenDialogs()
-
     
     @Composable
     fun MyTopAppBar() {
@@ -471,10 +458,8 @@ fun QueuesScreen(id: Long = -1L) {
         val buttonColor = Color(0xDDFFD700)
         Box {
             TopAppBar(title = {
-                if (vm.queuesMode == QueuesScreenMode.Queue) Text(
-                    (if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in vm.queueNames.indices) vm.queueNames[vm.curIndex].ifBlank { "No name" } else "No name",
-                    maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary,
-                    modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
+                if (vm.queuesMode == QueuesScreenMode.Queue) {
+                    Text((if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in vm.queueNames.indices) vm.queueNames[vm.curIndex].ifBlank { "No name" } else "No name", maxLines = 1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
                         if (vm.curQueue.id == actQueue.id) {
                             if (episodes.size > 5) {
                                 val index = episodes.indexOfFirst { it.id == curEpisode?.id }
@@ -487,7 +472,16 @@ fun QueuesScreen(id: Long = -1L) {
                             if (index >= 0) setCurIndex(index)
                             else Logt(TAG, "actQueue is not available")
                         }
-                    })) else Text(vm.title) },
+                    }))
+                } else {
+                    val title = remember(vm.queuesMode) { when (vm.queuesMode) {
+                        QueuesScreenMode.Bin -> vm.curQueue.name + " Bin"
+                        QueuesScreenMode.Queue -> ""
+                        QueuesScreenMode.Feed -> "${vm.feedsAssociated.size} Feeds"
+                        else -> "Settings"
+                    } }
+                    Text(title)
+                } },
                 navigationIcon = { IconButton(onClick = { drawerController?.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
                 actions = {
                     val binIconRes by remember(vm.queuesMode) { derivedStateOf { if (vm.queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history } }
@@ -778,7 +772,7 @@ fun QueuesScreen(id: Long = -1L) {
                                     Box(modifier = Modifier.width(imageWidth).height(imageHeight)) {
                                         AsyncImage(model = ImageRequest.Builder(context).data(episode.imageLocation(false)).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", modifier = Modifier.fillMaxSize())
                                     }
-                                    Text(episode.title?: "No vm.title")
+                                    Text(episode.title?: "No title")
                                 }
                             }
                         }

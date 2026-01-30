@@ -113,7 +113,6 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             var saveImportant by remember { mutableStateOf(true) }
-            Text(message)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = saveImportant, onCheckedChange = { saveImportant = it })
                 Text(text = stringResource(R.string.shelve_important), style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.padding(start = 10.dp))
@@ -153,6 +152,7 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                 }
                 onDismissRequest()
             }) { Text(stringResource(R.string.confirm_label)) }
+            Text(message)
         }
     }
 }

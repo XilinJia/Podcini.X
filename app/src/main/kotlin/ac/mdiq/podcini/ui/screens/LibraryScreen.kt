@@ -69,7 +69,6 @@ import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -98,7 +97,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -113,7 +112,6 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -171,16 +169,15 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import io.github.xilinjia.krdb.ext.toRealmSet
-import io.github.xilinjia.krdb.notifications.SingleQueryChange
+import io.github.xilinjia.krdb.query.RealmResults
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -196,27 +193,25 @@ private const val TAG = "LibraryScreen"
 val feedIdsToUse = mutableStateListOf<Long>()
 
 class LibraryVM : ViewModel() {
-    var subPrefs by mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?:
-    SubscriptionsPrefs().apply { this.queueSelIds.add(0L) })
-    var prefsFlow by mutableStateOf<Flow<SingleQueryChange<SubscriptionsPrefs>>>(emptyFlow())
+    var subPrefs by mutableStateOf( realm.query(SubscriptionsPrefs::class).query("id == 0").first().find() ?: SubscriptionsPrefs().apply { this.queueSelIds.add(0L) })
+
+    val prefsFlow = realm.query(SubscriptionsPrefs::class).query("id == 0").first().asFlow().map { it.obj }
+        .distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = subPrefs)
 
     var showAllFeeds by mutableStateOf(feedIdsToUse.isNotEmpty())
     val isViewGarden by mutableStateOf(feedIdsToUse.isNotEmpty())
 
-    var feedsFlow: StateFlow<List<Feed>> = MutableStateFlow(emptyList())
-
-    var subVolumesFlow: StateFlow<List<Volume>> = MutableStateFlow(emptyList())
-
-    var curVolume by mutableStateOf<Volume?>(null)
-    val queueNames = mutableStateListOf<String>() 
-    val queueIds = mutableListOf<Long>()
-
-    fun getVolumesFlow() {
+    val subVolumesFlow: StateFlow<List<Volume>> = snapshotFlow { Pair(curVolume?.id, subPrefs.showArchived) }.flatMapLatest {
         val qStrArchive = if (curVolume == null) ( if (subPrefs.showArchived) "" else "AND id != $ARCHIVED_VOLUME_ID" ) else ""
         Logd(TAG, "getVolumesFlow qStrArchive: $qStrArchive")
         val realmFlow = realm.query(Volume::class).query("parentId == ${curVolume?.id ?: -1L} $qStrArchive").asFlow()
-        subVolumesFlow = realmFlow.map { it.list }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
-    }
+        realmFlow.map { it.list }
+    }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+
+    var curVolume by mutableStateOf<Volume?>(null)
+
+    val queueNames = mutableStateListOf<String>()
+    val queueIds = mutableListOf<Long>()
 
     var playStateQueries by mutableStateOf("")
     var ratingQueries by mutableStateOf("")
@@ -410,7 +405,7 @@ class LibraryVM : ViewModel() {
         }
     }
 
-    fun buildFeedsFlows() {
+    fun FeedsRealmFlows(): Flow<RealmResults<Feed>> {
         Logd(TAG, "buildFeedsFlows")
 
         fun languagesQS() : String {
@@ -429,7 +424,8 @@ class LibraryVM : ViewModel() {
         fun tagsQS() : String {
             var qrs  = ""
             when {
-                subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == '#root' )) "
+//                subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0 OR (tags.@count != 0 AND ALL tags == $TAG_ROOT )) "
+                subPrefs.tagsSel.isEmpty() -> qrs = " (tags.@count == 0) "
                 subPrefs.tagsSel.size == appAttribs.feedTagSet.size -> qrs = ""
                 else -> {
                     for (t in subPrefs.tagsSel) {
@@ -462,18 +458,18 @@ class LibraryVM : ViewModel() {
         if (tagsStr.isNotEmpty())  sb.append(" AND $tagsStr")
         val queuesStr = queuesQS()
         if (queuesStr.isNotEmpty())  sb.append(" AND $queuesStr")
-        if (!subPrefs.showArchived)  sb.append(" AND id != $ARCHIVED_VOLUME_ID")
+        if (!subPrefs.showArchived && curVolume?.id != ARCHIVED_VOLUME_ID && !showAllFeeds)  sb.append(" AND volumeId != $ARCHIVED_VOLUME_ID")
 
         val fetchQS = sb.toString()
         val sortPair = Pair(subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
         Logd(TAG, "fetchQS: $fetchQS ${sortPair.first} ${sortPair.second.name}")
+
         val realmFlow = if (showAllFeeds) {
             if (feedIdsToUse.isEmpty()) realm.query(Feed::class).query(fetchQS).sort(sortPair).asFlow()
             else realm.query(Feed::class).query("id IN $0", feedIdsToUse).sort(sortPair).asFlow()
         } else realm.query(Feed::class).query("volumeId == ${curVolume?.id ?: -1L}").query(fetchQS).sort(sortPair).asFlow()
-        
-        feedsFlow = realmFlow.map { it.list }.distinctUntilChanged()
-            .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+
+        return realmFlow.map { it.list }
     }
 
     data class FeedsFlowkeys(
@@ -484,12 +480,16 @@ class LibraryVM : ViewModel() {
         val showArchived: Boolean
     )
 
+    val feedsFlow: StateFlow<List<Feed>> = snapshotFlow { FeedsFlowkeys(curVolume?.id, showAllFeeds, subPrefs.feedsFiltered, subPrefs.feedsSorted, subPrefs.showArchived) }
+        .distinctUntilChanged().flatMapLatest { FeedsRealmFlows()
+        }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+
     init {
         Logd(TAG, "vm init")
         timeIt("$TAG start of vm init")
-        prefsFlow = realm.query(SubscriptionsPrefs::class).query("id == 0").first().asFlow()
+
         runOnIOScope {
-            upsert(subPrefs) {
+            subPrefs = upsert(subPrefs) {
                 it.feedsSorted = 0
                 it.feedsFiltered = 0
             }
@@ -506,20 +506,7 @@ class LibraryVM : ViewModel() {
                 }
             }
         }
-        viewModelScope.launch { snapshotFlow { Pair(curVolume?.id, subPrefs.showArchived) }.distinctUntilChanged().collect { getVolumesFlow() } }
-         
-        viewModelScope.launch { snapshotFlow { FeedsFlowkeys(curVolume?.id, showAllFeeds, subPrefs.feedsFiltered, subPrefs.feedsSorted, subPrefs.showArchived) }.distinctUntilChanged().collect { buildFeedsFlows() } }
 
-        viewModelScope.launch { combine(feedsFlow, snapshotFlow {feedOperationText}) { feeds, opText -> Pair(feeds, opText) }
-            .distinctUntilChanged().map { (feeds, opText) ->
-            Logd(TAG, "combine(feedsFlow, snapshotFlow {feedOperationText})")
-            if (opText.isBlank()) when (subPrefs.sortIndex) {
-                FeedSortIndex.Date.ordinal -> prepareDateSort(feeds)
-                FeedSortIndex.Time.ordinal -> prepareTimeSort(feeds)
-                FeedSortIndex.Count.ordinal -> prepareCountSort(feeds)
-                else -> {}
-            }
-        } }
         timeIt("$TAG end of vm init")
     }
 
@@ -560,10 +547,11 @@ fun LibraryScreen() {
     var showNewVolume by remember { mutableStateOf(false) }
     var selectMode by remember { mutableStateOf(false) }
 
-    val prefsChange by vm.prefsFlow.collectAsStateWithLifecycle(initialValue = null)
-    if (prefsChange?.obj != null) vm.subPrefs = prefsChange?.obj!!
+    val prefsState by vm.prefsFlow.collectAsStateWithLifecycle()
+    if (prefsState != null) vm.subPrefs = prefsState!!
 
     val feeds by vm.feedsFlow.collectAsStateWithLifecycle()
+    Logd(TAG, "feeds: ${feeds.size}")
 
     val volumes by vm.subVolumesFlow.collectAsStateWithLifecycle()
 //    Logd(TAG, "volumes: ${volumes.size}")
@@ -595,7 +583,17 @@ fun LibraryScreen() {
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) { vm.curVolume = realm.query(Volume::class).query("id == ${vm.curVolume?.parentId ?: -1L}").first().find() }
 
-    
+    LaunchedEffect(vm.subPrefs.sortIndex, feedOperationText) {
+        Logd(TAG, "combine(feedsFlow, snapshotFlow {feedOperationText})")
+        if (feedOperationText.isBlank()) when (vm.subPrefs.sortIndex) {
+            FeedSortIndex.Feed.ordinal -> vm.preparePropertySort()
+            FeedSortIndex.Date.ordinal -> vm.prepareDateSort(feeds)
+            FeedSortIndex.Time.ordinal -> vm.prepareTimeSort(feeds)
+            FeedSortIndex.Count.ordinal -> vm.prepareCountSort(feeds)
+            else -> {}
+        }
+    }
+
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
@@ -628,11 +626,16 @@ fun LibraryScreen() {
                             expanded = false
                         })
                         if (!vm.isViewGarden) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.show_all_feeds)) }, onClick = {
+                            fun toggleAllFeeds() {
                                 vm.curVolume = null
                                 vm.showAllFeeds = !vm.showAllFeeds
-                                expanded = false
-                            })
+                            }
+                            DropdownMenuItem(text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(stringResource(R.string.show_all_feeds))
+                                    Checkbox(checked = vm.showAllFeeds, onCheckedChange = { toggleAllFeeds() })
+                                }
+                            }, onClick = { toggleAllFeeds() })
                             DropdownMenuItem(text = { Text(stringResource(R.string.new_volume_label)) }, onClick = {
                                 showNewVolume = true
                                 expanded = false
@@ -652,7 +655,7 @@ fun LibraryScreen() {
                             expanded = false
                         })
                         fun toggleArchived() {
-                            upsertBlk(vm.subPrefs) { it.showArchived = !it.showArchived }
+                            vm.subPrefs = upsertBlk(vm.subPrefs) { it.showArchived = !it.showArchived }
                             expanded = false
                         }
                         if (!vm.isViewGarden) DropdownMenuItem(text = {
@@ -1108,7 +1111,7 @@ fun LibraryScreen() {
 //                }
 
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (!vm.showAllFeeds && volumes.isNotEmpty()) itemsIndexed(volumes, key = { _, v -> v.id}) { index, volume ->
+                    if (!vm.showAllFeeds && volumes.isNotEmpty()) items(volumes, key = { v -> v.id}) { volume ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.combinedClickable(
                             onClick = { vm.curVolume = volume },
                             onLongClick = {
@@ -1120,7 +1123,7 @@ fun LibraryScreen() {
                             Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f).fillMaxHeight().wrapContentHeight(Alignment.CenterVertically))
                         }
                     }
-                    itemsIndexed(feeds, key = { _, feed -> feed.id}) { index, feed_ ->
+                    items(feeds, key = { feed -> feed.id}) { feed_ ->
                         val feed by rememberUpdatedState(feed_)
                         var isSelected by remember(key1 = selectMode, key2 = selectedSize) { mutableStateOf(selectMode && feed in feedsSelected) }
                         fun toggleSelected() {
@@ -1151,6 +1154,7 @@ fun LibraryScreen() {
                                     feedsSelected.clear()
                                     if (selectMode) {
                                         feedsSelected.add(feed)
+                                        val index = feeds.indexOfFirst { it.id == feed.id }
                                         longPressIndex = index
                                     } else {
                                         selectedSize = 0
@@ -1242,14 +1246,14 @@ fun LibraryScreen() {
                                                 if (it.sortIndex == FeedSortIndex.Feed.ordinal) {
                                                     it.propertyAscending = !it.propertyAscending
                                                     it.sortDirCode = if (it.propertyAscending) 0 else 1
-                                                }
-                                                else {
+                                                } else {
                                                     it.sortIndex = FeedSortIndex.Feed.ordinal
                                                     it.sortProperty = "eigenTitle"
                                                 }
                                                 it.feedsSorted += 1
                                             }
-                                        } else vm.preparePropertySort()
+                                        }
+                                    else vm.preparePropertySort()
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Feed.res) + if (vm.subPrefs.propertyAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Date.ordinal) buttonColor else buttonAltColor),

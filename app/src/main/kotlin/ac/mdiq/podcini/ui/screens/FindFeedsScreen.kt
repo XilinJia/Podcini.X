@@ -102,7 +102,8 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 private var searchText by mutableStateOf("")
-private var searchProvider by mutableStateOf<PodcastSearcher?>(null)
+private var searchProvider by mutableStateOf<PodcastSearcher>(CombinedSearcher::class.java.getDeclaredConstructor().newInstance())
+
 fun setOnlineSearchTerms(searchProvider_: Class<out PodcastSearcher?> = CombinedSearcher::class.java, query: String? = null) {
     Logd(TAG, "setOnlineSearchTerms: query: $query")
     searchText = query ?: ""
@@ -117,28 +118,20 @@ class FindFeedsVM: ViewModel() {
     val showOPMLRestoreDialog = mutableStateOf(false)
     val numberOPMLFeedsToRestore = mutableIntStateOf(0)
 
+    var showProgress by mutableStateOf(false)
+    var errorText by mutableStateOf("")
+    var retryQerry by mutableStateOf("")
+
+    var searchJob: Job? = null
+
     init {
         if (getPref(AppPrefs.prefOPMLRestore, false) && feedCount == 0) {
             numberOPMLFeedsToRestore.intValue = getPref(AppPrefs.prefOPMLFeedsToRestore, 0)
             showOPMLRestoreDialog.value = true
         }
-        if (searchProvider == null) searchProvider = CombinedSearcher::class.java.getDeclaredConstructor().newInstance()
-        if (searchProvider != null) search(searchText)
-
-        //        for (info in PodcastSearcherRegistry.searchProviders) {
-//            Logd(TAG, "searchProvider: $info")
-//            if (info.searcher.javaClass.name == searchProvider?.name) {
-//                searchProvider = info.searcher
-//                break
-//            }
-//        }
+        search(searchText)
     }
 
-    var showProgress by mutableStateOf(false)
-    var errorText by mutableStateOf("")
-    var retryQerry by mutableStateOf("")
-
-    var searchJob by mutableStateOf<Job?>(null)
     @SuppressLint("StringFormatMatches")
     fun search(query: String) {
         if (query.isBlank()) return
@@ -156,7 +149,7 @@ class FindFeedsVM: ViewModel() {
                 return 0L
             }
             try {
-                val result = searchProvider?.search(query) ?: listOf()
+                val result = searchProvider.search(query)
                 for (r in result) r.feedId = feedId(r)
                 searchResults.clear()
                 searchResults.addAll(result)
@@ -228,6 +221,12 @@ class FindFeedsVM: ViewModel() {
                 Logt(TAG, "Imported ${feeds.size} local feeds in ${volumes.size} volumes")
             } catch (e: Throwable) { Logs(TAG, e, e.localizedMessage?: "No messaage") }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        searchJob?.cancel()
+        searchJob = null
     }
 }
 
@@ -351,7 +350,7 @@ fun FindFeedsScreen() {
             } else Text(stringResource(R.string.no_results_for_query, searchText), color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })
             if (vm.errorText.isNotEmpty()) Text(vm.errorText, color = textColor, modifier = Modifier.constrainAs(txtvError) { centerTo(parent) })
             if (vm.retryQerry.isNotEmpty()) Button(modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) }, onClick = { vm.search(vm.retryQerry) }) { Text(stringResource(id = R.string.retry_label)) }
-            Text(context.getString(R.string.search_powered_by, searchProvider!!.name), color = Color.Black, style = MaterialTheme.typography.labelSmall, modifier = Modifier.background(Color.LightGray)
+            Text(context.getString(R.string.search_powered_by, searchProvider.name), color = Color.Black, style = MaterialTheme.typography.labelSmall, modifier = Modifier.background(Color.LightGray)
                 .constrainAs(powered) {
                     bottom.linkTo(parent.bottom)
                     end.linkTo(parent.end)

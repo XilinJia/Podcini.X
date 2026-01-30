@@ -188,8 +188,7 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
     var enableFilter by  mutableStateOf(true)
     var cameBack by mutableStateOf(false)
 
-    val feedFlow: StateFlow<Feed?> = realm.query<Feed>("id == $0", feedId).first().asFlow()
-        .map { it.obj }
+    val feedFlow: StateFlow<Feed?> = realm.query<Feed>("id == $0", feedId).first().asFlow().map { it.obj }
         .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = Feed())
 
     val episodesFlow: StateFlow<List<Episode>> =
@@ -228,13 +227,13 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
     var listInfoText by mutableStateOf("")
 
     var feedEpisodesSize by mutableIntStateOf(0)
-    data class EpisodesKeys(
-        val id: Long?,
-        val filterString: String?,
-        val sortOrderCode: Int?,
-        val enableFilter: Boolean,
-        val feedScreenMode: FeedScreenMode
-    )
+//    data class EpisodesKeys(
+//        val id: Long?,
+//        val filterString: String?,
+//        val sortOrderCode: Int?,
+//        val enableFilter: Boolean,
+//        val feedScreenMode: FeedScreenMode
+//    )
 
     init {
         Logd(TAG, "FeedDetailsVM init")
