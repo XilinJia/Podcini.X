@@ -3,16 +3,9 @@ package ac.mdiq.podcini.ui.activity
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.preferences.AppPreferences.ThemePreference
 import ac.mdiq.podcini.ui.compose.AppNavigator
-import ac.mdiq.podcini.ui.compose.CommonConfirmDialog
-import ac.mdiq.podcini.ui.compose.CustomToast
-import ac.mdiq.podcini.ui.compose.LargePoster
 import ac.mdiq.podcini.ui.compose.PodciniTheme
-import ac.mdiq.podcini.ui.compose.commonConfirm
-import ac.mdiq.podcini.ui.compose.commonMessage
 import ac.mdiq.podcini.ui.screens.AudioPlayerUIScreen
 import ac.mdiq.podcini.utils.Logd
-import ac.mdiq.podcini.utils.toastMassege
-import android.content.Intent
 import android.os.Bundle
 import android.view.Gravity
 import android.view.WindowManager
@@ -29,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.Lifecycle
 import androidx.navigation.compose.rememberNavController
 
 private const val TAG = "PlayerUIActivity"
@@ -54,9 +46,9 @@ class PlayerUIActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
                 Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars)) {
-                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
-                    if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-                    if (commonMessage != null) LargePoster(commonMessage!!)
+//                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
+//                    if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+//                    if (commonMessage != null) LargePoster(commonMessage!!)
                     AudioPlayerUIScreen(Modifier, navigator)
                 }
             }

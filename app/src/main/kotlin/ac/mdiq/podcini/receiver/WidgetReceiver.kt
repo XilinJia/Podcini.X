@@ -3,6 +3,7 @@ package ac.mdiq.podcini.receiver
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
+import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.playback.base.InTheatre.setAsCurEpisode
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPaused
@@ -15,6 +16,7 @@ import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActiv
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.storage.database.episodeById
+import ac.mdiq.podcini.storage.database.smartRemoveFromAllQueues
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.storage.specs.MediaType
@@ -96,7 +98,7 @@ class PodciniWidget : GlanceAppWidget() {
 
         provideContent { GlanceTheme {
             episodes = actQueue.episodesSorted
-            Logd(TAG, "provideGlance in provideContent")
+            Logd(TAG, "provideGlance in provideContent id: $id")
 
             val prefs = currentState<Preferences>()
             val markedId = prefs[MARKED_EPISODE_KEY]
@@ -118,6 +120,11 @@ class PodciniWidget : GlanceAppWidget() {
                 LazyColumn(modifier = GlanceModifier.defaultWeight().fillMaxWidth()) {
                     items(episodes) { episode ->
                         Row(modifier = GlanceModifier.fillMaxWidth().padding(bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Image(provider = ImageProvider(R.drawable.ic_close_white), contentDescription = "remove", colorFilter = ColorFilter.tint(buttonColorProvider),
+                                modifier = GlanceModifier.size(36.dp).clickable(
+                                    actionRunCallback<RemoveAction>(parameters = actionParametersOf(EPISODE_ID_KEY to episode.id)),
+                                    rippleOverride = R.drawable.widget_ripple
+                                ))
                             val isMarked = episode.id == markedId || episode.id == curEpisode?.id
                             Column(modifier = GlanceModifier.defaultWeight().clickable(
                                 actionStartActivity<EpisodeInfoActivity>(parameters = actionParametersOf(EPISODE_INFO_ID_KEY to episode.id)),
@@ -173,6 +180,8 @@ val MARKED_EPISODE_KEY = longPreferencesKey("marked_episode_id")
 
 class PlayAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        Logd(TAG, "onReceive")
+        ensureAController()
         updateAppWidgetState(context, glanceId) { prefs ->
             val id = parameters[EPISODE_ID_KEY]
             if (id == null) {
@@ -192,8 +201,29 @@ class PlayAction : ActionCallback {
     }
 }
 
+class RemoveAction : ActionCallback {
+    override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        val id = parameters[EPISODE_ID_KEY]
+        if (id == null) {
+            Loge("RemoveAction", "id from parameter is null.")
+            return
+        }
+        val episode = episodeById(id)
+        if (episode == null) {
+            Loge("RemoveAction", "episode with id: $id is null.")
+            return
+        }
+        Logd(TAG, "RemoveAction onAction episode: ${episode.title}")
+        smartRemoveFromAllQueues(episode)
+        PodciniWidget().update(context, glanceId)
+    }
+}
+
+
 class ToggleAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
+        Logd(TAG, "onReceive")
+        ensureAController()
         updateAppWidgetState(context, glanceId) { prefs ->
             Logd(TAG, "ToggleAction onAction isPlaying: $isPlaying")
             if (curEpisode == null && episodes.isNotEmpty()) setAsCurEpisode(episodes[0])
@@ -247,7 +277,9 @@ class ForwardAction : ActionCallback {
 class NextAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "NextAction onAction")
-        withContext(Dispatchers.Main) { if (isPlaying || isPaused) mPlayer?.skip() }
+        withContext(Dispatchers.Main) {
+            Logd(TAG, "NextAction onAction isPlaying: $isPlaying isPaused: $isPaused")
+            if (isPlaying || isPaused) mPlayer?.skip() }
         PodciniWidget().update(context, glanceId)
     }
 }

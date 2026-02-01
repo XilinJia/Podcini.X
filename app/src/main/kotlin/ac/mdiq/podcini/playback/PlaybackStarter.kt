@@ -63,7 +63,7 @@ class PlaybackStarter(private val media: Episode) {
             setAsCurEpisode(media_)
         }
         shouldRepeat = repeat
-        Logd(TAG, "start: status: $status")
+        Logd(TAG, "start: status: $status sameMedia: $sameMedia")
         mPlayer?.isStreaming = shouldStreamThisTime
         mPlayer?.widgetId = widgetId
 

@@ -61,7 +61,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-import java.util.concurrent.ExecutionException
 import kotlin.math.abs
 import kotlin.use
 
@@ -291,11 +290,8 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
     for (e in episodes) savedFeed.totleDuration += e.duration
 
-    try {
-        upsertBlk(savedFeed) {}
-        if (removeUnlistedItems && unlistedItems.isNotEmpty()) deleteMedias(unlistedItems)
-    } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedFull failed")
-    } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedFull failed") }
+    upsertBlk(savedFeed) {}
+    if (removeUnlistedItems && unlistedItems.isNotEmpty()) deleteMedias(unlistedItems)
 
     runOnIOScope {
         trimEpisodes(savedFeed)
@@ -353,7 +349,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
     val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
     for (e in episodes) savedFeed.totleDuration += e.duration
 
-    try { upsert(savedFeed) {} } catch (e: InterruptedException) { Logs(TAG, e, "updateFeedSimple failed") } catch (e: ExecutionException) { Logs(TAG, e, "updateFeedSimple failed") }
+    upsert(savedFeed) {}
 
     trimEpisodes(savedFeed)
     computeScores(savedFeed)
@@ -806,72 +802,64 @@ fun updateLocalFeed(feed: Feed, progressCB: ((Int, Int)->Unit)? = null) {
     }
 
     if (feed.downloadUrl.isNullOrEmpty()) return
-    try {
-        val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
-        val documentFolder = DocumentFile.fromTreeUri(getAppContext(), uriString.toUri()) ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
-        if (!documentFolder.exists() || !documentFolder.canRead()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
+    val uriString = feed.downloadUrl!!.replace(Feed.PREFIX_LOCAL_FOLDER, "")
+    val documentFolder = DocumentFile.fromTreeUri(getAppContext(), uriString.toUri()) ?: throw IOException("Unable to retrieve document tree. Try re-connecting the folder on the podcast info page.")
+    if (!documentFolder.exists() || !documentFolder.canRead()) throw IOException("Cannot read local directory. Try re-connecting the folder on the podcast info page.")
 
-        val folderUri = documentFolder.uri
-        val allFiles = listFastFiles(folderUri)
-        val mediaFiles: MutableList<FastDocumentFile> = mutableListOf()
-        val mediaFileNames: MutableSet<String> = HashSet()
-        for (file in allFiles) {
-            val mimeType = getMimeType(file.type, file.uri.toString()) ?: continue
-            val mediaType = MediaType.fromMimeType(mimeType)
-            if (mediaType == MediaType.AUDIO || mediaType == MediaType.VIDEO) {
-                mediaFiles.add(file)
-                mediaFileNames.add(file.name)
-                Logd(TAG, "updateLocalFeed add to mediaFileNames ${file.name}")
-            }
+    val folderUri = documentFolder.uri
+    val allFiles = listFastFiles(folderUri)
+    val mediaFiles: MutableList<FastDocumentFile> = mutableListOf()
+    val mediaFileNames: MutableSet<String> = HashSet()
+    for (file in allFiles) {
+        val mimeType = getMimeType(file.type, file.uri.toString()) ?: continue
+        val mediaType = MediaType.fromMimeType(mimeType)
+        if (mediaType == MediaType.AUDIO || mediaType == MediaType.VIDEO) {
+            mediaFiles.add(file)
+            mediaFileNames.add(file.name)
+            Logd(TAG, "updateLocalFeed add to mediaFileNames ${file.name}")
         }
+    }
 
-        // add new files to feed and update item data
-        val newItems = mutableListOf<Episode>()
-        for (i in mediaFiles.indices) {
-            Logd(TAG, "updateLocalFeed mediaFiles ${mediaFiles[i].name}")
-            val oldItem = realm.query(Episode::class).query("feedId == ${feed.id} AND link == $0", mediaFiles[i].name).first().find()
-            val newItem = createEpisode(feed, mediaFiles[i])
-            Logd(TAG, "updateLocalFeed oldItem: ${oldItem?.title} url: ${oldItem?.downloadUrl}")
-            Logd(TAG, "updateLocalFeed newItem: ${newItem.title} url: ${newItem.downloadUrl}")
-            if (oldItem != null) upsertBlk(oldItem) { it.updateFromOther(newItem) }
-            else newItems.add(newItem)
-            progressCB?.invoke(i, mediaFiles.size)
+    // add new files to feed and update item data
+    val newItems = mutableListOf<Episode>()
+    for (i in mediaFiles.indices) {
+        Logd(TAG, "updateLocalFeed mediaFiles ${mediaFiles[i].name}")
+        val oldItem = realm.query(Episode::class).query("feedId == ${feed.id} AND link == $0", mediaFiles[i].name).first().find()
+        val newItem = createEpisode(feed, mediaFiles[i])
+        Logd(TAG, "updateLocalFeed oldItem: ${oldItem?.title} url: ${oldItem?.downloadUrl}")
+        Logd(TAG, "updateLocalFeed newItem: ${newItem.title} url: ${newItem.downloadUrl}")
+        if (oldItem != null) upsertBlk(oldItem) { it.updateFromOther(newItem) }
+        else newItems.add(newItem)
+        progressCB?.invoke(i, mediaFiles.size)
+    }
+    // remove feed items without corresponding file
+    val it = newItems.iterator()
+    while (it.hasNext()) {
+        val item = it.next()
+        if (!mediaFileNames.contains(item.link)) {
+            Logt(TAG, "updateLocalFeed removing episode without file: ${item.link} ${item.title} ")
+            it.remove()
         }
-        // remove feed items without corresponding file
-        val it = newItems.iterator()
-        while (it.hasNext()) {
-            val item = it.next()
-            if (!mediaFileNames.contains(item.link)) {
-                Logt(TAG, "updateLocalFeed removing episode without file: ${item.link} ${item.title} ")
-                it.remove()
-            }
-        }
-        feed.imageUrl = getImageUrl(allFiles, folderUri)
-        feed.episodes.addAll(newItems)
-        updateFeedFull(feed, removeUnlistedItems = true)
+    }
+    feed.imageUrl = getImageUrl(allFiles, folderUri)
+    feed.episodes.addAll(newItems)
+    updateFeedFull(feed, removeUnlistedItems = true)
 
-        fun mustReportDownloadSuccessful(feed: Feed): Boolean {
-            val downloadResults = getFeedDownloadLog(feed.id).toMutableList()
-            // report success if never reported before
-            if (downloadResults.isEmpty()) return true
-            downloadResults.sortWith { ds1: DownloadResult, ds2: DownloadResult -> ds1.getCompletionDate().compareTo(ds2.getCompletionDate()) }
-            val lastDownloadResult = downloadResults[downloadResults.size - 1]
-            // report success if the last update was not successful
-            // (avoid logging success again if the last update was ok)
-            return !lastDownloadResult.isSuccessful
-        }
+    fun mustReportDownloadSuccessful(feed: Feed): Boolean {
+        val downloadResults = getFeedDownloadLog(feed.id).toMutableList()
+        // report success if never reported before
+        if (downloadResults.isEmpty()) return true
+        downloadResults.sortWith { ds1: DownloadResult, ds2: DownloadResult -> ds1.getCompletionDate().compareTo(ds2.getCompletionDate()) }
+        val lastDownloadResult = downloadResults[downloadResults.size - 1]
+        // report success if the last update was not successful
+        // (avoid logging success again if the last update was ok)
+        return !lastDownloadResult.isSuccessful
+    }
 
-        if (mustReportDownloadSuccessful(feed)) {
-            val status = DownloadResult(feed.id, feed.title?:"", DownloadError.SUCCESS, true, "")
-            addDownloadStatus(status)
-            persistFeedLastUpdateFailed(feed, false)
-        }
-    } catch (e: Exception) {
-        Logs(TAG, e, "updateFeed failed")
-        val status = DownloadResult(feed.id, feed.title?:"", DownloadError.ERROR_IO_ERROR, false, e.message?:"")
+    if (mustReportDownloadSuccessful(feed)) {
+        val status = DownloadResult(feed.id, feed.title?:"", DownloadError.SUCCESS, true, "")
         addDownloadStatus(status)
-        persistFeedLastUpdateFailed(feed, true)
-
+        persistFeedLastUpdateFailed(feed, false)
     }
 }
 

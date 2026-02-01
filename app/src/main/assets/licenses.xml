@@ -78,12 +78,6 @@
         website="https://github.com/square/okio"
         license="Apache 2.0"
         licenseText="LICENSE_APACHE-2.0.txt" />
-<!--    <library-->
-<!--        name="RxJava"-->
-<!--        author="ReactiveX"-->
-<!--        website="https://github.com/ReactiveX/RxJava"-->
-<!--        license="Apache 2.0"-->
-<!--        licenseText="LICENSE_APACHE-2.0.txt" />-->
     <library
         name="SearchPreference"
         author="ByteHamster"

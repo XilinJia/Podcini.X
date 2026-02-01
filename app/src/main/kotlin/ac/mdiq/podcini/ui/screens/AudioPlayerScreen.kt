@@ -3,11 +3,10 @@ package ac.mdiq.podcini.ui.screens
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.playback.PlaybackStarter
-import ac.mdiq.podcini.playback.base.InTheatre.aController
-import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.bitrate
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
+import ac.mdiq.podcini.playback.base.InTheatre.ensureAController
 import ac.mdiq.podcini.playback.base.InTheatre.isCurrentlyPlaying
 import ac.mdiq.podcini.playback.base.InTheatre.playerStat
 import ac.mdiq.podcini.playback.base.LocalMediaPlayer.Companion.exoPlayer
@@ -27,7 +26,6 @@ import ac.mdiq.podcini.playback.base.SleepManager.Companion.isSleepTimerActive
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.playback.cast.BaseActivity
 import ac.mdiq.podcini.playback.saveClipInOriginalFormat
-import ac.mdiq.podcini.playback.service.PlaybackService
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.getPlayerActivityIntent
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.isPlayingVideoLocally
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.playbackService
@@ -68,7 +66,6 @@ import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.formatDateTimeFlex
 import ac.mdiq.podcini.utils.formatLargeInteger
 import ac.mdiq.podcini.utils.timeIt
-import android.content.ComponentName
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
@@ -139,7 +136,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.core.app.ShareCompat
-import androidx.core.content.ContextCompat
 import androidx.core.text.HtmlCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -147,8 +143,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.media3.session.MediaController
-import androidx.media3.session.SessionToken
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
@@ -290,19 +284,9 @@ fun ControlUI(vm: AudioPlayerVM, navController: AppNavigator) {
 
     DisposableEffect(Unit) {
         timeIt("$TAG start of DisposableEffect(Unit")
-        val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
-        if (aCtrlFuture == null) {
-            aCtrlFuture = MediaController.Builder(context, sessionToken).buildAsync()
-            aCtrlFuture?.addListener({ aController = aCtrlFuture!!.get() }, ContextCompat.getMainExecutor(context))
-        }
+        ensureAController()
         timeIt("$TAG end of DisposableEffect(Unit")
-        onDispose {
-            aCtrlFuture?.let { future ->
-                aController = null
-                MediaController.releaseFuture(future)
-                aCtrlFuture = null
-            }
-        }
+        onDispose {}
     }
 
     var showSpeedDialog by remember { mutableStateOf(false) }

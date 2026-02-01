@@ -524,7 +524,6 @@ class LibraryVM : ViewModel() {
 @Composable
 fun LibraryScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current

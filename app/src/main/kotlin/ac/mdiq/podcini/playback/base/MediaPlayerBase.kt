@@ -52,14 +52,12 @@ import android.service.quicksettings.TileService
 import android.util.Pair
 import android.view.SurfaceHolder
 import android.webkit.URLUtil
-import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
@@ -76,6 +74,8 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.extractor.DefaultExtractorsFactory
 import androidx.media3.extractor.mp3.Mp3Extractor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Calendar
@@ -83,8 +83,6 @@ import java.util.Date
 import java.util.GregorianCalendar
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 
@@ -530,6 +528,7 @@ abstract class MediaPlayerBase {
                 when {
                     oldStatus == PlayerStatus.PLAYING && !isPlaying && media.id == prevMedia?.id -> onPlaybackPause(media, position)
                     oldStatus != PlayerStatus.PLAYING && isPlaying -> onPlaybackStart(media, position)
+                    else -> Logd(TAG, "setPlayerStatus case else, isPlaying: $isPlaying ${media.id == prevMedia?.id} not handled")
                 }
             }
         }

@@ -2,6 +2,7 @@ package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
+import ac.mdiq.podcini.net.download.DownloadError
 import ac.mdiq.podcini.net.download.service.DownloadServiceInterface
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
@@ -13,6 +14,7 @@ import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.currentPlaybackSp
 import ac.mdiq.podcini.playback.service.PlaybackService.Companion.ACTION_SHUTDOWN_PLAYBACK_SERVICE
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.SubscriptionLog
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -168,27 +170,25 @@ suspend fun deleteEpisodesWarnLocalRepeat(items: Iterable<Episode>) {
 }
 
 suspend fun eraseEpisodes(episodes: List<Episode>, msg: String, saveLog: Boolean = true) {
-    try {
-        val time = System.currentTimeMillis()
-        if (saveLog) realm.write {
-            var i = 0
-            for (e in episodes) {
-                val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
-                sLog.id = time + i++
-                sLog.let {
-                    it.rating = e.rating
-                    it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
-                    it.comment += localDateTimeString() + "\nReason to remove:\n" + msg
-                    it.cancelDate = Date().time
-                }
-                copyToRealm(sLog)
+    val time = System.currentTimeMillis()
+    if (saveLog) realm.write {
+        var i = 0
+        for (e in episodes) {
+            val sLog = SubscriptionLog(e.id, e.title ?: "", e.downloadUrl ?: "", e.link ?: "", SubscriptionLog.Type.Media.name)
+            sLog.id = time + i++
+            sLog.let {
+                it.rating = e.rating
+                it.comment = if (e.comment.isBlank()) "" else (e.comment + "\n")
+                it.comment += localDateTimeString() + "\nReason to remove:\n" + msg
+                it.cancelDate = Date().time
             }
+            copyToRealm(sLog)
         }
-        for (e in episodes) if (e.feed?.isLocalFeed != true) deleteMedia(e)
-        Logd(TAG, "eraseEpisodes deleting episodes: ${episodes.size}")
-        realm.write { for (e in episodes) findLatest(e)?.let { delete(it) } }
-        EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
-    } catch (e: Throwable) { Logs("eraseEpisodes", e) }
+    }
+    for (e in episodes) if (e.feed?.isLocalFeed != true) deleteMedia(e)
+    Logd(TAG, "eraseEpisodes deleting episodes: ${episodes.size}")
+    realm.write { for (e in episodes) findLatest(e)?.let { delete(it) } }
+    EventFlow.postStickyEvent(FlowEvent.FeedUpdatingEvent(false))
 }
 
 
@@ -252,7 +252,15 @@ fun deleteMedia(episode: Episode): Episode {
 
     // Do full update of this feed to get rid of the episode
     if (localDelete) {
-        if (episode.feed != null) updateLocalFeed(episode.feed!!, null)
+        if (episode.feed != null) {
+            try { updateLocalFeed(episode.feed!!, null)
+            } catch (e: Exception) {
+                Loge(TAG, "refreshFeeds: update failed ${episode.feed!!.title} ${e.message}")
+                persistFeedLastUpdateFailed(episode.feed!!, true)
+                val status = DownloadResult(episode.feed!!.id, episode.feed!!.title ?: "", DownloadError.ERROR_IO_ERROR, false, e.message ?: "")
+                addDownloadStatus(status)
+            }
+        }
     } else {
         if (isProviderConnected) {
             // Gpodder: queue delete action for synchronization

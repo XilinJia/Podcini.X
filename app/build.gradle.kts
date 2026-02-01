@@ -27,8 +27,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 246
-        versionName = "10.8.3"
+        versionCode = 247
+        versionName = "10.8.4"
 
         ndkVersion = "29.0.14206865"
 
@@ -195,9 +195,6 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
 
     implementation("io.github.xilinjia.krdb:library-base:3.3.0")
-
-//    implementation("io.reactivex.rxjava3:rxjava:3.1.12")
-//    implementation("io.reactivex.rxjava3:rxandroid:3.0.2")
 
     implementation("io.coil-kt:coil:2.7.0")
     implementation("io.coil-kt:coil-compose:2.7.0")

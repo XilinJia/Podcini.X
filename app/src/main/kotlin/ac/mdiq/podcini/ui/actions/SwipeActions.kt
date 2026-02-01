@@ -22,15 +22,15 @@ import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EraseEpisodesDialog
 import ac.mdiq.podcini.ui.compose.FutureStateDialog
 import ac.mdiq.podcini.ui.compose.IgnoreEpisodesDialog
+import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.PlayStateDialog
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
+import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.ui.compose.ShelveDialog
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.commonConfirm
 import ac.mdiq.podcini.ui.screens.setSearchTerms
-import ac.mdiq.podcini.ui.compose.LocalNavController
-import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -72,7 +72,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import androidx.media3.common.util.UnstableApi
 import java.util.Date
 
 abstract class SwipeAction {

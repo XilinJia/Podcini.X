@@ -1,3 +1,10 @@
+# 10.8.4
+
+* in widget, added Remove button on every episode
+* in PlayerUI popup from widget, disabled showing toasts
+* likely fixed widget skip media problem when the app is off
+* enhanced search reaction
+
 # 10.8.3
 
 * fixed search empty issue again

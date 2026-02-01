@@ -220,20 +220,13 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
                     getEpisodesAsFlow(EpisodeFilter(""), feed.episodeSortOrder, feed.id)
                 }
             }.map { it.list }
-        }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+        }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
     var listIdentity by  mutableStateOf("")
     var showHeader by mutableStateOf(true)
     var listInfoText by mutableStateOf("")
 
     var feedEpisodesSize by mutableIntStateOf(0)
-//    data class EpisodesKeys(
-//        val id: Long?,
-//        val filterString: String?,
-//        val sortOrderCode: Int?,
-//        val enableFilter: Boolean,
-//        val feedScreenMode: FeedScreenMode
-//    )
 
     init {
         Logd(TAG, "FeedDetailsVM init")
@@ -442,7 +435,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         )
                     }
                     val histColor by remember(screenMode) { derivedStateOf { if (screenMode != FeedScreenMode.History) textColor else buttonAltColor } }
-                    if (screenMode == FeedScreenMode.List && feed != null) IconButton(onClick = {
+                    if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History) && feed != null) IconButton(onClick = {
                         vm.cameBack = false
                         vm.screenModeFlow.value = when(screenMode) {
                             FeedScreenMode.List -> FeedScreenMode.History
@@ -662,6 +655,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         else -> -1
                     }
                 ) }
+                Logd(TAG, "feed?.prefActionType: ${feed?.prefActionType}")
                 val actionButtonName by remember(feed?.prefActionType) { mutableStateOf(
                     when {
                         feed == null -> null

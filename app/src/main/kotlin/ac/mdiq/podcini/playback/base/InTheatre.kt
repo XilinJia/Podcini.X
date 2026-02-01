@@ -1,5 +1,6 @@
 package ac.mdiq.podcini.playback.base
 
+import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.isPlaying
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.shouldRepeat
 import ac.mdiq.podcini.playback.service.PlaybackService
@@ -23,15 +24,15 @@ import ac.mdiq.podcini.storage.model.QueueEntry
 import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
-import ac.mdiq.podcini.utils.showStackTrace
 import ac.mdiq.podcini.utils.timeIt
-import androidx.annotation.OptIn
+import android.content.ComponentName
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.media3.common.util.UnstableApi
+import androidx.core.content.ContextCompat
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import io.github.xilinjia.krdb.notifications.InitialObject
 import io.github.xilinjia.krdb.notifications.SingleQueryChange
@@ -87,6 +88,15 @@ object InTheatre {
         }
         monitorState()
         timeIt("$TAG end of init")
+    }
+
+    fun ensureAController() {
+        if (aCtrlFuture == null) {
+            val appContext = getAppContext()
+            val sessionToken = SessionToken(appContext, ComponentName(appContext, PlaybackService::class.java))
+            aCtrlFuture = MediaController.Builder(appContext, sessionToken).buildAsync()
+            aCtrlFuture?.addListener({ aController = aCtrlFuture!!.get() }, ContextCompat.getMainExecutor(appContext))
+        }
     }
 
     fun monitorState() {

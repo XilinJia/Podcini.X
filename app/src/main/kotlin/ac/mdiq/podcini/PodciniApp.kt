@@ -4,6 +4,8 @@ import ac.mdiq.podcini.config.ApplicationCallbacks
 import ac.mdiq.podcini.config.ClientConfig
 import ac.mdiq.podcini.config.ClientConfigurator
 import ac.mdiq.podcini.net.utils.NetworkUtils
+import ac.mdiq.podcini.playback.base.InTheatre.aController
+import ac.mdiq.podcini.playback.base.InTheatre.aCtrlFuture
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.utils.error.CrashReportWriter
@@ -13,6 +15,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.StrictMode
 import android.util.Log
+import androidx.media3.session.MediaController
 import com.google.android.material.color.DynamicColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,9 +49,14 @@ class PodciniApp : Application() {
     }
 
     override fun onTerminate() {
-        super.onTerminate()
+        aCtrlFuture?.let { future ->
+            aController = null
+            MediaController.releaseFuture(future)
+            aCtrlFuture = null
+        }
         nmJob?.cancel()
         ClientConfigurator.destroy()
+        super.onTerminate()
     }
 
     class ApplicationCallbacksImpl : ApplicationCallbacks {

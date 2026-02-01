@@ -67,7 +67,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -92,10 +91,12 @@ import coil.request.ImageRequest
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -123,17 +124,20 @@ class SearchVM: ViewModel() {
 
     var listIdentity by mutableStateOf("")
 
-    internal var queryText by mutableStateOf("")
+    private val _searchQuery = MutableStateFlow(curSearchString)
 
     init {
         Logd(TAG, "init $curSearchString")
         algo.setSearchByAll()
-        queryText = curSearchString
     }
 
     data class Triplet(val episodes:  Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
 
-    val episodesFlow: StateFlow<List<Episode>> = snapshotFlow { queryText }.flatMapLatest {
+    fun onSearch(query: String) {
+        _searchQuery.value = query
+    }
+
+    val episodesFlow: StateFlow<List<Episode>> = _searchQuery.filter { it.isNotEmpty() }.flatMapLatest { queryText ->
         val results_ = withContext(Dispatchers.IO) {
             if (queryText.isEmpty()) Triplet(emptyFlow(), listOf(), listOf())
             else {
@@ -194,22 +198,25 @@ fun SearchScreen() {
     }
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) { episodeForInfo = null }
-    
+
+    var queryText by remember { mutableStateOf(curSearchString) }
+
     @Composable
     fun MyTopAppBar() {
         Box {
             TopAppBar(title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SearchBarRow(R.string.search_hint, defaultText = vm.queryText, modifier = Modifier.weight(1f) , history = appAttribs.searchHistory) { str ->
+                    SearchBarRow(R.string.search_hint, defaultText = queryText, modifier = Modifier.weight(1f) , history = appAttribs.searchHistory) { str ->
                         if (str.isBlank()) return@SearchBarRow
                         curSearchString = str
-                        vm.queryText = str
+                        queryText = str
                         upsertBlk(appAttribs) {
                             if (str in it.searchHistory) it.searchHistory.remove(str)
                             it.searchHistory.add(0, str)
                             if (it.searchHistory.size > SearchHistorySize+4) it.searchHistory.apply { subList(SearchHistorySize, size).clear() }
                         }
 //                        vm.search()
+                        vm.onSearch(queryText)
                     }
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.clickable(onClick = { vm.showAdvanced = !vm.showAdvanced}))
                 }
@@ -313,7 +320,7 @@ fun SearchScreen() {
                     Text(stringResource(R.string.show_criteria), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = { showSearchBy = !showSearchBy }))
                     Spacer(Modifier.weight(1f))
                     Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = {
-                        val query = vm.queryText
+                        val query = queryText
                         if (query.matches("http[s]?://.*".toRegex())) {
                             navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(query, StandardCharsets.UTF_8.name())}")
                             return@clickable
