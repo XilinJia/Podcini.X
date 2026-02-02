@@ -1,3 +1,7 @@
+# 10.8.5
+
+* fixed issue of switching to a new episode during playing
+
 # 10.8.4
 
 * in widget, added Remove button on every episode

@@ -1,0 +1,1 @@
+* fixed issue of switching to a new episode during playing
