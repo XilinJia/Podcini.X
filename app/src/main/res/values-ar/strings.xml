@@ -101,6 +101,7 @@
     <string name="ask_remove_mark">هل تريد إزالة العلامة: %1$s؟</string>
     <string name="play_mark_msg">يمكن البحث عن العلامة عندما يتم عرض الحلقة.</string>
     <string name="chapter_duration0">المدة: </string>
+    <string name="by">By</string>
     <string name="description_label">الوصف</string>
     <string name="transcript">Transcript</string>
     <string name="show_all_feeds">Show all feeds</string>
