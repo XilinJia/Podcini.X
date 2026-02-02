@@ -369,8 +369,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     @Composable
     fun FeedDetailsHeader() {
         val textColor = MaterialTheme.colorScheme.onSurface
-        ConstraintLayout(modifier = Modifier.fillMaxWidth().height(80.dp)) {
-            val (bgImage, bgColor, imgvCover) = createRefs()
+        ConstraintLayout(modifier = Modifier.fillMaxWidth().height(60.dp)) {
+            val (bgImage, bgColor, imgvCover, rating) = createRefs()
             AsyncImage(model = feed?.imageUrl?:"", contentDescription = "bgImage", contentScale = ContentScale.FillBounds, error = painterResource(R.drawable.teaser),
                 modifier = Modifier.fillMaxSize().blur(radiusX = 15.dp, radiusY = 15.dp).constrainAs(bgImage) {
                     bottom.linkTo(parent.bottom)
@@ -390,23 +390,18 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 width = Dimension.fillToConstraints
             }) {
                 AsyncImage(model = feed?.imageUrl ?: "", alignment = Alignment.TopStart, contentDescription = "imgvCover", error = painterResource(R.mipmap.ic_launcher),
-                    modifier = Modifier.width(80.dp).height(80.dp).combinedClickable(
+                    modifier = Modifier.width(60.dp).height(60.dp).combinedClickable(
                         onClick = { if (feed != null) vm.screenModeFlow.value = (if (screenMode == FeedScreenMode.Info) FeedScreenMode.List else FeedScreenMode.Info) },
                         onLongClick = { onImgLongClick() }))
-                if (feed != null) Column(modifier = Modifier.padding(start = 10.dp, top = 4.dp)) {
-                    Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth(), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(feed?.author ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.fillMaxWidth(), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        val ratingIconRes by remember { derivedStateOf { Rating.fromCode(feed!!.rating).res } }
-                        IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(start = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                        Spacer(modifier = Modifier.weight(0.1f))
-                        if (feed!!.score > -1000) Text((feed!!.score).toString() + " (" + feed!!.scoreCount + ")", textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                        Spacer(modifier = Modifier.weight(0.2f))
-                        if (screenMode == FeedScreenMode.List) Text(episodes.size.toString() + " / " + vm.feedEpisodesSize.toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                        else Text((vm.feedEpisodesSize).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
-                    }
-                }
+                if (feed != null) Text(feed?.title ?: "", color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 4.dp), maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
+            val ratingIconRes by remember { derivedStateOf { Rating.fromCode(feed!!.rating).res } }
+            Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.padding(end = 10.dp, bottom = 5.dp).background(MaterialTheme.colorScheme.tertiaryContainer)
+                .clickable(onClick = { showChooseRatingDialog = true })
+                .constrainAs(rating) {
+                    end.linkTo(parent.end)
+                    bottom.linkTo(parent.bottom)
+                })
         }
     }
 
@@ -527,12 +522,17 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         var showFeedStats by remember { mutableStateOf(false) }
         if (showFeedStats) FeedStatisticsDialog(feed?.title?: "No title", feed?.id?:0, 0, Long.MAX_VALUE) { showFeedStats = false }
 
-        Column(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp)) {
             val textColor = MaterialTheme.colorScheme.onSurface
             SelectionContainer {
                 Column {
                     Text(feed?.title ?: "", color = textColor, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(top = 16.dp))
-                    Text(feed?.author ?: "", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+                    Text(stringResource(R.string.by) + ": " + (feed?.author ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)) {
+                        Text(stringResource(R.string.score) + ": " + (feed!!.score).toString() + " (" + feed!!.scoreCount + ")", textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                        Spacer(modifier = Modifier.weight(0.2f))
+                        Text(stringResource(R.string.episodes_label) + ": " + (vm.feedEpisodesSize).toString(), textAlign = TextAlign.End, color = textColor, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+                    }
                     Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
                     Text(HtmlToPlainText.getPlainText(feed?.description ?: ""), color = textColor, style = MaterialTheme.typography.bodyMedium)
                 }

@@ -257,10 +257,6 @@ fun TopChartScreen() {
 
     @Composable
     fun SelectCountryDialog(onDismiss: () -> Unit) {
-
-        LaunchedEffect(Unit) {
-        }
-
         @Composable
         fun CountrySelection() {
             val filteredCountries = remember { vm.countryNamesSort.toMutableStateList() }
@@ -361,12 +357,8 @@ fun TopChartScreen() {
             }
             if (vm.searchResults.isEmpty()) Text(vm.noResultText, color = textColor, modifier = Modifier.constrainAs(empty) { centerTo(parent) })
             if (vm.errorText.isNotEmpty()) Text(vm.errorText, color = textColor, modifier = Modifier.constrainAs(txtvError) { centerTo(parent) })
-            if (vm.retryQerry.isNotEmpty()) Button(
-                modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) },
-                onClick = { vm.loadToplist() },
-            ) { Text(vm.retryQerry) }
-            Text(context.getString(R.string.search_powered_by, "Apple"), color = Color.Black, style = MaterialTheme.typography.labelSmall, modifier = Modifier.background(
-                Color.LightGray)
+            if (vm.retryQerry.isNotEmpty()) Button(modifier = Modifier.padding(16.dp).constrainAs(butRetry) { top.linkTo(txtvError.bottom) }, onClick = { vm.loadToplist() }, ) { Text(vm.retryQerry) }
+            Text(context.getString(R.string.search_powered_by, "Apple"), color = Color.Black, style = MaterialTheme.typography.labelSmall, modifier = Modifier.background(Color.LightGray)
                 .constrainAs(powered) {
                     bottom.linkTo(parent.bottom)
                     end.linkTo(parent.end)

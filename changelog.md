@@ -1,3 +1,14 @@
+# 10.8.6
+
+* tuned the header of EpisodeInfo screen, fixed media size text
+* tuned title font sizes of AudioPlayer Details
+* rearranged FeedDetails header
+* tuned Library screen
+	* on list view, removed Author and made the title in max 2 lines, and put rating icon is on the image
+	* on icon view, tuned colors a bit, and fix number not visible issue
+* tuned a bit on header of OnlineFeed
+* corrected remove feed dialog
+
 # 10.8.5
 
 * fixed issue of switching to a new episode during playing

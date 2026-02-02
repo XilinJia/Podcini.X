@@ -50,7 +50,6 @@ import ac.mdiq.podcini.ui.activity.starter.VideoPlayerActivityStarter
 import ac.mdiq.podcini.ui.compose.AppNavigator
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
-import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeDetails
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.Screens
@@ -132,6 +131,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -151,7 +151,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Date
@@ -161,6 +160,9 @@ import kotlin.math.max
 import kotlin.math.sin
 
 class AudioPlayerVM: ViewModel() {
+
+    var episodeFeed = curEpisode?.feed
+
     internal var txtvPlaybackSpeed by mutableStateOf("")
     internal var curPlaybackSpeed by mutableFloatStateOf(1f)
 
@@ -215,14 +217,14 @@ class AudioPlayerVM: ViewModel() {
         timeIt("$TAG start of init")
         procFlowEvents()
 
-        viewModelScope.launch { snapshotFlow { curEpisode?.position }.distinctUntilChanged().collect { withContext(Dispatchers.IO) { if (showPlayButton) showPlayButton = !isCurrentlyPlaying(curEpisode) } } }
-        viewModelScope.launch { snapshotFlow { curEpisode?.id }.distinctUntilChanged().collect { withContext(Dispatchers.IO) {
+        viewModelScope.launch { snapshotFlow { curEpisode?.position }.distinctUntilChanged().collect { if (showPlayButton) showPlayButton = !isCurrentlyPlaying(curEpisode) } }
+        viewModelScope.launch { snapshotFlow { curEpisode?.id }.distinctUntilChanged().collect {
+            episodeFeed = curEpisode?.feed
             volumeAdaption = VolumeAdaptionSetting.OFF
-//            if (curEpisode != null) episodeFlow = realm.query<Episode>("id == $0", curEpisode!!.id).first().asFlow()
             txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())
             curPlaybackSpeed = curPBSpeed
-        } } }
-        viewModelScope.launch { snapshotFlow { playerStat }.distinctUntilChanged().collect { withContext(Dispatchers.IO) { showPlayButton = playerStat != PLAYER_STATUS_PLAYING } } }
+        } }
+        viewModelScope.launch { snapshotFlow { playerStat }.distinctUntilChanged().collect { showPlayButton = playerStat != PLAYER_STATUS_PLAYING } }
 
         timeIt("$TAG end of vm init")
     }
@@ -238,7 +240,7 @@ fun VolumeDialog(vm: AudioPlayerVM, onDismissRequest: () -> Unit) {
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         fun adaptionFactor(): Float = when {
             vm.volumeAdaption != VolumeAdaptionSetting.OFF -> vm.volumeAdaption.adaptionFactor
-            curEpisode?.feed != null -> curEpisode!!.feed!!.volumeAdaptionSetting.adaptionFactor
+            vm.episodeFeed != null -> vm.episodeFeed!!.volumeAdaptionSetting.adaptionFactor
             else -> 1f
         }
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -257,7 +259,7 @@ fun VolumeDialog(vm: AudioPlayerVM, onDismissRequest: () -> Unit) {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = (setting == vm.volumeAdaption),
                         onCheckedChange = { _ ->
-                            if (forPodcast && curEpisode?.feed != null) runOnIOScope { upsert(curEpisode!!.feed!!) { it.volumeAdaptionSetting = setting} }
+                            if (forPodcast && vm.episodeFeed != null) runOnIOScope { upsert(vm.episodeFeed!!) { it.volumeAdaptionSetting = setting} }
                             if (setting != vm.volumeAdaption) {
                                 vm.volumeAdaption = setting
                                 mPlayer?.setVolume(1.0f, 1.0f, adaptionFactor())
@@ -353,7 +355,7 @@ fun ControlUI(vm: AudioPlayerVM, navController: AppNavigator) {
                 if (bsState == MainActivity.BSState.Partial) {
                     if (curEpisode != null) {
                         val mediaType = curEpisode!!.getMediaType()
-                        if (mediaType == MediaType.AUDIO || videoPlayMode == VideoMode.AUDIO_ONLY.code || videoMode == VideoMode.AUDIO_ONLY || (curEpisode!!.feed?.videoModePolicy == VideoMode.AUDIO_ONLY)) {
+                        if (mediaType == MediaType.AUDIO || videoPlayMode == VideoMode.AUDIO_ONLY.code || videoMode == VideoMode.AUDIO_ONLY || (vm.episodeFeed?.videoModePolicy == VideoMode.AUDIO_ONLY)) {
                             Logd(TAG, "popping as audio episode")
                             if (playbackService == null) PlaybackStarter(curEpisode!!).start()
                             bsState = MainActivity.BSState.Expanded
@@ -366,8 +368,8 @@ fun ControlUI(vm: AudioPlayerVM, navController: AppNavigator) {
                 } else bsState = MainActivity.BSState.Partial
             },
             onLongClick = {
-                if (curEpisode?.feed != null) {
-                    navController.navigate("${Screens.FeedDetails.name}?feedId=${curEpisode!!.feed!!.id}")
+                if (vm.episodeFeed != null) {
+                    navController.navigate("${Screens.FeedDetails.name}?feedId=${vm.episodeFeed!!.id}")
                     bsState = MainActivity.BSState.Partial
                 }
             }))
@@ -430,7 +432,7 @@ fun ControlUI(vm: AudioPlayerVM, navController: AppNavigator) {
                         saveClipInOriginalFormat(recordingStartTime!!, exoPlayer!!.currentPosition)
                         recordingStartTime = null
                     }
-                    if (curEpisode?.getMediaType() == MediaType.VIDEO && !isPlaying && (curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
+                    if (curEpisode?.getMediaType() == MediaType.VIDEO && !isPlaying && (vm.episodeFeed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
                         playPause()
                         context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
                     } else {
@@ -564,7 +566,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         //            homeText = null
         chapertsLoaded = false
         displayedChapterIndex = -1
-        if (isPlayingVideoLocally && curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY) bsState = MainActivity.BSState.Partial
+        if (isPlayingVideoLocally && vm.episodeFeed?.videoModePolicy != VideoMode.AUDIO_ONLY) bsState = MainActivity.BSState.Partial
     }
 
     LaunchedEffect(bsState, curEpisode?.id) {
@@ -633,15 +635,15 @@ fun AudioPlayerScreen(navController: AppNavigator) {
     fun Toolbar() {
         var expanded by remember { mutableStateOf(false) }
         val mediaType = curEpisode?.getMediaType()
-        val notAudioOnly = curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY
+        val notAudioOnly = vm.episodeFeed?.videoModePolicy != VideoMode.AUDIO_ONLY
         var showShareDialog by remember { mutableStateOf(false) }
         if (showShareDialog && curEpisode != null) ShareDialog(curEpisode!!) {showShareDialog = false }
         Row(modifier = Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_down), tint = textColor, contentDescription = "Collapse", modifier = Modifier.clickable { bsState = MainActivity.BSState.Partial })
             if (curEpisode != null) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = textColor, contentDescription = "Open podcast",
                 modifier = Modifier.clickable {
-                    if (curEpisode?.feed != null) {
-                        navController.navigate("${Screens.FeedDetails.name}?feedId=${curEpisode!!.feed!!.id}")
+                    if (vm.episodeFeed != null) {
+                        navController.navigate("${Screens.FeedDetails.name}?feedId=${vm.episodeFeed!!.id}")
                         bsState = MainActivity.BSState.Partial
                     }
                 })
@@ -703,7 +705,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             var resetPlayer by remember { mutableStateOf(false) }
             if (curEpisode != null) gearbox.PlayerDetailedGearPanel(curEpisode!!, resetPlayer) { resetPlayer = it }
-            SelectionContainer { Text(curEpisode?.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = CustomTextStyles.titleCustom, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
+            SelectionContainer { Text(curEpisode?.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
             Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
                 Spacer(modifier = Modifier.weight(0.2f))
                 val ratingIconRes by remember(curEpisode?.rating) { mutableIntStateOf( Rating.fromCode(curEpisode?.rating ?: Rating.UNRATED.code).res) }
@@ -713,7 +715,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                 Text(episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.weight(0.6f))
             }
-            SelectionContainer { Text((curEpisode?.feed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleSmall, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
+            SelectionContainer { Text((vm.episodeFeed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
 
             if (curEpisode != null) EpisodeDetails(curEpisode!!, bsState == MainActivity.BSState.Expanded)
 

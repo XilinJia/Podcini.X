@@ -61,7 +61,6 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -103,7 +102,6 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.extended.Readability4JExtended
 import java.io.File
@@ -439,10 +437,6 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
             })
     }
 
-    fun openPodcast() {
-        if (episode.feedId != null) navController.navigate("${Screens.FeedDetails.name}?feedId=${episode.feedId}")
-    }
-
     if (showHomeScreen) EpisodeTextScreen()
     else {
 //        Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
@@ -466,39 +460,45 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
                 MyTopAppBar()
                 Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
 //                    AsyncImage(model = img, contentDescription = "imgvCover",  modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { openPodcast() }))
-                    Box(Modifier.weight(1f).padding(start = 10.dp)) {
-                        Column {
-                            SelectionContainer { Text(episode.title?:"", color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth(), maxLines = 3, overflow = TextOverflow.Ellipsis) }
-                            val pubTimeText by remember(episode.id) { mutableStateOf( formatDateTimeFlex(Date(episode.pubDate)) ) }
+                    Column {
+                        SelectionContainer { Text(episode.title?:"", color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth()) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (episode.downloadUrl.isNullOrBlank()) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error")
+                            val pubTimeText by remember(episode.id) { mutableStateOf(formatDateTimeFlex(Date(episode.pubDate))) }
                             val txtvDuration by remember(episode.id) { mutableStateOf(if (episode.duration > 0) durationStringFull(episode.duration) else "") }
-                            val txtvSize by remember(episode.id) { mutableStateOf(
-                                when {
+                            var txtvSize by remember(episode.id) { mutableStateOf("") }
+                            LaunchedEffect(episode.id) {
+                                txtvSize = when {
                                     episode.size > 0 -> formatShortFileSize(context, episode.size)
                                     isImageDownloadAllowed && gearbox.canCheckMediaSize(episode) && !episode.isSizeSetUnknown() -> {
-                                        scope.launch {
+                                        withContext(Dispatchers.IO) {
                                             val sizeValue = if (episodeFeed?.prefStreamOverDownload == false) episode.fetchMediaSize() else 0L
                                             if (sizeValue <= 0) "" else formatShortFileSize(context, sizeValue)
                                         }
                                     }
                                     else -> ""
-                                } ) }
-                            Text("$pubTimeText · $txtvDuration · $txtvSize", color = textColor, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id }.toMutableStateList() }
-//                        Logd(TAG, "timers: ${timers.size} ${appAttribs.timetable.size}")
-                        Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_timer_24), tint = if (timers.isEmpty()) buttonColor else buttonAltColor, contentDescription = "timer", modifier = Modifier.width(28.dp).height(32.dp).align(Alignment.TopEnd).combinedClickable(onClick = {
-                            if (timers.isEmpty()) showAddTimerDialog = true
-                            else showTimetableDialog = true
-                        }, onLongClick = { showAddTimerDialog = true  }))
-                        if (actionButton != null) {
-                            val dlStats = downloadStates[episode.downloadUrl]
-                            if (dlStats != null) {
-                                actionButton!!.processing = dlStats.progress
-                                if (dlStats.state == DownloadStatus.State.COMPLETED.ordinal) actionButton!!.type = ButtonTypes.PLAY
+                                }
                             }
-                            Icon(imageVector = ImageVector.vectorResource(actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).align(Alignment.BottomEnd).combinedClickable(onClick = { actionButton?.onClick(context) }, onLongClick = { showAltActionsDialog = true }))
+                            Text("$pubTimeText · $txtvDuration · $txtvSize", color = textColor, style = MaterialTheme.typography.bodyMedium)
+                            Spacer(Modifier.weight(1f))
+                            val timers = remember(appAttribs.timetable) { appAttribs.timetable.filter { it.episodeId == episode.id }.toMutableStateList() }
+                            //                        Logd(TAG, "timers: ${timers.size} ${appAttribs.timetable.size}")
+                            Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_timer_24), tint = if (timers.isEmpty()) buttonColor else buttonAltColor, contentDescription = "timer", modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(
+                                onClick = {
+                                    if (timers.isEmpty()) showAddTimerDialog = true
+                                    else showTimetableDialog = true
+                                },
+                                onLongClick = { showAddTimerDialog = true  }))
+                            Spacer(Modifier.weight(0.5f))
+                            if (actionButton != null) {
+                                val dlStats = downloadStates[episode.downloadUrl]
+                                if (dlStats != null) {
+                                    actionButton!!.processing = dlStats.progress
+                                    if (dlStats.state == DownloadStatus.State.COMPLETED.ordinal) actionButton!!.type = ButtonTypes.PLAY
+                                }
+                                Icon(imageVector = ImageVector.vectorResource(actionButton!!.drawable), tint = buttonColor, contentDescription = null, modifier = Modifier.width(28.dp).height(32.dp).combinedClickable(onClick = { actionButton?.onClick(context) }, onLongClick = { showAltActionsDialog = true }))
+                            }
                         }
-                        if (episode.downloadUrl.isNullOrBlank()) Text("noMediaLabel", color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.align(Alignment.BottomStart))
                     }
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {

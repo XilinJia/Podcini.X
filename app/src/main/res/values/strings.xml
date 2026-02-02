@@ -133,6 +133,8 @@
 
     <string name="chapter_duration0">Duration: </string>
 
+    <string name="by">By</string>
+
     <string name="description_label">Description</string>
     <string name="transcript">Transcript</string>
 

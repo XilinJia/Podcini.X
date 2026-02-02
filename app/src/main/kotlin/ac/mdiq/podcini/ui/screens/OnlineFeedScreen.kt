@@ -507,17 +507,17 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
         if (vm.showEpisodes) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
             InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
             EpisodeLazyColumn(vm.episodes.toList(), isRemote = true, swipeActions = swipeActions,
-                actionButtonCB = { e, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
+                actionButtonCB = { _, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
         } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
-            ConstraintLayout(modifier = Modifier.fillMaxWidth().height(100.dp).background(MaterialTheme.colorScheme.surface)) {
+            ConstraintLayout(modifier = Modifier.fillMaxWidth().height(110.dp).background(MaterialTheme.colorScheme.surface)) {
                 val (coverImage, taColumn, buttons) = createRefs()
                 AsyncImage(model = vm.feed?.imageUrl ?: "", contentDescription = "coverImage", error = painterResource(R.mipmap.ic_launcher),
-                    modifier = Modifier.width(100.dp).height(100.dp).padding(start = 10.dp, end = 16.dp, bottom = 10.dp).constrainAs(coverImage) {
-                        bottom.linkTo(parent.bottom)
+                    modifier = Modifier.width(80.dp).height(80.dp).constrainAs(coverImage) {
+                        centerVerticallyTo(parent)
                         start.linkTo(parent.start)
                     })
-                Column(Modifier.constrainAs(taColumn) {
-                    top.linkTo(coverImage.top)
+                Column(Modifier.padding(start = 5.dp).constrainAs(taColumn) {
+                    top.linkTo(parent.top)
                     start.linkTo(coverImage.end)
                 }) {
                     Text(vm.feed?.title ?: "No title", color = textColor, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -525,7 +525,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                 }
                 Row(Modifier.constrainAs(buttons) {
                     start.linkTo(coverImage.end)
-                    top.linkTo(taColumn.bottom)
+                    bottom.linkTo(parent.bottom)
                     end.linkTo(parent.end)
                 }) {
                     Spacer(modifier = Modifier.weight(0.2f))

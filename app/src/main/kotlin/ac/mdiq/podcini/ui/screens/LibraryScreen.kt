@@ -133,7 +133,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -175,7 +174,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -1010,14 +1008,14 @@ fun LibraryScreen() {
                             if (isSelected) feedsSelected.add(feed)
                             else feedsSelected.remove(feed)
                         }
-                        Column(Modifier.background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)
-                            .combinedClickable(onClick = {
+                        Column(Modifier.background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface).combinedClickable(
+                            onClick = {
                                 Logd(TAG, "clicked: ${feed.title}")
                                 if (!feed.isBuilding) {
                                     if (selectMode) toggleSelected()
                                     else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
-                                }
-                            }, onLongClick = {
+                                } },
+                            onLongClick = {
                                 if (!feed.isBuilding) {
                                     selectMode = !selectMode
                                     isSelected = selectMode
@@ -1046,14 +1044,13 @@ fun LibraryScreen() {
                                     val numEpisodes = withContext(Dispatchers.IO) { getEpisodesCount(null, feed.id) }
                                     measureString = NumberFormat.getInstance().format(numEpisodes.toLong())
                                 }
-                                Text(measureString, color = buttonAltColor,
-                                    modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
-                                        end.linkTo(parent.end)
-                                        top.linkTo(coverImage.top)
-                                    })
+                                if (measureString.isNotBlank()) Text(measureString, color = buttonAltColor, modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)).constrainAs(episodeCount) {
+                                    end.linkTo(parent.end)
+                                    top.linkTo(coverImage.top)
+                                })
                                 if (feed.rating != Rating.UNRATED.code)
                                     Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating",
-                                        modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).constrainAs(rating) {
+                                        modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)).constrainAs(rating) {
                                             start.linkTo(coverImage.start)
                                             bottom.linkTo(coverImage.bottom)
                                         })
@@ -1131,17 +1128,19 @@ fun LibraryScreen() {
                             else feedsSelected.remove(feed)
                             Logd(TAG, "toggleSelected: selected: ${feedsSelected.size}")
                         }
-                        Row(Modifier.background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
-                            AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
-                                modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = {
+                        val imageSize = 60
+                        Row(Modifier.height(imageSize.dp).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
+                            Box(modifier = Modifier.size(imageSize.dp)) {
+                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.fillMaxSize().clickable(onClick = {
                                     Logd(TAG, "icon clicked!")
                                     if (!feed.isBuilding) {
                                         if (selectMode) toggleSelected()
                                         else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
                                     }
-                                })
-                            )
-                            Column(Modifier.weight(1f).padding(start = 10.dp).combinedClickable(onClick = {
+                                }))
+                                if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.size((imageSize/4).dp).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)))
+                            }
+                            Box(Modifier.weight(1f).fillMaxHeight().padding(start = 10.dp).combinedClickable(onClick = {
                                 if (!feed.isBuilding) {
                                     if (selectMode) toggleSelected()
                                     else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
@@ -1161,12 +1160,8 @@ fun LibraryScreen() {
                                     }
                                 }
                             })) {
-                                Row {
-                                    if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.width(20.dp).height(20.dp).background(MaterialTheme.colorScheme.tertiaryContainer))
-                                    Text(feed.title ?: "No title", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
-                                }
-                                Text(feed.author ?: "No author", color = textColor, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
-                                Row(Modifier.padding(top = 5.dp)) {
+                                Text(feed.title ?: "No title", color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart))
+                                Row(modifier = Modifier.align(Alignment.BottomStart)) {
                                     var measureString by remember(feed.id) { mutableStateOf("") }
                                     LaunchedEffect(feed.id) {
                                         val numEpisodes = withContext(Dispatchers.IO) { getEpisodesCount(null, feed.id) }

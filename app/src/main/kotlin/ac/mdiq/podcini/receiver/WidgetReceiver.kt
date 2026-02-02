@@ -224,18 +224,16 @@ class ToggleAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         Logd(TAG, "onReceive")
         ensureAController()
-        updateAppWidgetState(context, glanceId) { prefs ->
-            Logd(TAG, "ToggleAction onAction isPlaying: $isPlaying")
-            if (curEpisode == null && episodes.isNotEmpty()) setAsCurEpisode(episodes[0])
-            if (curEpisode != null) {
-                withContext(Dispatchers.Main) {
-                    if (curEpisode!!.getMediaType() == MediaType.VIDEO && !isPlaying && (curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
-                        playPause()
-                        context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
-                    } else {
-                        Logd(TAG, "Play button clicked: status: $status is ready: ${playbackService?.isServiceReady()}")
-                        PlaybackStarter(curEpisode!!).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start()
-                    }
+        Logd(TAG, "ToggleAction onAction isPlaying: $isPlaying")
+        if (curEpisode == null && episodes.isNotEmpty()) setAsCurEpisode(episodes[0])
+        if (curEpisode != null) {
+            withContext(Dispatchers.Main) {
+                if (curEpisode!!.getMediaType() == MediaType.VIDEO && !isPlaying && (curEpisode?.feed?.videoModePolicy != VideoMode.AUDIO_ONLY)) {
+                    playPause()
+                    context.startActivity(getPlayerActivityIntent(context, curEpisode!!.getMediaType()))
+                } else {
+                    Logd(TAG, "Play button clicked: status: $status is ready: ${playbackService?.isServiceReady()}")
+                    PlaybackStarter(curEpisode!!).setWidgetId(glanceId.toString()).shouldStreamThisTime(null).start()
                 }
             }
         }

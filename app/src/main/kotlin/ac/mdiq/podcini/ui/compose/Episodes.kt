@@ -348,7 +348,6 @@ val webDataCache = LruCache<Long, String>(10)
 fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val scope = rememberCoroutineScope()
-//    val context by rememberUpdatedState(LocalContext.current)
     var webviewData by remember { mutableStateOf<String?>("") }
     var playerLocal: ExoPlayer? by remember { mutableStateOf(null) }
 
@@ -391,9 +390,6 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
             playerLocal = null
         }
     }
-
-//    val todosFlow = remember(episode) { episodeFlow.map { ec -> ec.obj?.todos?.toList() ?: emptyList() } }
-//    val todos by todosFlow.collectAsStateWithLifecycle(initialValue = listOf())
 
     Column {
         val todos = remember(episode.id) { episode.todos }
@@ -592,7 +588,6 @@ fun ChooseRatingDialog(selected: List<Episode>, onDismissRequest: () -> Unit) {
 
 @Composable
 fun PlayStateDialog(selected: List<Episode>, onDismissRequest: () -> Unit, futureCB: (EpisodeState)->Unit, ignoreCB: ()->Unit) {
-    val context = LocalContext.current
     CommonPopupCard(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             for (state in EpisodeState.entries.reversed()) {

@@ -104,14 +104,15 @@ fun ChooseRatingDialog(selected: List<Feed>, onDismissRequest: () -> Unit) {
 @Composable
 fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: ()->Unit) {
     val message = if (feeds.size == 1) {
-        if (feeds[0].isLocalFeed) stringResource(R.string.feed_delete_confirmation_local_msg) + feeds[0].title
-        else stringResource(R.string.feed_delete_confirmation_msg) + feeds[0].title
+        if (feeds[0].isLocalFeed) stringResource(R.string.feed_delete_confirmation_local_msg, feeds[0].title?:"No title")
+        else stringResource(R.string.feed_delete_confirmation_msg, feeds[0].title?:"No title")
     } else stringResource(R.string.feed_delete_confirmation_msg_batch)
     val textColor = MaterialTheme.colorScheme.onSurface
     var textState by remember { mutableStateOf(TextFieldValue("")) }
 
-    CommonPopupCard(onDismissRequest = onDismissRequest) {
+    CommonDialogSurface(onDismissRequest = onDismissRequest) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(message)
             var saveImportant by remember { mutableStateOf(true) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = saveImportant, onCheckedChange = { saveImportant = it })
@@ -152,7 +153,6 @@ fun RemoveFeedDialog(feeds: List<Feed>, onDismissRequest: () -> Unit, callback: 
                 }
                 onDismissRequest()
             }) { Text(stringResource(R.string.confirm_label)) }
-            Text(message)
         }
     }
 }
@@ -178,8 +178,8 @@ fun OnlineFeedItem(feed: PodcastSearchResult, log: SubscriptionLog? = null) {
             if (feed.feedUrl != null) {
                 if (feed.feedId > 0) navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.feedId}")
                 else navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(feed.feedUrl, StandardCharsets.UTF_8.name())}&source=${feed.source}")
-            }
-        }, onLongClick = { showSubscribeDialog.value = true })) {
+            } },
+        onLongClick = { showSubscribeDialog.value = true })) {
         val textColor = MaterialTheme.colorScheme.onSurface
         Row {
             Box(modifier = Modifier.width(80.dp).height(80.dp)) {
@@ -251,7 +251,6 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
 
 @Composable
 fun OpmlImportSelectionDialog(readElements: SnapshotStateList<OpmlTransporter.OpmlElement>, onDismissRequest: () -> Unit) {
-    val context = LocalContext.current
     val selectedItems = remember {  mutableStateMapOf<Int, Boolean>() }
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = { onDismissRequest() },
         title = { Text("Import OPML file") },
