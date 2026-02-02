@@ -101,6 +101,7 @@
     <string name="ask_remove_mark">Do you want to remove mark: %1$s ?</string>
     <string name="play_mark_msg">The mark can be sought to when the episode is being played.</string>
     <string name="chapter_duration0">Duration: </string>
+    <string name="by">By</string>
     <string name="description_label">Description</string>
     <string name="transcript">Transcript</string>
     <string name="show_all_feeds">Show all feeds</string>
