@@ -68,15 +68,6 @@ fun PodciniTheme(forceTheme: ThemePreference? = null, content: @Composable () ->
         ThemePreference.SYSTEM -> isSystemInDarkTheme()
     }
 
-//    val view = LocalView.current
-//    if (!view.isInEditMode) {
-//        SideEffect {
-//            val window = (view.context as Activity).window
-//            window.statusBarColor = Color.Transparent.toArgb()
-//            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !isDark
-//        }
-//    }
-
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {

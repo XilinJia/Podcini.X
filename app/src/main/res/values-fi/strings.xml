@@ -154,8 +154,8 @@
     <string name="delete_local_failed">Tiedostoa ei voi poistaa. Yritä yhdistää paikallinen kansio uudelleen podcast-info -näytöstä.</string>
     <string name="delete_episode_label">Poista jakso</string>
     <string name="no_action_label">Ei toimintoa</string>
-    <string name="my_opinion_label">Oma mielipiteeni</string>
-    <string name="add_opinion_label">Lisää lausunto</string>
+
+
     <string name="cancelled_on_label">Peruutettu päälle</string>
     <string name="choose_tab">Valitse välilehti kanavalta</string>
     <string name="set_play_state_label">Aseta toistetun tilan</string>

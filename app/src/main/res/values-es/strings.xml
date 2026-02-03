@@ -156,8 +156,8 @@
     <string name="delete_local_failed">No se pudo borrar el archivo. Intenta reconectar la carpeta local desde la pantalla de información del podcast.</string>
     <string name="delete_episode_label">Borrar episodio</string>
     <string name="no_action_label">Ninguna acción</string>
-    <string name="my_opinion_label">Mi opinión</string>
-    <string name="add_opinion_label">Añadir opinión</string>
+
+
     <string name="cancelled_on_label">Cancelado el</string>
     <string name="choose_tab">Elija una pestaña en el canal</string>
     <string name="set_play_state_label">Establecer estado jugado</string>

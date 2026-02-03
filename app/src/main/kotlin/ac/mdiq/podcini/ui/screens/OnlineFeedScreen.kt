@@ -597,7 +597,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
                     val ratingRes = remember { fromCode(sLog.rating).res }
                     if (commentTextState.text.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp)) {
-                            Text(stringResource(R.string.my_opinion_label), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom)
+                            Text(stringResource(R.string.comments), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom)
                             Icon(imageVector = ImageVector.vectorResource(ratingRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = null, modifier = Modifier.padding(start = 5.dp))
                         }
                         Text(commentTextState.text, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 10.dp))

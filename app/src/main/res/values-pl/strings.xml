@@ -158,8 +158,8 @@
     <string name="delete_local_failed">Nie można usunąć pliku. Spróbuj ponownie połączyć folder lokalny z ekranu informacji o podcastie.</string>
     <string name="delete_episode_label">Usuń odcinek</string>
     <string name="no_action_label">Brak akcji</string>
-    <string name="my_opinion_label">Moje zdanie</string>
-    <string name="add_opinion_label">Dodaj opinię</string>
+
+
     <string name="cancelled_on_label">Anulowane</string>
     <string name="choose_tab">Wybierz kartę na kanale</string>
     <string name="set_play_state_label">Ustaw status odtwarzania</string>

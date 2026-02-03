@@ -154,8 +154,8 @@
     <string name="delete_local_failed">Kunde inte rader filen. Försök att återansluta den lokala katalogen från podcastens infoskärm.</string>
     <string name="delete_episode_label">Radera episod</string>
     <string name="no_action_label">Ingen åtgärd</string>
-    <string name="my_opinion_label">Min åsikt</string>
-    <string name="add_opinion_label">Lägg till åsikt</string>
+
+
     <string name="cancelled_on_label">Avbruten den</string>
     <string name="choose_tab">Välj en flik i kanalen</string>
     <string name="set_play_state_label">Ställ in spelad status</string>

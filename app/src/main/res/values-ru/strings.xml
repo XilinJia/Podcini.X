@@ -156,8 +156,8 @@
     <string name="delete_local_failed">Не удается удалить файл. Попробуйте переподключить локальную папку на экране информации подкаста.</string>
     <string name="delete_episode_label">Удалить выпуск</string>
     <string name="no_action_label">Без действий</string>
-    <string name="my_opinion_label">Мое мнение</string>
-    <string name="add_opinion_label">Добавить мнение</string>
+
+
     <string name="cancelled_on_label">Отменено на</string>
     <string name="choose_tab">Выберите вкладку в канале</string>
     <string name="set_play_state_label">Задать состояние игры</string>

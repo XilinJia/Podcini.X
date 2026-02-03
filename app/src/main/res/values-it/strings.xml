@@ -157,8 +157,8 @@
     <string name="delete_local_failed">Impossibile eliminare il file. Prova a riconnettere la cartella locale dalla schermata delle informazioni sul podcast.</string>
     <string name="delete_episode_label">Elimina episodio</string>
     <string name="no_action_label">Nessuna azione</string>
-    <string name="my_opinion_label">La mia opinione</string>
-    <string name="add_opinion_label">Aggiungi parere</string>
+
+
     <string name="cancelled_on_label">Annullato il</string>
     <string name="choose_tab">Scegli una scheda nel canale</string>
     <string name="set_play_state_label">Imposta stato riprodotto</string>

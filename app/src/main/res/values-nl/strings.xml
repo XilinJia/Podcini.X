@@ -154,8 +154,8 @@
     <string name="delete_local_failed">Kan bestand niet verwijderen. Probeer de lokale map opnieuw te verbinden via het podcast info scherm.</string>
     <string name="delete_episode_label">Aflevering verwijderen</string>
     <string name="no_action_label">Geen actie</string>
-    <string name="my_opinion_label">Mijn mening</string>
-    <string name="add_opinion_label">Voeg mening toe</string>
+
+
     <string name="cancelled_on_label">Geannuleerd op</string>
     <string name="choose_tab">Kies een tabblad in het kanaal</string>
     <string name="set_play_state_label">Gespeelde status instellen</string>

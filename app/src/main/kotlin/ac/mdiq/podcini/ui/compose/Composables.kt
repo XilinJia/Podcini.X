@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -95,7 +96,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun CommonDialogSurface(onDismissRequest: () -> Unit, content: @Composable (() -> Unit)) {
     Dialog(onDismissRequest = onDismissRequest) {
-        Surface(shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+        Surface(
+            shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             content()
         }
     }
@@ -104,7 +106,8 @@ fun CommonDialogSurface(onDismissRequest: () -> Unit, content: @Composable (() -
 @Composable
 fun CommonPopupCard(onDismissRequest: () -> Unit, alignment: Alignment = Alignment.TopCenter, content: @Composable (() -> Unit)) {
     Popup(onDismissRequest = { onDismissRequest() }, alignment = alignment, properties = PopupProperties(focusable = true, dismissOnBackPress = true, dismissOnClickOutside = true, clippingEnabled = true)) {
-        Card(modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
+            modifier = Modifier.wrapContentSize(align = Alignment.Center).padding(16.dp), shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)) {
             content()
         }
     }

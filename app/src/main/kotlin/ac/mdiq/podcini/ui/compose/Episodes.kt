@@ -393,14 +393,14 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
 
     Column {
         val todos = remember(episode.id) { episode.todos }
-        var show by remember { mutableStateOf(false) }
-        var showDone by remember { mutableStateOf(false) }
-        Row(modifier = Modifier.padding(start = 15.dp, end = 10.dp, top = 5.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Todos:", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.clickable {
-                onTodo = null
-                showTodoDialog = true
-            })
-            if (todos.isNotEmpty()) {
+        if (todos.isNotEmpty()) {
+            var show by remember { mutableStateOf(false) }
+            var showDone by remember { mutableStateOf(false) }
+            Row(modifier = Modifier.padding(start = 15.dp, end = 10.dp, top = 5.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Todos:", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.clickable {
+                    onTodo = null
+                    showTodoDialog = true
+                })
                 Spacer(Modifier.width(50.dp))
                 Checkbox(checked = show, onCheckedChange = { show = it })
                 Text(text = stringResource(R.string.show), style = MaterialTheme.typography.bodyLarge.merge())
@@ -410,37 +410,38 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
                     Text(text = stringResource(R.string.show_done), style = MaterialTheme.typography.bodyLarge.merge())
                 }
             }
-        }
-        if (show && todos.isNotEmpty()) Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
-            val localTime = remember { System.currentTimeMillis() }
-            for (todo in todos) {
-                var done by remember(todo) { mutableStateOf(todo.completed) }
-                if (!done || showDone) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = done, onCheckedChange = {
-                            done = it
-                            upsertBlkEmb(todo) { todo -> todo.completed = done }
-                        })
-                        Text(text = todo.title, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.clickable(onClick = {
-                            onTodo = todo
-                            showTodoDialog = true
-                        }))
-                        Spacer(Modifier.weight(1f))
-                        Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "delete", modifier = Modifier.padding(end = 15.dp).clickable(onClick = { upsertBlk(episode) { it.todos.remove(todo) } }))
-                    }
-                    if (todo.dueTime > 0) {
-                        val dueText by remember(todo.dueTime) { mutableStateOf("D:" + formatDateTimeFlex(Date(todo.dueTime))) }
-                        val bgColor = if (localTime > todo.dueTime) Color.Cyan else MaterialTheme.colorScheme.surface
-                        Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 20.dp).background(bgColor))
+            if (show) Column(modifier = Modifier.padding(start = 20.dp).fillMaxWidth()) {
+                val localTime = remember { System.currentTimeMillis() }
+                for (todo in todos) {
+                    var done by remember(todo) { mutableStateOf(todo.completed) }
+                    if (!done || showDone) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = done, onCheckedChange = {
+                                done = it
+                                upsertBlkEmb(todo) { todo -> todo.completed = done }
+                            })
+                            Text(text = todo.title, style = MaterialTheme.typography.bodyLarge.merge(), modifier = Modifier.clickable(onClick = {
+                                onTodo = todo
+                                showTodoDialog = true
+                            }))
+                            Spacer(Modifier.weight(1f))
+                            Icon(ImageVector.vectorResource(id = R.drawable.ic_delete), contentDescription = "delete", modifier = Modifier.padding(end = 15.dp).clickable(onClick = { upsertBlk(episode) { it.todos.remove(todo) } }))
+                        }
+                        if (todo.dueTime > 0) {
+                            val dueText by remember(todo.dueTime) { mutableStateOf("D:" + formatDateTimeFlex(Date(todo.dueTime))) }
+                            val bgColor = if (localTime > todo.dueTime) Color.Cyan else MaterialTheme.colorScheme.surface
+                            Text(dueText, color = textColor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 20.dp).background(bgColor))
+                        }
                     }
                 }
             }
         }
 
-        Text("Tags: ${episode.tagsAsString}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 5.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
-        Text(stringResource(R.string.my_opinion_label) + if (episode.comment.isBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 5.dp, bottom = 5.dp).clickable { showEditComment = true })
-        Text(episode.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
-
+        if (episode.tagsAsString.isNotBlank()) Text("Tags: ${episode.tagsAsString}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 5.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
+        if (episode.comment.isNotBlank()) {
+            Text(stringResource(R.string.comments), color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 5.dp, bottom = 5.dp).clickable { showEditComment = true })
+            Text(episode.comment, color = textColor, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(start = 15.dp, bottom = 5.dp))
+        }
         if (episode.marks.isNotEmpty()) {
             val context by rememberUpdatedState(LocalContext.current)
             var markToRemove by remember { mutableLongStateOf(0L) }
@@ -514,7 +515,8 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
                 Text(stringResource(R.string.chapters_label))
                 var curChapterIndex by remember { mutableIntStateOf(-1) }
                 for (index in chapters.indices) {
-                    val ch = remember(index) { chapters[index] } //            Text(ch.link?: "")
+                    val ch = remember(index) { chapters[index] }
+                    //            Text(ch.link?: "")
                     Row(modifier = Modifier.clickable(onClick = {
                         if (curEpisode == episode) {
                             if (!isPlaying) playPause()
@@ -531,6 +533,7 @@ fun EpisodeDetails(episode: Episode, fetchWebdata: Boolean = true) {
                 }
             }
         }
+        Text(stringResource(R.string.description_label), color = textColor, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 16.dp, top = 10.dp, bottom = 4.dp))
         AndroidView(modifier = Modifier.fillMaxSize(),
             factory = { context ->
                 ShownotesWebView(context).apply {

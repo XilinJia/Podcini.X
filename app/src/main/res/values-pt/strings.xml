@@ -156,8 +156,8 @@
     <string name="delete_local_failed">Não foi possível eliminar o episódio. Experimente conectar novamente a pasta local no ecrã de informação do podcast.</string>
     <string name="delete_episode_label">Eliminar episódio</string>
     <string name="no_action_label">Nenhuma ação</string>
-    <string name="my_opinion_label">Minha opinião</string>
-    <string name="add_opinion_label">Adicionar opinião</string>
+
+
     <string name="cancelled_on_label">Cancelado em</string>
     <string name="choose_tab">Selecione uma guia no canal</string>
     <string name="set_play_state_label">Definir estado de jogo</string>

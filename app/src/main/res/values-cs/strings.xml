@@ -156,8 +156,8 @@
     <string name="delete_local_failed">Nelze odstranit soubor. Zkuste znovu připojit místní složku z obrazovky s informacemi o podcastu.</string>
     <string name="delete_episode_label">Smazat epizodu</string>
     <string name="no_action_label">Žádná akce</string>
-    <string name="my_opinion_label">Můj názor</string>
-    <string name="add_opinion_label">Přidat názor</string>
+
+
     <string name="cancelled_on_label">Zrušeno</string>
     <string name="choose_tab">Vyberte kartu v kanálu</string>
     <string name="set_play_state_label">Nastavit stav přehrávání</string>

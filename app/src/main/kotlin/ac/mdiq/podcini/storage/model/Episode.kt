@@ -396,84 +396,85 @@ class Episode : RealmObject {
         return ToStringBuilder.reflectionToString(this, ToStringStyle.SHORT_PREFIX_STYLE)
     }
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
+//    override fun equals(other: Any?): Boolean {
+//        if (this === other) return true
+//        if (javaClass != other?.javaClass) return false
+//
+//        other as Episode
+//
+//        if (id != other.id) return false
+//        if (identifier != other.identifier) return false
+//        if (title != other.title) return false
+////        if (description != other.description) return false
+////        if (transcript != other.transcript) return false
+//        if (link != other.link) return false
+//        if (pubDate != other.pubDate) return false
+//        if (feedId != other.feedId) return false
+//        if (podcastIndexChapterUrl != other.podcastIndexChapterUrl) return false
+//        if (playState != other.playState) return false
+////        if (paymentLink != other.paymentLink) return false
+//        if (imageUrl != other.imageUrl) return false
+//        if (isAutoDownloadEnabled != other.isAutoDownloadEnabled) return false
+//        if (tags != other.tags) return false
+//        if (chapters != other.chapters) return false
+//        if (rating != other.rating) return false
+//        if (comment != other.comment) return false
+//
+//        if (fileUrl != other.fileUrl) return false
+//        if (downloadUrl != other.downloadUrl) return false
+//        if (downloadTime != other.downloadTime) return false
+//        if (duration != other.duration) return false
+//        if (position != other.position) return false
+//        if (lastPlayedTime != other.lastPlayedTime) return false
+//        if (playedDuration != other.playedDuration) return false
+//        if (size != other.size) return false
+//        if (mimeType != other.mimeType) return false
+//        if (playbackCompletionDate != other.playbackCompletionDate) return false
+//        if (playbackCompletionTime != other.playbackCompletionTime) return false
+//        if (startPosition != other.startPosition) return false
+//        if (playedDurationWhenStarted != other.playedDurationWhenStarted) return false
+//        if (hasEmbeddedPicture != other.hasEmbeddedPicture) return false
+//
+//        return true
+//    }
+//
+//    override fun hashCode(): Int {
+//        var result = id.hashCode()
+//        result = 31 * result + (identifier?.hashCode() ?: 0)
+//        result = 31 * result + (title?.hashCode() ?: 0)
+////        result = 31 * result + (description?.hashCode() ?: 0)
+////        result = 31 * result + (transcript?.hashCode() ?: 0)
+//        result = 31 * result + (link?.hashCode() ?: 0)
+//        result = 31 * result + pubDate.hashCode()
+//        result = 31 * result + (feedId?.hashCode() ?: 0)
+//        result = 31 * result + (podcastIndexChapterUrl?.hashCode() ?: 0)
+//        result = 31 * result + playState
+////        result = 31 * result + (paymentLink?.hashCode() ?: 0)
+//        result = 31 * result + (imageUrl?.hashCode() ?: 0)
+//        result = 31 * result + isAutoDownloadEnabled.hashCode()
+//        result = 31 * result + tags.hashCode()
+//        result = 31 * result + chapters.hashCode()
+//        result = 31 * result + rating.hashCode()
+//        result = 31 * result + comment.hashCode()
+//
+//        result = 31 * result + (fileUrl?.hashCode() ?: 0)
+//        result = 31 * result + (downloadUrl?.hashCode() ?: 0)
+//        result = 31 * result + downloadTime.hashCode()
+//        result = 31 * result + duration
+//        result = 31 * result + position
+//        result = 31 * result + lastPlayedTime.hashCode()
+//        result = 31 * result + playedDuration
+//        result = 31 * result + size.hashCode()
+//        result = 31 * result + (mimeType?.hashCode() ?: 0)
+//        result = 31 * result + (playbackCompletionDate?.hashCode() ?: 0)
+//        result = 31 * result + playbackCompletionTime.hashCode()
+//        result = 31 * result + startPosition
+//        result = 31 * result + playedDurationWhenStarted
+//        result = 31 * result + (hasEmbeddedPicture?.hashCode() ?: 0)
+//
+//        return result
+//    }
 
-        other as Episode
-
-        if (id != other.id) return false
-        if (identifier != other.identifier) return false
-        if (title != other.title) return false
-//        if (description != other.description) return false
-//        if (transcript != other.transcript) return false
-        if (link != other.link) return false
-        if (pubDate != other.pubDate) return false
-        if (feedId != other.feedId) return false
-        if (podcastIndexChapterUrl != other.podcastIndexChapterUrl) return false
-        if (playState != other.playState) return false
-//        if (paymentLink != other.paymentLink) return false
-        if (imageUrl != other.imageUrl) return false
-        if (isAutoDownloadEnabled != other.isAutoDownloadEnabled) return false
-        if (tags != other.tags) return false
-        if (chapters != other.chapters) return false
-        if (rating != other.rating) return false
-        if (comment != other.comment) return false
-
-        if (fileUrl != other.fileUrl) return false
-        if (downloadUrl != other.downloadUrl) return false
-        if (downloadTime != other.downloadTime) return false
-        if (duration != other.duration) return false
-        if (position != other.position) return false
-        if (lastPlayedTime != other.lastPlayedTime) return false
-        if (playedDuration != other.playedDuration) return false
-        if (size != other.size) return false
-        if (mimeType != other.mimeType) return false
-        if (playbackCompletionDate != other.playbackCompletionDate) return false
-        if (playbackCompletionTime != other.playbackCompletionTime) return false
-        if (startPosition != other.startPosition) return false
-        if (playedDurationWhenStarted != other.playedDurationWhenStarted) return false
-        if (hasEmbeddedPicture != other.hasEmbeddedPicture) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = id.hashCode()
-        result = 31 * result + (identifier?.hashCode() ?: 0)
-        result = 31 * result + (title?.hashCode() ?: 0)
-//        result = 31 * result + (description?.hashCode() ?: 0)
-//        result = 31 * result + (transcript?.hashCode() ?: 0)
-        result = 31 * result + (link?.hashCode() ?: 0)
-        result = 31 * result + pubDate.hashCode()
-        result = 31 * result + (feedId?.hashCode() ?: 0)
-        result = 31 * result + (podcastIndexChapterUrl?.hashCode() ?: 0)
-        result = 31 * result + playState
-//        result = 31 * result + (paymentLink?.hashCode() ?: 0)
-        result = 31 * result + (imageUrl?.hashCode() ?: 0)
-        result = 31 * result + isAutoDownloadEnabled.hashCode()
-        result = 31 * result + tags.hashCode()
-        result = 31 * result + chapters.hashCode()
-        result = 31 * result + rating.hashCode()
-        result = 31 * result + comment.hashCode()
-
-        result = 31 * result + (fileUrl?.hashCode() ?: 0)
-        result = 31 * result + (downloadUrl?.hashCode() ?: 0)
-        result = 31 * result + downloadTime.hashCode()
-        result = 31 * result + duration
-        result = 31 * result + position
-        result = 31 * result + lastPlayedTime.hashCode()
-        result = 31 * result + playedDuration
-        result = 31 * result + size.hashCode()
-        result = 31 * result + (mimeType?.hashCode() ?: 0)
-        result = 31 * result + (playbackCompletionDate?.hashCode() ?: 0)
-        result = 31 * result + playbackCompletionTime.hashCode()
-        result = 31 * result + startPosition
-        result = 31 * result + playedDurationWhenStarted
-        result = 31 * result + (hasEmbeddedPicture?.hashCode() ?: 0)
-
-        return result
-    }
 
     fun fillMedia(duration: Int, position: Int,
                   size: Long, mimeType: String?, fileUrl: String?, downloadUrl: String?,
@@ -860,6 +861,126 @@ class Episode : RealmObject {
         }
         // TODO
 //        if (persist && episode != null) upsertBlk(episode!!) {}
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Episode
+
+        if (id != other.id) return false
+        if (pubDate != other.pubDate) return false
+        if (feedId != other.feedId) return false
+        if (playState != other.playState) return false
+        if (playStateSetTime != other.playStateSetTime) return false
+        if (isAutoDownloadEnabled != other.isAutoDownloadEnabled) return false
+        if (chaptersLoaded != other.chaptersLoaded) return false
+        if (rating != other.rating) return false
+        if (ratingTime != other.ratingTime) return false
+        if (viewCount != other.viewCount) return false
+        if (likeCount != other.likeCount) return false
+        if (commentTime != other.commentTime) return false
+        if (downloadTime != other.downloadTime) return false
+        if (duration != other.duration) return false
+        if (position != other.position) return false
+        if (lastPlayedTime != other.lastPlayedTime) return false
+        if (startPosition != other.startPosition) return false
+        if (playedDurationWhenStarted != other.playedDurationWhenStarted) return false
+        if (playedDuration != other.playedDuration) return false
+        if (timeSpentOnStart != other.timeSpentOnStart) return false
+        if (startTime != other.startTime) return false
+        if (timeSpent != other.timeSpent) return false
+        if (size != other.size) return false
+        if (playbackCompletionTime != other.playbackCompletionTime) return false
+        if (hasEmbeddedPicture != other.hasEmbeddedPicture) return false
+        if (forceVideo != other.forceVideo) return false
+        if (repeatTime != other.repeatTime) return false
+        if (identifier != other.identifier) return false
+        if (title != other.title) return false
+        if (shortDescription != other.shortDescription) return false
+        if (description != other.description) return false
+        if (transcript != other.transcript) return false
+        if (link != other.link) return false
+        if (parentTitle != other.parentTitle) return false
+        if (parentURL != other.parentURL) return false
+        if (related != other.related) return false
+        if (podcastIndexChapterUrl != other.podcastIndexChapterUrl) return false
+        if (paymentLink != other.paymentLink) return false
+        if (imageUrl != other.imageUrl) return false
+        if (tags != other.tags) return false
+        if (clips != other.clips) return false
+        if (marks != other.marks) return false
+        if (chapters != other.chapters) return false
+        if (comment != other.comment) return false
+        if (todos != other.todos) return false
+        if (fileUrl != other.fileUrl) return false
+        if (downloadUrl != other.downloadUrl) return false
+        if (mimeType != other.mimeType) return false
+        if (origFeedTitle != other.origFeedTitle) return false
+        if (origFeeddownloadUrl != other.origFeeddownloadUrl) return false
+        if (origFeedlink != other.origFeedlink) return false
+        if (effectUrl != other.effectUrl) return false
+        if (effectMimeType != other.effectMimeType) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + pubDate.hashCode()
+        result = 31 * result + (feedId?.hashCode() ?: 0)
+        result = 31 * result + playState
+        result = 31 * result + playStateSetTime.hashCode()
+        result = 31 * result + isAutoDownloadEnabled.hashCode()
+        result = 31 * result + chaptersLoaded.hashCode()
+        result = 31 * result + rating
+        result = 31 * result + ratingTime.hashCode()
+        result = 31 * result + viewCount
+        result = 31 * result + likeCount
+        result = 31 * result + commentTime.hashCode()
+        result = 31 * result + downloadTime.hashCode()
+        result = 31 * result + duration
+        result = 31 * result + position
+        result = 31 * result + lastPlayedTime.hashCode()
+        result = 31 * result + startPosition
+        result = 31 * result + playedDurationWhenStarted
+        result = 31 * result + playedDuration
+        result = 31 * result + timeSpentOnStart.hashCode()
+        result = 31 * result + startTime.hashCode()
+        result = 31 * result + timeSpent.hashCode()
+        result = 31 * result + size.hashCode()
+        result = 31 * result + playbackCompletionTime.hashCode()
+        result = 31 * result + (hasEmbeddedPicture?.hashCode() ?: 0)
+        result = 31 * result + forceVideo.hashCode()
+        result = 31 * result + repeatTime.hashCode()
+        result = 31 * result + (identifier?.hashCode() ?: 0)
+        result = 31 * result + (title?.hashCode() ?: 0)
+        result = 31 * result + (shortDescription?.hashCode() ?: 0)
+        result = 31 * result + (description?.hashCode() ?: 0)
+        result = 31 * result + (transcript?.hashCode() ?: 0)
+        result = 31 * result + (link?.hashCode() ?: 0)
+        result = 31 * result + (parentTitle?.hashCode() ?: 0)
+        result = 31 * result + (parentURL?.hashCode() ?: 0)
+        result = 31 * result + related.hashCode()
+        result = 31 * result + (podcastIndexChapterUrl?.hashCode() ?: 0)
+        result = 31 * result + (paymentLink?.hashCode() ?: 0)
+        result = 31 * result + (imageUrl?.hashCode() ?: 0)
+        result = 31 * result + tags.hashCode()
+        result = 31 * result + clips.hashCode()
+        result = 31 * result + marks.hashCode()
+        result = 31 * result + chapters.hashCode()
+        result = 31 * result + comment.hashCode()
+        result = 31 * result + todos.hashCode()
+        result = 31 * result + (fileUrl?.hashCode() ?: 0)
+        result = 31 * result + (downloadUrl?.hashCode() ?: 0)
+        result = 31 * result + (mimeType?.hashCode() ?: 0)
+        result = 31 * result + (origFeedTitle?.hashCode() ?: 0)
+        result = 31 * result + (origFeeddownloadUrl?.hashCode() ?: 0)
+        result = 31 * result + (origFeedlink?.hashCode() ?: 0)
+        result = 31 * result + effectUrl.hashCode()
+        result = 31 * result + effectMimeType.hashCode()
+        return result
     }
 
     /**

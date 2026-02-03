@@ -12,10 +12,8 @@ import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
-import androidx.annotation.OptIn
 import androidx.media3.common.Format
 import androidx.media3.common.Timeline
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.ExoPlayer
 import java.io.File
@@ -28,7 +26,6 @@ private const val TAG = "Recorder"
  * startPositionMs: Long? = null, // Null for stop/save
  * endPositionMs: Long? = null,   // Null for start
  */
-
 fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null) {
     val mediaItem = exoPlayer!!.currentMediaItem ?: run {
         Loge(TAG, "No current media item.")
@@ -40,15 +37,14 @@ fun saveClipInOriginalFormat(startPositionMs: Long, endPositionMs: Long? = null)
     }
     if (endPositionMs == null) {
         if (uri.scheme == "file" || uri.scheme == "content") {
-            Logt(TAG, "uri is file or content, ignored")
+            Logd(TAG, "uri is file or content, will extract from the file.")
             return
         }
         curDataSource?.startRecording(startPositionMs, bitrate, getAppContext().cacheDir)
         return
     }
     val tracks = exoPlayer!!.currentTracks
-    val audioFormat = tracks.groups
-        .asSequence()
+    val audioFormat = tracks.groups.asSequence()
         .flatMap { group -> (0 until group.length).map { group.getTrackFormat(it) } }
         .firstOrNull { it.sampleMimeType?.startsWith("audio/") == true }
     if (audioFormat == null) {

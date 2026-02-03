@@ -6,11 +6,9 @@ import ac.mdiq.podcini.net.download.DownloadStatus
 import ac.mdiq.podcini.net.utils.NetworkUtils.fetchHtmlSource
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
-import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
-import ac.mdiq.podcini.storage.database.addToAssQueue
 import ac.mdiq.podcini.storage.database.appAttribs
-import ac.mdiq.podcini.storage.database.removeFromQueue
+import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
@@ -21,6 +19,7 @@ import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
+import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
@@ -35,6 +34,7 @@ import android.text.format.Formatter.formatShortFileSize
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.compose.BackHandler
 import androidx.collection.LruCache
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -76,7 +76,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
@@ -98,10 +97,12 @@ import androidx.core.text.HtmlCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.extended.Readability4JExtended
 import java.io.File
@@ -120,13 +121,18 @@ var episodeForInfo by mutableStateOf<Episode?>(null)
 @Composable
 fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
 
+    val episodeFlow = realm.query(Episode::class).query("id == ${episode.id}").first().asFlow()
+    val episode by episodeFlow.map { it.obj ?: Episode() }.collectAsStateWithLifecycle(initialValue = Episode())
+
     val episodeFeed = episode.feed
     var showHomeScreen by remember { mutableStateOf(false) }
+
+    val actions = remember { SwipeActions(TAG, leftId = "COMBO", rightId = "COMBO") }
+    actions.ActionOptionsDialog()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -149,11 +155,19 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
         }
     }
 
+    DisposableEffect(showHomeScreen) {
+        if (showHomeScreen) handleBackSubScreens.add(TAG)
+        else handleBackSubScreens.remove(TAG)
+        onDispose { handleBackSubScreens.remove(TAG) }
+    }
+
+    BackHandler(enabled = handleBackSubScreens.contains(TAG)) {
+        Logd(TAG, "BackHandler")
+        showHomeScreen = false
+    }
+
     var showShareDialog by remember { mutableStateOf(false) }
-    var showChooseRatingDialog by remember { mutableStateOf(false) }
-    var showIgnoreDialog by remember { mutableStateOf(false) }
     var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
-    var showPlayStateDialog by remember { mutableStateOf(false) }
     var showAddTimerDialog by remember { mutableStateOf(false) }
     var showTimetableDialog by remember { mutableStateOf(false) }
     var onTimer by remember { mutableStateOf(Timer()) }
@@ -161,9 +175,6 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
 
     @Composable
     fun OpenDialogs() {
-        if (showChooseRatingDialog) ChooseRatingDialog(listOf(episode)) { showChooseRatingDialog = false }
-        if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(episode), onDismissRequest = { showIgnoreDialog = false })
-        if (showPlayStateDialog) PlayStateDialog(listOf(episode), onDismissRequest = { showPlayStateDialog = false }, { futureState = it },{ showIgnoreDialog = true })
         if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(episode), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
         if (showShareDialog) ShareDialog(episode) { showShareDialog = false }
 
@@ -394,7 +405,6 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
 
     OpenDialogs()
 
-    
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
@@ -407,11 +417,7 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
                         bsState = MainActivity.BSState.Partial
                     }
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Open podcast", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                IconButton(onClick = { showPlayStateDialog = true }) { Icon(imageVector = ImageVector.vectorResource(EpisodeState.fromCode(episode.playState).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "isPlayed", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                val inQueue by remember(episode) { mutableStateOf((episodeFeed?.queue ?: actQueue).contains(episode)) }
-                if (!inQueue) IconButton(onClick = { runOnIOScope { addToAssQueue(listOf(episode)) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_playlist_add_24), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                else IconButton(onClick = { runOnIOScope { removeFromQueue(episodeFeed?.queue ?: actQueue, listOf(episode), EpisodeState.UNPLAYED) } }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_remove), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "inQueue", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                IconButton(onClick = { showChooseRatingDialog = true }) { Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                IconButton(onClick = { actions.actions.left[0].performAction(episode) }) { Icon(imageVector = ImageVector.vectorResource(actions.actions.left[0].iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                 if (!episode.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
                 IconButton(onClick = {
                     val url = episode.getLinkWithFallback()
@@ -439,7 +445,6 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
 
     if (showHomeScreen) EpisodeTextScreen()
     else {
-//        Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Surface(shape = RoundedCornerShape(28.dp), color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().padding(3.dp), border = BorderStroke(3.dp, MaterialTheme.colorScheme.tertiary)) {
             val buttonColor = MaterialTheme.colorScheme.tertiary
             val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
@@ -459,11 +464,13 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
             Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).background(MaterialTheme.colorScheme.surface)) {
                 MyTopAppBar()
                 Row(modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-//                    AsyncImage(model = img, contentDescription = "imgvCover",  modifier = Modifier.width(80.dp).height(80.dp).clickable(onClick = { openPodcast() }))
                     Column {
                         SelectionContainer { Text(episode.title?:"", color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth()) }
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             if (episode.downloadUrl.isNullOrBlank()) Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_error), tint = Color.Red, contentDescription = "error")
+                            val playState = remember(episode.playState) { EpisodeState.fromCode(episode.playState) }
+                            Icon(imageVector = ImageVector.vectorResource(playState.res), tint = playState.color ?: MaterialTheme.colorScheme.tertiary, contentDescription = "playState", modifier = Modifier.background(if (episode.playState >= EpisodeState.SKIPPED.code) Color.Green.copy(alpha = 0.6f) else MaterialTheme.colorScheme.surface).width(16.dp).height(16.dp))
+                            if (episode.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(episode.rating).res), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(16.dp).height(16.dp))
                             val pubTimeText by remember(episode.id) { mutableStateOf(formatDateTimeFlex(Date(episode.pubDate))) }
                             val txtvDuration by remember(episode.id) { mutableStateOf(if (episode.duration > 0) durationStringFull(episode.duration) else "") }
                             var txtvSize by remember(episode.id) { mutableStateOf("") }

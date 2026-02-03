@@ -1,0 +1,6 @@
+* in PlayerUI, Record button behavior is changed: click on it now creates a mark, long-press on it start/stop recording
+* in EpisodeInfo screen,
+	* on topbar a Combo action replaces various other actions, enabling more operations, doable from the widget
+* also added Combo action button on PlayerDetails screen
+* changed all label of "My opinion" to "Comments"
+* in both EpisodeInfo and PlayerDetails screens, Todos, Comments, Tags are not shown if empty

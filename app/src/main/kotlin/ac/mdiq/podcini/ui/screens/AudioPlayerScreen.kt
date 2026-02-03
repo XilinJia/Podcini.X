@@ -43,6 +43,7 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.durationStringAdapt
 import ac.mdiq.podcini.storage.utils.durationStringFull
+import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
@@ -389,6 +390,12 @@ fun ControlUI(vm: AudioPlayerVM, navController: AppNavigator) {
             modifier = Modifier.size(buttonSize).combinedClickable(
                 onClick = {
                     if (curEpisode != null && exoPlayer != null && isPlaying) {
+                        val pos = exoPlayer!!.currentPosition
+                        runOnIOScope { upsert(curEpisode!!) { it.marks.add(pos) } }
+                        Logt(TAG, "position $pos marked for ${curEpisode?.title}")
+                    } else Loge(TAG, "Marking position only works during playback.") },
+                onLongClick = {
+                    if (curEpisode != null && exoPlayer != null && isPlaying) {
                         if (recordingStartTime == null) {
                             recordingStartTime = exoPlayer!!.currentPosition
                             saveClipInOriginalFormat(recordingStartTime!!)
@@ -397,13 +404,7 @@ fun ControlUI(vm: AudioPlayerVM, navController: AppNavigator) {
                             saveClipInOriginalFormat(recordingStartTime!!, exoPlayer!!.currentPosition)
                             recordingStartTime = null
                         }
-                    } else Loge(TAG, "Recording only works during playback.") },
-                onLongClick = {
-                    if (curEpisode != null && exoPlayer != null && isPlaying) {
-                        val pos = exoPlayer!!.currentPosition
-                        runOnIOScope { upsert(curEpisode!!) { it.marks.add(pos) } }
-                        Logt(TAG, "position $pos marked for ${curEpisode?.title}")
-                    } else Loge(TAG, "Marking position only works during playback.")
+                    } else Loge(TAG, "Recording only works during playback.")
                 }))
         Spacer(Modifier.weight(0.1f))
         Box(contentAlignment = Alignment.BottomCenter, modifier = Modifier.size(50.dp).combinedClickable(
@@ -700,20 +701,25 @@ fun AudioPlayerScreen(navController: AppNavigator) {
 
     @Composable
     fun DetailUI(modifier: Modifier) {
+        val actions = remember { SwipeActions(TAG, leftId = "COMBO", rightId = "COMBO") }
+        actions.ActionOptionsDialog()
+
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(curEpisode!!)) { showChooseRatingDialog = false }
         Column(modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             var resetPlayer by remember { mutableStateOf(false) }
             if (curEpisode != null) gearbox.PlayerDetailedGearPanel(curEpisode!!, resetPlayer) { resetPlayer = it }
             SelectionContainer { Text(curEpisode?.title ?: "No title", textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp)) {
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
                 Spacer(modifier = Modifier.weight(0.2f))
                 val ratingIconRes by remember(curEpisode?.rating) { mutableIntStateOf( Rating.fromCode(curEpisode?.rating ?: Rating.UNRATED.code).res) }
                 Icon(imageVector = ImageVector.vectorResource(ratingIconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "rating", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).width(24.dp).height(24.dp).clickable(onClick = { showChooseRatingDialog = true }))
                 Spacer(modifier = Modifier.weight(0.4f))
                 val episodeDate by remember(curEpisode) { mutableStateOf(if (curEpisode == null) "" else formatDateTimeFlex(Date(curEpisode!!.pubDate)).trim()) }
                 Text(episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.weight(0.6f))
+                Spacer(modifier = Modifier.weight(0.4f))
+                if (curEpisode != null) Icon(imageVector = ImageVector.vectorResource(actions.actions.left[0].iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable(onClick = {  actions.actions.left[0].performAction(curEpisode!!) }))
+                Spacer(modifier = Modifier.weight(0.2f))
             }
             SelectionContainer { Text((vm.episodeFeed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }
 

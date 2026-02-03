@@ -218,8 +218,8 @@
     <string name="delete_episode_label">Bölüm medyasını sil</string>
 
     <string name="no_action_label">Eylem yok</string>
-    <string name="my_opinion_label">Fikrim</string>
-    <string name="add_opinion_label">Fikir ekle</string>
+
+
     <string name="cancelled_on_label">İptal edildi</string>
 
     <string name="choose_tab">Kanalda bir sekme seçin</string>

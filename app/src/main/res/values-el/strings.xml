@@ -154,8 +154,8 @@
     <string name="delete_local_failed">Δεν είναι δυνατή η διαγραφή αρχείου. Προσπαθήστε να επανασυνδέσετε τον τοπικό φάκελο από την οθόνη πληροφοριών podcast</string>
     <string name="delete_episode_label">Διαγραφή επεισοδίων πολυμέσων</string>
     <string name="no_action_label">Καμία ενέργεια</string>
-    <string name="my_opinion_label">Η γνώμη μου</string>
-    <string name="add_opinion_label">Προσθήκη γνώμης</string>
+
+
     <string name="cancelled_on_label">Ακυρώθηκε στις</string>
     <string name="choose_tab">Επιλέξτε μια καρτέλα στο κανάλι</string>
     <string name="set_play_state_label">Ορισμός κατάστασης αναπαραγωγής</string>

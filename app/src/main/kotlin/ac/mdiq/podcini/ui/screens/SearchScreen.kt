@@ -360,7 +360,7 @@ fun SearchScreen() {
 enum class SearchBy(val nameRes: Int) {
     TITLE(R.string.title),
     DESCRIPTION(R.string.description_label),
-    COMMENT(R.string.my_opinion_label),
+    COMMENT(R.string.comments),
     AUTHOR(R.string.author),
 }
 

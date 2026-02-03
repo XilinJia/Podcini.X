@@ -41,7 +41,6 @@ import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
@@ -69,7 +68,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.CircularProgressIndicator
-
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -113,7 +111,6 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.MalformedURLException
@@ -643,7 +640,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                             showAddCommentDialog = true
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_comment_24), contentDescription = "Add comment")
-                            Text(stringResource(id = R.string.add_opinion_label)) } },
+                            Text(stringResource(id = R.string.add_comments)) } },
                         { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                             onSelected()
                             fun download(now: Boolean) {

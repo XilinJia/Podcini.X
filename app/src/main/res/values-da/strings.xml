@@ -154,8 +154,8 @@
     <string name="delete_local_failed">Kan ikke slette filen. Prøv at forbinde den lokale mappe igen fra podcast-infoskærmen.</string>
     <string name="delete_episode_label">Slet afsnit</string>
     <string name="no_action_label">Ingen handling</string>
-    <string name="my_opinion_label">Min mening</string>
-    <string name="add_opinion_label">Tilføj udtalelse</string>
+
+
     <string name="cancelled_on_label">Annulleret den</string>
     <string name="choose_tab">Vælg et faneblad i kanalen</string>
     <string name="set_play_state_label">Angiv afspilningsstatus</string>

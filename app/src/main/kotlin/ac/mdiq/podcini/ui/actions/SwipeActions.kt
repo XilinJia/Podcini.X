@@ -92,27 +92,35 @@ abstract class SwipeAction {
     }
 }
 
-class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
+class SwipeActions(private val tag: String, leftId: String = "", rightId: String = "") : DefaultLifecycleObserver {
     val actionsList: List<SwipeAction> = listOf(
         NoAction(),
         Combo(),
         SetPlaybackState(),
+
         AddToAssociatedQueue(),
         AddToActiveQueue(),
-        PutToQueue(),
+        AddToQueue(),
         RemoveFromQueue(),
+
         SetRating(),
         AddComment(),
         AddTag(),
+
         SearchSelected(),
+
         Download(),
+        Shelve(),
+
         Delete(),
         RemoveFromHistory(),
-        Shelve(),
         Erase(),
+
         Alarm())
 
-    var actions by mutableStateOf(RightLeftActions(appAttribs.swipeActionsMap[tag] ?: ""))
+    var actions by mutableStateOf(
+        if (leftId.isNotBlank() || rightId.isNotBlank()) RightLeftActions("$leftId,$rightId")
+        else RightLeftActions(appAttribs.swipeActionsMap[tag] ?: ""))
 
     override fun onStart(owner: LifecycleOwner) {
         actions = RightLeftActions(appAttribs.swipeActionsMap[tag] ?: "")
@@ -141,88 +149,16 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
         }
     }
 
-    class SetPlaybackState : SwipeAction() {
+    class NoAction : SwipeAction() {
         override val id: String
-            get() = "SET_PLAY_STATE"
-        private var showPlayStateDialog by mutableStateOf(false)
+            get() = "NO_ACTION"
         override val title: String
-            get() = getAppContext().getString(R.string.set_play_state_label)
+            get() = getAppContext().getString(R.string.no_action_label)
 
-        override val iconRes:  Int = R.drawable.ic_mark_played
-        override val color: Color = Color.Gray
+        override val iconRes:  Int = R.drawable.ic_questionmark
+        override val color: Color = Color.Red
 
-        override fun performAction(e: Episode) {
-            super.performAction(e)
-            showPlayStateDialog = true
-        }
-        @Composable
-        override fun ActionOptions() {
-            var showIgnoreDialog by remember { mutableStateOf(false) }
-            if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEpisode!!), onDismissRequest = { showIgnoreDialog = false })
-            var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
-            if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(onEpisode!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
-            if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!), onDismissRequest = { showPlayStateDialog = false }, futureCB = { futureState = it }, ignoreCB = { showIgnoreDialog = true })
-        }
-    }
-
-    class AddToActiveQueue : SwipeAction() {
-        override val id: String
-            get() = "ADD_TO_QUEUE"
-        override val title: String
-            get() = getAppContext().getString(R.string.add_to_active_queue)
-
-        override val iconRes:  Int = R.drawable.ic_playlist_play
-        override val color: Color = Color.Cyan
-
-        override fun enabled(): Boolean {
-            if (onEpisode?.feed?.queue != null) return false
-            return onEpisode != null && !actQueue.contains(onEpisode!!)
-        }
-
-        override fun performAction(e: Episode) {
-            super.performAction(e)
-            runOnIOScope { addToQueue(listOf(e), actQueue) }
-        }
-    }
-
-    class AddToAssociatedQueue : SwipeAction() {
-        override val id: String
-            get() = "ADD_TO_ASSOCIATED"
-        override val title: String
-            get() = getAppContext().getString(R.string.add_to_associated_queue)
-
-        override val iconRes:  Int = R.drawable.ic_playlist_play
-        override val color: Color = Color.Cyan
-
-        override fun enabled(): Boolean {
-            val q = onEpisode?.feed?.queue ?: return false
-            return !q.contains(onEpisode!!)
-        }
-
-        override fun performAction(e: Episode) {
-            super.performAction(e)
-            if (e.feed?.queue != null) runOnIOScope { addToAssQueue(listOf(e)) }
-        }
-    }
-
-    class PutToQueue : SwipeAction() {
-        override val id: String
-            get() = "PUT_TO_QUEUE"
-        private var showPutToQueueDialog by mutableStateOf(false)
-        override val title: String
-            get() = getAppContext().getString(R.string.add_to_queue)
-
-        override val iconRes:  Int = R.drawable.ic_playlist_play
-        override val color: Color = Color.Gray
-
-        override fun performAction(e: Episode) {
-            super.performAction(e)
-            showPutToQueueDialog = true
-        }
-        @Composable
-        override fun ActionOptions() {
-            if (showPutToQueueDialog && onEpisode != null) PutToQueueDialog(listOf(onEpisode!!)) { showPutToQueueDialog = false }
-        }
+        override fun enabled(): Boolean = false
     }
 
     inner class Combo : SwipeAction() {
@@ -244,7 +180,6 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
         override fun ActionOptions() {
             useAction?.ActionOptions()
             if (showDialog && onEpisode != null) CommonPopupCard(onDismissRequest = { showDialog = false }) {
-                val context = LocalContext.current
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     for (action in actionsList) {
                         if (action is NoAction || action is Combo) continue
@@ -264,34 +199,105 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
         }
     }
 
-    inner class Delete() : SwipeAction() {
+
+    class SetPlaybackState : SwipeAction() {
         override val id: String
-            get() = "DELETE"
+            get() = "SET_PLAY_STATE"
+        private var showPlayStateDialog by mutableStateOf(false)
         override val title: String
-            get() = getAppContext().getString(R.string.delete_episode_label)
+            get() = getAppContext().getString(R.string.set_play_state_label)
 
-        override val iconRes:  Int = R.drawable.ic_delete
-        override val color: Color = Color.Red
-
-        override fun enabled(): Boolean = onEpisode?.downloaded == true
+        override val iconRes:  Int = R.drawable.ic_mark_played
+        override val color: Color = Color(0xFF66FFAA)
 
         override fun performAction(e: Episode) {
-            var item_ = e
             super.performAction(e)
-            if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
-            runOnIOScope {
-                val almostEnded = item_.hasAlmostEnded()
-                if (almostEnded) {
-                    item_ = upsert(item_) {
-                        if (it.playState < EpisodeState.PLAYED.code) it.setPlayState(EpisodeState.PLAYED)
-                        it.playbackCompletionDate = Date()
-                    }
-                }
-                deleteEpisodesWarnLocalRepeat(listOf(item_))
-//                withContext(Dispatchers.Main) {
-////                    vm.actionButton.update(vm.episode)
-//                }
-            }
+            showPlayStateDialog = true
+        }
+        @Composable
+        override fun ActionOptions() {
+            var showIgnoreDialog by remember { mutableStateOf(false) }
+            if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEpisode!!), onDismissRequest = { showIgnoreDialog = false })
+            var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
+            if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(onEpisode!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
+            if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!), onDismissRequest = { showPlayStateDialog = false }, futureCB = { futureState = it }, ignoreCB = { showIgnoreDialog = true })
+        }
+    }
+
+    class AddToAssociatedQueue : SwipeAction() {
+        override val id: String
+            get() = "ADD_TO_ASSOCIATED"
+        override val title: String
+            get() = getAppContext().getString(R.string.add_to_associated_queue)
+
+        override val iconRes:  Int = R.drawable.ic_playlist_play
+        override val color: Color = Color(0xFF5599FF)
+
+        override fun enabled(): Boolean {
+            val q = onEpisode?.feed?.queue ?: return false
+            return !q.contains(onEpisode!!)
+        }
+
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            if (e.feed?.queue != null) runOnIOScope { addToAssQueue(listOf(e)) }
+        }
+    }
+
+    class AddToActiveQueue : SwipeAction() {
+        override val id: String
+            get() = "ADD_TO_QUEUE"
+        override val title: String
+            get() = getAppContext().getString(R.string.add_to_active_queue)
+
+        override val iconRes:  Int = R.drawable.ic_playlist_play
+        override val color: Color = Color(0xFF55BBFF)
+
+        override fun enabled(): Boolean {
+            if (onEpisode?.feed?.queue != null) return false
+            return onEpisode != null && !actQueue.contains(onEpisode!!)
+        }
+
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            runOnIOScope { addToQueue(listOf(e), actQueue) }
+        }
+    }
+
+    class AddToQueue : SwipeAction() {
+        override val id: String
+            get() = "ADD_TO_QUEUE"
+        private var showPutToQueueDialog by mutableStateOf(false)
+        override val title: String
+            get() = getAppContext().getString(R.string.add_to_queue)
+
+        override val iconRes:  Int = R.drawable.ic_playlist_play
+        override val color: Color = Color(0xFF55DDFF)
+
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            showPutToQueueDialog = true
+        }
+        @Composable
+        override fun ActionOptions() {
+            if (showPutToQueueDialog && onEpisode != null) PutToQueueDialog(listOf(onEpisode!!)) { showPutToQueueDialog = false }
+        }
+    }
+
+    class RemoveFromQueue : SwipeAction() {
+        override val id: String
+            get() = "REMOVE_FROM_QUEUE"
+        override val title: String
+            get() = getAppContext().getString(R.string.remove_from_all_queues)
+
+        override val iconRes:  Int = R.drawable.ic_playlist_remove
+        override val color: Color = Color(0xFFDDAAFF)
+
+        override fun enabled(): Boolean = onEpisode != null && actQueue.contains(onEpisode!!)
+
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            runOnIOScope { smartRemoveFromAllQueues(e) }
         }
     }
 
@@ -303,7 +309,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.set_rating_label)
 
         override val iconRes:  Int = R.drawable.ic_star
-        override val color: Color = Color.Yellow
+        override val color: Color = Color(0xFFFFAA88)
 
         override fun performAction(e: Episode) {
             super.performAction(e)
@@ -321,13 +327,13 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
         private var showEditComment by mutableStateOf(false)
         private var editCommentText by mutableStateOf(TextFieldValue(""))
         override val title: String
-            get() = getAppContext().getString(R.string.add_opinion_label)
+            get() = getAppContext().getString(R.string.add_comments)
 
         override val iconRes:  Int = R.drawable.baseline_comment_24
-        override val color: Color = Color.Yellow
+        override val color: Color = Color(0xFFFFCC00)
 
         override fun performAction(e: Episode) {
-//            val e_ = (if (isCurMedia(e)) curEpisode else realm.query(Episode::class).query("id == ${e.id}").first().find()) ?: return
+            //            val e_ = (if (isCurMedia(e)) curEpisode else realm.query(Episode::class).query("id == ${e.id}").first().find()) ?: return
             onEpisode = e
             editCommentText = TextFieldValue(onEpisode?.compileCommentText() ?: "")
             showEditComment = true
@@ -349,7 +355,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.tags_label)
 
         override val iconRes:  Int = R.drawable.baseline_label_24
-        override val color: Color = Color.Yellow
+        override val color: Color = Color(0xFFFFCC33)
 
         override fun performAction(e: Episode) {
             onEpisode = e
@@ -378,7 +384,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.search_selected)
 
         override val iconRes:  Int = R.drawable.ic_search
-        override val color: Color = Color.Yellow
+        override val color: Color = Color(0xFF55AA55)
 
         override fun performAction(e: Episode) {
             super.performAction(e)
@@ -411,16 +417,74 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
         }
     }
 
-    class NoAction : SwipeAction() {
+    inner class Download() : SwipeAction() {
         override val id: String
-            get() = "NO_ACTION"
+            get() = "START_DOWNLOAD"
         override val title: String
-            get() = getAppContext().getString(R.string.no_action_label)
+            get() = getAppContext().getString(R.string.download_label)
 
-        override val iconRes:  Int = R.drawable.ic_questionmark
-        override val color: Color = Color.Red
+        override val iconRes:  Int = R.drawable.ic_download
+        override val color: Color = Color(0xFF55FF00)
 
-        override fun enabled(): Boolean = false
+        override fun enabled(): Boolean = onEpisode?.downloaded == false && onEpisode?.feed != null && !onEpisode!!.feed!!.isLocalFeed
+
+
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            if (!e.downloaded && e.feed != null && !e.feed!!.isLocalFeed) EpisodeActionButton(e, ButtonTypes.DOWNLOAD).onClick()
+        }
+    }
+
+    class Shelve : SwipeAction() {
+        override val id: String
+            get() = "SHELVE"
+        private var showShelveDialog by mutableStateOf(false)
+        override val title: String
+            get() = getAppContext().getString(R.string.shelve_label)
+
+        override val iconRes:  Int = R.drawable.baseline_shelves_24
+        override val color: Color = Color(0xFF88FF99)
+
+        override fun performAction(e: Episode) {
+            super.performAction(e)
+            showShelveDialog = true
+        }
+        @Composable
+        override fun ActionOptions() {
+            if (showShelveDialog && onEpisode != null) ShelveDialog(listOf(onEpisode!!)) { showShelveDialog = false }
+        }
+    }
+
+
+    inner class Delete() : SwipeAction() {
+        override val id: String
+            get() = "DELETE"
+        override val title: String
+            get() = getAppContext().getString(R.string.delete_episode_label)
+
+        override val iconRes:  Int = R.drawable.ic_delete
+        override val color: Color = Color(0xFFFF3388)
+
+        override fun enabled(): Boolean = onEpisode?.downloaded == true
+
+        override fun performAction(e: Episode) {
+            var item_ = e
+            super.performAction(e)
+            if (!item_.downloaded && item_.feed?.isLocalFeed != true) return
+            runOnIOScope {
+                val almostEnded = item_.hasAlmostEnded()
+                if (almostEnded) {
+                    item_ = upsert(item_) {
+                        if (it.playState < EpisodeState.PLAYED.code) it.setPlayState(EpisodeState.PLAYED)
+                        it.playbackCompletionDate = Date()
+                    }
+                }
+                deleteEpisodesWarnLocalRepeat(listOf(item_))
+//                withContext(Dispatchers.Main) {
+////                    vm.actionButton.update(vm.episode)
+//                }
+            }
+        }
     }
 
     inner class RemoveFromHistory() : SwipeAction() {
@@ -432,7 +496,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.remove_history_label)
 
         override val iconRes:  Int = R.drawable.ic_history_remove
-        override val color: Color = Color.Magenta
+        override val color: Color = Color(0xFFFF55FF)
 
         override fun enabled(): Boolean = (onEpisode?.lastPlayedTime ?: 0L) > 0L || (onEpisode?.playbackCompletionTime ?: 0L) > 0L
 
@@ -463,61 +527,6 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
         }
     }
 
-    class RemoveFromQueue : SwipeAction() {
-        override val id: String
-            get() = "REMOVE_FROM_QUEUE"
-        override val title: String
-            get() = getAppContext().getString(R.string.remove_from_all_queues)
-
-        override val iconRes:  Int = R.drawable.ic_playlist_remove
-        override val color: Color = Color.Cyan
-
-        override fun enabled(): Boolean = onEpisode != null && actQueue.contains(onEpisode!!)
-
-        override fun performAction(e: Episode) {
-            super.performAction(e)
-            runOnIOScope { smartRemoveFromAllQueues(e) }
-        }
-    }
-
-    inner class Download() : SwipeAction() {
-        override val id: String
-            get() = "START_DOWNLOAD"
-        override val title: String
-            get() = getAppContext().getString(R.string.download_label)
-
-        override val iconRes:  Int = R.drawable.ic_download
-        override val color: Color = Color.Green
-
-        override fun enabled(): Boolean = onEpisode?.downloaded == false && onEpisode?.feed != null && !onEpisode!!.feed!!.isLocalFeed
-
-        
-        override fun performAction(e: Episode) {
-            super.performAction(e)
-            if (!e.downloaded && e.feed != null && !e.feed!!.isLocalFeed) EpisodeActionButton(e, ButtonTypes.DOWNLOAD).onClick()
-        }
-    }
-
-    class Shelve : SwipeAction() {
-        override val id: String
-            get() = "SHELVE"
-        private var showShelveDialog by mutableStateOf(false)
-        override val title: String
-            get() = getAppContext().getString(R.string.shelve_label)
-
-        override val iconRes:  Int = R.drawable.baseline_shelves_24
-        override val color: Color = Color.Gray
-
-        override fun performAction(e: Episode) {
-            super.performAction(e)
-            showShelveDialog = true
-        }
-        @Composable
-        override fun ActionOptions() {
-            if (showShelveDialog && onEpisode != null) ShelveDialog(listOf(onEpisode!!)) { showShelveDialog = false }
-        }
-    }
-
     class Erase : SwipeAction() {
         override val id: String
             get() = "ERASE"
@@ -526,7 +535,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.erase_episodes_label)
 
         override val iconRes: Int = R.drawable.baseline_delete_forever_24
-        override val color: Color = Color.Gray
+        override val color: Color = Color(0xFFFF0099)
 
         override fun performAction(e: Episode) {
             super.performAction(e)
@@ -547,7 +556,7 @@ class SwipeActions(private val tag: String) : DefaultLifecycleObserver {
             get() = getAppContext().getString(R.string.alarm_episodes_label)
 
         override val iconRes:  Int = R.drawable.baseline_access_alarms_24
-        override val color: Color = Color.Red
+        override val color: Color = Color(0xFFB9BE33)
 
         override fun performAction(e: Episode) {
             super.performAction(e)

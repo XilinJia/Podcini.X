@@ -405,7 +405,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         }
     }
 
-    
     @Composable
     fun MyTopAppBar() {
         var expanded by remember { mutableStateOf(false) }
@@ -540,7 +539,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             if (!feed?.langSet.isNullOrEmpty()) Text("Languages: ${feed!!.langSet.joinToString(", ")}")
 
             Text("Tags: ${feed?.tagsAsString?:""}", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom, modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable { showTagsSettingDialog = true })
-            Text(stringResource(R.string.my_opinion_label) + if (feed?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
+            Text(stringResource(R.string.comments) + if (feed?.comment.isNullOrBlank()) " (Add)" else "", color = MaterialTheme.colorScheme.primary, style = CustomTextStyles.titleCustom,
                 modifier = Modifier.padding(start = 15.dp, top = 10.dp, bottom = 5.dp).clickable {
                     editCommentText = TextFieldValue((if (feed?.comment.isNullOrBlank()) "" else feed!!.comment + "\n") + fullDateTimeString(localTime) + ":\n")
                     showEditComment = true

@@ -1,3 +1,17 @@
+# 10.8.7
+
+* in PlayerUI, Record button behavior is changed: click on it now creates a mark, long-press on it start/stop recording
+* in EpisodeInfo screen, 
+	* on topbar a Combo action replaces various other actions, enabling more operations, working also from the widget
+	* play status and rating are shown on the dates line
+	* fixed changes not updating
+* also added Combo action button on PlayerDetails screen
+* changed all label of "My opinion" to "Comments"
+* in both EpisodeInfo and PlayerDetails screens, Todos, Comments, Tags are not shown if empty
+* Popup's adopt colors of the theme
+* tuned icon colors of swipe actions
+* rebuilt hashCode and equals on Episode and Feed
+
 # 10.8.6
 
 * tuned the header of EpisodeInfo screen, fixed media size text

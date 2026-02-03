@@ -157,8 +157,8 @@
     <string name="delete_local_failed">Impossible de supprimer le fichier. Essayer de reconnecter le dossier local à partir de l\'écran des infos du podcast.</string>
     <string name="delete_episode_label">Suppression de l\'épisode</string>
     <string name="no_action_label">Aucune action</string>
-    <string name="my_opinion_label">Mon opinion</string>
-    <string name="add_opinion_label">Ajouter une opinion</string>
+
+
     <string name="cancelled_on_label">Annulé le</string>
     <string name="choose_tab">Choisissez un onglet dans le canal</string>
     <string name="set_play_state_label">Définir l\'état de lecture</string>

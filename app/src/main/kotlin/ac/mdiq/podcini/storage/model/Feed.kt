@@ -502,6 +502,182 @@ class Feed : RealmObject {
         return "feed-" + generateFileName(filename) + id
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+
+        other as Feed
+
+        if (id != other.id) return false
+        if (volumeId != other.volumeId) return false
+        if (useEpisodeImage != other.useEpisodeImage) return false
+        if (score != other.score) return false
+        if (scoreCount != other.scoreCount) return false
+        if (scoreUpdated != other.scoreUpdated) return false
+        if (limitEpisodesCount != other.limitEpisodesCount) return false
+        if (lastPlayed != other.lastPlayed) return false
+        if (lastUpdateTime != other.lastUpdateTime) return false
+        if (lastFullUpdateTime != other.lastFullUpdateTime) return false
+        if (pageNr != other.pageNr) return false
+        if (isPaged != other.isPaged) return false
+        if (lastUpdateFailed != other.lastUpdateFailed) return false
+        if (totleDuration != other.totleDuration) return false
+        if (hasVideoMedia != other.hasVideoMedia) return false
+        if (rating != other.rating) return false
+        if (commentTime != other.commentTime) return false
+        if (subscriberCount != other.subscriberCount) return false
+        if (durationFloor != other.durationFloor) return false
+        if (durationCeiling != other.durationCeiling) return false
+        if (sortOrderCode != other.sortOrderCode) return false
+        if (sortValue != other.sortValue) return false
+        if (useWideLayout != other.useWideLayout) return false
+        if (keepUpdated != other.keepUpdated) return false
+        if (videoMode != other.videoMode) return false
+        if (playSpeed != other.playSpeed) return false
+        if (skipSilence != other.skipSilence) return false
+        if (introSkip != other.introSkip) return false
+        if (endingSkip != other.endingSkip) return false
+        if (autoDelete != other.autoDelete) return false
+        if (audioType != other.audioType) return false
+        if (volumeAdaption != other.volumeAdaption) return false
+        if (audioQuality != other.audioQuality) return false
+        if (videoQuality != other.videoQuality) return false
+        if (prefStreamOverDownload != other.prefStreamOverDownload) return false
+        if (autoDownload != other.autoDownload) return false
+        if (autoEnqueue != other.autoEnqueue) return false
+        if (queueId != other.queueId) return false
+        if (autoAddNewToQueue != other.autoAddNewToQueue) return false
+        if (durationFloorADL != other.durationFloorADL) return false
+        if (durationCeilingADL != other.durationCeilingADL) return false
+        if (sortOrderCodeADL != other.sortOrderCodeADL) return false
+        if (autoDLMinDuration != other.autoDLMinDuration) return false
+        if (autoDLMaxDuration != other.autoDLMaxDuration) return false
+        if (markExcludedPlayed != other.markExcludedPlayed) return false
+        if (autoDLSoon != other.autoDLSoon) return false
+        if (autoDLMaxEpisodes != other.autoDLMaxEpisodes) return false
+        if (countingPlayed != other.countingPlayed) return false
+        if (autoDLPolicyCode != other.autoDLPolicyCode) return false
+        if (autoDLPolicyReplace != other.autoDLPolicyReplace) return false
+        if (identifier != other.identifier) return false
+        if (fileUrl != other.fileUrl) return false
+        if (downloadUrl != other.downloadUrl) return false
+        if (eigenTitle != other.eigenTitle) return false
+        if (customTitle != other.customTitle) return false
+        if (link != other.link) return false
+        if (description != other.description) return false
+        if (langSet != other.langSet) return false
+        if (author != other.author) return false
+        if (imageUrl != other.imageUrl) return false
+        if (episodes != other.episodes) return false
+        if (type != other.type) return false
+        if (prefActionType != other.prefActionType) return false
+        if (nextPageLink != other.nextPageLink) return false
+        if (lastUpdate != other.lastUpdate) return false
+        if (comment != other.comment) return false
+        if (paymentLinkList != other.paymentLinkList) return false
+        if (payment_link != other.payment_link) return false
+        if (filterString != other.filterString) return false
+        if (titleFilterText != other.titleFilterText) return false
+        if (filterAndOr != other.filterAndOr) return false
+        if (sortInfo != other.sortInfo) return false
+        if (username != other.username) return false
+        if (password != other.password) return false
+        if (tags != other.tags) return false
+        if (repeatIntervals != other.repeatIntervals) return false
+        if (filterStringADL != other.filterStringADL) return false
+        if (autoDLInclude != other.autoDLInclude) return false
+        if (autoDLExclude != other.autoDLExclude) return false
+        if (preferredLnaguages != other.preferredLnaguages) return false
+        if (isBuilding != other.isBuilding) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + volumeId.hashCode()
+        result = 31 * result + useEpisodeImage.hashCode()
+        result = 31 * result + score
+        result = 31 * result + scoreCount
+        result = 31 * result + scoreUpdated.hashCode()
+        result = 31 * result + limitEpisodesCount
+        result = 31 * result + lastPlayed.hashCode()
+        result = 31 * result + lastUpdateTime.hashCode()
+        result = 31 * result + lastFullUpdateTime.hashCode()
+        result = 31 * result + pageNr
+        result = 31 * result + isPaged.hashCode()
+        result = 31 * result + lastUpdateFailed.hashCode()
+        result = 31 * result + totleDuration.hashCode()
+        result = 31 * result + hasVideoMedia.hashCode()
+        result = 31 * result + rating
+        result = 31 * result + commentTime.hashCode()
+        result = 31 * result + subscriberCount
+        result = 31 * result + durationFloor
+        result = 31 * result + durationCeiling
+        result = 31 * result + sortOrderCode
+        result = 31 * result + sortValue.hashCode()
+        result = 31 * result + useWideLayout.hashCode()
+        result = 31 * result + keepUpdated.hashCode()
+        result = 31 * result + videoMode
+        result = 31 * result + playSpeed.hashCode()
+        result = 31 * result + (skipSilence?.hashCode() ?: 0)
+        result = 31 * result + introSkip
+        result = 31 * result + endingSkip
+        result = 31 * result + autoDelete
+        result = 31 * result + audioType
+        result = 31 * result + volumeAdaption
+        result = 31 * result + audioQuality
+        result = 31 * result + videoQuality
+        result = 31 * result + prefStreamOverDownload.hashCode()
+        result = 31 * result + autoDownload.hashCode()
+        result = 31 * result + autoEnqueue.hashCode()
+        result = 31 * result + queueId.hashCode()
+        result = 31 * result + autoAddNewToQueue.hashCode()
+        result = 31 * result + durationFloorADL
+        result = 31 * result + durationCeilingADL
+        result = 31 * result + sortOrderCodeADL
+        result = 31 * result + autoDLMinDuration
+        result = 31 * result + autoDLMaxDuration
+        result = 31 * result + markExcludedPlayed.hashCode()
+        result = 31 * result + autoDLSoon.hashCode()
+        result = 31 * result + autoDLMaxEpisodes
+        result = 31 * result + countingPlayed.hashCode()
+        result = 31 * result + autoDLPolicyCode
+        result = 31 * result + autoDLPolicyReplace.hashCode()
+        result = 31 * result + (identifier?.hashCode() ?: 0)
+        result = 31 * result + (fileUrl?.hashCode() ?: 0)
+        result = 31 * result + (downloadUrl?.hashCode() ?: 0)
+        result = 31 * result + (eigenTitle?.hashCode() ?: 0)
+        result = 31 * result + (customTitle?.hashCode() ?: 0)
+        result = 31 * result + (link?.hashCode() ?: 0)
+        result = 31 * result + (description?.hashCode() ?: 0)
+        result = 31 * result + langSet.hashCode()
+        result = 31 * result + (author?.hashCode() ?: 0)
+        result = 31 * result + (imageUrl?.hashCode() ?: 0)
+        result = 31 * result + episodes.hashCode()
+        result = 31 * result + (type?.hashCode() ?: 0)
+        result = 31 * result + (prefActionType?.hashCode() ?: 0)
+        result = 31 * result + (nextPageLink?.hashCode() ?: 0)
+        result = 31 * result + (lastUpdate?.hashCode() ?: 0)
+        result = 31 * result + comment.hashCode()
+        result = 31 * result + paymentLinkList.hashCode()
+        result = 31 * result + (payment_link?.hashCode() ?: 0)
+        result = 31 * result + filterString.hashCode()
+        result = 31 * result + titleFilterText.hashCode()
+        result = 31 * result + filterAndOr.hashCode()
+        result = 31 * result + sortInfo.hashCode()
+        result = 31 * result + (username?.hashCode() ?: 0)
+        result = 31 * result + (password?.hashCode() ?: 0)
+        result = 31 * result + tags.hashCode()
+        result = 31 * result + repeatIntervals.hashCode()
+        result = 31 * result + filterStringADL.hashCode()
+        result = 31 * result + (autoDLInclude?.hashCode() ?: 0)
+        result = 31 * result + (autoDLExclude?.hashCode() ?: 0)
+        result = 31 * result + preferredLnaguages.hashCode()
+        result = 31 * result + isBuilding.hashCode()
+        return result
+    }
+
     enum class FeedType(name: String) {
         RSS("rss"),
         ATOM1("atom"),

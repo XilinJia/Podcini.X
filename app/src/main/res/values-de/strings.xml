@@ -157,8 +157,8 @@
     <string name="delete_local_failed">Die Datei kann nicht gelöscht werden. Versuche, den lokalen Ordner über den Podcast-Infobildschirm erneut zu verbinden.</string>
     <string name="delete_episode_label">Episode löschen</string>
     <string name="no_action_label">Keine Aktion</string>
-    <string name="my_opinion_label">Meine Meinung</string>
-    <string name="add_opinion_label">Meinung hinzufügen</string>
+
+
     <string name="cancelled_on_label">Abgebrochen am</string>
     <string name="choose_tab">Wähle einen Tab im Kanal</string>
     <string name="set_play_state_label">Gespielter Status festlegen</string>

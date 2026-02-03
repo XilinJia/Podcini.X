@@ -156,8 +156,8 @@
     <string name="delete_local_failed">Не вдалося видалити файл. Спробуйте перепід\'єднати локальну теку з екрана інформації про подкаст.</string>
     <string name="delete_episode_label">Видалити епізод</string>
     <string name="no_action_label">Дія не потрібна</string>
-    <string name="my_opinion_label">Моя думка</string>
-    <string name="add_opinion_label">Додати думку</string>
+
+
     <string name="cancelled_on_label">Скасовано на</string>
     <string name="choose_tab">Оберіть вкладку у каналі</string>
     <string name="set_play_state_label">Встановити статус гри</string>

@@ -153,8 +153,8 @@
     <string name="delete_local_failed">无法删除文件。请尝试从播客信息屏幕上重新连接本地文件夹。</string>
     <string name="delete_episode_label">删除剧集媒体</string>
     <string name="no_action_label">无动作</string>
-    <string name="my_opinion_label">我的意见</string>
-    <string name="add_opinion_label">添加意见</string>
+
+
     <string name="cancelled_on_label">取消于</string>
     <string name="choose_tab">选择频道中的标签</string>
     <string name="set_play_state_label">设置播放状态</string>
