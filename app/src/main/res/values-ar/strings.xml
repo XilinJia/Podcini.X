@@ -209,9 +209,9 @@
     <string name="delete_local_failed">غير قادر على حذف الملف. حاول إعادة توصيل المجلد المحلي من شاشة معلومات podcast</string>
     <string name="delete_episode_label">حذف وسائط الحلقة</string>
     <string name="set_related">تعيين الحلقات ذات الصلة</string>
+    <string name="comments">Comments</string>
+    <string name="add_comments">Add comments</string>
     <string name="no_action_label">لا يوجد إجراء</string>
-    <string name="my_opinion_label">رأيي</string>
-    <string name="add_opinion_label">إضافة رأي</string>
     <string name="cancelled_on_label">ألغيت في</string>
     <string name="related">ذات الصلة</string>
     <string name="choose_tab">اختر علامة تبويب في القناة</string>
