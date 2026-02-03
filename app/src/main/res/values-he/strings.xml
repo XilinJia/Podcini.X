@@ -207,9 +207,9 @@
     <string name="delete_local_failed">Unable to delete file. Try re-connecting the local folder from the podcast info screen.</string>
     <string name="delete_episode_label">Delete episode media</string>
     <string name="set_related">Set episodes related</string>
+    <string name="comments">Comments</string>
+    <string name="add_comments">Add comments</string>
     <string name="no_action_label">No action</string>
-    <string name="my_opinion_label">My opinion</string>
-    <string name="add_opinion_label">Add opinion</string>
     <string name="cancelled_on_label">Cancelled on</string>
     <string name="related">Related</string>
     <string name="choose_tab">Choose a tab in the channel</string>
