@@ -17,6 +17,7 @@ import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.compose.EpisodeLazyColumn
 import ac.mdiq.podcini.ui.compose.EpisodeScreen
+import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.InforBar
 import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.Screens
@@ -53,7 +54,6 @@ import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
@@ -67,6 +67,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -91,12 +92,10 @@ import coil.request.ImageRequest
 import io.github.xilinjia.krdb.notifications.ResultsChange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -117,14 +116,15 @@ class SearchVM: ViewModel() {
     internal val pafeeds = mutableStateListOf<PAFeed>()
     internal val feeds = mutableStateListOf<Feed>()
 
+    var queryText by mutableStateOf(curSearchString)
+
+    var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_DESC)
     var showAdvanced by mutableStateOf(false)
 
     val tabTitles = listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds)
     val selectedTabIndex = mutableIntStateOf(0)
 
     var listIdentity by mutableStateOf("")
-
-    private val _searchQuery = MutableStateFlow(curSearchString)
 
     init {
         Logd(TAG, "init $curSearchString")
@@ -133,17 +133,13 @@ class SearchVM: ViewModel() {
 
     data class Triplet(val episodes:  Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
 
-    fun onSearch(query: String) {
-        _searchQuery.value = query
-    }
-
-    val episodesFlow: StateFlow<List<Episode>> = _searchQuery.filter { it.isNotEmpty() }.flatMapLatest { queryText ->
+    val episodesFlow: StateFlow<List<Episode>> = snapshotFlow { Pair(queryText, episodeSortOrder) }.flatMapLatest { (queryText, order) ->
         val results_ = withContext(Dispatchers.IO) {
             if (queryText.isEmpty()) Triplet(emptyFlow(), listOf(), listOf())
             else {
                 val queryWords = (if (queryText.contains(",")) queryText.split(",").map { it.trim() } else queryText.split("\\s+".toRegex())).dropWhile { it.isEmpty() }
                 listIdentity = "Search.${queryWords.joinToString()}"
-                val items = algo.searchEpisodes(0L, queryWords)
+                val items = algo.searchEpisodes(0L, queryWords, sortBY = order)
                 val feeds: List<Feed> = algo.searchFeeds(queryWords)
                 val pafeeds = algo.searchPAFeeds(queryWords)
                 Triplet(items, feeds, pafeeds)
@@ -155,8 +151,8 @@ class SearchVM: ViewModel() {
             pafeeds.clear()
             if (results_.pafeeds.isNotEmpty()) pafeeds.addAll(results_.pafeeds)
             Logd(TAG, "Search found feeds: ${feeds.size}")
+            results_.episodes.map { it.list }
         }
-        results_.episodes.map { it.list }
     }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 }
 
@@ -177,7 +173,6 @@ fun SearchScreen() {
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_CREATE -> lifecycleOwner.lifecycle.addObserver(swipeActions)
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}
@@ -199,28 +194,28 @@ fun SearchScreen() {
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) { episodeForInfo = null }
 
-    var queryText by remember { mutableStateOf(curSearchString) }
+    var showSortDialog by remember { mutableStateOf(false) }
+    if (showSortDialog) EpisodeSortDialog(initOrder = vm.episodeSortOrder, onDismissRequest = { showSortDialog = false }) { order -> vm.episodeSortOrder = order ?: EpisodeSortOrder.DATE_DESC }
 
     @Composable
     fun MyTopAppBar() {
         Box {
             TopAppBar(title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    SearchBarRow(R.string.search_hint, defaultText = queryText, modifier = Modifier.weight(1f) , history = appAttribs.searchHistory) { str ->
+                    SearchBarRow(R.string.search_hint, defaultText = vm.queryText, modifier = Modifier.weight(1f) , history = appAttribs.searchHistory) { str ->
                         if (str.isBlank()) return@SearchBarRow
                         curSearchString = str
-                        queryText = str
                         upsertBlk(appAttribs) {
                             if (str in it.searchHistory) it.searchHistory.remove(str)
                             it.searchHistory.add(0, str)
                             if (it.searchHistory.size > SearchHistorySize+4) it.searchHistory.apply { subList(SearchHistorySize, size).clear() }
                         }
-//                        vm.search()
-                        vm.onSearch(queryText)
+                        vm.queryText = str
                     }
-                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.clickable(onClick = { vm.showAdvanced = !vm.showAdvanced}))
+                    if (vm.selectedTabIndex.intValue == 0) Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "butSort", modifier = Modifier.padding(start = 7.dp).clickable(onClick = { showSortDialog = true }))
+                    Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_settings), contentDescription = "Advanced", modifier = Modifier.padding(start = 7.dp).clickable(onClick = { vm.showAdvanced = !vm.showAdvanced}))
                 }
-            }, navigationIcon = { IconButton(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open()  }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } })
+            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", modifier = Modifier.padding(horizontal = 7.dp).clickable(onClick = { if (navController.previousBackStackEntry != null) navController.popBackStack() else drawerController?.open()  })) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -311,7 +306,7 @@ fun SearchScreen() {
     val tabCounts = remember(episodes.size, vm.feeds.size, vm.pafeeds.size) { listOf(episodes.size, vm.feeds.size, vm.pafeeds.size) }
     swipeActions.ActionOptionsDialog()
 
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
+    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
     else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
             if (vm.showAdvanced) {
@@ -320,7 +315,7 @@ fun SearchScreen() {
                     Text(stringResource(R.string.show_criteria), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = { showSearchBy = !showSearchBy }))
                     Spacer(Modifier.weight(1f))
                     Text(stringResource(R.string.search_online), color = actionColor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.clickable(onClick = {
-                        val query = queryText
+                        val query = vm.queryText
                         if (query.matches("http[s]?://.*".toRegex())) {
                             navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(query, StandardCharsets.UTF_8.name())}")
                             return@clickable

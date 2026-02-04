@@ -15,12 +15,15 @@ import ac.mdiq.podcini.preferences.OpmlBackupAgent.Companion.performRestore
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlElement
 import ac.mdiq.podcini.storage.database.addNewFeed
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedByIdentityOrID
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.SearchHistorySize
 import ac.mdiq.podcini.storage.model.SubscriptionLog.Companion.feedLogsMap
 import ac.mdiq.podcini.storage.model.Volume
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
@@ -56,6 +59,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -112,6 +116,7 @@ fun setOnlineSearchTerms(searchProvider_: Class<out PodcastSearcher?> = Combined
 
 class FindFeedsVM: ViewModel() {
     internal val searchResults = mutableStateListOf<PodcastSearchResult>()
+
     internal val readElements = mutableStateListOf<OpmlElement>()
 
     var showOpmlImportSelectionDialog by mutableStateOf(false)
@@ -153,6 +158,7 @@ class FindFeedsVM: ViewModel() {
                 for (r in result) r.feedId = feedId(r)
                 searchResults.clear()
                 searchResults.addAll(result)
+                searchResults.sortBy { it.title }
                 withContext(Dispatchers.Main) { showProgress = false }
             } catch (e: Exception) {
                 showProgress = false
@@ -265,13 +271,18 @@ fun FindFeedsScreen() {
         Box {
             TopAppBar(title = {
                 Logd(TAG, "Topbar searchText: $searchText")
-                SearchBarRow(R.string.search_podcast_hint, modifier = Modifier.fillMaxWidth(), defaultText = searchText) { queryText ->
-                    if (queryText.isBlank()) return@SearchBarRow
-                    searchText = queryText
-                    if (queryText.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(queryText, StandardCharsets.UTF_8.name())}")
-                    else vm.search(queryText)
+                SearchBarRow(R.string.search_podcast_hint, modifier = Modifier.fillMaxWidth(), defaultText = searchText, history = appAttribs.onlineSearchHistory) { str ->
+                    if (str.isBlank()) return@SearchBarRow
+                    searchText = str
+                    upsertBlk(appAttribs) {
+                        if (str in it.onlineSearchHistory) it.onlineSearchHistory.remove(str)
+                        it.onlineSearchHistory.add(0, str)
+                        if (it.onlineSearchHistory.size > SearchHistorySize+4) it.onlineSearchHistory.apply { subList(SearchHistorySize, size).clear() }
+                    }
+                    if (str.matches("http[s]?://.*".toRegex())) navController.navigate("${Screens.OnlineFeed.name}?url=${URLEncoder.encode(str, StandardCharsets.UTF_8.name())}")
+                    else vm.search(str)
                 }
-            }, navigationIcon = { IconButton(onClick = { drawerController?.open() }) { Icon(Icons.Filled.Menu, contentDescription = "Open Drawer") } })
+            }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }

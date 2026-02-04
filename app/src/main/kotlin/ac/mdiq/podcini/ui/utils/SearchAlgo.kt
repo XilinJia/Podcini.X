@@ -176,10 +176,10 @@ class SearchAlgo {
         Logd(TAG, "searchFeeds queryString: $queryString")
         return realm.query(PAFeed::class).query(queryString).find()
     }
-    fun searchEpisodes(feedID: Long, queryWords: List<String>): Flow<ResultsChange<Episode>> {
+    fun searchEpisodes(feedID: Long, queryWords: List<String>, sortBY: EpisodeSortOrder = EpisodeSortOrder.DATE_DESC): Flow<ResultsChange<Episode>> {
         val queryString = episodesQueryString(feedID, queryWords)
         if (queryString.isBlank()) return emptyFlow()
-        return realm.query(Episode::class).query(queryString).sort(sortPairOf(EpisodeSortOrder.DATE_DESC)).asFlow()
+        return realm.query(Episode::class).query(queryString).sort(sortPairOf(sortBY)).asFlow()
     }
 
     @Composable

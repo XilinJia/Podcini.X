@@ -1,0 +1,5 @@
+* fixed "Add to queue..." action
+* likely fixed strange auto-scroll on opening queue's bin
+* in Search screen, fixed episodes showing up lagging, enabled sorting for searched episodes
+* in FindFeeds screen, enabled search history, search results are sorted by title
+* in OnlineFeed screen, ensure return to episodes view from EpisodeInfo

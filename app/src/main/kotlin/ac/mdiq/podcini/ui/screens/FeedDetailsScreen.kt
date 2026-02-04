@@ -278,7 +278,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     //                    val testNum = 1
                     //                    val eList = realm.query(Episode::class).query("feedId == ${vm.feedID} AND playState == ${PlayState.SOON.code} SORT(pubDate DESC) LIMIT($testNum)").find()
                     //                    Logd(TAG, "test eList: ${eList.size}")
-                    lifecycleOwner.lifecycle.addObserver(swipeActions)
                 }
                 Lifecycle.Event.ON_START -> {}
                 Lifecycle.Event.ON_RESUME -> {}
@@ -290,7 +289,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
             Logd(TAG, "DisposableEffect onDispose")
-            lifecycleOwner.lifecycle.removeObserver(swipeActions)
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -412,12 +410,12 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         val buttonColor = Color(0xDDFFD700)
         val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
         Box {
-            TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = {
+            TopAppBar(title = { Text("") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = {
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
                 } else drawerController?.open()
-            }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } },
+            } ))  },
                 actions = {
                     if (screenMode == FeedScreenMode.List) {
                         val isFiltered by remember(feed?.filterString) { mutableStateOf(!feed?.filterString.isNullOrBlank() && !feed?.episodeFilter?.propertySet.isNullOrEmpty()) }
@@ -624,7 +622,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
 
     OpenDialogs()
 
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
+    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
     else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (screenMode in listOf(FeedScreenMode.List, FeedScreenMode.History)) {
             Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {

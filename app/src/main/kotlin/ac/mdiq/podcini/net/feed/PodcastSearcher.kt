@@ -64,10 +64,7 @@ class PodcastIndexPodcastSearcher : PodcastSearcher {
             if (count != null && count < 0) count = null
             val updateInt: Int = json.optInt("lastUpdateTime", -1)
             var update: String? = null
-            if (updateInt > 0) {
-                val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-                update = format.format(updateInt.toLong() * 1000)
-            }
+            if (updateInt > 0) update = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(updateInt.toLong() * 1000)
             return PodcastSearchResult(title, imageUrl, feedUrl, author, count, update, -1, "PodcastIndex")
         }
 

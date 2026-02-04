@@ -25,7 +25,7 @@ open class GearBoxBase {
     open fun supportAudioQualities(): Boolean = false
 
     @Composable
-    open fun ConfirmAddEpisode(sharedUrls: List<String>, showDialog: Boolean, onDismissRequest: () -> Unit) {}
+    open fun ConfirmAddEpisode(sharedUrls: List<String>, onDismissRequest: () -> Unit) {}
 
     open fun isGearFeed(url: URL): Boolean = false
 
@@ -93,7 +93,7 @@ open class GearBoxBase {
     open fun subscribeFeed(feed: PodcastSearchResult) {
         if (feed.feedUrl == null) return
         runOnIOScope {
-            val fbb = FeedBuilderBase() { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
+            val fbb = FeedBuilderBase { message, details -> Loge("OnineFeedItem", "Subscribe error: $message \n $details") }
             fbb.buildPodcast(feed.feedUrl, "", "") { feed, _ -> runOnIOScope { fbb.subscribe(feed) } }
         }
     }

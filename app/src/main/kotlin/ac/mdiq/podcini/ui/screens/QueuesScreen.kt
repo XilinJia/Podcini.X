@@ -286,7 +286,6 @@ fun QueuesScreen(id: Long = -1L) {
             Logd(TAG, "DisposableEffect LifecycleEventObserver: $event")
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    lifecycleOwner.lifecycle.addObserver(swipeActions)
                     val sessionToken = SessionToken(context, ComponentName(context, PlaybackService::class.java))
                     browserFuture = MediaBrowser.Builder(context, sessionToken).buildAsync()
                     browserFuture?.addListener({
@@ -313,7 +312,6 @@ fun QueuesScreen(id: Long = -1L) {
                 }
             }
             if (browserFuture != null) MediaBrowser.releaseFuture(browserFuture!!)
-            lifecycleOwner.lifecycle.removeObserver(swipeActions)
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -350,16 +348,9 @@ fun QueuesScreen(id: Long = -1L) {
 
     LaunchedEffect( vm.queuesMode) {
         Logd(TAG, "LaunchedEffect(vm.curQueue, screenMode, dragged)")
-        lifecycleOwner.lifecycle.removeObserver(swipeActions)
         when (vm.queuesMode) {
-            QueuesScreenMode.Bin -> {
-                swipeActions = SwipeActions("${TAG}_Bin")
-                lifecycleOwner.lifecycle.addObserver(swipeActions)
-            }
-            QueuesScreenMode.Queue -> {
-                swipeActions = SwipeActions(TAG)
-                lifecycleOwner.lifecycle.addObserver(swipeActions)
-            }
+            QueuesScreenMode.Bin -> swipeActions = SwipeActions("${TAG}_Bin")
+            QueuesScreenMode.Queue -> swipeActions = SwipeActions(TAG)
             QueuesScreenMode.Feed -> {}
             else -> {}
         }
@@ -482,7 +473,7 @@ fun QueuesScreen(id: Long = -1L) {
                     } }
                     Text(title)
                 } },
-                navigationIcon = { IconButton(onClick = { drawerController?.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer") } },
+                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_playlist_play), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) },
                 actions = {
                     val binIconRes by remember(vm.queuesMode) { derivedStateOf { if (vm.queuesMode != QueuesScreenMode.Queue) R.drawable.playlist_play else R.drawable.ic_history } }
                     val feedsIconRes by remember(vm.queuesMode) { derivedStateOf { if (vm.queuesMode == QueuesScreenMode.Feed) R.drawable.playlist_play else R.drawable.baseline_dynamic_feed_24 } }
@@ -680,7 +671,7 @@ fun QueuesScreen(id: Long = -1L) {
         }
     }
 
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
+    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesSortedFlow)
     else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
 //        Logd(TAG, "Scaffold screenMode: $queuesMode")
         when (vm.queuesMode) {
@@ -697,7 +688,7 @@ fun QueuesScreen(id: Long = -1L) {
                             }
                         }
                 }
-                var scrollToOnStart by remember(vm.curQueue, episodes.size, curEpisode?.id, vm.cameBack) { mutableIntStateOf(
+                var scrollToOnStart by remember(vm.queuesMode, vm.curQueue, episodes.size, curEpisode?.id, vm.cameBack) { mutableIntStateOf(
                     when {
                         vm.queuesMode != QueuesScreenMode.Queue -> -1
                         vm.cameBack -> -1

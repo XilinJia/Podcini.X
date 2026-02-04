@@ -225,21 +225,16 @@ fun LogsScreen() {
         if (showSharedDialog.value) {
             SharedDetailDialog(status = sharedlogState.value, showDialog = showSharedDialog.value, onDismissRequest = { showSharedDialog.value = false })
         }
-        var showYTMediaConfirmDialog by remember { mutableStateOf(false) }
         var sharedUrl by remember { mutableStateOf("") }
-        gearbox.ConfirmAddEpisode(listOf(sharedUrl), showYTMediaConfirmDialog, onDismissRequest = { showYTMediaConfirmDialog = false })
+        if (sharedUrl.isNotBlank()) gearbox.ConfirmAddEpisode(listOf(sharedUrl), onDismissRequest = { sharedUrl = "" })
 
         LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)) {
             itemsIndexed(vm.shareLogs) { position, log ->
                 val textColor = MaterialTheme.colorScheme.onSurface
                 Row (modifier = Modifier.clickable {
-                    if (log.status < ShareLog.Status.SUCCESS.ordinal) {
-                        receiveShared(log.url!!, context as MainActivity, false) {
-                            sharedUrl = log.url!!
-                            showYTMediaConfirmDialog = true
-                        }
-                    } else {
+                    if (log.status < ShareLog.Status.SUCCESS.ordinal) receiveShared(log.url!!, context as MainActivity, false) { sharedUrl = log.url!! }
+                    else {
                         Logd(TAG, "shared log url: ${log.url}")
                         var hasError = false
                         when(log.type) {
@@ -460,7 +455,8 @@ fun LogsScreen() {
     @Composable
      fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(vm.title) }, navigationIcon = { IconButton(onClick = { drawerController?.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer") } }, actions = {
+            TopAppBar(title = { Text(vm.title) }, navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) },
+                actions = {
                 if (vm.title != "Session") IconButton(onClick = {
                     vm.clearAllLogs()
                     vm.title = "Session"

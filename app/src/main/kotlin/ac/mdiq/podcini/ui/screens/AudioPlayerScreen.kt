@@ -43,7 +43,7 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.storage.utils.durationStringAdapt
 import ac.mdiq.podcini.storage.utils.durationStringFull
-import ac.mdiq.podcini.ui.actions.SwipeActions
+import ac.mdiq.podcini.ui.actions.Combo
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.activity.VideoplayerActivity.Companion.videoMode
@@ -701,8 +701,8 @@ fun AudioPlayerScreen(navController: AppNavigator) {
 
     @Composable
     fun DetailUI(modifier: Modifier) {
-        val actions = remember { SwipeActions(TAG, leftId = "COMBO", rightId = "COMBO") }
-        actions.ActionOptionsDialog()
+        val comboAction = remember { Combo() }
+        comboAction.ActionOptions()
 
         var showChooseRatingDialog by remember { mutableStateOf(false) }
         if (showChooseRatingDialog) ChooseRatingDialog(listOf(curEpisode!!)) { showChooseRatingDialog = false }
@@ -718,7 +718,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
                 val episodeDate by remember(curEpisode) { mutableStateOf(if (curEpisode == null) "" else formatDateTimeFlex(Date(curEpisode!!.pubDate)).trim()) }
                 Text(episodeDate, textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.weight(0.4f))
-                if (curEpisode != null) Icon(imageVector = ImageVector.vectorResource(actions.actions.left[0].iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable(onClick = {  actions.actions.left[0].performAction(curEpisode!!) }))
+                if (curEpisode != null) Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer).clickable(onClick = {  comboAction.performAction(curEpisode!!) }))
                 Spacer(modifier = Modifier.weight(0.2f))
             }
             SelectionContainer { Text((vm.episodeFeed?.title?:"").trim(), textAlign = TextAlign.Center, color = textColor, style = MaterialTheme.typography.titleMedium, modifier = Modifier.fillMaxWidth().padding(top = 2.dp, bottom = 5.dp)) }

@@ -454,7 +454,7 @@ fun SearchBarRow(hintTextRes: Int, defaultText: String, modifier: Modifier = Mod
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier) {
         TextField(value = queryText, onValueChange = { queryText = it }, keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-            textStyle = TextStyle(fontSize = 16.sp), label = { Text(stringResource(hintTextRes)) },
+            textStyle = TextStyle(fontSize = 14.sp), label = { Text(stringResource(hintTextRes), style = MaterialTheme.typography.bodySmall) },
             keyboardActions = KeyboardActions(onDone = { performSearch(queryText) }), modifier = Modifier.weight(1f),
             leadingIcon = if (history.isNotEmpty()) { { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_history), tint = buttonColor, contentDescription = "history",
                 modifier = Modifier.width(40.dp).height(40.dp).padding(start = 5.dp).clickable(onClick = { showHistory = true })) } } else null,

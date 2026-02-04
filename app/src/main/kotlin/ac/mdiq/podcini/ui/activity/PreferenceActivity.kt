@@ -123,10 +123,10 @@ class PreferenceActivity : ComponentActivity() {
                     else finish()
                 }
                 Scaffold(topBar = { TopAppBar(title = { Text(topAppBarTitle) },
-                    navigationIcon = { IconButton(onClick = {
+                    navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back",modifier = Modifier.padding(7.dp).clickable(onClick = {
                         if (navController.previousBackStackEntry != null) navController.popBackStack()
                         else finish()
-                    }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") } }) }
+                    }) ) }) }
                 ) { innerPadding ->
                     NavHost(navController = navController, startDestination = Screens.Main.name, Modifier.padding(innerPadding)) {
                         composable(Screens.Main.name) {

@@ -5,7 +5,6 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.ShareLog
-
 import ac.mdiq.podcini.ui.compose.PodciniTheme
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
@@ -13,8 +12,6 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.core.net.toUri
 import java.net.URLDecoder
 
@@ -41,17 +38,7 @@ class ShareReceiverActivity : ComponentActivity() {
         val log = ShareLog(text)
         upsertBlk(log) {}
 
-        receiveShared(text,this, true) {
-            setContent {
-                val showDialog = remember { mutableStateOf(true) }
-                PodciniTheme {
-                    gearbox.ConfirmAddEpisode(listOf(text), showDialog.value, onDismissRequest = {
-                        showDialog.value = false
-                        finish()
-                    })
-                }
-            }
-        }
+        receiveShared(text,this, true) { setContent { PodciniTheme { gearbox.ConfirmAddEpisode(listOf(text), onDismissRequest = { finish() }) } } }
     }
 
     override fun finish() {

@@ -8,7 +8,6 @@ import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
 import ac.mdiq.podcini.playback.base.InTheatre
 import ac.mdiq.podcini.playback.base.MediaPlayerBase.Companion.status
 import ac.mdiq.podcini.storage.database.appAttribs
-import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.model.Episode
@@ -18,8 +17,8 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.ButtonTypes
+import ac.mdiq.podcini.ui.actions.Combo
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
-import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
@@ -102,6 +101,8 @@ import coil.compose.AsyncImage
 import coil.request.CachePolicy
 import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import net.dankito.readability4j.extended.Readability4JExtended
@@ -119,20 +120,20 @@ var episodeForInfo by mutableStateOf<Episode?>(null)
 
 @ExperimentalMaterial3Api
 @Composable
-fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
+fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = MutableStateFlow(emptyList()), allowOpenFeed: Boolean = false) {
     val lifecycleOwner = LocalLifecycleOwner.current
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val textColor = MaterialTheme.colorScheme.onSurface
 
-    val episodeFlow = realm.query(Episode::class).query("id == ${episode.id}").first().asFlow()
-    val episode by episodeFlow.map { it.obj ?: Episode() }.collectAsStateWithLifecycle(initialValue = Episode())
+    val eOfFlow by listFlow.map { list -> list.firstOrNull { it.id == episode_.id } }.collectAsStateWithLifecycle(initialValue = null)
+    val episode = if (eOfFlow != null) eOfFlow!! else episode_
 
     val episodeFeed = episode.feed
     var showHomeScreen by remember { mutableStateOf(false) }
 
-    val actions = remember { SwipeActions(TAG, leftId = "COMBO", rightId = "COMBO") }
-    actions.ActionOptionsDialog()
+    val comboAction = remember { Combo() }
+    comboAction.ActionOptions()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -292,7 +293,7 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
             val context = LocalContext.current
             val buttonColor = Color(0xDDFFD700)
             Box {
-                TopAppBar(title = { Text("") }, navigationIcon = { IconButton(onClick = { showHomeScreen = false }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
+                TopAppBar(title = { Text("") }, navigationIcon = { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "", modifier = Modifier.padding(7.dp).clickable(onClick = { showHomeScreen = false })) },
                     actions = {
                         if (readMode && tts != null) {
                             val iconRes = if (ttsPlaying) R.drawable.ic_pause else R.drawable.ic_play_24dp
@@ -417,7 +418,7 @@ fun EpisodeScreen(episode: Episode, allowOpenFeed: Boolean = false) {
                         bsState = MainActivity.BSState.Partial
                     }
                 }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_feed), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Open podcast", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
-                IconButton(onClick = { actions.actions.left[0].performAction(episode) }) { Icon(imageVector = ImageVector.vectorResource(actions.actions.left[0].iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
+                IconButton(onClick = { comboAction.performAction(episode) }) { Icon(imageVector = ImageVector.vectorResource(comboAction.iconRes), tint = MaterialTheme.colorScheme.tertiary, contentDescription = "Combo", modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer)) }
                 if (!episode.link.isNullOrEmpty()) IconButton(onClick = { showHomeScreen = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.outline_article_shortcut_24), contentDescription = "home") }
                 IconButton(onClick = {
                     val url = episode.getLinkWithFallback()

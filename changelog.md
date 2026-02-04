@@ -1,3 +1,19 @@
+# 10.8.8
+
+* straightened up the code of SwipeActions
+* fixed "Add to queue..." action
+* likely fixed strange auto-scroll on opening queue's bin 
+* amended SearchBar text styles
+* in Search screen:
+	* fixed episodes showing up lagging
+	* enabled sorting for searched episodes
+* in FindFeeds screen
+	* enabled search history
+	* search results are sorted by title
+* amended flow setup in EpisodeInfo
+* in OnlineFeed screen, ensure return to episodes view from EpisodeInfo
+* replaced all topbar navBack button with a icon
+
 # 10.8.7
 
 * in PlayerUI, Record button behavior is changed: click on it now creates a mark, long-press on it start/stop recording

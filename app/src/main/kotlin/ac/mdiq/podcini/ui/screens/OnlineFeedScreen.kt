@@ -78,7 +78,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -429,7 +428,6 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
                     Logd(TAG, "feedUrl: ${vm.feedUrl}")
-                    lifecycleOwner.lifecycle.addObserver(swipeActions)
                 }
                 Lifecycle.Event.ON_START -> {
                     vm.isPaused = false
@@ -459,8 +457,10 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     }
 
     BackHandler(enabled = handleBackSubScreens.contains(TAG)) {
-        episodeForInfo = null
-        vm.showEpisodes = false
+        when {
+            episodeForInfo != null -> episodeForInfo = null
+            else -> vm.showEpisodes = false
+        }
     }
 
     if (vm.showTabsDialog) gearbox.ShowTabsDialog(vm.feedBuilder, onDismissRequest = { vm.showTabsDialog = false }) { feed, map -> vm.handleFeed(feed, map) }
@@ -492,12 +492,12 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     @Composable
     fun MyTopAppBar() {
         Box {
-            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { IconButton(onClick = {
+            TopAppBar(title = { Text(text = "Online feed") }, navigationIcon = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer",  modifier = Modifier.padding(7.dp).clickable(onClick = {
                 if (navController.previousBackStackEntry != null) {
                     navController.previousBackStackEntry?.savedStateHandle?.set(COME_BACK, true)
                     navController.popBackStack()
                 } else drawerController?.close()
-            }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Open Drawer") } })
+            })) } )
             HorizontalDivider(modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth(), thickness = DividerDefaults.Thickness, color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
@@ -506,7 +506,7 @@ fun OnlineFeedScreen(url: String = "", source: String = "", shared: Boolean = fa
     else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showEpisodes) Column(modifier = Modifier.padding(innerPadding).fillMaxSize().padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
             InforBar(swipeActions) { Text(vm.infoBarText.value, style = MaterialTheme.typography.bodyMedium) }
-            EpisodeLazyColumn(vm.episodes.toList(), isRemote = true, swipeActions = swipeActions,
+            EpisodeLazyColumn(vm.episodes.toList(), isExternal = true, swipeActions = swipeActions,
                 actionButtonCB = { _, type -> if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) actQueue = tmpQueue() })
         } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 10.dp, end = 10.dp).background(MaterialTheme.colorScheme.surface)) {
             ConstraintLayout(modifier = Modifier.fillMaxWidth().height(110.dp).background(MaterialTheme.colorScheme.surface)) {

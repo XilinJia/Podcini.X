@@ -419,7 +419,7 @@ class VideoplayerActivity : BaseActivity() {
                 Text(text = feedTitle, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             } else { Text("")}
         },
-            navigationIcon = { IconButton(onClick = { finish() }) { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "") } },
+            navigationIcon = { Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "", modifier = Modifier.padding(7.dp).clickable(onClick = { finish() })) },
             actions = {
                 if (!landscape) {
                     var sleepIconRes by remember { mutableIntStateOf(if (!isSleepTimerActive()) R.drawable.ic_sleep else R.drawable.ic_sleep_off) }

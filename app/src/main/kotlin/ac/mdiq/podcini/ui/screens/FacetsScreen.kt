@@ -485,16 +485,13 @@ fun FacetsScreen(modeName: String = "") {
     val feedsAssociated by vm.feedsAssFlow.collectAsStateWithLifecycle()
 
     fun resetSwipes() {
-        lifecycleOwner.lifecycle.removeObserver(swipeActions)
         swipeActions = SwipeActions("${TAG}_${facetsMode.name}")
-        lifecycleOwner.lifecycle.addObserver(swipeActions)
     }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_CREATE -> {
-                    lifecycleOwner.lifecycle.addObserver(swipeActions)
                     resetSwipes()
                 }
                 Lifecycle.Event.ON_START -> {}
@@ -505,7 +502,6 @@ fun FacetsScreen(modeName: String = "") {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose {
-            lifecycleOwner.lifecycle.removeObserver(swipeActions)
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
@@ -583,7 +579,8 @@ fun FacetsScreen(modeName: String = "") {
         val buttonColor = Color(0xDDFFD700)
         Box {
             TopAppBar(title = { Text(facetsMode.name, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).clickable(onClick = { showChooseMode = true })) },
-                navigationIcon = { IconButton(onClick = { drawerController?.open() }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer") } }, actions = {
+                navigationIcon = { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "Open Drawer", modifier = Modifier.padding(7.dp).clickable(onClick = { drawerController?.open() })) },
+                actions = {
                     Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
                         val feedsIconRes by remember(vm.showFeeds) { derivedStateOf { if (vm.showFeeds) R.drawable.baseline_list_alt_24 else R.drawable.baseline_dynamic_feed_24 } }
                         IconButton(onClick = { vm.showFeeds = !vm.showFeeds }) { Icon(imageVector = ImageVector.vectorResource(feedsIconRes), contentDescription = "feeds") }
@@ -633,7 +630,7 @@ fun FacetsScreen(modeName: String = "") {
 
     OpenDialogs()
 
-    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!)
+    if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
     else Scaffold(topBar = { MyTopAppBar() }) { innerPadding ->
         if (vm.showFeeds) Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(feedsAssociated) }
         else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {

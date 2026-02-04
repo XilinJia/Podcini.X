@@ -25,11 +25,10 @@ import ac.mdiq.podcini.storage.specs.MediaType
 import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.ui.actions.ButtonTypes
+import ac.mdiq.podcini.ui.actions.EpisodeAction
 import ac.mdiq.podcini.ui.actions.EpisodeActionButton
-import ac.mdiq.podcini.ui.actions.SwipeAction
+import ac.mdiq.podcini.ui.actions.NoAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
-import ac.mdiq.podcini.ui.actions.SwipeActions.Companion.SwipeActionsSettingDialog
-import ac.mdiq.podcini.ui.actions.SwipeActions.NoAction
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
 import ac.mdiq.podcini.ui.screens.FeedScreenMode
 import ac.mdiq.podcini.utils.Logd
@@ -112,7 +111,6 @@ import coil.request.ImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.net.MalformedURLException
 import java.net.URL
 import java.util.Date
@@ -127,8 +125,8 @@ var showSwipeActionsDialog by mutableStateOf(false)
 fun InforBar(swipeActions: SwipeActions, content: @Composable (RowScope.()->Unit)) {
     val textColor = MaterialTheme.colorScheme.onSurface
     val buttonColor = MaterialTheme.colorScheme.tertiary
-    val leftAction = swipeActions.actions.left[0]
-    val rightAction = swipeActions.actions.right[0]
+    val leftAction = swipeActions.left
+    val rightAction = swipeActions.right
 //    Logd("InforBar", "textState: ${text.value}")
     Row {
         Icon(imageVector = ImageVector.vectorResource(leftAction.iconRes), tint = buttonColor, contentDescription = "left_action_icon",
@@ -153,7 +151,7 @@ enum class StatusRowMode {
 }
 
 @Composable
-fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boolean = false,
+fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: Boolean = false,
                       lazyListState: LazyListState = rememberLazyListState(), scrollToOnStart: Int = -1,
                       layoutMode: Int = LayoutMode.Normal.ordinal,
                       showCoverImage: Boolean = true, forceFeedImage: Boolean = false,
@@ -187,11 +185,11 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
 
     var leftSwipeCB: ((Episode)->Unit)? = null
     var rightSwipeCB: ((Episode)->Unit)? = null
-    val leftActionState = remember { mutableStateOf<SwipeAction>(NoAction()) }
-    val rightActionState = remember { mutableStateOf<SwipeAction>(NoAction()) }
+    val leftActionState = remember { mutableStateOf<EpisodeAction>(NoAction()) }
+    val rightActionState = remember { mutableStateOf<EpisodeAction>(NoAction()) }
     if (swipeActions != null) {
-        leftActionState.value = swipeActions.actions.left[0]
-        rightActionState.value = swipeActions.actions.right[0]
+        leftActionState.value = swipeActions.left
+        rightActionState.value = swipeActions.right
         leftSwipeCB = {
             if (leftActionState.value is NoAction) showSwipeActionsDialog = true
             else leftActionState.value.performAction(it)
@@ -200,11 +198,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
             if (rightActionState.value is NoAction) showSwipeActionsDialog = true
             else rightActionState.value.performAction(it)
         }
-        if (showSwipeActionsDialog) SwipeActionsSettingDialog(swipeActions, onDismissRequest = { showSwipeActionsDialog = false }) { actions ->
-            swipeActions.actions = actions
-            leftActionState.value = swipeActions.actions.left[0]
-            rightActionState.value = swipeActions.actions.right[0]
-        }
+        if (showSwipeActionsDialog) swipeActions.SwipeActionsSettingDialog(onDismissRequest = { showSwipeActionsDialog = false })
     }
 
     var showChooseRatingDialog by remember { mutableStateOf(false) }
@@ -216,12 +210,11 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
     var showPutToQueueDialog by remember { mutableStateOf(false) }
     var showShelveDialog by remember { mutableStateOf(false) }
     var showEraseDialog by remember { mutableStateOf(false) }
-    val showConfirmYoutubeDialog = remember { mutableStateOf(false) }
     val ytUrls = remember { mutableListOf<String>() }
 
     @Composable
     fun OpenDialogs() {
-        gearbox.ConfirmAddEpisode(ytUrls, showConfirmYoutubeDialog.value, onDismissRequest = { showConfirmYoutubeDialog.value = false })
+        if (ytUrls.isNotEmpty()) gearbox.ConfirmAddEpisode(ytUrls, onDismissRequest = { ytUrls.clear() })
         if (showChooseRatingDialog) ChooseRatingDialog(selected) { showChooseRatingDialog = false }
         if (showAddCommentDialog) {
             var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
@@ -243,7 +236,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
 
     OpenDialogs()
 
-    DisposableEffect(episodeForInfo?.id) {
+    DisposableEffect(episodeForInfo) {
         if (episodeForInfo != null) handleBackSubScreens.add(TAG)
         else handleBackSubScreens.remove(TAG)
         onDispose { handleBackSubScreens.remove(TAG) }
@@ -727,7 +720,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_shelves_24), contentDescription = "Shelve")
                             Text(stringResource(id = R.string.shelve_label)) } },
                     )
-                    if (selected.isNotEmpty() && isRemote)
+                    if (selected.isNotEmpty() && isExternal)
                         options.add {
                             Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
                                 onSelected()
@@ -740,7 +733,6 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isRemote: Boo
                                             else addRemoteToMiscSyndicate(e)
                                         } catch (ex: MalformedURLException) { Loge(TAG, "episode downloadUrl not valid: ${e.title} : ${e.downloadUrl}") }
                                     }
-                                    withContext(Dispatchers.Main) { showConfirmYoutubeDialog.value = ytUrls.isNotEmpty() }
                                 }
                             }, verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Filled.AddCircle, contentDescription = "Reserve episodes")
