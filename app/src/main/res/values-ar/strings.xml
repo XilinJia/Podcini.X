@@ -51,7 +51,6 @@
     <string name="notification_permission_text">منذ أندرويد 13، الإشعارات ذات المستوى الأعلى مطلوبة للتحديث والتشغيل العاديين. يمكنك عدم السماح بالإشعارات بالأقواس الفرعية على رغبتك.</string>
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">الحجم الإجمالي للحلقات على الجهاز</string>
-    <!-- Main activity -->
     <!-- Bug report activity -->
     <string name="log_file_share_exception">لم يتم العثور على تطبيقات متوافقة</string>
     <string name="export_logs_menu_title">تصدير السجلات المفصلة</string>
@@ -576,6 +575,8 @@
     <string name="search_hint">delimit by , prefix with - to exclude</string>
     <string name="no_results_for_query">لم يتم العثور على أي نتائج ل \"%1$s\"</string>
     <string name="search_online">البحث عبر الإنترنت</string>
+    <string name="feeds_from_search">Feeds from search</string>
+    <string name="associated_feeds_from_episodes">Associated feeds from episodes</string>
     <!-- Synchronization -->
     <string name="sync_status_started">بدأت المزامنة</string>
     <string name="sync_status_episodes_upload">تحميل الحلقة يغير…</string>
