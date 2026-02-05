@@ -51,7 +51,6 @@
     <string name="notification_permission_text">Android 13以降、通常の更新と再生にはトップレベルの通知が必要です。ご希望に応じてサブcatergoriesの通知を許可しない場合があります。</string>
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">デバイス上のエピソードの合計サイズ</string>
-    <!-- Main activity -->
     <!-- Bug report activity -->
     <string name="log_file_share_exception">互換性のあるアプリが見つかりません</string>
     <string name="export_logs_menu_title">詳細ログをエクスポート</string>
@@ -566,6 +565,8 @@
     <string name="search_hint">delimit by , prefix with - to exclude</string>
     <string name="no_results_for_query">\"%1$s\" の結果は見つかりませんでした</string>
     <string name="search_online">オンラインで検索</string>
+    <string name="feeds_from_search">Feeds from search</string>
+    <string name="associated_feeds_from_episodes">Associated feeds from episodes</string>
     <!-- Synchronization -->
     <string name="sync_status_started">同期を開始しました</string>
     <string name="sync_status_episodes_upload">Uploading episode changes…</string>
