@@ -51,7 +51,6 @@
     <string name="notification_permission_text">Since Android 13, top level notification is needed for normal refresh and playback. You may disallow notifications of sub-catergories at your wish.</string>
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">Total size of episodes on the device</string>
-    <!-- Main activity -->
     <!-- Bug report activity -->
     <string name="log_file_share_exception">No compatible apps found</string>
     <string name="export_logs_menu_title">Export detailed logs</string>
@@ -568,6 +567,8 @@
     <string name="search_hint">delimit by , prefix with - to exclude</string>
     <string name="no_results_for_query">No results were found for \"%1$s\"</string>
     <string name="search_online">Search online</string>
+    <string name="feeds_from_search">Feeds from search</string>
+    <string name="associated_feeds_from_episodes">Associated feeds from episodes</string>
     <!-- Synchronization -->
     <string name="sync_status_started">Sync started</string>
     <string name="sync_status_episodes_upload">Uploading episode changes…</string>
