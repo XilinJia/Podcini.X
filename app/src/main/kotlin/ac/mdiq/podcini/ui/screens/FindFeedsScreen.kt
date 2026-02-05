@@ -18,7 +18,7 @@ import ac.mdiq.podcini.storage.database.addNewFeed
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedByIdentityOrID
 import ac.mdiq.podcini.storage.database.feedCount
-import ac.mdiq.podcini.storage.database.getFeedList
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -60,7 +60,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DividerDefaults
@@ -68,7 +67,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -148,9 +146,9 @@ class FindFeedsVM: ViewModel() {
         retryQerry = ""
         showProgress = true
         searchJob = viewModelScope.launch(Dispatchers.IO) {
-            val feeds = getFeedList()
+//            val feeds = getFeedList()
             fun feedId(r: PodcastSearchResult): Long {
-                for (f in feeds) if (f.downloadUrl == r.feedUrl) return f.id
+                for (f in allFeeds) if (f.downloadUrl == r.feedUrl) return f.id
                 return 0L
             }
             try {

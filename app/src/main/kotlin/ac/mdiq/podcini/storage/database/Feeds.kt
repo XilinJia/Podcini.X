@@ -70,21 +70,21 @@ var feedOperationText by mutableStateOf("")
 
 val feedsFlow = realm.query(Feed::class).asFlow()
 
-var feeds = realm.query(Feed::class).find()
-var feedsMap: Map<Long, Feed> = feeds.associateBy { it.id }
+var allFeeds = realm.query(Feed::class).find()
+var feedsMap: Map<Long, Feed> = allFeeds.associateBy { it.id }
 
 var feedCount by mutableIntStateOf(-1)
 
 @Synchronized
 fun getFeedList(queryString: String = ""): List<Feed> {
-    return if (queryString.isEmpty()) feeds
+    return if (queryString.isEmpty()) allFeeds
     else realm.query(Feed::class, queryString).find()
 }
 
 fun compileLanguages() {
     val langsSet = mutableSetOf<String>()
-    val feeds = getFeedList()
-    for (feed in feeds) {
+//    val feeds = getFeedList()
+    for (feed in allFeeds) {
         val langs = feed.langSet
         if (langs.isNotEmpty()) langsSet.addAll(langs)
         else langsSet.add("")
@@ -101,8 +101,8 @@ fun compileLanguages() {
 
 fun compileTags() {
     val tagsSet = mutableSetOf<String>()
-    val feeds = getFeedList()
-    for (feed in feeds) tagsSet.addAll(feed.tags.filter { it != TAG_ROOT })
+//    val feeds = getFeedList()
+    for (feed in allFeeds) tagsSet.addAll(feed.tags.filter { it != TAG_ROOT })
     val newTags = tagsSet - appAttribs.feedTagSet
     if (newTags.isNotEmpty()) {
         upsertBlk(appAttribs) {
@@ -123,10 +123,10 @@ fun monitorFeeds(scope: CoroutineScope) {
 
     feedMonitorJob = scope.launch(Dispatchers.IO) {
         feedsFlow.collect { changes: ResultsChange<Feed> ->
-            feeds = changes.list
-            feedsMap = feeds.associateBy { it.id }
-            feedCount = feeds.size
-            Logd(TAG, "monitorFeedList feeds updated size: ${feeds.size}")
+            allFeeds = changes.list
+            feedsMap = allFeeds.associateBy { it.id }
+            feedCount = allFeeds.size
+            Logd(TAG, "monitorFeedList feeds updated size: ${allFeeds.size}")
             when (changes) {
                 is UpdatedResults -> {
                     when {
@@ -165,7 +165,7 @@ fun feedByIdentityOrID(feed: Feed, copy: Boolean = false): Feed? {
     Logd(TAG, "searchFeedByIdentifyingValueOrID called")
     if (feed.id != 0L) return getFeed(feed.id, copy)
     val feedId = feed.identifyingValue
-    val f = feeds.firstOrNull { it.identifyingValue == feedId }
+    val f = allFeeds.firstOrNull { it.identifyingValue == feedId }
     if (f != null) return if (copy) realm.copyFromRealm(f) else f
     return null
 }

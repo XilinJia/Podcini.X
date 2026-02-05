@@ -22,7 +22,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.preferences.screens.MobileUpdateOptions
 import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.episodeByGuidOrUrl
-import ac.mdiq.podcini.storage.database.feeds
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getFeedList
@@ -119,7 +119,7 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
         fun getFeedListDownloadUrls(): List<String> {
             Logd(TAG, "getFeedListDownloadUrls called")
             val result: MutableList<String> = mutableListOf()
-            for (f in feeds) {
+            for (f in allFeeds) {
                 val url = f.downloadUrl
                 if (url != null && !url.startsWith(Feed.PREFIX_LOCAL_FOLDER)) result.add(url)
             }
@@ -178,8 +178,8 @@ open class SyncService(context: Context, params: WorkerParameters) : CoroutineWo
     private fun removeFeedWithDownloadUrl(downloadUrl: String) {
         Logd(TAG, "removeFeedWithDownloadUrl called")
         var feedID: Long? = null
-        val feeds = getFeedList()
-        for (f in feeds) {
+//        val feeds = getFeedList()
+        for (f in allFeeds) {
             val url = f.downloadUrl
             if (url != null && !url.startsWith(Feed.PREFIX_LOCAL_FOLDER)) feedID = f.id
         }

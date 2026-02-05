@@ -547,8 +547,8 @@ fun LibraryScreen() {
     val prefsState by vm.prefsFlow.collectAsStateWithLifecycle()
     if (prefsState != null) vm.subPrefs = prefsState!!
 
-    val feeds by vm.feedsFlow.collectAsStateWithLifecycle()
-    Logd(TAG, "feeds: ${feeds.size}")
+    val feedList by vm.feedsFlow.collectAsStateWithLifecycle()
+    Logd(TAG, "feeds: ${feedList.size}")
 
     val volumes by vm.subVolumesFlow.collectAsStateWithLifecycle()
 //    Logd(TAG, "volumes: ${volumes.size}")
@@ -584,9 +584,9 @@ fun LibraryScreen() {
         Logd(TAG, "combine(feedsFlow, snapshotFlow {feedOperationText})")
         if (feedOperationText.isBlank()) when (vm.subPrefs.sortIndex) {
             FeedSortIndex.Feed.ordinal -> vm.preparePropertySort()
-            FeedSortIndex.Date.ordinal -> vm.prepareDateSort(feeds)
-            FeedSortIndex.Time.ordinal -> vm.prepareTimeSort(feeds)
-            FeedSortIndex.Count.ordinal -> vm.prepareCountSort(feeds)
+            FeedSortIndex.Date.ordinal -> vm.prepareDateSort(feedList)
+            FeedSortIndex.Time.ordinal -> vm.prepareTimeSort(feedList)
+            FeedSortIndex.Count.ordinal -> vm.prepareCountSort(feedList)
             else -> {}
         }
     }
@@ -600,7 +600,7 @@ fun LibraryScreen() {
                 Row {
                     if (feedOperationText.isNotEmpty()) Text(feedOperationText, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.clickable {})
                     else {
-                        var feedCountState by remember(feeds.size) { mutableStateOf(feeds.size.toString() + "/" + feedCount.toString()) }
+                        var feedCountState by remember(feedList.size) { mutableStateOf(feedList.size.toString() + "/" + feedCount.toString()) }
                         Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
                     }
                 } },
@@ -612,7 +612,7 @@ fun LibraryScreen() {
                     if (!vm.isViewGarden) IconButton(onClick = {
 //                        facetsMode = QuickAccess.Custom
                         facetsCustomTag = "Subscriptions"
-                        facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", feeds.map { it.id })
+                        facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", feedList.map { it.id })
                         navController.navigate("${Screens.Facets.name}?modeName=${QuickAccess.Custom.name}")
 //                        navController.navigate(Screens.Facets.name)
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
@@ -1001,7 +1001,7 @@ fun LibraryScreen() {
                             Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                    items(feeds, key = { it.id}) { feed ->
+                    items(feedList, key = { it.id}) { feed ->
                         var isSelected by remember(selectMode, selectedSize, feed.id) { mutableStateOf(selectMode && feed in feedsSelected) }
                         fun toggleSelected() {
                             isSelected = !isSelected
@@ -1021,7 +1021,7 @@ fun LibraryScreen() {
                                     isSelected = selectMode
                                     feedsSelected.clear()
                                     if (selectMode) {
-                                        val index = feeds.indexOfFirst { it.id == feed.id }
+                                        val index = feedList.indexOfFirst { it.id == feed.id }
                                         feedsSelected.add(feed)
                                         longPressIndex = index
                                     } else {
@@ -1119,7 +1119,7 @@ fun LibraryScreen() {
                             Text(volume.name, color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f).fillMaxHeight().wrapContentHeight(Alignment.CenterVertically))
                         }
                     }
-                    items(feeds, key = { feed -> feed.id}) { feed_ ->
+                    items(feedList, key = { feed -> feed.id}) { feed_ ->
                         val feed by rememberUpdatedState(feed_)
                         var isSelected by remember(key1 = selectMode, key2 = selectedSize) { mutableStateOf(selectMode && feed in feedsSelected) }
                         fun toggleSelected() {
@@ -1152,7 +1152,7 @@ fun LibraryScreen() {
                                     feedsSelected.clear()
                                     if (selectMode) {
                                         feedsSelected.add(feed)
-                                        val index = feeds.indexOfFirst { it.id == feed.id }
+                                        val index = feedList.indexOfFirst { it.id == feed.id }
                                         longPressIndex = index
                                     } else {
                                         selectedSize = 0
@@ -1182,21 +1182,21 @@ fun LibraryScreen() {
                     horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(start = 10.dp).clickable(onClick = {
                         feedsSelected.clear()
-                        for (i in 0..longPressIndex) feedsSelected.add(feeds[i])
+                        for (i in 0..longPressIndex) feedsSelected.add(feedList[i])
                         selectedSize = feedsSelected.size
                         Logd(TAG, "selectedIds: ${feedsSelected.size}")
                     }))
                     Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_downward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
                         feedsSelected.clear()
-                        for (i in longPressIndex..<feeds.size) feedsSelected.add(feeds[i])
+                        for (i in longPressIndex..<feedList.size) feedsSelected.add(feedList[i])
                         selectedSize = feedsSelected.size
                         Logd(TAG, "selectedIds: ${feedsSelected.size}")
                     }))
                     var selectAllRes by remember { mutableIntStateOf(R.drawable.ic_select_all) }
                     Icon(imageVector = ImageVector.vectorResource(selectAllRes), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).clickable(onClick = {
-                        if (selectedSize != feeds.size) {
+                        if (selectedSize != feedList.size) {
                             feedsSelected.clear()
-                            feedsSelected.addAll(feeds)
+                            feedsSelected.addAll(feedList)
                             selectAllRes = R.drawable.ic_select_none
                         } else {
                             feedsSelected.clear()
@@ -1260,7 +1260,7 @@ fun LibraryScreen() {
                                                 it.feedsSorted += 1
                                             }
                                         }
-                                    else vm.prepareDateSort(feeds)
+                                    else vm.prepareDateSort(feedList)
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Date.res) + if (vm.subPrefs.dateAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Time.ordinal) buttonColor else buttonAltColor),
@@ -1273,7 +1273,7 @@ fun LibraryScreen() {
                                                 it.feedsSorted += 1
                                             }
                                         }
-                                    else vm.prepareTimeSort(feeds)
+                                    else vm.prepareTimeSort(feedList)
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Time.res) + if (vm.subPrefs.timeAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Count.ordinal) buttonColor else buttonAltColor),
@@ -1286,7 +1286,7 @@ fun LibraryScreen() {
                                                 it.feedsSorted += 1
                                             }
                                         }
-                                    else vm.prepareCountSort(feeds)
+                                    else vm.prepareCountSort(feedList)
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Count.res) + if (vm.subPrefs.countAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                         }
@@ -1302,14 +1302,14 @@ fun LibraryScreen() {
                             FeedSortIndex.Date.ordinal -> {
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                                     for (sd in FeedDateSortIndex.entries) {
-                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.dateSortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.dateSortIndex != sd.ordinal) vm.prepareDateSort(feeds,sd) }) { Text(stringResource(sd.res)) }
+                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.dateSortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.dateSortIndex != sd.ordinal) vm.prepareDateSort(feedList,sd) }) { Text(stringResource(sd.res)) }
                                     }
                                 }
                             }
                             FeedSortIndex.Time.ordinal -> {
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                                     for (sd in FeedTimeSortIndex.entries) {
-                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.timeSortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.timeSortIndex != sd.ordinal) vm.prepareTimeSort(feeds, sd) }) { Text(stringResource(sd.res)) }
+                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.timeSortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.timeSortIndex != sd.ordinal) vm.prepareTimeSort(feedList, sd) }) { Text(stringResource(sd.res)) }
                                     }
                                 }
                             }
@@ -1330,7 +1330,7 @@ fun LibraryScreen() {
                                                         1 -> " fileUrl == nil "
                                                         else -> ""
                                                     }
-                                                    vm.prepareCountSort(feeds)
+                                                    vm.prepareCountSort(feedList)
                                                 }
                                             }
                                             OutlinedButton(
@@ -1357,7 +1357,7 @@ fun LibraryScreen() {
                                                         1 -> " comment == '' "
                                                         else -> ""
                                                     }
-                                                    vm.prepareCountSort(feeds)
+                                                    vm.prepareCountSort(feedList)
                                                 }
                                             }
                                             OutlinedButton(
@@ -1400,8 +1400,8 @@ fun LibraryScreen() {
                                                     it.playStateCodeSet.addAll(playStateCodeSet)
                                                 }
                                                 when (vm.subPrefs.sortIndex) {
-                                                    FeedSortIndex.Date.ordinal -> vm.prepareDateSort(feeds)
-                                                    FeedSortIndex.Count.ordinal -> vm.prepareCountSort(feeds)
+                                                    FeedSortIndex.Date.ordinal -> vm.prepareDateSort(feedList)
+                                                    FeedSortIndex.Count.ordinal -> vm.prepareCountSort(feedList)
                                                     else -> {}
                                                 }
                                             }
@@ -1501,7 +1501,7 @@ fun LibraryScreen() {
                                                     it.ratingCodeSet.addAll(ratingCodeSet)
                                                 }
                                                 when (vm.subPrefs.sortIndex) {
-                                                    FeedSortIndex.Count.ordinal -> vm.prepareCountSort(feeds)
+                                                    FeedSortIndex.Count.ordinal -> vm.prepareCountSort(feedList)
                                                     else -> {}
                                                 }
                                             }

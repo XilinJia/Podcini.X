@@ -2,7 +2,7 @@ package ac.mdiq.podcini.ui.compose
 
 import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.storage.database.appAttribs
-import ac.mdiq.podcini.storage.database.feeds
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.ui.screens.EpisodeInfoScreen
 import ac.mdiq.podcini.ui.screens.FacetsScreen
 import ac.mdiq.podcini.ui.screens.FeedDetailsScreen
@@ -45,7 +45,7 @@ val LocalNavController = staticCompositionLocalOf<AppNavigator> { error("NavCont
 
 val defaultScreen: String
     get() {
-        if (feeds.isEmpty()) return Screens.FindFeeds.name
+        if (allFeeds.isEmpty()) return Screens.FindFeeds.name
 
         var value = AppPreferences.getPref(AppPreferences.AppPrefs.prefDefaultPage, "")
         Logd(TAG, "get defaultScreen 0: [$value]")

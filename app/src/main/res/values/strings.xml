@@ -683,6 +683,10 @@
     <string name="no_results_for_query">No results were found for \"%1$s\"</string>
     <string name="search_online">Search online</string>
 
+    <string name="feeds_from_search">Feeds from search</string>
+    <string name="associated_feeds_from_episodes">Associated feeds from episodes</string>
+
+
     <!-- Synchronization -->
     <string name="sync_status_started">Sync started</string>
     <string name="sync_status_episodes_upload">Uploading episode changes…</string>

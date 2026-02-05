@@ -1,6 +1,6 @@
 # 10.8.9
 
-* in Search screen, added a second tab of Feeds showing associated feeds of the resulting episodes
+* in Search screen, added in Feeds tab associated feeds of the resulting episodes
 * improved flow setups in Queues and FeedDetails screens
 * in FeedDetails screen, avoid fetching episode in Info view
 * fixed Search dialog not auto-close
