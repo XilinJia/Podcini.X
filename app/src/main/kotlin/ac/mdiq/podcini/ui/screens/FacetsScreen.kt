@@ -291,7 +291,7 @@ class FacetsVM(modeName_: String): ViewModel() {
 
     val feedsAssFlow: StateFlow<List<Feed>> = combine(episodesFlow, snapshotFlow { showFeeds }) { episodes, showFeeds -> Pair(episodes, showFeeds) }.distinctUntilChanged().flatMapLatest { (episodes, showFeeds) ->
         if (!showFeeds) updateToolbar(episodes)
-            when {
+        when {
             !showFeeds -> emptyFlow()
             facetsMode == QuickAccess.All -> realm.query(Feed::class).asFlow().map { it.list }
             else -> episodesFlow.map { episodes -> episodes.mapNotNull { it.feed }.distinctBy { it.id } }
@@ -416,11 +416,7 @@ class FacetsVM(modeName_: String): ViewModel() {
                     }
                 }
             }
-            withContext(Dispatchers.Main) {
-//                resetSwipes()
-//                buildFlow()
-                progressing = false
-            }
+            withContext(Dispatchers.Main) { progressing = false }
         }
     }
 
@@ -448,8 +444,6 @@ class FacetsVM(modeName_: String): ViewModel() {
             filter = EpisodeFilter(facetsPrefs.filtersMap[facetsMode.name] ?: "")
         } else curIndex = QuickAccess.Custom.ordinal
         tag = TAG + QuickAccess.entries[curIndex]
-
-//        buildFlow()
 
         timeIt("$TAG end of init")
     }

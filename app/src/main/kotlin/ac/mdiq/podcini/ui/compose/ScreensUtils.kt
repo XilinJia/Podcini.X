@@ -148,7 +148,7 @@ fun Navigate(navController: NavHostController, startScreen: String = "") {
         composable(Screens.Logs.name) { LogsScreen() }
         composable(Screens.Statistics.name) { StatisticsScreen() }
     }
-    timeIt("$TAG start of Navigate")
+    timeIt("$TAG end of Navigate")
 }
 
 enum class Screens {

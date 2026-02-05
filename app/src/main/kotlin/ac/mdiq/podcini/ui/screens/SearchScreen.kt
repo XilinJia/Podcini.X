@@ -103,6 +103,7 @@ import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.text.NumberFormat
+import kotlin.collections.mapNotNull
 
 private var curSearchString by mutableStateOf("")
 fun setSearchTerms(query: String? = null) {
@@ -121,7 +122,7 @@ class SearchVM: ViewModel() {
     var episodeSortOrder by mutableStateOf(EpisodeSortOrder.DATE_DESC)
     var showAdvanced by mutableStateOf(false)
 
-    val tabTitles = listOf(R.string.episodes_label, R.string.feeds, R.string.pafeeds)
+    val tabTitles = listOf(R.string.episodes_label, R.string.feeds, R.string.feeds, R.string.pafeeds)
     val selectedTabIndex = mutableIntStateOf(0)
 
     var listIdentity by mutableStateOf("")
@@ -131,7 +132,7 @@ class SearchVM: ViewModel() {
         algo.setSearchByAll()
     }
 
-    data class Triplet(val episodes:  Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
+    data class Triplet(val episodes: Flow<ResultsChange<Episode>>, val feeds: List<Feed>, val pafeeds: List<PAFeed>)
 
     val episodesFlow: StateFlow<List<Episode>> = snapshotFlow { Pair(queryText, episodeSortOrder) }.flatMapLatest { (queryText, order) ->
         val results_ = withContext(Dispatchers.IO) {
@@ -154,6 +155,8 @@ class SearchVM: ViewModel() {
             results_.episodes.map { it.list }
         }
     }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
+
+    val assFeedsFlow = episodesFlow.map { es -> es.mapNotNull { e -> e.feed }.distinctBy { it.id } }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 }
 
 @ExperimentalMaterial3Api
@@ -221,11 +224,10 @@ fun SearchScreen() {
     }
 
     @Composable
-    fun FeedsColumn() {
+    fun FeedsColumn(feeds_: List<Feed>) {
         val context = LocalContext.current
-        val lazyListState = rememberLazyListState()
-        LazyColumn(state = lazyListState, modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(vm.feeds, key = { feed -> feed.id }) { feed ->
+        LazyColumn(modifier = Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(feeds_, key = { feed -> feed.id }) { feed ->
                 Row(Modifier.background(MaterialTheme.colorScheme.surface)) {
                     val img = remember(feed) { ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build() }
                     AsyncImage(model = img, contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher),
@@ -301,9 +303,10 @@ fun SearchScreen() {
     }
 
     val episodes by vm.episodesFlow.collectAsStateWithLifecycle()
+    val assFeeds by vm.assFeedsFlow.collectAsStateWithLifecycle()
 
     val infoBarText = remember(episodes) { mutableStateOf("${episodes.size} episodes") }
-    val tabCounts = remember(episodes.size, vm.feeds.size, vm.pafeeds.size) { listOf(episodes.size, vm.feeds.size, vm.pafeeds.size) }
+    val tabCounts = remember(episodes.size, assFeeds.size, vm.feeds.size, vm.pafeeds.size) { listOf(episodes.size, assFeeds.size, vm.feeds.size, vm.pafeeds.size) }
     swipeActions.ActionOptionsDialog()
 
     if (episodeForInfo != null) EpisodeScreen(episodeForInfo!!, listFlow = vm.episodesFlow)
@@ -345,8 +348,9 @@ fun SearchScreen() {
                                 runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, EpisodeSortOrder.DATE_DESC) }
                         })
                 }
-                1 -> FeedsColumn()
-                2 -> PAFeedsColumn()
+                1 -> FeedsColumn(assFeeds)
+                2 -> FeedsColumn(vm.feeds)
+                3 -> PAFeedsColumn()
             }
         }
     }

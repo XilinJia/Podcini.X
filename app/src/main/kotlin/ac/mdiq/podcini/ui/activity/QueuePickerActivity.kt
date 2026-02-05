@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.glance.appwidget.updateAll
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,7 @@ import kotlinx.coroutines.withContext
 
 class QueuePickerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+//        installSplashScreen()
         super.onCreate(savedInstanceState)
         val spinnerTexts = queuesLive.map { "${if (it.id == actQueue.id) "> " else ""}${it.name} : ${it.size()}" }
 

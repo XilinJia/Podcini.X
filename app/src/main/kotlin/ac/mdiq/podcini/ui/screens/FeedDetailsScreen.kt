@@ -8,6 +8,7 @@ import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.storage.database.FeedAssistant
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
+import ac.mdiq.podcini.storage.database.feedsFlow
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getEpisodesAsFlow
 import ac.mdiq.podcini.storage.database.getHistoryAsFlow
@@ -141,13 +142,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.AsyncImage
-import io.github.xilinjia.krdb.ext.query
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -188,16 +189,13 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
     var enableFilter by  mutableStateOf(true)
     var cameBack by mutableStateOf(false)
 
-    val feedFlow: StateFlow<Feed?> = realm.query<Feed>("id == $0", feedId).first().asFlow().map { it.obj }
-        .stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = Feed())
+    val feedFlow: StateFlow<Feed?> = feedsFlow.map { it.list.firstOrNull { it.id == feedId } }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = Feed())
 
-    val episodesFlow: StateFlow<List<Episode>> =
-        combine(feedFlow.filterNotNull(), screenModeFlow, snapshotFlow { enableFilter })
-        { feed, mode, enableFilter -> Triple(feed, mode, enableFilter) }
-            .distinctUntilChanged()
-            .flatMapLatest { (feed, mode, enableFilter) ->
+    val episodesFlow: StateFlow<List<Episode>> = combine(feedFlow.filterNotNull(), screenModeFlow, snapshotFlow { enableFilter })
+        { feed, mode, enableFilter -> Triple(feed, mode, enableFilter) }.distinctUntilChanged().flatMapLatest { (feed, mode, enableFilter) ->
             listIdentity = "FeedDetails.${feed.id}"
             when {
+                mode == FeedScreenMode.Info -> emptyFlow()
                 mode == FeedScreenMode.History -> {
                     listIdentity += ".History"
                     getHistoryAsFlow(feed.id)

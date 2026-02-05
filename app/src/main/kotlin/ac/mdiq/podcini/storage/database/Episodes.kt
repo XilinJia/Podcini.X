@@ -87,7 +87,7 @@ fun getEpisodesCount(filter: EpisodeFilter?, feedId: Long = -1): Int {
 }
 
 fun existingEpisode(episode: Episode): Episode? {
-    return realm.query(Episode::class).query("title == $0 AND duration == $1", episode.title, episode.duration).first().find()
+    return realm.query(Episode::class).query("title == $0 AND duration > $1 AND duration < $2", episode.title, (0.98*episode.duration).toInt(), (1.02*episode.duration).toInt()).first().find()
 }
 
 /**

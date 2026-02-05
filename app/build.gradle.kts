@@ -27,8 +27,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 251
-        versionName = "10.8.8"
+        versionCode = 252
+        versionName = "10.8.9"
 
         ndkVersion = "29.0.14206865"
 

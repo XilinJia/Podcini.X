@@ -1,3 +1,12 @@
+# 10.8.9
+
+* in Search screen, added a second tab of Feeds showing associated feeds of the resulting episodes
+* improved flow setups in Queues and FeedDetails screens
+* in FeedDetails screen, avoid fetching episode in Info view
+* fixed Search dialog not auto-close
+* EpisodeInfo started from widget adopts the theme of the main app, as demanded by the color of the description text
+* adjusted shared existing YT episode query
+
 # 10.8.8
 
 * straightened up the code of SwipeActions

@@ -68,6 +68,8 @@ private const val TAG: String = "Feeds"
 
 var feedOperationText by mutableStateOf("")
 
+val feedsFlow = realm.query(Feed::class).asFlow()
+
 var feeds = realm.query(Feed::class).find()
 var feedsMap: Map<Long, Feed> = feeds.associateBy { it.id }
 
@@ -119,9 +121,8 @@ fun cancelMonitorFeeds() {
 fun monitorFeeds(scope: CoroutineScope) {
     if (feedMonitorJob != null) return
 
-    val feedQuery = realm.query(Feed::class)
     feedMonitorJob = scope.launch(Dispatchers.IO) {
-        feedQuery.asFlow().collect { changes: ResultsChange<Feed> ->
+        feedsFlow.collect { changes: ResultsChange<Feed> ->
             feeds = changes.list
             feedsMap = feeds.associateBy { it.id }
             feedCount = feeds.size

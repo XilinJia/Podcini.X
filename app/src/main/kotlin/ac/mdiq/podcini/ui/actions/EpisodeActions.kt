@@ -366,6 +366,7 @@ class SearchSelected : EpisodeAction() {
                         Button(modifier = Modifier.padding(top = 8.dp), onClick = {
                             setSearchTerms("$selectedText,")
                             navController.navigate(Screens.Search.name)
+                            showSearchDialog = false
                         }) { Text(stringResource(R.string.search_label)) }
                     }
                 })

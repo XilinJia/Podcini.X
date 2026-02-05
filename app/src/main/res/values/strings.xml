@@ -77,8 +77,6 @@
     <!-- Download Statistics fragment -->
     <string name="total_size_downloaded_podcasts">Total size of episodes on the device</string>
 
-    <!-- Main activity -->
-
     <!-- Bug report activity -->
     <string name="log_file_share_exception">No compatible apps found</string>
     <string name="export_logs_menu_title">Export detailed logs</string>

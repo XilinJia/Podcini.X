@@ -47,6 +47,13 @@
         <item name="elevation">0dp</item>
     </style>
 
+<!--    splash is full screen, doesn't close, not desirable-->
+<!--    <style name="Theme.Podcini.Dialog.Splash" parent="Theme.SplashScreen">-->
+<!--        <item name="windowSplashScreenBackground">@color/background_darktheme</item>-->
+<!--        <item name="windowSplashScreenAnimatedIcon">@drawable/launcher_animate</item>-->
+<!--        <item name="postSplashScreenTheme">@style/Theme.Podcini.Dialog</item>-->
+<!--    </style>-->
+
     <style name="Theme.Podcini.Dialog" parent="Theme.Material3.DayNight.Dialog">
         <item name="android:windowIsFloating">true</item>
         <item name="android:windowIsTranslucent">true</item>

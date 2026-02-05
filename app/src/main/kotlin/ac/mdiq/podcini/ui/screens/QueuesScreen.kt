@@ -152,7 +152,6 @@ import coil.request.ImageRequest
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
 import io.github.xilinjia.krdb.ext.query
-import io.github.xilinjia.krdb.notifications.SingleQueryChange
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -191,7 +190,9 @@ class QueuesVM(id_: Long): ViewModel() {
     val feedsAssociated = mutableStateListOf<Feed>()
     var queuesMode by  mutableStateOf( if (appAttribs.queuesMode.isNotBlank()) QueuesScreenMode.valueOf(appAttribs.queuesMode) else QueuesScreenMode.Queue)
 
-    var curQueueFlow by  mutableStateOf<Flow<SingleQueryChange<PlayQueue>>>(emptyFlow())
+    val curQueueFlow: StateFlow<PlayQueue?> = snapshotFlow { appAttribs.curQueueId }.distinctUntilChanged().flatMapLatest { id ->
+        queuesFlow.map { it.list.firstOrNull { q -> q.id == id }}
+    }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = null)
 
     var curIndex by  mutableIntStateOf(-1)
     var curQueue by mutableStateOf(actQueue)
@@ -208,6 +209,7 @@ class QueuesVM(id_: Long): ViewModel() {
 
     val episodesSortedFlow: StateFlow<List<Episode>> = snapshotFlow { Triple(curQueue.id, curQueue.sortOrderCode, queuesMode) }.distinctUntilChanged().flatMapLatest {
         fun initBinFlow(): Flow<List<Episode>> {
+            Logd(TAG, "initBinFlow idsBinList: ${curQueue.idsBinList.size} ${curQueue.idsBinList.toSet().size}")
             return realm.query(Episode::class, "id IN $0", curQueue.idsBinList).asFlow().map { it.list }
                 .map { episodes ->
                     val orderMap = curQueue.idsBinList.withIndex().associate { it.value to it.index }
@@ -215,6 +217,7 @@ class QueuesVM(id_: Long): ViewModel() {
                 }
         }
         fun initQueueFlow():  Flow<List<Episode>> {
+            Logd(TAG, "initQueueFlow ")
             val orderedEpisodeIdsFlow = realm.query<QueueEntry>("queueId == $0 SORT(position ASC)", curQueue.id).asFlow().map { results -> results.list.map { it.episodeId } }
             val episodesFlow = orderedEpisodeIdsFlow.flatMapLatest { ids ->
                 if (ids.isEmpty()) flowOf(emptyList()) else realm.query<Episode>("id IN $0", ids).asFlow().map { it.list }
@@ -233,7 +236,6 @@ class QueuesVM(id_: Long): ViewModel() {
 
     init {
         timeIt("$TAG start of init")
-        curQueueFlow = realm.query<PlayQueue>("id == $0", appAttribs.curQueueId).first().asFlow()
 
         viewModelScope.launch { snapshotFlow { Pair(queues, actQueue.id) }.distinctUntilChanged().collect {
             spinnerTexts.clear()
@@ -278,8 +280,6 @@ fun QueuesScreen(id: Long = -1L) {
 
     var curQueuePosition by remember(vm.curQueue) {  mutableIntStateOf(vm.curQueue.scrollPosition) }
     Logd(TAG, "curQueuePosition: $curQueuePosition ${vm.curQueue.id}")
-
-    val lazyListState = rememberLazyListState()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -343,8 +343,10 @@ fun QueuesScreen(id: Long = -1L) {
     val queuesResults by queuesFlow.collectAsStateWithLifecycle(initialValue = null)
     if (queuesResults?.list != null) vm.queues = queuesResults!!.list
 
-    val queueChange by vm.curQueueFlow.collectAsStateWithLifecycle(initialValue = null)
-    if (queueChange?.obj != null) vm.curQueue = queueChange?.obj!!
+    val cq by vm.curQueueFlow.collectAsStateWithLifecycle(initialValue = null)
+    if (cq != null) vm.curQueue = cq!!
+
+    Logd(TAG, "episodes: ${episodes.size}")
 
     LaunchedEffect( vm.queuesMode) {
         Logd(TAG, "LaunchedEffect(vm.curQueue, screenMode, dragged)")
@@ -367,10 +369,11 @@ fun QueuesScreen(id: Long = -1L) {
             upsert(vm.queues[index]) { it.update() }
             upsert(appAttribs) { it.curQueueId = vm.queues[index].id }
         }
-        vm.curQueueFlow = realm.query<PlayQueue>("id == $0", vm.queues[index].id).first().asFlow()
     }
 
     Logd(TAG, "in Composition")
+
+    val lazyListState = rememberLazyListState()
 
     @Composable
     fun OpenDialogs() {
@@ -431,7 +434,7 @@ fun QueuesScreen(id: Long = -1L) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                     for (index in vm.queues.indices) {
                         FilterChip(onClick = {
-                            upsertBlk(vm.curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
+                            if (vm.queuesMode == QueuesScreenMode.Queue) upsertBlk(vm.curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
                             setCurIndex(index)
                             showChooseQueue = false
                         }, label = { Text(vm.spinnerTexts[index]) }, selected = vm.curIndex == index, border = filterChipBorder(vm.curIndex == index))
@@ -450,20 +453,22 @@ fun QueuesScreen(id: Long = -1L) {
         Box {
             TopAppBar(title = {
                 if (vm.queuesMode == QueuesScreenMode.Queue) {
-                    Text((if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in vm.queueNames.indices) vm.queueNames[vm.curIndex].ifBlank { "No name" } else "No name", maxLines = 1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(onClick = { showChooseQueue = true }, onLongClick = {
-                        if (vm.curQueue.id == actQueue.id) {
-                            if (episodes.size > 5) {
-                                val index = episodes.indexOfFirst { it.id == curEpisode?.id }
-                                if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
-                                else Logt(TAG, "can not find curEpisode to scroll to")
-                            } else Logt(TAG, "only scroll in actQueue when size is larger than 5")
-                        } else {
-                            upsertBlk(vm.curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
-                            val index = vm.queues.indexOfFirst { it.id == actQueue.id }
-                            if (index >= 0) setCurIndex(index)
-                            else Logt(TAG, "actQueue is not available")
-                        }
-                    }))
+                    Text((if (vm.curQueue.id == actQueue.id) "> " else "") + if (vm.curIndex in vm.queueNames.indices) vm.queueNames[vm.curIndex].ifBlank { "No name" } else "No name", maxLines = 1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f).combinedClickable(
+                        onClick = { showChooseQueue = true },
+                        onLongClick = {
+                            if (vm.curQueue.id == actQueue.id) {
+                                if (episodes.size > 5) {
+                                    val index = episodes.indexOfFirst { it.id == curEpisode?.id }
+                                    if (index >= 0) scope.launch { lazyListState.scrollToItem(index) }
+                                    else Logt(TAG, "can not find curEpisode to scroll to")
+                                } else Logt(TAG, "only scroll in actQueue when size is larger than 5")
+                            } else {
+                                upsertBlk(vm.curQueue) { it.scrollPosition = lazyListState.firstVisibleItemIndex }
+                                val index = vm.queues.indexOfFirst { it.id == actQueue.id }
+                                if (index >= 0) setCurIndex(index)
+                                else Logt(TAG, "actQueue is not available")
+                            }
+                        }))
                 } else {
                     val title = remember(vm.queuesMode) { when (vm.queuesMode) {
                         QueuesScreenMode.Bin -> vm.curQueue.name + " Bin"
@@ -678,32 +683,13 @@ fun QueuesScreen(id: Long = -1L) {
             QueuesScreenMode.Feed -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { AssociatedFeedsGrid(vm.feedsAssociated) }
             QueuesScreenMode.Settings -> Box(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) { Settings() }
             else -> {
-                LaunchedEffect(lazyListState) {
-                    snapshotFlow { lazyListState.isScrollInProgress }
-                        .collect { isScrolling ->
-                            if (!isScrolling) {
-                                val index = lazyListState.firstVisibleItemIndex
-                                Logd(TAG, "Scroll settled at: $index")
-                                curQueuePosition = index
-                            }
-                        }
-                }
-                var scrollToOnStart by remember(vm.queuesMode, vm.curQueue, episodes.size, curEpisode?.id, vm.cameBack) { mutableIntStateOf(
-                    when {
-                        vm.queuesMode != QueuesScreenMode.Queue -> -1
-                        vm.cameBack -> -1
-                        vm.curQueue.id == actQueue.id -> episodes.indexOfFirst { it.id == curEpisode?.id }
-                        else -> curQueuePosition
-                    }
-                ) }
-                Logd(TAG, "Scaffold scrollToOnStart: cameBack: ${vm.cameBack} $scrollToOnStart $curQueuePosition")
-
                 var listInfoText by remember { mutableStateOf("") }
                 LaunchedEffect(episodes.size) {
                     Logd(TAG, "LaunchedEffect(episodes.size) ${episodes.size}")
                     scope.launch(Dispatchers.IO) { listInfoText = buildListInfo(episodes) }
                 }
                 if (vm.queuesMode == QueuesScreenMode.Bin) {
+                    Logd(TAG, "vm.queuesMode == QueuesScreenMode.Bin")
                     Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
                         InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
                         EpisodeLazyColumn(episodes, swipeActions = swipeActions)
@@ -713,7 +699,7 @@ fun QueuesScreen(id: Long = -1L) {
                     if (dragDropEnabled) {
                         val episodes_ = remember(episodes) { episodes.toMutableStateList() }
                         val rowHeightPx = with(LocalDensity.current) { 56.dp.toPx() }
-                        LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(innerPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LazyColumn(modifier = Modifier.fillMaxSize().padding(innerPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             itemsIndexed(episodes_, key = { _, e -> e.id }) { index, episode_ ->
                                 val episode by rememberUpdatedState(episode_)
                                 fun <T> MutableList<T>.move(from: Int, to: Int) {
@@ -768,6 +754,25 @@ fun QueuesScreen(id: Long = -1L) {
                             }
                         }
                     } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+                        LaunchedEffect(lazyListState) {
+                            snapshotFlow { lazyListState.isScrollInProgress }
+                                .collect { isScrolling ->
+                                    if (!isScrolling) {
+                                        val index = lazyListState.firstVisibleItemIndex
+                                        Logd(TAG, "Scroll settled at: $index")
+                                        curQueuePosition = index
+                                    }
+                                }
+                        }
+                        var scrollToOnStart by remember(vm.queuesMode, vm.curQueue, episodes.size, curEpisode?.id, vm.cameBack) { mutableIntStateOf(
+                            when {
+                                vm.queuesMode != QueuesScreenMode.Queue -> -1
+                                vm.cameBack -> -1
+                                vm.curQueue.id == actQueue.id -> episodes.indexOfFirst { it.id == curEpisode?.id }
+                                else -> curQueuePosition
+                            }
+                        ) }
+                        Logd(TAG, "Scaffold scrollToOnStart: cameBack: ${vm.cameBack} $scrollToOnStart $curQueuePosition")
                         InforBar(swipeActions) { Text("$listInfoText $feedOperationText", style = MaterialTheme.typography.bodyMedium) }
                         EpisodeLazyColumn(episodes, swipeActions = swipeActions,
                             lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
