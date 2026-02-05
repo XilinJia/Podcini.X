@@ -5,7 +5,6 @@
 * in FeedDetails screen, avoid fetching episode in Info view
 * fixed Search dialog not auto-close
 * EpisodeInfo started from widget adopts the theme of the main app, as demanded by the color of the description text
-* adjusted shared existing YT episode query
 
 # 10.8.8
 
