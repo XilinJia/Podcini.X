@@ -99,6 +99,8 @@
     <string name="marks">Marks</string>
     <string name="ask_remove_mark">%1$s を削除しますか？</string>
     <string name="play_mark_msg">エピソードが再生されているときにマークを求めることができます。</string>
+    <string name="send_to_device">Send to device</string>
+    <string name="receive_feed">Receive feed</string>
     <string name="chapter_duration0">期間: </string>
     <string name="by">By</string>
     <string name="description_label">説明</string>
@@ -339,6 +341,7 @@
     <string name="time_in_queue">キュー内の時間</string>
     <string name="time_out_queue">タイムアウトキュー</string>
     <string name="between_dates">日付間隔</string>
+    <string name="start">Start</string>
     <string name="completed_date">完了日</string>
     <string name="duration">期間</string>
     <string name="spent">使用済み：</string>
