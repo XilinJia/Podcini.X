@@ -99,6 +99,8 @@
     <string name="marks">Marks</string>
     <string name="ask_remove_mark">هل تريد إزالة العلامة: %1$s؟</string>
     <string name="play_mark_msg">يمكن البحث عن العلامة عندما يتم عرض الحلقة.</string>
+    <string name="send_to_device">Send to device</string>
+    <string name="receive_feed">Receive feed</string>
     <string name="chapter_duration0">المدة: </string>
     <string name="by">By</string>
     <string name="description_label">الوصف</string>
@@ -349,6 +351,7 @@
     <string name="time_in_queue">الوقت في قائمة الانتظار</string>
     <string name="time_out_queue">وقت انتهاء قائمة الانتظار</string>
     <string name="between_dates">بين التواريخ</string>
+    <string name="start">Start</string>
     <string name="completed_date">تاريخ مكتمل</string>
     <string name="duration">المدة</string>
     <string name="spent">أنفق</string>
