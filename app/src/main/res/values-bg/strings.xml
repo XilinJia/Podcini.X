@@ -99,6 +99,8 @@
     <string name="marks">Marks</string>
     <string name="ask_remove_mark">Do you want to remove mark: %1$s ?</string>
     <string name="play_mark_msg">The mark can be sought to when the episode is being played.</string>
+    <string name="send_to_device">Send to device</string>
+    <string name="receive_feed">Receive feed</string>
     <string name="chapter_duration0">Duration: </string>
     <string name="by">By</string>
     <string name="description_label">Description</string>
@@ -341,6 +343,7 @@
     <string name="time_in_queue">Time in queue</string>
     <string name="time_out_queue">Time out queue</string>
     <string name="between_dates">Between dates</string>
+    <string name="start">Start</string>
     <string name="completed_date">Completed date</string>
     <string name="duration">Duration</string>
     <string name="spent">Spent</string>
