@@ -5,6 +5,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import kotlinx.parcelize.Parcelize
 import ac.mdiq.podcini.storage.model.Episode.Companion.FEEDFILETYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.Feed.Companion.FEEDFILETYPE_FEED
 import ac.mdiq.podcini.utils.Logd
 import android.os.Bundle
 import android.os.Parcel
@@ -155,7 +156,7 @@ class DownloadRequest private constructor(
             }
             this.title = feed.getTextIdentifier()
             this.feedfileId = feed.id
-            this.feedfileType = feed.getTypeAsInt()
+            this.feedfileType = FEEDFILETYPE_FEED
             arguments.putInt(REQUEST_ARG_PAGE_NR, feed.pageNr)
         }
         fun withInitiatedByUser(initiatedByUser: Boolean): Builder {

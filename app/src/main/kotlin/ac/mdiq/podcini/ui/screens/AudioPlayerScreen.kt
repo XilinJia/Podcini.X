@@ -52,6 +52,7 @@ import ac.mdiq.podcini.ui.compose.AppNavigator
 import ac.mdiq.podcini.ui.compose.ChooseRatingDialog
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.EpisodeDetails
+import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedFullDialog
 import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.ui.compose.ShareDialog
@@ -538,8 +539,9 @@ fun AudioPlayerUIScreen(modifier: Modifier, navController: AppNavigator) {
 }
 
 @Composable
-fun AudioPlayerScreen(navController: AppNavigator) {
+fun AudioPlayerScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val navController = LocalNavController.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -598,10 +600,7 @@ fun AudioPlayerScreen(navController: AppNavigator) {
         val observer = LifecycleEventObserver { _, event ->
             Logd(TAG, "DisposableEffect Lifecycle.Event: $event")
             when (event) {
-                Lifecycle.Event.ON_CREATE -> {
-                    bsState = MainActivity.BSState.Partial
-//                    procFlowEvents()
-                }
+                Lifecycle.Event.ON_CREATE -> bsState = MainActivity.BSState.Partial
                 Lifecycle.Event.ON_START -> if (curEpisode != null) vm.showPlayButton = !isCurrentlyPlaying(curEpisode)
                 Lifecycle.Event.ON_RESUME -> {}
                 Lifecycle.Event.ON_STOP -> {}

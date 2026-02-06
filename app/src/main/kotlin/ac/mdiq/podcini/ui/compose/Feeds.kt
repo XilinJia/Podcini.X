@@ -241,7 +241,7 @@ fun RenameOrCreateSyntheticFeed(feed_: Feed? = null, onDismissRequest: () -> Uni
                         feed.type = if (isYoutube) Feed.FeedType.YOUTUBE.name else Feed.FeedType.RSS.name
                         if (hasVideo) feed.videoModePolicy = VideoMode.WINDOW_VIEW
                     }
-                    upsertBlk(feed) { if (feed_ != null) it.setCustomTitle1(name) }
+                    upsertBlk(feed) { if (feed_ != null) it.customTitle = if (name == it.eigenTitle) null else name }
                     onDismissRequest()
                 }) { Text(stringResource(R.string.confirm_label)) }
             }

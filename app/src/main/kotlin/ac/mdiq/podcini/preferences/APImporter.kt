@@ -73,7 +73,7 @@ fun importAP(uri: Uri, activity: Activity, onDismiss: ()->Unit) {
                         "last_played_time" -> episode.lastPlayedTime = cursor.getLong(i)
                     }
                 }
-                if (episode.id in favIds) episode.rating = Rating.SUPER.code
+                if (episode.id in favIds) episode.setRating(Rating.SUPER)
 //                Logd(TAG, "episode title: ${episode.title}")
                 episodes.add(episode)
             }

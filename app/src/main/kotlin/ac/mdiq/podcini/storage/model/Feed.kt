@@ -5,8 +5,10 @@ import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.AppPreferences.AppPrefs
 import ac.mdiq.podcini.preferences.AppPreferences.getPref
+import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.CurrentState.Companion.SPEED_USE_GLOBAL
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
 import ac.mdiq.podcini.storage.specs.EpisodeSortOrder
@@ -26,12 +28,14 @@ import androidx.compose.runtime.setValue
 import androidx.media3.common.C
 import io.github.xilinjia.krdb.ext.realmSetOf
 import io.github.xilinjia.krdb.ext.toRealmList
+import io.github.xilinjia.krdb.ext.toRealmSet
 import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.RealmSet
 import io.github.xilinjia.krdb.types.annotations.Ignore
 import io.github.xilinjia.krdb.types.annotations.Index
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
+import kotlinx.serialization.Serializable
 import java.util.Date
 
 @Stable
@@ -42,7 +46,6 @@ class Feed : RealmObject {
     @Index
     var volumeId: Long = -1L
 
-    @Index
     var identifier: String? = null
 
     var fileUrl: String? = null
@@ -59,11 +62,14 @@ class Feed : RealmObject {
 
     var langSet: RealmSet<String> = realmSetOf()
 
+    var preferredLnaguages: RealmSet<String> = realmSetOf()
+
     var author: String? = null
 
     var imageUrl: String? = null
 
-    var useEpisodeImage: Boolean = false
+    //Feed type, options are defined in [FeedType].
+    var type: String? = null
 
     @Ignore
     var episodes: MutableList<Episode> = mutableListOf()    // used only for new feed
@@ -81,33 +87,6 @@ class Feed : RealmObject {
     var lastUpdateTime: Long = 0
 
     var lastFullUpdateTime: Long = 0
-
-    //Feed type, options are defined in [FeedType].
-    var type: String? = null
-
-    var prefActionType: String? = null
-
-    /**
-     * The page number that this feed is on. Only feeds with page number "0" should be stored in the
-     * database, feed objects with a higher page number only exist temporarily and should be merged
-     * into feeds with page number "0".
-     * This attribute's value is not saved in the database
-     */
-    @Ignore
-    var pageNr: Int = 0
-
-    /**
-     * True if this is a "paged feed", i.e. there exist other feed files that belong to the same
-     * logical feed.
-     */
-    var isPaged: Boolean = false
-
-    /**
-     * Link to the next page of this feed. If this feed object represents a logical feed (i.e. a feed
-     * that is saved in the database) this might be null while still being a paged feed.
-     */
-    var nextPageLink: String? = null
-
 
     // String that identifies the last update (adopted from Last-Modified or ETag header).
     var lastUpdate: String? = null
@@ -150,6 +129,7 @@ class Feed : RealmObject {
     val isLocalFeed: Boolean
         get() = downloadUrl?.startsWith(PREFIX_LOCAL_FOLDER) == true
 
+    // ============ filters and sorts    ==========================
     @Ignore
     var episodeFilter: EpisodeFilter = EpisodeFilter("")
         get() {
@@ -184,6 +164,11 @@ class Feed : RealmObject {
         }
     var sortOrderCode: Int = 2     // in EpisodeSortOrder
 
+    var sortValue: Long = 0L
+
+    var sortInfo: String = ""
+    // ============ filters and sorts    ==========================
+
     @Ignore
     val mostRecentItem: Episode?
         get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate DESC)").first().find()
@@ -199,13 +184,12 @@ class Feed : RealmObject {
             this.eigenTitle = value
         }
 
-    var sortValue: Long = 0L
-
-    var sortInfo: String = ""
-
+    var prefActionType: String? = null
 
     @Ignore
     var isBuilding by mutableStateOf(false)
+
+    var useEpisodeImage: Boolean = false
 
     var useWideLayout: Boolean = false
 
@@ -229,6 +213,8 @@ class Feed : RealmObject {
 
     var introSkip: Int = 0
     var endingSkip: Int = 0
+
+    var repeatIntervals: RealmList<Int> = DEFAULT_INTERVALS.toRealmList()     // minutes, hours, days, weeks
 
     @Ignore
     var autoDeleteAction: AutoDeleteAction = AutoDeleteAction.GLOBAL
@@ -277,15 +263,25 @@ class Feed : RealmObject {
 
     var prefStreamOverDownload: Boolean = false
 
+    var freeze: Boolean = false
+        private set
+
+    fun freezeFeed(value: Boolean) {
+        freeze = value
+        if (freeze) {
+            queue = null
+            keepUpdated = false
+            autoEnqueue = false
+            autoDownload = false
+        }
+    }
+
     @Ignore
     val tagsAsString: String
         get() = tags.joinToString(TAG_SEPARATOR)
     var tags: RealmSet<String> = realmSetOf()
 
-    var autoDownload: Boolean = false
-
-    var autoEnqueue: Boolean = false
-
+    // ============= Queue ==============
     @Ignore
     var queue: PlayQueue? = null
         get() = when {
@@ -316,8 +312,12 @@ class Feed : RealmObject {
     var queueId: Long = 0L
 
     var autoAddNewToQueue: Boolean = false
+    // ============= Queue ==============
 
-    var repeatIntervals: RealmList<Int> = DEFAULT_INTERVALS.toRealmList()     // minutes, hours, days, weeks
+
+    // ============ auto-download/enqueue ==============
+    var autoDownload: Boolean = false
+    var autoEnqueue: Boolean = false
 
     @Ignore
     var episodeFilterADL: EpisodeFilter = EpisodeFilter()
@@ -383,19 +383,30 @@ class Feed : RealmObject {
         }
     var autoDLPolicyCode: Int = AutoDownloadPolicy.ONLY_NEW.code
     var autoDLPolicyReplace: Boolean = false
+    // ============ auto-download/enqueue ==============
 
-    fun fillPreferences(autoDownload: Boolean, autoDeleteAction: AutoDeleteAction,
-                        volumeAdaptionSetting: VolumeAdaptionSetting?, username: String?, password: String?) {
-        this.autoDownload = autoDownload
-        this.autoDeleteAction = autoDeleteAction
-        if (volumeAdaptionSetting != null) this.volumeAdaptionSetting = volumeAdaptionSetting
-        this.username = username
-        this.password = password
-        this.autoDelete = autoDeleteAction.code
-        this.volumeAdaption = volumeAdaptionSetting?.value ?: 0
-    }
 
-    var preferredLnaguages: RealmSet<String> = realmSetOf()
+    // ========================= TODO: probably not needed
+    /**
+     * The page number that this feed is on. Only feeds with page number "0" should be stored in the
+     * database, feed objects with a higher page number only exist temporarily and should be merged
+     * into feeds with page number "0".
+     * This attribute's value is not saved in the database
+     */
+    @Ignore
+    var pageNr: Int = 0
+    /**
+     * True if this is a "paged feed", i.e. there exist other feed files that belong to the same
+     * logical feed.
+     */
+    var isPaged: Boolean = false
+    /**
+     * Link to the next page of this feed. If this feed object represents a logical feed (i.e. a feed
+     * that is saved in the database) this might be null while still being a paged feed.
+     */
+    var nextPageLink: String? = null
+    // ==================================
+
 
     constructor() : super()
 
@@ -411,8 +422,15 @@ class Feed : RealmObject {
         fillPreferences(false, AutoDeleteAction.GLOBAL, VolumeAdaptionSetting.OFF, username, password)
     }
 
-    fun setCustomTitle1(value: String?) {
-        customTitle = if (value == null || value == eigenTitle) null else value
+    fun fillPreferences(autoDownload: Boolean, autoDeleteAction: AutoDeleteAction,
+                        volumeAdaptionSetting: VolumeAdaptionSetting?, username: String?, password: String?) {
+        this.autoDownload = autoDownload
+        this.autoDeleteAction = autoDeleteAction
+        if (volumeAdaptionSetting != null) this.volumeAdaptionSetting = volumeAdaptionSetting
+        this.username = username
+        this.password = password
+        this.autoDelete = autoDeleteAction.code
+        this.volumeAdaption = volumeAdaptionSetting?.value ?: 0
     }
 
     fun getTextIdentifier(): String? {
@@ -467,8 +485,6 @@ class Feed : RealmObject {
     }
 
     fun useFeedImage(): Boolean = !getPref(AppPrefs.prefEpisodeCover, false) || !useEpisodeImage
-
-    fun getTypeAsInt(): Int = FEEDFILETYPE_FEED
 
     fun addPayment(funding: FeedFunding) {
         paymentLinkList.add(funding)
@@ -763,3 +779,85 @@ class Feed : RealmObject {
 
     }
 }
+
+@Serializable
+data class FeedDTO(
+    val id: Long,
+    val volumeId: Long,
+    val fileUrl: String? = null,
+    val downloadUrl: String? = null,
+    val eigenTitle: String? = null,
+    val customTitle: String? = null,
+    val link: String? = null,
+    val description: String? = null,
+    val author: String? = null,
+    val imageUrl: String? = null,
+    val type: String? = null,
+
+    val limitEpisodesCount: Int = 0,
+    val lastPlayed: Long = 0,
+
+    val lastUpdateTime: Long = 0,
+    val lastFullUpdateTime: Long = 0,
+
+    val tags: Set<String> = setOf(),
+    val rating: Int =  Rating.OK.code,
+
+    val comment: String = "",
+    val commentTime: Long = 0L,
+    )
+
+fun Feed.toDTO() = FeedDTO(
+    id = this.id,
+    volumeId = this.volumeId,
+    fileUrl = this.fileUrl,
+    downloadUrl = this.downloadUrl,
+    eigenTitle = this.eigenTitle,
+    customTitle = this.customTitle,
+    link = this.link,
+    description = this.description,
+    author = this.author,
+    imageUrl = this.imageUrl,
+    type = this.type,
+    limitEpisodesCount = this.limitEpisodesCount,
+    lastPlayed = this.lastPlayed,
+    lastUpdateTime = this.lastUpdateTime,
+    lastFullUpdateTime = this.lastFullUpdateTime,
+    tags = this.tags.toSet(),
+    rating = this.rating,
+    comment = this.comment,
+    commentTime = this.commentTime
+)
+
+fun FeedDTO.toRealm() = Feed().apply {
+    id = this@toRealm.id
+    val feed = getFeed(id) ?: this
+
+    return upsertBlk(feed) {
+        it.volumeId = this@toRealm.volumeId
+        if (it.fileUrl == null) it.fileUrl = this@toRealm.fileUrl
+        if (it.downloadUrl == null) it.downloadUrl = this@toRealm.downloadUrl
+        if (it.eigenTitle == null) it.eigenTitle = this@toRealm.eigenTitle
+        it.customTitle = this@toRealm.customTitle
+
+        if (it.link == null) it.link = this@toRealm.link
+        if (it.description == null) it.description = this@toRealm.description
+        if (it.author == null) it.author = this@toRealm.author
+        if (it.imageUrl == null) it.imageUrl = this@toRealm.imageUrl
+        if (it.type == null) it.type = this@toRealm.type
+        it.limitEpisodesCount = this@toRealm.limitEpisodesCount
+        it.lastPlayed = this@toRealm.lastPlayed
+        it.lastUpdateTime = this@toRealm.lastUpdateTime
+        it.lastFullUpdateTime = this@toRealm.lastFullUpdateTime
+        it.tags = this@toRealm.tags.toRealmSet()
+        it.rating = this@toRealm.rating
+        it.comment = this@toRealm.comment
+        it.commentTime = this@toRealm.commentTime
+    }
+}
+
+@Serializable
+data class ComboPackage(
+    val feed: FeedDTO,
+    val episodes: List<EpisodeDTO>
+)

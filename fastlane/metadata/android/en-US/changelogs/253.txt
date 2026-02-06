@@ -1,0 +1,4 @@
+* fixed crash when open Search from Combo menu on PlayerDetails
+* if navigate from PlayerDetails, ensure to close the full Player screen
+* in DB models, removed indexing little used identifier in episode and feed, improve on DB size and write speed
+* enabled send/receive feed feature across devices, refer to "what's new" for details

@@ -46,9 +46,6 @@ class PlayerUIActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
                 Surface(color = MaterialTheme.colorScheme.surface, tonalElevation = 6.dp, modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.navigationBars)) {
-//                    if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
-//                    if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
-//                    if (commonMessage != null) LargePoster(commonMessage!!)
                     AudioPlayerUIScreen(Modifier, navigator)
                 }
             }
@@ -61,26 +58,6 @@ class PlayerUIActivity : ComponentActivity() {
         params.flags = params.flags or WindowManager.LayoutParams.FLAG_LAYOUT_INSET_DECOR or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
         window.attributes = params
     }
-
-//    override fun onResume() {
-//        super.onResume()
-//        if (lastTheme != AppPreferences.theme) {
-//            finish()
-//            startActivity(Intent(this, MainActivity::class.java))
-//        }
-//    }
-
-//    override fun onNewIntent(intent: Intent) {
-//        super.onNewIntent(intent)
-//        Logd(TAG, "onNewIntent")
-//        setIntent(intent)
-//        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-//            moveTaskToBack(true)
-//        }
-////        if (intent.getBooleanExtra("TOGGLE_STATE", false)) {
-////            moveTaskToBack(true)
-////        }
-//    }
 
     override fun onDestroy() {
         super.onDestroy()

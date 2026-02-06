@@ -282,7 +282,11 @@ class MainActivity : BaseActivity() {
     fun MainActivityUI(intent: Intent) {
         val lcScope = rememberCoroutineScope()
         val navController = rememberNavController()
-        val navigator = remember { AppNavigator(navController) { route -> Logd(TAG, "Navigated to: $route") } }
+        val navigator = remember { AppNavigator(navController) { route ->
+            Logd(TAG, "Navigated to: $route")
+            if (bsState == BSState.Expanded) bsState = BSState.Partial
+        } }
+
         LaunchedEffect(Unit) { monitorNavStack(navController) }
 
         val sheetState = rememberBottomSheetScaffoldState(bottomSheetState = rememberStandardBottomSheetState(initialValue = SheetValue.PartiallyExpanded, skipHiddenState = false))
@@ -349,17 +353,15 @@ class MainActivity : BaseActivity() {
             }
         }
 
-        CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState) {
+        CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState, LocalNavController provides navigator) {
             //        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
-            ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen(navigator) }) {
-                BottomSheetScaffold(sheetContent = { AudioPlayerScreen(navigator) }, scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
+            ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
+                BottomSheetScaffold(sheetContent = { AudioPlayerScreen() }, scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
                     Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), start = paddingValues.calculateStartPadding(LocalLayoutDirection.current), end = paddingValues.calculateEndPadding(LocalLayoutDirection.current), bottom = dynamicBottomPadding)) {
                         if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
                         if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
                         if (commonMessage != null) LargePoster(commonMessage!!)
-                        CompositionLocalProvider(LocalNavController provides navigator) {
-                            Navigate(navController, initScreen ?: "")
-                        }
+                        Navigate(navController, initScreen ?: "")
                     }
                 }
                 LaunchedEffect(intendedScreen) {

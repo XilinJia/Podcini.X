@@ -52,7 +52,7 @@ class EpisodeProgressReader {
             it.position = action.position * 1000
             it.playedDuration = action.playedDuration * 1000
             it.lastPlayedTime = (action.timestamp!!.time)
-            it.rating = if (action.isFavorite) Rating.SUPER.code else Rating.UNRATED.code
+            it.setRating(if (action.isFavorite) Rating.SUPER else Rating.UNRATED)
             it.setPlayState(EpisodeState.fromCode(action.playState))
             if (it.hasAlmostEnded()) {
                 Logd(TAG, "Marking as played: $action")

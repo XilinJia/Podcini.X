@@ -25,7 +25,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.net.Inet4Address
 import java.net.MalformedURLException
+import java.net.NetworkInterface
 import java.net.URI
 import java.net.URISyntaxException
 import java.net.URL
@@ -204,6 +206,17 @@ object NetworkUtils {
 
         if (url1.query.isNullOrEmpty()) return url2.query.isNullOrEmpty()
         return url1.query == url2.query
+    }
+
+    fun getLocalIpAddress(): String? {
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces().toList()
+            for (intf in interfaces) {
+                val addrs = intf.inetAddresses.toList()
+                for (addr in addrs) if (!addr.isLoopbackAddress && addr is Inet4Address) return addr.hostAddress
+            }
+        } catch (ex: Exception) { ex.printStackTrace() }
+        return null
     }
 
     /**

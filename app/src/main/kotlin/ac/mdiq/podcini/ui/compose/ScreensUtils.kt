@@ -181,8 +181,8 @@ fun NavHostController.routeExists(route: String): Boolean {
 
 class AppNavigator(
     val navController: NavHostController,
-    private val onNavigated: (String) -> Unit
-) {
+    private val onNavigated: (String) -> Unit) {
+
     fun navigate(route: String, builder: NavOptionsBuilder.() -> Unit = {}) {
         var route = route
         if (!navController.routeExists(route)) {

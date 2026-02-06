@@ -3,6 +3,7 @@ package ac.mdiq.podcini.storage.model
 import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.net.download.service.PodciniHttpClient.getHttpClient
 import ac.mdiq.podcini.net.utils.NetworkUtils.isImageDownloadAllowed
+import ac.mdiq.podcini.storage.database.episodeById
 import ac.mdiq.podcini.storage.database.feedsMap
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -38,6 +39,7 @@ import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
 import io.github.xilinjia.krdb.ext.realmListOf
 import io.github.xilinjia.krdb.ext.realmSetOf
+import io.github.xilinjia.krdb.ext.toRealmSet
 import io.github.xilinjia.krdb.types.RealmList
 import io.github.xilinjia.krdb.types.RealmObject
 import io.github.xilinjia.krdb.types.RealmSet
@@ -46,6 +48,7 @@ import io.github.xilinjia.krdb.types.annotations.Index
 import io.github.xilinjia.krdb.types.annotations.PrimaryKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import okhttp3.Request
 import okhttp3.Request.Builder
 import org.apache.commons.io.FilenameUtils.EXTENSION_SEPARATOR
@@ -68,10 +71,16 @@ class Episode : RealmObject {
     @PrimaryKey
     var id: Long = 0L   // increments from Date().time * 100 at time of creation
 
+    @Index
+    var feedId: Long? = null
+
+    var downloadUrl: String? = null
+
+    var mimeType: String? = ""
+
     /**
      * The id/guid that can be found in the rss/atom feed. Might not be set, especially in youtube feeds
      */
-    @Index
     var identifier: String? = null
 
     var title: String? = null
@@ -86,9 +95,6 @@ class Episode : RealmObject {
 
     var pubDate: Long = 0
 
-    @Index
-    var feedId: Long? = null
-
     @Ignore
     val feed: Feed?
         get() = if (feedId != null) feedsMap[feedId!!] else null
@@ -98,9 +104,23 @@ class Episode : RealmObject {
 
     var parentURL: String? = null
 
-    var related: RealmSet<Episode> = realmSetOf()
-
     var podcastIndexChapterUrl: String? = null
+
+    /**
+     * Returns the image of this item, as specified in the feed.
+     * To load the image that can be displayed to the user, use [.getImageLocation],
+     * which also considers embedded pictures or the feed picture if no other picture is present.
+     */
+    var imageUrl: String? = null
+
+    var duration: Int = 0    // in milliseconds
+
+    var position: Int = 0 // Current position in file, in milliseconds
+
+    // info from youtube
+    var viewCount: Int = 0
+
+    var likeCount: Int = 0
 
     @set:JvmName("setPlayStateProperty")
     var playState: Int
@@ -118,14 +138,9 @@ class Episode : RealmObject {
 
     var paymentLink: String? = null
 
-    /**
-     * Returns the image of this item, as specified in the feed.
-     * To load the image that can be displayed to the user, use [.getImageLocation],
-     * which also considers embedded pictures or the feed picture if no other picture is present.
-     */
-    var imageUrl: String? = null
-
     var isAutoDownloadEnabled: Boolean = true
+
+    var related: RealmSet<Episode> = realmSetOf()
 
     @Ignore
     val tagsAsString: String
@@ -142,20 +157,16 @@ class Episode : RealmObject {
 
     @set:JvmName("setRatingProperty")
     var rating: Int = Rating.UNRATED.code
+        private set
 
     var ratingTime: Long = 0L
         private set
 
     @JvmName("setRatingFunction")
-    fun setRating(r: Rating) {
+    fun setRating(r: Rating, setTime: Long = 0L) {
         rating = r.code
-        ratingTime = System.currentTimeMillis()
+        ratingTime = if (setTime > 0L) setTime else System.currentTimeMillis()
     }
-
-    // info from youtube
-    var viewCount: Int = 0
-
-    var likeCount: Int = 0
 
     var comment: String = ""
         private set
@@ -182,8 +193,6 @@ class Episode : RealmObject {
 
     var fileUrl: String? = null
 
-    var downloadUrl: String? = null
-
     @Ignore
     var downloaded: Boolean
         get() = fileUrl != null
@@ -193,10 +202,6 @@ class Episode : RealmObject {
         }
 
     var downloadTime: Long = 0
-
-    var duration: Int = 0    // in milliseconds
-
-    var position: Int = 0 // Current position in file, in milliseconds
 
     @Ignore
     var lastPlayedDate: Date? = null
@@ -217,8 +222,6 @@ class Episode : RealmObject {
 
     // File size in Byte
     var size: Long = 0L
-
-    var mimeType: String? = ""
 
     var origFeedTitle: String? = null
     var origFeeddownloadUrl: String? = null
@@ -335,7 +338,7 @@ class Episode : RealmObject {
     }
 
     @JvmName("setPlayStateFunction")
-    fun setPlayState(state: EpisodeState, resetPosition: Boolean = false) {
+    fun setPlayState(state: EpisodeState, resetPosition: Boolean = false, setTime: Long = 0L) {
         playState = if (state != EpisodeState.UNSPECIFIED) state.code
         else {
             if (playState == EpisodeState.PLAYED.code) EpisodeState.UNPLAYED.code
@@ -343,7 +346,7 @@ class Episode : RealmObject {
         }
         if (resetPosition || playState in listOf(EpisodeState.PLAYED.code, EpisodeState.IGNORED.code)) position = 0
         if (state in listOf(EpisodeState.QUEUE, EpisodeState.SKIPPED, EpisodeState.PLAYED, EpisodeState.PASSED, EpisodeState.IGNORED)) isAutoDownloadEnabled = false
-        playStateSetTime = System.currentTimeMillis()
+        playStateSetTime = if (setTime > 0L) setTime else System.currentTimeMillis()
     }
 
     fun isPlayed(): Boolean = playState >= EpisodeState.SKIPPED.code
@@ -372,12 +375,15 @@ class Episode : RealmObject {
 
     fun compileCommentText(): String = (if (comment.isBlank()) "" else comment.trimEnd('\n') + '\n') + fullDateTimeString(System.currentTimeMillis()) + ":\n"
 
-    fun addComment(text: String, addition: Boolean = true) {
+    fun addComment(text: String, addition: Boolean = true, setTime: Long = 0L) {
         if (addition) {
             comment = if (comment.isBlank()) "" else (comment + "\n")
             commentTime = System.currentTimeMillis()
             comment += fullDateTimeString(commentTime) + ":\n" + text
-        } else comment = text
+        } else {
+            comment = text
+            if (setTime > 0L) commentTime = setTime
+        }
     }
 
     /**
@@ -611,21 +617,6 @@ class Episode : RealmObject {
     }
 
     fun isSizeSetUnknown(): Boolean = (CHECKED_ON_SIZE_BUT_UNKNOWN.toLong() == this.size)
-
-//    override fun writeToParcel(dest: Parcel, flags: Int) {
-//        dest.writeString(id.toString())
-//        dest.writeString(if (episode != null) episode!!.id.toString() else "")
-//        dest.writeInt(duration)
-//        dest.writeInt(position)
-//        dest.writeLong(size)
-//        dest.writeString(mimeType)
-//        dest.writeString(fileUrl)
-//        dest.writeString(downloadUrl)
-//        dest.writeByte((if (downloaded) 1 else 0).toByte())
-//        dest.writeLong(playbackCompletionDate?.time ?: 0)
-//        dest.writeInt(playedDuration)
-//        dest.writeLong(lastPlayedTime)
-//    }
 
     fun getEpisodeTitle(): String = title ?: identifyingValue ?: "No title"
 
@@ -928,5 +919,105 @@ class Episode : RealmObject {
          * so this won't conflict with existing practice.
          */
         private const val CHECKED_ON_SIZE_BUT_UNKNOWN = Int.MIN_VALUE
+    }
+}
+
+@Serializable
+data class EpisodeDTO(
+    val id: Long,
+    val feedId: Long? = null,
+    val downloadUrl: String? = null,
+    val mimeType: String? = "",
+
+    val title: String? = null,
+    val shortDescription: String? = null,
+    val description: String? = null,
+    val link: String? = null,
+    val pubDate: Long = 0,
+    val imageUrl: String? = null,
+
+    val duration: Int = 0,
+    val position: Int = 0,
+
+    val viewCount: Int = 0,
+
+    val playState: Int = EpisodeState.UNSPECIFIED.code,
+    val playStateSetTime: Long = 0L,
+    val isAutoDownloadEnabled: Boolean = true,
+
+    val tags: Set<String> = setOf(),
+    val marks: Set<Long> = setOf(),
+    val todos: List<TodoDTO> = listOf(),
+
+    val rating: Int = Rating.UNRATED.code,
+    val ratingTime: Long = 0L,
+
+    val comment: String = "",
+    val commentTime: Long = 0L,
+
+    val lastPlayedTime: Long = 0,
+    val repeatTime: Long = 0L,
+    )
+
+fun Episode.toDTO() = EpisodeDTO(
+    id = this.id,
+    feedId = this.feedId,
+    downloadUrl = this.downloadUrl,
+    mimeType = this.mimeType,
+    title = this.title,
+    shortDescription = this.shortDescription,
+    description = this.description,
+    link = this.link,
+    pubDate = this.pubDate,
+    imageUrl = this.imageUrl,
+    duration = this.duration,
+    position = this.position,
+    viewCount = this.viewCount,
+    playState = this.playState,
+    playStateSetTime = this.playStateSetTime,
+    isAutoDownloadEnabled = this.isAutoDownloadEnabled,
+
+    tags = this.tags.toSet(),
+    marks = this.marks.toSet(),
+    todos = this.todos.map { it.toDTO() },
+
+    rating = this.rating,
+    ratingTime = this.ratingTime,
+    comment = this.comment,
+    commentTime = this.commentTime,
+    lastPlayedTime = this.lastPlayedTime,
+    repeatTime = this.repeatTime,
+)
+
+fun EpisodeDTO.toRealm() = Episode().apply {
+    id = this@toRealm.id
+    val e = episodeById(id) ?: this
+
+    return upsertBlk(e) {
+        if (it.feedId == null) it.feedId = this@toRealm.feedId
+        if (it.downloadUrl == null) it.downloadUrl = this@toRealm.downloadUrl
+        if (it.mimeType.isNullOrBlank()) it.mimeType = this@toRealm.mimeType
+        if (it.title == null) it.title = this@toRealm.title
+        if (it.shortDescription == null) it.shortDescription = this@toRealm.shortDescription
+        if (it.description == null) it.description = this@toRealm.description
+        if (it.link == null) it.link = this@toRealm.link
+        if (it.pubDate == 0L) it.pubDate = this@toRealm.pubDate
+        if (it.imageUrl == null) it.imageUrl = this@toRealm.imageUrl
+        if (it.duration == 0) it.duration = this@toRealm.duration
+
+        it.position = this@toRealm.position
+        it.viewCount = this@toRealm.viewCount
+        it.setPlayState(EpisodeState.fromCode(this@toRealm.playState), setTime = this@toRealm.playStateSetTime)
+        it.isAutoDownloadEnabled = this@toRealm.isAutoDownloadEnabled
+
+        it.tags = this@toRealm.tags.toRealmSet()
+        it.marks = this@toRealm.marks.toRealmSet()
+        it.todos.clear()
+        it.todos.addAll(this@toRealm.todos.map { it.toRealm() })
+
+        it.setRating(Rating.fromCode(this@toRealm.rating), setTime = this@toRealm.ratingTime)
+        it.addComment(this@toRealm.comment, addition = false, setTime = this@toRealm.commentTime)
+        it.lastPlayedTime = this@toRealm.lastPlayedTime
+        it.repeatTime = this@toRealm.repeatTime
     }
 }

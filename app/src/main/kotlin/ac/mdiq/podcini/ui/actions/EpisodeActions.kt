@@ -348,7 +348,6 @@ class SearchSelected : EpisodeAction() {
     }
     @Composable
     override fun ActionOptions() {
-        val navController = LocalNavController.current
         if (showSearchDialog && onEpisode?.title != null) {
             var textFieldValue by remember { mutableStateOf(TextFieldValue(onEpisode!!.title!!)) }
             val selectedText by remember(textFieldValue.selection) { mutableStateOf(
@@ -363,6 +362,7 @@ class SearchSelected : EpisodeAction() {
                 text = { TextField(value = textFieldValue, onValueChange = { textFieldValue = it }, readOnly = true, textStyle = TextStyle(fontSize = 18.sp), modifier = Modifier.fillMaxWidth().padding(16.dp).border(1.dp, MaterialTheme.colorScheme.primary)) },
                 confirmButton = {
                     if (selectedText.isNotEmpty()) {
+                        val navController = LocalNavController.current
                         Button(modifier = Modifier.padding(top = 8.dp), onClick = {
                             setSearchTerms("$selectedText,")
                             navController.navigate(Screens.Search.name)

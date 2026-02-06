@@ -6,10 +6,14 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndscheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
+import ac.mdiq.podcini.net.sync.transceive.Receiver
+import ac.mdiq.podcini.net.sync.transceive.Sender
+import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
 import ac.mdiq.podcini.preferences.DocumentFileExportWorker
 import ac.mdiq.podcini.preferences.ExportTypes
 import ac.mdiq.podcini.preferences.ExportWorker
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
+import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
@@ -37,6 +41,7 @@ import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.compose.CommonConfirmAttrib
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
+import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.PutToQueueDialog
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
@@ -70,6 +75,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
@@ -101,11 +107,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DividerDefaults
@@ -122,6 +130,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -133,6 +142,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -150,6 +160,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -171,6 +182,7 @@ import io.github.xilinjia.krdb.ext.toRealmSet
 import io.github.xilinjia.krdb.query.RealmResults
 import io.github.xilinjia.krdb.query.Sort
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -472,6 +484,7 @@ class LibraryVM : ViewModel() {
 
     data class FeedsFlowkeys(
         val id: Long?,
+//        val numAllFeeds: Int,
         val showAllFeeds: Boolean,
         val feedsFiltered: Int,
         val feedsSorted: Int,
@@ -522,11 +535,13 @@ class LibraryVM : ViewModel() {
 @Composable
 fun LibraryScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
+    val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
     val navController = LocalNavController.current
     val drawerController = LocalDrawerController.current
 
     val textColor = MaterialTheme.colorScheme.onSurface
+    val muteColor = MaterialTheme.colorScheme.onSurfaceVariant
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
@@ -543,6 +558,8 @@ fun LibraryScreen() {
     var showNewSynthetic by remember { mutableStateOf(false) }
     var showNewVolume by remember { mutableStateOf(false) }
     var selectMode by remember { mutableStateOf(false) }
+
+    var showReceiverDialog by remember { mutableStateOf(false) }
 
     val prefsState by vm.prefsFlow.collectAsStateWithLifecycle()
     if (prefsState != null) vm.subPrefs = prefsState!!
@@ -600,7 +617,7 @@ fun LibraryScreen() {
                 Row {
                     if (feedOperationText.isNotEmpty()) Text(feedOperationText, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.clickable {})
                     else {
-                        var feedCountState by remember(feedList.size) { mutableStateOf(feedList.size.toString() + "/" + feedCount.toString()) }
+                        var feedCountState by remember(feedList.size, feedCount) { mutableStateOf(feedList.size.toString() + "/" + feedCount.toString()) }
                         Text(feedCountState, maxLines=1, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = textColor, modifier = Modifier.scale(scaleX = 1f, scaleY = 1.8f))
                     }
                 } },
@@ -610,11 +627,9 @@ fun LibraryScreen() {
                     if (!vm.isViewGarden) IconButton(onClick = { showFilterDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.ic_filter), tint = if (isFiltered) buttonAltColor else MaterialTheme.colorScheme.onSurface, contentDescription = "filter") }
                     IconButton(onClick = { showSortDialog = true }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.arrows_sort), contentDescription = "sort") }
                     if (!vm.isViewGarden) IconButton(onClick = {
-//                        facetsMode = QuickAccess.Custom
                         facetsCustomTag = "Subscriptions"
                         facetsCustomQuery = realm.query(Episode::class).query("feedId IN $0", feedList.map { it.id })
                         navController.navigate("${Screens.Facets.name}?modeName=${QuickAccess.Custom.name}")
-//                        navController.navigate(Screens.Facets.name)
                     }) { Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_view_in_ar_24), contentDescription = "facets") }
                     IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                     DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
@@ -643,6 +658,10 @@ fun LibraryScreen() {
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.add_feed_label)) }, onClick = {
                                 navController.navigate(Screens.FindFeeds.name)
+                                expanded = false
+                            })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.receive_feed)) }, onClick = {
+                                showReceiverDialog = true
                                 expanded = false
                             })
                         }
@@ -1160,7 +1179,7 @@ fun LibraryScreen() {
                                     }
                                 }
                             })) {
-                                Text(feed.title ?: "No title", color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart))
+                                Text(feed.title ?: "No title", color = if (feed.freeze) muteColor else textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart))
                                 Row(modifier = Modifier.align(Alignment.BottomStart)) {
                                     var measureString by remember(feed.id) { mutableStateOf("") }
                                     LaunchedEffect(feed.id) {
@@ -1888,6 +1907,31 @@ fun LibraryScreen() {
                     }
                 }
             }
+        }
+
+        if (showReceiverDialog) {
+            var port by remember { mutableIntStateOf(21080) }
+            val ip = remember { getLocalIpAddress() }
+            var receiveJob by remember { mutableStateOf<Job?>(null) }
+            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
+                title = { Text(stringResource(R.string.receive_feed), style = CustomTextStyles.titleCustom) },
+                text = {
+                    Column {
+                        Text(ip ?: "address unknown")
+                        TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) port = it.toInt() })
+                    }
+                },
+                confirmButton = {
+                    if (receiveJob == null) TextButton(onClick = {
+                        val receiver = Receiver(port)
+                        receiveJob = scope.launch(Dispatchers.IO) { receiver.start() }
+                    }) { Text(stringResource(R.string.start)) }
+                },
+                dismissButton = { TextButton(onClick = {
+                    receiveJob?.cancel()
+                    showReceiverDialog = false
+                }) { Text(stringResource(R.string.stop)) } }
+            )
         }
 
         if (showFilterDialog) {

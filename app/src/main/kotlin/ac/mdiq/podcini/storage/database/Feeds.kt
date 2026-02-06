@@ -132,6 +132,7 @@ fun monitorFeeds(scope: CoroutineScope) {
                     when {
                         changes.insertions.isNotEmpty() -> {
                             compileLanguages()
+                            compileTags()
                             // TODO: not sure why the state flow does not collect
                             EventFlow.postEvent(FlowEvent.FeedListEvent(FlowEvent.FeedListEvent.Action.ADDED))
                         }

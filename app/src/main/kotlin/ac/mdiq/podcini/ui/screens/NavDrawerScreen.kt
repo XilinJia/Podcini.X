@@ -14,7 +14,7 @@ import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.activity.PreferenceActivity
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
-import ac.mdiq.podcini.ui.compose.AppNavigator
+import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.utils.Logd
 import android.content.Intent
@@ -80,10 +80,11 @@ val LocalDrawerController = staticCompositionLocalOf<DrawerController?> { null }
 val LocalDrawerState = staticCompositionLocalOf<DrawerState> { error("DrawerState not provided") }
 
 @Composable
-fun NavDrawerScreen(navigator: AppNavigator) {
+fun NavDrawerScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
     val context by rememberUpdatedState(LocalContext.current)
+    val navigator = LocalNavController.current
     val drawerCtrl = LocalDrawerController.current
     val drawerState = LocalDrawerState.current
 

@@ -1,7 +1,6 @@
 package ac.mdiq.podcini.storage.database
 
 import ac.mdiq.podcini.BuildConfig
-import ac.mdiq.podcini.preferences.AppPreferences
 import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.AppAttribs
 import ac.mdiq.podcini.storage.model.Chapter
@@ -49,6 +48,7 @@ import io.github.xilinjia.krdb.types.TypedRealmObject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -59,7 +59,7 @@ import kotlin.coroutines.ContinuationInterceptor
 
 private const val TAG: String = "RealmDB"
 
-private val ioScope = CoroutineScope(Dispatchers.IO)
+private val ioScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 val config: RealmConfiguration by lazy {
     RealmConfiguration.Builder(schema = setOf(
@@ -80,24 +80,20 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(103)
+    )).name("Podcini.realm").schemaVersion(104)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
             if (oldRealm.schemaVersion() < 25) {
                 Logd(TAG, "migrating DB from below 25")
                 mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
-                    newObject?.run {
-                        set("rating", if (oldObject.getValue<Boolean>(fieldName = "isFavorite")) 2L else 0L)
-                    }
+                    newObject?.run { set("rating", if (oldObject.getValue<Boolean>(fieldName = "isFavorite")) 2L else 0L) }
                 }
             }
             if (oldRealm.schemaVersion() < 26) {
                 Logd(TAG, "migrating DB from below 26")
                 mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
-                    newObject?.run {
-                        if (oldObject.getValue<Long>(fieldName = "rating") == 0L) set("rating", -3L)
-                    }
+                    newObject?.run { if (oldObject.getValue<Long>(fieldName = "rating") == 0L) set("rating", -3L) }
                 }
             }
             if (oldRealm.schemaVersion() < 28) {

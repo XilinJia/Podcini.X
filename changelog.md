@@ -1,3 +1,28 @@
+# 10.9.0
+
+* amended colors of some popups
+* fixed crash when open Search from Combo menu on PlayerDetails
+* if navigate from PlayerDetails, ensure to close the full Player screen
+* in DB models, removed indexing little used identifier in episode and feed, improve on DB size and write speed
+* recompile tags when new feed is added
+* in Library screen, ensure the total feeds number react to changes
+* enabled send/receive feed feature across devices
+	* on the receiver, on Library screen, from the menu, tap "Receive feed", 
+		* note the ip address and the port number (port can be changed), then tap Start on the popup
+	* on the sender, on FeedDetails screen, from the menu, tap "Send to device"
+		* enter the ip address/port number of the receiver, tap "Send"
+	* repeat with other feed if needed, while the receiver is active
+	* to end, tap "Stop" on the receiver
+	* once a feed is sent, it's set Frozen on the sender device
+	* the feed can be sent back and forth across the devices
+	* only key properties are transferred, others stay unchanged as before or default if new
+	* except for unchangeables, feed properties include: 
+		volumeId, customTitle, episodesLimit, lastPlayed, lastUpdateTime, lastFullUpdateTime, tags, rating, comment, commentTime
+	* episodes' properties include:
+		position, playState, playStateSetTime, isAutoDownloadEnabled, tags, marks, todos, rating, comment, commentTime, lastPlayedTime, repeatTime
+	* on reception, the transferred properties overwrite existing ones.
+	* on a return of a feed, it's unfrozen, but associated queue is None, keepUpdated, autoEnqueue, autoDownload are false
+
 # 10.8.9
 
 * in Search screen, added in Feeds tab associated feeds of the resulting episodes

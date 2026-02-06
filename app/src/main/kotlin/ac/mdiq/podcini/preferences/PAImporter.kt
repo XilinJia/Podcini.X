@@ -78,7 +78,7 @@ fun importPA(uri: Uri, activity: Activity, importDb: Boolean, importDirectory: B
                         }
                         "favorite" -> {
                             val f = cursor.getInt(i)
-                            if (f == 1) episode.rating = Rating.SUPER.code
+                            if (f == 1) episode.setRating(Rating.SUPER)
                         }
                         "size" -> episode.size = cursor.getLong(i)
                         "thumbnail_id" -> {

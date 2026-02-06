@@ -6,6 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("io.github.xilinjia.krdb")
     id("kotlin-parcelize")
+    kotlin("plugin.serialization") version "2.3.0"
 }
 
 composeCompiler {
@@ -27,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 252
-        versionName = "10.8.9"
+        versionCode = 253
+        versionName = "10.9.0"
 
         ndkVersion = "29.0.14206865"
 
@@ -183,16 +184,17 @@ dependencies {
     implementation("androidx.window:window:1.5.1")
     implementation("androidx.work:work-runtime:2.11.1")
 
-    implementation("androidx.media3:media3-exoplayer:1.9.1")
-    implementation("androidx.media3:media3-datasource-okhttp:1.9.1")
-    implementation("androidx.media3:media3-ui:1.9.1")
-    implementation("androidx.media3:media3-common:1.9.1")
-    implementation("androidx.media3:media3-session:1.9.1")
+    implementation("androidx.media3:media3-exoplayer:1.9.2")
+    implementation("androidx.media3:media3-datasource-okhttp:1.9.2")
+    implementation("androidx.media3:media3-ui:1.9.2")
+    implementation("androidx.media3:media3-common:1.9.2")
+    implementation("androidx.media3:media3-session:1.9.2")
 
     implementation("com.google.android.material:material:1.13.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("org.jetbrains.kotlin:kotlin-reflect:${project.property("kotlin_version")}")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
 
     implementation("io.github.xilinjia.krdb:library-base:3.3.0")
 
