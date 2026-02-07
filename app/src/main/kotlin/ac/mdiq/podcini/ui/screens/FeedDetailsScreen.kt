@@ -367,11 +367,11 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     Column {
                         Text(stringResource(R.string.send_to_device_sum))
                         TextField(value = host, onValueChange = { host = it }, label = { Text(stringResource(R.string.host_label)) })
-                        TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) port = it.toInt() })
+                        TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { port = it.toIntOrNull() ?: 0 })
                     }
                 },
                 confirmButton = {
-                    if (sendJob == null) TextButton(onClick = {
+                    if (sendJob == null && host.isNotBlank()) TextButton(onClick = {
                         upsertBlk(appAttribs) {
                             it.transceivePort = port
                             it.peerAddress = host

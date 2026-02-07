@@ -1906,11 +1906,11 @@ fun LibraryScreen() {
                 text = {
                     Column {
                         Text(ip ?: "address unknown")
-                        TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) port = it.toInt() })
+                        TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { port = it.toIntOrNull() ?: 0 })
                     }
                 },
                 confirmButton = {
-                    if (receiveJob == null) TextButton(onClick = {
+                    if (receiveJob == null && !ip.isNullOrBlank()) TextButton(onClick = {
                         upsertBlk(appAttribs) { it.transceivePort = port }
                         val receiver = Receiver(port)
                         receiveJob = scope.launch(Dispatchers.IO) { receiver.start() }

@@ -81,7 +81,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(106)
+    )).name("Podcini.realm").schemaVersion(107)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -453,6 +453,11 @@ val config: RealmConfiguration by lazy {
                     val count = newRealm.query("Episode").query("feedId == $id").count().find()
                     f.set("episodesCount", count)
                 }
+            }
+            if (oldRealm.schemaVersion() < 107) {
+                Logd(TAG, "migrating DB from below 107")
+                val attrNew = newRealm.query("AppAttribs").find()
+                if (attrNew.isNotEmpty()) attrNew[0].set("transceivePort", 21080L)
             }
         }).build()
 }
