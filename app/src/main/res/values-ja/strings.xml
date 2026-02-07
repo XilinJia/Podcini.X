@@ -100,6 +100,8 @@
     <string name="ask_remove_mark">%1$s を削除しますか？</string>
     <string name="play_mark_msg">エピソードが再生されているときにマークを求めることができます。</string>
     <string name="send_to_device">Send to device</string>
+    <string name="send">Send</string>
+    <string name="send_to_device_sum">Before sending, ensure the receiver started receiving.</string>
     <string name="receive_feed">Receive feed</string>
     <string name="chapter_duration0">期間: </string>
     <string name="by">By</string>
