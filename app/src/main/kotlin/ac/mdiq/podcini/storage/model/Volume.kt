@@ -49,6 +49,7 @@ class Volume : RealmObject {
 }
 
 const val ARCHIVED_VOLUME_ID = -10L
+const val FROZEN_VOLUME_ID = -5L
 
 var volumes = listOf<Volume>()
 private var volumeMonitorJob: Job? = null
@@ -84,6 +85,13 @@ fun monitorVolumes(scope: CoroutineScope) {
         val v = Volume()
         v.id = ARCHIVED_VOLUME_ID
         v.name = "Archived"
+        v.parentId = -1L
+        upsertBlk(v) {}
+    }
+    val frozen = realm.query(Volume::class).query("id == $FROZEN_VOLUME_ID").first().find() ?: run {
+        val v = Volume()
+        v.id = FROZEN_VOLUME_ID
+        v.name = "Frozen"
         v.parentId = -1L
         upsertBlk(v) {}
     }

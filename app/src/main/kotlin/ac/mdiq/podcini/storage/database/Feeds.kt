@@ -290,6 +290,7 @@ fun updateFeedFull(newFeed: Feed, removeUnlistedItems: Boolean = false, overwrit
     Logd(TAG, "updateFeedFull savedFeed lastFullUpdateTime: ${savedFeed.lastFullUpdateTime}")
 
     val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
+    savedFeed.episodesCount = episodes.size
     for (e in episodes) savedFeed.totleDuration += e.duration
 
     upsertBlk(savedFeed) {}
@@ -349,6 +350,7 @@ suspend fun updateFeedSimple(newFeed: Feed) {
     savedFeed.lastUpdateFailed = false
     savedFeed.totleDuration = 0
     val episodes = getEpisodes(null, null, feedId=savedFeed.id, copy = false)
+    savedFeed.episodesCount = episodes.size
     for (e in episodes) savedFeed.totleDuration += e.duration
 
     upsert(savedFeed) {}

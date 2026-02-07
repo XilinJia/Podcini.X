@@ -7,6 +7,7 @@ import ac.mdiq.podcini.storage.model.Chapter
 import ac.mdiq.podcini.storage.model.CurrentState
 import ac.mdiq.podcini.storage.model.DownloadResult
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.FROZEN_VOLUME_ID
 import ac.mdiq.podcini.storage.model.FacetsPrefs
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.PAFeed
@@ -80,7 +81,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(104)
+    )).name("Podcini.realm").schemaVersion(106)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -424,6 +425,34 @@ val config: RealmConfiguration by lazy {
                 Logd(TAG, "migrating DB from below 101")
                 val presSynd = newRealm.query("Feed").query("id == 21").first().find()
                 presSynd?.set("volumeId", ARCHIVED_VOLUME_ID)
+            }
+            if (oldRealm.schemaVersion() < 105) {
+                Logd(TAG, "migrating DB from below 105")
+                newRealm.copyToRealm(
+                    DynamicMutableRealmObject.create(
+                        type = "Volume",
+                        mapOf(
+                            "id" to FROZEN_VOLUME_ID,
+                            "name" to "Frozen",
+                            "parentId" to -1L
+                        )
+                    )
+                )
+                val frozen = oldRealm.query("Feed").query("freeze == true").find()
+                for (f in frozen) {
+                    val id = f.getValue<Long>("id")
+                    val fNew = newRealm.query("Feed").query("id == $id").first().find() ?: continue
+                    fNew.set("volumeId", FROZEN_VOLUME_ID)
+                }
+            }
+            if (oldRealm.schemaVersion() < 106) {
+                Logd(TAG, "migrating DB from below 106")
+                val feeds = newRealm.query("Feed").find()
+                for (f in feeds) {
+                    val id = f.getValue<Long>("id")
+                    val count = newRealm.query("Episode").query("feedId == $id").count().find()
+                    f.set("episodesCount", count)
+                }
             }
         }).build()
 }

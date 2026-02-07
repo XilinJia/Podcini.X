@@ -7,7 +7,6 @@ import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.OpmlTransporter
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed
-import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
@@ -345,7 +344,7 @@ fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
                         navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}")
                     }, onLongClick = { Logd(TAG, "long clicked: ${feed.title}") })
                 )
-                val numEpisodes by remember { mutableIntStateOf(getEpisodesCount(null, feed.id)) }
+                val numEpisodes by remember(feed.episodesCount) { mutableIntStateOf(feed.episodesCount) }
                 Text(NumberFormat.getInstance().format(numEpisodes.toLong()), color = Color.Green,
                     modifier = Modifier.background(Color.Gray).constrainAs(episodeCount) {
                         end.linkTo(parent.end)

@@ -884,7 +884,7 @@ fun FeedsSettingsScreen() {
                     Text(text = feedToSet.downloadUrl ?: "", style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(start = 15.dp))
                 }
             }
-            if ((feedToSet.volumeId != ARCHIVED_VOLUME_ID && feedToSet.id > MAX_SYNTHETIC_ID) || feedsToSet.size > 1) {
+            if ((feedToSet.inNormalVolume && feedToSet.id > MAX_SYNTHETIC_ID) || feedsToSet.size > 1) {
                 //                    refresh
                 TitleSummarySwitch(R.string.keep_updated, R.string.keep_updated_summary, R.drawable.ic_refresh, autoUpdate) {
                     autoUpdate = it
@@ -930,7 +930,7 @@ fun FeedsSettingsScreen() {
                 Text(text = stringResource(R.string.auto_colon), style = CustomTextStyles.titleCustom, color = textColor)
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = stringResource(R.string.enqueue), style = CustomTextStyles.titleCustom, color = textColor)
-                if ((feedToSet.volumeId != ARCHIVED_VOLUME_ID && curPrefQueue != "None") || feedsToSet.size > 1) {
+                if ((feedToSet.inNormalVolume && curPrefQueue != "None") || feedsToSet.size > 1) {
                     Spacer(modifier = Modifier.width(10.dp))
                     Switch(checked = autoEnqueueChecked, modifier = Modifier.height(24.dp),
                         onCheckedChange = {
@@ -946,7 +946,7 @@ fun FeedsSettingsScreen() {
                 }
                 Spacer(modifier = Modifier.weight(1f))
                 Text(text = stringResource(R.string.download), style = CustomTextStyles.titleCustom, color = textColor)
-                if ((feedToSet.volumeId != ARCHIVED_VOLUME_ID && feedToSet.type != Feed.FeedType.YOUTUBE.name) || feedsToSet.size > 1) {
+                if ((feedToSet.inNormalVolume && feedToSet.type != Feed.FeedType.YOUTUBE.name) || feedsToSet.size > 1) {
                     if (isAutodownloadEnabled && !preferStreaming) {
                         //                    auto download
                         Spacer(modifier = Modifier.width(10.dp))
@@ -964,7 +964,7 @@ fun FeedsSettingsScreen() {
                     }
                 }
             }
-            if (!autoEnqueueChecked && !autoDownloadChecked && (feedToSet.volumeId != ARCHIVED_VOLUME_ID || feedsToSet.size > 1)) {
+            if (!autoEnqueueChecked && !autoDownloadChecked && (feedToSet.inNormalVolume || feedsToSet.size > 1)) {
                 Text(text = stringResource(R.string.auto_enqueue_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 if (curPrefQueue == "None") Text(text = stringResource(R.string.auto_enqueue_sum1), style = MaterialTheme.typography.bodyMedium, color = textColor)
                 Text(text = stringResource(R.string.auto_download_sum), style = MaterialTheme.typography.bodyMedium, color = textColor)

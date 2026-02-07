@@ -74,6 +74,8 @@ class Feed : RealmObject {
     @Ignore
     var episodes: MutableList<Episode> = mutableListOf()    // used only for new feed
 
+    var episodesCount: Int = 0
+
     var score: Int = -1000
     var scoreCount: Int = 0
 
@@ -263,18 +265,8 @@ class Feed : RealmObject {
 
     var prefStreamOverDownload: Boolean = false
 
-    var freeze: Boolean = false
-        private set
-
-    fun freezeFeed(value: Boolean) {
-        freeze = value
-        if (freeze) {
-            queue = null
-            keepUpdated = false
-            autoEnqueue = false
-            autoDownload = false
-        }
-    }
+    @Ignore
+    val inNormalVolume: Boolean = volumeId >= -1L
 
     @Ignore
     val tagsAsString: String
@@ -431,6 +423,10 @@ class Feed : RealmObject {
         this.password = password
         this.autoDelete = autoDeleteAction.code
         this.volumeAdaption = volumeAdaptionSetting?.value ?: 0
+    }
+
+    fun freezeFeed(value: Boolean) {
+        volumeId = if (value) FROZEN_VOLUME_ID else -1L
     }
 
     fun getTextIdentifier(): String? {
@@ -783,7 +779,7 @@ class Feed : RealmObject {
 @Serializable
 data class FeedDTO(
     val id: Long,
-    val volumeId: Long,
+//    val volumeId: Long,
     val fileUrl: String? = null,
     val downloadUrl: String? = null,
     val eigenTitle: String? = null,
@@ -809,7 +805,7 @@ data class FeedDTO(
 
 fun Feed.toDTO() = FeedDTO(
     id = this.id,
-    volumeId = this.volumeId,
+//    volumeId = this.volumeId,
     fileUrl = this.fileUrl,
     downloadUrl = this.downloadUrl,
     eigenTitle = this.eigenTitle,
@@ -834,7 +830,7 @@ fun FeedDTO.toRealm() = Feed().apply {
     val feed = getFeed(id) ?: this
 
     return upsertBlk(feed) {
-        it.volumeId = this@toRealm.volumeId
+//        it.volumeId = this@toRealm.volumeId
         if (it.fileUrl == null) it.fileUrl = this@toRealm.fileUrl
         if (it.downloadUrl == null) it.downloadUrl = this@toRealm.downloadUrl
         if (it.eigenTitle == null) it.eigenTitle = this@toRealm.eigenTitle

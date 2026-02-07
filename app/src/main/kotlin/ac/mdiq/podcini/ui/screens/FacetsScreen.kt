@@ -19,6 +19,7 @@ import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.Episode
+import ac.mdiq.podcini.storage.model.FROZEN_VOLUME_ID
 import ac.mdiq.podcini.storage.model.FacetsPrefs
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -138,7 +139,7 @@ import java.net.URLDecoder
 import java.util.Date
 
 enum class QuickAccess {
-    New, Planned, Repeats, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, Archived, All, Custom
+    New, Planned, Repeats, Liked, Todos, Timers, Commented, Tagged, Recorded, Queued, Downloaded, History, Archived, Frozen, All, Custom
 }
 
 var facetsMode by mutableStateOf(QuickAccess.New)
@@ -265,6 +266,12 @@ class FacetsVM(modeName_: String): ViewModel() {
             QuickAccess.Archived -> {
                 listIdentity += ".${sortOrder.name}"
                 val archFeeds = getFeedList("volumeId == $ARCHIVED_VOLUME_ID")
+                val sortPair = sortPairOf(sortOrder)
+                realm.query(Episode::class).query("feedId IN $0", archFeeds.map { it.id }).sort(sortPair).asFlow()
+            }
+            QuickAccess.Frozen -> {
+                listIdentity += ".${sortOrder.name}"
+                val archFeeds = getFeedList("volumeId == $FROZEN_VOLUME_ID")
                 val sortPair = sortPairOf(sortOrder)
                 realm.query(Episode::class).query("feedId IN $0", archFeeds.map { it.id }).sort(sortPair).asFlow()
             }

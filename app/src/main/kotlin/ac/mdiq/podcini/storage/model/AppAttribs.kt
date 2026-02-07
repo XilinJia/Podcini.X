@@ -50,5 +50,9 @@ class AppAttribs: RealmObject {
 
     var topChartCountryCode: String = Locale.getDefault().country
 
+    var peerAddress: String = ""
+
+    var transceivePort: Int = 21080
+
     constructor()
 }

@@ -1,3 +1,13 @@
+# 10.9.1
+
+* persisted host and port for feed transceiving
+* volumeId of a feed is no longer transferred to other device
+* when freezing a feed, set it to Volume Frozen, its queue, keepUpdated, autoEnqueue, autoDownload properties are no longer changed
+* when unfreezing a feed (on its return), set its volume to none
+* in Facets, added Frozen view
+* in Library, Show archived also shows Frozen
+* persisted episodes count in feed, avoided various screen doing live queries on it
+
 # 10.9.0
 
 * amended colors of some popups

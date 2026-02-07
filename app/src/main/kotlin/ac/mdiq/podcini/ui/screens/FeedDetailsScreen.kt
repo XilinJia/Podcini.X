@@ -7,6 +7,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.sync.transceive.Sender
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.storage.database.FeedAssistant
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.feedsFlow
@@ -18,7 +19,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -196,7 +197,7 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
     var enableFilter by  mutableStateOf(true)
     var cameBack by mutableStateOf(false)
 
-    val feedFlow: StateFlow<Feed?> = feedsFlow.map { it.list.firstOrNull { it.id == feedId } }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = Feed())
+    val feedFlow: StateFlow<Feed?> = feedsFlow.map { it.list.firstOrNull { f -> f.id == feedId } }.stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = Feed())
 
     val episodesFlow: StateFlow<List<Episode>> = combine(feedFlow.filterNotNull(), screenModeFlow, snapshotFlow { enableFilter })
         { feed, mode, enableFilter -> Triple(feed, mode, enableFilter) }.distinctUntilChanged().flatMapLatest { (feed, mode, enableFilter) ->
@@ -357,22 +358,26 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
         }
 
         if (showDeviceDialog) {
-            var host by remember { mutableStateOf("") }
-            var port by remember { mutableIntStateOf(21080) }
+            var host by remember(appAttribs.peerAddress) { mutableStateOf(appAttribs.peerAddress) }
+            var port by remember(appAttribs.transceivePort) { mutableIntStateOf(appAttribs.transceivePort) }
             var sendJob by remember { mutableStateOf<Job?>(null) }
             AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
                 title = { Text(stringResource(R.string.send_to_device), style = CustomTextStyles.titleCustom) },
                 text = {
                     Column {
+                        Text(stringResource(R.string.send_to_device_sum))
                         TextField(value = host, onValueChange = { host = it }, label = { Text(stringResource(R.string.host_label)) })
                         TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { if (it.isEmpty() || it.toIntOrNull() != null) port = it.toInt() })
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = {
-                        val sender = Sender(host, port)
-                        sendJob = sender.sendFeed(feed!!.id) { showDeviceDialog =  false }
-                    }) { Text(stringResource(R.string.confirm_label)) }
+                    if (sendJob == null) TextButton(onClick = {
+                        upsertBlk(appAttribs) {
+                            it.transceivePort = port
+                            it.peerAddress = host
+                        }
+                        sendJob = Sender(host, port).sendFeed(feed!!.id) { showDeviceDialog =  false }
+                    }) { Text(stringResource(R.string.send)) }
                 },
                 dismissButton = { TextButton(onClick = {
                     sendJob?.cancel()
@@ -380,7 +385,6 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                 }) { Text(stringResource(R.string.cancel_label)) } }
             )
         }
-
     }
 
     val lazyListState = rememberLazyListState()
@@ -476,10 +480,8 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         IconButton(onClick = { expanded = true }) { Icon(Icons.Default.MoreVert, contentDescription = "Menu") }
                         DropdownMenu(expanded = expanded, border = BorderStroke(1.dp, buttonColor), onDismissRequest = { expanded = false }) {
                             DropdownMenuItem(text = { Text(stringResource(R.string.settings_label)) }, onClick = {
-                                if (feed != null) {
-                                    feedsToSet = listOf(feed!!)
-                                    navController.navigate(Screens.FeedsSettings.name)
-                                }
+                                feedsToSet = listOf(feed!!)
+                                navController.navigate(Screens.FeedsSettings.name)
                                 expanded = false
                             })
                             if (!feed?.downloadUrl.isNullOrBlank()) DropdownMenuItem(text = { Text(stringResource(R.string.share_label)) }, onClick = {
@@ -492,7 +494,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 else Loge(TAG, "feed link is not valid: ${feed?.link}")
                                 expanded = false
                             })
-                            if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.send_to_device)) }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.send_to_device)) }, onClick = {
                                 showDeviceDialog = true
                                 expanded = false
                             })
@@ -509,7 +511,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 }
                                 expanded = false
                             })
-                            if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.clean_up)) }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.clean_up)) }, onClick = {
                                 feedOperationText = context.getString(R.string.clean_up)
                                 runOnIOScope {
                                     val f = realm.copyFromRealm(feed!!)
@@ -519,12 +521,12 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 }
                                 expanded = false
                             })
-                            if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.refresh_label)) }, onClick = {
                                 gearbox.feedUpdater(listOf(feed!!), doItAnyway = true).startRefresh()
                                 expanded = false
                             })
-                            if (feed != null) DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
-                                if (feed != null) gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, true).startRefresh()
+                            DropdownMenuItem(text = { Text(stringResource(R.string.load_complete_feed)) }, onClick = {
+                                gearbox.feedUpdater(listOf(feed!!), fullUpdate = true, true).startRefresh()
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.remove_feed_label)) }, onClick = {
@@ -702,7 +704,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     swipeActions = swipeActions,
                     lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                     refreshCB = {
-                        if (feed != null && feed!!.volumeId != ARCHIVED_VOLUME_ID) runOnceOrAsk(feeds = listOf(feed!!))
+                        if (feed != null && feed!!.inNormalVolume) runOnceOrAsk(feeds = listOf(feed!!))
                         else Logt(TAG, "feed is null or archived, can not refresh")
                     },
                     selectModeCB = { vm.showHeader = !it },

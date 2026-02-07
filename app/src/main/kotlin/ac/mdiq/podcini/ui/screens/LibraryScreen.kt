@@ -7,24 +7,20 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndscheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.sync.transceive.Receiver
-import ac.mdiq.podcini.net.sync.transceive.Sender
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
 import ac.mdiq.podcini.preferences.DocumentFileExportWorker
 import ac.mdiq.podcini.preferences.ExportTypes
 import ac.mdiq.podcini.preferences.ExportWorker
 import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
-import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.feedCount
 import ac.mdiq.podcini.storage.database.feedOperationText
-import ac.mdiq.podcini.storage.database.getEpisodesCount
 import ac.mdiq.podcini.storage.database.queuesFlow
 import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
-import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.SubscriptionsPrefs
@@ -212,7 +208,7 @@ class LibraryVM : ViewModel() {
     val isViewGarden by mutableStateOf(feedIdsToUse.isNotEmpty())
 
     val subVolumesFlow: StateFlow<List<Volume>> = snapshotFlow { Pair(curVolume?.id, subPrefs.showArchived) }.flatMapLatest {
-        val qStrArchive = if (curVolume == null) ( if (subPrefs.showArchived) "" else "AND id != $ARCHIVED_VOLUME_ID" ) else ""
+        val qStrArchive = if (curVolume == null) ( if (subPrefs.showArchived) "" else "AND id >= -1" ) else ""
         Logd(TAG, "getVolumesFlow qStrArchive: $qStrArchive")
         val realmFlow = realm.query(Volume::class).query("parentId == ${curVolume?.id ?: -1L} $qStrArchive").asFlow()
         realmFlow.map { it.list }
@@ -375,7 +371,7 @@ class LibraryVM : ViewModel() {
                     realm.write {
                         for (f_ in feeds) {
                             val f = findLatest(f_) ?: continue
-                            val ln = getEpisodesCount(null, f.id)
+                            val ln = f.episodesCount
                             val aveDur = if (ln > 0) f.totleDuration/ln else 0
                             f.sortValue = aveDur
                             f.sortInfo = "Ave D: ${getDurationStringShort(aveDur, true)}"
@@ -468,7 +464,7 @@ class LibraryVM : ViewModel() {
         if (tagsStr.isNotEmpty())  sb.append(" AND $tagsStr")
         val queuesStr = queuesQS()
         if (queuesStr.isNotEmpty())  sb.append(" AND $queuesStr")
-        if (!subPrefs.showArchived && curVolume?.id != ARCHIVED_VOLUME_ID && !showAllFeeds)  sb.append(" AND volumeId != $ARCHIVED_VOLUME_ID")
+        if (!subPrefs.showArchived && curVolume?.id == -1L && !showAllFeeds)  sb.append(" AND volumeId >= -1 ")
 
         val fetchQS = sb.toString()
         val sortPair = Pair(subPrefs.sortProperty.ifBlank { "eigenTitle" }, if (subPrefs.sortDirCode == 0) Sort.ASCENDING else Sort.DESCENDING)
@@ -1058,11 +1054,7 @@ fun LibraryScreen() {
                                         bottom.linkTo(parent.bottom)
                                         start.linkTo(parent.start)
                                     })
-                                var measureString by remember(feed.id) { mutableStateOf("") }
-                                LaunchedEffect(feed.id) {
-                                    val numEpisodes = withContext(Dispatchers.IO) { getEpisodesCount(null, feed.id) }
-                                    measureString = NumberFormat.getInstance().format(numEpisodes.toLong())
-                                }
+                                val measureString by remember(feed.episodesCount) { mutableStateOf(NumberFormat.getInstance().format(feed.episodesCount.toLong())) }
                                 if (measureString.isNotBlank()) Text(measureString, color = buttonAltColor, modifier = Modifier.background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)).constrainAs(episodeCount) {
                                     end.linkTo(parent.end)
                                     top.linkTo(coverImage.top)
@@ -1179,13 +1171,9 @@ fun LibraryScreen() {
                                     }
                                 }
                             })) {
-                                Text(feed.title ?: "No title", color = if (feed.freeze) muteColor else textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart))
+                                Text(feed.title ?: "No title", color = textColor, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), modifier = Modifier.align(Alignment.TopStart))
                                 Row(modifier = Modifier.align(Alignment.BottomStart)) {
-                                    var measureString by remember(feed.id) { mutableStateOf("") }
-                                    LaunchedEffect(feed.id) {
-                                        val numEpisodes = withContext(Dispatchers.IO) { getEpisodesCount(null, feed.id) }
-                                        measureString = NumberFormat.getInstance().format(numEpisodes.toLong()) + " : " + durationInHours(feed.totleDuration/1000, false)
-                                    }
+                                    val measureString by remember(feed.episodesCount) { mutableStateOf(NumberFormat.getInstance().format(feed.episodesCount.toLong()) + " : " + durationInHours(feed.totleDuration/1000, false)) }
                                     Text(measureString, color = textColor, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(modifier = Modifier.weight(1f))
                                     Text(feed.sortInfo, color = textColor, style = MaterialTheme.typography.bodyMedium)
@@ -1910,7 +1898,7 @@ fun LibraryScreen() {
         }
 
         if (showReceiverDialog) {
-            var port by remember { mutableIntStateOf(21080) }
+            var port by remember(appAttribs.transceivePort) { mutableIntStateOf(appAttribs.transceivePort) }
             val ip = remember { getLocalIpAddress() }
             var receiveJob by remember { mutableStateOf<Job?>(null) }
             AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
@@ -1923,6 +1911,7 @@ fun LibraryScreen() {
                 },
                 confirmButton = {
                     if (receiveJob == null) TextButton(onClick = {
+                        upsertBlk(appAttribs) { it.transceivePort = port }
                         val receiver = Receiver(port)
                         receiveJob = scope.launch(Dispatchers.IO) { receiver.start() }
                     }) { Text(stringResource(R.string.start)) }
