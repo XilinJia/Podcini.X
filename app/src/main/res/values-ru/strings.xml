@@ -100,9 +100,11 @@
     <string name="ask_remove_mark">Do you want to remove mark: %1$s ?</string>
     <string name="play_mark_msg">The mark can be sought to when the episode is being played.</string>
     <string name="send_to_device">Send to device</string>
+    <string name="send_catalog">Send catalog</string>
     <string name="send">Send</string>
+    <string name="receiver_address">Receiver address: %1$s</string>
     <string name="send_to_device_sum">Before sending, ensure the receiver started receiving.</string>
-    <string name="receive_feed">Receive feed</string>
+    <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">Duration: </string>
     <string name="by">By</string>
     <string name="description_label">Description</string>
@@ -423,6 +425,8 @@
     <string name="playback_pref_sum">Управление с гарнитуры, время промотки, очереди</string>
     <string name="network_pref">Network</string>
     <string name="downloads_pref_sum">Update interval, Mobile data, Automatic download, Automatic deletion</string>
+    <string name="identifier">Identifier</string>
+    <string name="network_identifier_sum">A unique identifier is useful when sending data to Podcini on other devices.</string>
     <string name="feed_refresh_title">Refresh podcasts</string>
     <string name="feed_refresh_sum">Specify an interval (in minutes, 0 means never) at which Podcini looks for new episodes automatically.</string>
     <string name="feed_refresh_start">Start</string>
@@ -841,6 +845,8 @@
     <string name="proxy_type_label">Type</string>
     <string name="host_label">Host</string>
     <string name="port_label">Port</string>
+    <string name="broadcast_port">Broadcast port</string>
+    <string name="ports_sum">Broadcast port is to notifier the sender, and Port is used to receive data from the sender. Normally these don\'t need to changed.</string>
     <string name="optional_hint">(Optional)</string>
     <string name="proxy_test_label">Test</string>
     <string name="proxy_checking">Checking&#8230;</string>
@@ -850,6 +856,7 @@
     <string name="proxy_host_invalid_error">Host is not a valid IP address or domain</string>
     <string name="proxy_port_invalid_error">Port not valid</string>
     <!-- Subscriptions fragment -->
+    <string name="content_type">Content type</string>
     <!-- Notification channels -->
     <string name="notification_group_errors">Errors</string>
     <string name="notification_channel_user_action">Action required</string>
