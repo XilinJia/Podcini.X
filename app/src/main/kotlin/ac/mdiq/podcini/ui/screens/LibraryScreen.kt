@@ -6,7 +6,13 @@ import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.checkAndscheduleUpdateTaskOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
+import ac.mdiq.podcini.net.sync.transceive.CatalogReceiver
+import ac.mdiq.podcini.net.sync.transceive.ContentType
+import ac.mdiq.podcini.net.sync.transceive.FeedReceiver
 import ac.mdiq.podcini.net.sync.transceive.Receiver
+import ac.mdiq.podcini.net.sync.transceive.broadcastPresence
+import ac.mdiq.podcini.net.sync.transceive.sendCatalog
+import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
 import ac.mdiq.podcini.preferences.DocumentFileExportWorker
 import ac.mdiq.podcini.preferences.ExportTypes
@@ -45,6 +51,8 @@ import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.ui.compose.ScrollRowGrid
 import ac.mdiq.podcini.ui.compose.SelectLowerAllUpper
+import ac.mdiq.podcini.ui.compose.SendToDevice
+import ac.mdiq.podcini.ui.compose.Spinner
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.commonConfirm
@@ -537,7 +545,7 @@ fun LibraryScreen() {
     val drawerController = LocalDrawerController.current
 
     val textColor = MaterialTheme.colorScheme.onSurface
-    val muteColor = MaterialTheme.colorScheme.onSurfaceVariant
+//    val muteColor = MaterialTheme.colorScheme.onSurfaceVariant
     val buttonColor = MaterialTheme.colorScheme.tertiary
     val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
 
@@ -556,6 +564,7 @@ fun LibraryScreen() {
     var selectMode by remember { mutableStateOf(false) }
 
     var showReceiverDialog by remember { mutableStateOf(false) }
+    var showSendCatalogDialog by remember { mutableStateOf(false) }
 
     val prefsState by vm.prefsFlow.collectAsStateWithLifecycle()
     if (prefsState != null) vm.subPrefs = prefsState!!
@@ -656,8 +665,12 @@ fun LibraryScreen() {
                                 navController.navigate(Screens.FindFeeds.name)
                                 expanded = false
                             })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.receive_feed)) }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.receive_contents)) }, onClick = {
                                 showReceiverDialog = true
+                                expanded = false
+                            })
+                            DropdownMenuItem(text = { Text(stringResource(R.string.send_catalog)) }, onClick = {
+                                showSendCatalogDialog = true
                                 expanded = false
                             })
                         }
@@ -1897,31 +1910,54 @@ fun LibraryScreen() {
             }
         }
 
-        if (showReceiverDialog) {
-            var port by remember(appAttribs.transceivePort) { mutableIntStateOf(appAttribs.transceivePort) }
+        @Composable
+        fun ReceiveDialog() {
+            var tcpPort by remember(appAttribs.transceivePort) { mutableIntStateOf(appAttribs.transceivePort) }
+            var udpPort by remember(appAttribs.udpPort) { mutableIntStateOf(appAttribs.udpPort) }
             val ip = remember { getLocalIpAddress() }
+            var contentType by remember { mutableStateOf<ContentType>(ContentType.Feed) }
+            var receiver by remember { mutableStateOf<Receiver?>(null) }
             var receiveJob by remember { mutableStateOf<Job?>(null) }
+            var broadcastJob by remember { mutableStateOf<Job?>(null) }
+
             AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
-                title = { Text(stringResource(R.string.receive_feed), style = CustomTextStyles.titleCustom) },
+                title = { Text(stringResource(R.string.receive_contents), style = CustomTextStyles.titleCustom) },
                 text = {
                     Column {
-                        Text(ip ?: "address unknown")
-                        TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { port = it.toIntOrNull() ?: 0 })
+                        Text(appAttribs.name + " at: " + (ip ?: "address unknown"))
+                        Text(stringResource(R.string.ports_sum), style = MaterialTheme.typography.bodySmall)
+                        Row(modifier = Modifier.fillMaxWidth().padding(5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.weight(1f), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
+                            TextField(value = tcpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.weight(1f), onValueChange = { tcpPort = it.toIntOrNull() ?: 0 })
+                        }
+                        Row {
+                            Text(stringResource(R.string.content_type), modifier = Modifier.padding(end = 5.dp))
+                            Spinner(ContentType.values().map { it.name }, ContentType.Feed.name) { index -> contentType = ContentType.values()[index] }
+                        }
                     }
                 },
                 confirmButton = {
                     if (receiveJob == null && !ip.isNullOrBlank()) TextButton(onClick = {
-                        upsertBlk(appAttribs) { it.transceivePort = port }
-                        val receiver = Receiver(port)
-                        receiveJob = scope.launch(Dispatchers.IO) { receiver.start() }
+                        upsertBlk(appAttribs) { it.udpPort = udpPort }
+                        broadcastJob = scope.launch { broadcastPresence(udpPort, tcpPort) }
+                        upsertBlk(appAttribs) { it.transceivePort = tcpPort }
+                        receiver = if (contentType == ContentType.Feed) FeedReceiver(tcpPort) else CatalogReceiver(tcpPort)
+                        receiveJob = scope.launch(Dispatchers.IO) { receiver!!.start() }
                     }) { Text(stringResource(R.string.start)) }
                 },
                 dismissButton = { TextButton(onClick = {
+                    broadcastJob?.cancel()
+                    broadcastJob = null
+                    receiver?.stop()
                     receiveJob?.cancel()
                     showReceiverDialog = false
                 }) { Text(stringResource(R.string.stop)) } }
             )
         }
+
+        if (showReceiverDialog) ReceiveDialog()
+
+        if (showSendCatalogDialog) SendToDevice(onDismiss = { showSendCatalogDialog = false}) { host, port -> sendCatalog(host, port) { showSendCatalogDialog =  false } }
 
         if (showFilterDialog) {
             filterAndSort = true

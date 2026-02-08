@@ -266,7 +266,22 @@ class Feed : RealmObject {
     var prefStreamOverDownload: Boolean = false
 
     @Ignore
-    val inNormalVolume: Boolean = volumeId >= -1L
+    val inNormalVolume: Boolean
+        get() {
+            return when {
+                volumeId == -1L -> true
+                volumeId < -1L -> false
+                else -> {
+                    var vid = volumeId
+                    var v = volumes.firstOrNull { it.id == vid }
+                    while (v != null && v.parentId != -1L) {
+                        vid = v.id
+                        v = volumes.firstOrNull { it.id == vid }
+                    }
+                    v != null && v.id > 0L
+                }
+            }
+        }
 
     @Ignore
     val tagsAsString: String
@@ -779,7 +794,6 @@ class Feed : RealmObject {
 @Serializable
 data class FeedDTO(
     val id: Long,
-//    val volumeId: Long,
     val fileUrl: String? = null,
     val downloadUrl: String? = null,
     val eigenTitle: String? = null,
@@ -789,6 +803,8 @@ data class FeedDTO(
     val author: String? = null,
     val imageUrl: String? = null,
     val type: String? = null,
+
+    val episodesCount: Int = 0,
 
     val limitEpisodesCount: Int = 0,
     val lastPlayed: Long = 0,
@@ -815,6 +831,7 @@ fun Feed.toDTO() = FeedDTO(
     author = this.author,
     imageUrl = this.imageUrl,
     type = this.type,
+    episodesCount = this.episodesCount,
     limitEpisodesCount = this.limitEpisodesCount,
     lastPlayed = this.lastPlayed,
     lastUpdateTime = this.lastUpdateTime,
@@ -841,6 +858,7 @@ fun FeedDTO.toRealm() = Feed().apply {
         if (it.author == null) it.author = this@toRealm.author
         if (it.imageUrl == null) it.imageUrl = this@toRealm.imageUrl
         if (it.type == null) it.type = this@toRealm.type
+        it.episodesCount = this@toRealm.episodesCount
         it.limitEpisodesCount = this@toRealm.limitEpisodesCount
         it.lastPlayed = this@toRealm.lastPlayed
         it.lastUpdateTime = this@toRealm.lastUpdateTime
@@ -851,9 +869,3 @@ fun FeedDTO.toRealm() = Feed().apply {
         it.commentTime = this@toRealm.commentTime
     }
 }
-
-@Serializable
-data class ComboPackage(
-    val feed: FeedDTO,
-    val episodes: List<EpisodeDTO>
-)

@@ -4,10 +4,9 @@ import ac.mdiq.podcini.PodciniApp.Companion.getAppContext
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
-import ac.mdiq.podcini.net.sync.transceive.Sender
+import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
 import ac.mdiq.podcini.storage.database.FeedAssistant
-import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.buildListInfo
 import ac.mdiq.podcini.storage.database.feedOperationText
 import ac.mdiq.podcini.storage.database.feedsFlow
@@ -19,7 +18,6 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -45,6 +43,7 @@ import ac.mdiq.podcini.ui.compose.LayoutMode
 import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.RemoveFeedDialog
 import ac.mdiq.podcini.ui.compose.Screens
+import ac.mdiq.podcini.ui.compose.SendToDevice
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.defaultScreen
@@ -72,7 +71,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -86,13 +84,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -104,7 +100,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -130,7 +125,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -150,7 +144,6 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -305,7 +298,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
     var showFilterDialog by remember {  mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
     var showTagsSettingDialog by remember { mutableStateOf(false) }
-    var showDeviceDialog by remember { mutableStateOf(false) }
+    var showToDeviceDialog by remember { mutableStateOf(false) }
 
     val episodes by vm.episodesFlow.collectAsStateWithLifecycle()
     LaunchedEffect(episodes.size) {
@@ -357,34 +350,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
             }
         }
 
-        if (showDeviceDialog) {
-            var host by remember(appAttribs.peerAddress) { mutableStateOf(appAttribs.peerAddress) }
-            var port by remember(appAttribs.transceivePort) { mutableIntStateOf(appAttribs.transceivePort) }
-            var sendJob by remember { mutableStateOf<Job?>(null) }
-            AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
-                title = { Text(stringResource(R.string.send_to_device), style = CustomTextStyles.titleCustom) },
-                text = {
-                    Column {
-                        Text(stringResource(R.string.send_to_device_sum))
-                        TextField(value = host, onValueChange = { host = it }, label = { Text(stringResource(R.string.host_label)) })
-                        TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { port = it.toIntOrNull() ?: 0 })
-                    }
-                },
-                confirmButton = {
-                    if (sendJob == null && host.isNotBlank()) TextButton(onClick = {
-                        upsertBlk(appAttribs) {
-                            it.transceivePort = port
-                            it.peerAddress = host
-                        }
-                        sendJob = Sender(host, port).sendFeed(feed!!.id) { showDeviceDialog =  false }
-                    }) { Text(stringResource(R.string.send)) }
-                },
-                dismissButton = { TextButton(onClick = {
-                    sendJob?.cancel()
-                    showDeviceDialog = false
-                }) { Text(stringResource(R.string.cancel_label)) } }
-            )
-        }
+        if (showToDeviceDialog) SendToDevice(onDismiss = { showToDeviceDialog = false}) { host, port -> sendFeed(host, port, feed!!.id) { showToDeviceDialog =  false } }
     }
 
     val lazyListState = rememberLazyListState()
@@ -495,7 +461,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 expanded = false
                             })
                             DropdownMenuItem(text = { Text(stringResource(R.string.send_to_device)) }, onClick = {
-                                showDeviceDialog = true
+                                showToDeviceDialog = true
                                 expanded = false
                             })
                             if (feed?.isLocalFeed == true) DropdownMenuItem(text = { Text(stringResource(R.string.reconnect_local_folder)) }, onClick = {

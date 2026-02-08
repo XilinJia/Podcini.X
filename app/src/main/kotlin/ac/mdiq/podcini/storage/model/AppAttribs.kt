@@ -16,6 +16,8 @@ class AppAttribs: RealmObject {
     @PrimaryKey
     var id: Long = 0L
 
+    var name: String = "My Podcini"
+
     var prefLastScreen: String = ""
 
     var prefLastScreenArg: String = ""      // TODO: not really used now?
@@ -50,9 +52,8 @@ class AppAttribs: RealmObject {
 
     var topChartCountryCode: String = Locale.getDefault().country
 
-    var peerAddress: String = ""
-
     var transceivePort: Int = 21080
+    var udpPort: Int = 21088
 
     constructor()
 }

@@ -81,7 +81,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(107)
+    )).name("Podcini.realm").schemaVersion(109)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -438,12 +438,6 @@ val config: RealmConfiguration by lazy {
                         )
                     )
                 )
-                val frozen = oldRealm.query("Feed").query("freeze == true").find()
-                for (f in frozen) {
-                    val id = f.getValue<Long>("id")
-                    val fNew = newRealm.query("Feed").query("id == $id").first().find() ?: continue
-                    fNew.set("volumeId", FROZEN_VOLUME_ID)
-                }
             }
             if (oldRealm.schemaVersion() < 106) {
                 Logd(TAG, "migrating DB from below 106")
@@ -458,6 +452,16 @@ val config: RealmConfiguration by lazy {
                 Logd(TAG, "migrating DB from below 107")
                 val attrNew = newRealm.query("AppAttribs").find()
                 if (attrNew.isNotEmpty()) attrNew[0].set("transceivePort", 21080L)
+            }
+            if (oldRealm.schemaVersion() < 108) {
+                Logd(TAG, "migrating DB from below 108")
+                val attrNew = newRealm.query("AppAttribs").find()
+                if (attrNew.isNotEmpty()) attrNew[0].set("udpPort", 21088L)
+            }
+            if (oldRealm.schemaVersion() < 109) {
+                Logd(TAG, "migrating DB from below 109")
+                val attrNew = newRealm.query("AppAttribs").find()
+                if (attrNew.isNotEmpty()) attrNew[0].set("name", "My Podcini")
             }
         }).build()
 }

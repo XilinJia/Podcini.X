@@ -33,7 +33,7 @@ An open source podcast instrument, attuned to Puccini ![Puccini](./images/Puccin
 11. Features audio clips recording and position marking on any episodes for better review.
 12. Allows linking/relating multiple episodes for better grouping.
 13. Is capable to preserve important episodes when a podcast is unsubscribed.
-14. Spotlights sending/receiving feeds across devices.
+14. Spotlights sending/receiving feeds and subscriptions catalogue across devices.
 15. Offers Readability and Text-to-Speech for RSS contents.
 16. Supports auto-backups, customized media folder and importing DB from other apps
 

@@ -1,3 +1,14 @@
+# 10.9.2
+
+* in Settings->Network, added setting of Identifier, defaulted to "My Podcini"
+* when sending to other device, receiver address no longer needs to be typed in, it's obtained from Receiver broadcast
+* Added send/receive catalog feature across devices:
+	* a catalog is a list of feeds info but no episodes
+	* on receiving, the catalog is put in a volume with the sender's identifier
+	* to receive, in Library menu, choose "Receive contents", select "Catalog" in the popup (likewise for receiving feed), tap Start
+	* to send, in Library menu, choose "Send catalog", tap Send
+* startup crash on property Freeze should be fixed
+
 # 10.9.1
 
 * persisted host and port for feed transceiving

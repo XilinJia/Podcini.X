@@ -3,8 +3,10 @@ package ac.mdiq.podcini.ui.compose
 import ac.mdiq.podcini.R
 import ac.mdiq.podcini.gears.gearbox
 import ac.mdiq.podcini.net.feed.PodcastSearchResult
+import ac.mdiq.podcini.net.sync.transceive.listenForUDPBroadcasts
 import ac.mdiq.podcini.playback.base.VideoMode
 import ac.mdiq.podcini.preferences.OpmlTransporter
+import ac.mdiq.podcini.storage.database.appAttribs
 import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.deleteFeed
 import ac.mdiq.podcini.storage.database.updateFeedFull
@@ -42,19 +44,23 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
@@ -66,6 +72,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -76,6 +83,7 @@ import coil.request.CachePolicy
 import coil.request.ImageRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
@@ -359,4 +367,48 @@ fun AssociatedFeedsGrid(feedsAssociated: List<Feed>) {
             }
         }
     }
+}
+
+@Composable
+fun SendToDevice(onDismiss: ()->Unit, cb: (String, Int)->Job?) {
+    val scope = rememberCoroutineScope()
+
+    var host by remember { mutableStateOf("") }
+    var port by remember(appAttribs.transceivePort) { mutableIntStateOf(0) }
+    var udpPort by remember(appAttribs.udpPort) { mutableIntStateOf(appAttribs.udpPort) }
+    var sendJob by remember { mutableStateOf<Job?>(null) }
+    var discoverJob by remember { mutableStateOf<Job?>(null) }
+    LaunchedEffect(Unit) {
+        discoverJob = scope.launch {
+            listenForUDPBroadcasts(udpPort) { list ->
+                if (list.isNotEmpty()) {
+                    host = list[0].ip
+                    port = list[0].port
+                    Logd("SendToDevice", "host: $host port: $port")
+                }
+            }
+        }
+    }
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
+        title = { Text(stringResource(R.string.send_to_device), style = CustomTextStyles.titleCustom) },
+        text = {
+            Column {
+                Text(stringResource(R.string.send_to_device_sum))
+                Text(stringResource(R.string.receiver_address, host))
+                TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { port = it.toIntOrNull() ?: 0 })
+            }
+        },
+        confirmButton = {
+            if (sendJob == null && host.isNotEmpty()) TextButton(onClick = {
+                upsertBlk(appAttribs) { it.transceivePort = port }
+                sendJob = cb(host, port)
+            }) { Text(stringResource(R.string.send)) }
+        },
+        dismissButton = { TextButton(onClick = {
+            discoverJob?.cancel()
+            discoverJob = null
+            sendJob?.cancel()
+            onDismiss()
+        }) { Text(stringResource(R.string.cancel_label)) } }
+    )
 }
