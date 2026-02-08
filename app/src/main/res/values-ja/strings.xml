@@ -100,9 +100,11 @@
     <string name="ask_remove_mark">%1$s を削除しますか？</string>
     <string name="play_mark_msg">エピソードが再生されているときにマークを求めることができます。</string>
     <string name="send_to_device">Send to device</string>
+    <string name="send_catalog">Send catalog</string>
     <string name="send">Send</string>
+    <string name="receiver_address">Receiver address: %1$s</string>
     <string name="send_to_device_sum">Before sending, ensure the receiver started receiving.</string>
-    <string name="receive_feed">Receive feed</string>
+    <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">期間: </string>
     <string name="by">By</string>
     <string name="description_label">説明</string>
@@ -417,6 +419,8 @@
     <string name="playback_pref_sum">ヘッドフォンコントロール、間隔をスキップ、キュー</string>
     <string name="network_pref">ネットワーク</string>
     <string name="downloads_pref_sum">更新間隔、モバイルデータ、自動ダウンロード、自動削除</string>
+    <string name="identifier">Identifier</string>
+    <string name="network_identifier_sum">A unique identifier is useful when sending data to Podcini on other devices.</string>
     <string name="feed_refresh_title">ポッドキャストを更新</string>
     <string name="feed_refresh_sum">Podciniが新しいエピソードを自動的に探す間隔(分、0は決して意味しない)を指定します。</string>
     <string name="feed_refresh_start">開始</string>
@@ -826,6 +830,8 @@
     <string name="proxy_type_label">タイプ</string>
     <string name="host_label">ホスト</string>
     <string name="port_label">ポート</string>
+    <string name="broadcast_port">Broadcast port</string>
+    <string name="ports_sum">Broadcast port is to notifier the sender, and Port is used to receive data from the sender. Normally these don\'t need to changed.</string>
     <string name="optional_hint">(オプション)</string>
     <string name="proxy_test_label">テスト</string>
     <string name="proxy_checking">Checking&#8230;</string>
@@ -835,6 +841,7 @@
     <string name="proxy_host_invalid_error">ホストは有効なIPアドレスまたはドメインではありません</string>
     <string name="proxy_port_invalid_error">無効なポート</string>
     <!-- Subscriptions fragment -->
+    <string name="content_type">Content type</string>
     <!-- Notification channels -->
     <string name="notification_group_errors">エラー</string>
     <string name="notification_channel_user_action">アクションが必要です</string>
