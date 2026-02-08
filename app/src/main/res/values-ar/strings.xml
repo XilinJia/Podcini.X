@@ -100,9 +100,11 @@
     <string name="ask_remove_mark">هل تريد إزالة العلامة: %1$s؟</string>
     <string name="play_mark_msg">يمكن البحث عن العلامة عندما يتم عرض الحلقة.</string>
     <string name="send_to_device">Send to device</string>
+    <string name="send_catalog">Send catalog</string>
     <string name="send">Send</string>
+    <string name="receiver_address">Receiver address: %1$s</string>
     <string name="send_to_device_sum">Before sending, ensure the receiver started receiving.</string>
-    <string name="receive_feed">Receive feed</string>
+    <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">المدة: </string>
     <string name="by">By</string>
     <string name="description_label">الوصف</string>
@@ -427,6 +429,8 @@
     <string name="playback_pref_sum">تحكم سماعة الرأس ، تخطي الفواصل ، قائمة الانتظار</string>
     <string name="network_pref">الشبكة</string>
     <string name="downloads_pref_sum">تحديث الفاصل الزمني، بيانات الجوال، التحميل التلقائي، الحذف التلقائي</string>
+    <string name="identifier">Identifier</string>
+    <string name="network_identifier_sum">A unique identifier is useful when sending data to Podcini on other devices.</string>
     <string name="feed_refresh_title">تحديث podcasts</string>
     <string name="feed_refresh_sum">حدد فاصل زمني (بالدقائق، 0 تعني لا فر) حيث يبحث بودتشيني عن حلقات جديدة تلقائياً.</string>
     <string name="feed_refresh_start">ابدأ</string>
@@ -851,6 +855,8 @@
     <string name="proxy_type_label">نوع</string>
     <string name="host_label">المضيف</string>
     <string name="port_label">المنفذ</string>
+    <string name="broadcast_port">Broadcast port</string>
+    <string name="ports_sum">Broadcast port is to notifier the sender, and Port is used to receive data from the sender. Normally these don\'t need to changed.</string>
     <string name="optional_hint">(اختياري)</string>
     <string name="proxy_test_label">اختبار</string>
     <string name="proxy_checking">التحقق&#8230;</string>
@@ -860,6 +866,7 @@
     <string name="proxy_host_invalid_error">المضيف ليس عنوان IP أو نطاق صالح</string>
     <string name="proxy_port_invalid_error">المنفذ غير صالح</string>
     <!-- Subscriptions fragment -->
+    <string name="content_type">Content type</string>
     <!-- Notification channels -->
     <string name="notification_group_errors">أخطاء</string>
     <string name="notification_channel_user_action">الإجراء المطلوب</string>
