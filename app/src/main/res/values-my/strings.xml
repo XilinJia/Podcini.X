@@ -102,8 +102,8 @@
     <string name="send_to_device">Send to device</string>
     <string name="send_catalog">Send catalog</string>
     <string name="send">Send</string>
-    <string name="receiver_address">Receiver address: %1$s</string>
-    <string name="send_to_device_sum">Before sending, ensure the receiver started receiving.</string>
+    <string name="receiver_tag">Receiver: %1$s</string>
+    <string name="send_to_device_sum">Ensure the broadcast port number is the same as that on the receiver.</string>
     <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">Duration: </string>
     <string name="by">By</string>
@@ -220,6 +220,7 @@
     <string name="shelve_label">Shelve to synthetic</string>
     <string name="add_to_active_queue">Add to active queue</string>
     <string name="add_to_associated_queue">Add to associated queue</string>
+    <string name="multicast">Multicast to devices</string>
     <string name="remove_from_all_queues">Remove from all queues</string>
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
@@ -831,7 +832,7 @@
     <string name="host_label">Host</string>
     <string name="port_label">Port</string>
     <string name="broadcast_port">Broadcast port</string>
-    <string name="ports_sum">Broadcast port is to notifier the sender, and Port is used to receive data from the sender. Normally these don\'t need to changed.</string>
+    <string name="ports_sum">Broadcast port is to notifier the sender, and Port is used to receive data from the sender. Normally these don\'t need to be changed.</string>
     <string name="optional_hint">(Optional)</string>
     <string name="proxy_test_label">Test</string>
     <string name="proxy_checking">Checking&#8230;</string>
