@@ -937,6 +937,7 @@ data class EpisodeDTO(
     val imageUrl: String? = null,
 
     val duration: Int = 0,
+
     val position: Int = 0,
 
     val viewCount: Int = 0,
@@ -987,6 +988,29 @@ fun Episode.toDTO() = EpisodeDTO(
     commentTime = this.commentTime,
     lastPlayedTime = this.lastPlayedTime,
     repeatTime = this.repeatTime,
+)
+
+fun Episode.toBasicDTO() = EpisodeDTO(
+    id = this.id,
+    downloadUrl = this.downloadUrl,
+    mimeType = this.mimeType,
+    title = this.title,
+    shortDescription = this.shortDescription,
+    description = this.description,
+    link = this.link,
+    pubDate = this.pubDate,
+    imageUrl = this.imageUrl,
+    duration = this.duration,
+    viewCount = this.viewCount,
+
+    tags = this.tags.toSet(),
+    marks = this.marks.toSet(),
+    todos = this.todos.map { it.toDTO() },
+
+    rating = this.rating,
+    ratingTime = this.ratingTime,
+    comment = this.comment,
+    commentTime = this.commentTime,
 )
 
 fun EpisodeDTO.toRealm() = Episode().apply {

@@ -135,6 +135,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
@@ -311,7 +312,8 @@ class MainActivity : BaseActivity() {
 
         val sheetValueState = remember { mutableStateOf(sheetState.bottomSheetState.currentValue) }
         LaunchedEffect(sheetState.bottomSheetState) {
-            snapshotFlow { sheetState.bottomSheetState.currentValue }.collect { newValue -> sheetValueState.value = newValue }
+            Logd(TAG, "LaunchedEffect(sheetState.bottomSheetState)")
+            snapshotFlow { sheetState.bottomSheetState.currentValue }.distinctUntilChanged().collect { newValue -> sheetValueState.value = newValue }
         }
         val bottomInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
         val bottomInsetPadding = bottomInsets.asPaddingValues().calculateBottomPadding()
@@ -330,6 +332,7 @@ class MainActivity : BaseActivity() {
 
         val configuration = LocalConfiguration.current
         LaunchedEffect(configuration.orientation) {
+            Logd(TAG, "LaunchedEffect(configuration.orientation)")
             withFrameNanos { }
             drawerState.snapTo(savedDrawerValue)
         }
@@ -354,7 +357,7 @@ class MainActivity : BaseActivity() {
         }
 
         CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState, LocalNavController provides navigator) {
-            //        Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
+//            Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
             ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
                 BottomSheetScaffold(sheetContent = { AudioPlayerScreen() }, scaffoldState = sheetState, sheetPeekHeight = bottomInsetPadding + 100.dp, sheetDragHandle = {}, sheetSwipeEnabled = false, sheetShape = RectangleShape, topBar = {}) { paddingValues ->
                     Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(top = paddingValues.calculateTopPadding(), start = paddingValues.calculateStartPadding(LocalLayoutDirection.current), end = paddingValues.calculateEndPadding(LocalLayoutDirection.current), bottom = dynamicBottomPadding)) {

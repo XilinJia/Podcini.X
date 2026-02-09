@@ -8,6 +8,9 @@ import ac.mdiq.podcini.net.sync.SynchronizationSettings.isProviderConnected
 import ac.mdiq.podcini.net.sync.SynchronizationSettings.wifiSyncEnabledKey
 import ac.mdiq.podcini.net.sync.model.EpisodeAction
 import ac.mdiq.podcini.net.sync.queue.SynchronizationQueueSink
+import ac.mdiq.podcini.net.sync.transceive.DiscoveredReceiver
+import ac.mdiq.podcini.net.sync.transceive.listenForUDPBroadcasts
+import ac.mdiq.podcini.net.sync.transceive.sendEpisodes
 import ac.mdiq.podcini.playback.PlaybackStarter
 import ac.mdiq.podcini.playback.base.InTheatre.actQueue
 import ac.mdiq.podcini.playback.base.InTheatre.curEpisode
@@ -111,12 +114,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -148,6 +153,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
@@ -1257,5 +1263,68 @@ fun DatesFilterDialog(from: Long? = null, to: Long? = null, oldestDate: Long, on
             }) { Text(text = "OK") }
         },
         dismissButton = { TextButton(onClick = { onDismissRequest() }) { Text(stringResource(R.string.cancel_label)) } }
+    )
+}
+
+@Composable
+fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
+    val scope = rememberCoroutineScope()
+
+    var udpPort by remember(appAttribs.udpPort) { mutableIntStateOf(appAttribs.udpPort) }
+    var synthName by remember { mutableStateOf("") }
+    var receivers by remember { mutableStateOf<List<DiscoveredReceiver>>(listOf()) }
+    val sendJobs = remember { mutableStateMapOf<String, Job>() }
+    var started by remember { mutableStateOf(false) }
+    var discoverJob by remember { mutableStateOf<Job?>(null) }
+    LaunchedEffect(Unit) {
+        discoverJob = scope.launch {
+            listenForUDPBroadcasts(udpPort) { list ->
+                if (list.isNotEmpty()) {
+                    receivers = list
+                    Logd("MulticastDialog", "number of receivers: ${list.size}")
+                }
+            }
+        }
+    }
+    fun cleanup() {
+        discoverJob?.cancel()
+        sendJobs.forEach { it.value.cancel() }
+        onDismiss()
+    }
+    LaunchedEffect(sendJobs.size) {
+        Logd(TAG, "LaunchedEffect(sendJobs.size) ${sendJobs.size}")
+        if (sendJobs.isNotEmpty()) started = true
+        if (started && sendJobs.isEmpty()) cleanup()
+    }
+    DisposableEffect(Unit) { onDispose { cleanup() } }
+
+    AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
+        title = { Text(stringResource(R.string.send_to_device), style = CustomTextStyles.titleCustom) },
+        text = {
+            Column {
+                Text(stringResource(R.string.send_to_device_sum))
+                TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
+                    for (receiver in receivers) FilterChip(label = { Text(receiver.name) }, selected = false, onClick = {})
+                }
+                TextField(value = synthName, label = { Text("in " + stringResource(R.string.synthetic)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { synthName = it })
+            }
+        },
+        confirmButton = {
+            if (sendJobs.isEmpty() && receivers.isNotEmpty()) TextButton(onClick = {
+                if (udpPort != appAttribs.udpPort) upsertBlk(appAttribs) { it.udpPort = udpPort }
+                for (r in receivers) {
+                    val job = sendEpisodes(r.ip, r.port, synthName, selected) {
+                        sendJobs[r.ip]?.let { j ->
+                            Logd(TAG, "closing job: ${r.ip} ${sendJobs.size}")
+                            j.cancel()
+                            sendJobs.remove(r.ip)
+                        }
+                    }
+                    if (job != null) sendJobs[r.ip] = job
+                }
+            }) { Text(stringResource(R.string.send)) }
+        },
+        dismissButton = { TextButton(onClick = { cleanup() }) { Text(stringResource(R.string.cancel_label)) } }
     )
 }

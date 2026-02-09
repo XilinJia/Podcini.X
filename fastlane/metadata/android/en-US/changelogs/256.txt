@@ -1,0 +1,6 @@
+* amended feed simple update to check newer than last updated and most recent 5 episodes
+* catalog feeds are put under Volume Catalogs as an archive and set to not update
+* added multicast episodes to multiple devices
+	* episodes are sent without position and play state info, but with tags, rating, comments etc.
+	* to send, select the episodes on any list, in select menu choose "Multicast to devices"
+	* to receive, in Library menu, choose "Receive contents", select "Episdoes" in the popup

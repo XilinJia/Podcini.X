@@ -8,6 +8,7 @@ import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnce
 import ac.mdiq.podcini.net.feed.FeedUpdateManager.runOnceOrAsk
 import ac.mdiq.podcini.net.sync.transceive.CatalogReceiver
 import ac.mdiq.podcini.net.sync.transceive.ContentType
+import ac.mdiq.podcini.net.sync.transceive.EpisodesReceiver
 import ac.mdiq.podcini.net.sync.transceive.FeedReceiver
 import ac.mdiq.podcini.net.sync.transceive.Receiver
 import ac.mdiq.podcini.net.sync.transceive.broadcastPresence
@@ -1920,38 +1921,43 @@ fun LibraryScreen() {
             var receiveJob by remember { mutableStateOf<Job?>(null) }
             var broadcastJob by remember { mutableStateOf<Job?>(null) }
 
+            fun onDismiss() {
+                broadcastJob?.cancel()
+                broadcastJob = null
+                receiver?.stop()
+                receiveJob?.cancel()
+                showReceiverDialog = false
+            }
             AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
                 title = { Text(stringResource(R.string.receive_contents), style = CustomTextStyles.titleCustom) },
                 text = {
                     Column {
                         Text(appAttribs.name + " at: " + (ip ?: "address unknown"))
                         Text(stringResource(R.string.ports_sum), style = MaterialTheme.typography.bodySmall)
-                        Row(modifier = Modifier.fillMaxWidth().padding(5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        if (receiveJob == null) Row(modifier = Modifier.fillMaxWidth().padding(5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                             TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.weight(1f), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
                             TextField(value = tcpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.weight(1f), onValueChange = { tcpPort = it.toIntOrNull() ?: 0 })
-                        }
-                        Row {
+                        } else Text("Receiving at port $tcpPort")
+                        if (receiveJob == null) Row {
                             Text(stringResource(R.string.content_type), modifier = Modifier.padding(end = 5.dp))
                             Spinner(ContentType.values().map { it.name }, ContentType.Feed.name) { index -> contentType = ContentType.values()[index] }
-                        }
+                        } else Text("Receiving: ${contentType.name}")
                     }
                 },
                 confirmButton = {
                     if (receiveJob == null && !ip.isNullOrBlank()) TextButton(onClick = {
-                        upsertBlk(appAttribs) { it.udpPort = udpPort }
+                        if (udpPort != appAttribs.udpPort) upsertBlk(appAttribs) { it.udpPort = udpPort }
                         broadcastJob = scope.launch { broadcastPresence(udpPort, tcpPort) }
-                        upsertBlk(appAttribs) { it.transceivePort = tcpPort }
-                        receiver = if (contentType == ContentType.Feed) FeedReceiver(tcpPort) else CatalogReceiver(tcpPort)
+                        if (tcpPort != appAttribs.transceivePort) upsertBlk(appAttribs) { it.transceivePort = tcpPort }
+                        receiver = when (contentType) {
+                            ContentType.Feed -> FeedReceiver(tcpPort)
+                            ContentType.Catalog -> CatalogReceiver(tcpPort) { onDismiss() }
+                            ContentType.Episodes -> EpisodesReceiver(tcpPort) { onDismiss() }
+                        }
                         receiveJob = scope.launch(Dispatchers.IO) { receiver!!.start() }
                     }) { Text(stringResource(R.string.start)) }
                 },
-                dismissButton = { TextButton(onClick = {
-                    broadcastJob?.cancel()
-                    broadcastJob = null
-                    receiver?.stop()
-                    receiveJob?.cancel()
-                    showReceiverDialog = false
-                }) { Text(stringResource(R.string.stop)) } }
+                dismissButton = { TextButton(onClick = { onDismiss() }) { Text(stringResource(R.string.stop)) } }
             )
         }
 

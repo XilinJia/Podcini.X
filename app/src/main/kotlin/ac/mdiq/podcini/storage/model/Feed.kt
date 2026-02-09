@@ -176,6 +176,10 @@ class Feed : RealmObject {
         get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate DESC)").first().find()
 
     @Ignore
+    val mostRecentItems: List<Episode>
+        get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate DESC) LIMIT(5)").find()
+
+    @Ignore
     val oldestItem: Episode?
         get() = realm.query(Episode::class).query("feedId == $id SORT (pubDate ASC)").first().find()
 

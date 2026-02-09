@@ -317,8 +317,8 @@ suspend fun updateFeedSimple(newFeed: Feed) {
         Logd(TAG, "New feed has a higher page number: ${newFeed.nextPageLink}")
         savedFeed.nextPageLink = newFeed.nextPageLink
     }
-    val priorMostRecent = savedFeed.mostRecentItem
-    val priorMostRecentDate: Date = priorMostRecent?.let { Date(it.pubDate) } ?: Date(0)
+    val priorMostRecents = savedFeed.mostRecentItems
+    val priorMostRecentDate = Date(savedFeed.lastUpdateTime)
     var idLong = newId()
     Logd(TAG, "updateFeedSimple building savedFeedAssistant")
 
@@ -327,10 +327,9 @@ suspend fun updateFeedSimple(newFeed: Feed) {
         var episode = newFeed.episodes[idx]
         if (episode.duration < 1000) continue
         val pubDate = Date(episode.pubDate)
-        if (pubDate <= priorMostRecentDate || episode.downloadUrl == priorMostRecent?.downloadUrl || episode.title == priorMostRecent?.title) continue
+        if (pubDate <= priorMostRecentDate || episode.downloadUrl in priorMostRecents.map { it.downloadUrl} || episode.title in priorMostRecents.map { it.title }) continue
 
         Logd(TAG, "Found new episode: ${episode.title}")
-//        episode.feed = savedFeed
         episode.id = idLong++
         episode.feedId = savedFeed.id
         if (!savedFeed.isLocalFeed && !savedFeed.prefStreamOverDownload) episode.fetchMediaSize(persist = false)

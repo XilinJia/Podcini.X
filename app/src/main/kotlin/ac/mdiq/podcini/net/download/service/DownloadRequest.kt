@@ -2,16 +2,12 @@ package ac.mdiq.podcini.net.download.service
 
 import ac.mdiq.podcini.net.utils.NetworkUtils.prepareUrl
 import ac.mdiq.podcini.storage.model.Episode
-import kotlinx.parcelize.Parcelize
 import ac.mdiq.podcini.storage.model.Episode.Companion.FEEDFILETYPE_FEEDMEDIA
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.FEEDFILETYPE_FEED
-import ac.mdiq.podcini.utils.Logd
 import android.os.Bundle
 import android.os.Parcel
-import android.os.Parcelable
 
-@Parcelize
 class DownloadRequest private constructor(
         val destination: String?,
         val source: String?,
@@ -23,12 +19,12 @@ class DownloadRequest private constructor(
         var password: String?,
         private val mediaEnqueued: Boolean,
         val arguments: Bundle?,
-        private val initiatedByUser: Boolean) : Parcelable {
+        private val initiatedByUser: Boolean) {
 
     var progressPercent: Int = 0
     var soFar: Long = 0
     var size: Long = 0
-    private var statusMsg = 0
+    var statusMsg = 0
 
     private constructor(builder: Builder) : this(
         builder.destination,
@@ -56,27 +52,7 @@ class DownloadRequest private constructor(
         inVal.readBundle(DownloadRequest::class.java.classLoader),
         inVal.readByte() > 0)
 
-    override fun describeContents(): Int = 0
-
-    // should be handled by @Parcelize
-//    override fun writeToParcel(dest: Parcel, flags: Int) {
-//        dest.writeString(destination)
-//        dest.writeString(source)
-//        dest.writeString(title)
-//        dest.writeString(feedfileId.toString())
-//        dest.writeInt(feedfileType)
-//        dest.writeString(lastModified)
-//        // in case of null username/password, still write an empty string
-//        // (rather than skipping it). Otherwise, unmarshalling  a collection
-//        // of them from a Parcel (from an Intent extra to submit a request to DownloadService) will fail.
-//        //
-//        // see: https://stackoverflow.com/a/22926342
-//        dest.writeString(username ?: "")
-//        dest.writeString(password ?: "")
-//        dest.writeByte(if ((mediaEnqueued)) 1.toByte() else 0)
-//        dest.writeBundle(arguments)
-//        dest.writeByte(if (initiatedByUser) 1.toByte() else 0)
-//    }
+//    override fun describeContents(): Int = 0
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -115,17 +91,6 @@ class DownloadRequest private constructor(
         result = 31 * result + statusMsg
         result = 31 * result + (if (mediaEnqueued) 1 else 0)
         return result
-    }
-
-    fun setStatusMsg(statusMsg: Int) {
-        this.statusMsg = statusMsg
-    }
-
-    fun setLastModified(lastModified: String?): DownloadRequest {
-        Logd("DownloadRequest", "setLastModified: $lastModified")
-//        showStackTrace()
-        this.lastModified = lastModified
-        return this
     }
 
     class Builder {
@@ -183,12 +148,5 @@ class DownloadRequest private constructor(
 
         private fun nullIfEmpty(str: String?): String? = if (str.isNullOrEmpty()) null else str
 
-        // should be handled by @Parcelize
-//        @JvmField
-//        val CREATOR: Parcelable.Creator<DownloadRequest> = object : Parcelable.Creator<DownloadRequest> {
-//            override fun createFromParcel(inVal: Parcel): DownloadRequest = DownloadRequest(inVal)
-//
-//            override fun newArray(size: Int): Array<DownloadRequest?> = arrayOfNulls(size)
-//        }
     }
 }

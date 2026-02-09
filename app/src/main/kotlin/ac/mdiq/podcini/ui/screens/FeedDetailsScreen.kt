@@ -194,6 +194,7 @@ class FeedDetailsVM(feedId: Long = 0L, modeName: String = FeedScreenMode.List.na
 
     val episodesFlow: StateFlow<List<Episode>> = combine(feedFlow.filterNotNull(), screenModeFlow, snapshotFlow { enableFilter })
         { feed, mode, enableFilter -> Triple(feed, mode, enableFilter) }.distinctUntilChanged().flatMapLatest { (feed, mode, enableFilter) ->
+            Logd(TAG, "episodesFlow rebuilding flow")
             listIdentity = "FeedDetails.${feed.id}"
             when {
                 mode == FeedScreenMode.Info -> emptyFlow()

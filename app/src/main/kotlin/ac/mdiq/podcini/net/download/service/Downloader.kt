@@ -24,7 +24,7 @@ abstract class Downloader(val downloadRequest: DownloadRequest) {
     val result: DownloadResult
 
     init {
-        this.downloadRequest.setStatusMsg(R.string.download_pending)
+        this.downloadRequest.statusMsg = (R.string.download_pending)
         this.cancelled = false
         this.result = DownloadResult(this.downloadRequest.title?:"", this.downloadRequest.feedfileId, this.downloadRequest.feedfileType, false, null, Date(), "")
     }

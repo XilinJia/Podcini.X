@@ -48,6 +48,8 @@ class Volume : RealmObject {
         }
 }
 
+const val CATALOG_VOLUME_ID_START = -20L
+
 const val ARCHIVED_VOLUME_ID = -10L
 const val FROZEN_VOLUME_ID = -5L
 
@@ -92,6 +94,13 @@ fun monitorVolumes(scope: CoroutineScope) {
         val v = Volume()
         v.id = FROZEN_VOLUME_ID
         v.name = "Frozen"
+        v.parentId = -1L
+        upsertBlk(v) {}
+    }
+    val catalog = realm.query(Volume::class).query("id == $CATALOG_VOLUME_ID_START").first().find() ?: run {
+        val v = Volume()
+        v.id = CATALOG_VOLUME_ID_START
+        v.name = "Catelogs"
         v.parentId = -1L
         upsertBlk(v) {}
     }

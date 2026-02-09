@@ -232,7 +232,7 @@ open class FeedUpdaterBase(val feeds: List<Feed>, val fullUpdate: Boolean = fals
             downloadStatus = DownloadResult(request.title?:"", 0L, request.feedfileType, false, DownloadError.ERROR_REQUEST_ERROR, Date(), "Unknown error: Status not set")
         }
         suspend fun run(): FeedHandlerResult? {
-            Logd(TAG, "in FeedParserTask call()")
+            Logd(TAG, "in FeedParserTask call(), lastModified=${request.lastModified}")
             val feed = Feed(request.source, request.lastModified)
             feed.fileUrl = request.destination
             feed.id = request.feedfileId

@@ -209,6 +209,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
     var showPlayStateDialog by remember { mutableStateOf(false) }
     var showPutToQueueDialog by remember { mutableStateOf(false) }
     var showShelveDialog by remember { mutableStateOf(false) }
+    var showMulticastDialog by remember { mutableStateOf(false) }
     var showEraseDialog by remember { mutableStateOf(false) }
     val ytUrls = remember { mutableListOf<String>() }
 
@@ -219,9 +220,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         if (showAddCommentDialog) {
             var editCommentText by remember { mutableStateOf(TextFieldValue("") ) }
             CommentEditingDialog(textState = editCommentText, autoSave = false, onTextChange = { editCommentText = it }, onDismissRequest = { showAddCommentDialog = false },
-                onSave = {
-                    runOnIOScope { for (e in selected) upsert(e) { it.addComment(editCommentText.text) } }
-                })
+                onSave = { runOnIOScope { for (e in selected) upsert(e) { it.addComment(editCommentText.text) } } })
         }
         if (showEditTagsDialog) TagSettingDialog(TagType.Episode, setOf(), multiples = true, onDismiss = { showEditTagsDialog = false }) { tags ->
             runOnIOScope { for (e in selected) upsert(e) { it.tags.addAll(tags) }  }
@@ -229,6 +228,8 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         if (showPlayStateDialog) PlayStateDialog(selected, onDismissRequest = { showPlayStateDialog = false }, { futureState = it }, { showIgnoreDialog = true })
         if (showPutToQueueDialog) PutToQueueDialog(selected) { showPutToQueueDialog = false }
         if (showShelveDialog) ShelveDialog(selected) { showShelveDialog = false }
+        if (showMulticastDialog) MulticastDialog(selected, { showMulticastDialog = false })
+
         if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismissRequest = { showEraseDialog = false })
         if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismissRequest = { showIgnoreDialog = false })
         if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(selected, futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
@@ -719,6 +720,12 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.baseline_shelves_24), contentDescription = "Shelve")
                             Text(stringResource(id = R.string.shelve_label)) } },
+                        { Row(modifier = Modifier.padding(horizontal = 16.dp).clickable {
+                            onSelected()
+                            showMulticastDialog = true
+                        }, verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_share), contentDescription = "Multicast")
+                            Text(stringResource(id = R.string.multicast)) } },
                     )
                     if (selected.isNotEmpty() && isExternal)
                         options.add {

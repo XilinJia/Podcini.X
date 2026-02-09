@@ -54,6 +54,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -374,7 +375,8 @@ fun SendToDevice(onDismiss: ()->Unit, cb: (String, Int)->Job?) {
     val scope = rememberCoroutineScope()
 
     var host by remember { mutableStateOf("") }
-    var port by remember(appAttribs.transceivePort) { mutableIntStateOf(0) }
+    var port by remember { mutableIntStateOf(0) }
+    var name by remember { mutableStateOf("") }
     var udpPort by remember(appAttribs.udpPort) { mutableIntStateOf(appAttribs.udpPort) }
     var sendJob by remember { mutableStateOf<Job?>(null) }
     var discoverJob by remember { mutableStateOf<Job?>(null) }
@@ -384,31 +386,35 @@ fun SendToDevice(onDismiss: ()->Unit, cb: (String, Int)->Job?) {
                 if (list.isNotEmpty()) {
                     host = list[0].ip
                     port = list[0].port
-                    Logd("SendToDevice", "host: $host port: $port")
+                    name = list[0].name
+                    Logd("SendToDevice", "name: $name host: $host port: $port")
                 }
             }
         }
     }
+    fun cleanup() {
+        discoverJob?.cancel()
+        discoverJob = null
+        sendJob?.cancel()
+        onDismiss()
+    }
+    DisposableEffect(Unit) { onDispose { cleanup() } }
+
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
         title = { Text(stringResource(R.string.send_to_device), style = CustomTextStyles.titleCustom) },
         text = {
             Column {
                 Text(stringResource(R.string.send_to_device_sum))
-                Text(stringResource(R.string.receiver_address, host))
-                TextField(value = port.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.port_label)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { port = it.toIntOrNull() ?: 0 })
+                TextField(value = udpPort.toString(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), label = { Text(stringResource(R.string.broadcast_port)) }, singleLine = true, modifier = Modifier.padding(end = 8.dp), onValueChange = { udpPort = it.toIntOrNull() ?: 0 })
+                Text(stringResource(R.string.receiver_tag, "$name:$host:$port"))
             }
         },
         confirmButton = {
             if (sendJob == null && host.isNotEmpty()) TextButton(onClick = {
-                upsertBlk(appAttribs) { it.transceivePort = port }
+                if (udpPort != appAttribs.udpPort) upsertBlk(appAttribs) { it.udpPort = udpPort }
                 sendJob = cb(host, port)
             }) { Text(stringResource(R.string.send)) }
         },
-        dismissButton = { TextButton(onClick = {
-            discoverJob?.cancel()
-            discoverJob = null
-            sendJob?.cancel()
-            onDismiss()
-        }) { Text(stringResource(R.string.cancel_label)) } }
+        dismissButton = { TextButton(onClick = { cleanup() }) { Text(stringResource(R.string.cancel_label)) } }
     )
 }

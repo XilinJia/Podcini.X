@@ -54,8 +54,8 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
                 }
                 else -> {
                     val lastModified = response.header("Last-Modified")
-                    if (lastModified != null) downloadRequest.setLastModified(lastModified)
-                    else downloadRequest.setLastModified(response.header("ETag"))
+                    if (lastModified != null) downloadRequest.lastModified = lastModified
+                    else downloadRequest.lastModified = response.header("ETag")
                     result.setSuccessful()
                 }
             }
@@ -145,7 +145,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
                     val buffer = ByteArray(BUFFER_SIZE)
                     var count = 0
-                    downloadRequest.setStatusMsg(R.string.download_running)
+                    downloadRequest.statusMsg = (R.string.download_running)
                     Logd(TAG, "Getting size of download")
                     downloadRequest.size = responseBody.contentLength() + downloadRequest.soFar
                     Logd(TAG, "downloadRequest size is " + downloadRequest.size)
@@ -267,7 +267,7 @@ class HttpDownloader(request: DownloadRequest) : Downloader(request) {
 
                     val buffer = ByteArray(BUFFER_SIZE)
                     var count = 0
-                    downloadRequest.setStatusMsg(R.string.download_running)
+                    downloadRequest.statusMsg = (R.string.download_running)
                     Logd(TAG, "Getting size of download")
                     downloadRequest.size = responseBody.contentLength() + downloadRequest.soFar
                     Logd(TAG, "downloadRequest size is " + downloadRequest.size)

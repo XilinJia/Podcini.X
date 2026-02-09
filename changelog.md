@@ -1,3 +1,17 @@
+# 10.9.3
+
+* amended feed simple update to check newer than last updated and most recent 5 episodes
+* removed the apparently not needed Parcelable from DownloadRequest
+* on the sender, receiver port no longer needs to be edited
+* catalog feeds are put under Volume Catalogs as an archive and set to not update
+* receiver of a catalog auto-terminates when done 
+* added multicast episodes to multiple devices
+	* episodes are sent without position and play state info, but with tags, rating, comments etc.
+	* to send, select the episodes on any list, in select menu choose "Multicast to devices"
+	* in the popup, enter name for a synthetic feed where the episodes will be put at the receivers
+	* wait for receivers to be started/announced, then send
+	* to receive, in Library menu, choose "Receive contents", select "Episdoes" in the popup
+
 # 10.9.2
 
 * in Settings->Network, added setting of Identifier, defaulted to "My Podcini"

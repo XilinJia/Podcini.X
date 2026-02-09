@@ -3,21 +3,24 @@ package ac.mdiq.podcini.net.sync.transceive
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
 import ac.mdiq.podcini.storage.database.allFeeds
 import ac.mdiq.podcini.storage.database.appAttribs
+import ac.mdiq.podcini.storage.database.createSynthetic
 import ac.mdiq.podcini.storage.database.getEpisodes
 import ac.mdiq.podcini.storage.database.getFeed
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
 import ac.mdiq.podcini.storage.database.upsertBlk
+import ac.mdiq.podcini.storage.model.CATALOG_VOLUME_ID_START
+import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.EpisodeDTO
 import ac.mdiq.podcini.storage.model.FeedDTO
 import ac.mdiq.podcini.storage.model.Volume
+import ac.mdiq.podcini.storage.model.toBasicDTO
 import ac.mdiq.podcini.storage.model.toDTO
 import ac.mdiq.podcini.storage.model.toRealm
 import ac.mdiq.podcini.storage.model.volumes
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logt
-import io.github.xilinjia.krdb.ext.isFrozen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -36,7 +39,7 @@ import java.net.SocketTimeoutException
 
 private const val TAG = "Transceiver"
 
-enum class ContentType { Feed, Catalog }
+enum class ContentType { Feed, Catalog, Episodes }
 
 abstract class Receiver(private val port: Int) {
     var serverSocket: ServerSocket? = null
@@ -56,7 +59,7 @@ abstract class Receiver(private val port: Int) {
 }
 
 @Serializable
-data class FeedComboPackage(
+data class FeedPackage(
     val feed: FeedDTO,
     val episodes: List<EpisodeDTO>
 )
@@ -79,19 +82,19 @@ class FeedReceiver(port: Int): Receiver(port) {
                     input.readFully(bytes)
 
                     val json = bytes.decodeToString()
-                    val combo = Json.decodeFromString<FeedComboPackage>(json)
+                    val pkg = Json.decodeFromString<FeedPackage>(json)
 
-                    Logd(TAG, "Received ${combo.feed.eigenTitle} with ${combo.episodes.size} episodes")
+                    Logd(TAG, "Received ${pkg.feed.eigenTitle} with ${pkg.episodes.size} episodes")
 
-                    val f = combo.feed.toRealm()
+                    val f = pkg.feed.toRealm()
                     upsertBlk(f) { it.freezeFeed(false) }
 
                     Logd(TAG, "Saved feed: ${f.title}")
-                    combo.episodes.forEach {
+                    pkg.episodes.forEach {
                         val e = it.toRealm()
                         Logd(TAG, "Saved episode: ${e.title}")
                     }
-                    Logt(TAG, "Received ${combo.feed.eigenTitle} with ${combo.episodes.size} episodes")
+                    Logt(TAG, "Received ${pkg.feed.eigenTitle} with ${pkg.episodes.size} episodes")
                 } catch (e: Exception) { Logt(TAG, "Receiving feed terminated: ${e.message}")
                 } finally { clientSocket.close() }
             } catch (e: Throwable) { }
@@ -103,8 +106,8 @@ fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit): Job? {
     val feed = getFeed(feedId) ?: return null
     val feedDTO = feed.toDTO()
     val episodesDTO = getEpisodes(null, null, feedId = feedId).map { it.toDTO() }
-    val combo = FeedComboPackage(feedDTO, episodesDTO)
-    Logd(TAG, "built package: feed: ${combo.feed.eigenTitle} ${combo.episodes.size} episodes")
+    val pkg = FeedPackage(feedDTO, episodesDTO)
+    Logd(TAG, "built package: feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes")
 
     var socket: Socket? = null
     return runOnIOScope {
@@ -112,7 +115,7 @@ fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit): Job? {
             socket = Socket(host, port)
             Logd(TAG, "got socket")
 
-            val json = Json.encodeToString(combo)
+            val json = Json.encodeToString(pkg)
             Logd(TAG, "built json")
             val bytes = json.toByteArray()
             Logd(TAG, "(${bytes.size} bytes)")
@@ -123,7 +126,87 @@ fun sendFeed(host: String, port: Int, feedId: Long, onEnd: ()->Unit): Job? {
             output.flush()
 
             upsert(feed) { it.freezeFeed(true) }
-            Logt(TAG, "Sent feed: ${combo.feed.eigenTitle} ${combo.episodes.size} episodes (${bytes.size} bytes)")
+            Logt(TAG, "Sent feed: ${pkg.feed.eigenTitle} ${pkg.episodes.size} episodes (${bytes.size} bytes)")
+        } catch (e: Throwable) { Logt(TAG, "Sending feed terminated: ${e.message}")
+        } finally {
+            socket?.close()
+            onEnd()
+        }
+    }
+}
+
+@Serializable
+data class EpisodesPackage(
+    val syntheticName: String,
+    val episodes: List<EpisodeDTO>
+)
+
+class EpisodesReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
+    override fun start() {
+        super.start()
+
+        while (true) {
+            try {
+                if (serverSocket?.isClosed == true) break
+                val clientSocket = serverSocket?.accept() ?: break
+
+                Logd(TAG, "Client connected: ${clientSocket.inetAddress}")
+
+                try {
+                    val input = DataInputStream(clientSocket.getInputStream())
+                    val size = input.readInt()
+                    val bytes = ByteArray(size)
+                    input.readFully(bytes)
+
+                    val json = bytes.decodeToString()
+                    val pkg = Json.decodeFromString<EpisodesPackage>(json)
+
+                    Logd(TAG, "Received ${pkg.episodes.size} episodes for ${pkg.syntheticName}")
+
+                    val f = allFeeds.find { it.eigenTitle == pkg.syntheticName } ?: run {
+                        val f_ = createSynthetic(0, pkg.syntheticName)
+                        upsertBlk(f_) {}
+                    }
+
+                    Logd(TAG, "Saved feed: ${f.title}")
+                    pkg.episodes.forEach {
+                        val e = it.toRealm()
+                        upsertBlk(e) { e_ -> e_.feedId = f.id}
+                        Logd(TAG, "Saved episode: ${e.title}")
+                    }
+                    Logt(TAG, "Received ${pkg.episodes.size} episodes for ${pkg.syntheticName}")
+                } catch (e: Exception) { Logt(TAG, "Receiving feed terminated: ${e.message}")
+                } finally {
+                    clientSocket.close()
+                    onEnd()
+                }
+            } catch (e: Throwable) { onEnd() }
+        }
+    }
+}
+
+fun sendEpisodes(host: String, port: Int, syntheticName: String, episodes: List<Episode>, onEnd: ()->Unit): Job? {
+    val episodesDTO = episodes.map { it.toBasicDTO() }
+    val pkg = EpisodesPackage(syntheticName, episodesDTO)
+    Logd(TAG, "built package: feed: $syntheticName ${pkg.episodes.size} episodes")
+
+    var socket: Socket? = null
+    return runOnIOScope {
+        try {
+            socket = Socket(host, port)
+            Logd(TAG, "got socket")
+
+            val json = Json.encodeToString(pkg)
+            Logd(TAG, "built json")
+            val bytes = json.toByteArray()
+            Logd(TAG, "(${bytes.size} bytes)")
+
+            val output = DataOutputStream(socket.getOutputStream())
+            output.writeInt(bytes.size)
+            output.write(bytes)
+            output.flush()
+
+            Logt(TAG, "Sent feed: $syntheticName ${pkg.episodes.size} episodes (${bytes.size} bytes)")
         } catch (e: Throwable) { Logt(TAG, "Sending feed terminated: ${e.message}")
         } finally {
             socket?.close()
@@ -138,7 +221,7 @@ data class CatalogPackage(
     val feedDTOs: List<FeedDTO>
 )
 
-class CatalogReceiver(port: Int): Receiver(port) {
+class CatalogReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
     override fun start() {
         super.start()
 
@@ -155,28 +238,40 @@ class CatalogReceiver(port: Int): Receiver(port) {
                     input.readFully(bytes)
 
                     val json = bytes.decodeToString()
-                    val pack = Json.decodeFromString<CatalogPackage>(json)
+                    val pkg = Json.decodeFromString<CatalogPackage>(json)
 
-                    var v = volumes.find { it.name == pack.identifier }
+                    var v = volumes.find { it.name == pkg.identifier }
                     if (v == null) {
                         v = Volume()
-                        v.id = System.currentTimeMillis()
-                        v.name = pack.identifier
-                        v.parentId = -1L
+                        var id = CATALOG_VOLUME_ID_START-1
+                        while (true) {
+                            val v0 = volumes.find { it.id == id }
+                            if (v0 == null) break
+                            id--
+                        }
+                        v.id = id
+                        v.name = pkg.identifier
+                        v.parentId = CATALOG_VOLUME_ID_START
                         upsertBlk(v) {}
                     }
 
-                    Logd(TAG, "CatalogReceiver Received from ${pack.identifier} ${pack.feedDTOs.size} feeds")
-                    for (fdto in pack.feedDTOs) {
+                    Logd(TAG, "CatalogReceiver Received from ${pkg.identifier} ${pkg.feedDTOs.size} feeds")
+                    for (fdto in pkg.feedDTOs) {
                         val f = fdto.toRealm()
                         Logd(TAG, "CatalogReceiver got feed ${f.title}")
-                        upsertBlk(f) { it.volumeId = v.id }
+                        upsertBlk(f) {
+                            it.volumeId = v.id
+                            it.keepUpdated = false
+                        }
                         Logd(TAG, "CatalogReceiver set feed to Volume ${v.name} ${f.title}")
                     }
-                    Logt(TAG, "CatalogReceiver Received from ${pack.identifier} ${pack.feedDTOs.size} feeds in catalog")
+                    Logt(TAG, "CatalogReceiver Received from ${pkg.identifier} ${pkg.feedDTOs.size} feeds in catalog")
                 } catch (e: Exception) { Logt(TAG, "Receiving catalog terminated: ${e.message}")
-                } finally { clientSocket.close() }
-            } catch (e: Throwable) { }
+                } finally {
+                    clientSocket.close()
+                    onEnd()
+                }
+            } catch (e: Throwable) { onEnd() }
         }
     }
 }
@@ -220,7 +315,7 @@ suspend fun broadcastPresence(udpPort: Int, tcpPort: Int) = withContext(Dispatch
     socket.broadcast = true
 
     val myIp = getLocalIpAddress()
-    val message = "PodciniReceiver:$myIp:$tcpPort"
+    val message = "PodciniReceiver:$myIp:$tcpPort:${appAttribs.name}"
 
     try {
         while (isActive) {
@@ -237,6 +332,7 @@ suspend fun broadcastPresence(udpPort: Int, tcpPort: Int) = withContext(Dispatch
 data class DiscoveredReceiver(
     val ip: String,
     val port: Int,
+    val name: String,
     val lastSeen: Long = System.currentTimeMillis()
 )
 
@@ -261,13 +357,14 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
 
                 val parts = message.split(":")
 
-                if (parts.size != 3) {
+                if (parts.size < 4) {
                     Loge(TAG, "listenForBroadcasts Invalid message format: $message")
                     continue
                 }
 
                 val ip = parts[1]
                 val port = parts[2].toIntOrNull()
+                val name = parts[3]
                 Logd(TAG, "listenForBroadcasts 9")
 
                 if (port == null) {
@@ -277,7 +374,7 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
                 Logd(TAG, "listenForBroadcasts 10")
 
                 val key = "$ip:$port"
-                receivers[key] = DiscoveredReceiver(ip, port)
+                receivers[key] = DiscoveredReceiver(ip, port, name)
 
                 withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
             } catch (e: SocketTimeoutException) {
