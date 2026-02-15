@@ -29,8 +29,9 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          name: debug-apks
+          path: app/build/outputs/exported-apks/**/*.apk
+          if-no-files-found: error
 
       # - name: Decode Keystore
       #   run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release.jks
