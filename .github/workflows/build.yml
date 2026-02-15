@@ -3,15 +3,18 @@ name: build
 on:
   push:
     branches: [main]
+    tags: ['v*']     # Triggers for tags like v1.0, v2.1.4, etc.
   pull_request:
     branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Crucial for creating GitHub Releases
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4 # Note: @v4 is the current stable version
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -24,28 +27,54 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build Debug APK
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
         run: ./gradlew assembleDebug --stacktrace
 
-      - name: Upload APK Artifact
+      - name: Upload Debug APK
+        if: github.event_name == 'pull_request' || (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
         uses: actions/upload-artifact@v4
         with:
-          name: debug-apks
+          name: debug-apk
           path: app/build/exported-apks/**/*.apk
-          if-no-files-found: error
 
-      # - name: Decode Keystore
-      #   run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > release.jks
+      # --- RELEASE SECTION (Runs ONLY when a tag is pushed) ---
+      - name: Decode Keystore
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: echo "$KEYSTORE_BASE64" | base64 --decode > release.jks
 
-      # - name: Build Release APK
-      #   run: >
-      #     ./gradlew assembleRelease
-      #     -Pandroid.injected.signing.store.file=$(pwd)/release.jks
-      #     -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }}
-      #     -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }}
-      #     -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+      - name: Build Release APK
+        if: startsWith(github.ref, 'refs/tags/')
+        run: >
+          ./gradlew assembleRelease
+          -Pandroid.injected.signing.store.file=$(pwd)/release.jks
+          -Pandroid.injected.signing.store.password='${{ secrets.KEYSTORE_PASSWORD }}'
+          -Pandroid.injected.signing.key.alias='${{ secrets.KEY_ALIAS }}'
+          -Pandroid.injected.signing.key.password='${{ secrets.KEY_PASSWORD }}'
 
-      # - name: Upload Release APK
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: release-apk
-      #     path: app/build/outputs/apk/release/*.apk
+      - name: Upload Release Artifact
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: app/build/exported-apks/**/*.apk
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            app/build/exported-apks/freeRelease/*.apk
+            app/build/exported-apks/playRelease/*.apk
+          name: "Release ${{ github.ref_name }}"
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clean up Keystore
+        if: always() && startsWith(github.ref, 'refs/tags/')
+        run: rm -f release.jks
