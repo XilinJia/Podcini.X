@@ -27,6 +27,8 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.AddLocalFolder
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.SwipeActions
+import ac.mdiq.podcini.ui.actions.playActions
+import ac.mdiq.podcini.ui.actions.streamActions
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.compose.COME_BACK
@@ -678,11 +680,10 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     actionButtonType = if (actionButtonName != null) ButtonTypes.valueOf(actionButtonName!!) else null,
                     actionButtonCB = { e, type ->
                         Logd(TAG, "actionButtonCB type: $type ${e.feed?.id} ${feed?.id}")
-                        if (e.feed?.id == feed?.id && type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM)) {
-                            runOnIOScope {
-                                upsert(feed!!) { it.lastPlayed = Date().time }
-                                queueToVirtual(e, episodes, vm.listIdentity, feed!!.episodeSortOrder, true)
-                            }
+                        if (e.feed?.id == feed?.id) {
+                            if (type in streamActions + playActions + listOf(ButtonTypes.PLAY_LOCAL)) runOnIOScope { upsert(feed!!) { it.lastPlayed = Date().time } }
+                            if (type in listOf(ButtonTypes.PLAY, ButtonTypes.PLAY_LOCAL, ButtonTypes.STREAM))
+                                runOnIOScope { queueToVirtual(e, episodes, vm.listIdentity, feed!!.episodeSortOrder, true) }
                         }
                     },
                 )

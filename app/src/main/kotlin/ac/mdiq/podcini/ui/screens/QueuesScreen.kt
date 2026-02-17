@@ -253,7 +253,6 @@ class QueuesVM(id_: Long): ViewModel() {
             feedsAssociated.clear()
             feedsAssociated.addAll(realm.query(Feed::class).query("queueId == ${curQueue.id}").find())
         } }
-
         timeIt("$TAG end of init")
     }
 
@@ -754,7 +753,7 @@ fun QueuesScreen(id: Long = -1L) {
                             }
                         }
                     } else Column(modifier = Modifier.padding(innerPadding).fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-                        LaunchedEffect(lazyListState) {
+                        LaunchedEffect(Unit) {
                             snapshotFlow { lazyListState.isScrollInProgress }
                                 .collect { isScrolling ->
                                     if (!isScrolling) {

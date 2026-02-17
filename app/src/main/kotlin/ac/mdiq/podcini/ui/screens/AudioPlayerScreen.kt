@@ -221,6 +221,7 @@ class AudioPlayerVM: ViewModel() {
 
         viewModelScope.launch { snapshotFlow { curEpisode?.position }.distinctUntilChanged().collect { if (showPlayButton) showPlayButton = !isCurrentlyPlaying(curEpisode) } }
         viewModelScope.launch { snapshotFlow { curEpisode?.id }.distinctUntilChanged().collect {
+            Logd(TAG, "snapshotFlow { curEpisode?.id } collect")
             episodeFeed = curEpisode?.feed
             volumeAdaption = VolumeAdaptionSetting.OFF
             txtvPlaybackSpeed = DecimalFormat("0.00").format(curPBSpeed.toDouble())

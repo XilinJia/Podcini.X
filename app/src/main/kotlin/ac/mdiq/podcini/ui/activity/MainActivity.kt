@@ -49,6 +49,7 @@ import ac.mdiq.podcini.ui.compose.Screens
 import ac.mdiq.podcini.ui.compose.defaultScreen
 import ac.mdiq.podcini.ui.compose.handleBackSubScreens
 import ac.mdiq.podcini.ui.activity.starter.MainActivityStarter
+import ac.mdiq.podcini.ui.screens.AudioPlayerUIScreen
 import ac.mdiq.podcini.utils.EventFlow
 import ac.mdiq.podcini.utils.FlowEvent
 import ac.mdiq.podcini.utils.Logd
@@ -94,6 +95,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -311,9 +313,12 @@ class MainActivity : BaseActivity() {
         }
 
         val sheetValueState = remember { mutableStateOf(sheetState.bottomSheetState.currentValue) }
-        LaunchedEffect(sheetState.bottomSheetState) {
+        LaunchedEffect(Unit) {
             Logd(TAG, "LaunchedEffect(sheetState.bottomSheetState)")
-            snapshotFlow { sheetState.bottomSheetState.currentValue }.distinctUntilChanged().collect { newValue -> sheetValueState.value = newValue }
+            snapshotFlow { sheetState.bottomSheetState.currentValue }.distinctUntilChanged().collect { newValue ->
+                Logd(TAG, "sheetState.bottomSheetState.currentValue collect")
+                sheetValueState.value = newValue
+            }
         }
         val bottomInsets = WindowInsets.ime.union(WindowInsets.navigationBars)
         val bottomInsetPadding = bottomInsets.asPaddingValues().calculateBottomPadding()
@@ -356,6 +361,7 @@ class MainActivity : BaseActivity() {
             }
         }
 
+        Logd(TAG, "before CompositionLocalProvider")
         CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState, LocalNavController provides navigator) {
 //            Logd(TAG, "dynamicBottomPadding: $dynamicBottomPadding sheetValue: ${sheetValueState.value}")
             ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
@@ -379,6 +385,30 @@ class MainActivity : BaseActivity() {
                 }
             }
         }
+
+//        CompositionLocalProvider(LocalDrawerController provides drawerCtrl, LocalDrawerState provides drawerState, LocalNavController provides navigator) {
+//            ModalNavigationDrawer(drawerState = drawerState, modifier = Modifier.fillMaxHeight(), drawerContent = { NavDrawerScreen() }) {
+//                Scaffold(bottomBar = { AudioPlayerUIScreen(modifier = Modifier.padding(bottom = bottomInsetPadding), navigator) }) { innerPadding ->
+//                    val playerHeightOnly = (innerPadding.calculateBottomPadding() - bottomInsetPadding).coerceAtLeast(0.dp)
+//                    Box(modifier = Modifier.background(MaterialTheme.colorScheme.surface).fillMaxSize().padding(bottom = playerHeightOnly)) {
+//                        if (toastMassege.isNotBlank()) CustomToast(message = toastMassege, onDismiss = { toastMassege = "" })
+//                        if (commonConfirm != null) CommonConfirmDialog(commonConfirm!!)
+//                        if (commonMessage != null) LargePoster(commonMessage!!)
+//                        Navigate(navController, initScreen ?: "")
+//                    }
+//                }
+//                LaunchedEffect(intendedScreen) {
+//                    Logd(TAG, "LaunchedEffect intendedScreen: $intendedScreen")
+//                    if (intendedScreen.isNotBlank()) {
+//                        navigator.navigate(intendedScreen) {
+//                            popUpTo(0) { inclusive = true }
+//                            launchSingleTop = true
+//                        }
+//                        intendedScreen = ""
+//                    }
+//                }
+//            }
+//        }
 
         BackHandler(enabled = handleBackSubScreens.isEmpty()) {
             fun haveCommonPrefix(a: String, b: String): Boolean {

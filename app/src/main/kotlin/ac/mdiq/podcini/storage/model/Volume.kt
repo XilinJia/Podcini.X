@@ -67,7 +67,7 @@ fun monitorVolumes(scope: CoroutineScope) {
     volumeMonitorJob = scope.launch(Dispatchers.IO) {
         feedQuery.asFlow().collect { changes: ResultsChange<Volume> ->
             volumes = changes.list
-            //            Logd(TAG, "monitorVolumes volumes size: ${volumes.size}")
+            Logd(TAG, "monitorVolumes volumes size: ${volumes.size}")
             when (changes) {
                 is UpdatedResults -> {
                     when {

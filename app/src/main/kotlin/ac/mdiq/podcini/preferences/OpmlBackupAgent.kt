@@ -127,7 +127,9 @@ class OpmlBackupAgent : BackupAgentHelper() {
                     }
                 }
             } catch (e: XmlPullParserException) { Logs(TAG, e, "Error while parsing the OPML file,")
-            } catch (e: IOException) { Logs(TAG, e, "Failed to restore OPML backup.")
+            } catch (e: IOException) {
+                if (e.message?.contains("zero bytes") == true) Logd(TAG, "Stream ended prematurely or returned zero bytes. Stopping.")
+                else Logs(TAG, e, "Failed to restore OPML backup.")
             } finally {
                 if (linesRead > 0) {
                     Logd(TAG, "restoreEntity finally $feedCount")

@@ -1,0 +1,2 @@
+* in FeedDetails list, PlayOne, PlayRepeat, StreamOne, StreamRepeat also update lastPlayed of the feed
+* upped kotlin to 2.3.10 and krdb to 3.3.2, and other dependencies

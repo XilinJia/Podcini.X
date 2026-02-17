@@ -47,6 +47,7 @@ fun initAppPrefs() {
     if (sleepPrefsJob == null) sleepPrefsJob = CoroutineScope(Dispatchers.IO).launch {
         val flow = realm.query(SleepPrefs::class).query("id == 0").first().asFlow()
         flow.collect { changes: SingleQueryChange<SleepPrefs> ->
+            Logd(TAG, "sleepPrefsJob flow.collect")
             when (changes) {
                 is UpdatedObject -> sleepPrefs = changes.obj
                 is InitialObject -> sleepPrefs = changes.obj

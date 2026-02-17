@@ -13,7 +13,6 @@ import ac.mdiq.podcini.net.sync.transceive.FeedReceiver
 import ac.mdiq.podcini.net.sync.transceive.Receiver
 import ac.mdiq.podcini.net.sync.transceive.broadcastPresence
 import ac.mdiq.podcini.net.sync.transceive.sendCatalog
-import ac.mdiq.podcini.net.sync.transceive.sendFeed
 import ac.mdiq.podcini.net.utils.NetworkUtils.getLocalIpAddress
 import ac.mdiq.podcini.preferences.DocumentFileExportWorker
 import ac.mdiq.podcini.preferences.ExportTypes
@@ -420,7 +419,7 @@ class LibraryVM : ViewModel() {
         }
     }
 
-    fun FeedsRealmFlows(): Flow<RealmResults<Feed>> {
+    fun feedsRealmFlows(): Flow<RealmResults<Feed>> {
         Logd(TAG, "buildFeedsFlows")
 
         fun languagesQS() : String {
@@ -489,7 +488,6 @@ class LibraryVM : ViewModel() {
 
     data class FeedsFlowkeys(
         val id: Long?,
-//        val numAllFeeds: Int,
         val showAllFeeds: Boolean,
         val feedsFiltered: Int,
         val feedsSorted: Int,
@@ -497,7 +495,7 @@ class LibraryVM : ViewModel() {
     )
 
     val feedsFlow: StateFlow<List<Feed>> = snapshotFlow { FeedsFlowkeys(curVolume?.id, showAllFeeds, subPrefs.feedsFiltered, subPrefs.feedsSorted, subPrefs.showArchived) }
-        .distinctUntilChanged().flatMapLatest { FeedsRealmFlows()
+        .distinctUntilChanged().flatMapLatest { feedsRealmFlows()
         }.distinctUntilChanged().stateIn(scope = viewModelScope, started = SharingStarted.WhileSubscribed(5_000), initialValue = emptyList())
 
     init {
@@ -512,6 +510,7 @@ class LibraryVM : ViewModel() {
         }
         viewModelScope.launch(Dispatchers.IO) {
             queuesFlow.collect { changes ->
+                Logd(TAG, "queuesFlow.collect")
                 val ids = changes.list.map { it.id }
                 val names = changes.list.map { it.name }
                 withContext(Dispatchers.Main) {
@@ -1156,13 +1155,14 @@ fun LibraryScreen() {
                         val imageSize = 60
                         Row(Modifier.height(imageSize.dp).background(if (isSelected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface)) {
                             Box(modifier = Modifier.size(imageSize.dp)) {
-                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.fillMaxSize().clickable(onClick = {
-                                    Logd(TAG, "icon clicked!")
-                                    if (!feed.isBuilding) {
-                                        if (selectMode) toggleSelected()
-                                        else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
-                                    }
-                                }))
+                                AsyncImage(model = ImageRequest.Builder(context).data(feed.imageUrl).memoryCachePolicy(CachePolicy.ENABLED).placeholder(R.mipmap.ic_launcher).error(R.mipmap.ic_launcher).build(), contentDescription = "imgvCover", placeholder = painterResource(R.mipmap.ic_launcher), error = painterResource(R.mipmap.ic_launcher), modifier = Modifier.fillMaxSize().clickable(
+                                    onClick = {
+                                        Logd(TAG, "icon clicked!")
+                                        if (!feed.isBuilding) {
+                                            if (selectMode) toggleSelected()
+                                            else navController.navigate("${Screens.FeedDetails.name}?feedId=${feed.id}&modeName=${FeedScreenMode.Info.name}")
+                                        }
+                                    }))
                                 if (feed.rating != Rating.UNRATED.code) Icon(imageVector = ImageVector.vectorResource(Rating.fromCode(feed.rating).res), tint = buttonColor, contentDescription = "rating", modifier = Modifier.size((imageSize/4).dp).align(Alignment.BottomStart).background(MaterialTheme.colorScheme.tertiaryContainer.copy(0.8f)))
                             }
                             Box(Modifier.weight(1f).fillMaxHeight().padding(start = 10.dp).combinedClickable(onClick = {
@@ -1916,7 +1916,7 @@ fun LibraryScreen() {
             var tcpPort by remember(appAttribs.transceivePort) { mutableIntStateOf(appAttribs.transceivePort) }
             var udpPort by remember(appAttribs.udpPort) { mutableIntStateOf(appAttribs.udpPort) }
             val ip = remember { getLocalIpAddress() }
-            var contentType by remember { mutableStateOf<ContentType>(ContentType.Feed) }
+            var contentType by remember { mutableStateOf(ContentType.Feed) }
             var receiver by remember { mutableStateOf<Receiver?>(null) }
             var receiveJob by remember { mutableStateOf<Job?>(null) }
             var broadcastJob by remember { mutableStateOf<Job?>(null) }

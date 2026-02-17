@@ -1,3 +1,8 @@
+# 10.9.4
+
+* in FeedDetails list, PlayOne, PlayRepeat, StreamOne, StreamRepeat also update lastPlayed of the feed
+* upped kotlin to 2.3.10 and krdb to 3.3.2, and other dependencies
+
 # 10.9.3
 
 * amended feed simple update to check newer than last updated and most recent 5 episodes
