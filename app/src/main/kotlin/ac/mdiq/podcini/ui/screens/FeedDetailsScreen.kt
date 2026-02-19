@@ -677,8 +677,13 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                         when {
                             feed == null -> Logt(TAG, "feed is null, can not refresh")
                             feed!!.isSynthetic() -> {
-                                val count = realm.query(Episode::class).query("feedId == ${feed!!.id}").count().find().toInt()
-                                upsertBlk(feed!!) { it.episodesCount = count }
+                                val eps = realm.query(Episode::class).query("feedId == ${feed!!.id}").find()
+                                val count = eps.size
+                                val dur = eps.sumOf { it.duration }
+                                upsertBlk(feed!!) {
+                                    it.episodesCount = count
+                                    it.totleDuration = dur.toLong()
+                                }
                                 Logt(TAG, "episode count updated for synthetic feed: $count")
                             }
                             feed!!.inNormalVolume -> runOnceOrAsk(feeds = listOf(feed!!))

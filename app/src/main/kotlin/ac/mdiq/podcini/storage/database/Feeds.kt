@@ -482,8 +482,12 @@ suspend fun shelveToFeed(episodes: List<Episode>, toFeed: Feed, removeChecked: B
         }
         upsert(e_) { it.feedId = toFeed.id }
     }
-    val count = realm.query(Episode::class).query("feedId == ${toFeed.id}").count().find().toInt()
-    upsert(toFeed) { it.episodesCount = count }
+    val eps = realm.query(Episode::class).query("feedId == ${toFeed.id}").find()
+    val dur = eps.sumOf { it.duration }
+    upsertBlk(toFeed) {
+        it.episodesCount = eps.size
+        it.totleDuration = dur.toLong()
+    }
 }
 
 fun createSynthetic(feedId: Long, name: String, video: Boolean = false): Feed {
