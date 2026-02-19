@@ -18,7 +18,7 @@ import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.Combo
-import ac.mdiq.podcini.ui.actions.EpisodeActionButton
+import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.activity.MainActivity
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.bsState
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
@@ -176,7 +176,7 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
 
     @Composable
     fun OpenDialogs() {
-        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(episode), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
+        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(listOf(episode), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
         if (showShareDialog) ShareDialog(episode) { showShareDialog = false }
 
         if (showEditTimerDialog) EditTimerDialog(onTimer) { showEditTimerDialog = false }
@@ -450,10 +450,10 @@ fun EpisodeScreen(episode_: Episode, listFlow: StateFlow<List<Episode>> = Mutabl
             val buttonColor = MaterialTheme.colorScheme.tertiary
             val buttonAltColor = lerp(MaterialTheme.colorScheme.tertiary, Color.Green, 0.5f)
             var showAltActionsDialog by remember { mutableStateOf(false) }
-            var actionButton by remember { mutableStateOf<EpisodeActionButton?>(null) }
+            var actionButton by remember { mutableStateOf<ActionButton?>(null) }
             if (showAltActionsDialog) actionButton?.AltActionsDialog(context, onDismiss = { showAltActionsDialog = false })
             LaunchedEffect(key1 = status, episode) {
-                actionButton = EpisodeActionButton(episode)
+                actionButton = ActionButton(episode)
                 actionButton?.type = when {
                     InTheatre.isCurrentlyPlaying(episode) -> ButtonTypes.PAUSE
                     episodeFeed != null && episodeFeed.isLocalFeed -> ButtonTypes.PLAY_LOCAL

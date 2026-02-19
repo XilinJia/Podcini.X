@@ -232,26 +232,43 @@ class LibraryVM : ViewModel() {
     var downloadedQuery by mutableStateOf("")
     var commentedQuery by mutableStateOf("")
 
-    fun preparePropertySort(subIndex: FeedPropertySortIndex? = null) {
+    fun preparePropertySort(feeds: List<Feed>, subIndex: FeedPropertySortIndex? = null) {
         val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.propertySortIndex
-        runOnIOScope { upsert(subPrefs) {
-            it.sortIndex = FeedSortIndex.Feed.ordinal
-            it.propertySortIndex = subIndexOrdinal
-            it.sortProperty =
-                when(subIndex) {
-                    FeedPropertySortIndex.Title -> "eigenTitle"
-                    FeedPropertySortIndex.Author -> "author"
-                    FeedPropertySortIndex.Rating -> "rating"
-                    FeedPropertySortIndex.Score -> "score"
-                    FeedPropertySortIndex.ScoreCount -> "scoreCount"
-                    FeedPropertySortIndex.Updated -> "lastUpdateTime"
-                    FeedPropertySortIndex.FullUpdate -> "lastFullUpdateTime"
-                    FeedPropertySortIndex.TotleDuration -> "totleDuration"
-                    FeedPropertySortIndex.Commented -> "commentTime"
-                    else -> "eigenTitle"
+        runOnIOScope {
+            realm.write {
+                for (f_ in feeds) {
+                    val f = findLatest(f_) ?: continue
+                    f.sortInfo = when(subIndex) {
+                        FeedPropertySortIndex.Rating -> Rating.fromCode(f.rating).name
+                        FeedPropertySortIndex.Score -> "${f.score}(${f.scoreCount})"
+                        FeedPropertySortIndex.ScoreCount -> "${f.score}(${f.scoreCount})"
+                        FeedPropertySortIndex.Updated -> formatDateTimeFlex(Date(f.lastUpdateTime))
+                        FeedPropertySortIndex.FullUpdate -> formatDateTimeFlex(Date(f.lastFullUpdateTime))
+                        FeedPropertySortIndex.TotleDuration -> getDurationStringShort(f.totleDuration, true)
+                        FeedPropertySortIndex.Commented -> formatDateTimeFlex(Date(f.commentTime))
+                        else -> formatDateTimeFlex(Date(f.lastUpdateTime))
+                    }
                 }
-            it.feedsSorted++
-        } }
+            }
+            upsert(subPrefs) {
+                it.sortIndex = FeedSortIndex.Feed.ordinal
+                it.propertySortIndex = subIndexOrdinal
+                it.sortProperty =
+                    when(subIndex) {
+                        FeedPropertySortIndex.Title -> "eigenTitle"
+                        FeedPropertySortIndex.Author -> "author"
+                        FeedPropertySortIndex.Rating -> "rating"
+                        FeedPropertySortIndex.Score -> "score"
+                        FeedPropertySortIndex.ScoreCount -> "scoreCount"
+                        FeedPropertySortIndex.Updated -> "lastUpdateTime"
+                        FeedPropertySortIndex.FullUpdate -> "lastFullUpdateTime"
+                        FeedPropertySortIndex.TotleDuration -> "totleDuration"
+                        FeedPropertySortIndex.Commented -> "commentTime"
+                        else -> "eigenTitle"
+                    }
+                it.feedsSorted++
+            }
+        }
     }
     fun prepareDateSort(feeds: List<Feed>, subIndex: FeedDateSortIndex? = null) {
         val subIndexOrdinal = subIndex?.ordinal ?: subPrefs.dateSortIndex
@@ -605,7 +622,7 @@ fun LibraryScreen() {
     LaunchedEffect(vm.subPrefs.sortIndex, feedOperationText) {
         Logd(TAG, "combine(feedsFlow, snapshotFlow {feedOperationText})")
         if (feedOperationText.isBlank()) when (vm.subPrefs.sortIndex) {
-            FeedSortIndex.Feed.ordinal -> vm.preparePropertySort()
+            FeedSortIndex.Feed.ordinal -> vm.preparePropertySort(feedList)
             FeedSortIndex.Date.ordinal -> vm.prepareDateSort(feedList)
             FeedSortIndex.Time.ordinal -> vm.prepareTimeSort(feedList)
             FeedSortIndex.Count.ordinal -> vm.prepareCountSort(feedList)
@@ -1268,7 +1285,7 @@ fun LibraryScreen() {
                                                 it.feedsSorted += 1
                                             }
                                         }
-                                    else vm.preparePropertySort()
+                                    else vm.preparePropertySort(feedList)
                                 }
                             ) { Text(text = stringResource(FeedSortIndex.Feed.res) + if (vm.subPrefs.propertyAscending) "\u00A0▲" else "\u00A0▼", color = textColor) }
                             OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.sortIndex != FeedSortIndex.Date.ordinal) buttonColor else buttonAltColor),
@@ -1316,7 +1333,7 @@ fun LibraryScreen() {
                             FeedSortIndex.Feed.ordinal -> {
                                 FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(10.dp)) {
                                     for (sd in FeedPropertySortIndex.entries) {
-                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.propertySortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.propertySortIndex != sd.ordinal) vm.preparePropertySort(sd) }) { Text(stringResource(sd.res)) }
+                                        OutlinedButton(modifier = Modifier.padding(5.dp), elevation = null, border = BorderStroke(2.dp, if (vm.subPrefs.propertySortIndex != sd.ordinal) buttonColor else buttonAltColor), onClick = { if (vm.subPrefs.propertySortIndex != sd.ordinal) vm.preparePropertySort(feedList, sd) }) { Text(stringResource(sd.res)) }
                                     }
                                 }
                             }

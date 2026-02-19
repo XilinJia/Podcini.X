@@ -9,6 +9,7 @@ import ac.mdiq.podcini.preferences.OpmlTransporter.OpmlWriter
 import ac.mdiq.podcini.storage.database.getFeedList
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.model.Feed
+import ac.mdiq.podcini.storage.model.Feed.Companion.PREFIX_LOCAL_FOLDER
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
@@ -67,7 +68,7 @@ class OpmlBackupAgent : BackupAgentHelper() {
 
             try {
                 // Write OPML
-                OpmlWriter().writeDocument(getFeedList(), writer)
+                OpmlWriter().writeDocument(getFeedList("NOT (downloadUrl BEGINSWITH '$PREFIX_LOCAL_FOLDER')"), writer)
                 // Compare checksum of new and old file to see if we need to perform a backup at all
                 if (digester != null) {
                     val newChecksum = digester.digest()

@@ -403,8 +403,9 @@ abstract class MediaPlayerBase {
         runOnIOScope {
             if (ended || smartMarkAsPlayed || autoSkipped || (skipped && !getPref(AppPrefs.prefSkipKeepsEpisode, true))) {
                 Logd(TAG, "onPostPlayback ended: $ended smartMarkAsPlayed: $smartMarkAsPlayed autoSkipped: $autoSkipped skipped: $skipped")
-                // only mark the item as played if we're not keeping it anyways
+                // only mark the item as played if we're not keeping it anyway
                 item = upsert(item) {
+                    if (it.playState == EpisodeState.FOREVER.code) it.repeatTime = it.repeatInterval + System.currentTimeMillis()
                     if (shouldSetPlayed(it)) it.setPlayState(EpisodeState.PLAYED)
                     upsertDB(it, item.position)
                     it.startTime = 0

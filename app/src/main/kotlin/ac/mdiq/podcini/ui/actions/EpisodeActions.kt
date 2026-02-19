@@ -173,7 +173,7 @@ class SetPlaybackState : EpisodeAction() {
         var showIgnoreDialog by remember { mutableStateOf(false) }
         if (showIgnoreDialog) IgnoreEpisodesDialog(listOf(onEpisode!!), onDismissRequest = { showIgnoreDialog = false })
         var futureState by remember { mutableStateOf(EpisodeState.UNSPECIFIED) }
-        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(listOf(onEpisode!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
+        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(listOf(onEpisode!!), futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
         if (showPlayStateDialog && onEpisode != null) PlayStateDialog(listOf(onEpisode!!), onDismissRequest = { showPlayStateDialog = false }, futureCB = { futureState = it }, ignoreCB = { showIgnoreDialog = true })
     }
 }
@@ -388,7 +388,7 @@ class Download() : EpisodeAction() {
 
     override fun performAction(e: Episode) {
         super.performAction(e)
-        if (!e.downloaded && e.feed != null && !e.feed!!.isLocalFeed) EpisodeActionButton(e, ButtonTypes.DOWNLOAD).onClick()
+        if (!e.downloaded && e.feed != null && !e.feed!!.isLocalFeed) ActionButton(e, ButtonTypes.DOWNLOAD).onClick()
     }
 }
 

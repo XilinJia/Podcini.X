@@ -26,7 +26,7 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.EpisodeAction
-import ac.mdiq.podcini.ui.actions.EpisodeActionButton
+import ac.mdiq.podcini.ui.actions.ActionButton
 import ac.mdiq.podcini.ui.actions.NoAction
 import ac.mdiq.podcini.ui.actions.SwipeActions
 import ac.mdiq.podcini.ui.activity.MainActivity.Companion.downloadStates
@@ -232,7 +232,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
 
         if (showEraseDialog && feed != null) EraseEpisodesDialog(selected, feed, onDismissRequest = { showEraseDialog = false })
         if (showIgnoreDialog) IgnoreEpisodesDialog(selected, onDismissRequest = { showIgnoreDialog = false })
-        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.LATER)) FutureStateDialog(selected, futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
+        if (futureState in listOf(EpisodeState.AGAIN, EpisodeState.FOREVER, EpisodeState.LATER)) FutureStateDialog(selected, futureState, onDismissRequest = { futureState = EpisodeState.UNSPECIFIED })
     }
 
     OpenDialogs()
@@ -307,7 +307,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
         LazyColumn(state = lazyListState, modifier = Modifier.fillMaxSize().padding(start = 10.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(items = episodes, key = { it.id }) { episode_ ->
                 val episode by rememberUpdatedState(episode_)
-                var actionButton by remember(episode.id) { mutableStateOf(if (actionButtonType != null) EpisodeActionButton(episode, actionButtonType) else EpisodeActionButton(episode)) }
+                var actionButton by remember(episode.id) { mutableStateOf(if (actionButtonType != null) ActionButton(episode, actionButtonType) else ActionButton(episode)) }
                 var showAltActionsDialog by remember(episode.id) { mutableStateOf(false) }
                 var isSelected by remember(episode.id, selectMode, selectedSize) { mutableStateOf( selectMode && episode in selected ) }
 
@@ -563,8 +563,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
             }
         }
         if (selectMode) {
-            Row(modifier = Modifier.align(Alignment.TopEnd).background(MaterialTheme.colorScheme.tertiaryContainer),
-                horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.align(Alignment.TopEnd).background(MaterialTheme.colorScheme.tertiaryContainer), horizontalArrangement = Arrangement.spacedBy(15.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = ImageVector.vectorResource(R.drawable.baseline_arrow_upward_24), tint = buttonColor, contentDescription = null, modifier = Modifier.width(35.dp).height(35.dp).padding(start = 10.dp)
                     .clickable(onClick = {
                         selected.clear()
@@ -725,7 +724,7 @@ fun EpisodeLazyColumn(episodes: List<Episode>, feed: Feed? = null, isExternal: B
                             showMulticastDialog = true
                         }, verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = ImageVector.vectorResource(id = R.drawable.ic_share), contentDescription = "Multicast")
-                            Text(stringResource(id = R.string.multicast)) } },
+                            Text(stringResource(id = R.string.multicast_to_devices)) } },
                     )
                     if (selected.isNotEmpty() && isExternal)
                         options.add {

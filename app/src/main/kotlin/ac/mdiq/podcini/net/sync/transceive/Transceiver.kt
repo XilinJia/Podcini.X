@@ -217,7 +217,8 @@ fun sendEpisodes(host: String, port: Int, syntheticName: String, episodes: List<
 
 @Serializable
 data class CatalogPackage(
-    val identifier: String,
+    val senderName: String,
+    val senderUID: String,
     val feedDTOs: List<FeedDTO>
 )
 
@@ -240,7 +241,7 @@ class CatalogReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
                     val json = bytes.decodeToString()
                     val pkg = Json.decodeFromString<CatalogPackage>(json)
 
-                    var v = volumes.find { it.name == pkg.identifier }
+                    var v = volumes.find { it.originId == pkg.senderUID }
                     if (v == null) {
                         v = Volume()
                         var id = CATALOG_VOLUME_ID_START-1
@@ -250,12 +251,13 @@ class CatalogReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
                             id--
                         }
                         v.id = id
-                        v.name = pkg.identifier
+                        v.name = pkg.senderName
+                        v.originId = pkg.senderUID
                         v.parentId = CATALOG_VOLUME_ID_START
                         upsertBlk(v) {}
                     }
 
-                    Logd(TAG, "CatalogReceiver Received from ${pkg.identifier} ${pkg.feedDTOs.size} feeds")
+                    Logd(TAG, "CatalogReceiver Received from ${pkg.senderName} ${pkg.feedDTOs.size} feeds")
                     for (fdto in pkg.feedDTOs) {
                         val f = fdto.toRealm()
                         Logd(TAG, "CatalogReceiver got feed ${f.title}")
@@ -265,7 +267,7 @@ class CatalogReceiver(port: Int, val onEnd: ()->Unit): Receiver(port) {
                         }
                         Logd(TAG, "CatalogReceiver set feed to Volume ${v.name} ${f.title}")
                     }
-                    Logt(TAG, "CatalogReceiver Received from ${pkg.identifier} ${pkg.feedDTOs.size} feeds in catalog")
+                    Logt(TAG, "CatalogReceiver Received from ${pkg.senderName} ${pkg.feedDTOs.size} feeds in catalog")
                 } catch (e: Exception) { Logt(TAG, "Receiving catalog terminated: ${e.message}")
                 } finally {
                     clientSocket.close()
@@ -282,7 +284,7 @@ fun sendCatalog(host: String, port: Int, onEnd: ()->Unit): Job {
         if (!f.inNormalVolume || f.isSynthetic() || f.isLocalFeed) continue
         feedsDTO.add(f.toDTO())
     }
-    val pack = CatalogPackage(appAttribs.name, feedsDTO)
+    val pack = CatalogPackage(appAttribs.name, appAttribs.uniqueId, feedsDTO)
     Logd(TAG, "sendCatalog built package: ${feedsDTO.size} feeds")
 
     var socket: Socket? = null
@@ -315,7 +317,7 @@ suspend fun broadcastPresence(udpPort: Int, tcpPort: Int) = withContext(Dispatch
     socket.broadcast = true
 
     val myIp = getLocalIpAddress()
-    val message = "PodciniReceiver:$myIp:$tcpPort:${appAttribs.name}"
+    val message = "PodciniReceiver:$myIp:$tcpPort:${appAttribs.name}:${appAttribs.uniqueId}"
 
     try {
         while (isActive) {
@@ -333,6 +335,7 @@ data class DiscoveredReceiver(
     val ip: String,
     val port: Int,
     val name: String,
+    val uid: String,
     val lastSeen: Long = System.currentTimeMillis()
 )
 
@@ -357,7 +360,7 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
 
                 val parts = message.split(":")
 
-                if (parts.size < 4) {
+                if (parts.size < 5) {
                     Loge(TAG, "listenForBroadcasts Invalid message format: $message")
                     continue
                 }
@@ -365,6 +368,7 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
                 val ip = parts[1]
                 val port = parts[2].toIntOrNull()
                 val name = parts[3]
+                val uid = parts[4]
                 Logd(TAG, "listenForBroadcasts 9")
 
                 if (port == null) {
@@ -374,7 +378,7 @@ suspend fun listenForUDPBroadcasts(udpPort: Int, onReceiversUpdated: (List<Disco
                 Logd(TAG, "listenForBroadcasts 10")
 
                 val key = "$ip:$port"
-                receivers[key] = DiscoveredReceiver(ip, port, name)
+                receivers[key] = DiscoveredReceiver(ip, port, name, uid)
 
                 withContext(Dispatchers.Main) { onReceiversUpdated(receivers.values.toList()) }
             } catch (e: SocketTimeoutException) {

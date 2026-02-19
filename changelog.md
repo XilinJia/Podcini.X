@@ -1,3 +1,22 @@
+# 10.9.5
+
+* amended Forever state:
+	* setting an episode to Forever state also prompt for a due interval
+	* after playing a Forever episode or removing it from queue, its next due time is set based on the interval
+	* a Forever episode is added to queue when due
+* each app has a unique id for local communication
+* the sender id is sent with catalog and is persistent with the catalog volume at the receiver
+* in FeedDetails:
+	* on menu, "Send to device" is changed to "Transfer to device"
+	* down swipe in synthetic feed updates episode count
+* when transferring a feed
+	* hasVideoMedia property of feed is included
+	* playedDuration, timeSpent, playbackCompletionTime properties of episodes are included
+* in Library screen, amended sortInfo for property sort
+* OPML backup no longer includes local feeds
+* Shelve episodes to a synthetic feed, episodes count is calculated for the feed
+* some code refactoring
+
 # 10.9.4
 
 * in FeedDetails list, PlayOne, PlayRepeat, StreamOne, StreamRepeat also update lastPlayed of the feed

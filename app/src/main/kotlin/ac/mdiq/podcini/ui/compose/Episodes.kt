@@ -39,7 +39,7 @@ import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.Companion.DEFAULT_INTERVALS
 import ac.mdiq.podcini.storage.model.Feed.Companion.INTERVAL_UNITS
-import ac.mdiq.podcini.storage.model.Feed.Companion.duetime
+import ac.mdiq.podcini.storage.model.Feed.Companion.intervalMillis
 import ac.mdiq.podcini.storage.model.Timer
 import ac.mdiq.podcini.storage.model.Todo
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -51,7 +51,7 @@ import ac.mdiq.podcini.storage.specs.Rating
 import ac.mdiq.podcini.storage.utils.durationStringFull
 import ac.mdiq.podcini.storage.utils.getDurationStringLocalized
 import ac.mdiq.podcini.storage.utils.getDurationStringShort
-import ac.mdiq.podcini.ui.actions.EpisodeActionButton.Companion.playVideoIfNeeded
+import ac.mdiq.podcini.ui.actions.ActionButton.Companion.playVideoIfNeeded
 import ac.mdiq.podcini.ui.screens.SearchBy
 import ac.mdiq.podcini.ui.utils.SearchAlgo
 import ac.mdiq.podcini.ui.utils.ShownotesWebView
@@ -884,13 +884,15 @@ fun FutureStateDialog(selected: List<Episode>, state: EpisodeState, onDismissReq
             Button(onClick = {
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val dueTime = duetime(intervals[sel], sel)
+                        val interval = intervalMillis(intervals[sel], sel)
+                        val dueTime = interval + System.currentTimeMillis()
                         realm.write {
                             for (e in selected) {
                                 val hasAlmostEnded = e.hasAlmostEnded()
                                 findLatest(e)?.let {
                                     it.setPlayState(state, hasAlmostEnded)
                                     it.repeatTime = dueTime
+                                    it.repeatInterval = interval
                                 }
                             }
                         }
@@ -1299,7 +1301,7 @@ fun MulticastDialog(selected: List<Episode>, onDismiss: ()->Unit) {
     DisposableEffect(Unit) { onDispose { cleanup() } }
 
     AlertDialog(modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.tertiary, MaterialTheme.shapes.extraLarge), onDismissRequest = {  },
-        title = { Text(stringResource(R.string.send_to_device), style = CustomTextStyles.titleCustom) },
+        title = { Text(stringResource(R.string.multicast_to_devices), style = CustomTextStyles.titleCustom) },
         text = {
             Column {
                 Text(stringResource(R.string.send_to_device_sum))

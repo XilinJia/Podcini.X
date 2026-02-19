@@ -22,6 +22,8 @@ class Volume : RealmObject {
 
     var name: String = ""
 
+    var originId: String = ""
+
     var uriString: String = ""
 
     @Index

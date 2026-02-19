@@ -9,7 +9,6 @@ import ac.mdiq.podcini.storage.database.queuesLive
 import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.upsert
-import ac.mdiq.podcini.storage.model.ARCHIVED_VOLUME_ID
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.model.Feed.AutoDeleteAction
 import ac.mdiq.podcini.storage.model.Feed.AutoDownloadPolicy
@@ -25,19 +24,19 @@ import ac.mdiq.podcini.storage.specs.VolumeAdaptionSetting
 import ac.mdiq.podcini.ui.actions.ButtonTypes
 import ac.mdiq.podcini.ui.actions.playActions
 import ac.mdiq.podcini.ui.actions.streamActions
+import ac.mdiq.podcini.ui.compose.COME_BACK
 import ac.mdiq.podcini.ui.compose.CommonPopupCard
 import ac.mdiq.podcini.ui.compose.CustomTextStyles
 import ac.mdiq.podcini.ui.compose.EpisodeSortDialog
 import ac.mdiq.podcini.ui.compose.EpisodesFilterDialog
-import ac.mdiq.podcini.ui.compose.filterChipBorder
+import ac.mdiq.podcini.ui.compose.LocalNavController
 import ac.mdiq.podcini.ui.compose.NumberEditor
 import ac.mdiq.podcini.ui.compose.PlaybackSpeedDialog
 import ac.mdiq.podcini.ui.compose.RenameOrCreateSyntheticFeed
 import ac.mdiq.podcini.ui.compose.TagSettingDialog
 import ac.mdiq.podcini.ui.compose.TagType
 import ac.mdiq.podcini.ui.compose.VideoModeDialog
-import ac.mdiq.podcini.ui.compose.COME_BACK
-import ac.mdiq.podcini.ui.compose.LocalNavController
+import ac.mdiq.podcini.ui.compose.filterChipBorder
 import ac.mdiq.podcini.utils.Logd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -72,7 +71,6 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -368,7 +366,7 @@ fun FeedsSettingsScreen() {
                                     showIcon =  false
                                 }))
                         })
-                    Text("", color = textColor, style = MaterialTheme.typography.bodySmall)
+//                    Text("", color = textColor, style = MaterialTheme.typography.bodySmall)
                 }
             }
             if ((feedToSet.id >= MAX_NATURAL_SYNTHETIC_ID && feedToSet.hasVideoMedia) || feedsToSet.size > 1) {
@@ -410,7 +408,11 @@ fun FeedsSettingsScreen() {
                                                 if (isChecked) Logd(TAG, "$option is checked")
                                                 val type = Feed.AVQuality.fromTag(selected)
                                                 audioQuality = type.tag
-                                                runOnIOScope { realm.write { for (f in feedsToSet) { if (f.type == Feed.FeedType.YOUTUBE.name) findLatest(f)?.audioQuality = type.code } } }
+                                                runOnIOScope { realm.write { for (f in feedsToSet) {
+                                                    if (f.type == Feed.FeedType.YOUTUBE.name) findLatest(f)?.let {
+                                                        if (!it.hasVideoMedia) it.hasVideoMedia = true
+                                                        it.audioQuality = type.code
+                                                    } } } }
                                                 onDismissRequest()
                                             })
                                         Text(option.tag)
@@ -683,7 +685,7 @@ fun FeedsSettingsScreen() {
                         autoDownloadChecked = false
                     }
                     runOnIOScope {
-                        realm.write { for (f in feedsToSet) { if (f.type != Feed.FeedType.YOUTUBE.name) findLatest(f)?.let { f ->
+                        realm.write { for (f in feedsToSet) { if (f.type != Feed.FeedType.YOUTUBE.name || preferStreaming) findLatest(f)?.let { f ->
                             f.prefStreamOverDownload = preferStreaming
                             if (preferStreaming) f.autoDownload = false
                         } } }

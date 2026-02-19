@@ -82,7 +82,7 @@ import java.util.Locale
 import kotlin.math.max
 import kotlin.math.min
 
-class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) {
+class ActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes.NULL) {
     private val TAG = this::class.simpleName ?: "ItemActionButton"
 
     private var _type = mutableStateOf(typeInit)
@@ -538,7 +538,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
                 }
                 if (type != ButtonTypes.WEBSITE) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.WEBSITE)
+                        val btn = ActionButton(item, ButtonTypes.WEBSITE)
                         btn.onClick(context)
                         onDismiss()
                     })) {
@@ -548,7 +548,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.DOWNLOAD)
+                        val btn = ActionButton(item, ButtonTypes.DOWNLOAD)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
@@ -559,7 +559,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
                 }
                 if (type !in listOf(ButtonTypes.STREAM, ButtonTypes.DOWNLOAD, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.DELETE)
+                        val btn = ActionButton(item, ButtonTypes.DELETE)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
@@ -570,7 +570,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
                 }
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.PLAY_REPEAT)
+                        val btn = ActionButton(item, ButtonTypes.PLAY_REPEAT)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
@@ -581,7 +581,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.PLAY)
+                        val btn = ActionButton(item, ButtonTypes.PLAY)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
@@ -592,7 +592,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
                 }
                 if (type !in listOf(ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DOWNLOAD)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.PLAY_ONE)
+                        val btn = ActionButton(item, ButtonTypes.PLAY_ONE)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
@@ -603,7 +603,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.STREAM_REPEAT)
+                        val btn = ActionButton(item, ButtonTypes.STREAM_REPEAT)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
@@ -614,7 +614,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.STREAM, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.STREAM)
+                        val btn = ActionButton(item, ButtonTypes.STREAM)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()
@@ -625,7 +625,7 @@ class EpisodeActionButton(var item: Episode, typeInit: ButtonTypes = ButtonTypes
                 }
                 if (type !in listOf(ButtonTypes.PLAY, ButtonTypes.PAUSE, ButtonTypes.DELETE)) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable(onClick = {
-                        val btn = EpisodeActionButton(item, ButtonTypes.STREAM_ONE)
+                        val btn = ActionButton(item, ButtonTypes.STREAM_ONE)
                         btn.onClick(context)
                         type = btn.type
                         onDismiss()

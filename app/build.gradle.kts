@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
     id("io.github.xilinjia.krdb")
     id("kotlin-parcelize")
-    kotlin("plugin.serialization") version "2.3.10"
+    kotlin("plugin.serialization")
 }
 
 composeCompiler {
@@ -28,8 +28,8 @@ configure<ApplicationExtension> {
         minSdk = 26
         targetSdk = 36
 
-        versionCode = 257
-        versionName = "10.9.4"
+        versionCode = 258
+        versionName = "10.9.5"
 
         ndkVersion = "29.0.14206865"
 

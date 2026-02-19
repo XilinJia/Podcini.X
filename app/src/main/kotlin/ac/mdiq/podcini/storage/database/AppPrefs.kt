@@ -15,6 +15,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.util.UUID.randomUUID
 
 private const val TAG = "AppPrefs"
 
@@ -28,6 +29,8 @@ var sleepPrefsJob: Job? = null
 
 fun initAppPrefs() {
     if (appAttribsJob == null) appAttribsJob = CoroutineScope(Dispatchers.IO).launch {
+        if (appAttribs.uniqueId.isEmpty()) appAttribs = upsert(appAttribs) { it.uniqueId = randomUUID().toString() }
+
         val flow = realm.query(AppAttribs::class).query("id == 0").first().asFlow()
         flow.collect { changes: SingleQueryChange<AppAttribs> ->
             when (changes) {

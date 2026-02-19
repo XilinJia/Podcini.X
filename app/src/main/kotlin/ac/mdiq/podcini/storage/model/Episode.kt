@@ -258,6 +258,8 @@ class Episode : RealmObject {
         }
     var repeatTime: Long = 0L
 
+    var repeatInterval: Long = 0L
+
     @Ignore
     val isWorthy: Boolean
         get() = (playState != EpisodeState.IGNORED.code && comment != "")
@@ -937,8 +939,11 @@ data class EpisodeDTO(
     val imageUrl: String? = null,
 
     val duration: Int = 0,
-
     val position: Int = 0,
+
+    val playedDuration: Int = 0,
+    val timeSpent: Long = 0,
+    val playbackCompletionTime: Long = 0,
 
     val viewCount: Int = 0,
 
@@ -973,6 +978,11 @@ fun Episode.toDTO() = EpisodeDTO(
     imageUrl = this.imageUrl,
     duration = this.duration,
     position = this.position,
+
+    playedDuration = this.playedDuration,
+    timeSpent = this.timeSpent,
+    playbackCompletionTime = this.playbackCompletionTime,
+
     viewCount = this.viewCount,
     playState = this.playState,
     playStateSetTime = this.playStateSetTime,
@@ -1030,6 +1040,10 @@ fun EpisodeDTO.toRealm() = Episode().apply {
         if (it.duration == 0) it.duration = this@toRealm.duration
 
         it.position = this@toRealm.position
+        it.playedDuration = this@toRealm.playedDuration
+        it.timeSpent = this@toRealm.timeSpent
+        it.playbackCompletionTime = this@toRealm.playbackCompletionTime
+
         it.viewCount = this@toRealm.viewCount
         it.setPlayState(EpisodeState.fromCode(this@toRealm.playState), setTime = this@toRealm.playStateSetTime)
         it.isAutoDownloadEnabled = this@toRealm.isAutoDownloadEnabled

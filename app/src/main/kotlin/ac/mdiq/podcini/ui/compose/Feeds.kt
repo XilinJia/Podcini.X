@@ -377,6 +377,7 @@ fun SendToDevice(onDismiss: ()->Unit, cb: (String, Int)->Job?) {
     var host by remember { mutableStateOf("") }
     var port by remember { mutableIntStateOf(0) }
     var name by remember { mutableStateOf("") }
+    var uid by remember { mutableStateOf("") }
     var udpPort by remember(appAttribs.udpPort) { mutableIntStateOf(appAttribs.udpPort) }
     var sendJob by remember { mutableStateOf<Job?>(null) }
     var discoverJob by remember { mutableStateOf<Job?>(null) }
@@ -387,6 +388,7 @@ fun SendToDevice(onDismiss: ()->Unit, cb: (String, Int)->Job?) {
                     host = list[0].ip
                     port = list[0].port
                     name = list[0].name
+                    uid = list[0].uid
                     Logd("SendToDevice", "name: $name host: $host port: $port")
                 }
             }

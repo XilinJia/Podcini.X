@@ -71,6 +71,8 @@ class Feed : RealmObject {
     //Feed type, options are defined in [FeedType].
     var type: String? = null
 
+    var hasVideoMedia: Boolean = false
+
     @Ignore
     var episodes: MutableList<Episode> = mutableListOf()    // used only for new feed
 
@@ -96,8 +98,6 @@ class Feed : RealmObject {
     var lastUpdateFailed = false
 
     var totleDuration: Long = 0L
-
-    var hasVideoMedia: Boolean = false
 
     var rating: Int =  Rating.OK.code
 
@@ -782,8 +782,8 @@ class Feed : RealmObject {
 
         fun newId(): Long = Date().time * 100
 
-        fun duetime(n: Int, i: Int): Long {
-            return System.currentTimeMillis() + when (i) {
+        fun intervalMillis(n: Int, i: Int): Long {
+            return when (i) {
                 0 -> n * 60000
                 1 -> n * 3.6e6
                 2 -> n * 8.64e7
@@ -807,6 +807,7 @@ data class FeedDTO(
     val author: String? = null,
     val imageUrl: String? = null,
     val type: String? = null,
+    val hasVideoMedia: Boolean = false,
 
     val episodesCount: Int = 0,
 
@@ -835,6 +836,7 @@ fun Feed.toDTO() = FeedDTO(
     author = this.author,
     imageUrl = this.imageUrl,
     type = this.type,
+    hasVideoMedia = this.hasVideoMedia,
     episodesCount = this.episodesCount,
     limitEpisodesCount = this.limitEpisodesCount,
     lastPlayed = this.lastPlayed,
@@ -862,6 +864,8 @@ fun FeedDTO.toRealm() = Feed().apply {
         if (it.author == null) it.author = this@toRealm.author
         if (it.imageUrl == null) it.imageUrl = this@toRealm.imageUrl
         if (it.type == null) it.type = this@toRealm.type
+        it.hasVideoMedia = this@toRealm.hasVideoMedia
+
         it.episodesCount = this@toRealm.episodesCount
         it.limitEpisodesCount = this@toRealm.limitEpisodesCount
         it.lastPlayed = this@toRealm.lastPlayed

@@ -18,6 +18,8 @@ class AppAttribs: RealmObject {
 
     var name: String = "My Podcini"
 
+    var uniqueId: String = ""
+
     var prefLastScreen: String = ""
 
     var prefLastScreenArg: String = ""      // TODO: not really used now?

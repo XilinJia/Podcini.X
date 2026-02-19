@@ -147,7 +147,7 @@ suspend fun addToQueue(episodes: List<Episode>, queue: PlayQueue) {
             }
             Logd(TAG, "addToQueue insertPosition: $insertPosition")
             val qe = QueueEntry().apply {
-                id = time + i++
+                id = time + i++     // TODO: this can result in the same value if run from multiple coroutines somehow
                 queueId = queue.id
                 episodeId = e.id
                 position = insertPosition
@@ -204,9 +204,11 @@ suspend fun smartRemoveFromAllQueues(item_: Episode) {
     var item = item_
     val almostEnded = item.hasAlmostEnded()
     if (almostEnded) {
-        item = upsert(item) { it.playbackCompletionDate = Date() }
-        if (item.playState < EpisodeState.PLAYED.code && !shouldPreserve(item.playState))
-            item = upsert(item) { it.setPlayState(EpisodeState.PLAYED) }
+        item = upsert(item) {
+            it.playbackCompletionDate = Date()
+            if (it.playState == EpisodeState.FOREVER.code) it.repeatTime = it.repeatInterval + System.currentTimeMillis()
+            if (it.playState < EpisodeState.PLAYED.code && !shouldPreserve(it.playState)) it.setPlayState(EpisodeState.PLAYED)
+        }
     }
     if (item.playState < EpisodeState.SKIPPED.code && !shouldPreserve(item.playState)) {
         val stat = if (item.lastPlayedTime > 0L) EpisodeState.SKIPPED else EpisodeState.PASSED

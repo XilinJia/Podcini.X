@@ -81,7 +81,7 @@ val config: RealmConfiguration by lazy {
         SubscriptionsPrefs::class,
         FacetsPrefs::class,
         SleepPrefs::class
-    )).name("Podcini.realm").schemaVersion(109)
+    )).name("Podcini.realm").schemaVersion(111)
         .migration({ mContext ->
             val oldRealm = mContext.oldRealm // old realm using the previous schema
             val newRealm = mContext.newRealm // new realm using the new schema
@@ -253,7 +253,7 @@ val config: RealmConfiguration by lazy {
                 mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
                     newObject?.run {
                         val playState = oldObject.getValue<Long>(fieldName = "playState")
-                        if (playState == 7L) {
+                        if (playState == EpisodeState.AGAIN.code.toLong()) {
                             val t = System.currentTimeMillis() + (8.64e7 * (10..100).random()).toLong()
                             set("repeatTime", t)
                         }
@@ -462,6 +462,15 @@ val config: RealmConfiguration by lazy {
                 Logd(TAG, "migrating DB from below 109")
                 val attrNew = newRealm.query("AppAttribs").find()
                 if (attrNew.isNotEmpty()) attrNew[0].set("name", "My Podcini")
+            }
+            if (oldRealm.schemaVersion() < 111) {
+                Logd(TAG, "migrating DB from below 111")
+                val episodes = newRealm.query("Episode").query("playState == ${EpisodeState.FOREVER.code}").find()
+                for (e in episodes) {
+                    e.set("repeatInterval", (8.64e7 * 10).toLong())
+                    val t = System.currentTimeMillis() + (8.64e7 * (10..100).random()).toLong()
+                    e.set("repeatTime", t)
+                }
             }
         }).build()
 }

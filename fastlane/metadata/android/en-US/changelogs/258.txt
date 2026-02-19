@@ -1,0 +1,9 @@
+* amended handling of Forever state
+* each app has a unique id for local communication
+* the sender id is sent with catalog and is persistent with the catalog volume at the receiver
+* in FeedDetails:
+	* on menu, "Send to device" is changed to "Transfer to device"
+	* down swipe in synthetic feed updates episode count
+* when transferring a feed, added some properties
+* in Library screen, amended sortInfo for property sort
+* OPML backup no longer includes local feeds

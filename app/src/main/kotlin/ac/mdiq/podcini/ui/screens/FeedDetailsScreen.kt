@@ -18,6 +18,7 @@ import ac.mdiq.podcini.storage.database.realm
 import ac.mdiq.podcini.storage.database.runOnIOScope
 import ac.mdiq.podcini.storage.database.updateFeedFull
 import ac.mdiq.podcini.storage.database.upsert
+import ac.mdiq.podcini.storage.database.upsertBlk
 import ac.mdiq.podcini.storage.model.Episode
 import ac.mdiq.podcini.storage.model.Feed
 import ac.mdiq.podcini.storage.specs.EpisodeFilter
@@ -463,7 +464,7 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                                 else Loge(TAG, "feed link is not valid: ${feed?.link}")
                                 expanded = false
                             })
-                            DropdownMenuItem(text = { Text(stringResource(R.string.send_to_device)) }, onClick = {
+                            DropdownMenuItem(text = { Text(stringResource(R.string.transfer_to_device)) }, onClick = {
                                 showToDeviceDialog = true
                                 expanded = false
                             })
@@ -673,8 +674,16 @@ fun FeedDetailsScreen(feedId: Long = 0L, modeName: String = FeedScreenMode.List.
                     swipeActions = swipeActions,
                     lazyListState = lazyListState, scrollToOnStart = scrollToOnStart,
                     refreshCB = {
-                        if (feed != null && feed!!.inNormalVolume) runOnceOrAsk(feeds = listOf(feed!!))
-                        else Logt(TAG, "feed is null or archived, can not refresh")
+                        when {
+                            feed == null -> Logt(TAG, "feed is null, can not refresh")
+                            feed!!.isSynthetic() -> {
+                                val count = realm.query(Episode::class).query("feedId == ${feed!!.id}").count().find().toInt()
+                                upsertBlk(feed!!) { it.episodesCount = count }
+                                Logt(TAG, "episode count updated for synthetic feed: $count")
+                            }
+                            feed!!.inNormalVolume -> runOnceOrAsk(feeds = listOf(feed!!))
+                            else -> Logt(TAG, "feed is archived, can not refresh")
+                        }
                     },
                     selectModeCB = { vm.showHeader = !it },
                     actionButtonType = if (actionButtonName != null) ButtonTypes.valueOf(actionButtonName!!) else null,
