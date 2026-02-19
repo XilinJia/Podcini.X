@@ -100,10 +100,11 @@
     <string name="ask_remove_mark">%1$s を削除しますか？</string>
     <string name="play_mark_msg">エピソードが再生されているときにマークを求めることができます。</string>
     <string name="send_to_device">Send to device</string>
+    <string name="send_to_device_sum">Ensure the broadcast port number is the same as that on the receiver.</string>
+    <string name="transfer_to_device">Transfer to device</string>
     <string name="send_catalog">Send catalog</string>
     <string name="send">Send</string>
     <string name="receiver_tag">Receiver: %1$s</string>
-    <string name="send_to_device_sum">Ensure the broadcast port number is the same as that on the receiver.</string>
     <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">期間: </string>
     <string name="by">By</string>
@@ -220,7 +221,7 @@
     <string name="shelve_label">シェルフを合成する</string>
     <string name="add_to_active_queue">Add to active queue</string>
     <string name="add_to_associated_queue">関連するキューに追加</string>
-    <string name="multicast">Multicast to devices</string>
+    <string name="multicast_to_devices">Multicast to devices</string>
     <string name="remove_from_all_queues">すべてのキューから削除</string>
     <string name="media_type">メディアタイプ</string>
     <string name="unknown">不明</string>
