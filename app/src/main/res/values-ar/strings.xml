@@ -100,10 +100,11 @@
     <string name="ask_remove_mark">هل تريد إزالة العلامة: %1$s؟</string>
     <string name="play_mark_msg">يمكن البحث عن العلامة عندما يتم عرض الحلقة.</string>
     <string name="send_to_device">Send to device</string>
+    <string name="send_to_device_sum">Ensure the broadcast port number is the same as that on the receiver.</string>
+    <string name="transfer_to_device">Transfer to device</string>
     <string name="send_catalog">Send catalog</string>
     <string name="send">Send</string>
     <string name="receiver_tag">Receiver: %1$s</string>
-    <string name="send_to_device_sum">Ensure the broadcast port number is the same as that on the receiver.</string>
     <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">المدة: </string>
     <string name="by">By</string>
@@ -225,7 +226,7 @@
     <string name="shelve_label">رفوف اصطناعي</string>
     <string name="add_to_active_queue">Add to active queue</string>
     <string name="add_to_associated_queue">إضافة إلى قائمة الانتظار المرتبطة</string>
-    <string name="multicast">Multicast to devices</string>
+    <string name="multicast_to_devices">Multicast to devices</string>
     <string name="remove_from_all_queues">إزالة من جميع قوائم الانتظار</string>
     <string name="media_type">نوع الوسائط</string>
     <string name="unknown">غير معروف</string>
