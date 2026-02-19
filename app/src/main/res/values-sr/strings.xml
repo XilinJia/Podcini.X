@@ -100,10 +100,11 @@
     <string name="ask_remove_mark">Do you want to remove mark: %1$s ?</string>
     <string name="play_mark_msg">The mark can be sought to when the episode is being played.</string>
     <string name="send_to_device">Send to device</string>
+    <string name="send_to_device_sum">Ensure the broadcast port number is the same as that on the receiver.</string>
+    <string name="transfer_to_device">Transfer to device</string>
     <string name="send_catalog">Send catalog</string>
     <string name="send">Send</string>
     <string name="receiver_tag">Receiver: %1$s</string>
-    <string name="send_to_device_sum">Ensure the broadcast port number is the same as that on the receiver.</string>
     <string name="receive_contents">Receive contents</string>
     <string name="chapter_duration0">Duration: </string>
     <string name="by">By</string>
@@ -222,7 +223,7 @@
     <string name="shelve_label">Shelve to synthetic</string>
     <string name="add_to_active_queue">Add to active queue</string>
     <string name="add_to_associated_queue">Add to associated queue</string>
-    <string name="multicast">Multicast to devices</string>
+    <string name="multicast_to_devices">Multicast to devices</string>
     <string name="remove_from_all_queues">Remove from all queues</string>
     <string name="media_type">Media type</string>
     <string name="unknown">Unknown</string>
