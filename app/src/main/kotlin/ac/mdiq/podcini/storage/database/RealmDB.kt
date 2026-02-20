@@ -260,31 +260,31 @@ val config: RealmConfiguration by lazy {
                     }
                 }
             }
-            if (oldRealm.schemaVersion() < 57) {
-                Logd(TAG, "migrating DB from below 57")
-                val queues = newRealm.query("PlayQueue").find()
-                val t = System.currentTimeMillis()
-                var c = 0L
-                for (queue in queues) {
-                    val id = queue.getValue<Long>("id")
-                    val oldQueue = oldRealm.query("PlayQueue","id == $0", id).first().find()
-                    if (oldQueue != null) {
-                        Logd(TAG, "migrating DB old queue: $id")
-                        val eids = oldQueue.getValueList<Long>("episodeIds")
-                        Logd(TAG, "migrating DB eids: ${eids.size}")
-                        val episodes = newRealm.query("Episode", "id IN $0", eids).find()
-                        Logd(TAG, "migrating DB episodes: ${episodes.size}")
-                        for (e in episodes) e.set("timeInQueue", t + c++)
-                        //                            val newEpisodes = queue.getObjectList("episodes")
-                        //                            newEpisodes.addAll(episodes)
-                        val beids = oldQueue.getValueList<Long>("idsBinList")
-                        Logd(TAG, "migrating DB beids: ${beids.size}")
-                        val bepisodes = newRealm.query("Episode", "id IN $0", beids).find()
-                        Logd(TAG, "migrating DB bepisodes: ${bepisodes.size}")
-                        for (e in bepisodes) e.set("timeOutQueue", t + c++)
-                    }
-                }
-            }
+//            if (oldRealm.schemaVersion() < 57) {
+//                Logd(TAG, "migrating DB from below 57")
+//                val queues = newRealm.query("PlayQueue").find()
+//                val t = System.currentTimeMillis()
+//                var c = 0L
+//                for (queue in queues) {
+//                    val id = queue.getValue<Long>("id")
+//                    val oldQueue = oldRealm.query("PlayQueue","id == $0", id).first().find()
+//                    if (oldQueue != null) {
+//                        Logd(TAG, "migrating DB old queue: $id")
+//                        val eids = oldQueue.getValueList<Long>("episodeIds")
+//                        Logd(TAG, "migrating DB eids: ${eids.size}")
+//                        val episodes = newRealm.query("Episode", "id IN $0", eids).find()
+//                        Logd(TAG, "migrating DB episodes: ${episodes.size}")
+//                        for (e in episodes) e.set("timeInQueue", t + c++)
+//                        //                            val newEpisodes = queue.getObjectList("episodes")
+//                        //                            newEpisodes.addAll(episodes)
+//                        val beids = oldQueue.getValueList<Long>("idsBinList")
+//                        Logd(TAG, "migrating DB beids: ${beids.size}")
+//                        val bepisodes = newRealm.query("Episode", "id IN $0", beids).find()
+//                        Logd(TAG, "migrating DB bepisodes: ${bepisodes.size}")
+//                        for (e in bepisodes) e.set("timeOutQueue", t + c++)
+//                    }
+//                }
+//            }
             if (oldRealm.schemaVersion() < 59) {
                 Logd(TAG, "migrating DB from below 59")
                 val queues = newRealm.query("PlayQueue").find()
@@ -307,67 +307,67 @@ val config: RealmConfiguration by lazy {
                 val queues = newRealm.query("PlayQueue").find()
                 for (queue in queues) queue.set("playInSequence", true)
             }
-            if (oldRealm.schemaVersion() < 72) {
-                Logd(TAG, "migrating DB from below 72")
-                val appAttribs = newRealm.query("AppAttribs").find()
-                if (appAttribs.isNotEmpty()) {
-                    val feedsOld = oldRealm.query("Feed").find()
-                    val tagsSet = mutableSetOf<String>()
-                    val langsSet = mutableSetOf<String>()
-                    for (f in feedsOld) {
-                        val id = f.getValue<Long>("id")
-                        val lang = f.getNullableValue<String>("language") ?: ""
-                        Logd(TAG, "migrating languages [$lang]")
-                        langsSet.add(lang)
-
-                        Logd(TAG, "migrating feed language [$lang]")
-                        val fNew = newRealm.query("Feed", "id == $id").first().find()
-                        if (fNew != null) {
-                            val langs = fNew.getValueList<String>("languages")
-                            langs.add(lang)
-                        }
-
-                        val tags = f.getValueSet<String>("tags").toRealmList()
-                        Logd(TAG, "migrating tags [$tags]")
-                        tagsSet.addAll(tags)
-                    }
-                    val aa = appAttribs[0]
-                    Logd(TAG, "migrating all tags")
-                    val fTags = aa.getValueList<String>("feedTags")
-                    fTags.addAll(tagsSet.toRealmList())
-                    Logd(TAG, "migrating all languages")
-                    val languages = aa.getValueList<String>("languages")
-                    languages.addAll(langsSet.toRealmList())
-                }
-            }
-            if (oldRealm.schemaVersion() < 83) {
-                Logd(TAG, "migrating DB from below 83")
-                val attrOld = oldRealm.query("AppAttribs").find()
-                val attrNew = newRealm.query("AppAttribs").find()
-                if (attrOld.isNotEmpty() && attrNew.isNotEmpty()) {
-                    Logd(TAG, "migrating AppAttribs languages")
-                    val langsOld = attrOld[0].getValueList<String>("languages").toRealmSet()
-                    val langsNew = attrNew[0].getValueSet<String>("langSet")
-                    langsNew.addAll(langsOld)
-                    Logd(TAG, "migrating AppAttribs feedTags")
-                    val fTagsOld = attrOld[0].getValueList<String>("feedTags").toRealmSet()
-                    val fTagsNew = attrNew[0].getValueSet<String>("feedTagSet")
-                    fTagsNew.addAll(fTagsOld)
-                    Logd(TAG, "migrating AppAttribs episodeTags")
-                    val eTagsOld = attrOld[0].getValueList<String>("episodeTags").toRealmSet()
-                    val eTagsNew = attrNew[0].getValueSet<String>("episodeTagSet")
-                    eTagsNew.addAll(eTagsOld)
-                }
-                val feedsOld = oldRealm.query("Feed", "languages.@count > 0").find()
-                for (f in feedsOld) {
-                    val id = f.getValue<Long>("id")
-                    val fNew = newRealm.query("Feed", "id == $id").first().find() ?: continue
-                    Logd(TAG, "migrating feed languages $id")
-                    val langsOld = f.getValueList<String>("languages").toRealmSet()
-                    val langsNew = fNew.getValueSet<String>("langSet")
-                    langsNew.addAll(langsOld)
-                }
-            }
+//            if (oldRealm.schemaVersion() < 72) {
+//                Logd(TAG, "migrating DB from below 72")
+//                val appAttribs = newRealm.query("AppAttribs").find()
+//                if (appAttribs.isNotEmpty()) {
+//                    val feedsOld = oldRealm.query("Feed").find()
+//                    val tagsSet = mutableSetOf<String>()
+//                    val langsSet = mutableSetOf<String>()
+//                    for (f in feedsOld) {
+//                        val id = f.getValue<Long>("id")
+//                        val lang = f.getNullableValue<String>("language") ?: ""
+//                        Logd(TAG, "migrating languages [$lang]")
+//                        langsSet.add(lang)
+//
+//                        Logd(TAG, "migrating feed language [$lang]")
+//                        val fNew = newRealm.query("Feed", "id == $id").first().find()
+//                        if (fNew != null) {
+//                            val langs = fNew.getValueList<String>("languages")
+//                            langs.add(lang)
+//                        }
+//
+//                        val tags = f.getValueSet<String>("tags").toRealmList()
+//                        Logd(TAG, "migrating tags [$tags]")
+//                        tagsSet.addAll(tags)
+//                    }
+//                    val aa = appAttribs[0]
+//                    Logd(TAG, "migrating all tags")
+//                    val fTags = aa.getValueList<String>("feedTags")
+//                    fTags.addAll(tagsSet.toRealmList())
+//                    Logd(TAG, "migrating all languages")
+//                    val languages = aa.getValueList<String>("languages")
+//                    languages.addAll(langsSet.toRealmList())
+//                }
+//            }
+//            if (oldRealm.schemaVersion() < 83) {
+//                Logd(TAG, "migrating DB from below 83")
+//                val attrOld = oldRealm.query("AppAttribs").find()
+//                val attrNew = newRealm.query("AppAttribs").find()
+//                if (attrOld.isNotEmpty() && attrNew.isNotEmpty()) {
+//                    Logd(TAG, "migrating AppAttribs languages")
+//                    val langsOld = attrOld[0].getValueList<String>("languages").toRealmSet()
+//                    val langsNew = attrNew[0].getValueSet<String>("langSet")
+//                    langsNew.addAll(langsOld)
+//                    Logd(TAG, "migrating AppAttribs feedTags")
+//                    val fTagsOld = attrOld[0].getValueList<String>("feedTags").toRealmSet()
+//                    val fTagsNew = attrNew[0].getValueSet<String>("feedTagSet")
+//                    fTagsNew.addAll(fTagsOld)
+//                    Logd(TAG, "migrating AppAttribs episodeTags")
+//                    val eTagsOld = attrOld[0].getValueList<String>("episodeTags").toRealmSet()
+//                    val eTagsNew = attrNew[0].getValueSet<String>("episodeTagSet")
+//                    eTagsNew.addAll(eTagsOld)
+//                }
+//                val feedsOld = oldRealm.query("Feed", "languages.@count > 0").find()
+//                for (f in feedsOld) {
+//                    val id = f.getValue<Long>("id")
+//                    val fNew = newRealm.query("Feed", "id == $id").first().find() ?: continue
+//                    Logd(TAG, "migrating feed languages $id")
+//                    val langsOld = f.getValueList<String>("languages").toRealmSet()
+//                    val langsNew = fNew.getValueSet<String>("langSet")
+//                    langsNew.addAll(langsOld)
+//                }
+//            }
             if (oldRealm.schemaVersion() < 85) {
                 Logd(TAG, "migrating DB from below 85")
                 val feedsOld = oldRealm.query("Feed").find()
@@ -377,32 +377,32 @@ val config: RealmConfiguration by lazy {
                     fNew.set("volumeId", -1L)
                 }
             }
-            if (oldRealm.schemaVersion() < 88) {
-                Logd(TAG, "migrating DB from below 88")
-                val queues = oldRealm.query("PlayQueue").find()
-                val time = System.currentTimeMillis()
-                var i = 0L
-                for (q in queues) {
-                    val qid = q.getValue<Long>("id")
-                    val eids = q.getValueList<Long>("episodeIds")
-                    Logd(TAG, "migrating queue: $qid with ${eids.size} episodes")
-                    var ip = 1L
-                    for (eid in eids) {
-                        newRealm.copyToRealm(
-                            DynamicMutableRealmObject.create(
-                                type = "QueueEntry",
-                                mapOf(
-                                    "id" to time+i++,
-                                    "queueId" to qid,
-                                    "episodeId" to eid,
-                                    "position" to ip
-                                )
-                            )
-                        )
-                        ip += 10000L
-                    }
-                }
-            }
+//            if (oldRealm.schemaVersion() < 88) {
+//                Logd(TAG, "migrating DB from below 88")
+//                val queues = oldRealm.query("PlayQueue").find()
+//                val time = System.currentTimeMillis()
+//                var i = 0L
+//                for (q in queues) {
+//                    val qid = q.getValue<Long>("id")
+//                    val eids = q.getValueList<Long>("episodeIds")
+//                    Logd(TAG, "migrating queue: $qid with ${eids.size} episodes")
+//                    var ip = 1L
+//                    for (eid in eids) {
+//                        newRealm.copyToRealm(
+//                            DynamicMutableRealmObject.create(
+//                                type = "QueueEntry",
+//                                mapOf(
+//                                    "id" to time+i++,
+//                                    "queueId" to qid,
+//                                    "episodeId" to eid,
+//                                    "position" to ip
+//                                )
+//                            )
+//                        )
+//                        ip += 10000L
+//                    }
+//                }
+//            }
             if (oldRealm.schemaVersion() < 95) {
                 Logd(TAG, "migrating DB from below 95")
                 val attrNew = newRealm.query("AppAttribs").find()

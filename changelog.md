@@ -1,3 +1,7 @@
+# 10.9.5.1
+
+* commented out a few outdated DB migration
+
 # 10.9.5
 
 * amended Forever state:
