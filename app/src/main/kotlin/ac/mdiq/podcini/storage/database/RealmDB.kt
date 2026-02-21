@@ -25,9 +25,8 @@ import ac.mdiq.podcini.storage.specs.EpisodeState
 import ac.mdiq.podcini.utils.Logd
 import ac.mdiq.podcini.utils.Loge
 import ac.mdiq.podcini.utils.Logs
-import ac.mdiq.podcini.utils.Logt
 import ac.mdiq.podcini.utils.showStackTrace
-import ac.mdiq.podcini.utils.timeIt
+import android.util.Log
 import io.github.xilinjia.krdb.MutableRealm
 import io.github.xilinjia.krdb.Realm
 import io.github.xilinjia.krdb.RealmConfiguration
@@ -87,14 +86,14 @@ val config: RealmConfiguration by lazy {
 //                mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
 //                    newObject?.run { set("rating", if (oldObject.getValue<Boolean>(fieldName = "isFavorite")) 2L else 0L) }
 //                }
-                Logt(TAG, "Skipped migrating DB 25: rating value")
+                Log.d(TAG, "Skipped migrating DB 25: rating value")
             }
             if (oldRealm.schemaVersion() < 26) {
 //                Logd(TAG, "migrating DB from below 26")
 //                mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
 //                    newObject?.run { if (oldObject.getValue<Long>(fieldName = "rating") == 0L) set("rating", -3L) }
 //                }
-                Logt(TAG, "Skipped migrating DB 26: rating value")
+                Log.d(TAG, "Skipped migrating DB 26: rating value")
             }
             if (oldRealm.schemaVersion() < 28) {
 //                Logd(TAG, "migrating DB from below 28")
@@ -109,7 +108,7 @@ val config: RealmConfiguration by lazy {
 //                        }
 //                    }
 //                }
-                Logt(TAG, "Skipped migrating DB 28: playState and position values")
+                Log.d(TAG, "Skipped migrating DB 28: playState and position values")
             }
             if (oldRealm.schemaVersion() < 30) {
 //                Logd(TAG, "migrating DB from below 30")
@@ -126,7 +125,7 @@ val config: RealmConfiguration by lazy {
 //                        }
 //                    }
 //                }
-                Logt(TAG, "Skipped migrating DB 30: timeSpent value")
+                Log.d(TAG, "Skipped migrating DB 30: timeSpent value")
             }
             if (oldRealm.schemaVersion() < 37) {
 //                Logd(TAG, "migrating DB from below 37")
@@ -153,7 +152,7 @@ val config: RealmConfiguration by lazy {
 //                        }
 //                    }
 //                }
-                Logt(TAG, "Skipped migrating DB 37: media values")
+                Log.d(TAG, "Skipped migrating DB 37: media values")
             }
             if (oldRealm.schemaVersion() < 38) {
 //                Logd(TAG, "migrating DB from below 38")
@@ -192,7 +191,7 @@ val config: RealmConfiguration by lazy {
 //                        }
 //                    }
 //                }
-                Logt(TAG, "Skipped migrating DB 38: feed preference values")
+                Log.d(TAG, "Skipped migrating DB 38: feed preference values")
             }
             if (oldRealm.schemaVersion() < 39) {
 //                Logd(TAG, "migrating DB from below 39")
@@ -212,7 +211,7 @@ val config: RealmConfiguration by lazy {
 //                        }
 //                    }
 //                }
-                Logt(TAG, "Skipped migrating DB 39: episode fileUrl value")
+                Log.d(TAG, "Skipped migrating DB 39: episode fileUrl value")
             }
             if (oldRealm.schemaVersion() < 45) {
 //                Logd(TAG, "migrating DB from below 45")
@@ -224,7 +223,7 @@ val config: RealmConfiguration by lazy {
 //                        }
 //                    }
 //                }
-                Logt(TAG, "Skipped migrating DB 45: feed autoDLSoon value")
+                Log.d(TAG, "Skipped migrating DB 45: feed autoDLSoon value")
             }
             if (oldRealm.schemaVersion() < 47) {
 //                Logd(TAG, "migrating DB from below 47")
@@ -239,7 +238,7 @@ val config: RealmConfiguration by lazy {
 //                        }
 //                    }
 //                }
-                Logt(TAG, "Skipped migrating DB 47: episode playStateSetTime value")
+                Log.d(TAG, "Skipped migrating DB 47: episode playStateSetTime value")
             }
             if (oldRealm.schemaVersion() < 48) {
 //                Logd(TAG, "migrating DB from below 48")
@@ -253,10 +252,10 @@ val config: RealmConfiguration by lazy {
 //                        }
 //                    }
 //                }
-                Logt(TAG, "Skipped migrating DB 48: episode playState value")
+                Log.d(TAG, "Skipped migrating DB 48: episode playState value")
             }
             if (oldRealm.schemaVersion() < 55) {
-                Logd(TAG, "migrating DB from below 55")
+                Log.d(TAG, "migrating DB from below 55")
                 mContext.enumerate(className = "Episode") { oldObject: DynamicRealmObject, newObject: DynamicMutableRealmObject? ->
                     newObject?.run {
                         val playState = oldObject.getValue<Long>(fieldName = "playState")
@@ -291,15 +290,15 @@ val config: RealmConfiguration by lazy {
 //                         for (e in bepisodes) e.set("timeOutQueue", t + c++)
 //                     }
 //                 }
-                 Logt(TAG, "Skipped migrating DB 57: episode timeInQueue timeOutQueue values")
+                 Log.d(TAG, "Skipped migrating DB 57: episode timeInQueue timeOutQueue values")
              }
             if (oldRealm.schemaVersion() < 59) {
-                Logd(TAG, "migrating DB from below 59")
+                Log.d(TAG, "migrating DB from below 59")
                 val queues = newRealm.query("PlayQueue").find()
                 for (queue in queues) queue.set("launchAutoEQDlWhenEmpty", true)
             }
             if (oldRealm.schemaVersion() < 65) {
-                Logd(TAG, "migrating DB from below 65")
+                Log.d(TAG, "migrating DB from below 65")
                 newRealm.copyToRealm(
                     DynamicMutableRealmObject.create(
                         type = "AppAttribs",
@@ -311,7 +310,7 @@ val config: RealmConfiguration by lazy {
                 )
             }
             if (oldRealm.schemaVersion() < 71) {
-                Logd(TAG, "migrating DB from below 71")
+                Log.d(TAG, "migrating DB from below 71")
                 val queues = newRealm.query("PlayQueue").find()
                 for (queue in queues) queue.set("playInSequence", true)
             }
@@ -347,7 +346,7 @@ val config: RealmConfiguration by lazy {
 //                     val languages = aa.getValueList<String>("languages")
 //                     languages.addAll(langsSet.toRealmList())
 //                 }
-                 Logt(TAG, "Skipped migrating DB 72: AppAttribs tagsSet langsSet values")
+                 Log.d(TAG, "Skipped migrating DB 72: AppAttribs tagsSet langsSet values")
              }
              if (oldRealm.schemaVersion() < 83) {
 //                 Logd(TAG, "migrating DB from below 83")
@@ -376,10 +375,10 @@ val config: RealmConfiguration by lazy {
 //                     val langsNew = fNew.getValueSet<String>("langSet")
 //                     langsNew.addAll(langsOld)
 //                 }
-                 Logt(TAG, "Skipped migrating DB 83: AppAttribs episodeTagSet and feed langSet values")
+                 Log.d(TAG, "Skipped migrating DB 83: AppAttribs episodeTagSet and feed langSet values")
              }
             if (oldRealm.schemaVersion() < 85) {
-                Logd(TAG, "migrating DB from below 85")
+                Log.d(TAG, "migrating DB from below 85")
                 val feedsOld = oldRealm.query("Feed").find()
                 for (f in feedsOld) {
                     val id = f.getValue<Long>("id")
@@ -412,10 +411,10 @@ val config: RealmConfiguration by lazy {
 //                         ip += 10000L
 //                     }
 //                 }
-                 Logt(TAG, "Skipped migrating DB 88: episodeIds to QueueEntry")
+                 Log.d(TAG, "Skipped migrating DB 88: episodeIds to QueueEntry")
              }
             if (oldRealm.schemaVersion() < 95) {
-                Logd(TAG, "migrating DB from below 95")
+                Log.d(TAG, "migrating DB from below 95")
                 val attrNew = newRealm.query("AppAttribs").find()
                 if (attrNew.isNotEmpty()) attrNew[0].set("topChartCountryCode", Locale.getDefault().country)
             }
@@ -433,7 +432,7 @@ val config: RealmConfiguration by lazy {
 //                )
 //            }
             if (oldRealm.schemaVersion() < 101) {
-                Logd(TAG, "migrating DB from below 101")
+                Log.d(TAG, "migrating DB from below 101")
                 val presSynd = newRealm.query("Feed").query("id == 21").first().find()
                 presSynd?.set("volumeId", ARCHIVED_VOLUME_ID)
             }
@@ -451,7 +450,7 @@ val config: RealmConfiguration by lazy {
 //                )
 //            }
             if (oldRealm.schemaVersion() < 106) {
-                Logd(TAG, "migrating DB from below 106")
+                Log.d(TAG, "migrating DB from below 106")
                 val feeds = newRealm.query("Feed").find()
                 for (f in feeds) {
                     val id = f.getValue<Long>("id")
@@ -460,22 +459,22 @@ val config: RealmConfiguration by lazy {
                 }
             }
             if (oldRealm.schemaVersion() < 107) {
-                Logd(TAG, "migrating DB from below 107")
+                Log.d(TAG, "migrating DB from below 107")
                 val attrNew = newRealm.query("AppAttribs").find()
                 if (attrNew.isNotEmpty()) attrNew[0].set("transceivePort", 21080L)
             }
             if (oldRealm.schemaVersion() < 108) {
-                Logd(TAG, "migrating DB from below 108")
+                Log.d(TAG, "migrating DB from below 108")
                 val attrNew = newRealm.query("AppAttribs").find()
                 if (attrNew.isNotEmpty()) attrNew[0].set("udpPort", 21088L)
             }
             if (oldRealm.schemaVersion() < 109) {
-                Logd(TAG, "migrating DB from below 109")
+                Log.d(TAG, "migrating DB from below 109")
                 val attrNew = newRealm.query("AppAttribs").find()
                 if (attrNew.isNotEmpty()) attrNew[0].set("name", "My Podcini")
             }
             if (oldRealm.schemaVersion() < 111) {
-                Logd(TAG, "migrating DB from below 111")
+                Log.d(TAG, "migrating DB from below 111")
                 val episodes = newRealm.query("Episode").query("playState == ${EpisodeState.FOREVER.code}").find()
                 for (e in episodes) {
                     e.set("repeatInterval", (8.64e7 * 10).toLong())

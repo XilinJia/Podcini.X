@@ -31,7 +31,7 @@ private suspend fun trimToasts() {
 }
 
 fun Logd(t: String, m: String) {
-    if (BuildConfig.DEBUG || appPrefs.printDebugLogs) Log.d(t, m)
+    if (BuildConfig.DEBUG) Log.d(t, m)
 }
 
 fun Loge(t: String, m: String) {
